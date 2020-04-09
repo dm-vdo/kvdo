@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#15 $
  */
 
 #include "volumeGeometry.h"
@@ -99,19 +99,19 @@ static inline bool is_loadable_release_version(ReleaseVersionNumber version)
 static int decode_index_config(Buffer *buffer, struct index_config *config)
 {
 	uint32_t mem;
-	int result = getUInt32LEFromBuffer(buffer, &mem);
+	int result = get_uint32_le_from_buffer(buffer, &mem);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	uint32_t checkpoint_frequency;
-	result = getUInt32LEFromBuffer(buffer, &checkpoint_frequency);
+	result = get_uint32_le_from_buffer(buffer, &checkpoint_frequency);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	bool sparse;
-	result = getBoolean(buffer, &sparse);
+	result = get_boolean(buffer, &sparse);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -135,17 +135,17 @@ static int decode_index_config(Buffer *buffer, struct index_config *config)
 static int encode_index_config(const struct index_config *config,
 			       Buffer *buffer)
 {
-	int result = putUInt32LEIntoBuffer(buffer, config->mem);
+	int result = put_uint32_le_into_buffer(buffer, config->mem);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt32LEIntoBuffer(buffer, config->checkpoint_frequency);
+	result = put_uint32_le_into_buffer(buffer, config->checkpoint_frequency);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return putBoolean(buffer, config->sparse);
+	return put_boolean(buffer, config->sparse);
 }
 
 /**
@@ -159,13 +159,13 @@ static int encode_index_config(const struct index_config *config,
 static int decode_volume_region(Buffer *buffer, struct volume_region *region)
 {
 	volume_region_id id;
-	int result = getUInt32LEFromBuffer(buffer, &id);
+	int result = get_uint32_le_from_buffer(buffer, &id);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	PhysicalBlockNumber start_block;
-	result = getUInt64LEFromBuffer(buffer, &start_block);
+	result = get_uint64_le_from_buffer(buffer, &start_block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -188,12 +188,12 @@ static int decode_volume_region(Buffer *buffer, struct volume_region *region)
 static int encode_volume_region(const struct volume_region *region,
 				Buffer *buffer)
 {
-	int result = putUInt32LEIntoBuffer(buffer, region->id);
+	int result = put_uint32_le_into_buffer(buffer, region->id);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return putUInt64LEIntoBuffer(buffer, region->start_block);
+	return put_uint64_le_into_buffer(buffer, region->start_block);
 }
 
 /**
@@ -208,13 +208,13 @@ static int decode_volume_geometry(Buffer *buffer,
 				  struct volume_geometry *geometry)
 {
 	ReleaseVersionNumber release_version;
-	int result = getUInt32LEFromBuffer(buffer, &release_version);
+	int result = get_uint32_le_from_buffer(buffer, &release_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	Nonce nonce;
-	result = getUInt64LEFromBuffer(buffer, &nonce);
+	result = get_uint64_le_from_buffer(buffer, &nonce);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -222,7 +222,7 @@ static int decode_volume_geometry(Buffer *buffer,
 	geometry->release_version = release_version;
 	geometry->nonce = nonce;
 
-	result = getBytesFromBuffer(buffer, sizeof(UUID), geometry->uuid);
+	result = get_bytes_from_buffer(buffer, sizeof(UUID), geometry->uuid);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -249,17 +249,17 @@ static int decode_volume_geometry(Buffer *buffer,
 static int encode_volume_geometry(const struct volume_geometry *geometry,
 				  Buffer *buffer)
 {
-	int result = putUInt32LEIntoBuffer(buffer, geometry->release_version);
+	int result = put_uint32_le_into_buffer(buffer, geometry->release_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, geometry->nonce);
+	result = put_uint64_le_into_buffer(buffer, geometry->nonce);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putBytes(buffer, sizeof(UUID), geometry->uuid);
+	result = put_bytes(buffer, sizeof(UUID), geometry->uuid);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -287,11 +287,11 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 static int decode_geometry_block(Buffer *buffer,
 				 struct volume_geometry *geometry)
 {
-	if (!hasSameBytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
+	if (!has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
 		return VDO_BAD_MAGIC;
 	}
 
-	int result = skipForward(buffer, MAGIC_NUMBER_SIZE);
+	int result = skip_forward(buffer, MAGIC_NUMBER_SIZE);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -314,7 +314,7 @@ static int decode_geometry_block(Buffer *buffer,
 	}
 
 	// Leave the CRC for the caller to decode and verify.
-	return ASSERT(header.size == (uncompactedAmount(buffer) +
+	return ASSERT(header.size == (uncompacted_amount(buffer) +
 				      sizeof(CRC32Checksum)),
 		      "should have decoded up to the geometry checksum");
 }
@@ -331,7 +331,7 @@ static int decode_geometry_block(Buffer *buffer,
 static int encode_geometry_block(const struct volume_geometry *geometry,
 				 Buffer *buffer)
 {
-	int result = putBytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
+	int result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -348,7 +348,7 @@ static int encode_geometry_block(const struct volume_geometry *geometry,
 
 	// Leave the CRC for the caller to compute and encode.
 	return ASSERT(GEOMETRY_BLOCK_HEADER_4_0.size ==
-			      (contentLength(buffer) + sizeof(CRC32Checksum)),
+			      (content_length(buffer) + sizeof(CRC32Checksum)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -396,7 +396,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 	}
 
 	Buffer *buffer;
-	result = wrapBuffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
+	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(block);
 		return result;
@@ -404,24 +404,24 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
-		freeBuffer(&buffer);
+		free_buffer(&buffer);
 		FREE(block);
 		return result;
 	}
 
 	// Checksum everything decoded so far.
 	CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, block,
-					      uncompactedAmount(buffer));
+					      uncompacted_amount(buffer));
 	CRC32Checksum saved_checksum;
-	result = getUInt32LEFromBuffer(buffer, &saved_checksum);
+	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
-		freeBuffer(&buffer);
+		free_buffer(&buffer);
 		FREE(block);
 		return result;
 	}
 
 	// Finished all decoding. Everything that follows is validation code.
-	freeBuffer(&buffer);
+	free_buffer(&buffer);
 	FREE(block);
 
 	if (!is_loadable_release_version(geometry->release_version)) {
@@ -530,7 +530,7 @@ int write_volume_geometry(PhysicalLayer *layer,
 	}
 
 	Buffer *buffer;
-	result = wrapBuffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
+	result = wrap_buffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(block);
 		return result;
@@ -538,24 +538,24 @@ int write_volume_geometry(PhysicalLayer *layer,
 
 	result = encode_geometry_block(geometry, buffer);
 	if (result != VDO_SUCCESS) {
-		freeBuffer(&buffer);
+		free_buffer(&buffer);
 		FREE(block);
 		return result;
 	}
 
 	// Checksum everything encoded so far and then encode the checksum.
 	CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, (byte *) block,
-					      contentLength(buffer));
-	result = putUInt32LEIntoBuffer(buffer, checksum);
+					      content_length(buffer));
+	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
-		freeBuffer(&buffer);
+		free_buffer(&buffer);
 		FREE(block);
 		return result;
 	}
 
 	// Write it.
 	result = layer->writer(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
-	freeBuffer(&buffer);
+	free_buffer(&buffer);
 	FREE(block);
 	return result;
 }

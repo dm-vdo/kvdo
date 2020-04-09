@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#11 $
  */
 
 #include "fixedLayout.h"
@@ -322,22 +322,22 @@ static int encodePartitions_3_0(const struct fixed_layout *layout,
 	     partition != NULL;
 	     partition = partition->next) {
 		STATIC_ASSERT_SIZEOF(partition_id, sizeof(byte));
-		int result = putByte(buffer, partition->id);
+		int result = put_byte(buffer, partition->id);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
-		result = putUInt64LEIntoBuffer(buffer, partition->offset);
+		result = put_uint64_le_into_buffer(buffer, partition->offset);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
-		result = putUInt64LEIntoBuffer(buffer, partition->base);
+		result = put_uint64_le_into_buffer(buffer, partition->base);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
-		result = putUInt64LEIntoBuffer(buffer, partition->count);
+		result = put_uint64_le_into_buffer(buffer, partition->count);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -363,24 +363,24 @@ static int encodeLayout_3_0(const struct fixed_layout *layout, Buffer *buffer)
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, layout->first_free);
+	result = put_uint64_le_into_buffer(buffer, layout->first_free);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, layout->last_free);
+	result = put_uint64_le_into_buffer(buffer, layout->last_free);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	return putByte(buffer, layout->num_partitions);
+	return put_byte(buffer, layout->num_partitions);
 }
 
 /**********************************************************************/
 int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
 {
-	if (!ensureAvailableSpace(buffer,
-				  get_fixed_layout_encoded_size(layout))) {
+	if (!ensure_available_space(buffer,
+				    get_fixed_layout_encoded_size(layout))) {
 		return UDS_BUFFER_ERROR;
 	}
 
@@ -391,14 +391,14 @@ int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
 		return result;
 	}
 
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	result = encodeLayout_3_0(layout, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t encoded_size = contentLength(buffer) - initial_length;
+	size_t encoded_size = content_length(buffer) - initial_length;
 	result = ASSERT(encoded_size == sizeof(struct layout_3_0),
 			"encoded size of fixed layout header must match structure");
 	if (result != UDS_SUCCESS) {
@@ -410,7 +410,7 @@ int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
 		return result;
 	}
 
-	encoded_size = contentLength(buffer) - initial_length;
+	encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(encoded_size == header.size,
 		      "encoded size of fixed layout must match header size");
 }
@@ -429,25 +429,25 @@ static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
 	size_t i;
 	for (i = 0; i < layout->num_partitions; i++) {
 		byte id;
-		int result = getByte(buffer, &id);
+		int result = get_byte(buffer, &id);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
 		uint64_t offset;
-		result = getUInt64LEFromBuffer(buffer, &offset);
+		result = get_uint64_le_from_buffer(buffer, &offset);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
 		uint64_t base;
-		result = getUInt64LEFromBuffer(buffer, &base);
+		result = get_uint64_le_from_buffer(buffer, &base);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 
 		uint64_t count;
-		result = getUInt64LEFromBuffer(buffer, &count);
+		result = get_uint64_le_from_buffer(buffer, &count);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -472,22 +472,22 @@ static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
  **/
 static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 {
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	PhysicalBlockNumber first_free;
-	int result = getUInt64LEFromBuffer(buffer, &first_free);
+	int result = get_uint64_le_from_buffer(buffer, &first_free);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	PhysicalBlockNumber last_free;
-	result = getUInt64LEFromBuffer(buffer, &last_free);
+	result = get_uint64_le_from_buffer(buffer, &last_free);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	byte partition_count;
-	result = getByte(buffer, &partition_count);
+	result = get_byte(buffer, &partition_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -498,7 +498,7 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 		.partition_count = partition_count,
 	};
 
-	size_t decodedSize = initial_length - contentLength(buffer);
+	size_t decodedSize = initial_length - content_length(buffer);
 	return ASSERT(decodedSize == sizeof(struct layout_3_0),
 		      "decoded size of fixed layout header must match structure");
 }
@@ -524,7 +524,7 @@ int decode_fixed_layout(Buffer *buffer, struct fixed_layout **layout_ptr)
 		return result;
 	}
 
-	if (contentLength(buffer) <
+	if (content_length(buffer) <
 	    (sizeof(struct partition_3_0) * layoutHeader.partition_count)) {
 		return VDO_UNSUPPORTED_VERSION;
 	}

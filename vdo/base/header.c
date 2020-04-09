@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#5 $
  */
 
 #include "header.h"
@@ -77,11 +77,11 @@ int validate_header(const struct header *expected_header,
 /**********************************************************************/
 int encode_header(const struct header *header, Buffer *buffer)
 {
-	if (!ensureAvailableSpace(buffer, ENCODED_HEADER_SIZE)) {
+	if (!ensure_available_space(buffer, ENCODED_HEADER_SIZE)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	int result = putUInt32LEIntoBuffer(buffer, header->id);
+	int result = put_uint32_le_into_buffer(buffer, header->id);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -91,21 +91,21 @@ int encode_header(const struct header *header, Buffer *buffer)
 		return result;
 	}
 
-	return putUInt64LEIntoBuffer(buffer, header->size);
+	return put_uint64_le_into_buffer(buffer, header->size);
 }
 
 /**********************************************************************/
 int encode_version_number(struct version_number version, Buffer *buffer)
 {
 	struct packed_version_number packed = pack_version_number(version);
-	return putBytes(buffer, sizeof(packed), &packed);
+	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
 /**********************************************************************/
 int decode_header(Buffer *buffer, struct header *header)
 {
 	component_id id;
-	int result = getUInt32LEFromBuffer(buffer, &id);
+	int result = get_uint32_le_from_buffer(buffer, &id);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -117,7 +117,7 @@ int decode_header(Buffer *buffer, struct header *header)
 	}
 
 	uint64_t size;
-	result = getUInt64LEFromBuffer(buffer, &size);
+	result = get_uint64_le_from_buffer(buffer, &size);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -134,7 +134,7 @@ int decode_header(Buffer *buffer, struct header *header)
 int decode_version_number(Buffer *buffer, struct version_number *version)
 {
 	struct packed_version_number packed;
-	int result = getBytesFromBuffer(buffer, sizeof(packed), &packed);
+	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

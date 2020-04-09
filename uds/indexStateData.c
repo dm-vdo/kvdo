@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#2 $
  */
 
 #include "indexStateData.h"
@@ -57,17 +57,17 @@ static const IndexStateVersion INDEX_STATE_VERSION_301 = {
 static int readIndexStateData(ReadPortal *portal)
 {
   Buffer *buffer = getStateIndexStateBuffer(portal->component->state, IO_READ);
-  int result = rewindBuffer(buffer, uncompactedAmount(buffer));
+  int result = rewind_buffer(buffer, uncompacted_amount(buffer));
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   IndexStateVersion fileVersion;
-  result = getInt32LEFromBuffer(buffer, &fileVersion.signature);
+  result = get_int32_le_from_buffer(buffer, &fileVersion.signature);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getInt32LEFromBuffer(buffer, &fileVersion.versionID);
+  result = get_int32_le_from_buffer(buffer, &fileVersion.versionID);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -80,23 +80,23 @@ static int readIndexStateData(ReadPortal *portal)
   }
 
   IndexStateData301 state;
-  result = getUInt64LEFromBuffer(buffer, &state.newestChapter);
+  result = get_uint64_le_from_buffer(buffer, &state.newestChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &state.oldestChapter);
+  result = get_uint64_le_from_buffer(buffer, &state.oldestChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &state.lastCheckpoint);
+  result = get_uint64_le_from_buffer(buffer, &state.lastCheckpoint);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &state.unused);
+  result = get_uint32_le_from_buffer(buffer, &state.unused);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &state.padding);
+  result = get_uint32_le_from_buffer(buffer, &state.padding);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -126,15 +126,15 @@ static int writeIndexStateData(IndexComponent *component,
                                unsigned int zone __attribute__((unused)))
 {
   Buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
-  int result = resetBufferEnd(buffer, 0);
+  int result = reset_buffer_end(buffer, 0);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.signature);
+  result = put_uint32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.signature);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.versionID);
+  result = put_uint32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.versionID);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -146,23 +146,23 @@ static int writeIndexStateData(IndexComponent *component,
     .lastCheckpoint = index->lastCheckpoint,
   };
 
-  result = putUInt64LEIntoBuffer(buffer, state.newestChapter);
+  result = put_uint64_le_into_buffer(buffer, state.newestChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, state.oldestChapter);
+  result = put_uint64_le_into_buffer(buffer, state.oldestChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, state.lastCheckpoint);
+  result = put_uint64_le_into_buffer(buffer, state.lastCheckpoint);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, state.unused);
+  result = put_uint32_le_into_buffer(buffer, state.unused);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, state.padding);
+  result = put_uint32_le_into_buffer(buffer, state.padding);
   if (result != UDS_SUCCESS) {
     return result;
   }

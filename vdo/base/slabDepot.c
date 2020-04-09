@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#55 $
  */
 
 #include "slabDepot.h"
@@ -534,43 +534,43 @@ size_t get_slab_depot_encoded_size(void)
 static int decode_slab_config(Buffer *buffer, struct slab_config *config)
 {
 	BlockCount count;
-	int result = getUInt64LEFromBuffer(buffer, &count);
+	int result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->slab_blocks = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->data_blocks = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->reference_count_blocks = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->slab_journal_blocks = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->slab_journal_flushing_threshold = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	config->slab_journal_blocking_threshold = count;
 
-	result = getUInt64LEFromBuffer(buffer, &count);
+	result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -589,40 +589,40 @@ static int decode_slab_config(Buffer *buffer, struct slab_config *config)
  **/
 static int encode_slab_config(const struct slab_config *config, Buffer *buffer)
 {
-	int result = putUInt64LEIntoBuffer(buffer, config->slab_blocks);
+	int result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->data_blocks);
+	result = put_uint64_le_into_buffer(buffer, config->data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->reference_count_blocks);
+	result = put_uint64_le_into_buffer(buffer, config->reference_count_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->slab_journal_blocks);
+	result = put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer,
-				       config->slab_journal_flushing_threshold);
+	result = put_uint64_le_into_buffer(buffer,
+				           config->slab_journal_flushing_threshold);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer,
-				       config->slab_journal_blocking_threshold);
+	result = put_uint64_le_into_buffer(buffer,
+				           config->slab_journal_blocking_threshold);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	return putUInt64LEIntoBuffer(buffer,
-				     config->slab_journal_scrubbing_threshold);
+	return put_uint64_le_into_buffer(buffer,
+				         config->slab_journal_scrubbing_threshold);
 }
 
 /**********************************************************************/
@@ -633,19 +633,19 @@ int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
 		return result;
 	}
 
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	result = encode_slab_config(&depot->slab_config, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, depot->first_block);
+	result = put_uint64_le_into_buffer(buffer, depot->first_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, depot->last_block);
+	result = put_uint64_le_into_buffer(buffer, depot->last_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -661,12 +661,12 @@ int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
 	if (depot->zone_count == 0) {
 		zones_to_record = depot->old_zone_count;
 	}
-	result = putByte(buffer, zones_to_record);
+	result = put_byte(buffer, zones_to_record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t encoded_size = contentLength(buffer) - initial_length;
+	size_t encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == encoded_size,
 		      "encoded block map component size must match header size");
 }
@@ -682,7 +682,7 @@ int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
 static int decode_slab_depot_state_2_0(Buffer *buffer,
 				       struct slab_depot_state_2_0 *state)
 {
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	int result = decode_slab_config(buffer, &state->slab_config);
 	if (result != UDS_SUCCESS) {
@@ -690,25 +690,25 @@ static int decode_slab_depot_state_2_0(Buffer *buffer,
 	}
 
 	PhysicalBlockNumber first_block;
-	result = getUInt64LEFromBuffer(buffer, &first_block);
+	result = get_uint64_le_from_buffer(buffer, &first_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	state->first_block = first_block;
 
 	PhysicalBlockNumber last_block;
-	result = getUInt64LEFromBuffer(buffer, &last_block);
+	result = get_uint64_le_from_buffer(buffer, &last_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	state->last_block = last_block;
 
-	result = getByte(buffer, &state->zone_count);
+	result = get_byte(buffer, &state->zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t decoded_size = initial_length - contentLength(buffer);
+	size_t decoded_size = initial_length - content_length(buffer);
 	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == decoded_size,
 		      "decoded slab depot component size must match header size");
 }

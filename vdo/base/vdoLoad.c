@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#41 $
  */
 
 #include "vdoLoad.h"
@@ -350,7 +350,7 @@ finish_vdo_decode(struct vdo *vdo)
 		return result;
 	}
 
-	ASSERT_LOG_ONLY((contentLength(buffer) == 0),
+	ASSERT_LOG_ONLY((content_length(buffer) == 0),
 			"All decoded component data was used");
 	return VDO_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#2 $
  */
 #include "masterIndex005.h"
 
@@ -368,33 +368,33 @@ static void setMasterIndexTag_005(MasterIndex *masterIndex, byte tag)
 __attribute__((warn_unused_result))
 static int encodeMasterIndexHeader(Buffer *buffer, struct mi005_data *header)
 {
-  int result = putBytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
+  int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, header->volumeNonce);
+  result = put_uint64_le_into_buffer(buffer, header->volumeNonce);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, header->virtualChapterLow);
+  result = put_uint64_le_into_buffer(buffer, header->virtualChapterLow);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, header->virtualChapterHigh);
+  result = put_uint64_le_into_buffer(buffer, header->virtualChapterHigh);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->firstList);
+  result = put_uint32_le_into_buffer(buffer, header->firstList);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->numLists);
+  result = put_uint32_le_into_buffer(buffer, header->numLists);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(struct mi005_data),
+  result = ASSERT_LOG_ONLY(content_length(buffer) == sizeof(struct mi005_data),
                            "%zu bytes of config written, of %zu expected",
-                           contentLength(buffer), sizeof(struct mi005_data));
+                           content_length(buffer), sizeof(struct mi005_data));
   return result;
 }
 
@@ -429,35 +429,35 @@ static int startSavingMasterIndex_005(const MasterIndex *masterIndex,
   header.numLists           = numLists;
 
   Buffer *buffer;
-  int result = makeBuffer(sizeof(struct mi005_data), &buffer);
+  int result = make_buffer(sizeof(struct mi005_data), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
   result = encodeMasterIndexHeader(buffer, &header);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result,
                                      "failed to write master index header");
   }
-  result = makeBuffer(numLists * sizeof(uint64_t), &buffer);
+  result = make_buffer(numLists * sizeof(uint64_t), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
   uint64_t *firstFlushChapter = &mi5->flushChapters[firstList];
-  result = putUInt64LEsIntoBuffer(buffer, numLists, firstFlushChapter);
+  result = put_uint64_les_into_buffer(buffer, numLists, firstFlushChapter);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result,
                                      "failed to write master index flush "
@@ -527,35 +527,35 @@ static int abortSavingMasterIndex_005(const MasterIndex *masterIndex,
 __attribute__((warn_unused_result))
 static int decodeMasterIndexHeader(Buffer *buffer, struct mi005_data *header)
 {
-  int result = getBytesFromBuffer(buffer, sizeof(header->magic),
-                                  &header->magic);
+  int result = get_bytes_from_buffer(buffer, sizeof(header->magic),
+                                     &header->magic);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &header->volumeNonce);
+  result = get_uint64_le_from_buffer(buffer, &header->volumeNonce);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &header->virtualChapterLow);
+  result = get_uint64_le_from_buffer(buffer, &header->virtualChapterLow);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &header->virtualChapterHigh);
+  result = get_uint64_le_from_buffer(buffer, &header->virtualChapterHigh);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->firstList);
+  result = get_uint32_le_from_buffer(buffer, &header->firstList);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->numLists);
+  result = get_uint32_le_from_buffer(buffer, &header->numLists);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+  result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
+                           buffer_length(buffer) - content_length(buffer),
+                           buffer_length(buffer));
   if (result != UDS_SUCCESS) {
     result = UDS_CORRUPT_COMPONENT;
   }
@@ -587,26 +587,26 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
   int i;
   for (i = 0; i < numReaders; i++) {
     Buffer *buffer;
-    int result = makeBuffer(sizeof(struct mi005_data), &buffer);
+    int result = make_buffer(sizeof(struct mi005_data), &buffer);
     if (result != UDS_SUCCESS)  {
       return result;
     }
     result = readFromBufferedReader(bufferedReaders[i],
-                                    getBufferContents(buffer),
-                                    bufferLength(buffer));
+                                    get_buffer_contents(buffer),
+                                    buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return logWarningWithStringError(result,
                                        "failed to read master index header");
     }
-    result = resetBufferEnd(buffer, bufferLength(buffer));
+    result = reset_buffer_end(buffer, buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return result;
     }
     struct mi005_data header;
     result = decodeMasterIndexHeader(buffer, &header);
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -637,27 +637,27 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
       virtualChapterLow = header.virtualChapterLow;
     }
     uint64_t *firstFlushChapter = &mi5->flushChapters[header.firstList];
-    result = makeBuffer(header.numLists * sizeof(uint64_t), &buffer);
+    result = make_buffer(header.numLists * sizeof(uint64_t), &buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
     result = readFromBufferedReader(bufferedReaders[i],
-                                    getBufferContents(buffer),
-                                    bufferLength(buffer));
+                                    get_buffer_contents(buffer),
+                                    buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return logWarningWithStringError(result,
                                        "failed to read master index flush"
                                        " ranges");
     }
-    result = resetBufferEnd(buffer, bufferLength(buffer));
+    result = reset_buffer_end(buffer, buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return result;
     }
-    result = getUInt64LEsFromBuffer(buffer, header.numLists,
-                                    firstFlushChapter);
-    freeBuffer(&buffer);
+    result = get_uint64_les_from_buffer(buffer, header.numLists,
+                                          firstFlushChapter);
+    free_buffer(&buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1107,8 +1107,8 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
 static INLINE int validateRecord(MasterIndexRecord *record)
 {
   if (record->magic != masterIndexRecordMagic) {
-    return logWarningWithStringError(
-      UDS_BAD_STATE, "bad magic number in master index record");
+    return logWarningWithStringError(UDS_BAD_STATE,
+    				     "bad magic number in master index record");
   }
   if (!record->isFound) {
     return logWarningWithStringError(UDS_BAD_STATE,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#52 $
  */
 
 #include "blockMap.h"
@@ -188,28 +188,28 @@ int make_block_map(BlockCount logical_blocks,
 static int decode_block_map_state_2_0(Buffer *buffer,
 				      struct block_map_state_2_0 *state)
 {
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	PhysicalBlockNumber flat_page_origin;
-	int result = getUInt64LEFromBuffer(buffer, &flat_page_origin);
+	int result = get_uint64_le_from_buffer(buffer, &flat_page_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	BlockCount flat_page_count;
-	result = getUInt64LEFromBuffer(buffer, &flat_page_count);
+	result = get_uint64_le_from_buffer(buffer, &flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	PhysicalBlockNumber root_origin;
-	result = getUInt64LEFromBuffer(buffer, &root_origin);
+	result = get_uint64_le_from_buffer(buffer, &root_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	BlockCount root_count;
-	result = getUInt64LEFromBuffer(buffer, &root_count);
+	result = get_uint64_le_from_buffer(buffer, &root_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -221,7 +221,7 @@ static int decode_block_map_state_2_0(Buffer *buffer,
 		.root_count = root_count,
 	};
 
-	size_t decoded_size = initial_length - contentLength(buffer);
+	size_t decoded_size = initial_length - content_length(buffer);
 	return ASSERT(BLOCK_MAP_HEADER_2_0.size == decoded_size,
 		      "decoded block map component size must match header size");
 }
@@ -476,29 +476,29 @@ int encode_block_map(const struct block_map *map, Buffer *buffer)
 		return result;
 	}
 
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
-	result = putUInt64LEIntoBuffer(buffer, BLOCK_MAP_FLAT_PAGE_ORIGIN);
+	result = put_uint64_le_into_buffer(buffer, BLOCK_MAP_FLAT_PAGE_ORIGIN);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, map->flat_page_count);
+	result = put_uint64_le_into_buffer(buffer, map->flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, map->root_origin);
+	result = put_uint64_le_into_buffer(buffer, map->root_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, map->root_count);
+	result = put_uint64_le_into_buffer(buffer, map->root_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t encoded_size = contentLength(buffer) - initial_length;
+	size_t encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(BLOCK_MAP_HEADER_2_0.size == encoded_size,
 		      "encoded block map component size must match header size");
 }

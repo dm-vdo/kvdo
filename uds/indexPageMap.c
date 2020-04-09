@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#2 $
  */
 
 #include "indexPageMap.h"
@@ -132,19 +132,22 @@ int updateIndexPageMap(IndexPageMap   *map,
   map->lastUpdate = virtualChapterNumber;
 
   if (chapterNumber >= geometry->chaptersPerVolume) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "chapter number %u exceeds maximum %u",
-      chapterNumber, geometry->chaptersPerVolume - 1);
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+    				   "chapter number %u exceeds maximum %u",
+    				   chapterNumber,
+    				   geometry->chaptersPerVolume - 1);
   }
   if (indexPageNumber >= geometry->indexPagesPerChapter) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "index page number %u exceeds maximum %u",
-      indexPageNumber, geometry->indexPagesPerChapter - 1);
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+    				   "index page number %u exceeds maximum %u",
+      				   indexPageNumber,
+      				   geometry->indexPagesPerChapter - 1);
   }
   if (deltaListNumber >= geometry->deltaListsPerChapter) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "delta list number %u exceeds maximum %u",
-      deltaListNumber, geometry->deltaListsPerChapter - 1);
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+    				   "delta list number %u exceeds maximum %u",
+    				   deltaListNumber,
+    				   geometry->deltaListsPerChapter - 1);
   }
 
   if (indexPageNumber == (geometry->indexPagesPerChapter - 1)) {
@@ -169,9 +172,10 @@ int findIndexPageNumber(const IndexPageMap *map,
 {
   const Geometry *geometry = map->geometry;
   if (chapterNumber >= geometry->chaptersPerVolume) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "chapter number %u exceeds maximum %u",
-      chapterNumber, geometry->chaptersPerVolume - 1);
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+    				   "chapter number %u exceeds maximum %u",
+    				   chapterNumber,
+    				   geometry->chaptersPerVolume - 1);
   }
 
   unsigned int deltaListNumber = hashToChapterDeltaList(name, geometry);
@@ -245,41 +249,41 @@ static int writeIndexPageMap(IndexComponent *component,
   IndexPageMap *map = indexComponentData(component);
 
   Buffer *buffer;
-  result = makeBuffer(INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(map->lastUpdate),
-                      &buffer);
+  result = make_buffer(INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(map->lastUpdate),
+                       &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putBytes(buffer, INDEX_PAGE_MAP_MAGIC_LENGTH, INDEX_PAGE_MAP_MAGIC);
+  result = put_bytes(buffer, INDEX_PAGE_MAP_MAGIC_LENGTH, INDEX_PAGE_MAP_MAGIC);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, map->lastUpdate);
+  result = put_uint64_le_into_buffer(buffer, map->lastUpdate);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
                                    "cannot write index page map header");
   }
-  result = makeBuffer(indexPageMapSize(map->geometry), &buffer);
+  result = make_buffer(indexPageMapSize(map->geometry), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
   result
-    = putUInt16LEsIntoBuffer(buffer, numEntries(map->geometry), map->entries);
+    = put_uint16_les_into_buffer(buffer, numEntries(map->geometry), map->entries);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
                                    "cannot write index page map data");
@@ -298,19 +302,19 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
 __attribute__((warn_unused_result))
 static int decodeIndexPageMap(Buffer *buffer, IndexPageMap *map)
 {
-  int result = getUInt64LEFromBuffer(buffer, &map->lastUpdate);
+  int result = get_uint64_le_from_buffer(buffer, &map->lastUpdate);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt16LEsFromBuffer(buffer, numEntries(map->geometry),
-                                  map->entries);
+  result = get_uint16_les_from_buffer(buffer, numEntries(map->geometry),
+                                      map->entries);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+  result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
+                           buffer_length(buffer) - content_length(buffer),
+                           buffer_length(buffer));
   return result;
 }
 
@@ -334,25 +338,25 @@ static int readIndexPageMap(ReadPortal *portal)
 
   Buffer *buffer;
   result
-    = makeBuffer(sizeof(map->lastUpdate) + indexPageMapSize(map->geometry),
-                 &buffer);
+    = make_buffer(sizeof(map->lastUpdate) + indexPageMapSize(map->geometry),
+                  &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = readFromBufferedReader(reader, getBufferContents(buffer),
-                                  bufferLength(buffer));
+  result = readFromBufferedReader(reader, get_buffer_contents(buffer),
+                                  buffer_length(buffer));
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     logErrorWithStringError(result, "cannot read index page map data");
     return result;
   }
-  result = resetBufferEnd(buffer, bufferLength(buffer));
+  result = reset_buffer_end(buffer, buffer_length(buffer));
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
   result = decodeIndexPageMap(buffer, map);
-  freeBuffer(&buffer);
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }

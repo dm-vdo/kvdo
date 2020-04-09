@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#2 $
  */
 #include "deltaIndex.h"
 
@@ -840,38 +840,38 @@ void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
 __attribute__((warn_unused_result))
 static int decodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
 {
-  int result = getBytesFromBuffer(buffer, MAGIC_SIZE, &header->magic);
+  int result = get_bytes_from_buffer(buffer, MAGIC_SIZE, &header->magic);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->zoneNumber);
+  result = get_uint32_le_from_buffer(buffer, &header->zoneNumber);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->numZones);
+  result = get_uint32_le_from_buffer(buffer, &header->numZones);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->firstList);
+  result = get_uint32_le_from_buffer(buffer, &header->firstList);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->numLists);
+  result = get_uint32_le_from_buffer(buffer, &header->numLists);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &header->recordCount);
+  result = get_uint64_le_from_buffer(buffer, &header->recordCount);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &header->collisionCount);
+  result = get_uint64_le_from_buffer(buffer, &header->collisionCount);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+  result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
+                           buffer_length(buffer) - content_length(buffer),
+                           buffer_length(buffer));
   return result;
 }
 
@@ -882,24 +882,24 @@ static int readDeltaIndexHeader(BufferedReader *reader,
 {
   Buffer *buffer;
 
-  int result = makeBuffer(sizeof(*header), &buffer);
+  int result = make_buffer(sizeof(*header), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = readFromBufferedReader(reader, getBufferContents(buffer),
-                                  bufferLength(buffer));
+  result = readFromBufferedReader(reader, get_buffer_contents(buffer),
+                                  buffer_length(buffer));
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return logWarningWithStringError(result,
                                      "failed to read delta index header");
   }
-  result = resetBufferEnd(buffer, bufferLength(buffer));
+  result = reset_buffer_end(buffer, buffer_length(buffer));
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
   result = decodeDeltaIndexHeader(buffer, header);
-  freeBuffer(&buffer);
+  free_buffer(&buffer);
   return result;
 }
 
@@ -1074,37 +1074,37 @@ void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex)
 __attribute__((warn_unused_result))
 static int encodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
 {
-  int result = putBytes(buffer, MAGIC_SIZE, MAGIC_DI_START);
+  int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_DI_START);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->zoneNumber);
+  result = put_uint32_le_into_buffer(buffer, header->zoneNumber);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->numZones);
+  result = put_uint32_le_into_buffer(buffer, header->numZones);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->firstList);
+  result = put_uint32_le_into_buffer(buffer, header->firstList);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->numLists);
+  result = put_uint32_le_into_buffer(buffer, header->numLists);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, header->recordCount);
+  result = put_uint64_le_into_buffer(buffer, header->recordCount);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, header->collisionCount);
+  result = put_uint64_le_into_buffer(buffer, header->collisionCount);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(*header),
+  result = ASSERT_LOG_ONLY(content_length(buffer) == sizeof(*header),
                            "%zu bytes encoded of %zu expected",
-                           contentLength(buffer), sizeof(*header));
+                           content_length(buffer), sizeof(*header));
 
   return result;
 }
@@ -1125,18 +1125,18 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
   header.collisionCount = deltaZone->collisionCount;
 
   Buffer *buffer;
-  int result = makeBuffer(sizeof(struct di_header), &buffer);
+  int result = make_buffer(sizeof(struct di_header), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
   result = encodeDeltaIndexHeader(buffer, &header);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result,
                                      "failed to write delta index header");

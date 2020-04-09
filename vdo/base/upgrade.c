@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#21 $
  */
 
 #include "upgrade.h"
@@ -116,7 +116,7 @@ static int validate_sodium_version(struct vdo *vdo)
 static int decode_sodium_41_0_component(Buffer *buffer,
 					struct sodium_component_41_0 *component)
 {
-	return getBytesFromBuffer(buffer, sizeof(*component), component);
+	return get_bytes_from_buffer(buffer, sizeof(*component), component);
 }
 
 /**
@@ -211,7 +211,7 @@ finish_sodium_decode(struct vdo *vdo)
 		return result;
 	}
 
-	ASSERT_LOG_ONLY((contentLength(buffer) == 0),
+	ASSERT_LOG_ONLY((content_length(buffer) == 0),
 			"All decoded component data was used");
 	return VDO_SUCCESS;
 }

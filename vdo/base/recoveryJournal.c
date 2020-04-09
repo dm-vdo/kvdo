@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#50 $
  */
 
 #include "recoveryJournal.h"
@@ -634,24 +634,24 @@ int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
 		return result;
 	}
 
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
-	result = putUInt64LEIntoBuffer(buffer, journal_start);
+	result = put_uint64_le_into_buffer(buffer, journal_start);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, journal->logical_blocks_used);
+	result = put_uint64_le_into_buffer(buffer, journal->logical_blocks_used);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, journal->block_map_data_blocks);
+	result = put_uint64_le_into_buffer(buffer, journal->block_map_data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t encoded_size = contentLength(buffer) - initial_length;
+	size_t encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
 		      "encoded recovery journal component size must match header size");
 }
@@ -668,22 +668,22 @@ static int
 decodeRecoveryJournalState_7_0(Buffer *buffer,
 			       struct recovery_journal_state_7_0 *state)
 {
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	SequenceNumber journal_start;
-	int result = getUInt64LEFromBuffer(buffer, &journal_start);
+	int result = get_uint64_le_from_buffer(buffer, &journal_start);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	BlockCount logical_blocks_used;
-	result = getUInt64LEFromBuffer(buffer, &logical_blocks_used);
+	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	BlockCount block_map_data_blocks;
-	result = getUInt64LEFromBuffer(buffer, &block_map_data_blocks);
+	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -694,7 +694,7 @@ decodeRecoveryJournalState_7_0(Buffer *buffer,
 		.block_map_data_blocks = block_map_data_blocks,
 	};
 
-	size_t decoded_size = initial_length - contentLength(buffer);
+	size_t decoded_size = initial_length - content_length(buffer);
 	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
 		      "decoded slab depot component size must match header size");
 }

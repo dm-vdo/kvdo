@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#2 $
  */
 
 #include "indexConfig.h"
@@ -38,46 +38,46 @@ enum {
 __attribute__((warn_unused_result))
 static int decodeIndexConfig(Buffer *buffer, UdsConfiguration config)
 {
-  int result = getUInt32LEFromBuffer(buffer, &config->recordPagesPerChapter);
+  int result = get_uint32_le_from_buffer(buffer, &config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->chaptersPerVolume);
+  result = get_uint32_le_from_buffer(buffer, &config->chaptersPerVolume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->sparseChaptersPerVolume);
+  result = get_uint32_le_from_buffer(buffer, &config->sparseChaptersPerVolume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->cacheChapters);
+  result = get_uint32_le_from_buffer(buffer, &config->cacheChapters);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->checkpointFrequency);
+  result = get_uint32_le_from_buffer(buffer, &config->checkpointFrequency);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->masterIndexMeanDelta);
+  result = get_uint32_le_from_buffer(buffer, &config->masterIndexMeanDelta);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->bytesPerPage);
+  result = get_uint32_le_from_buffer(buffer, &config->bytesPerPage);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &config->sparseSampleRate);
+  result = get_uint32_le_from_buffer(buffer, &config->sparseSampleRate);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &config->nonce);
+  result = get_uint64_le_from_buffer(buffer, &config->nonce);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+  result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
+                           buffer_length(buffer) - content_length(buffer),
+                           buffer_length(buffer));
   if (result != UDS_SUCCESS) {
     result = UDS_CORRUPT_COMPONENT;
   }
@@ -97,19 +97,19 @@ static int readVersion(BufferedReader    *reader,
   }
   if (memcmp(INDEX_CONFIG_VERSION, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
     Buffer *buffer;
-    result = makeBuffer(sizeof(*conf), &buffer);
+    result = make_buffer(sizeof(*conf), &buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
-    result = readFromBufferedReader(reader, getBufferContents(buffer),
-                                    bufferLength(buffer));
+    result = readFromBufferedReader(reader, get_buffer_contents(buffer),
+                                    buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return logErrorWithStringError(result, "cannot read config data");
     }
-    clearBuffer(buffer);
+    clear_buffer(buffer);
     result = decodeIndexConfig(buffer, conf);
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -173,45 +173,45 @@ int readConfigContents(BufferedReader   *reader,
 __attribute__((warn_unused_result))
 static int encodeIndexConfig(Buffer *buffer, UdsConfiguration config)
 {
-  int result = putUInt32LEIntoBuffer(buffer, config->recordPagesPerChapter);
+  int result = put_uint32_le_into_buffer(buffer, config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->chaptersPerVolume);
+  result = put_uint32_le_into_buffer(buffer, config->chaptersPerVolume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->sparseChaptersPerVolume);
+  result = put_uint32_le_into_buffer(buffer, config->sparseChaptersPerVolume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->cacheChapters);
+  result = put_uint32_le_into_buffer(buffer, config->cacheChapters);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config-> checkpointFrequency);
+  result = put_uint32_le_into_buffer(buffer, config-> checkpointFrequency);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->masterIndexMeanDelta);
+  result = put_uint32_le_into_buffer(buffer, config->masterIndexMeanDelta);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->bytesPerPage);
+  result = put_uint32_le_into_buffer(buffer, config->bytesPerPage);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, config->sparseSampleRate);
+  result = put_uint32_le_into_buffer(buffer, config->sparseSampleRate);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, config->nonce);
+  result = put_uint64_le_into_buffer(buffer, config->nonce);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(*config),
+  result = ASSERT_LOG_ONLY(content_length(buffer) == sizeof(*config),
                            "%zu bytes encoded, of %zu expected",
-                           contentLength(buffer), sizeof(*config));
+                           content_length(buffer), sizeof(*config));
   return result;
 }
 
@@ -230,18 +230,18 @@ int writeConfigContents(BufferedWriter   *writer,
     return result;
   }
   Buffer *buffer;
-  result = makeBuffer(sizeof(*config), &buffer);
+  result = make_buffer(sizeof(*config), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
   result = encodeIndexConfig(buffer, config);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   return result;
 }
 

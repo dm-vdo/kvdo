@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#59 $
  */
 
 /*
@@ -228,27 +228,27 @@ encode_master_version(Buffer *buffer)
 __attribute__((warn_unused_result)) static int
 encode_vdo_config(const struct vdo_config *config, Buffer *buffer)
 {
-	int result = putUInt64LEIntoBuffer(buffer, config->logical_blocks);
+	int result = put_uint64_le_into_buffer(buffer, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->physical_blocks);
+	result = put_uint64_le_into_buffer(buffer, config->physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->slab_size);
+	result = put_uint64_le_into_buffer(buffer, config->slab_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->recovery_journal_size);
+	result = put_uint64_le_into_buffer(buffer, config->recovery_journal_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return putUInt64LEIntoBuffer(buffer, config->slab_journal_blocks);
+	return put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
 }
 
 /**
@@ -267,19 +267,19 @@ encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
 		return result;
 	}
 
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
-	result = putUInt32LEIntoBuffer(buffer, get_vdo_state(vdo));
+	result = put_uint32_le_into_buffer(buffer, get_vdo_state(vdo));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, vdo->complete_recoveries);
+	result = put_uint64_le_into_buffer(buffer, vdo->complete_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, vdo->read_only_recoveries);
+	result = put_uint64_le_into_buffer(buffer, vdo->read_only_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -289,12 +289,12 @@ encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, vdo->nonce);
+	result = put_uint64_le_into_buffer(buffer, vdo->nonce);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	size_t encoded_size = contentLength(buffer) - initial_length;
+	size_t encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(encoded_size == sizeof(struct vdo_component_41_0),
 		      "encoded VDO component size must match structure size");
 }
@@ -303,7 +303,7 @@ encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
 static int encode_vdo(struct vdo *vdo)
 {
 	Buffer *buffer = get_component_buffer(vdo->super_block);
-	int result = resetBufferEnd(buffer, 0);
+	int result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -338,7 +338,7 @@ static int encode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	ASSERT_LOG_ONLY((contentLength(buffer) == get_component_data_size(vdo)),
+	ASSERT_LOG_ONLY((content_length(buffer) == get_component_data_size(vdo)),
 			"All super block component data was encoded");
 	return VDO_SUCCESS;
 }
@@ -372,15 +372,15 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 int save_reconfigured_vdo(struct vdo *vdo)
 {
 	Buffer *buffer = get_component_buffer(vdo->super_block);
-	size_t components_size = contentLength(buffer);
+	size_t components_size = content_length(buffer);
 
 	byte *components;
-	int result = copyBytes(buffer, components_size, &components);
+	int result = copy_bytes(buffer, components_size, &components);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = resetBufferEnd(buffer, 0);
+	result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		FREE(components);
 		return result;
@@ -398,7 +398,7 @@ int save_reconfigured_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = putBytes(buffer, components_size, components);
+	result = put_bytes(buffer, components_size, components);
 	FREE(components);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -448,31 +448,31 @@ __attribute__((warn_unused_result)) static int
 decode_vdo_config(Buffer *buffer, struct vdo_config *config)
 {
 	BlockCount logical_blocks;
-	int result = getUInt64LEFromBuffer(buffer, &logical_blocks);
+	int result = get_uint64_le_from_buffer(buffer, &logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	BlockCount physical_blocks;
-	result = getUInt64LEFromBuffer(buffer, &physical_blocks);
+	result = get_uint64_le_from_buffer(buffer, &physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	BlockCount slab_size;
-	result = getUInt64LEFromBuffer(buffer, &slab_size);
+	result = get_uint64_le_from_buffer(buffer, &slab_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	BlockCount recovery_journal_size;
-	result = getUInt64LEFromBuffer(buffer, &recovery_journal_size);
+	result = get_uint64_le_from_buffer(buffer, &recovery_journal_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	BlockCount slab_journal_blocks;
-	result = getUInt64LEFromBuffer(buffer, &slab_journal_blocks);
+	result = get_uint64_le_from_buffer(buffer, &slab_journal_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -498,22 +498,22 @@ decode_vdo_config(Buffer *buffer, struct vdo_config *config)
 __attribute__((warn_unused_result)) static int
 decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 {
-	size_t initial_length = contentLength(buffer);
+	size_t initial_length = content_length(buffer);
 
 	VDOState vdo_state;
-	int result = getUInt32LEFromBuffer(buffer, &vdo_state);
+	int result = get_uint32_le_from_buffer(buffer, &vdo_state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	uint64_t complete_recoveries;
-	result = getUInt64LEFromBuffer(buffer, &complete_recoveries);
+	result = get_uint64_le_from_buffer(buffer, &complete_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	uint64_t read_only_recoveries;
-	result = getUInt64LEFromBuffer(buffer, &read_only_recoveries);
+	result = get_uint64_le_from_buffer(buffer, &read_only_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -525,7 +525,7 @@ decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 	}
 
 	Nonce nonce;
-	result = getUInt64LEFromBuffer(buffer, &nonce);
+	result = get_uint64_le_from_buffer(buffer, &nonce);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -538,7 +538,7 @@ decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 		.nonce = nonce,
 	};
 
-	size_t decoded_size = initial_length - contentLength(buffer);
+	size_t decoded_size = initial_length - content_length(buffer);
 	return ASSERT(decoded_size == sizeof(struct vdo_component_41_0),
 		      "decoded VDO component size must match structure size");
 }

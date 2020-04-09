@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#15 $
  */
 
 #include "superBlock.h"
@@ -94,8 +94,8 @@ allocate_super_block(PhysicalLayer *layer,
 	}
 
 	struct vdo_super_block *super_block = *super_block_ptr;
-	result = makeBuffer(MAX_COMPONENT_DATA_SIZE,
-			    &super_block->component_buffer);
+	result = make_buffer(MAX_COMPONENT_DATA_SIZE,
+			     &super_block->component_buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -110,10 +110,10 @@ allocate_super_block(PhysicalLayer *layer,
 	// Even though the buffer is a full block, to avoid the potential
 	// corruption from a torn write, the entire encoding must fit in the
 	// first sector.
-	result = wrapBuffer(super_block->encoded_super_block,
-			    VDO_SECTOR_SIZE,
-			    0,
-			    &super_block->block_buffer);
+	result = wrap_buffer(super_block->encoded_super_block,
+			     VDO_SECTOR_SIZE,
+			     0,
+			     &super_block->block_buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -153,8 +153,8 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 	}
 
 	struct vdo_super_block *super_block = *super_block_ptr;
-	freeBuffer(&super_block->block_buffer);
-	freeBuffer(&super_block->component_buffer);
+	free_buffer(&super_block->block_buffer);
+	free_buffer(&super_block->component_buffer);
 	free_vio(&super_block->vio);
 	FREE(super_block->encoded_super_block);
 	FREE(super_block);
@@ -172,13 +172,13 @@ __attribute__((warn_unused_result)) static int
 encode_super_block(struct vdo_super_block *super_block)
 {
 	Buffer *buffer = super_block->block_buffer;
-	int result = resetBufferEnd(buffer, 0);
+	int result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	size_t component_data_size =
-		contentLength(super_block->component_buffer);
+		content_length(super_block->component_buffer);
 
 	// Encode the header.
 	struct header header = SUPER_BLOCK_HEADER_12_0;
@@ -189,15 +189,15 @@ encode_super_block(struct vdo_super_block *super_block)
 	}
 
 	// Encode the loaded release version.
-	result = putUInt32LEIntoBuffer(buffer,
-				       super_block->loaded_release_version);
+	result = put_uint32_le_into_buffer(buffer,
+				           super_block->loaded_release_version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// Copy the already-encoded component data.
-	result = putBytes(buffer, component_data_size,
-			  getBufferContents(super_block->component_buffer));
+	result = put_bytes(buffer, component_data_size,
+			   get_buffer_contents(super_block->component_buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -205,8 +205,8 @@ encode_super_block(struct vdo_super_block *super_block)
 	// Compute and encode the checksum.
 	CRC32Checksum checksum =
 		update_crc32(INITIAL_CHECKSUM, super_block->encoded_super_block,
-			     contentLength(buffer));
-	result = putUInt32LEIntoBuffer(buffer, checksum);
+			     content_length(buffer));
+	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -306,7 +306,7 @@ decode_super_block(struct vdo_super_block *super_block)
 {
 	// Reset the block buffer to start decoding the entire first sector.
 	Buffer *buffer = super_block->block_buffer;
-	clearBuffer(buffer);
+	clear_buffer(buffer);
 
 	// Decode and validate the header.
 	struct header header;
@@ -321,7 +321,7 @@ decode_super_block(struct vdo_super_block *super_block)
 		return result;
 	}
 
-	if (header.size > contentLength(buffer)) {
+	if (header.size > content_length(buffer)) {
 		// We can't check release version or checksum until we know the
 		// content size, so we have to assume a version mismatch on
 		// unexpected values.
@@ -332,24 +332,24 @@ decode_super_block(struct vdo_super_block *super_block)
 
 	// Restrict the buffer to the actual payload bytes that remain.
 	result =
-		resetBufferEnd(buffer, uncompactedAmount(buffer) + header.size);
+		reset_buffer_end(buffer, uncompacted_amount(buffer) + header.size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	// Decode and store the release version number. It will be checked when
 	// the VDO master version is decoded and validated.
-	result = getUInt32LEFromBuffer(buffer,
-				       &super_block->loaded_release_version);
+	result = get_uint32_le_from_buffer(buffer,
+				           &super_block->loaded_release_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	// The component data is all the rest, except for the checksum.
 	size_t component_data_size =
-		contentLength(buffer) - sizeof(CRC32Checksum);
-	result = putBuffer(super_block->component_buffer, buffer,
-			   component_data_size);
+		content_length(buffer) - sizeof(CRC32Checksum);
+	result = put_buffer(super_block->component_buffer, buffer,
+			    component_data_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -358,16 +358,16 @@ decode_super_block(struct vdo_super_block *super_block)
 	// itself.
 	CRC32Checksum checksum =
 		update_crc32(INITIAL_CHECKSUM, super_block->encoded_super_block,
-			     uncompactedAmount(buffer));
+			     uncompacted_amount(buffer));
 
 	// Decode and verify the saved checksum.
 	CRC32Checksum saved_checksum;
-	result = getUInt32LEFromBuffer(buffer, &saved_checksum);
+	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(contentLength(buffer) == 0,
+	result = ASSERT(content_length(buffer) == 0,
 			"must have decoded entire superblock payload");
 	if (result != VDO_SUCCESS) {
 		return result;

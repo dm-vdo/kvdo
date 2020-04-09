@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#2 $
  */
 
 #include "buffer.h"
@@ -29,568 +29,577 @@
 #include "typeDefs.h"
 
 /**********************************************************************/
-int wrapBuffer(byte    *bytes,
-               size_t   length,
-               size_t   contentLength,
-               Buffer **bufferPtr)
+int wrap_buffer(byte *bytes,
+		size_t length,
+		size_t content_length,
+		Buffer **buffer_ptr)
 {
-  int result = ASSERT((contentLength <= length),
-                      "content length, %zu, fits in buffer size, %zu",
-                      length, contentLength);
-  Buffer *buffer;
-  result = ALLOCATE(1, Buffer, "buffer", &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ASSERT((content_length <= length),
+			    "content length, %zu, fits in buffer size, %zu",
+			    length,
+			    content_length);
+	Buffer *buffer;
+	result = ALLOCATE(1, Buffer, "buffer", &buffer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  buffer->data    = bytes;
-  buffer->start   = 0;
-  buffer->end     = contentLength;
-  buffer->length  = length;
-  buffer->wrapped = true;
+	buffer->data = bytes;
+	buffer->start = 0;
+	buffer->end = content_length;
+	buffer->length = length;
+	buffer->wrapped = true;
 
-  *bufferPtr      = buffer;
-  return UDS_SUCCESS;
+	*buffer_ptr = buffer;
+	return UDS_SUCCESS;
 }
 
 /***********************************************************************/
-int makeBuffer(size_t size, Buffer **newBuffer)
+int make_buffer(size_t size, Buffer **new_buffer)
 {
-  byte *data;
-  int result = ALLOCATE(size, byte, "buffer data", &data);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	byte *data;
+	int result = ALLOCATE(size, byte, "buffer data", &data);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  Buffer *buffer;
-  result = wrapBuffer(data, size, 0, &buffer);
-  if (result != UDS_SUCCESS) {
-    FREE(data);
-    return result;
-  }
+	Buffer *buffer;
+	result = wrap_buffer(data, size, 0, &buffer);
+	if (result != UDS_SUCCESS) {
+		FREE(data);
+		return result;
+	}
 
-  buffer->wrapped = false;
-  *newBuffer = buffer;
-  return UDS_SUCCESS;
+	buffer->wrapped = false;
+	*new_buffer = buffer;
+	return UDS_SUCCESS;
 }
 
 /***********************************************************************/
-void freeBuffer(Buffer **pBuffer)
+void free_buffer(Buffer **p_buffer)
 {
-  Buffer *buffer = *pBuffer;
-  *pBuffer = NULL;
-  if (buffer == NULL) {
-    return;
-  }
-  if (!buffer->wrapped) {
-    FREE(buffer->data);
-  }
-  FREE(buffer);
+	Buffer *buffer = *p_buffer;
+	*p_buffer = NULL;
+	if (buffer == NULL) {
+		return;
+	}
+	if (!buffer->wrapped) {
+		FREE(buffer->data);
+	}
+	FREE(buffer);
 }
 
 /**********************************************************************/
-size_t bufferLength(Buffer *buffer)
+size_t buffer_length(Buffer *buffer)
 {
-  return buffer->length;
+	return buffer->length;
 }
 
 /**********************************************************************/
-size_t contentLength(Buffer *buffer)
+size_t content_length(Buffer *buffer)
 {
-  return buffer->end - buffer->start;
+	return buffer->end - buffer->start;
 }
 
 /**********************************************************************/
-size_t uncompactedAmount(Buffer *buffer)
+size_t uncompacted_amount(Buffer *buffer)
 {
-  return buffer->start;
+	return buffer->start;
 }
 
 /**********************************************************************/
-size_t availableSpace(Buffer *buffer)
+size_t available_space(Buffer *buffer)
 {
-  return buffer->length - buffer->end;
+	return buffer->length - buffer->end;
 }
 
 /**********************************************************************/
-size_t bufferUsed(Buffer *buffer)
+size_t buffer_used(Buffer *buffer)
 {
-  return buffer->end;
+	return buffer->end;
 }
 
 /***********************************************************************/
-int growBuffer(Buffer *buffer, size_t length)
+int grow_buffer(Buffer *buffer, size_t length)
 {
-  if (buffer == NULL) {
-    return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                     "cannot resize NULL buffer");
-  }
+	if (buffer == NULL) {
+		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
+						 "cannot resize NULL buffer");
+	}
 
-  if (buffer->wrapped) {
-    return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                     "cannot resize wrapped buffer");
-  }
-  if (buffer->end > length) {
-    return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                     "cannot shrink buffer");
-  }
+	if (buffer->wrapped) {
+		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
+						 "cannot resize wrapped buffer");
+	}
+	if (buffer->end > length) {
+		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
+						 "cannot shrink buffer");
+	}
 
-  byte *data;
-  int result = reallocateMemory(buffer->data, buffer->length, length,
-                                "buffer data", &data);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	byte *data;
+	int result = reallocateMemory(buffer->data, buffer->length, length,
+				      "buffer data", &data);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  buffer->data   = data;
-  buffer->length = length;
-  return UDS_SUCCESS;
+	buffer->data = data;
+	buffer->length = length;
+	return UDS_SUCCESS;
 }
 
 /***********************************************************************/
-bool ensureAvailableSpace(Buffer *buffer, size_t bytes)
+bool ensure_available_space(Buffer *buffer, size_t bytes)
 {
-  if (availableSpace(buffer) >= bytes) {
-    return true;
-  }
-  compactBuffer(buffer);
-  return (availableSpace(buffer) >= bytes);
+	if (available_space(buffer) >= bytes) {
+		return true;
+	}
+	compact_buffer(buffer);
+	return (available_space(buffer) >= bytes);
 }
 
 /***********************************************************************/
-void clearBuffer(Buffer *buffer)
+void clear_buffer(Buffer *buffer)
 {
-  buffer->start = 0;
-  buffer->end = buffer->length;
+	buffer->start = 0;
+	buffer->end = buffer->length;
 }
 
 /***********************************************************************/
-void compactBuffer(Buffer *buffer)
+void compact_buffer(Buffer *buffer)
 {
-  if ((buffer->start == 0) || (buffer->end == 0)) {
-    return;
-  }
-  size_t bytesToMove = buffer->end - buffer->start;
-  memmove(buffer->data, buffer->data + buffer->start, bytesToMove);
-  buffer->start = 0;
-  buffer->end = bytesToMove;
+	if ((buffer->start == 0) || (buffer->end == 0)) {
+		return;
+	}
+	size_t bytes_to_move = buffer->end - buffer->start;
+	memmove(buffer->data, buffer->data + buffer->start, bytes_to_move);
+	buffer->start = 0;
+	buffer->end = bytes_to_move;
 }
 
 /**********************************************************************/
-int resetBufferEnd(Buffer *buffer, size_t end)
+int reset_buffer_end(Buffer *buffer, size_t end)
 {
-  if (end > buffer->length) {
-    return UDS_BUFFER_ERROR;
-  }
-  buffer->end = end;
-  if (buffer->start > buffer->end) {
-    buffer->start = buffer->end;
-  }
-  return UDS_SUCCESS;
+	if (end > buffer->length) {
+		return UDS_BUFFER_ERROR;
+	}
+	buffer->end = end;
+	if (buffer->start > buffer->end) {
+		buffer->start = buffer->end;
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int skipForward(Buffer *buffer, size_t bytesToSkip)
+int skip_forward(Buffer *buffer, size_t bytes_to_skip)
 {
-  if (contentLength(buffer) < bytesToSkip) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < bytes_to_skip) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  buffer->start += bytesToSkip;
-  return UDS_SUCCESS;
+	buffer->start += bytes_to_skip;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int rewindBuffer(Buffer *buffer, size_t bytesToRewind)
+int rewind_buffer(Buffer *buffer, size_t bytes_to_rewind)
 {
-  if (buffer->start < bytesToRewind) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (buffer->start < bytes_to_rewind) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  buffer->start -= bytesToRewind;
-  return UDS_SUCCESS;
+	buffer->start -= bytes_to_rewind;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-bool hasSameBytes(Buffer *buffer, const byte *data, size_t length)
+bool has_same_bytes(Buffer *buffer, const byte *data, size_t length)
 {
-  return ((contentLength(buffer) >= length)
-          && (memcmp(buffer->data + buffer->start, data, length) == 0));
+	return ((content_length(buffer) >= length) &&
+		(memcmp(buffer->data + buffer->start, data, length) == 0));
 }
 
 /**********************************************************************/
-bool equalBuffers(Buffer *buffer1, Buffer *buffer2)
+bool equal_buffers(Buffer *buffer1, Buffer *buffer2)
 {
-  return hasSameBytes(buffer1, buffer2->data + buffer2->start,
-                      contentLength(buffer2));
+	return has_same_bytes(buffer1,
+			      buffer2->data + buffer2->start,
+			      content_length(buffer2));
 }
 
 /**********************************************************************/
-int getByte(Buffer *buffer, byte *bytePtr)
+int get_byte(Buffer *buffer, byte *byte_ptr)
 {
-  if (contentLength(buffer) < sizeof(byte)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(byte)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  *bytePtr = buffer->data[buffer->start++];
-  return UDS_SUCCESS;
+	*byte_ptr = buffer->data[buffer->start++];
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int peekByte(Buffer *buffer, size_t offset, byte *bytePtr)
+int peek_byte(Buffer *buffer, size_t offset, byte *byte_ptr)
 {
-  if (contentLength(buffer) < (offset + sizeof(byte))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < (offset + sizeof(byte))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  *bytePtr = buffer->data[buffer->start + offset];
-  return UDS_SUCCESS;
+	*byte_ptr = buffer->data[buffer->start + offset];
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putByte(Buffer *buffer, byte b)
+int put_byte(Buffer *buffer, byte b)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(byte))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(byte))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  buffer->data[buffer->end++] = b;
-  return UDS_SUCCESS;
+	buffer->data[buffer->end++] = b;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getBytesFromBuffer(Buffer *buffer, size_t length, void *destination)
+int get_bytes_from_buffer(Buffer *buffer, size_t length, void *destination)
 {
-  if (contentLength(buffer) < length) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < length) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  memcpy(destination, buffer->data + buffer->start, length);
-  buffer->start += length;
-  return UDS_SUCCESS;
+	memcpy(destination, buffer->data + buffer->start, length);
+	buffer->start += length;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-byte *getBufferContents(Buffer *buffer)
+byte *get_buffer_contents(Buffer *buffer)
 {
-  return buffer->data + buffer->start;
+	return buffer->data + buffer->start;
 }
 
 /**********************************************************************/
-int copyBytes(Buffer *buffer, size_t length, byte **destinationPtr)
+int copy_bytes(Buffer *buffer, size_t length, byte **destination_ptr)
 {
-  byte *destination;
-  int   result = ALLOCATE(length, byte, "copyBytes() buffer",
-                          &destination);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	byte *destination;
+	int result =
+		ALLOCATE(length, byte, "copy_bytes() buffer", &destination);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = getBytesFromBuffer(buffer, length, destination);
-  if (result != UDS_SUCCESS) {
-    FREE(destination);
-  } else {
-    *destinationPtr = destination;
-  }
-  return result;
+	result = get_bytes_from_buffer(buffer, length, destination);
+	if (result != UDS_SUCCESS) {
+		FREE(destination);
+	} else {
+		*destination_ptr = destination;
+	}
+	return result;
 }
 
 /**********************************************************************/
-int putBytes(Buffer *buffer, size_t length, const void *source)
+int put_bytes(Buffer *buffer, size_t length, const void *source)
 {
-  if (!ensureAvailableSpace(buffer, length)) {
-    return UDS_BUFFER_ERROR;
-  }
-  memcpy(buffer->data + buffer->end, source, length);
-  buffer->end += length;
-  return UDS_SUCCESS;
+	if (!ensure_available_space(buffer, length)) {
+		return UDS_BUFFER_ERROR;
+	}
+	memcpy(buffer->data + buffer->end, source, length);
+	buffer->end += length;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putBuffer(Buffer *target, Buffer *source, size_t length)
+int put_buffer(Buffer *target, Buffer *source, size_t length)
 {
-  if (contentLength(source) < length) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(source) < length) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  int result = putBytes(target, length, getBufferContents(source));
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = put_bytes(target, length, get_buffer_contents(source));
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  source->start += length;
-  return UDS_SUCCESS;
+	source->start += length;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int zeroBytes(Buffer *buffer, size_t length)
+int zero_bytes(Buffer *buffer, size_t length)
 {
-  if (!ensureAvailableSpace(buffer, length)) {
-    return UDS_BUFFER_ERROR;
-  }
-  memset(buffer->data + buffer->end, 0, length);
-  buffer->end += length;
-  return UDS_SUCCESS;
+	if (!ensure_available_space(buffer, length)) {
+		return UDS_BUFFER_ERROR;
+	}
+	memset(buffer->data + buffer->end, 0, length);
+	buffer->end += length;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getBoolean(Buffer *buffer, bool *b)
+int get_boolean(Buffer *buffer, bool *b)
 {
-  byte by;
-  int result = getByte(buffer, &by);
-  if (result == UDS_SUCCESS) {
-    *b = (by == 1);
-  }
-  return result;
+	byte by;
+	int result = get_byte(buffer, &by);
+	if (result == UDS_SUCCESS) {
+		*b = (by == 1);
+	}
+	return result;
 }
 
 /**********************************************************************/
-int putBoolean(Buffer *buffer, bool b)
+int put_boolean(Buffer *buffer, bool b)
 {
-  return putByte(buffer, (byte) (b ? 1 : 0));
+	return put_byte(buffer, (byte)(b ? 1 : 0));
 }
 
 /**********************************************************************/
-int getUInt16BEFromBuffer(Buffer *buffer, uint16_t *ui)
+int get_uint16_be_from_buffer(Buffer *buffer, uint16_t *ui)
 {
-  if (contentLength(buffer) < sizeof(uint16_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(uint16_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeUInt16BE(buffer->data, &buffer->start, ui);
-  return UDS_SUCCESS;
+	decodeUInt16BE(buffer->data, &buffer->start, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt16BEIntoBuffer(Buffer *buffer, uint16_t ui)
+int put_uint16_be_into_buffer(Buffer *buffer, uint16_t ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint16_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeUInt16BE(buffer->data, &buffer->end, ui);
-  return UDS_SUCCESS;
+	encodeUInt16BE(buffer->data, &buffer->end, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt32BEFromBuffer(Buffer *buffer, uint32_t *ui)
+int get_uint32_be_from_buffer(Buffer *buffer, uint32_t *ui)
 {
-  if (contentLength(buffer) < sizeof(uint32_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(uint32_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeUInt32BE(buffer->data, &buffer->start, ui);
-  return UDS_SUCCESS;
+	decodeUInt32BE(buffer->data, &buffer->start, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt32BEIntoBuffer(Buffer *buffer, uint32_t ui)
+int put_uint32_be_into_buffer(Buffer *buffer, uint32_t ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint32_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeUInt32BE(buffer->data, &buffer->end, ui);
-  return UDS_SUCCESS;
+	encodeUInt32BE(buffer->data, &buffer->end, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt32BEsFromBuffer(Buffer *buffer, size_t count, uint32_t *ui)
+int get_uint32_bes_from_buffer(Buffer *buffer, size_t count, uint32_t *ui)
 {
-  if (contentLength(buffer) < (sizeof(uint32_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < (sizeof(uint32_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    decodeUInt32BE(buffer->data, &buffer->start, ui + i);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		decodeUInt32BE(buffer->data, &buffer->start, ui + i);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt32BEsIntoBuffer(Buffer *buffer, size_t count, const uint32_t *ui)
+int put_uint32_bes_into_buffer(Buffer *buffer,
+				 size_t count,
+				 const uint32_t *ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint32_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint32_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    encodeUInt32BE(buffer->data, &buffer->end, ui[i]);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		encodeUInt32BE(buffer->data, &buffer->end, ui[i]);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt64BEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
+int get_uint64_bes_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
 {
-  if (contentLength(buffer) < (sizeof(uint64_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    decodeUInt64BE(buffer->data, &buffer->start, ui + i);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		decodeUInt64BE(buffer->data, &buffer->start, ui + i);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt64BEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
+int put_uint64_bes_into_buffer(Buffer *buffer,
+				 size_t count,
+				 const uint64_t *ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint64_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint64_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    encodeUInt64BE(buffer->data, &buffer->end, ui[i]);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		encodeUInt64BE(buffer->data, &buffer->end, ui[i]);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt16LEFromBuffer(Buffer *buffer, uint16_t *ui)
+int get_uint16_le_from_buffer(Buffer *buffer, uint16_t *ui)
 {
-  if (contentLength(buffer) < sizeof(uint16_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(uint16_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeUInt16LE(buffer->data, &buffer->start, ui);
-  return UDS_SUCCESS;
+	decodeUInt16LE(buffer->data, &buffer->start, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt16LEIntoBuffer(Buffer *buffer, uint16_t ui)
+int put_uint16_le_into_buffer(Buffer *buffer, uint16_t ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint16_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeUInt16LE(buffer->data, &buffer->end, ui);
-  return UDS_SUCCESS;
+	encodeUInt16LE(buffer->data, &buffer->end, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt16LEsFromBuffer(Buffer *buffer, size_t count, uint16_t *ui)
+int get_uint16_les_from_buffer(Buffer *buffer, size_t count, uint16_t *ui)
 {
-  if (contentLength(buffer) < (sizeof(uint16_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < (sizeof(uint16_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    decodeUInt16LE(buffer->data, &buffer->start, ui + i);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		decodeUInt16LE(buffer->data, &buffer->start, ui + i);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
+int put_uint16_les_into_buffer(Buffer *buffer,
+				 size_t count,
+				 const uint16_t *ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint16_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint16_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getInt32LEFromBuffer(Buffer *buffer, int32_t *i)
+int get_int32_le_from_buffer(Buffer *buffer, int32_t *i)
 {
-  if (contentLength(buffer) < sizeof(int32_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(int32_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeInt32LE(buffer->data, &buffer->start, i);
-  return UDS_SUCCESS;
+	decodeInt32LE(buffer->data, &buffer->start, i);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt32LEFromBuffer(Buffer *buffer, uint32_t *ui)
+int get_uint32_le_from_buffer(Buffer *buffer, uint32_t *ui)
 {
-  if (contentLength(buffer) < sizeof(uint32_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(uint32_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeUInt32LE(buffer->data, &buffer->start, ui);
-  return UDS_SUCCESS;
+	decodeUInt32LE(buffer->data, &buffer->start, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt32LEIntoBuffer(Buffer *buffer, uint32_t ui)
+int put_uint32_le_into_buffer(Buffer *buffer, uint32_t ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint32_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeUInt32LE(buffer->data, &buffer->end, ui);
-  return UDS_SUCCESS;
+	encodeUInt32LE(buffer->data, &buffer->end, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putInt64LEIntoBuffer(Buffer *buffer, int64_t i)
+int put_int64_le_into_buffer(Buffer *buffer, int64_t i)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(int64_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(int64_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeInt64LE(buffer->data, &buffer->end, i);
-  return UDS_SUCCESS;
+	encodeInt64LE(buffer->data, &buffer->end, i);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt64LEFromBuffer(Buffer *buffer, uint64_t *ui)
+int get_uint64_le_from_buffer(Buffer *buffer, uint64_t *ui)
 {
-  if (contentLength(buffer) < sizeof(uint64_t)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < sizeof(uint64_t)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  decodeUInt64LE(buffer->data, &buffer->start, ui);
-  return UDS_SUCCESS;
+	decodeUInt64LE(buffer->data, &buffer->start, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt64LEIntoBuffer(Buffer *buffer, uint64_t ui)
+int put_uint64_le_into_buffer(Buffer *buffer, uint64_t ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint64_t))) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint64_t))) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  encodeUInt64LE(buffer->data, &buffer->end, ui);
-  return UDS_SUCCESS;
+	encodeUInt64LE(buffer->data, &buffer->end, ui);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int getUInt64LEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
+int get_uint64_les_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
 {
-  if (contentLength(buffer) < (sizeof(uint64_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    decodeUInt64LE(buffer->data, &buffer->start, ui + i);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		decodeUInt64LE(buffer->data, &buffer->start, ui + i);
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int putUInt64LEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
+int put_uint64_les_into_buffer(Buffer *buffer,
+				 size_t count,
+				 const uint64_t *ui)
 {
-  if (!ensureAvailableSpace(buffer, sizeof(uint64_t) * count)) {
-    return UDS_BUFFER_ERROR;
-  }
+	if (!ensure_available_space(buffer, sizeof(uint64_t) * count)) {
+		return UDS_BUFFER_ERROR;
+	}
 
-  unsigned int i;
-  for (i = 0; i < count; i++) {
-    encodeUInt64LE(buffer->data, &buffer->end, ui[i]);
-  }
-  return UDS_SUCCESS;
+	unsigned int i;
+	for (i = 0; i < count; i++) {
+		encodeUInt64LE(buffer->data, &buffer->end, ui[i]);
+	}
+	return UDS_SUCCESS;
 }
-

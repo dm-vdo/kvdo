@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#2 $
  */
 #include "masterIndex006.h"
 
@@ -158,17 +158,17 @@ static void setMasterIndexTag_006(MasterIndex *masterIndex
 __attribute__((warn_unused_result))
 static int encodeMasterIndexHeader(Buffer *buffer, struct mi006_data *header)
 {
-  int result = putBytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
+  int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, header->sparseSampleRate);
+  result = put_uint32_le_into_buffer(buffer, header->sparseSampleRate);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(struct mi006_data),
+  result = ASSERT_LOG_ONLY(content_length(buffer) == sizeof(struct mi006_data),
                            "%zu bytes of config written, of %zu expected",
-                           contentLength(buffer), sizeof(struct mi006_data));
+                           content_length(buffer), sizeof(struct mi006_data));
   return result;
 }
 
@@ -188,7 +188,7 @@ static int startSavingMasterIndex_006(const MasterIndex *masterIndex,
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
                                                common);
   Buffer *buffer;
-  int result = makeBuffer(sizeof(struct mi006_data), &buffer);
+  int result = make_buffer(sizeof(struct mi006_data), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -198,12 +198,12 @@ static int startSavingMasterIndex_006(const MasterIndex *masterIndex,
   header.sparseSampleRate = mi6->sparseSampleRate;
   result = encodeMasterIndexHeader(buffer, &header);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
+                                 content_length(buffer));
+  free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     logWarningWithStringError(result, "failed to write master index header");
     return result;
@@ -291,19 +291,19 @@ static int abortSavingMasterIndex_006(const MasterIndex *masterIndex,
 __attribute__((warn_unused_result))
 static int decodeMasterIndexHeader(Buffer *buffer, struct mi006_data *header)
 {
-  int result = getBytesFromBuffer(buffer, sizeof(header->magic),
-                                  &header->magic);
+  int result = get_bytes_from_buffer(buffer, sizeof(header->magic),
+                                     &header->magic);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &header->sparseSampleRate);
+  result = get_uint32_le_from_buffer(buffer, &header->sparseSampleRate);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+  result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
+                           buffer_length(buffer) - content_length(buffer),
+                           buffer_length(buffer));
   if (result != UDS_SUCCESS) {
     result = UDS_CORRUPT_COMPONENT;
   }
@@ -333,26 +333,26 @@ static int startRestoringMasterIndex_006(MasterIndex *masterIndex,
   int i;
   for (i = 0; i < numReaders; i++) {
     Buffer *buffer;
-    result = makeBuffer(sizeof(struct mi006_data), &buffer);
+    result = make_buffer(sizeof(struct mi006_data), &buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
     result = readFromBufferedReader(bufferedReaders[i],
-                                    getBufferContents(buffer),
-                                    bufferLength(buffer));
+                                    get_buffer_contents(buffer),
+                                    buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return logWarningWithStringError(result,
                                        "failed to read master index header");
     }
-    result = resetBufferEnd(buffer, bufferLength(buffer));
+    result = reset_buffer_end(buffer, buffer_length(buffer));
     if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
+      free_buffer(&buffer);
       return result;
     }
     struct mi006_data header;
     result = decodeMasterIndexHeader(buffer, &header);
-    freeBuffer(&buffer);
+    free_buffer(&buffer);
     if (result != UDS_SUCCESS) {
       return result;
     }
