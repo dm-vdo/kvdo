@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#51 $
  */
 
 #include "recoveryJournal.h"
@@ -615,7 +615,8 @@ size_t get_recovery_journal_encoded_size(void)
 }
 
 /**********************************************************************/
-int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+int encode_recovery_journal(struct recovery_journal *journal,
+			    struct buffer *buffer)
 {
 	SequenceNumber journal_start;
 	if (is_saved(&journal->state)) {
@@ -665,7 +666,7 @@ int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
  * @return UDS_SUCCESS or an error code
  **/
 static int
-decodeRecoveryJournalState_7_0(Buffer *buffer,
+decodeRecoveryJournalState_7_0(struct buffer *buffer,
 			       struct recovery_journal_state_7_0 *state)
 {
 	size_t initial_length = content_length(buffer);
@@ -700,7 +701,8 @@ decodeRecoveryJournalState_7_0(Buffer *buffer,
 }
 
 /**********************************************************************/
-int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+int decode_recovery_journal(struct recovery_journal *journal,
+			    struct buffer *buffer)
 {
 	struct header header;
 	int result = decode_header(buffer, &header);
@@ -734,7 +736,7 @@ int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
 
 /**********************************************************************/
 int decode_sodium_recovery_journal(struct recovery_journal *journal,
-				   Buffer *buffer)
+				   struct buffer *buffer)
 {
 	// Sodium uses version 7.0, same as head, currently.
 	return decode_recovery_journal(journal, buffer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#16 $
  */
 
 #include "superBlock.h"
@@ -40,13 +40,13 @@ struct vdo_super_block {
 	/** The vio for reading and writing the super block to disk */
 	struct vio *vio;
 	/** The buffer for encoding and decoding component data */
-	Buffer *component_buffer;
+	struct buffer *component_buffer;
 	/**
 	 * A sector-sized buffer wrapping the first sector of
 	 * encoded_super_block, for encoding and decoding the entire super
 	 * block.
 	 **/
-	Buffer *block_buffer;
+	struct buffer *block_buffer;
 	/** A 1-block buffer holding the encoded on-disk super block */
 	byte *encoded_super_block;
 	/** The release version number loaded from the volume */
@@ -171,7 +171,7 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 __attribute__((warn_unused_result)) static int
 encode_super_block(struct vdo_super_block *super_block)
 {
-	Buffer *buffer = super_block->block_buffer;
+	struct buffer *buffer = super_block->block_buffer;
 	int result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -197,7 +197,7 @@ encode_super_block(struct vdo_super_block *super_block)
 
 	// Copy the already-encoded component data.
 	result = put_bytes(buffer, component_data_size,
-			   get_buffer_contents(super_block->component_buffer));
+			  get_buffer_contents(super_block->component_buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -305,7 +305,7 @@ __attribute__((warn_unused_result)) static int
 decode_super_block(struct vdo_super_block *super_block)
 {
 	// Reset the block buffer to start decoding the entire first sector.
-	Buffer *buffer = super_block->block_buffer;
+	struct buffer *buffer = super_block->block_buffer;
 	clear_buffer(buffer);
 
 	// Decode and validate the header.
@@ -445,7 +445,7 @@ void load_super_block_async(struct vdo_completion *parent,
 }
 
 /**********************************************************************/
-Buffer *get_component_buffer(struct vdo_super_block *super_block)
+struct buffer *get_component_buffer(struct vdo_super_block *super_block)
 {
 	return super_block->component_buffer;
 }

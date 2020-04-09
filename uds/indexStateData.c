@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#3 $
  */
 
 #include "indexStateData.h"
@@ -56,7 +56,7 @@ static const IndexStateVersion INDEX_STATE_VERSION_301 = {
  **/
 static int readIndexStateData(ReadPortal *portal)
 {
-  Buffer *buffer = getStateIndexStateBuffer(portal->component->state, IO_READ);
+  struct buffer *buffer = getStateIndexStateBuffer(portal->component->state, IO_READ);
   int result = rewind_buffer(buffer, uncompacted_amount(buffer));
   if (result != UDS_SUCCESS) {
     return result;
@@ -125,7 +125,7 @@ static int writeIndexStateData(IndexComponent *component,
                                BufferedWriter *writer __attribute__((unused)),
                                unsigned int zone __attribute__((unused)))
 {
-  Buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
+  struct buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
   int result = reset_buffer_end(buffer, 0);
   if (result != UDS_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#15 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -118,7 +118,7 @@ void abandon_block_map_growth(struct block_map *map);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_block_map(Buffer *buffer,
+int decode_block_map(struct buffer *buffer,
 		     BlockCount logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
@@ -135,7 +135,7 @@ int decode_block_map(Buffer *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_sodium_block_map(Buffer *buffer,
+int decode_sodium_block_map(struct buffer *buffer,
 			    BlockCount logical_blocks,
 			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
@@ -186,7 +186,7 @@ size_t get_block_map_encoded_size(void) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_block_map(const struct block_map *map, Buffer *buffer)
+int encode_block_map(const struct block_map *map, struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**

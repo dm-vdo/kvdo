@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#42 $
  */
 
 #include "vdoLoad.h"
@@ -306,7 +306,7 @@ start_vdo_decode(struct vdo *vdo, bool validate_config)
 __attribute__((warn_unused_result)) static int
 finish_vdo_decode(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	int result =
 		make_recovery_journal(vdo->nonce,

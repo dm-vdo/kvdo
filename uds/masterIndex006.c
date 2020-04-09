@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#3 $
  */
 #include "masterIndex006.h"
 
@@ -156,7 +156,8 @@ static void setMasterIndexTag_006(MasterIndex *masterIndex
 
 /***********************************************************************/
 __attribute__((warn_unused_result))
-static int encodeMasterIndexHeader(Buffer *buffer, struct mi006_data *header)
+static int encodeMasterIndexHeader(struct buffer *buffer,
+				   struct mi006_data *header)
 {
   int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
   if (result != UDS_SUCCESS) {
@@ -187,7 +188,7 @@ static int startSavingMasterIndex_006(const MasterIndex *masterIndex,
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
                                                common);
-  Buffer *buffer;
+  struct buffer *buffer;
   int result = make_buffer(sizeof(struct mi006_data), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
@@ -289,7 +290,8 @@ static int abortSavingMasterIndex_006(const MasterIndex *masterIndex,
 
 /***********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeMasterIndexHeader(Buffer *buffer, struct mi006_data *header)
+static int decodeMasterIndexHeader(struct buffer *buffer,
+				   struct mi006_data *header)
 {
   int result = get_bytes_from_buffer(buffer, sizeof(header->magic),
                                      &header->magic);
@@ -332,7 +334,7 @@ static int startRestoringMasterIndex_006(MasterIndex *masterIndex,
 
   int i;
   for (i = 0; i < numReaders; i++) {
-    Buffer *buffer;
+    struct buffer *buffer;
     result = make_buffer(sizeof(struct mi006_data), &buffer);
     if (result != UDS_SUCCESS) {
       return result;

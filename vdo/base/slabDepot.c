@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#56 $
  */
 
 #include "slabDepot.h"
@@ -531,7 +531,8 @@ size_t get_slab_depot_encoded_size(void)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decode_slab_config(Buffer *buffer, struct slab_config *config)
+static int decode_slab_config(struct buffer *buffer,
+			      struct slab_config *config)
 {
 	BlockCount count;
 	int result = get_uint64_le_from_buffer(buffer, &count);
@@ -587,7 +588,8 @@ static int decode_slab_config(Buffer *buffer, struct slab_config *config)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encode_slab_config(const struct slab_config *config, Buffer *buffer)
+static int encode_slab_config(const struct slab_config *config,
+			      struct buffer *buffer)
 {
 	int result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
 	if (result != UDS_SUCCESS) {
@@ -626,7 +628,7 @@ static int encode_slab_config(const struct slab_config *config, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
+int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
 {
 	int result = encode_header(&SLAB_DEPOT_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {
@@ -679,7 +681,7 @@ int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decode_slab_depot_state_2_0(Buffer *buffer,
+static int decode_slab_depot_state_2_0(struct buffer *buffer,
 				       struct slab_depot_state_2_0 *state)
 {
 	size_t initial_length = content_length(buffer);
@@ -714,7 +716,7 @@ static int decode_slab_depot_state_2_0(Buffer *buffer,
 }
 
 /**********************************************************************/
-int decode_slab_depot(Buffer *buffer,
+int decode_slab_depot(struct buffer *buffer,
 		      const struct thread_config *thread_config,
 		      Nonce nonce,
 		      PhysicalLayer *layer,
@@ -755,7 +757,7 @@ int decode_slab_depot(Buffer *buffer,
 }
 
 /**********************************************************************/
-int decode_sodium_slab_depot(Buffer *buffer,
+int decode_sodium_slab_depot(struct buffer *buffer,
 			     const struct thread_config *thread_config,
 			     Nonce nonce,
 			     PhysicalLayer *layer,

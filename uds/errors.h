@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#2 $
  */
 
 #ifndef ERRORS_H
@@ -55,7 +55,7 @@ enum udsInternalErrorCodes {
   UDS_INTERNAL_UNUSED_11       = UDS_INTERNAL_ERROR_CODE_BASE + 11,
   /** Unused */
   UDS_INTERNAL_UNUSED_12       = UDS_INTERNAL_ERROR_CODE_BASE + 12,
-  /** A problem has occured with a Buffer */
+  /** A problem has occured with a buffer */
   UDS_BUFFER_ERROR             = UDS_INTERNAL_ERROR_CODE_BASE + 13,
   /** Unused */
   UDS_INTERNAL_UNUSED_14       = UDS_INTERNAL_ERROR_CODE_BASE + 14,

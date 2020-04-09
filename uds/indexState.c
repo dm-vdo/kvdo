@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#4 $
  */
 
 #include "indexState.h"
@@ -482,7 +482,7 @@ int discardLastIndexStateSave(IndexState *state)
 }
 
 /*****************************************************************************/
-Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
+struct buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
 {
   unsigned int slot = mode == IO_READ ? state->loadSlot : state->saveSlot;
   return get_index_state_buffer(state->layout, slot);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#60 $
  */
 
 /*
@@ -212,7 +212,7 @@ size_t get_component_data_size(struct vdo *vdo)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encode_master_version(Buffer *buffer)
+encode_master_version(struct buffer *buffer)
 {
 	return encode_version_number(VDO_MASTER_VERSION_67_0, buffer);
 }
@@ -226,7 +226,7 @@ encode_master_version(Buffer *buffer)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encode_vdo_config(const struct vdo_config *config, Buffer *buffer)
+encode_vdo_config(const struct vdo_config *config, struct buffer *buffer)
 {
 	int result = put_uint64_le_into_buffer(buffer, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
@@ -260,7 +260,7 @@ encode_vdo_config(const struct vdo_config *config, Buffer *buffer)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
+encode_vdo_component(const struct vdo *vdo, struct buffer *buffer)
 {
 	int result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
 	if (result != VDO_SUCCESS) {
@@ -302,7 +302,7 @@ encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
 /**********************************************************************/
 static int encode_vdo(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	int result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -371,7 +371,7 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 /**********************************************************************/
 int save_reconfigured_vdo(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	size_t components_size = content_length(buffer);
 
 	byte *components;
@@ -445,7 +445,7 @@ int validate_vdo_version(struct vdo *vdo)
  * @return UDS_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result)) static int
-decode_vdo_config(Buffer *buffer, struct vdo_config *config)
+decode_vdo_config(struct buffer *buffer, struct vdo_config *config)
 {
 	BlockCount logical_blocks;
 	int result = get_uint64_le_from_buffer(buffer, &logical_blocks);
@@ -496,7 +496,8 @@ decode_vdo_config(Buffer *buffer, struct vdo_config *config)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
+decode_vdo_component_41_0(struct buffer *buffer,
+			  struct vdo_component_41_0 *state)
 {
 	size_t initial_length = content_length(buffer);
 
@@ -546,7 +547,7 @@ decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 /**********************************************************************/
 int decode_vdo_component(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 
 	struct version_number version;
 	int result = decode_version_number(buffer, &version);
@@ -1068,12 +1069,11 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   ZoneCount logical_zone,
 				   const char *name)
 {
-	ASSERT_LOG_ONLY(
-		(getCallbackThreadID() ==
-		 get_logical_zone_thread(get_thread_config(vdo),
-		 			 logical_zone)),
-		"%s called on logical thread",
-		name);
+	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+		 		get_logical_zone_thread(get_thread_config(vdo),
+		 			 		logical_zone)),
+			"%s called on logical thread",
+			name);
 }
 
 /**********************************************************************/
@@ -1081,12 +1081,11 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    ZoneCount physical_zone,
 				    const char *name)
 {
-	ASSERT_LOG_ONLY(
-		(getCallbackThreadID() ==
-		 get_physical_zone_thread(get_thread_config(vdo),
+	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+		 		get_physical_zone_thread(get_thread_config(vdo),
 		 			  physical_zone)),
-		"%s called on physical thread",
-		name);
+			"%s called on physical thread",
+			name);
 }
 
 /**********************************************************************/

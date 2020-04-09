@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#5 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -233,7 +233,8 @@ int write_index_config(struct index_layout *layout, UdsConfiguration config)
  *
  * @return UDS_SUCCESS or an error code
  **/
-Buffer *get_index_state_buffer(struct index_layout *layout, unsigned int slot)
+struct buffer *get_index_state_buffer(struct index_layout *layout,
+				      unsigned int slot)
 	__attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#3 $
  */
 
 #include "indexPageMap.h"
@@ -248,7 +248,7 @@ static int writeIndexPageMap(IndexComponent *component,
 
   IndexPageMap *map = indexComponentData(component);
 
-  Buffer *buffer;
+  struct buffer *buffer;
   result = make_buffer(INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(map->lastUpdate),
                        &buffer);
   if (result != UDS_SUCCESS) {
@@ -300,7 +300,7 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeIndexPageMap(Buffer *buffer, IndexPageMap *map)
+static int decodeIndexPageMap(struct buffer *buffer, IndexPageMap *map)
 {
   int result = get_uint64_le_from_buffer(buffer, &map->lastUpdate);
   if (result != UDS_SUCCESS) {
@@ -336,7 +336,7 @@ static int readIndexPageMap(ReadPortal *portal)
     return logErrorWithStringError(result, "bad index page map saved magic");
   }
 
-  Buffer *buffer;
+  struct buffer *buffer;
   result
     = make_buffer(sizeof(map->lastUpdate) + indexPageMapSize(map->geometry),
                   &buffer);

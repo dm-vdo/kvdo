@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#3 $
  */
 #include "deltaIndex.h"
 
@@ -838,7 +838,8 @@ void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
+static int decodeDeltaIndexHeader(struct buffer *buffer,
+				  struct di_header *header)
 {
   int result = get_bytes_from_buffer(buffer, MAGIC_SIZE, &header->magic);
   if (result != UDS_SUCCESS) {
@@ -880,7 +881,7 @@ __attribute__((warn_unused_result))
 static int readDeltaIndexHeader(BufferedReader *reader,
                                 struct di_header *header)
 {
-  Buffer *buffer;
+  struct buffer *buffer;
 
   int result = make_buffer(sizeof(*header), &buffer);
   if (result != UDS_SUCCESS) {
@@ -1072,7 +1073,8 @@ void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int encodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
+static int encodeDeltaIndexHeader(struct buffer *buffer,
+				  struct di_header *header)
 {
   int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_DI_START);
   if (result != UDS_SUCCESS) {
@@ -1124,7 +1126,7 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
   header.recordCount    = deltaZone->recordCount;
   header.collisionCount = deltaZone->collisionCount;
 
-  Buffer *buffer;
+  struct buffer *buffer;
   int result = make_buffer(sizeof(struct di_header), &buffer);
   if (result != UDS_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#12 $
  */
 
 #include "fixedLayout.h"
@@ -315,7 +315,7 @@ size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
  * @return UDS_SUCCESS or an error code
  **/
 static int encodePartitions_3_0(const struct fixed_layout *layout,
-				Buffer *buffer)
+				struct buffer *buffer)
 {
 	const struct partition *partition;
 	for (partition = layout->head;
@@ -355,7 +355,8 @@ static int encodePartitions_3_0(const struct fixed_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encodeLayout_3_0(const struct fixed_layout *layout, Buffer *buffer)
+static int encodeLayout_3_0(const struct fixed_layout *layout,
+			    struct buffer *buffer)
 {
 	int result = ASSERT(layout->num_partitions <= UINT8_MAX,
 			    "fixed layout partition count must fit in a byte");
@@ -377,7 +378,8 @@ static int encodeLayout_3_0(const struct fixed_layout *layout, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
+int encode_fixed_layout(const struct fixed_layout *layout,
+			struct buffer *buffer)
 {
 	if (!ensure_available_space(buffer,
 				    get_fixed_layout_encoded_size(layout))) {
@@ -424,7 +426,8 @@ int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
+static int decodePartitions_3_0(struct buffer *buffer,
+				struct fixed_layout *layout)
 {
 	size_t i;
 	for (i = 0; i < layout->num_partitions; i++) {
@@ -470,7 +473,7 @@ static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
+static int decodeLayout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 {
 	size_t initial_length = content_length(buffer);
 
@@ -504,7 +507,8 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 }
 
 /**********************************************************************/
-int decode_fixed_layout(Buffer *buffer, struct fixed_layout **layout_ptr)
+int decode_fixed_layout(struct buffer *buffer,
+			struct fixed_layout **layout_ptr)
 {
 	struct header header;
 	int result = decode_header(buffer, &header);

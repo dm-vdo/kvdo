@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#4 $
  */
 
 #ifndef ERRORS_H
@@ -56,7 +56,7 @@ enum udsInternalErrorCodes {
 	UDS_QUEUE_ALREADY_CONNECTED = UDS_INTERNAL_ERROR_CODE_BASE + 11,
 	/** Fill phase not supported */
 	UDS_BAD_FILL_PHASE = UDS_INTERNAL_ERROR_CODE_BASE + 12,
-	/** A problem has occurred with a Buffer */
+	/** A problem has occurred with a buffer */
 	UDS_BUFFER_ERROR = UDS_INTERNAL_ERROR_CODE_BASE + 13,
 	/** A network connection was lost */
 	UDS_CONNECTION_LOST = UDS_INTERNAL_ERROR_CODE_BASE + 14,

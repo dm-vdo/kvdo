@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#22 $
  */
 
 #include "upgrade.h"
@@ -113,7 +113,7 @@ static int validate_sodium_version(struct vdo *vdo)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int decode_sodium_41_0_component(Buffer *buffer,
+static int decode_sodium_41_0_component(struct buffer *buffer,
 					struct sodium_component_41_0 *component)
 {
 	return get_bytes_from_buffer(buffer, sizeof(*component), component);
@@ -130,7 +130,7 @@ static int decode_sodium_41_0_component(Buffer *buffer,
 __attribute__((warn_unused_result)) static int
 decode_sodium_component(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	struct version_number version;
 	int result = decode_version_number(buffer, &version);
 	if (result != VDO_SUCCESS) {
@@ -168,7 +168,7 @@ decode_sodium_component(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 finish_sodium_decode(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	const struct thread_config *threadConfig = get_thread_config(vdo);
 	int result =
 		make_recovery_journal(vdo->nonce,

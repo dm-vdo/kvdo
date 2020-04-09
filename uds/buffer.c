@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#3 $
  */
 
 #include "buffer.h"
@@ -32,14 +32,14 @@
 int wrap_buffer(byte *bytes,
 		size_t length,
 		size_t content_length,
-		Buffer **buffer_ptr)
+		struct buffer **buffer_ptr)
 {
 	int result = ASSERT((content_length <= length),
 			    "content length, %zu, fits in buffer size, %zu",
 			    length,
 			    content_length);
-	Buffer *buffer;
-	result = ALLOCATE(1, Buffer, "buffer", &buffer);
+	struct buffer *buffer;
+	result = ALLOCATE(1, struct buffer, "buffer", &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -55,7 +55,7 @@ int wrap_buffer(byte *bytes,
 }
 
 /***********************************************************************/
-int make_buffer(size_t size, Buffer **new_buffer)
+int make_buffer(size_t size, struct buffer **new_buffer)
 {
 	byte *data;
 	int result = ALLOCATE(size, byte, "buffer data", &data);
@@ -63,7 +63,7 @@ int make_buffer(size_t size, Buffer **new_buffer)
 		return result;
 	}
 
-	Buffer *buffer;
+	struct buffer *buffer;
 	result = wrap_buffer(data, size, 0, &buffer);
 	if (result != UDS_SUCCESS) {
 		FREE(data);
@@ -76,9 +76,9 @@ int make_buffer(size_t size, Buffer **new_buffer)
 }
 
 /***********************************************************************/
-void free_buffer(Buffer **p_buffer)
+void free_buffer(struct buffer **p_buffer)
 {
-	Buffer *buffer = *p_buffer;
+	struct buffer *buffer = *p_buffer;
 	*p_buffer = NULL;
 	if (buffer == NULL) {
 		return;
@@ -90,37 +90,37 @@ void free_buffer(Buffer **p_buffer)
 }
 
 /**********************************************************************/
-size_t buffer_length(Buffer *buffer)
+size_t buffer_length(struct buffer *buffer)
 {
 	return buffer->length;
 }
 
 /**********************************************************************/
-size_t content_length(Buffer *buffer)
+size_t content_length(struct buffer *buffer)
 {
 	return buffer->end - buffer->start;
 }
 
 /**********************************************************************/
-size_t uncompacted_amount(Buffer *buffer)
+size_t uncompacted_amount(struct buffer *buffer)
 {
 	return buffer->start;
 }
 
 /**********************************************************************/
-size_t available_space(Buffer *buffer)
+size_t available_space(struct buffer *buffer)
 {
 	return buffer->length - buffer->end;
 }
 
 /**********************************************************************/
-size_t buffer_used(Buffer *buffer)
+size_t buffer_used(struct buffer *buffer)
 {
 	return buffer->end;
 }
 
 /***********************************************************************/
-int grow_buffer(Buffer *buffer, size_t length)
+int grow_buffer(struct buffer *buffer, size_t length)
 {
 	if (buffer == NULL) {
 		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
@@ -149,7 +149,7 @@ int grow_buffer(Buffer *buffer, size_t length)
 }
 
 /***********************************************************************/
-bool ensure_available_space(Buffer *buffer, size_t bytes)
+bool ensure_available_space(struct buffer *buffer, size_t bytes)
 {
 	if (available_space(buffer) >= bytes) {
 		return true;
@@ -159,14 +159,14 @@ bool ensure_available_space(Buffer *buffer, size_t bytes)
 }
 
 /***********************************************************************/
-void clear_buffer(Buffer *buffer)
+void clear_buffer(struct buffer *buffer)
 {
 	buffer->start = 0;
 	buffer->end = buffer->length;
 }
 
 /***********************************************************************/
-void compact_buffer(Buffer *buffer)
+void compact_buffer(struct buffer *buffer)
 {
 	if ((buffer->start == 0) || (buffer->end == 0)) {
 		return;
@@ -178,7 +178,7 @@ void compact_buffer(Buffer *buffer)
 }
 
 /**********************************************************************/
-int reset_buffer_end(Buffer *buffer, size_t end)
+int reset_buffer_end(struct buffer *buffer, size_t end)
 {
 	if (end > buffer->length) {
 		return UDS_BUFFER_ERROR;
@@ -191,7 +191,7 @@ int reset_buffer_end(Buffer *buffer, size_t end)
 }
 
 /**********************************************************************/
-int skip_forward(Buffer *buffer, size_t bytes_to_skip)
+int skip_forward(struct buffer *buffer, size_t bytes_to_skip)
 {
 	if (content_length(buffer) < bytes_to_skip) {
 		return UDS_BUFFER_ERROR;
@@ -202,7 +202,7 @@ int skip_forward(Buffer *buffer, size_t bytes_to_skip)
 }
 
 /**********************************************************************/
-int rewind_buffer(Buffer *buffer, size_t bytes_to_rewind)
+int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
 {
 	if (buffer->start < bytes_to_rewind) {
 		return UDS_BUFFER_ERROR;
@@ -213,14 +213,14 @@ int rewind_buffer(Buffer *buffer, size_t bytes_to_rewind)
 }
 
 /**********************************************************************/
-bool has_same_bytes(Buffer *buffer, const byte *data, size_t length)
+bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
 {
 	return ((content_length(buffer) >= length) &&
 		(memcmp(buffer->data + buffer->start, data, length) == 0));
 }
 
 /**********************************************************************/
-bool equal_buffers(Buffer *buffer1, Buffer *buffer2)
+bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2)
 {
 	return has_same_bytes(buffer1,
 			      buffer2->data + buffer2->start,
@@ -228,7 +228,7 @@ bool equal_buffers(Buffer *buffer1, Buffer *buffer2)
 }
 
 /**********************************************************************/
-int get_byte(Buffer *buffer, byte *byte_ptr)
+int get_byte(struct buffer *buffer, byte *byte_ptr)
 {
 	if (content_length(buffer) < sizeof(byte)) {
 		return UDS_BUFFER_ERROR;
@@ -239,7 +239,7 @@ int get_byte(Buffer *buffer, byte *byte_ptr)
 }
 
 /**********************************************************************/
-int peek_byte(Buffer *buffer, size_t offset, byte *byte_ptr)
+int peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr)
 {
 	if (content_length(buffer) < (offset + sizeof(byte))) {
 		return UDS_BUFFER_ERROR;
@@ -250,7 +250,7 @@ int peek_byte(Buffer *buffer, size_t offset, byte *byte_ptr)
 }
 
 /**********************************************************************/
-int put_byte(Buffer *buffer, byte b)
+int put_byte(struct buffer *buffer, byte b)
 {
 	if (!ensure_available_space(buffer, sizeof(byte))) {
 		return UDS_BUFFER_ERROR;
@@ -261,7 +261,8 @@ int put_byte(Buffer *buffer, byte b)
 }
 
 /**********************************************************************/
-int get_bytes_from_buffer(Buffer *buffer, size_t length, void *destination)
+int get_bytes_from_buffer(struct buffer *buffer, size_t length,
+			  void *destination)
 {
 	if (content_length(buffer) < length) {
 		return UDS_BUFFER_ERROR;
@@ -273,13 +274,13 @@ int get_bytes_from_buffer(Buffer *buffer, size_t length, void *destination)
 }
 
 /**********************************************************************/
-byte *get_buffer_contents(Buffer *buffer)
+byte *get_buffer_contents(struct buffer *buffer)
 {
 	return buffer->data + buffer->start;
 }
 
 /**********************************************************************/
-int copy_bytes(Buffer *buffer, size_t length, byte **destination_ptr)
+int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
 {
 	byte *destination;
 	int result =
@@ -298,7 +299,7 @@ int copy_bytes(Buffer *buffer, size_t length, byte **destination_ptr)
 }
 
 /**********************************************************************/
-int put_bytes(Buffer *buffer, size_t length, const void *source)
+int put_bytes(struct buffer *buffer, size_t length, const void *source)
 {
 	if (!ensure_available_space(buffer, length)) {
 		return UDS_BUFFER_ERROR;
@@ -309,7 +310,7 @@ int put_bytes(Buffer *buffer, size_t length, const void *source)
 }
 
 /**********************************************************************/
-int put_buffer(Buffer *target, Buffer *source, size_t length)
+int put_buffer(struct buffer *target, struct buffer *source, size_t length)
 {
 	if (content_length(source) < length) {
 		return UDS_BUFFER_ERROR;
@@ -325,7 +326,7 @@ int put_buffer(Buffer *target, Buffer *source, size_t length)
 }
 
 /**********************************************************************/
-int zero_bytes(Buffer *buffer, size_t length)
+int zero_bytes(struct buffer *buffer, size_t length)
 {
 	if (!ensure_available_space(buffer, length)) {
 		return UDS_BUFFER_ERROR;
@@ -336,7 +337,7 @@ int zero_bytes(Buffer *buffer, size_t length)
 }
 
 /**********************************************************************/
-int get_boolean(Buffer *buffer, bool *b)
+int get_boolean(struct buffer *buffer, bool *b)
 {
 	byte by;
 	int result = get_byte(buffer, &by);
@@ -347,13 +348,13 @@ int get_boolean(Buffer *buffer, bool *b)
 }
 
 /**********************************************************************/
-int put_boolean(Buffer *buffer, bool b)
+int put_boolean(struct buffer *buffer, bool b)
 {
 	return put_byte(buffer, (byte)(b ? 1 : 0));
 }
 
 /**********************************************************************/
-int get_uint16_be_from_buffer(Buffer *buffer, uint16_t *ui)
+int get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui)
 {
 	if (content_length(buffer) < sizeof(uint16_t)) {
 		return UDS_BUFFER_ERROR;
@@ -364,7 +365,7 @@ int get_uint16_be_from_buffer(Buffer *buffer, uint16_t *ui)
 }
 
 /**********************************************************************/
-int put_uint16_be_into_buffer(Buffer *buffer, uint16_t ui)
+int put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui)
 {
 	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
 		return UDS_BUFFER_ERROR;
@@ -375,7 +376,7 @@ int put_uint16_be_into_buffer(Buffer *buffer, uint16_t ui)
 }
 
 /**********************************************************************/
-int get_uint32_be_from_buffer(Buffer *buffer, uint32_t *ui)
+int get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui)
 {
 	if (content_length(buffer) < sizeof(uint32_t)) {
 		return UDS_BUFFER_ERROR;
@@ -386,7 +387,7 @@ int get_uint32_be_from_buffer(Buffer *buffer, uint32_t *ui)
 }
 
 /**********************************************************************/
-int put_uint32_be_into_buffer(Buffer *buffer, uint32_t ui)
+int put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui)
 {
 	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
 		return UDS_BUFFER_ERROR;
@@ -397,7 +398,8 @@ int put_uint32_be_into_buffer(Buffer *buffer, uint32_t ui)
 }
 
 /**********************************************************************/
-int get_uint32_bes_from_buffer(Buffer *buffer, size_t count, uint32_t *ui)
+int get_uint32_bes_from_buffer(struct buffer *buffer, size_t count,
+			       uint32_t *ui)
 {
 	if (content_length(buffer) < (sizeof(uint32_t) * count)) {
 		return UDS_BUFFER_ERROR;
@@ -411,7 +413,7 @@ int get_uint32_bes_from_buffer(Buffer *buffer, size_t count, uint32_t *ui)
 }
 
 /**********************************************************************/
-int put_uint32_bes_into_buffer(Buffer *buffer,
+int put_uint32_bes_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint32_t *ui)
 {
@@ -427,7 +429,8 @@ int put_uint32_bes_into_buffer(Buffer *buffer,
 }
 
 /**********************************************************************/
-int get_uint64_bes_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
+int get_uint64_bes_from_buffer(struct buffer *buffer, size_t count,
+			       uint64_t *ui)
 {
 	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
 		return UDS_BUFFER_ERROR;
@@ -441,7 +444,7 @@ int get_uint64_bes_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
 }
 
 /**********************************************************************/
-int put_uint64_bes_into_buffer(Buffer *buffer,
+int put_uint64_bes_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint64_t *ui)
 {
@@ -457,7 +460,7 @@ int put_uint64_bes_into_buffer(Buffer *buffer,
 }
 
 /**********************************************************************/
-int get_uint16_le_from_buffer(Buffer *buffer, uint16_t *ui)
+int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
 {
 	if (content_length(buffer) < sizeof(uint16_t)) {
 		return UDS_BUFFER_ERROR;
@@ -468,7 +471,7 @@ int get_uint16_le_from_buffer(Buffer *buffer, uint16_t *ui)
 }
 
 /**********************************************************************/
-int put_uint16_le_into_buffer(Buffer *buffer, uint16_t ui)
+int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
 {
 	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
 		return UDS_BUFFER_ERROR;
@@ -479,7 +482,8 @@ int put_uint16_le_into_buffer(Buffer *buffer, uint16_t ui)
 }
 
 /**********************************************************************/
-int get_uint16_les_from_buffer(Buffer *buffer, size_t count, uint16_t *ui)
+int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
+			       uint16_t *ui)
 {
 	if (content_length(buffer) < (sizeof(uint16_t) * count)) {
 		return UDS_BUFFER_ERROR;
@@ -493,7 +497,7 @@ int get_uint16_les_from_buffer(Buffer *buffer, size_t count, uint16_t *ui)
 }
 
 /**********************************************************************/
-int put_uint16_les_into_buffer(Buffer *buffer,
+int put_uint16_les_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint16_t *ui)
 {
@@ -509,7 +513,7 @@ int put_uint16_les_into_buffer(Buffer *buffer,
 }
 
 /**********************************************************************/
-int get_int32_le_from_buffer(Buffer *buffer, int32_t *i)
+int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
 {
 	if (content_length(buffer) < sizeof(int32_t)) {
 		return UDS_BUFFER_ERROR;
@@ -520,7 +524,7 @@ int get_int32_le_from_buffer(Buffer *buffer, int32_t *i)
 }
 
 /**********************************************************************/
-int get_uint32_le_from_buffer(Buffer *buffer, uint32_t *ui)
+int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
 {
 	if (content_length(buffer) < sizeof(uint32_t)) {
 		return UDS_BUFFER_ERROR;
@@ -531,7 +535,7 @@ int get_uint32_le_from_buffer(Buffer *buffer, uint32_t *ui)
 }
 
 /**********************************************************************/
-int put_uint32_le_into_buffer(Buffer *buffer, uint32_t ui)
+int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
 {
 	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
 		return UDS_BUFFER_ERROR;
@@ -542,7 +546,7 @@ int put_uint32_le_into_buffer(Buffer *buffer, uint32_t ui)
 }
 
 /**********************************************************************/
-int put_int64_le_into_buffer(Buffer *buffer, int64_t i)
+int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
 {
 	if (!ensure_available_space(buffer, sizeof(int64_t))) {
 		return UDS_BUFFER_ERROR;
@@ -553,7 +557,7 @@ int put_int64_le_into_buffer(Buffer *buffer, int64_t i)
 }
 
 /**********************************************************************/
-int get_uint64_le_from_buffer(Buffer *buffer, uint64_t *ui)
+int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
 {
 	if (content_length(buffer) < sizeof(uint64_t)) {
 		return UDS_BUFFER_ERROR;
@@ -564,7 +568,7 @@ int get_uint64_le_from_buffer(Buffer *buffer, uint64_t *ui)
 }
 
 /**********************************************************************/
-int put_uint64_le_into_buffer(Buffer *buffer, uint64_t ui)
+int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
 {
 	if (!ensure_available_space(buffer, sizeof(uint64_t))) {
 		return UDS_BUFFER_ERROR;
@@ -575,7 +579,8 @@ int put_uint64_le_into_buffer(Buffer *buffer, uint64_t ui)
 }
 
 /**********************************************************************/
-int get_uint64_les_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
+int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
+			       uint64_t *ui)
 {
 	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
 		return UDS_BUFFER_ERROR;
@@ -589,7 +594,7 @@ int get_uint64_les_from_buffer(Buffer *buffer, size_t count, uint64_t *ui)
 }
 
 /**********************************************************************/
-int put_uint64_les_into_buffer(Buffer *buffer,
+int put_uint64_les_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint64_t *ui)
 {

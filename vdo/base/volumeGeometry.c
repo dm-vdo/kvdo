@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#16 $
  */
 
 #include "volumeGeometry.h"
@@ -96,7 +96,8 @@ static inline bool is_loadable_release_version(ReleaseVersionNumber version)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decode_index_config(Buffer *buffer, struct index_config *config)
+static int decode_index_config(struct buffer *buffer,
+			       struct index_config *config)
 {
 	uint32_t mem;
 	int result = get_uint32_le_from_buffer(buffer, &mem);
@@ -133,7 +134,7 @@ static int decode_index_config(Buffer *buffer, struct index_config *config)
  * @return UDS_SUCCESS or an error
  **/
 static int encode_index_config(const struct index_config *config,
-			       Buffer *buffer)
+			       struct buffer *buffer)
 {
 	int result = put_uint32_le_into_buffer(buffer, config->mem);
 	if (result != VDO_SUCCESS) {
@@ -156,7 +157,8 @@ static int encode_index_config(const struct index_config *config,
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decode_volume_region(Buffer *buffer, struct volume_region *region)
+static int decode_volume_region(struct buffer *buffer,
+				struct volume_region *region)
 {
 	volume_region_id id;
 	int result = get_uint32_le_from_buffer(buffer, &id);
@@ -186,7 +188,7 @@ static int decode_volume_region(Buffer *buffer, struct volume_region *region)
  * @return UDS_SUCCESS or an error
  **/
 static int encode_volume_region(const struct volume_region *region,
-				Buffer *buffer)
+				struct buffer *buffer)
 {
 	int result = put_uint32_le_into_buffer(buffer, region->id);
 	if (result != VDO_SUCCESS) {
@@ -204,7 +206,7 @@ static int encode_volume_region(const struct volume_region *region,
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decode_volume_geometry(Buffer *buffer,
+static int decode_volume_geometry(struct buffer *buffer,
 				  struct volume_geometry *geometry)
 {
 	ReleaseVersionNumber release_version;
@@ -247,7 +249,7 @@ static int decode_volume_geometry(Buffer *buffer,
  * @return UDS_SUCCESS or an error
  **/
 static int encode_volume_geometry(const struct volume_geometry *geometry,
-				  Buffer *buffer)
+				  struct buffer *buffer)
 {
 	int result = put_uint32_le_into_buffer(buffer, geometry->release_version);
 	if (result != VDO_SUCCESS) {
@@ -284,7 +286,7 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decode_geometry_block(Buffer *buffer,
+static int decode_geometry_block(struct buffer *buffer,
 				 struct volume_geometry *geometry)
 {
 	if (!has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
@@ -329,7 +331,7 @@ static int decode_geometry_block(Buffer *buffer,
  * @return UDS_SUCCESS or an error
  **/
 static int encode_geometry_block(const struct volume_geometry *geometry,
-				 Buffer *buffer)
+				 struct buffer *buffer)
 {
 	int result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
 	if (result != VDO_SUCCESS) {
@@ -395,7 +397,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 		return result;
 	}
 
-	Buffer *buffer;
+	struct buffer *buffer;
 	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(block);
@@ -529,7 +531,7 @@ int write_volume_geometry(PhysicalLayer *layer,
 		return result;
 	}
 
-	Buffer *buffer;
+	struct buffer *buffer;
 	result = wrap_buffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(block);

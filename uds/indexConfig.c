@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#3 $
  */
 
 #include "indexConfig.h"
@@ -36,7 +36,7 @@ enum {
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeIndexConfig(Buffer *buffer, UdsConfiguration config)
+static int decodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
 {
   int result = get_uint32_le_from_buffer(buffer, &config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
@@ -96,7 +96,7 @@ static int readVersion(BufferedReader    *reader,
     return logErrorWithStringError(result, "cannot read index config version");
   }
   if (memcmp(INDEX_CONFIG_VERSION, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    Buffer *buffer;
+    struct buffer *buffer;
     result = make_buffer(sizeof(*conf), &buffer);
     if (result != UDS_SUCCESS) {
       return result;
@@ -171,7 +171,7 @@ int readConfigContents(BufferedReader   *reader,
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int encodeIndexConfig(Buffer *buffer, UdsConfiguration config)
+static int encodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
 {
   int result = put_uint32_le_into_buffer(buffer, config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
@@ -229,7 +229,7 @@ int writeConfigContents(BufferedWriter   *writer,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  Buffer *buffer;
+  struct buffer *buffer;
   result = make_buffer(sizeof(*config), &buffer);
   if (result != UDS_SUCCESS) {
     return result;

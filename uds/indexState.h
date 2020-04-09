@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#3 $
  */
 
 #ifndef INDEX_STATE_H
@@ -271,7 +271,7 @@ IndexComponent *findIndexComponent(const IndexState         *state,
  *
  * @return the index state buffer
  **/
-Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
+struct buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
   __attribute__((warn_unused_result));
 
 /**

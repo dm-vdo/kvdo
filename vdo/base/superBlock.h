@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#6 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -110,7 +110,7 @@ void load_super_block_async(struct vdo_completion *parent,
  *
  * @return the component data in a buffer
  **/
-Buffer *get_component_buffer(struct vdo_super_block *super_block)
+struct buffer *get_component_buffer(struct vdo_super_block *super_block)
 	__attribute__((warn_unused_result));
 
 /**

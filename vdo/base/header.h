@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#5 $
  */
 
 #ifndef HEADER_H
@@ -156,7 +156,7 @@ int validate_header(const struct header *expected_header,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_header(const struct header *header, Buffer *buffer)
+int encode_header(const struct header *header, struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**
@@ -167,7 +167,7 @@ int encode_header(const struct header *header, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_version_number(struct version_number version, Buffer *buffer)
+int encode_version_number(struct version_number version, struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**
@@ -178,7 +178,7 @@ int encode_version_number(struct version_number version, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_header(Buffer *buffer, struct header *header)
+int decode_header(struct buffer *buffer, struct header *header)
 	__attribute__((warn_unused_result));
 
 /**
@@ -189,7 +189,8 @@ int decode_header(Buffer *buffer, struct header *header)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_version_number(Buffer *buffer, struct version_number *version)
+int decode_version_number(struct buffer *buffer,
+			  struct version_number *version)
 	__attribute__((warn_unused_result));
 
 /**

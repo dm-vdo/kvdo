@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#17 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -284,7 +284,8 @@ size_t get_recovery_journal_encoded_size(void)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+int encode_recovery_journal(struct recovery_journal *journal,
+			    struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**
@@ -295,7 +296,8 @@ int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+int decode_recovery_journal(struct recovery_journal *journal,
+			    struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**
@@ -307,7 +309,7 @@ int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
  * @return VDO_SUCCESS or an error code
  **/
 int decode_sodium_recovery_journal(struct recovery_journal *journal,
-				   Buffer *buffer)
+				   struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**

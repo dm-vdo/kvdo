@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#7 $
  */
 
 #include "indexLayout.h"
@@ -99,7 +99,7 @@ struct index_save_layout {
 	LayoutRegion *open_chapter;
 	IndexSaveType save_type;
 	struct index_save_data save_data;
-	Buffer *index_state_buffer;
+	struct buffer *index_state_buffer;
 	bool read;
 	bool written;
 };
@@ -283,7 +283,7 @@ open_layout_writer(struct index_layout *layout,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-decode_index_save_data(Buffer *buffer, struct index_save_data *save_data)
+decode_index_save_data(struct buffer *buffer, struct index_save_data *save_data)
 {
 	int result = get_uint64_le_from_buffer(buffer, &save_data->timestamp);
 	if (result != UDS_SUCCESS) {
@@ -317,7 +317,7 @@ decode_index_save_data(Buffer *buffer, struct index_save_data *save_data)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-decode_region_header(Buffer *buffer, RegionHeader *header)
+decode_region_header(struct buffer *buffer, RegionHeader *header)
 {
 	int result = get_uint64_le_from_buffer(buffer, &header->magic);
 	if (result != UDS_SUCCESS) {
@@ -355,7 +355,7 @@ decode_region_header(Buffer *buffer, RegionHeader *header)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-decode_layout_region(Buffer *buffer, LayoutRegion *region)
+decode_layout_region(struct buffer *buffer, LayoutRegion *region)
 {
 	size_t cl1 = content_length(buffer);
 
@@ -393,7 +393,7 @@ decode_layout_region(Buffer *buffer, LayoutRegion *region)
 __attribute__((warn_unused_result)) static int
 load_region_table(BufferedReader *reader, RegionTable **table_ptr)
 {
-	Buffer *buffer;
+	struct buffer *buffer;
 	int result = make_buffer(sizeof(RegionHeader), &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -473,7 +473,7 @@ load_region_table(BufferedReader *reader, RegionTable **table_ptr)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-decode_super_block_data(Buffer *buffer, struct super_block_data *super)
+decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 {
 	int result = get_bytes_from_buffer(buffer, 32, super->magic_label);
 	if (result != UDS_SUCCESS) {
@@ -542,7 +542,7 @@ read_super_block_data(BufferedReader *reader,
 					       "super block magic label size incorrect");
 	}
 
-	Buffer *buffer;
+	struct buffer *buffer;
 	int result = make_buffer(saved_size, &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -670,7 +670,7 @@ __attribute__((warn_unused_result)) static int
 read_index_save_data(BufferedReader *reader,
 		     struct index_save_data *save_data,
 		     size_t saved_size,
-		     Buffer **buffer_ptr)
+		     struct buffer **buffer_ptr)
 {
 	int result = UDS_SUCCESS;
 	if (saved_size == 0) {
@@ -682,7 +682,7 @@ read_index_save_data(BufferedReader *reader,
 						       saved_size);
 		}
 
-		Buffer *buffer;
+		struct buffer *buffer;
 		result = make_buffer(sizeof(*save_data), &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -722,7 +722,7 @@ read_index_save_data(BufferedReader *reader,
 		}
 	}
 
-	Buffer *buffer = NULL;
+	struct buffer *buffer = NULL;
 
 	if (save_data->version != 0) {
 		result = make_buffer(INDEX_STATE_BUFFER_SIZE, &buffer);
@@ -1513,7 +1513,7 @@ make_single_file_region_table(struct index_layout *layout,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-encode_index_save_data(Buffer *buffer, struct index_save_data *save_data)
+encode_index_save_data(struct buffer *buffer, struct index_save_data *save_data)
 {
 	int result = put_uint64_le_into_buffer(buffer, save_data->timestamp);
 	if (result != UDS_SUCCESS) {
@@ -1540,7 +1540,7 @@ encode_index_save_data(Buffer *buffer, struct index_save_data *save_data)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-encode_region_header(Buffer *buffer, RegionHeader *header)
+encode_region_header(struct buffer *buffer, RegionHeader *header)
 {
 	size_t starting_length = content_length(buffer);
 	int result = put_uint64_le_into_buffer(buffer, REGION_MAGIC);
@@ -1577,7 +1577,7 @@ encode_region_header(Buffer *buffer, RegionHeader *header)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-encode_layout_region(Buffer *buffer, LayoutRegion *region)
+encode_layout_region(struct buffer *buffer, LayoutRegion *region)
 {
 	size_t starting_length = content_length(buffer);
 	int result = put_uint64_le_into_buffer(buffer, region->startBlock);
@@ -1610,7 +1610,7 @@ encode_layout_region(Buffer *buffer, LayoutRegion *region)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result)) static int
-encode_super_block_data(Buffer *buffer, struct super_block_data *super)
+encode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 {
 	int result = put_bytes(buffer, 32, &super->magic_label);
 	if (result != UDS_SUCCESS) {
@@ -1679,7 +1679,7 @@ write_single_file_header(struct index_layout *layout,
 	size_t table_size =
 		sizeof(RegionTable) + num_regions * sizeof(LayoutRegion);
 
-	Buffer *buffer;
+	struct buffer *buffer;
 	int result = make_buffer(table_size, &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -2199,7 +2199,7 @@ write_index_save_header(struct index_save_layout *isl,
 
 	size_t table_size =
 		sizeof(RegionTable) + num_regions * sizeof(LayoutRegion);
-	Buffer *buffer;
+	struct buffer *buffer;
 	int result = make_buffer(table_size, &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -2396,7 +2396,8 @@ static int create_index_layout(struct index_layout *layout,
 }
 
 /*****************************************************************************/
-Buffer *get_index_state_buffer(struct index_layout *layout, unsigned int slot)
+struct buffer *get_index_state_buffer(struct index_layout *layout,
+				      unsigned int slot)
 {
 	return layout->index.saves[slot].index_state_buffer;
 }

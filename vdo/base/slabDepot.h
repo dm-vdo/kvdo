@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#27 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -118,7 +118,7 @@ size_t get_slab_depot_encoded_size(void) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
+int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 /**
@@ -135,7 +135,7 @@ int encode_slab_depot(const struct slab_depot *depot, Buffer *buffer)
  *
  * @return A success or error code
  **/
-int decode_sodium_slab_depot(Buffer *buffer,
+int decode_sodium_slab_depot(struct buffer *buffer,
 			     const struct thread_config *thread_config,
 			     Nonce nonce,
 			     PhysicalLayer *layer,
@@ -160,7 +160,7 @@ int decode_sodium_slab_depot(Buffer *buffer,
  *
  * @return A success or error code
  **/
-int decode_slab_depot(Buffer *buffer,
+int decode_slab_depot(struct buffer *buffer,
 		      const struct thread_config *thread_config,
 		      Nonce nonce,
 		      PhysicalLayer *layer,

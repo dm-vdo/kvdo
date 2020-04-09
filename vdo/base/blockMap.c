@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#53 $
  */
 
 #include "blockMap.h"
@@ -185,7 +185,7 @@ int make_block_map(BlockCount logical_blocks,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decode_block_map_state_2_0(Buffer *buffer,
+static int decode_block_map_state_2_0(struct buffer *buffer,
 				      struct block_map_state_2_0 *state)
 {
 	size_t initial_length = content_length(buffer);
@@ -227,7 +227,7 @@ static int decode_block_map_state_2_0(Buffer *buffer,
 }
 
 /**********************************************************************/
-int decode_block_map(Buffer *buffer,
+int decode_block_map(struct buffer *buffer,
 		     BlockCount logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
@@ -274,7 +274,7 @@ int decode_block_map(Buffer *buffer,
 }
 
 /**********************************************************************/
-int decode_sodium_block_map(Buffer *buffer,
+int decode_sodium_block_map(struct buffer *buffer,
 			    BlockCount logical_blocks,
 			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
@@ -469,7 +469,7 @@ size_t get_block_map_encoded_size(void)
 }
 
 /**********************************************************************/
-int encode_block_map(const struct block_map *map, Buffer *buffer)
+int encode_block_map(const struct block_map *map, struct buffer *buffer)
 {
 	int result = encode_header(&BLOCK_MAP_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#7 $
  */
 
 /**
@@ -65,7 +65,8 @@ int make_vdo_layout(BlockCount physical_blocks,
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_layout(Buffer *buffer, struct vdo_layout **vdo_layout_ptr)
+int decode_vdo_layout(struct buffer *buffer,
+		      struct vdo_layout **vdo_layout_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -184,7 +185,8 @@ size_t get_vdo_layout_encoded_size(const struct vdo_layout *vdo_layout)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_vdo_layout(const struct vdo_layout *vdo_layout, Buffer *buffer)
+int encode_vdo_layout(const struct vdo_layout *vdo_layout,
+		      struct buffer *buffer)
 	__attribute__((warn_unused_result));
 
 #endif // VDO_LAYOUT_H
