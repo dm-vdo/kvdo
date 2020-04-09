@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#22 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -64,11 +64,11 @@ struct slab_actor {
  **/
 struct atomic_allocator_statistics {
 	/** The count of allocated blocks in this zone */
-	Atomic64 allocatedBlocks;
+	Atomic64 allocated_blocks;
 	/** The number of slabs from which blocks have ever been allocated */
-	Atomic64 slabsOpened;
+	Atomic64 slabs_opened;
 	/** The number of times since loading that a slab been re-opened */
-	Atomic64 slabsReopened;
+	Atomic64 slabs_reopened;
 };
 
 /**
@@ -79,15 +79,15 @@ struct atomic_allocator_statistics {
  **/
 struct atomic_slab_journal_statistics {
 	/** Number of times the on-disk journal was full */
-	Atomic64 diskFullCount;
+	Atomic64 disk_full_count;
 	/** Number of times an entry was added over the flush threshold */
-	Atomic64 flushCount;
+	Atomic64 flush_count;
 	/** Number of times an entry was added over the block threshold */
-	Atomic64 blockedCount;
+	Atomic64 blocked_count;
 	/** Number of times the tail block was written */
-	Atomic64 blocksWritten;
+	Atomic64 blocks_written;
 	/** Number of times we had to wait for the tail block commit */
-	Atomic64 tailBusyCount;
+	Atomic64 tail_busy_count;
 };
 
 /**
@@ -98,7 +98,7 @@ struct atomic_slab_journal_statistics {
  **/
 struct atomic_ref_count_statistics {
 	/** Number of blocks written */
-	Atomic64 blocksWritten;
+	Atomic64 blocks_written;
 };
 
 struct block_allocator {

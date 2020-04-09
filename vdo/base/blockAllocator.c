@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#63 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -353,7 +353,7 @@ get_data_block_count(const struct block_allocator *allocator)
 /**********************************************************************/
 BlockCount get_allocated_blocks(const struct block_allocator *allocator)
 {
-	return relaxedLoad64(&allocator->statistics.allocatedBlocks);
+	return relaxedLoad64(&allocator->statistics.allocated_blocks);
 }
 
 /**********************************************************************/
@@ -391,10 +391,10 @@ void queue_slab(struct vdo_slab *slab)
 	if (!is_slab_resuming(slab)) {
 		// If the slab is resuming, we've already accounted for it here,
 		// so don't do it again.
-		relaxedAdd64(&allocator->statistics.allocatedBlocks,
+		relaxedAdd64(&allocator->statistics.allocated_blocks,
 			     -free_blocks);
 		if (!is_slab_journal_blank(slab->journal)) {
-			relaxedAdd64(&allocator->statistics.slabsOpened, 1);
+			relaxedAdd64(&allocator->statistics.slabs_opened, 1);
 		}
 	}
 
@@ -408,7 +408,7 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	struct block_allocator *allocator = slab->allocator;
 	// The sense of increment is reversed since allocations are being
 	// counted.
-	relaxedAdd64(&allocator->statistics.allocatedBlocks,
+	relaxedAdd64(&allocator->statistics.allocated_blocks,
 		     (increment ? -1 : 1));
 
 	// The open slab doesn't need to be reprioritized until it is closed.
@@ -478,10 +478,10 @@ int allocate_block(struct block_allocator *allocator,
 		slabFromRingNode(priority_table_dequeue(allocator->prioritized_slabs));
 
 	if (is_slab_journal_blank(allocator->open_slab->journal)) {
-		relaxedAdd64(&allocator->statistics.slabsOpened, 1);
+		relaxedAdd64(&allocator->statistics.slabs_opened, 1);
 		dirty_all_reference_blocks(allocator->open_slab->reference_counts);
 	} else {
-		relaxedAdd64(&allocator->statistics.slabsReopened, 1);
+		relaxedAdd64(&allocator->statistics.slabs_reopened, 1);
 	}
 
 	// Try allocating again. If we're out of space immediately after opening
@@ -697,7 +697,7 @@ void notify_slab_journals_are_recovered(struct block_allocator *allocator,
 /**********************************************************************/
 int prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
-	relaxedStore64(&allocator->statistics.allocatedBlocks,
+	relaxedStore64(&allocator->statistics.allocated_blocks,
 		       get_data_block_count(allocator));
 
 	struct slab_depot *depot = allocator->depot;
@@ -1006,8 +1006,8 @@ get_block_allocator_statistics(const struct block_allocator *allocator)
 		&allocator->statistics;
 	return (struct block_allocator_statistics) {
 		.slab_count = allocator->slab_count,
-		.slabs_opened = relaxedLoad64(&atoms->slabsOpened),
-		.slabs_reopened = relaxedLoad64(&atoms->slabsReopened),
+		.slabs_opened = relaxedLoad64(&atoms->slabs_opened),
+		.slabs_reopened = relaxedLoad64(&atoms->slabs_reopened),
 	};
 }
 
@@ -1018,11 +1018,11 @@ get_slab_journal_statistics(const struct block_allocator *allocator)
 	const struct atomic_slab_journal_statistics *atoms =
 		&allocator->slab_journal_statistics;
 	return (struct slab_journal_statistics) {
-		.disk_full_count = atomicLoad64(&atoms->diskFullCount),
-		.flush_count = atomicLoad64(&atoms->flushCount),
-		.blocked_count = atomicLoad64(&atoms->blockedCount),
-		.blocks_written = atomicLoad64(&atoms->blocksWritten),
-		.tail_busy_count = atomicLoad64(&atoms->tailBusyCount),
+		.disk_full_count = atomicLoad64(&atoms->disk_full_count),
+		.flush_count = atomicLoad64(&atoms->flush_count),
+		.blocked_count = atomicLoad64(&atoms->blocked_count),
+		.blocks_written = atomicLoad64(&atoms->blocks_written),
+		.tail_busy_count = atomicLoad64(&atoms->tail_busy_count),
 	};
 }
 
@@ -1033,7 +1033,7 @@ get_ref_counts_statistics(const struct block_allocator *allocator)
 	const struct atomic_ref_count_statistics *atoms =
 		&allocator->ref_count_statistics;
 	return (struct ref_counts_statistics) {
-		.blocks_written = atomicLoad64(&atoms->blocksWritten),
+		.blocks_written = atomicLoad64(&atoms->blocks_written),
 	};
 }
 
