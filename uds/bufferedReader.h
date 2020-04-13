@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#2 $
  */
 
 #ifndef BUFFERED_READER_H
@@ -37,25 +37,25 @@ typedef struct bufferedReader BufferedReader;
 /**
  * Make a new buffered reader.
  *
- * @param factory     The IOFactory creating the buffered reader.
- * @param client      The dm_bufio_client to read from.
- * @param blockLimit  The number of blocks that may be read.
- * @param readerPtr   The pointer to hold the newly allocated buffered reader
+ * @param factory      The IOFactory creating the buffered reader.
+ * @param client       The dm_bufio_client to read from.
+ * @param block_limit  The number of blocks that may be read.
+ * @param reader_ptr   The pointer to hold the newly allocated buffered reader
  *
  * @return UDS_SUCCESS or error code.
  **/
-int makeBufferedReader(struct ioFactory        *factory,
-                       struct dm_bufio_client  *client,
-                       sector_t                 blockLimit,
-                       BufferedReader         **readerPtr)
-  __attribute__((warn_unused_result));
+int make_buffered_reader(struct ioFactory *factory,
+			 struct dm_bufio_client *client,
+			 sector_t block_limit,
+			 BufferedReader **reader_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a buffered reader.
  *
  * @param reader        The buffered reader
  **/
-void freeBufferedReader(BufferedReader *reader);
+void free_buffered_reader(BufferedReader *reader);
 
 /**
  * Retrieve data from a buffered reader, reading from the region when needed.
@@ -66,8 +66,8 @@ void freeBufferedReader(BufferedReader *reader);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int readFromBufferedReader(BufferedReader *reader, void *data, size_t length)
-  __attribute__((warn_unused_result));
+int read_from_buffered_reader(BufferedReader *reader, void *data, size_t length)
+	__attribute__((warn_unused_result));
 
 /**
  * Verify that the data currently in the buffer matches the required value.
@@ -82,9 +82,8 @@ int readFromBufferedReader(BufferedReader *reader, void *data, size_t length)
  * @note If the value matches, the matching contents are consumed. However,
  *       if the match fails, any buffer contents are left as is.
  **/
-int verifyBufferedData(BufferedReader *reader,
-                       const void     *value,
-                       size_t          length)
-  __attribute__((warn_unused_result));
+int verify_buffered_data(BufferedReader *reader,
+			 const void *value,
+			 size_t length) __attribute__((warn_unused_result));
 
 #endif // BUFFERED_READER_H

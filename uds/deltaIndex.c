@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#5 $
  */
 #include "deltaIndex.h"
 
@@ -887,8 +887,8 @@ static int readDeltaIndexHeader(BufferedReader *reader,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = readFromBufferedReader(reader, get_buffer_contents(buffer),
-                                  buffer_length(buffer));
+  result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
+                                     buffer_length(buffer));
   if (result != UDS_SUCCESS) {
     free_buffer(&buffer);
     return logWarningWithStringError(result,
@@ -1004,8 +1004,8 @@ int startRestoringDeltaIndex(const DeltaIndex  *deltaIndex,
     unsigned int i;
     for (i = 0; i < numLists[z]; i++) {
       byte deltaListSizeData[sizeof(uint16_t)];
-      int result = readFromBufferedReader(reader[z], deltaListSizeData,
-                                          sizeof(deltaListSizeData));
+      int result = read_from_buffered_reader(reader[z], deltaListSizeData,
+                                             sizeof(deltaListSizeData));
       if (result != UDS_SUCCESS) {
         return logWarningWithStringError(result,
                                          "failed to read delta index size");
@@ -1136,8 +1136,8 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
     free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
-                                 content_length(buffer));
+  result = write_to_buffered_writer(bufferedWriter, get_buffer_contents(buffer),
+                                    content_length(buffer));
   free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result,
@@ -1149,7 +1149,7 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
     uint16_t deltaListSize = getDeltaListSize(&deltaZone->deltaLists[i + 1]);
     byte data[2];
     storeUInt16LE(data, deltaListSize);
-    result = writeToBufferedWriter(bufferedWriter, data, sizeof(data));
+    result = write_to_buffered_writer(bufferedWriter, data, sizeof(data));
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to write delta list size");

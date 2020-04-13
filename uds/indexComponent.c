@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#4 $
  */
 
 #include "indexComponent.h"
@@ -81,7 +81,7 @@ static void freeWriteZones(IndexComponent *component)
       if (wz == NULL) {
         continue;
       }
-      freeBufferedWriter(wz->writer);
+      free_buffered_writer(wz->writer);
       FREE(wz);
     }
     FREE(component->writeZones);
@@ -118,7 +118,7 @@ static void freeReadPortal(ReadPortal *readPortal)
   unsigned int z;
   for (z = 0; z < readPortal->zones; ++z) {
     if (readPortal->readers[z] != NULL) {
-      freeBufferedReader(readPortal->readers[z]);
+      free_buffered_reader(readPortal->readers[z]);
     }
   }
   FREE(readPortal->readers);
@@ -236,7 +236,7 @@ static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
     }
   }
 
-  result = flushBufferedWriter(writer);
+  result = flush_buffered_writer(writer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -260,7 +260,7 @@ static int doneWithZone(WriteZone *writeZone)
 {
   const IndexComponent *component = writeZone->component;
   if (writeZone->writer != NULL) {
-    int result = flushBufferedWriter(writeZone->writer);
+    int result = flush_buffered_writer(writeZone->writer);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "cannot flush buffered writer for "
@@ -392,7 +392,7 @@ int writeIndexComponent(IndexComponent *component)
       break;
     }
 
-    freeBufferedWriter(writeZone->writer);
+    free_buffered_writer(writeZone->writer);
     writeZone->writer = NULL;
   }
 
@@ -421,7 +421,7 @@ static int closeBufferedWriter(WriteZone *writeZone)
   }
 
   int result = doneWithZone(writeZone);
-  freeBufferedWriter(writeZone->writer);
+  free_buffered_writer(writeZone->writer);
   writeZone->writer = NULL;
 
   return result;
@@ -454,7 +454,7 @@ static int wrapSaverAsIncremental(IndexComponent           *component,
   if ((command >= IWC_START) && (command <= IWC_FINISH)) {
     result = (*component->info->saver)(component, writer, zone);
     if ((result == UDS_SUCCESS) && (writer != NULL)) {
-      noteBufferedWriterUsed(writer);
+      note_buffered_writer_used(writer);
     }
   }
   if ((result == UDS_SUCCESS) && (completed != NULL)) {
@@ -632,7 +632,7 @@ int finishIndexComponentIncrementalSave(IndexComponent *component)
       wz->phase = IWC_IDLE;
     }
 
-    if ((wz->writer != NULL) && !wasBufferedWriterUsed(wz->writer)) {
+    if ((wz->writer != NULL) && !was_buffered_writer_used(wz->writer)) {
       return logErrorWithStringError(UDS_CHECKPOINT_INCOMPLETE,
                                      "component %s zone %u did not get written",
                                      component->info->name, zone);
@@ -729,15 +729,15 @@ int discardIndexComponent(IndexComponent *component)
     if (result != UDS_SUCCESS) {
       break;
     }
-    result = writeZerosToBufferedWriter(writer, UDS_BLOCK_SIZE);
+    result = write_zeros_to_buffered_writer(writer, UDS_BLOCK_SIZE);
     if (result != UDS_SUCCESS) {
       break;
     }
-    result = flushBufferedWriter(writer);
+    result = flush_buffered_writer(writer);
     if (result != UDS_SUCCESS) {
       break;
     }
-    freeBufferedWriter(writer);
+    free_buffered_writer(writer);
   }
 
   component->state->saveSlot = oldSaveSlot;

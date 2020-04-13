@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#9 $
  */
 
 #include "indexLayout.h"
@@ -398,9 +398,9 @@ load_region_table(BufferedReader *reader, RegionTable **table_ptr)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = readFromBufferedReader(reader,
-					get_buffer_contents(buffer),
-					buffer_length(buffer));
+	result = read_from_buffered_reader(reader,
+					   get_buffer_contents(buffer),
+					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		free_buffer(&buffer);
 		return logErrorWithStringError(result,
@@ -442,9 +442,9 @@ load_region_table(BufferedReader *reader, RegionTable **table_ptr)
 		FREE(table);
 		return result;
 	}
-	result = readFromBufferedReader(reader,
-					get_buffer_contents(buffer),
-					buffer_length(buffer));
+	result = read_from_buffered_reader(reader,
+					   get_buffer_contents(buffer),
+					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		FREE(table);
 		free_buffer(&buffer);
@@ -547,9 +547,9 @@ read_super_block_data(BufferedReader *reader,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = readFromBufferedReader(reader,
-					get_buffer_contents(buffer),
-					buffer_length(buffer));
+	result = read_from_buffered_reader(reader,
+					   get_buffer_contents(buffer),
+					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		free_buffer(&buffer);
 		return logErrorWithStringError(result,
@@ -687,9 +687,9 @@ read_index_save_data(BufferedReader *reader,
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-		result = readFromBufferedReader(reader,
-						get_buffer_contents(buffer),
-						buffer_length(buffer));
+		result = read_from_buffered_reader(reader,
+						   get_buffer_contents(buffer),
+						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(&buffer);
 			return logErrorWithStringError(result,
@@ -731,9 +731,9 @@ read_index_save_data(BufferedReader *reader,
 		}
 
 		if (saved_size > 0) {
-			result = readFromBufferedReader(reader,
-							get_buffer_contents(buffer),
-							saved_size);
+			result = read_from_buffered_reader(reader,
+							   get_buffer_contents(buffer),
+							   saved_size);
 			if (result != UDS_SUCCESS) {
 				free_buffer(&buffer);
 				return result;
@@ -1113,7 +1113,7 @@ load_sub_index_regions(struct index_layout *layout)
 		}
 
 		result = load_index_save(isl, &layout->super, reader, j);
-		freeBufferedReader(reader);
+		free_buffered_reader(reader);
 		if (result != UDS_SUCCESS) {
 			while (j-- > 0) {
 				struct index_save_layout *isl =
@@ -1143,7 +1143,7 @@ static int load_index_layout(struct index_layout *layout)
 				  UDS_BLOCK_SIZE,
 				  layout->offset / UDS_BLOCK_SIZE,
 				  reader);
-	freeBufferedReader(reader);
+	free_buffered_reader(reader);
 	if (result != UDS_SUCCESS) {
 		FREE(layout->index.saves);
 		layout->index.saves = NULL;
@@ -1696,9 +1696,9 @@ write_single_file_header(struct index_layout *layout,
 	}
 
 	if (result == UDS_SUCCESS) {
-		result = writeToBufferedWriter(writer,
-					       get_buffer_contents(buffer),
-					       content_length(buffer));
+		result = write_to_buffered_writer(writer,
+					          get_buffer_contents(buffer),
+					          content_length(buffer));
 	}
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
@@ -1716,13 +1716,13 @@ write_single_file_header(struct index_layout *layout,
 		return result;
 	}
 
-	result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-				       content_length(buffer));
+	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+				          content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	return flushBufferedWriter(writer);
+	return flush_buffered_writer(writer);
 }
 
 /*****************************************************************************/
@@ -1750,7 +1750,7 @@ save_single_file_configuration(struct index_layout *layout)
 
 	result = write_single_file_header(layout, table, num_regions, writer);
 	FREE(table);
-	freeBufferedWriter(writer);
+	free_buffered_writer(writer);
 
 	return result;
 }
@@ -1811,17 +1811,17 @@ int write_index_config(struct index_layout *layout, UdsConfiguration config)
 
 	result = writeConfigContents(writer, config);
 	if (result != UDS_SUCCESS) {
-		freeBufferedWriter(writer);
+		free_buffered_writer(writer);
 		return logErrorWithStringError(result,
 					       "failed to write config region");
 	}
-	result = flushBufferedWriter(writer);
+	result = flush_buffered_writer(writer);
 	if (result != UDS_SUCCESS) {
-		freeBufferedWriter(writer);
+		free_buffered_writer(writer);
 		return logErrorWithStringError(result,
 					       "cannot flush config writer");
 	}
-	freeBufferedWriter(writer);
+	free_buffered_writer(writer);
 	return UDS_SUCCESS;
 }
 
@@ -1838,11 +1838,11 @@ int verify_index_config(struct index_layout *layout, UdsConfiguration config)
 	struct udsConfiguration stored_config;
 	result = readConfigContents(reader, &stored_config);
 	if (result != UDS_SUCCESS) {
-		freeBufferedReader(reader);
+		free_buffered_reader(reader);
 		return logErrorWithStringError(result,
 					       "failed to read config region");
 	}
-	freeBufferedReader(reader);
+	free_buffered_reader(reader);
 
 	return (areUdsConfigurationsEqual(&stored_config, config) ?
 			UDS_SUCCESS :
@@ -2228,8 +2228,8 @@ write_index_save_header(struct index_save_layout *isl,
 		return result;
 	}
 
-	result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-				       content_length(buffer));
+	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+				          content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -2246,23 +2246,23 @@ write_index_save_header(struct index_save_layout *isl,
 		return result;
 	}
 
-	result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-				       content_length(buffer));
+	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+				          content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	if (isl->index_state_buffer != NULL) {
-		result = writeToBufferedWriter(writer,
-					       get_buffer_contents(isl->index_state_buffer),
-					       content_length(isl->index_state_buffer));
+		result = write_to_buffered_writer(writer,
+					          get_buffer_contents(isl->index_state_buffer),
+					          content_length(isl->index_state_buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 	}
 
-	return flushBufferedWriter(writer);
+	return flush_buffered_writer(writer);
 }
 
 /*****************************************************************************/
@@ -2285,7 +2285,7 @@ static int write_index_save_layout(struct index_layout *layout,
 
 	result = write_index_save_header(isl, table, num_regions, writer);
 	FREE(table);
-	freeBufferedWriter(writer);
+	free_buffered_writer(writer);
 
 	isl->written = true;
 	return result;

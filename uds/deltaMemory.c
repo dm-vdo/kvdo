@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#3 $
  */
 #include "deltaMemory.h"
 
@@ -385,7 +385,7 @@ static int readDeltaListSaveInfo(BufferedReader *reader,
                                  DeltaListSaveInfo *dlsi)
 {
   byte buffer[sizeof(DeltaListSaveInfo)];
-  int result = readFromBufferedReader(reader, buffer, sizeof(buffer));
+  int result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -416,7 +416,7 @@ int readSavedDeltaList(DeltaListSaveInfo *dlsi,
   if (dlsi->tag == 'z') {
     return UDS_END_OF_FILE;
   }
-  result = readFromBufferedReader(bufferedReader, data, dlsi->byteCount);
+  result = read_from_buffered_reader(bufferedReader, data, dlsi->byteCount);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result, "failed to read delta list data");
   }
@@ -511,7 +511,7 @@ static int writeDeltaListSaveInfo(BufferedWriter *bufferedWriter,
   buffer[1] = dlsi->bitOffset;
   storeUInt16LE(&buffer[2], dlsi->byteCount);
   storeUInt32LE(&buffer[4], dlsi->index);
-  return writeToBufferedWriter(bufferedWriter, buffer, sizeof(buffer));
+  return write_to_buffered_writer(bufferedWriter, buffer, sizeof(buffer));
 }
 
 /**********************************************************************/
@@ -536,10 +536,10 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
       deltaMemory->transferStatus = result;
     }
   }
-  result = writeToBufferedWriter(deltaMemory->bufferedWriter,
-                                 deltaMemory->memory
-                                 + getDeltaListByteStart(deltaList),
-                                 dlsi.byteCount);
+  result = write_to_buffered_writer(deltaMemory->bufferedWriter,
+                                    deltaMemory->memory
+                                 	+ getDeltaListByteStart(deltaList),
+                                    dlsi.byteCount);
   if (result != UDS_SUCCESS) {
     if (deltaMemory->transferStatus == UDS_SUCCESS) {
       logWarningWithStringError(result, "failed to write delta list memory");
@@ -556,8 +556,8 @@ int writeGuardDeltaList(BufferedWriter *bufferedWriter)
   dlsi.bitOffset = 0;
   dlsi.byteCount = 0;
   dlsi.index     = 0;
-  int result = writeToBufferedWriter(bufferedWriter, (const byte *) &dlsi,
-                                     sizeof(DeltaListSaveInfo));
+  int result = write_to_buffered_writer(bufferedWriter, (const byte *) &dlsi,
+                                        sizeof(DeltaListSaveInfo));
   if (result != UDS_SUCCESS) {
     logWarningWithStringError(result, "failed to write guard delta list");
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#17 $
  */
 
 #include "hashZone.h"
@@ -47,16 +47,16 @@ enum {
  **/
 struct atomic_hash_lock_statistics {
 	/** Number of times the UDS advice proved correct */
-	Atomic64 dedupeAdviceValid;
+	Atomic64 dedupe_advice_valid;
 
 	/** Number of times the UDS advice proved incorrect */
-	Atomic64 dedupeAdviceStale;
+	Atomic64 dedupe_advice_stale;
 
 	/** Number of writes with the same data as another in-flight write */
-	Atomic64 concurrentDataMatches;
+	Atomic64 concurrent_data_matches;
 
 	/** Number of writes whose hash collided with an in-flight write */
-	Atomic64 concurrentHashCollisions;
+	Atomic64 concurrent_hash_collisions;
 };
 
 struct hash_zone {
@@ -181,12 +181,14 @@ get_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
 	return (struct hash_lock_statistics) {
-		.dedupe_advice_valid = relaxedLoad64(&atoms->dedupeAdviceValid),
-		.dedupe_advice_stale = relaxedLoad64(&atoms->dedupeAdviceStale),
+		.dedupe_advice_valid =
+			relaxedLoad64(&atoms->dedupe_advice_valid),
+		.dedupe_advice_stale =
+			relaxedLoad64(&atoms->dedupe_advice_stale),
 		.concurrent_data_matches =
-			relaxedLoad64(&atoms->concurrentDataMatches),
+			relaxedLoad64(&atoms->concurrent_data_matches),
 		.concurrent_hash_collisions =
-			relaxedLoad64(&atoms->concurrentHashCollisions),
+			relaxedLoad64(&atoms->concurrent_hash_collisions),
 	};
 }
 
@@ -320,28 +322,28 @@ static void dump_hash_lock(const struct hash_lock *lock)
 void bump_hash_zone_valid_advice_count(struct hash_zone *zone)
 {
 	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.dedupeAdviceValid, 1);
+	relaxedAdd64(&zone->statistics.dedupe_advice_valid, 1);
 }
 
 /**********************************************************************/
 void bump_hash_zone_stale_advice_count(struct hash_zone *zone)
 {
 	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.dedupeAdviceStale, 1);
+	relaxedAdd64(&zone->statistics.dedupe_advice_stale, 1);
 }
 
 /**********************************************************************/
 void bump_hash_zone_data_match_count(struct hash_zone *zone)
 {
 	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.concurrentDataMatches, 1);
+	relaxedAdd64(&zone->statistics.concurrent_data_matches, 1);
 }
 
 /**********************************************************************/
 void bump_hash_zone_collision_count(struct hash_zone *zone)
 {
 	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.concurrentHashCollisions, 1);
+	relaxedAdd64(&zone->statistics.concurrent_hash_collisions, 1);
 }
 
 /**********************************************************************/

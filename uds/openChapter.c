@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#3 $
  */
 
 #include "openChapter.h"
@@ -156,14 +156,14 @@ int closeOpenChapter(OpenChapterZone  **chapterZones,
 /**********************************************************************/
 int saveOpenChapters(Index *index, BufferedWriter *writer)
 {
-  int result = writeToBufferedWriter(writer, OPEN_CHAPTER_MAGIC,
-                                     OPEN_CHAPTER_MAGIC_LENGTH);
+  int result = write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC,
+                                        OPEN_CHAPTER_MAGIC_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = writeToBufferedWriter(writer, OPEN_CHAPTER_VERSION,
-                                 OPEN_CHAPTER_VERSION_LENGTH);
+  result = write_to_buffered_writer(writer, OPEN_CHAPTER_VERSION,
+                                    OPEN_CHAPTER_VERSION_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -178,8 +178,8 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
   byte totalRecordData[sizeof(totalRecords)];
   storeUInt32LE(totalRecordData, totalRecords);
 
-  result = writeToBufferedWriter(writer, totalRecordData,
-                                 sizeof(totalRecordData));
+  result = write_to_buffered_writer(writer, totalRecordData,
+                                    sizeof(totalRecordData));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -198,7 +198,7 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
       }
       UdsChunkRecord *record
         = &index->zones[i]->openChapter->records[recordIndex];
-      result = writeToBufferedWriter(writer, record, sizeof(UdsChunkRecord));
+      result = write_to_buffered_writer(writer, record, sizeof(UdsChunkRecord));
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -207,7 +207,7 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
     recordIndex++;
   }
 
-  return flushBufferedWriter(writer);
+  return flush_buffered_writer(writer);
 }
 
 /**********************************************************************/
@@ -246,7 +246,7 @@ static int writeOpenChapters(IndexComponent *component,
 static int readVersion(BufferedReader *reader, const byte **version)
 {
   byte buffer[OPEN_CHAPTER_VERSION_LENGTH];
-  int result = readFromBufferedReader(reader, buffer, sizeof(buffer));
+  int result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -264,7 +264,7 @@ static int loadVersion20(Index *index, BufferedReader *reader)
 {
   byte numRecordsData[sizeof(uint32_t)];
   int result
-    = readFromBufferedReader(reader, &numRecordsData, sizeof(numRecordsData));
+    = read_from_buffered_reader(reader, &numRecordsData, sizeof(numRecordsData));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -277,7 +277,7 @@ static int loadVersion20(Index *index, BufferedReader *reader)
   UdsChunkRecord record;
   uint32_t records;
   for (records = 0; records < numRecords; records++) {
-    result = readFromBufferedReader(reader, &record, sizeof(UdsChunkRecord));
+    result = read_from_buffered_reader(reader, &record, sizeof(UdsChunkRecord));
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -308,7 +308,7 @@ int loadOpenChapters(Index *index, BufferedReader *reader)
 {
   // Read and check the magic number.
   int result =
-    verifyBufferedData(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
+    verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }

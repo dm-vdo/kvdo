@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#5 $
  */
 
 #include "indexPageMap.h"
@@ -264,8 +264,8 @@ static int writeIndexPageMap(IndexComponent *component,
     free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-                                 content_length(buffer));
+  result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+                                    content_length(buffer));
   free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
@@ -281,8 +281,8 @@ static int writeIndexPageMap(IndexComponent *component,
     free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-                                 content_length(buffer));
+  result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+                                    content_length(buffer));
   free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
@@ -330,8 +330,8 @@ static int readIndexPageMap(ReadPortal *portal)
     return result;
   }
 
-  result = verifyBufferedData(reader, INDEX_PAGE_MAP_MAGIC,
-                              INDEX_PAGE_MAP_MAGIC_LENGTH);
+  result = verify_buffered_data(reader, INDEX_PAGE_MAP_MAGIC,
+                                INDEX_PAGE_MAP_MAGIC_LENGTH);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "bad index page map saved magic");
   }
@@ -343,8 +343,8 @@ static int readIndexPageMap(ReadPortal *portal)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = readFromBufferedReader(reader, get_buffer_contents(buffer),
-                                  buffer_length(buffer));
+  result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
+                                     buffer_length(buffer));
   if (result != UDS_SUCCESS) {
     free_buffer(&buffer);
     logErrorWithStringError(result, "cannot read index page map data");

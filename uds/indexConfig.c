@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#5 $
  */
 
 #include "indexConfig.h"
@@ -90,8 +90,8 @@ static int readVersion(BufferedReader    *reader,
                        const char       **versionPtr)
 {
   byte buffer[INDEX_CONFIG_VERSION_LENGTH];
-  int result = readFromBufferedReader(reader, buffer,
-                                      INDEX_CONFIG_VERSION_LENGTH);
+  int result = read_from_buffered_reader(reader, buffer,
+                                         INDEX_CONFIG_VERSION_LENGTH);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot read index config version");
   }
@@ -101,8 +101,8 @@ static int readVersion(BufferedReader    *reader,
     if (result != UDS_SUCCESS) {
       return result;
     }
-    result = readFromBufferedReader(reader, get_buffer_contents(buffer),
-                                    buffer_length(buffer));
+    result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
+                                       buffer_length(buffer));
     if (result != UDS_SUCCESS) {
       free_buffer(&buffer);
       return logErrorWithStringError(result, "cannot read config data");
@@ -120,7 +120,7 @@ static int readVersion(BufferedReader    *reader,
   } else if (memcmp(INDEX_CONFIG_VERSION_6_01, buffer,
                     INDEX_CONFIG_VERSION_LENGTH) == 0) {
     struct udsConfiguration6_01 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
+    result = read_from_buffered_reader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
       logErrorWithStringError(result,
                               "failed to read version 6.01 config file");
@@ -150,8 +150,8 @@ static int readVersion(BufferedReader    *reader,
 int readConfigContents(BufferedReader   *reader,
                        UdsConfiguration  config)
 {
-  int result = verifyBufferedData(reader, INDEX_CONFIG_MAGIC,
-                                  INDEX_CONFIG_MAGIC_LENGTH);
+  int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
+                                    INDEX_CONFIG_MAGIC_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -219,13 +219,13 @@ static int encodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
 int writeConfigContents(BufferedWriter   *writer,
                         UdsConfiguration  config)
 {
-  int result = writeToBufferedWriter(writer, INDEX_CONFIG_MAGIC,
-                                     INDEX_CONFIG_MAGIC_LENGTH);
+  int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
+                                        INDEX_CONFIG_MAGIC_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = writeToBufferedWriter(writer, INDEX_CONFIG_VERSION,
-                                 INDEX_CONFIG_VERSION_LENGTH);
+  result = write_to_buffered_writer(writer, INDEX_CONFIG_VERSION,
+                                    INDEX_CONFIG_VERSION_LENGTH);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -239,8 +239,8 @@ int writeConfigContents(BufferedWriter   *writer,
     free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, get_buffer_contents(buffer),
-                                 content_length(buffer));
+  result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
+                                    content_length(buffer));
   free_buffer(&buffer);
   return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#5 $
  */
 #include "masterIndex006.h"
 
@@ -202,8 +202,8 @@ static int startSavingMasterIndex_006(const MasterIndex *masterIndex,
     free_buffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(bufferedWriter, get_buffer_contents(buffer),
-                                 content_length(buffer));
+  result = write_to_buffered_writer(bufferedWriter, get_buffer_contents(buffer),
+                                    content_length(buffer));
   free_buffer(&buffer);
   if (result != UDS_SUCCESS) {
     logWarningWithStringError(result, "failed to write master index header");
@@ -339,9 +339,9 @@ static int startRestoringMasterIndex_006(MasterIndex *masterIndex,
     if (result != UDS_SUCCESS) {
       return result;
     }
-    result = readFromBufferedReader(bufferedReaders[i],
-                                    get_buffer_contents(buffer),
-                                    buffer_length(buffer));
+    result = read_from_buffered_reader(bufferedReaders[i],
+                                       get_buffer_contents(buffer),
+                                       buffer_length(buffer));
     if (result != UDS_SUCCESS) {
       free_buffer(&buffer);
       return logWarningWithStringError(result,
