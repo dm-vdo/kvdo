@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#13 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -49,17 +49,17 @@ typedef uint32_t vdo_page_generation;
  **/
 struct atomic_page_state_counts {
 	/* free pages */
-	Atomic64 freePages;
+	Atomic64 free_pages;
 	/* clean (resident) pages */
-	Atomic64 cleanPages;
+	Atomic64 clean_pages;
 	/* dirty pages per era */
-	Atomic64 dirtyPages;
+	Atomic64 dirty_pages;
 	/* pages incoming */
-	Atomic64 incomingPages;
+	Atomic64 incoming_pages;
 	/* pages outgoing */
-	Atomic64 outgoingPages;
+	Atomic64 outgoing_pages;
 	/* pages in failed state */
-	Atomic64 failedPages;
+	Atomic64 failed_pages;
 };
 
 /**
@@ -69,33 +69,33 @@ struct atomic_page_cache_statistics {
 	/* counts of how many pages are in each state */
 	struct atomic_page_state_counts counts;
 	/* how many times free page not available */
-	Atomic64 cachePressure;
+	Atomic64 cache_pressure;
 	/* number of get_vdo_page_async() for read */
-	Atomic64 readCount;
+	Atomic64 read_count;
 	/* number or get_vdo_page_async() for write */
-	Atomic64 writeCount;
+	Atomic64 write_count;
 	/* number of times pages failed to read */
-	Atomic64 failedReads;
+	Atomic64 failed_reads;
 	/* number of times pages failed to write */
-	Atomic64 failedWrites;
+	Atomic64 failed_writes;
 	/* number of gets that are reclaimed */
 	Atomic64 reclaimed;
 	/* number of gets for outgoing pages */
-	Atomic64 readOutgoing;
+	Atomic64 read_outgoing;
 	/* number of gets that were already there */
-	Atomic64 foundInCache;
+	Atomic64 found_in_cache;
 	/* number of gets requiring discard */
-	Atomic64 discardRequired;
+	Atomic64 discard_required;
 	/* number of gets enqueued for their page */
-	Atomic64 waitForPage;
+	Atomic64 wait_for_page;
 	/* number of gets that have to fetch */
-	Atomic64 fetchRequired;
+	Atomic64 fetch_required;
 	/* number of page fetches */
-	Atomic64 pagesLoaded;
+	Atomic64 pages_loaded;
 	/* number of page saves */
-	Atomic64 pagesSaved;
+	Atomic64 pages_saved;
 	/* number of flushes initiated */
-	Atomic64 flushCount;
+	Atomic64 flush_count;
 };
 
 /**

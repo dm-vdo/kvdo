@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#28 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -115,7 +115,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 		initializeRing(&info->lru_node);
 	}
 
-	relaxedStore64(&cache->stats.counts.freePages, cache->page_count);
+	relaxedStore64(&cache->stats.counts.free_pages, cache->page_count);
 	return VDO_SUCCESS;
 }
 
@@ -253,11 +253,11 @@ static inline void assert_io_allowed(struct vdo_page_cache *cache)
  **/
 static void report_cache_pressure(struct vdo_page_cache *cache)
 {
-	relaxedAdd64(&cache->stats.cachePressure, 1);
+	relaxedAdd64(&cache->stats.cache_pressure, 1);
 	if (cache->waiter_count > cache->page_count) {
 		if ((cache->pressure_report % LOG_INTERVAL) == 0) {
 			logInfo("page cache pressure %llu",
-				relaxedLoad64(&cache->stats.cachePressure));
+				relaxedLoad64(&cache->stats.cache_pressure));
 		}
 
 		if (++cache->pressure_report >= DISPLAY_INTERVAL) {
@@ -295,27 +295,27 @@ static void update_counter(struct page_info *info, int32_t delta)
 	struct vdo_page_cache *cache = info->cache;
 	switch (info->state) {
 	case PS_FREE:
-		relaxedAdd64(&cache->stats.counts.freePages, delta);
+		relaxedAdd64(&cache->stats.counts.free_pages, delta);
 		return;
 
 	case PS_INCOMING:
-		relaxedAdd64(&cache->stats.counts.incomingPages, delta);
+		relaxedAdd64(&cache->stats.counts.incoming_pages, delta);
 		return;
 
 	case PS_OUTGOING:
-		relaxedAdd64(&cache->stats.counts.outgoingPages, delta);
+		relaxedAdd64(&cache->stats.counts.outgoing_pages, delta);
 		return;
 
 	case PS_FAILED:
-		relaxedAdd64(&cache->stats.counts.failedPages, delta);
+		relaxedAdd64(&cache->stats.counts.failed_pages, delta);
 		return;
 
 	case PS_RESIDENT:
-		relaxedAdd64(&cache->stats.counts.cleanPages, delta);
+		relaxedAdd64(&cache->stats.counts.clean_pages, delta);
 		return;
 
 	case PS_DIRTY:
-		relaxedAdd64(&cache->stats.counts.dirtyPages, delta);
+		relaxedAdd64(&cache->stats.counts.dirty_pages, delta);
 		return;
 
 	default:
@@ -744,7 +744,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	enter_read_only_mode(cache->zone->read_only_notifier, result);
-	relaxedAdd64(&cache->stats.failedReads, 1);
+	relaxedAdd64(&cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
 	distribute_error_over_queue(result, &info->waiting);
 	reset_page_info(info);
@@ -789,7 +789,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 
 	// We are doing a read-only rebuild, so treat this as a successful read
 	// of an uninitialized page.
-	relaxedAdd64(&cache->stats.failedReads, 1);
+	relaxedAdd64(&cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	reset_completion(completion);
 	if (cache->read_hook != NULL) {
@@ -825,7 +825,7 @@ launch_page_load(struct page_info *info, PhysicalBlockNumber pbn)
 
 	set_info_state(info, PS_INCOMING);
 	cache->outstanding_reads++;
-	relaxedAdd64(&cache->stats.pagesLoaded, 1);
+	relaxedAdd64(&cache->stats.pages_loaded, 1);
 	launch_read_metadata_vio(info->vio,
 				 pbn,
 				 (cache->read_hook != NULL) ?
@@ -869,7 +869,7 @@ static void save_pages(struct vdo_page_cache *cache)
 		page_info_from_list_node(cache->outgoing_list.next);
 	cache->pages_in_flush = cache->pages_to_flush;
 	cache->pages_to_flush = 0;
-	relaxedAdd64(&cache->stats.flushCount, 1);
+	relaxedAdd64(&cache->stats.flush_count, 1);
 
 	struct vio *vio = info->vio;
 	PhysicalLayer *layer = vio->completion.layer;
@@ -954,9 +954,9 @@ static void allocate_free_page(struct page_info *info)
 	assert_on_cache_thread(cache, __func__);
 
 	if (!has_waiters(&cache->free_waiters)) {
-		if (relaxedLoad64(&cache->stats.cachePressure) > 0) {
+		if (relaxedLoad64(&cache->stats.cache_pressure) > 0) {
 			logInfo("page cache pressure relieved");
-			relaxedStore64(&cache->stats.cachePressure, 0);
+			relaxedStore64(&cache->stats.cache_pressure, 0);
 		}
 		return;
 	}
@@ -1099,7 +1099,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	}
 
 	set_info_state(info, PS_DIRTY);
-	relaxedAdd64(&cache->stats.failedWrites, 1);
+	relaxedAdd64(&cache->stats.failed_writes, 1);
 	set_persistent_error(cache, "cannot write page", result);
 
 	if (!write_has_finished(info)) {
@@ -1189,7 +1189,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 			finish_completion(completion, VDO_READ_ONLY);
 			continue;
 		}
-		relaxedAdd64(&info->cache->stats.pagesSaved, 1);
+		relaxedAdd64(&info->cache->stats.pages_saved, 1);
 		launch_write_metadata_vio(info->vio,
 					  info->pbn,
 					  page_is_written_out,
@@ -1276,9 +1276,9 @@ void get_vdo_page_async(struct vdo_completion *completion)
 	}
 
 	if (vdo_page_comp->writable) {
-		relaxedAdd64(&cache->stats.writeCount, 1);
+		relaxedAdd64(&cache->stats.write_count, 1);
 	} else {
-		relaxedAdd64(&cache->stats.readCount, 1);
+		relaxedAdd64(&cache->stats.read_count, 1);
 	}
 
 	struct page_info *info = vpc_find_page(cache, vdo_page_comp->pbn);
@@ -1288,7 +1288,7 @@ void get_vdo_page_async(struct vdo_completion *completion)
 		    is_incoming(info) ||
 		    (is_outgoing(info) && vdo_page_comp->writable)) {
 			// The page is unusable until it has finished I/O.
-			relaxedAdd64(&cache->stats.waitForPage, 1);
+			relaxedAdd64(&cache->stats.wait_for_page, 1);
 			int result = enqueue_waiter(&info->waiting,
 						    &vdo_page_comp->waiter);
 			if (result != VDO_SUCCESS) {
@@ -1301,9 +1301,9 @@ void get_vdo_page_async(struct vdo_completion *completion)
 
 		if (is_valid(info)) {
 			// The page is usable.
-			relaxedAdd64(&cache->stats.foundInCache, 1);
+			relaxedAdd64(&cache->stats.found_in_cache, 1);
 			if (!is_present(info)) {
-				relaxedAdd64(&cache->stats.readOutgoing, 1);
+				relaxedAdd64(&cache->stats.read_outgoing, 1);
 			}
 			update_lru(info);
 			++info->busy;
@@ -1317,13 +1317,13 @@ void get_vdo_page_async(struct vdo_completion *completion)
 	// The page must be fetched.
 	info = find_free_page(cache);
 	if (info != NULL) {
-		relaxedAdd64(&cache->stats.fetchRequired, 1);
+		relaxedAdd64(&cache->stats.fetch_required, 1);
 		load_page_for_completion(info, vdo_page_comp);
 		return;
 	}
 
 	// The page must wait for a page to be discarded.
-	relaxedAdd64(&cache->stats.discardRequired, 1);
+	relaxedAdd64(&cache->stats.discard_required, 1);
 	discard_page_for_completion(vdo_page_comp);
 }
 

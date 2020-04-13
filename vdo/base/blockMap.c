@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#54 $
  */
 
 #include "blockMap.h"
@@ -903,29 +903,30 @@ struct block_map_statistics get_block_map_statistics(struct block_map *map)
 	for (zone = 0; zone < map->zone_count; zone++) {
 		const struct atomic_page_cache_statistics *atoms =
 			get_vdo_page_cache_statistics(map->zones[zone].page_cache);
-		stats.dirty_pages += atomicLoad64(&atoms->counts.dirtyPages);
-		stats.clean_pages += atomicLoad64(&atoms->counts.cleanPages);
-		stats.free_pages += atomicLoad64(&atoms->counts.freePages);
-		stats.failed_pages += atomicLoad64(&atoms->counts.failedPages);
+		stats.dirty_pages += atomicLoad64(&atoms->counts.dirty_pages);
+		stats.clean_pages += atomicLoad64(&atoms->counts.clean_pages);
+		stats.free_pages += atomicLoad64(&atoms->counts.free_pages);
+		stats.failed_pages += atomicLoad64(&atoms->counts.failed_pages);
 		stats.incoming_pages +=
-			atomicLoad64(&atoms->counts.incomingPages);
+			atomicLoad64(&atoms->counts.incoming_pages);
 		stats.outgoing_pages +=
-			atomicLoad64(&atoms->counts.outgoingPages);
+			atomicLoad64(&atoms->counts.outgoing_pages);
 
-		stats.cache_pressure += atomicLoad64(&atoms->cachePressure);
-		stats.read_count += atomicLoad64(&atoms->readCount);
-		stats.write_count += atomicLoad64(&atoms->writeCount);
-		stats.failed_reads += atomicLoad64(&atoms->failedReads);
-		stats.failed_writes += atomicLoad64(&atoms->failedWrites);
+		stats.cache_pressure += atomicLoad64(&atoms->cache_pressure);
+		stats.read_count += atomicLoad64(&atoms->read_count);
+		stats.write_count += atomicLoad64(&atoms->write_count);
+		stats.failed_reads += atomicLoad64(&atoms->failed_reads);
+		stats.failed_writes += atomicLoad64(&atoms->failed_writes);
 		stats.reclaimed += atomicLoad64(&atoms->reclaimed);
-		stats.read_outgoing += atomicLoad64(&atoms->readOutgoing);
-		stats.found_in_cache += atomicLoad64(&atoms->foundInCache);
-		stats.discard_required += atomicLoad64(&atoms->discardRequired);
-		stats.wait_for_page += atomicLoad64(&atoms->waitForPage);
-		stats.fetch_required += atomicLoad64(&atoms->fetchRequired);
-		stats.pages_loaded += atomicLoad64(&atoms->pagesLoaded);
-		stats.pages_saved += atomicLoad64(&atoms->pagesSaved);
-		stats.flush_count += atomicLoad64(&atoms->flushCount);
+		stats.read_outgoing += atomicLoad64(&atoms->read_outgoing);
+		stats.found_in_cache += atomicLoad64(&atoms->found_in_cache);
+		stats.discard_required +=
+			atomicLoad64(&atoms->discard_required);
+		stats.wait_for_page += atomicLoad64(&atoms->wait_for_page);
+		stats.fetch_required += atomicLoad64(&atoms->fetch_required);
+		stats.pages_loaded += atomicLoad64(&atoms->pages_loaded);
+		stats.pages_saved += atomicLoad64(&atoms->pages_saved);
+		stats.flush_count += atomicLoad64(&atoms->flush_count);
 	}
 
 	return stats;

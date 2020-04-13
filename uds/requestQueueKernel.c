@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#2 $
  */
 
 #include "requestQueue.h"
@@ -184,19 +184,14 @@ static void requestQueueWorker(void *arg)
                                          ns_to_ktime(timeBatch));
     }
 
-    if (unlikely(request == NULL)) {
-      if (READ_ONCE(queue->alive)) {
-        // Must have taken an interrupt; keep polling.
-        continue;
-      } else {
-        // We got no request and we know we are shutting down.
-        break;
-      }
+    if (likely(request != NULL)) {
+      // We got a request.
+      currentBatch++;
+      queue->processOne(request);
+    } else if (!READ_ONCE(queue->alive)) {
+      // We got no request and we know we are shutting down.
+      break;
     }
-
-    // We got a request.
-    currentBatch++;
-    queue->processOne(request);
 
     if (dormant) {
       // We've been roused from dormancy. Clear the flag so enqueuers can stop
