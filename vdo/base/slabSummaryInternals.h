@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#13 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -74,7 +74,7 @@ struct slab_summary_block {
  **/
 struct atomic_slab_summary_statistics {
 	/** Number of blocks written */
-	Atomic64 blocksWritten;
+	Atomic64 blocks_written;
 };
 
 struct slab_summary_zone {
