@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#16 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -41,11 +41,11 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_block_map(BlockCount logical_blocks,
+int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
-		   BlockCount flat_page_count,
+		   block_count_t flat_page_count,
 		   PhysicalBlockNumber root_origin,
-		   BlockCount root_count,
+		   block_count_t root_count,
 		   struct block_map **map_ptr)
 	__attribute__((warn_unused_result));
 
@@ -77,7 +77,7 @@ void resume_block_map(struct block_map *map, struct vdo_completion *parent);
  * @return VDO_SUCCESS or an error
  **/
 int prepare_to_grow_block_map(struct block_map *map,
-			      BlockCount new_logical_blocks)
+			      block_count_t new_logical_blocks)
 	__attribute__((warn_unused_result));
 
 /**
@@ -88,7 +88,7 @@ int prepare_to_grow_block_map(struct block_map *map,
  * @return The new number of entries the block map will be grown to or 0 if
  *         the block map is not prepared to grow
  **/
-BlockCount get_new_entry_count(struct block_map *map)
+block_count_t get_new_entry_count(struct block_map *map)
 	__attribute__((warn_unused_result));
 
 /**
@@ -119,7 +119,7 @@ void abandon_block_map_growth(struct block_map *map);
  * @return VDO_SUCCESS or an error code
  **/
 int decode_block_map(struct buffer *buffer,
-		     BlockCount logical_blocks,
+		     block_count_t logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
 	__attribute__((warn_unused_result));
@@ -136,7 +136,7 @@ int decode_block_map(struct buffer *buffer,
  * @return VDO_SUCCESS or an error code
  **/
 int decode_sodium_block_map(struct buffer *buffer,
-			    BlockCount logical_blocks,
+			    block_count_t logical_blocks,
 			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
 	__attribute__((warn_unused_result));
@@ -161,7 +161,7 @@ int make_block_map_caches(struct block_map *map,
 			  struct recovery_journal *journal,
 			  Nonce nonce,
 			  PageCount cache_size,
-			  BlockCount maximum_age)
+			  block_count_t maximum_age)
 	__attribute__((warn_unused_result));
 
 /**
@@ -250,7 +250,7 @@ PageCount get_number_of_fixed_block_map_pages(const struct block_map *map)
  *
  * @return The number of entries stored in the map
  **/
-BlockCount get_number_of_block_map_entries(const struct block_map *map)
+block_count_t get_number_of_block_map_entries(const struct block_map *map)
 	__attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#28 $
  */
 
 #include "vdoResize.h"
@@ -145,9 +145,9 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
+int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
-	BlockCount old_physical_blocks = vdo->config.physical_blocks;
+	block_count_t old_physical_blocks = vdo->config.physical_blocks;
 
 	// Skip any noop grows.
 	if (old_physical_blocks == new_physical_blocks) {
@@ -167,9 +167,9 @@ int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 	}
 
 	// Validate that we are prepared to grow appropriately.
-	BlockCount new_depot_size =
+	block_count_t new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
-	BlockCount prepared_depot_size = get_new_depot_size(vdo->depot);
+	block_count_t prepared_depot_size = get_new_depot_size(vdo->depot);
 	if (prepared_depot_size != new_depot_size) {
 		return VDO_PARAMETER_MISMATCH;
 	}
@@ -223,9 +223,9 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
+int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
-	BlockCount current_physical_blocks = vdo->config.physical_blocks;
+	block_count_t current_physical_blocks = vdo->config.physical_blocks;
 	if (new_physical_blocks < current_physical_blocks) {
 		return logErrorWithStringError(VDO_NOT_IMPLEMENTED,
 					       "Removing physical storage from a VDO is not supported");
@@ -259,7 +259,7 @@ int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 		return result;
 	}
 
-	BlockCount new_depot_size =
+	block_count_t new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
 	result = prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
 	if (result != VDO_SUCCESS) {

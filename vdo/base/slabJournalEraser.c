@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#15 $
  */
 
 #include "slabJournalEraser.h"
@@ -95,7 +95,8 @@ void erase_slab_journals(struct slab_depot *depot,
 	eraser->parent = parent;
 	eraser->slabs = slabs;
 
-	BlockCount journal_size = get_slab_config(depot)->slab_journal_blocks;
+	block_count_t journal_size =
+		get_slab_config(depot)->slab_journal_blocks;
 	result = ALLOCATE(journal_size * VDO_BLOCK_SIZE,
 			  char,
 			  __func__,

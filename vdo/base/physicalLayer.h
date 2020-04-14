@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#24 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -45,7 +45,7 @@ typedef void layer_destructor(PhysicalLayer **layerPtr);
  *
  * @return The block count of the layer
  **/
-typedef BlockCount block_count_getter(PhysicalLayer *layer);
+typedef block_count_t block_count_getter(PhysicalLayer *layer);
 
 /**
  * A function which can allocate a buffer suitable for use in an

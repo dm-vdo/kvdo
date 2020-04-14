@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#19 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -245,19 +245,19 @@ struct slab_journal {
 	struct packed_slab_journal_block *block;
 
 	/** The number of blocks in the on-disk journal */
-	BlockCount size;
+	block_count_t size;
 	/** The number of blocks at which to start pushing reference blocks */
-	BlockCount flushing_threshold;
+	block_count_t flushing_threshold;
 	/** The number of blocks at which all reference blocks should be writing
 	 */
-	BlockCount flushing_deadline;
+	block_count_t flushing_deadline;
 	/** The number of blocks at which to wait for reference blocks to write
 	 */
-	BlockCount blockingThreshold;
+	block_count_t blockingThreshold;
 	/**
 	 * The number of blocks at which to scrub the slab before coming online
 	 */
-	BlockCount scrubbing_threshold;
+	block_count_t scrubbing_threshold;
 
 	/** This node is for BlockAllocator to keep a queue of dirty journals */
 	RingNode dirty_node;

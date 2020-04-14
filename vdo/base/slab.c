@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#32 $
  */
 
 #include "slab.h"
@@ -38,7 +38,7 @@
 #include "slabSummary.h"
 
 /**********************************************************************/
-int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
+int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 		   struct slab_config *slab_config)
 {
 	if (slab_journal_blocks >= slab_size) {
@@ -51,9 +51,9 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 	 * refCounts, so we'd gain at most one data block in each slab with more
 	 * iteration.
 	 */
-	BlockCount ref_blocks =
+	block_count_t ref_blocks =
 		get_saved_reference_count_size(slab_size - slab_journal_blocks);
-	BlockCount meta_blocks = (ref_blocks + slab_journal_blocks);
+	block_count_t meta_blocks = (ref_blocks + slab_journal_blocks);
 
 	// Make sure test code hasn't configured slabs to be too small.
 	if (meta_blocks >= slab_size) {
@@ -73,9 +73,9 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 	 * tests so this hack isn't needed without having to edit several unit
 	 * tests every time the metadata size changes by one block.
 	 */
-	BlockCount data_blocks = slab_size - meta_blocks;
+	block_count_t data_blocks = slab_size - meta_blocks;
 	if ((slab_size < 1024) && !is_power_of_two(data_blocks)) {
-		data_blocks = ((BlockCount)1 << log_base_two(data_blocks));
+		data_blocks = ((block_count_t) 1 << log_base_two(data_blocks));
 	}
 
 	/*
@@ -83,22 +83,22 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 	 * 224 blocks in production, or 3/4ths, so we use this ratio for all
 	 * sizes.
 	 */
-	BlockCount flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
+	block_count_t flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
 	/*
 	 * The blocking threshold should be far enough from the the flushing
 	 * threshold to not produce delays, but far enough from the end of the
 	 * journal to allow multiple successive recovery failures.
 	 */
-	BlockCount remaining = slab_journal_blocks - flushing_threshold;
-	BlockCount blocking_threshold =
+	block_count_t remaining = slab_journal_blocks - flushing_threshold;
+	block_count_t blocking_threshold =
 		flushing_threshold + ((remaining * 5) / 7);
 	/*
 	 * The scrubbing threshold should be at least 2048 entries before the
 	 * end of the journal.
 	 */
-	BlockCount minimal_extra_space =
+	block_count_t minimal_extra_space =
 		1 + (MAXIMUM_USER_VIOS / SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
-	BlockCount scrubbing_threshold = blocking_threshold;
+	block_count_t scrubbing_threshold = blocking_threshold;
 	if (slab_journal_blocks > minimal_extra_space) {
 		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;
 	}
@@ -233,7 +233,7 @@ void mark_slab_unrecovered(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-BlockCount get_slab_free_block_count(const struct vdo_slab *slab)
+block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 {
 	return get_unreferenced_block_count(slab->reference_counts);
 }
@@ -324,7 +324,7 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 	// Write out the refCounts if the slab has written them before, or it
 	// has any non-zero reference counts, or there are any slab journal
 	// blocks.
-	BlockCount data_blocks =
+	block_count_t data_blocks =
 		get_slab_config(slab->allocator->depot)->data_blocks;
 	return (must_load_ref_counts(slab->allocator->summary,
 				     slab->slab_number)

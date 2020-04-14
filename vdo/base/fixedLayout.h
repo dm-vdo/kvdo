@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#6 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -31,7 +31,7 @@ typedef enum {
 	FROM_END,
 } partition_direction;
 
-extern const BlockCount ALL_FREE_BLOCKS;
+extern const block_count_t ALL_FREE_BLOCKS;
 
 /**
  * A fixed layout is like a traditional disk partitioning scheme.  In the
@@ -51,7 +51,7 @@ struct partition;
  *
  * @return a success or error code
  **/
-int make_fixed_layout(BlockCount total_blocks,
+int make_fixed_layout(block_count_t total_blocks,
 		      PhysicalBlockNumber start_offset,
 		      struct fixed_layout **layout_ptr)
 	__attribute__((warn_unused_result));
@@ -72,7 +72,7 @@ void free_fixed_layout(struct fixed_layout **layout_ptr);
  *
  * @return The size of the layout
  **/
-BlockCount get_total_fixed_layout_size(const struct fixed_layout *layout)
+block_count_t get_total_fixed_layout_size(const struct fixed_layout *layout)
 	__attribute__((warn_unused_result));
 
 /**
@@ -125,7 +125,8 @@ int translate_from_pbn(const struct partition *partition,
  *
  * @return the number of blocks yet unallocated to partitions
  **/
-BlockCount get_fixed_layout_blocks_available(const struct fixed_layout *layout)
+block_count_t
+get_fixed_layout_blocks_available(const struct fixed_layout *layout)
 	__attribute__((warn_unused_result));
 
 /**
@@ -146,7 +147,7 @@ BlockCount get_fixed_layout_blocks_available(const struct fixed_layout *layout)
  **/
 int make_fixed_layout_partition(struct fixed_layout *layout,
 				partition_id id,
-				BlockCount block_count,
+				block_count_t block_count,
 				partition_direction direction,
 				PhysicalBlockNumber base)
 	__attribute__((warn_unused_result));
@@ -158,7 +159,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
  *
  * @return the size of the partition in blocks
  **/
-BlockCount get_fixed_layout_partition_size(const struct partition *partition)
+block_count_t get_fixed_layout_partition_size(const struct partition *partition)
 	__attribute__((warn_unused_result));
 
 /**

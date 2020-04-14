@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#28 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -82,12 +82,12 @@ SlabCount calculate_slab_count(struct slab_depot *depot)
  *
  * @return A success or error code
  **/
-int make_slab_depot(BlockCount block_count,
+int make_slab_depot(block_count_t block_count,
 		    PhysicalBlockNumber first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    Nonce nonce,
-		    BlockCount vio_pool_size,
+		    block_count_t vio_pool_size,
 		    PhysicalLayer *layer,
 		    struct partition *summary_partition,
 		    struct read_only_notifier *read_only_notifier,
@@ -270,7 +270,7 @@ bool is_physical_data_block(const struct slab_depot *depot,
  *
  * @return The total number of blocks with a non-zero reference count
  **/
-BlockCount get_depot_allocated_blocks(const struct slab_depot *depot)
+block_count_t get_depot_allocated_blocks(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**
@@ -292,7 +292,7 @@ get_depot_block_allocator_statistics(const struct slab_depot *depot)
  *
  * @return The total number of data blocks in all slabs
  **/
-BlockCount get_depot_data_blocks(const struct slab_depot *depot)
+block_count_t get_depot_data_blocks(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**
@@ -304,7 +304,7 @@ BlockCount get_depot_data_blocks(const struct slab_depot *depot)
  *
  * @return The total number of blocks with a zero reference count
  **/
-BlockCount get_depot_free_blocks(const struct slab_depot *depot)
+block_count_t get_depot_free_blocks(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**
@@ -395,7 +395,7 @@ void update_slab_depot_size(struct slab_depot *depot);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_grow_slab_depot(struct slab_depot *depot, BlockCount new_size)
+int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
 	__attribute__((warn_unused_result));
 
 /**
@@ -505,7 +505,7 @@ bool has_unrecovered_slabs(struct slab_depot *depot);
  * @return The new number of blocks the depot will be grown to, or 0 if the
  *         depot is not prepared to grow
  **/
-BlockCount get_new_depot_size(const struct slab_depot *depot)
+block_count_t get_new_depot_size(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**

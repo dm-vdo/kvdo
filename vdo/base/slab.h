@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#22 $
  */
 
 #ifndef VDO_SLAB_H
@@ -93,7 +93,7 @@ struct vdo_slab {
  *
  * @return VDO_SUCCESS or an error code
  **/
-int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
+int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 		   struct slab_config *slab_config)
 	__attribute__((warn_unused_result));
 
@@ -231,7 +231,7 @@ void mark_slab_unrecovered(struct vdo_slab *slab);
  *
  * @return the number of free blocks in the slab
  **/
-BlockCount get_slab_free_block_count(const struct vdo_slab *slab)
+block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 	__attribute__((warn_unused_result));
 
 /**

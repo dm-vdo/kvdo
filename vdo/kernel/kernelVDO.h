@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#19 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -201,7 +201,8 @@ void dump_kvdo_status(struct kvdo *kvdo);
  *
  * @return VDO_SUCCESS or error
  */
-int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count);
+int kvdo_prepare_to_grow_physical(struct kvdo *kvdo,
+				  block_count_t physical_count);
 
 /**
  * Notify the base code of resized physical storage.
@@ -211,7 +212,7 @@ int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count);
  *
  * @return VDO_SUCCESS or error
  */
-int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count);
+int kvdo_resize_physical(struct kvdo *kvdo, block_count_t physical_count);
 
 /**
  * Request the base code prepare to grow the logical space.
@@ -221,7 +222,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count);
  *
  * @return VDO_SUCCESS or error
  */
-int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count);
+int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, block_count_t logical_count);
 
 /**
  * Request the base code grow the logical space.
@@ -231,7 +232,7 @@ int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count);
  *
  * @return VDO_SUCCESS or error
  */
-int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count);
+int kvdo_resize_logical(struct kvdo *kvdo, block_count_t logical_count);
 
 /**
  * Request the base code go read-only.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#44 $
  */
 
 #ifndef TYPES_H
@@ -29,7 +29,7 @@
 /**
  * A size type in blocks.
  **/
-typedef uint64_t BlockCount;
+typedef uint64_t block_count_t;
 
 /**
  * The size of a block.
@@ -309,39 +309,39 @@ struct block_map_tree_slot {
  **/
 struct slab_config {
 	/** total number of blocks in the slab */
-	BlockCount slab_blocks;
+	block_count_t slab_blocks;
 	/** number of blocks available for data */
-	BlockCount data_blocks;
+	block_count_t data_blocks;
 	/** number of blocks for reference counts */
-	BlockCount reference_count_blocks;
+	block_count_t reference_count_blocks;
 	/** number of blocks for the slab journal */
-	BlockCount slab_journal_blocks;
+	block_count_t slab_journal_blocks;
 	/**
 	 * Number of blocks after which the slab journal starts pushing out a
 	 * ReferenceBlock for each new entry it receives.
 	 **/
-	BlockCount slab_journal_flushing_threshold;
+	block_count_t slab_journal_flushing_threshold;
 	/**
 	 * Number of blocks after which the slab journal pushes out all
 	 * ReferenceBlocks and makes all vios wait.
 	 **/
-	BlockCount slab_journal_blocking_threshold;
+	block_count_t slab_journal_blocking_threshold;
 	/**
 	 * Number of blocks after which the slab must be scrubbed before coming
 	 * online.
 	 **/
-	BlockCount slab_journal_scrubbing_threshold;
+	block_count_t slab_journal_scrubbing_threshold;
 } __attribute__((packed));
 
 /**
  * The configuration of the VDO service.
  **/
 struct vdo_config {
-	BlockCount logical_blocks; ///< number of logical blocks
-	BlockCount physical_blocks; ///< number of physical blocks
-	BlockCount slab_size; ///< number of blocks in a slab
-	BlockCount recovery_journal_size; ///< number of recovery journal blocks
-	BlockCount slab_journal_blocks; ///< number of slab journal blocks
+	block_count_t logical_blocks; ///< number of logical blocks
+	block_count_t physical_blocks; ///< number of physical blocks
+	block_count_t slab_size; ///< number of blocks in a slab
+	block_count_t recovery_journal_size; ///< number of recovery journal blocks
+	block_count_t slab_journal_blocks; ///< number of slab journal blocks
 } __attribute__((packed));
 
 /**
@@ -363,7 +363,7 @@ struct vdo_load_config {
 	/**
 	 * the maximum age of a dirty block map page in recovery journal blocks
 	 */
-	BlockCount maximum_age;
+	block_count_t maximum_age;
 };
 
 /**

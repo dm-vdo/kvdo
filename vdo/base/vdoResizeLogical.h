@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.h#4 $
  */
 
 #ifndef VDO_RESIZE_LOGICAL_H
@@ -33,7 +33,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks);
+int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
 /**
  * Prepare to grow the logical size of vdo. This method may only be called
@@ -44,6 +44,6 @@ int perform_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks);
+int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
 #endif /* VDO_RESIZE_LOGICAL_H */

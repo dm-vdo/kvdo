@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#22 $
  */
 
 #include "vdoResizeLogical.h"
@@ -132,7 +132,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int perform_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks)
+int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	if (get_new_entry_count(get_block_map(vdo)) != new_logical_blocks) {
 		return VDO_PARAMETER_MISMATCH;
@@ -146,7 +146,7 @@ int perform_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks)
 }
 
 /**********************************************************************/
-int prepare_to_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks)
+int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	if (new_logical_blocks < vdo->config.logical_blocks) {
 		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,

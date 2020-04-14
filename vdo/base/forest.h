@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#7 $
  */
 
 #ifndef FOREST_H
@@ -61,7 +61,7 @@ struct tree_page *get_tree_page_by_index(struct forest *forest,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_forest(struct block_map *map, BlockCount entries)
+int make_forest(struct block_map *map, block_count_t entries)
 	__attribute__((warn_unused_result));
 
 /**
@@ -110,6 +110,7 @@ void traverse_forest(struct block_map *map,
  * @return A (slight) over-estimate of the total number of possible forest
  *         pages including the leaves
  **/
-BlockCount compute_forest_size(BlockCount logical_blocks, RootCount root_count)
+block_count_t compute_forest_size(block_count_t logical_blocks,
+				  RootCount root_count)
 	__attribute__((warn_unused_result));
 #endif // FOREST_H

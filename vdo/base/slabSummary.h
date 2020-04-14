@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#15 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -73,7 +73,7 @@ struct slab_status {
  *
  * @return the blocks required to store the slab_summary on disk
  **/
-BlockCount get_slab_summary_size(BlockSize block_size)
+block_count_t get_slab_summary_size(BlockSize block_size)
 	__attribute__((warn_unused_result));
 
 /**
@@ -96,7 +96,7 @@ int make_slab_summary(PhysicalLayer *layer,
 		      struct partition *partition,
 		      const struct thread_config *thread_config,
 		      unsigned int slab_size_shift,
-		      BlockCount maximum_free_blocks_per_slab,
+		      block_count_t maximum_free_blocks_per_slab,
 		      struct read_only_notifier *read_only_notifier,
 		      struct slab_summary **slab_summary_ptr)
 	__attribute__((warn_unused_result));
@@ -156,7 +156,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 			       struct waiter *waiter, SlabCount slab_number,
 			       TailBlockOffset tail_block_offset,
 			       bool load_ref_counts, bool is_clean,
-			       BlockCount free_blocks);
+			       block_count_t free_blocks);
 
 /**
  * Get the stored tail block offset for a slab.
@@ -203,7 +203,7 @@ bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
  *
  * @return An approximation to the free blocks in the slab
  **/
-BlockCount
+block_count_t
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 				SlabCount slab_number)
 	__attribute__((warn_unused_result));

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#5 $
  */
 
 #ifndef VDO_RESIZE_H
@@ -34,7 +34,7 @@
  * @return VDO_SUCCESS or an error
  **/
 int make_resize_vdo_completion(struct vdo *vdo,
-			       BlockCount new_physical_blocks,
+			       block_count_t new_physical_blocks,
 			       struct vdo_completion **completion_ptr)
 	__attribute__((warn_unused_result));
 
@@ -55,7 +55,7 @@ void free_resize_vdo_completion(struct vdo_completion **completion_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks);
+int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks);
 
 /**
  * Prepare to resize the vdo, allocating memory as needed.
@@ -63,7 +63,7 @@ int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks);
  * @param vdo                	The vdo
  * @param new_physical_blocks	The new physical size in blocks
  **/
-int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
+int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 	__attribute__((warn_unused_result));
 
 #endif /* VDO_RESIZE_H */

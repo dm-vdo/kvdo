@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#43 $
  */
 
 #include "vdoLoad.h"
@@ -298,7 +298,7 @@ start_vdo_decode(struct vdo *vdo, bool validate_config)
 					       vdo->nonce);
 	}
 
-	BlockCount block_count = vdo->layer->getBlockCount(vdo->layer);
+	block_count_t block_count = vdo->layer->getBlockCount(vdo->layer);
 	return validate_vdo_config(&vdo->config, block_count, true);
 }
 
@@ -405,8 +405,8 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	BlockCount maximum_age = get_configured_block_map_maximum_age(vdo);
-	BlockCount journal_length =
+	block_count_t maximum_age = get_configured_block_map_maximum_age(vdo);
+	block_count_t journal_length =
 		get_recovery_journal_length(vdo->config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;

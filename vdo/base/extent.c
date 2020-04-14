@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#12 $
  */
 
 #include "extent.h"
@@ -35,7 +35,7 @@
 /**********************************************************************/
 int create_extent(PhysicalLayer *layer, vio_type vio_type,
 		  vio_priority priority,
-		  BlockCount block_count, char *data,
+		  block_count_t block_count, char *data,
 		  struct vdo_extent **extent_ptr)
 {
 	int result = ASSERT(is_metadata_vio_type(vio_type),
@@ -82,7 +82,7 @@ void free_extent(struct vdo_extent **extent_ptr)
 		return;
 	}
 
-	BlockCount i;
+	block_count_t i;
 	for (i = 0; i < extent->count; i++) {
 		free_vio(&extent->vios[i]);
 	}
@@ -103,7 +103,7 @@ void free_extent(struct vdo_extent **extent_ptr)
  **/
 static void launchMetadataExtent(struct vdo_extent *extent,
 				 PhysicalBlockNumber start_block,
-				 BlockCount count, vio_operation operation)
+				 block_count_t count, vio_operation operation)
 {
 	reset_completion(&extent->completion);
 	if (count > extent->count) {
@@ -112,7 +112,7 @@ static void launchMetadataExtent(struct vdo_extent *extent,
 	}
 
 	extent->complete_count = extent->count - count;
-	BlockCount i;
+	block_count_t i;
 	for (i = 0; i < count; i++) {
 		struct vio *vio = extent->vios[i];
 		vio->completion.callbackThreadID =
@@ -125,7 +125,7 @@ static void launchMetadataExtent(struct vdo_extent *extent,
 /**********************************************************************/
 void read_partial_metadata_extent(struct vdo_extent *extent,
 				  PhysicalBlockNumber start_block,
-				  BlockCount count)
+				  block_count_t count)
 {
 	launchMetadataExtent(extent, start_block, count, VIO_READ);
 }
@@ -133,7 +133,7 @@ void read_partial_metadata_extent(struct vdo_extent *extent,
 /**********************************************************************/
 void write_partial_metadata_extent(struct vdo_extent *extent,
 				   PhysicalBlockNumber start_block,
-				   BlockCount count)
+				   block_count_t count)
 {
 	launchMetadataExtent(extent, start_block, count, VIO_WRITE);
 }

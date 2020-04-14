@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#49 $
  */
 
 #include "dmvdo.h"
@@ -223,7 +223,8 @@ static void vdo_status(struct dm_target *ti,
  *
  * @return The size in blocks
  **/
-static BlockCount get_underlying_device_block_count(struct kernel_layer *layer)
+static block_count_t
+get_underlying_device_block_count(struct kernel_layer *layer)
 {
 	uint64_t physical_size =
 		i_size_read(get_kernel_layer_bdev(layer)->bd_inode);
@@ -233,7 +234,7 @@ static BlockCount get_underlying_device_block_count(struct kernel_layer *layer)
 /**********************************************************************/
 static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 {
-	BlockCount logical_count;
+	block_count_t logical_count;
 
 	if (sscanf(size_string, "%llu", &logical_count) != 1) {
 		logWarning("Logical block count \"%s\" is not a number",
@@ -564,7 +565,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	uint64_t block_size = VDO_BLOCK_SIZE;
 	uint64_t logical_size = to_bytes(ti->len);
-	BlockCount logical_blocks = logical_size / block_size;
+	block_count_t logical_blocks = logical_size / block_size;
 
 	logDebug("Logical block size     = %llu",
 		 (uint64_t) config->logical_block_size);

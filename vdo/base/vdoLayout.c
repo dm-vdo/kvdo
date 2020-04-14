@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#11 $
  */
 
 #include "vdoLayout.h"
@@ -56,15 +56,15 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-make_vdo_fixed_layout(BlockCount physical_blocks,
+make_vdo_fixed_layout(block_count_t physical_blocks,
 		      PhysicalBlockNumber starting_offset,
-		      BlockCount block_map_blocks,
-		      BlockCount journal_blocks,
-		      BlockCount summary_blocks,
+		      block_count_t block_map_blocks,
+		      block_count_t journal_blocks,
+		      block_count_t summary_blocks,
 		      struct fixed_layout **layout_ptr)
 {
-	BlockCount necessary_size = (starting_offset + block_map_blocks +
-				     journal_blocks + summary_blocks);
+	block_count_t necessary_size = (starting_offset + block_map_blocks +
+					journal_blocks + summary_blocks);
 	if (necessary_size > physical_blocks) {
 		return logErrorWithStringError(VDO_NO_SPACE,
 					       "Not enough space to make a VDO");
@@ -128,7 +128,7 @@ make_vdo_fixed_layout(BlockCount physical_blocks,
  *
  * @return The offset of the partition (in blocks)
  **/
-__attribute__((warn_unused_result)) static BlockCount
+__attribute__((warn_unused_result)) static block_count_t
 get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
@@ -136,11 +136,11 @@ get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 }
 
 /**********************************************************************/
-int make_vdo_layout(BlockCount physical_blocks,
+int make_vdo_layout(block_count_t physical_blocks,
 		    PhysicalBlockNumber starting_offset,
-		    BlockCount block_map_blocks,
-		    BlockCount journal_blocks,
-		    BlockCount summary_blocks,
+		    block_count_t block_map_blocks,
+		    block_count_t journal_blocks,
+		    block_count_t summary_blocks,
 		    struct vdo_layout **vdo_layout_ptr)
 {
 	struct vdo_layout *vdo_layout;
@@ -271,7 +271,7 @@ get_partition_from_next_layout(struct vdo_layout *vdo_layout, partition_id id)
  *
  * @return The size of the partition (in blocks)
  **/
-__attribute__((warn_unused_result)) static BlockCount
+__attribute__((warn_unused_result)) static block_count_t
 get_partition_size(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_size(get_vdo_partition(layout,
@@ -280,8 +280,8 @@ get_partition_size(struct vdo_layout *layout, partition_id partition_id)
 
 /**********************************************************************/
 int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
-			       BlockCount old_physical_blocks,
-			       BlockCount new_physical_blocks,
+			       block_count_t old_physical_blocks,
+			       block_count_t new_physical_blocks,
 			       PhysicalLayer *layer)
 {
 	if (get_next_vdo_layout_size(vdo_layout) == new_physical_blocks) {
@@ -323,7 +323,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	struct partition *recovery_journal_partition =
 		get_partition_from_next_layout(vdo_layout,
 					       RECOVERY_JOURNAL_PARTITION);
-	BlockCount min_new_size =
+	block_count_t min_new_size =
 		(old_physical_blocks +
 		 get_fixed_layout_partition_size(slab_summary_partition) +
 		 get_fixed_layout_partition_size(recovery_journal_partition));
@@ -347,8 +347,8 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
  *
  * @return The total size of a VDO (in blocks) with the given layout
  **/
-__attribute__((warn_unused_result)) static BlockCount
-get_vdo_size(struct fixed_layout *layout, BlockCount starting_offset)
+__attribute__((warn_unused_result)) static block_count_t
+get_vdo_size(struct fixed_layout *layout, block_count_t starting_offset)
 {
 	// The fixed_layout does not include the super block or any earlier
 	// metadata; all that is captured in the vdo_layout's starting offset
@@ -356,7 +356,7 @@ get_vdo_size(struct fixed_layout *layout, BlockCount starting_offset)
 }
 
 /**********************************************************************/
-BlockCount get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
+block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 {
 	return ((vdo_layout->next_layout == NULL) ?
 			0 :
@@ -365,7 +365,8 @@ BlockCount get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 }
 
 /**********************************************************************/
-BlockCount get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
+block_count_t
+get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 {
 	if (vdo_layout->next_layout == NULL) {
 		return 0;
@@ -378,7 +379,7 @@ BlockCount get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout
 }
 
 /**********************************************************************/
-BlockCount grow_vdo_layout(struct vdo_layout *vdo_layout)
+block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
 {
 	ASSERT_LOG_ONLY(vdo_layout->next_layout != NULL,
 			"VDO prepared to grow physical");
@@ -390,7 +391,7 @@ BlockCount grow_vdo_layout(struct vdo_layout *vdo_layout)
 }
 
 /**********************************************************************/
-BlockCount revert_vdo_layout(struct vdo_layout *vdo_layout)
+block_count_t revert_vdo_layout(struct vdo_layout *vdo_layout)
 {
 	if ((vdo_layout->previous_layout != NULL) &&
 	    (vdo_layout->previous_layout != vdo_layout->layout)) {

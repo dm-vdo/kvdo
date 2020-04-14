@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#35 $
  */
 
 #ifndef KERNELLAYER_H
@@ -482,7 +482,7 @@ static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
  * @return VDO_SUCCESS or an error
  */
 int prepare_to_resize_physical(struct kernel_layer *layer,
-			       BlockCount physical_count);
+			       block_count_t physical_count);
 
 /**
  * Adjusts parameters to reflect resizing the underlying device.
@@ -493,7 +493,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
  *
  * @return VDO_SUCCESS or an error
  */
-int resize_physical(struct kernel_layer *layer, BlockCount physical_count);
+int resize_physical(struct kernel_layer *layer, block_count_t physical_count);
 
 /**
  * Adjust parameters to prepare to present a larger logical space.
@@ -505,7 +505,7 @@ int resize_physical(struct kernel_layer *layer, BlockCount physical_count);
  * @return VDO_SUCCESS or an error
  */
 int prepare_to_resize_logical(struct kernel_layer *layer,
-			      BlockCount logical_count);
+			      block_count_t logical_count);
 
 /**
  * Adjust parameters to present a larger logical space.
@@ -516,7 +516,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
  *
  * @return VDO_SUCCESS or an error
  */
-int resize_logical(struct kernel_layer *layer, BlockCount logical_count);
+int resize_logical(struct kernel_layer *layer, block_count_t logical_count);
 
 /**
  * Indicate whether the kernel layer is configured to use a separate

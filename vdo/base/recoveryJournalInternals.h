@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#18 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -98,26 +98,26 @@ struct recovery_journal {
 	/** The new block map reap head after reaping */
 	SequenceNumber block_map_reap_head;
 	/** The head block number for the block map rebuild range */
-	BlockCount block_map_head_block_number;
+	block_count_t block_map_head_block_number;
 	/** The new slab journal reap head after reaping */
 	SequenceNumber slab_journal_reap_head;
 	/** The head block number for the slab journal replay range */
-	BlockCount slab_journal_head_block_number;
+	block_count_t slab_journal_head_block_number;
 	/** The vio on which we can call flush (less ick, but still ick) */
 	struct vio *flush_vio;
 	/** The data block which must live in the vio in the flush extent */
 	char *unused_flush_vio_data;
 	/** The number of blocks in the on-disk journal */
-	BlockCount size;
+	block_count_t size;
 	/** The number of logical blocks that are in-use */
-	BlockCount logical_blocks_used;
+	block_count_t logical_blocks_used;
 	/** The number of block map pages that are allocated */
-	BlockCount block_map_data_blocks;
+	block_count_t block_map_data_blocks;
 	/** The number of journal blocks written but not yet acknowledged */
-	BlockCount pending_write_count;
+	block_count_t pending_write_count;
 	/** The threshold at which slab journal tail blocks will be written out
 	 */
-	BlockCount slab_journal_commit_threshold;
+	block_count_t slab_journal_commit_threshold;
 	/** Counters for events in the journal that are reported as statistics
 	 */
 	struct recovery_journal_statistics events;

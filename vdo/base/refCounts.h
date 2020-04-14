@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#16 $
  */
 
 #ifndef REF_COUNTS_H
@@ -44,7 +44,7 @@
  *
  * @return a success or error code
  **/
-int make_ref_counts(BlockCount block_count,
+int make_ref_counts(block_count_t block_count,
 		    struct vdo_slab *slab,
 		    PhysicalBlockNumber origin,
 		    struct read_only_notifier *read_only_notifier,
@@ -73,7 +73,7 @@ bool are_ref_counts_active(struct ref_counts *ref_counts)
  *
  * @return the number of blocks with a reference count of zero
  **/
-BlockCount get_unreferenced_block_count(struct ref_counts *ref_counts)
+block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
 	__attribute__((warn_unused_result));
 
 /**
@@ -198,9 +198,9 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
  *
  * @return The number of unreferenced blocks
  **/
-BlockCount count_unreferenced_blocks(struct ref_counts *ref_counts,
-				     PhysicalBlockNumber start_pbn,
-				     PhysicalBlockNumber end_pbn)
+block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
+					PhysicalBlockNumber start_pbn,
+					PhysicalBlockNumber end_pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -212,7 +212,7 @@ BlockCount count_unreferenced_blocks(struct ref_counts *ref_counts,
  * @return The number of blocks required to save reference counts with the
  *         given block count
  **/
-BlockCount get_saved_reference_count_size(BlockCount block_count)
+block_count_t get_saved_reference_count_size(block_count_t block_count)
 	__attribute__((warn_unused_result));
 
 /**

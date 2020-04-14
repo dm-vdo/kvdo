@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#17 $
  */
 
 #include "volumeGeometry.h"
@@ -438,7 +438,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 
 /************************************************************************/
 int compute_index_blocks(struct index_config *index_config,
-			 BlockCount *index_blocks_ptr)
+			 block_count_t *index_blocks_ptr)
 {
 	UdsConfiguration uds_configuration = NULL;
 	int result = index_config_to_uds_configuration(index_config,
@@ -456,7 +456,7 @@ int compute_index_blocks(struct index_config *index_config,
 					       "error computing index size");
 	}
 
-	BlockCount index_blocks = index_bytes / VDO_BLOCK_SIZE;
+	block_count_t index_blocks = index_bytes / VDO_BLOCK_SIZE;
 	if ((((uint64_t) index_blocks) * VDO_BLOCK_SIZE) != index_bytes) {
 		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
 					       "index size must be a multiple of block size %d",
@@ -473,7 +473,7 @@ int initialize_volume_geometry(Nonce nonce,
 			       struct index_config *index_config,
 			       struct volume_geometry *geometry)
 {
-	BlockCount index_size = 0;
+	block_count_t index_size = 0;
 	if (index_config != NULL) {
 		int result = compute_index_blocks(index_config, &index_size);
 		if (result != VDO_SUCCESS) {

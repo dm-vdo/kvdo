@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#84 $
  */
 
 #include "kernelLayer.h"
@@ -98,7 +98,7 @@ CRC32Checksum update_crc32(CRC32Checksum crc, const byte *buffer, size_t length)
 }
 
 /**********************************************************************/
-static BlockCount kvdo_get_block_count(PhysicalLayer *header)
+static block_count_t kvdo_get_block_count(PhysicalLayer *header)
 {
 	return as_kernel_layer(header)->device_config->physical_blocks;
 }
@@ -1280,7 +1280,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 
 /***********************************************************************/
 int prepare_to_resize_physical(struct kernel_layer *layer,
-			       BlockCount physical_count)
+			       block_count_t physical_count)
 {
 	logInfo("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
@@ -1306,7 +1306,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 }
 
 /***********************************************************************/
-int resize_physical(struct kernel_layer *layer, BlockCount physical_count)
+int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 {
 	/*
 	 * We must not mark the layer as allowing allocations when it is
@@ -1324,7 +1324,7 @@ int resize_physical(struct kernel_layer *layer, BlockCount physical_count)
 
 /***********************************************************************/
 int prepare_to_resize_logical(struct kernel_layer *layer,
-			      BlockCount logical_count)
+			      block_count_t logical_count)
 {
 	logInfo("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
@@ -1341,7 +1341,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 }
 
 /***********************************************************************/
-int resize_logical(struct kernel_layer *layer, BlockCount logical_count)
+int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 {
 	logInfo("Resizing logical to %llu", logical_count);
 	/*

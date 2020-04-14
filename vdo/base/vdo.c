@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#61 $
  */
 
 /*
@@ -447,31 +447,31 @@ int validate_vdo_version(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 decode_vdo_config(struct buffer *buffer, struct vdo_config *config)
 {
-	BlockCount logical_blocks;
+	block_count_t logical_blocks;
 	int result = get_uint64_le_from_buffer(buffer, &logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount physical_blocks;
+	block_count_t physical_blocks;
 	result = get_uint64_le_from_buffer(buffer, &physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount slab_size;
+	block_count_t slab_size;
 	result = get_uint64_le_from_buffer(buffer, &slab_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount recovery_journal_size;
+	block_count_t recovery_journal_size;
 	result = get_uint64_le_from_buffer(buffer, &recovery_journal_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount slab_journal_blocks;
+	block_count_t slab_journal_blocks;
 	result = get_uint64_le_from_buffer(buffer, &slab_journal_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -579,7 +579,7 @@ int decode_vdo_component(struct vdo *vdo)
 
 /**********************************************************************/
 int validate_vdo_config(const struct vdo_config *config,
-			BlockCount block_count,
+			block_count_t block_count,
 			bool require_logical)
 {
 	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
@@ -931,20 +931,20 @@ void get_vdo_statistics(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-BlockCount get_physical_blocks_allocated(const struct vdo *vdo)
+block_count_t get_physical_blocks_allocated(const struct vdo *vdo)
 {
 	return (get_depot_allocated_blocks(vdo->depot) -
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
-BlockCount get_physical_blocks_free(const struct vdo *vdo)
+block_count_t get_physical_blocks_free(const struct vdo *vdo)
 {
 	return get_depot_free_blocks(vdo->depot);
 }
 
 /**********************************************************************/
-BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
+block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 {
 	// XXX config.physical_blocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on admin thread so we're usually
@@ -954,7 +954,7 @@ BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-BlockCount get_total_block_map_blocks(const struct vdo *vdo)
+block_count_t get_total_block_map_blocks(const struct vdo *vdo)
 {
 	return (get_number_of_fixed_block_map_pages(vdo->block_map) +
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
@@ -985,7 +985,7 @@ const struct thread_config *get_thread_config(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-BlockCount get_configured_block_map_maximum_age(const struct vdo *vdo)
+block_count_t get_configured_block_map_maximum_age(const struct vdo *vdo)
 {
 	return vdo->load_config.maximum_age;
 }

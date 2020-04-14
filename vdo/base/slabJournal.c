@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#48 $
  */
 
 #include "slabJournalInternals.h"
@@ -593,7 +593,7 @@ static void update_tail_block_location(struct slab_journal *journal)
 		return;
 	}
 
-	BlockCount free_block_count;
+	block_count_t free_block_count;
 	if (is_unrecovered_slab(journal->slab)) {
 		free_block_count =
 			get_summarized_free_block_count(journal->summary,
@@ -931,7 +931,7 @@ bool attempt_replay_into_slab_journal(struct slab_journal *journal,
  **/
 static bool requires_flushing(const struct slab_journal *journal)
 {
-	BlockCount journal_length = (journal->tail - journal->head);
+	block_count_t journal_length = (journal->tail - journal->head);
 	return (journal_length >= journal->flushing_threshold);
 }
 
@@ -944,14 +944,14 @@ static bool requires_flushing(const struct slab_journal *journal)
  **/
 static bool requires_reaping(const struct slab_journal *journal)
 {
-	BlockCount journal_length = (journal->tail - journal->head);
+	block_count_t journal_length = (journal->tail - journal->head);
 	return (journal_length >= journal->blockingThreshold);
 }
 
 /**********************************************************************/
 bool requires_scrubbing(const struct slab_journal *journal)
 {
-	BlockCount journal_length = (journal->tail - journal->head);
+	block_count_t journal_length = (journal->tail - journal->head);
 	return (journal_length >= journal->scrubbing_threshold);
 }
 
@@ -993,9 +993,9 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		// refCounts to write some reference blocks, but proceed apace.
 		if (requires_flushing(journal)) {
 			relaxedAdd64(&journal->events->flush_count, 1);
-			BlockCount journal_length =
+			block_count_t journal_length =
 				(journal->tail - journal->head);
-			BlockCount blocks_to_deadline = 0;
+			block_count_t blocks_to_deadline = 0;
 			if (journal_length <= journal->flushing_deadline) {
 				blocks_to_deadline = journal->flushing_deadline -
 						   journal_length;

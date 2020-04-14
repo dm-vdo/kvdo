@@ -177,9 +177,9 @@ struct vdo_statistics {
   /** Number of logical blocks that are currently mapped to physical blocks */
   uint64_t logical_blocks_used;
   /** number of physical blocks */
-  BlockCount physical_blocks;
+  block_count_t physical_blocks;
   /** number of logical blocks */
-  BlockCount logical_blocks;
+  block_count_t logical_blocks;
   /** Size of the block map page cache, in bytes */
   uint64_t block_map_cache_size;
   /** String describing the active write policy of the VDO */

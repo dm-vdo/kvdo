@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#9 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -33,8 +33,8 @@ struct recovery_block_header {
 	SequenceNumber slab_journal_head; // Slab journal head seq. number
 	SequenceNumber sequence_number; // Sequence number for this block
 	Nonce nonce; // A given VDO instance's nonce
-	BlockCount logical_blocks_used; // Logical blocks in use
-	BlockCount block_map_data_blocks; // Allocated block map pages
+	block_count_t logical_blocks_used; // Logical blocks in use
+	block_count_t block_map_data_blocks; // Allocated block map pages
 	JournalEntryCount entry_count; // Number of entries written
 	uint8_t check_byte; // The protection check byte
 	uint8_t recovery_count; // Number of recoveries completed
@@ -100,8 +100,8 @@ union packed_journal_header {
 		Nonce nonce;
 		vdo_metadata_type metadata_type;
 		JournalEntryCount entry_count;
-		BlockCount logical_blocks_used;
-		BlockCount block_map_data_blocks;
+		block_count_t logical_blocks_used;
+		block_count_t block_map_data_blocks;
 		uint8_t check_byte;
 		uint8_t recovery_count;
 	} littleEndian;

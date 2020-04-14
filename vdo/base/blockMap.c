@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#55 $
  */
 
 #include "blockMap.h"
@@ -42,9 +42,9 @@
 
 struct block_map_state_2_0 {
 	PhysicalBlockNumber flat_page_origin;
-	BlockCount flat_page_count;
+	block_count_t flat_page_count;
 	PhysicalBlockNumber root_origin;
-	BlockCount root_count;
+	block_count_t root_count;
 } __attribute__((packed));
 
 static const struct header BLOCK_MAP_HEADER_2_0 = {
@@ -130,17 +130,17 @@ static bool handle_page_write(void *raw_page,
 }
 
 /**********************************************************************/
-PageCount compute_block_map_page_count(BlockCount entries)
+PageCount compute_block_map_page_count(block_count_t entries)
 {
 	return compute_bucket_count(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**********************************************************************/
-int make_block_map(BlockCount logical_blocks,
+int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
-		   BlockCount flat_page_count,
+		   block_count_t flat_page_count,
 		   PhysicalBlockNumber root_origin,
-		   BlockCount root_count,
+		   block_count_t root_count,
 		   struct block_map **map_ptr)
 {
 	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
@@ -196,7 +196,7 @@ static int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	BlockCount flat_page_count;
+	block_count_t flat_page_count;
 	result = get_uint64_le_from_buffer(buffer, &flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -208,7 +208,7 @@ static int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	BlockCount root_count;
+	block_count_t root_count;
 	result = get_uint64_le_from_buffer(buffer, &root_count);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -228,7 +228,7 @@ static int decode_block_map_state_2_0(struct buffer *buffer,
 
 /**********************************************************************/
 int decode_block_map(struct buffer *buffer,
-		     BlockCount logical_blocks,
+		     block_count_t logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
 {
@@ -275,7 +275,7 @@ int decode_block_map(struct buffer *buffer,
 
 /**********************************************************************/
 int decode_sodium_block_map(struct buffer *buffer,
-			    BlockCount logical_blocks,
+			    block_count_t logical_blocks,
 			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
 {
@@ -300,7 +300,7 @@ initialize_block_map_zone(struct block_map_zone *zone,
 		       PhysicalLayer *layer,
 		       struct read_only_notifier *read_only_notifier,
 		       PageCount cache_size,
-		       BlockCount maximum_age)
+		       block_count_t maximum_age)
 {
 	zone->read_only_notifier = read_only_notifier;
 	int result = initialize_tree_zone(zone, layer, maximum_age);
@@ -392,7 +392,7 @@ int make_block_map_caches(struct block_map *map,
 			  struct recovery_journal *journal,
 			  Nonce nonce,
 			  PageCount cache_size,
-			  BlockCount maximum_age)
+			  block_count_t maximum_age)
 {
 	int result = ASSERT(cache_size > 0,
 			    "block map cache size is specified");
@@ -565,7 +565,7 @@ PageCount get_number_of_fixed_block_map_pages(const struct block_map *map)
 }
 
 /**********************************************************************/
-BlockCount get_number_of_block_map_entries(const struct block_map *map)
+block_count_t get_number_of_block_map_entries(const struct block_map *map)
 {
 	return map->entry_count;
 }
@@ -658,7 +658,7 @@ void resume_block_map(struct block_map *map, struct vdo_completion *parent)
 
 /**********************************************************************/
 int prepare_to_grow_block_map(struct block_map *map,
-			      BlockCount new_logical_blocks)
+			      block_count_t new_logical_blocks)
 {
 	if (map->next_entry_count == new_logical_blocks) {
 		return VDO_SUCCESS;
@@ -677,7 +677,7 @@ int prepare_to_grow_block_map(struct block_map *map,
 }
 
 /**********************************************************************/
-BlockCount get_new_entry_count(struct block_map *map)
+block_count_t get_new_entry_count(struct block_map *map)
 {
 	return map->next_entry_count;
 }

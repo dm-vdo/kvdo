@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#32 $
  */
 
 #include "readOnlyRebuild.h"
@@ -60,9 +60,9 @@ struct read_only_rebuild_completion {
 	 */
 	SequenceNumber tail;
 	/** The number of logical blocks in use */
-	BlockCount logical_blocks_used;
+	block_count_t logical_blocks_used;
 	/** The number of allocated block map pages */
-	BlockCount block_map_data_blocks;
+	block_count_t block_map_data_blocks;
 };
 
 /**
@@ -306,7 +306,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 	struct recovery_journal *journal = vdo->recovery_journal;
 	SequenceNumber first = rebuild->head;
 	SequenceNumber last = rebuild->tail;
-	BlockCount max_count = ((last - first + 1) * journal->entries_per_block);
+	block_count_t max_count = ((last - first + 1) *
+				   journal->entries_per_block);
 
 	/*
 	 * Allocate an array of numbered_block_mapping structures large

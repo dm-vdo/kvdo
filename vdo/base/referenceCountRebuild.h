@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#5 $
  */
 
 #ifndef REFERENCE_COUNT_REBUILD_H
@@ -36,7 +36,7 @@
  **/
 void rebuild_reference_counts(struct vdo *vdo,
 			      struct vdo_completion *parent,
-			      BlockCount *logical_blocks_used,
-			      BlockCount *block_map_data_blocks);
+			      block_count_t *logical_blocks_used,
+			      block_count_t *block_map_data_blocks);
 
 #endif // REFERENCE_COUNT_REBUILD_H

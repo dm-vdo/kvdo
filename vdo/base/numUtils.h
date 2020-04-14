@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#3 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -83,8 +83,8 @@ max_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
 /**
  * Find the minimum of two block counts.
  **/
-__attribute__((warn_unused_result)) static inline BlockCount
-min_block_count(BlockCount a, BlockCount b)
+__attribute__((warn_unused_result)) static inline block_count_t
+min_block_count(block_count_t a, block_count_t b)
 {
 	return (a < b) ? a : b;
 }
@@ -92,8 +92,8 @@ min_block_count(BlockCount a, BlockCount b)
 /**
  * Find the maximum of two block counts.
  **/
-__attribute__((warn_unused_result)) static inline BlockCount
-max_block_count(BlockCount a, BlockCount b)
+__attribute__((warn_unused_result)) static inline block_count_t
+max_block_count(block_count_t a, block_count_t b)
 {
 	return (a > b) ? a : b;
 }

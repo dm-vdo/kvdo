@@ -65,11 +65,11 @@ int write_uint32_t(char *prefix,
 }
 
 /**********************************************************************/
-int write_BlockCount(char *prefix,
-                     BlockCount value,
-                     char *suffix,
-                     char **buf,
-                     unsigned int *maxlen)
+int write_block_count_t(char *prefix,
+                        block_count_t value,
+                        char *suffix,
+                        char **buf,
+                        unsigned int *maxlen)
 {
        int count = snprintf(*buf, *maxlen, "%s%llu%s",
                             prefix == NULL ? "" : prefix,
@@ -798,20 +798,20 @@ int write_vdo_statistics(char *prefix,
               return result;
        }
        /** number of physical blocks */
-       result = write_BlockCount("physicalBlocks : ",
-                                 stats->physical_blocks,
-                                 ", ",
-                                 buf,
-                                 maxlen);
+       result = write_block_count_t("physicalBlocks : ",
+                                    stats->physical_blocks,
+                                    ", ",
+                                    buf,
+                                    maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** number of logical blocks */
-       result = write_BlockCount("logicalBlocks : ",
-                                 stats->logical_blocks,
-                                 ", ",
-                                 buf,
-                                 maxlen);
+       result = write_block_count_t("logicalBlocks : ",
+                                    stats->logical_blocks,
+                                    ", ",
+                                    buf,
+                                    maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

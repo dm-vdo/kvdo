@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#13 $
  */
 
 #include "partitionCopy.h"
@@ -128,7 +128,7 @@ static void copy_partition_stride(struct copy_completion *copy);
  *
  * @return The number of blocks to copy in the current stride
  **/
-static inline BlockCount get_stride_size(struct copy_completion *copy)
+static inline block_count_t get_stride_size(struct copy_completion *copy)
 {
 	return min_block_count(STRIDE_LENGTH,
 			       copy->ending_index - copy->current_index);
@@ -209,8 +209,8 @@ static void copy_partition_stride(struct copy_completion *copy)
 static int validate_partition_copy(struct partition *source,
 				   struct partition *target)
 {
-	BlockCount sourceSize = get_fixed_layout_partition_size(source);
-	BlockCount targetSize = get_fixed_layout_partition_size(target);
+	block_count_t sourceSize = get_fixed_layout_partition_size(source);
+	block_count_t targetSize = get_fixed_layout_partition_size(target);
 
 	PhysicalBlockNumber source_start =
 		get_fixed_layout_partition_offset(source);

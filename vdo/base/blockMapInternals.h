@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#27 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -84,13 +84,13 @@ struct block_map {
 	/** The manager for block map actions */
 	struct action_manager *action_manager;
 	/** The count of pages in the linear part of the block map */
-	BlockCount flat_page_count;
+	block_count_t flat_page_count;
 	/**
 	 * The absolute PBN of the first root of the tree part of the block map
 	 */
 	PhysicalBlockNumber root_origin;
 	/** The count of root pages of the tree part of the block map */
-	BlockCount root_count;
+	block_count_t root_count;
 
 	/** The era point we are currently distributing to the zones */
 	SequenceNumber current_era_point;
@@ -98,7 +98,7 @@ struct block_map {
 	SequenceNumber pending_era_point;
 
 	/** The number of entries in block map */
-	BlockCount entry_count;
+	block_count_t entry_count;
 	/** The VDO's nonce, for the pages */
 	Nonce nonce;
 	/** The recovery journal for this map */
@@ -109,7 +109,7 @@ struct block_map {
 	/** The expanded trees awaiting growth */
 	struct forest *next_forest;
 	/** The number of entries after growth */
-	BlockCount next_entry_count;
+	block_count_t next_entry_count;
 
 	/** The number of logical zones */
 	ZoneCount zone_count;
@@ -125,7 +125,7 @@ struct block_map {
  *
  * @return The number of pages required
  **/
-PageCount compute_block_map_page_count(BlockCount entries);
+PageCount compute_block_map_page_count(block_count_t entries);
 
 /**
  * Compute the number of the block map page on which the entry for a given

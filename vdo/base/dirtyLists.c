@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#5 $
  */
 
 #include "dirtyLists.h"
@@ -29,7 +29,7 @@
 
 struct dirty_lists {
 	/** The number of periods after which an element will be expired */
-	BlockCount maximum_age;
+	block_count_t maximum_age;
 	/** The oldest period which has unexpired elements */
 	SequenceNumber oldest_period;
 	/** One more than the current period */
@@ -39,7 +39,7 @@ struct dirty_lists {
 	/** The callback context */
 	void *context;
 	/** The offset in the array of lists of the oldest period */
-	BlockCount offset;
+	block_count_t offset;
 	/** The list of elements which are being expired */
 	RingNode expired;
 	/** The lists of dirty elements */
@@ -47,7 +47,7 @@ struct dirty_lists {
 };
 
 /**********************************************************************/
-int make_dirty_lists(BlockCount maximum_age, dirty_callback *callback,
+int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 		     void *context, struct dirty_lists **dirty_lists_ptr)
 {
 	struct dirty_lists *dirty_lists;
@@ -62,7 +62,7 @@ int make_dirty_lists(BlockCount maximum_age, dirty_callback *callback,
 	dirty_lists->context = context;
 
 	initializeRing(&dirty_lists->expired);
-	BlockCount i;
+	block_count_t i;
 	for (i = 0; i < maximum_age; i++) {
 		initializeRing(&dirty_lists->lists[i]);
 	}

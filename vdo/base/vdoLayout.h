@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#8 $
  */
 
 /**
@@ -49,11 +49,11 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_vdo_layout(BlockCount physical_blocks,
+int make_vdo_layout(block_count_t physical_blocks,
 		    PhysicalBlockNumber starting_offset,
-		    BlockCount block_map_blocks,
-		    BlockCount journal_blocks,
-		    BlockCount summary_blocks,
+		    block_count_t block_map_blocks,
+		    block_count_t journal_blocks,
+		    block_count_t summary_blocks,
 		    struct vdo_layout **vdo_layout_ptr)
 	__attribute__((warn_unused_result));
 
@@ -100,8 +100,8 @@ struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
  * @return VDO_SUCCESS or an error code
  **/
 int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
-			       BlockCount old_physical_blocks,
-			       BlockCount new_physical_blocks,
+			       block_count_t old_physical_blocks,
+			       block_count_t new_physical_blocks,
 			       PhysicalLayer *layer)
 	__attribute__((warn_unused_result));
 
@@ -113,7 +113,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
  * @return The size which was specified when the layout was prepared for growth
  *         or 0 if the layout is not prepared to grow
  **/
-BlockCount get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
+block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 	__attribute__((warn_unused_result));
 
 /**
@@ -124,7 +124,7 @@ BlockCount get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
  * @return The size of the block allocator partition in the next layout or 0
  *         if the layout is not prepared to grow
  **/
-BlockCount
+block_count_t
 get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 	__attribute__((warn_unused_result));
 
@@ -135,7 +135,7 @@ get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
  *
  * @return The new size of the VDO
  **/
-BlockCount grow_vdo_layout(struct vdo_layout *vdo_layout)
+block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
 	__attribute__((warn_unused_result));
 
 /**
@@ -145,7 +145,7 @@ BlockCount grow_vdo_layout(struct vdo_layout *vdo_layout)
  *
  * @return The reverted size (in blocks) of the VDO
  **/
-BlockCount revert_vdo_layout(struct vdo_layout *vdo_layout)
+block_count_t revert_vdo_layout(struct vdo_layout *vdo_layout)
 	__attribute__((warn_unused_result));
 
 /**

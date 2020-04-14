@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#32 $
  */
 
 #include "slabSummary.h"
@@ -34,16 +34,16 @@
 // SIZING
 
 /**********************************************************************/
-static BlockCount get_slab_summary_zone_size(BlockSize block_size)
+static block_count_t get_slab_summary_zone_size(BlockSize block_size)
 {
 	SlabCount entries_per_block =
 		block_size / sizeof(struct slab_summary_entry);
-	BlockCount blocks_needed = MAX_SLABS / entries_per_block;
+	block_count_t blocks_needed = MAX_SLABS / entries_per_block;
 	return blocks_needed;
 }
 
 /**********************************************************************/
-BlockCount get_slab_summary_size(BlockSize block_size)
+block_count_t get_slab_summary_size(BlockSize block_size)
 {
 	return get_slab_summary_zone_size(block_size) * MAX_PHYSICAL_ZONES;
 }
@@ -69,7 +69,7 @@ BlockCount get_slab_summary_size(BlockSize block_size)
  * @return A fullness hint, which can be stored in 7 bits.
  **/
 __attribute__((warn_unused_result)) static uint8_t
-compute_fullness_hint(struct slab_summary *summary, BlockCount free_blocks)
+compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 {
 	ASSERT_LOG_ONLY((free_blocks < (1 << 23)),
 			"free blocks must be less than 2^23");
@@ -78,7 +78,7 @@ compute_fullness_hint(struct slab_summary *summary, BlockCount free_blocks)
 		return 0;
 	}
 
-	BlockCount hint = free_blocks >> summary->hint_shift;
+	block_count_t hint = free_blocks >> summary->hint_shift;
 	return ((hint == 0) ? 1 : hint);
 }
 
@@ -93,11 +93,11 @@ compute_fullness_hint(struct slab_summary *summary, BlockCount free_blocks)
  *
  * @return An approximation to the free block count
  **/
-__attribute__((warn_unused_result)) static BlockCount
+__attribute__((warn_unused_result)) static block_count_t
 get_approximate_free_blocks(struct slab_summary *summary,
 			    uint8_t free_block_hint)
 {
-	return ((BlockCount)free_block_hint) << summary->hint_shift;
+	return ((block_count_t) free_block_hint) << summary->hint_shift;
 }
 
 // MAKE/FREE FUNCTIONS
@@ -123,7 +123,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 			      struct slab_summary_zone *summary_zone,
 			      ThreadID thread_id,
 			      struct slab_summary_entry *entries,
-			      BlockCount index,
+			      block_count_t index,
 			      struct slab_summary_block *slab_summary_block)
 {
 	int result = ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
@@ -183,7 +183,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	}
 
 	// Initialize each block.
-	BlockCount i;
+	block_count_t i;
 	for (i = 0; i < summary->blocks_per_zone; i++) {
 		result = initialize_slab_summary_block(layer, summary_zone,
 						       thread_id, entries, i,
@@ -201,11 +201,12 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 		      const struct thread_config *thread_config,
 		      unsigned int slab_size_shift,
-		      BlockCount maximum_free_blocks_per_slab,
+		      block_count_t maximum_free_blocks_per_slab,
 		      struct read_only_notifier *read_only_notifier,
 		      struct slab_summary **slab_summary_ptr)
 {
-	BlockCount blocks_per_zone = get_slab_summary_zone_size(VDO_BLOCK_SIZE);
+	block_count_t blocks_per_zone =
+		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	SlabCount entries_per_block = MAX_SLABS / blocks_per_zone;
 	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_SLABS,
 			    "block size must be a multiple of entry size");
@@ -290,7 +291,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr)
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		struct slab_summary_zone *summary_zone = summary->zones[zone];
 		if (summary_zone != NULL) {
-			BlockCount i;
+			block_count_t i;
 			for (i = 0; i < summary->blocks_per_zone; i++) {
 				free_vio(&summary_zone->summary_blocks[i].vio);
 				FREE(summary_zone->summary_blocks[i]
@@ -479,7 +480,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 			       struct waiter *waiter, SlabCount slab_number,
 			       TailBlockOffset tail_block_offset,
 			       bool load_ref_counts, bool is_clean,
-			       BlockCount free_blocks)
+			       block_count_t free_blocks)
 {
 	struct slab_summary_block *block =
 		get_summary_block_for_slab(summary_zone, slab_number);
@@ -535,7 +536,7 @@ bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
 }
 
 /**********************************************************************/
-BlockCount
+block_count_t
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 				SlabCount slab_number)
 {
@@ -657,7 +658,7 @@ void load_slab_summary(struct slab_summary *summary,
 	}
 
 	struct vdo_extent *extent;
-	BlockCount blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
+	block_count_t blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
 	int result = create_extent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
 				   VIO_PRIORITY_METADATA, blocks,
 				   (char *)summary->entries, &extent);

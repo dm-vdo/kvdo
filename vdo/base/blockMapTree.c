@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#56 $
  */
 
 #include "blockMapTree.h"
@@ -98,7 +98,7 @@ make_block_map_vios(PhysicalLayer *layer, void *parent, void *buffer,
 
 /**********************************************************************/
 int initialize_tree_zone(struct block_map_zone *zone, PhysicalLayer *layer,
-			 BlockCount era_length)
+			 block_count_t era_length)
 {
 	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
 	struct block_map_tree_zone *tree_zone = &zone->tree_zone;

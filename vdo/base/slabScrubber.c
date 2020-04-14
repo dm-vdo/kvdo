@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#29 $
  */
 
 #include "slabScrubberInternals.h"
@@ -47,7 +47,7 @@
 __attribute__((warn_unused_result)) static int
 allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 			   PhysicalLayer *layer,
-			   BlockCount slab_journal_size)
+			   block_count_t slab_journal_size)
 {
 	size_t buffer_size = VDO_BLOCK_SIZE * slab_journal_size;
 	int result =
@@ -66,7 +66,7 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 
 /**********************************************************************/
 int make_slab_scrubber(PhysicalLayer *layer,
-		       BlockCount slab_journal_size,
+		       block_count_t slab_journal_size,
 		       struct read_only_notifier *read_only_notifier,
 		       struct slab_scrubber **scrubber_ptr)
 {
@@ -334,7 +334,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	SequenceNumber head = getUInt64LE(end_block->header.fields.head);
 	TailBlockOffset head_index = get_slab_journal_block_offset(journal,
 								   head);
-	BlockCount index = head_index;
+	block_count_t index = head_index;
 
 	struct journal_point ref_counts_point =
 		reference_counts->slab_journal_point;

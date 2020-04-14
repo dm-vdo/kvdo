@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#31 $
  */
 
 #include "referenceCountRebuild.h"
@@ -59,9 +59,9 @@ struct rebuild_completion {
 	/** whether we are currently launching the initial round of requests */
 	bool launching;
 	/** The number of logical blocks observed used */
-	BlockCount *logical_blocks_used;
+	block_count_t *logical_blocks_used;
 	/** The number of block map data blocks */
-	BlockCount *block_map_data_blocks;
+	block_count_t *block_map_data_blocks;
 	/** the next page to fetch */
 	PageCount page_to_fetch;
 	/** the number of leaf pages in the block map */
@@ -137,8 +137,8 @@ static void finish_rebuild(struct vdo_completion *completion)
  * @return a success or error code
  **/
 static int make_rebuild_completion(struct vdo *vdo,
-				   BlockCount *logical_blocks_used,
-				   BlockCount *block_map_data_blocks,
+				   block_count_t *logical_blocks_used,
+				   block_count_t *block_map_data_blocks,
 				   struct vdo_completion *parent,
 				   struct rebuild_completion **rebuild_ptr)
 {
@@ -497,8 +497,8 @@ static int process_entry(PhysicalBlockNumber pbn,
 /**********************************************************************/
 void rebuild_reference_counts(struct vdo *vdo,
 			      struct vdo_completion *parent,
-			      BlockCount *logical_blocks_used,
-			      BlockCount *block_map_data_blocks)
+			      block_count_t *logical_blocks_used,
+			      block_count_t *block_map_data_blocks)
 {
 	struct rebuild_completion *rebuild;
 	int result = make_rebuild_completion(vdo, logical_blocks_used,

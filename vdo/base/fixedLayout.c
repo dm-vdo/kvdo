@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#13 $
  */
 
 #include "fixedLayout.h"
@@ -28,7 +28,7 @@
 #include "header.h"
 #include "statusCodes.h"
 
-const BlockCount ALL_FREE_BLOCKS = (uint64_t) -1;
+const block_count_t ALL_FREE_BLOCKS = (uint64_t) -1;
 
 struct fixed_layout {
 	PhysicalBlockNumber first_free;
@@ -44,7 +44,7 @@ struct partition {
 	PhysicalBlockNumber offset; // The offset into the layout of this
 				    // partition
 	PhysicalBlockNumber base; // The untranslated number of the first block
-	BlockCount count; // The number of blocks in the partition
+	block_count_t count; // The number of blocks in the partition
 	struct partition *next; // A pointer to the next partition in the layout
 };
 
@@ -58,7 +58,7 @@ struct partition_3_0 {
 	partition_id id;
 	PhysicalBlockNumber offset;
 	PhysicalBlockNumber base;
-	BlockCount count;
+	block_count_t count;
 } __attribute__((packed));
 
 static const struct header LAYOUT_HEADER_3_0 = {
@@ -72,7 +72,7 @@ static const struct header LAYOUT_HEADER_3_0 = {
 };
 
 /**********************************************************************/
-int make_fixed_layout(BlockCount total_blocks,
+int make_fixed_layout(block_count_t total_blocks,
 		      PhysicalBlockNumber start_offset,
 		      struct fixed_layout **layout_ptr)
 {
@@ -110,9 +110,9 @@ void free_fixed_layout(struct fixed_layout **layout_ptr)
 }
 
 /**********************************************************************/
-BlockCount get_total_fixed_layout_size(const struct fixed_layout *layout)
+block_count_t get_total_fixed_layout_size(const struct fixed_layout *layout)
 {
-	BlockCount size = get_fixed_layout_blocks_available(layout);
+	block_count_t size = get_fixed_layout_blocks_available(layout);
 	struct partition *partition;
 	for (partition = layout->head; partition != NULL;
 	     partition = partition->next) {
@@ -190,7 +190,8 @@ int translate_from_pbn(const struct partition *partition,
 }
 
 /**********************************************************************/
-BlockCount get_fixed_layout_blocks_available(const struct fixed_layout *layout)
+block_count_t
+get_fixed_layout_blocks_available(const struct fixed_layout *layout)
 {
 	return layout->last_free - layout->first_free;
 }
@@ -211,7 +212,7 @@ static int allocatePartition(struct fixed_layout *layout,
 			     byte id,
 			     PhysicalBlockNumber offset,
 			     PhysicalBlockNumber base,
-			     BlockCount block_count)
+			     block_count_t block_count)
 {
 	struct partition *partition;
 	int result = ALLOCATE(1, struct partition,
@@ -234,18 +235,18 @@ static int allocatePartition(struct fixed_layout *layout,
 /**********************************************************************/
 int make_fixed_layout_partition(struct fixed_layout *layout,
 				partition_id id,
-				BlockCount block_count,
+				block_count_t block_count,
 				partition_direction direction,
 				PhysicalBlockNumber base)
 {
-	BlockCount freeBlocks = layout->last_free - layout->first_free;
+	block_count_t free_blocks = layout->last_free - layout->first_free;
 	if (block_count == ALL_FREE_BLOCKS) {
-		if (freeBlocks == 0) {
+		if (free_blocks == 0) {
 			return VDO_NO_SPACE;
 		} else {
-			block_count = freeBlocks;
+			block_count = free_blocks;
 		}
-	} else if (block_count > freeBlocks) {
+	} else if (block_count > free_blocks) {
 		return VDO_NO_SPACE;
 	}
 
@@ -273,7 +274,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
 }
 
 /**********************************************************************/
-BlockCount get_fixed_layout_partition_size(const struct partition *partition)
+block_count_t get_fixed_layout_partition_size(const struct partition *partition)
 {
 	return partition->count;
 }

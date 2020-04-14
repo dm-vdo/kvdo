@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#11 $
  */
 
 #ifndef VDO_H
@@ -105,7 +105,7 @@ void get_vdo_statistics(const struct vdo *vdo,
  *
  * @return The number of blocks allocated for user data
  **/
-BlockCount get_physical_blocks_allocated(const struct vdo *vdo)
+block_count_t get_physical_blocks_allocated(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -115,7 +115,7 @@ BlockCount get_physical_blocks_allocated(const struct vdo *vdo)
  *
  * @return The number of free blocks
  **/
-BlockCount get_physical_blocks_free(const struct vdo *vdo)
+block_count_t get_physical_blocks_free(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -125,7 +125,7 @@ BlockCount get_physical_blocks_free(const struct vdo *vdo)
  *
  * @return The number of overhead blocks
  **/
-BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
+block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -135,7 +135,7 @@ BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
  *
  * @return The number of block map blocks
  **/
-BlockCount get_total_block_map_blocks(const struct vdo *vdo)
+block_count_t get_total_block_map_blocks(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -182,7 +182,7 @@ const struct thread_config *get_thread_config(const struct vdo *vdo)
  *
  * @return The block map era length
  **/
-BlockCount get_configured_block_map_maximum_age(const struct vdo *vdo)
+block_count_t get_configured_block_map_maximum_age(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**

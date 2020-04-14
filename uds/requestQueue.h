@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#2 $
  */
 
 #ifndef REQUEST_QUEUE_H
 #define REQUEST_QUEUE_H
 
+#include "compiler.h"
 #include "opaqueTypes.h"
 #include "typeDefs.h"
 

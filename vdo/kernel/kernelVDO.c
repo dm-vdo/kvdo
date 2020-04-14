@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#46 $
  */
 
 /*
@@ -496,7 +496,8 @@ bool get_kvdo_compressing(struct kvdo *kvdo)
 }
 
 /**********************************************************************/
-int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count)
+int kvdo_prepare_to_grow_physical(struct kvdo *kvdo,
+				  block_count_t physical_count)
 {
 	struct vdo *vdo = kvdo->vdo;
 
@@ -504,7 +505,7 @@ int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count)
 }
 
 /**********************************************************************/
-int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count)
+int kvdo_resize_physical(struct kvdo *kvdo, block_count_t physical_count)
 {
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
@@ -521,7 +522,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count)
 }
 
 /**********************************************************************/
-int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count)
+int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, block_count_t logical_count)
 {
 	struct vdo *vdo = kvdo->vdo;
 
@@ -529,7 +530,7 @@ int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count)
 }
 
 /**********************************************************************/
-int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count)
+int kvdo_resize_logical(struct kvdo *kvdo, block_count_t logical_count)
 {
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,

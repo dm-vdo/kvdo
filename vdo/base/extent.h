@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#10 $
  */
 
 #ifndef EXTENT_H
@@ -38,9 +38,9 @@ struct vdo_extent {
 	// The completion for asynchronous extent processing
 	struct vdo_completion completion;
 	// The number of vios in the extent
-	BlockCount count;
+	block_count_t count;
 	// The number of completed vios in the extent
-	BlockCount complete_count;
+	block_count_t complete_count;
 	// The vios in the extent
 	struct vio *vios[];
 };
@@ -87,7 +87,7 @@ extent_as_completion(struct vdo_extent *extent)
  **/
 int create_extent(PhysicalLayer *layer, vio_type vio_type,
 		  vio_priority priority,
-		  BlockCount block_count, char *data,
+		  block_count_t block_count, char *data,
 		  struct vdo_extent **extent_ptr)
 	__attribute__((warn_unused_result));
 
@@ -109,7 +109,7 @@ void free_extent(struct vdo_extent **extent_ptr);
  **/
 void read_partial_metadata_extent(struct vdo_extent *extent,
 				  PhysicalBlockNumber start_block,
-				  BlockCount count);
+				  block_count_t count);
 
 /**
  * Read metadata from the underlying storage.
@@ -135,7 +135,7 @@ static inline void read_metadata_extent(struct vdo_extent *extent,
  **/
 void write_partial_metadata_extent(struct vdo_extent *extent,
 				   PhysicalBlockNumber start_block,
-				   BlockCount count);
+				   block_count_t count);
 /**
  * Write metadata to the underlying storage.
  *

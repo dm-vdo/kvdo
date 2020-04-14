@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#30 $
  */
 
 #include "logicalZone.h"
@@ -54,7 +54,7 @@ struct logical_zone {
 	/** The oldest active generation in this zone */
 	SequenceNumber oldest_active_generation;
 	/** The number of IOs in the current flush generation */
-	BlockCount ios_in_flush_generation;
+	block_count_t ios_in_flush_generation;
 	/**
 	 * The oldest locked generation in this zone (an atomic copy of
 	 * oldest_active_generation)

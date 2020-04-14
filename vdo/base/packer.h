@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#10 $
  */
 
 #ifndef PACKER_H
@@ -49,8 +49,8 @@ struct packer;
  * @return VDO_SUCCESS or an error
  **/
 int make_packer(PhysicalLayer *layer,
-		BlockCount input_bin_count,
-		BlockCount output_bin_count,
+		block_count_t input_bin_count,
+		block_count_t output_bin_count,
 		const struct thread_config *thread_config,
 		struct packer **packer_ptr) __attribute__((warn_unused_result));
 

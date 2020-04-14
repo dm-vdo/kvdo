@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#6 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -58,7 +58,7 @@
  **/
 int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		      ThreadID thread_id, ZoneCount logical_zones,
-		      ZoneCount physical_zones, BlockCount locks,
+		      ZoneCount physical_zones, block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 	__attribute__((warn_unused_result));
 
@@ -80,7 +80,7 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr);
  *
  * @return <code>true</code> if the specified lock has references (is locked)
  **/
-bool is_locked(struct lock_counter *lock_counter, BlockCount lock_number,
+bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
 	       zone_type zone_type) __attribute__((warn_unused_result));
 
 /**
@@ -91,7 +91,8 @@ bool is_locked(struct lock_counter *lock_counter, BlockCount lock_number,
  * @param lock_number  Which lock to initialize
  * @param value        The value to set
  **/
-void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
+void initialize_lock_count(struct lock_counter *counter,
+			   block_count_t lock_number,
 			   uint16_t value);
 
 /**
@@ -104,7 +105,8 @@ void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
  * @param zoneID       The ID of the zone acquiring the reference
  **/
 void acquire_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, zone_type zone_type,
+				  block_count_t lock_number,
+				  zone_type zone_type,
 				  ZoneCount zoneID);
 
 /**
@@ -117,7 +119,8 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  * @param zone_id      The ID of the zone releasing the reference
  **/
 void release_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, zone_type zone_type,
+				  block_count_t lock_number,
+				  zone_type zone_type,
 				  ZoneCount zone_id);
 
 /**
@@ -128,7 +131,7 @@ void release_lock_count_reference(struct lock_counter *counter,
  * @param lock_number  The lock from which to release a reference
  **/
 void release_journal_zone_reference(struct lock_counter *counter,
-				    BlockCount lock_number);
+				    block_count_t lock_number);
 
 /**
  * Release a single journal zone reference from any zone. This method shouldn't
@@ -140,7 +143,7 @@ void release_journal_zone_reference(struct lock_counter *counter,
  **/
 void
 release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
-					       BlockCount lock_number);
+					       block_count_t lock_number);
 
 /**
  * Inform a lock counter that an unlock notification was received by the

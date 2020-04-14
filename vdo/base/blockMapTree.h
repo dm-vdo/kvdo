@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#13 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -38,7 +38,7 @@ struct tree_page;
  * @return VDO_SUCCESS or an error
  **/
 int initialize_tree_zone(struct block_map_zone *zone, PhysicalLayer *layer,
-			 BlockCount maximum_age)
+			 block_count_t maximum_age)
 	__attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#14 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -83,9 +83,9 @@ struct recovery_completion {
 	/** The location of the next recovery journal entry to apply */
 	struct recovery_point next_recovery_point;
 	/** The number of logical blocks currently known to be in use */
-	BlockCount logical_blocks_used;
+	block_count_t logical_blocks_used;
 	/** The number of block map data blocks known to be allocated */
-	BlockCount block_map_data_blocks;
+	block_count_t block_map_data_blocks;
 	/** The journal point to give to the next synthesized decref */
 	struct journal_point next_journal_point;
 	/** The number of entries played into slab journals */

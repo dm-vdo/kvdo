@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#7 $
  */
 
 #include "lockCounter.h"
@@ -47,7 +47,7 @@ struct lock_counter {
 	/** The number of physical zones which may hold locks */
 	ZoneCount physical_zones;
 	/** The number of locks */
-	BlockCount locks;
+	block_count_t locks;
 	/** Whether the lock release notification is in flight */
 	AtomicBool notifying;
 	/** The number of logical zones which hold each lock */
@@ -67,7 +67,7 @@ struct lock_counter {
 /**********************************************************************/
 int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		      ThreadID threadID, ZoneCount logical_zones,
-		      ZoneCount physical_zones, BlockCount locks,
+		      ZoneCount physical_zones, block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 {
 	struct lock_counter *lock_counter;
@@ -165,7 +165,7 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
  * @return A pointer to the zone count for the given lock and zone
  **/
 static inline Atomic32 *get_zone_count_ptr(struct lock_counter *counter,
-					   BlockCount lock_number,
+					   block_count_t lock_number,
 					   zone_type zone_type)
 {
 	return ((zone_type == ZONE_TYPE_LOGICAL)
@@ -184,10 +184,11 @@ static inline Atomic32 *get_zone_count_ptr(struct lock_counter *counter,
  * @return The counter for the given lock and zone
  **/
 static inline uint16_t *get_counter(struct lock_counter *counter,
-				    BlockCount lock_number, zone_type zone_type,
+				    block_count_t lock_number,
+				    zone_type zone_type,
 				    ZoneCount zone_id)
 {
-	BlockCount zone_counter = (counter->locks * zone_id) + lock_number;
+	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
 	if (zone_type == ZONE_TYPE_JOURNAL) {
 		return &counter->journal_counters[zone_counter];
 	}
@@ -208,7 +209,7 @@ static inline uint16_t *get_counter(struct lock_counter *counter,
  * @return <code>true</code> if the journal zone is locked
  **/
 static bool is_journal_zone_locked(struct lock_counter *counter,
-				   BlockCount lock_number)
+				   block_count_t lock_number)
 {
 	uint16_t journal_value =
 		*(get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0));
@@ -221,7 +222,7 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-bool is_locked(struct lock_counter *lock_counter, BlockCount lock_number,
+bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
 	       zone_type zone_type)
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
@@ -247,7 +248,8 @@ static void assert_on_journal_thread(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
+void initialize_lock_count(struct lock_counter *counter,
+			   block_count_t lock_number,
 			   uint16_t value)
 {
 	assert_on_journal_thread(counter, __func__);
@@ -264,7 +266,8 @@ void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
 
 /**********************************************************************/
 void acquire_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, zone_type zone_type,
+				  block_count_t lock_number,
+				  zone_type zone_type,
 				  ZoneCount zone_id)
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
@@ -294,7 +297,8 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  * @return The new value of the counter
  **/
 static uint16_t release_reference(struct lock_counter *counter,
-				  BlockCount lock_number, zone_type zone_type,
+				  block_count_t lock_number,
+				  zone_type zone_type,
 				  ZoneCount zone_id)
 {
 	uint16_t *current_value =
@@ -323,7 +327,8 @@ static void attempt_notification(struct lock_counter *counter)
 
 /**********************************************************************/
 void release_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, zone_type zone_type,
+				  block_count_t lock_number,
+				  zone_type zone_type,
 				  ZoneCount zone_id)
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
@@ -342,7 +347,7 @@ void release_lock_count_reference(struct lock_counter *counter,
 
 /**********************************************************************/
 void release_journal_zone_reference(struct lock_counter *counter,
-				    BlockCount lock_number)
+				    block_count_t lock_number)
 {
 	assert_on_journal_thread(counter, __func__);
 	release_reference(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
@@ -355,7 +360,7 @@ void release_journal_zone_reference(struct lock_counter *counter,
 /**********************************************************************/
 void
 release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
-					       BlockCount lock_number)
+					       block_count_t lock_number)
 {
 	atomicAdd32(&(counter->journal_decrement_counts[lock_number]), 1);
 }

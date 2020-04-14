@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#14 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -155,7 +155,7 @@ int make_vdo_page_cache(PhysicalLayer *layer,
 			vdo_page_read_function *read_hook,
 			vdo_page_write_function *write_hook,
 			size_t page_context_size,
-			BlockCount maximum_age,
+			block_count_t maximum_age,
 			struct block_map_zone *zone,
 			struct vdo_page_cache **cache_ptr)
 	__attribute__((warn_unused_result));

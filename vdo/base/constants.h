@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#3 $
  */
 
 #ifndef CONSTANTS_H
@@ -98,12 +98,12 @@ enum {
 };
 
 /** The maximum logical space is 4 petabytes, which is 1 terablock. */
-extern const BlockCount MAXIMUM_LOGICAL_BLOCKS;
+extern const block_count_t MAXIMUM_LOGICAL_BLOCKS;
 
 /** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
-extern const BlockCount MAXIMUM_PHYSICAL_BLOCKS;
+extern const block_count_t MAXIMUM_PHYSICAL_BLOCKS;
 
 // unit test minimum
-extern const BlockCount MINIMUM_SLAB_JOURNAL_BLOCKS;
+extern const block_count_t MINIMUM_SLAB_JOURNAL_BLOCKS;
 
 #endif // CONSTANTS_H

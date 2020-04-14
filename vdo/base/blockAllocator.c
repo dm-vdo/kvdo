@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#64 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -67,7 +67,7 @@ static inline void assert_on_allocator_thread(ThreadID thread_id,
  **/
 static unsigned int calculateSlabPriority(struct vdo_slab *slab)
 {
-	BlockCount free_blocks = get_slab_free_block_count(slab);
+	block_count_t free_blocks = get_slab_free_block_count(slab);
 
 	// Slabs that are completely full must be the only ones with the lowest
 	// priority: zero.
@@ -190,7 +190,7 @@ int make_allocator_pool_vios(PhysicalLayer *layer,
  **/
 static int allocate_components(struct block_allocator *allocator,
 			       PhysicalLayer *layer,
-			       BlockCount vio_pool_size)
+			       block_count_t vio_pool_size)
 {
 	/*
 	 * If create_vio is NULL, the block allocator is only being used to
@@ -232,7 +232,8 @@ static int allocate_components(struct block_allocator *allocator,
 		return result;
 	}
 
-	BlockCount slab_journal_size = depot->slab_config.slab_journal_blocks;
+	block_count_t slab_journal_size =
+		depot->slab_config.slab_journal_blocks;
 	result = make_slab_scrubber(layer,
 				    slab_journal_size,
 				    allocator->read_only_notifier,
@@ -243,7 +244,7 @@ static int allocate_components(struct block_allocator *allocator,
 
 	// The number of data blocks is the maximum number of free blocks that
 	// could be used in calculateSlabPriority().
-	BlockCount max_free_blocks = depot->slab_config.data_blocks;
+	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	result = make_priority_table(max_priority,
 				     &allocator->prioritized_slabs);
@@ -278,7 +279,7 @@ int make_block_allocator(struct slab_depot *depot,
 			 ZoneCount zone_number,
 			 ThreadID thread_id,
 			 Nonce nonce,
-			 BlockCount vio_pool_size,
+			 block_count_t vio_pool_size,
 			 PhysicalLayer *layer,
 			 struct read_only_notifier *read_only_notifier,
 			 struct block_allocator **allocator_ptr)
@@ -343,7 +344,7 @@ int replace_vio_pool(struct block_allocator *allocator,
  *
  * @return The number of data blocks that can be allocated
  **/
-__attribute__((warn_unused_result)) static inline BlockCount
+__attribute__((warn_unused_result)) static inline block_count_t
 get_data_block_count(const struct block_allocator *allocator)
 {
 	return (allocator->slab_count *
@@ -351,13 +352,13 @@ get_data_block_count(const struct block_allocator *allocator)
 }
 
 /**********************************************************************/
-BlockCount get_allocated_blocks(const struct block_allocator *allocator)
+block_count_t get_allocated_blocks(const struct block_allocator *allocator)
 {
 	return relaxedLoad64(&allocator->statistics.allocated_blocks);
 }
 
 /**********************************************************************/
-BlockCount get_unrecovered_slab_count(const struct block_allocator *allocator)
+block_count_t get_unrecovered_slab_count(const struct block_allocator *allocator)
 {
 	return get_scrubber_slab_count(allocator->slab_scrubber);
 }
@@ -368,7 +369,7 @@ void queue_slab(struct vdo_slab *slab)
 	ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
 			"a requeued slab must not already be on a ring");
 	struct block_allocator *allocator = slab->allocator;
-	BlockCount free_blocks = get_slab_free_block_count(slab);
+	block_count_t free_blocks = get_slab_free_block_count(slab);
 	int result =
 		ASSERT((free_blocks <=
 			allocator->depot->slab_config.data_blocks),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#31 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -214,7 +214,7 @@ int decode_vdo_component(struct vdo *vdo) __attribute__((warn_unused_result));
  * @return a success or error code
  **/
 int validate_vdo_config(const struct vdo_config *config,
-			BlockCount block_count,
+			block_count_t block_count,
 			bool require_logical)
 	__attribute__((warn_unused_result));
 

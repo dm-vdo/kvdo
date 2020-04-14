@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#52 $
  */
 
 #include "recoveryJournal.h"
@@ -42,9 +42,9 @@ struct recovery_journal_state_7_0 {
 	/** Sequence number to start the journal */
 	SequenceNumber journal_start;
 	/** Number of logical blocks used by VDO */
-	BlockCount logical_blocks_used;
+	block_count_t logical_blocks_used;
 	/** Number of block map pages allocated */
-	BlockCount block_map_data_blocks;
+	block_count_t block_map_data_blocks;
 } __attribute__((packed));
 
 static const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
@@ -292,7 +292,8 @@ compute_recovery_count_byte(uint64_t recovery_count)
 static void
 check_slab_journal_commit_threshold(struct recovery_journal *journal)
 {
-	BlockCount current_length = journal->tail - journal->slab_journal_head;
+	block_count_t current_length = journal->tail -
+		journal->slab_journal_head;
 	if (current_length > journal->slab_journal_commit_threshold) {
 		journal->events.slab_journal_commits_requested++;
 		commit_oldest_slab_journal_tail_blocks(journal->depot,
@@ -314,7 +315,7 @@ static void finish_reaping(struct recovery_journal *journal)
 	SequenceNumber old_head = get_recovery_journal_head(journal);
 	journal->block_map_head = journal->block_map_reap_head;
 	journal->slab_journal_head = journal->slab_journal_reap_head;
-	BlockCount blocks_reaped =
+	block_count_t blocks_reaped =
 		get_recovery_journal_head(journal) - old_head;
 	journal->available_space += blocks_reaped * journal->entries_per_block;
 	journal->reaping = false;
@@ -374,9 +375,9 @@ static void initialize_journal_state(struct recovery_journal *journal)
 }
 
 /**********************************************************************/
-BlockCount get_recovery_journal_length(BlockCount journal_size)
+block_count_t get_recovery_journal_length(block_count_t journal_size)
 {
-	BlockCount reserved_blocks = journal_size / 4;
+	block_count_t reserved_blocks = journal_size / 4;
 	if (reserved_blocks > RECOVERY_JOURNAL_RESERVED_BLOCKS) {
 		reserved_blocks = RECOVERY_JOURNAL_RESERVED_BLOCKS;
 	}
@@ -421,8 +422,10 @@ static void set_journal_tail(struct recovery_journal *journal,
 
 /**********************************************************************/
 int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
-			  struct partition *partition, uint64_t recovery_count,
-			  BlockCount journal_size, BlockCount tail_buffer_size,
+			  struct partition *partition,
+			  uint64_t recovery_count,
+			  block_count_t journal_size,
+			  block_count_t tail_buffer_size,
 			  struct read_only_notifier *read_only_notifier,
 			  const struct thread_config *thread_config,
 			  struct recovery_journal **journal_ptr)
@@ -448,13 +451,14 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 	initialize_journal_state(journal);
 
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
-	BlockCount journal_length = get_recovery_journal_length(journal_size);
+	block_count_t journal_length =
+		get_recovery_journal_length(journal_size);
 	journal->available_space = journal->entries_per_block * journal_length;
 
 	// Only make the tail buffer and VIO in normal operation since the
 	// formatter doesn't need them.
 	if (layer->createMetadataVIO != NULL) {
-		BlockCount i;
+		block_count_t i;
 		for (i = 0; i < tail_buffer_size; i++) {
 			struct recovery_journal_block *block;
 			result = make_recovery_block(layer, journal, &block);
@@ -566,11 +570,12 @@ void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
-					      uint64_t recovery_count,
-					      SequenceNumber tail,
-					      BlockCount logical_blocks_used,
-					      BlockCount block_map_data_blocks)
+void
+initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
+					 uint64_t recovery_count,
+					 SequenceNumber tail,
+					 block_count_t logical_blocks_used,
+					 block_count_t block_map_data_blocks)
 {
 	initialize_recovery_journal_post_recovery(journal, recovery_count,
 						  tail);
@@ -579,7 +584,7 @@ void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-BlockCount
+block_count_t
 get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
 {
 	return journal->block_map_data_blocks;
@@ -587,7 +592,7 @@ get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
 
 /**********************************************************************/
 void set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
-					    BlockCount pages)
+					    block_count_t pages)
 {
 	journal->block_map_data_blocks = pages;
 }
@@ -677,13 +682,13 @@ decodeRecoveryJournalState_7_0(struct buffer *buffer,
 		return result;
 	}
 
-	BlockCount logical_blocks_used;
+	block_count_t logical_blocks_used;
 	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	BlockCount block_map_data_blocks;
+	block_count_t block_map_data_blocks;
 	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -1003,7 +1008,7 @@ static void recycle_journal_block(struct recovery_journal_block *block)
 	pushRingNode(&journal->free_tail_blocks, &block->ring_node);
 
 	// Release any unused entry locks.
-	BlockCount i;
+	block_count_t i;
 	for (i = block->entry_count; i < journal->entries_per_block; i++) {
 		release_journal_block_reference(block);
 	}
@@ -1309,7 +1314,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 		return;
 	}
 
-	BlockCount block_number =
+	block_count_t block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	acquire_lock_count_reference(journal->lock_counter, block_number,
 				     zone_type, zone_id);
@@ -1325,7 +1330,7 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 		return;
 	}
 
-	BlockCount block_number =
+	block_count_t block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	release_lock_count_reference(journal->lock_counter, block_number,
 				     zone_type, zone_id);
@@ -1339,7 +1344,7 @@ void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 		return;
 	}
 
-	BlockCount block_number =
+	block_count_t block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	release_journal_zone_reference_from_other_zone(journal->lock_counter,
 						       block_number);
@@ -1387,7 +1392,7 @@ void resume_recovery_journal(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-BlockCount
+block_count_t
 get_journal_logical_blocks_used(const struct recovery_journal *journal)
 {
 	return journal->logical_blocks_used;

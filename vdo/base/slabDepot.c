@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#57 $
  */
 
 #include "slabDepot.h"
@@ -71,7 +71,7 @@ compute_slab_count(PhysicalBlockNumber first_block,
 		   PhysicalBlockNumber last_block,
 		   unsigned int slab_size_shift)
 {
-	BlockCount data_blocks = last_block - first_block;
+	block_count_t data_blocks = last_block - first_block;
 	return (SlabCount)(data_blocks >> slab_size_shift);
 }
 
@@ -124,12 +124,12 @@ static int allocate_slabs(struct slab_depot *depot, SlabCount slab_count)
 		resizing = true;
 	}
 
-	BlockCount slab_size = get_slab_config(depot)->slab_blocks;
+	block_count_t slab_size = get_slab_config(depot)->slab_blocks;
 	PhysicalBlockNumber slab_origin =
 		depot->first_block + (depot->slab_count * slab_size);
 
 	// The translation between allocator partition PBNs and layer PBNs.
-	BlockCount translation = depot->origin - depot->first_block;
+	block_count_t translation = depot->origin - depot->first_block;
 	depot->new_slab_count = depot->slab_count;
 	while (depot->new_slab_count < slab_count) {
 		struct block_allocator *allocator =
@@ -231,7 +231,7 @@ static bool scheduleTailBlockCommit(void *context)
 static int allocate_components(struct slab_depot *depot,
 			       Nonce nonce,
 			       const struct thread_config *thread_config,
-			       BlockCount vio_pool_size,
+			       block_count_t vio_pool_size,
 			       PhysicalLayer *layer,
 			       struct partition *summary_partition)
 {
@@ -336,7 +336,7 @@ __attribute__((warn_unused_result)) static int
 allocate_depot(const struct slab_depot_state_2_0 *state,
 	       const struct thread_config *thread_config,
 	       Nonce nonce,
-	       BlockCount vio_pool_size,
+	       block_count_t vio_pool_size,
 	       PhysicalLayer *layer,
 	       struct partition *summary_partition,
 	       struct read_only_notifier *read_only_notifier,
@@ -346,7 +346,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 {
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
-	BlockCount slab_size = state->slab_config.slab_blocks;
+	block_count_t slab_size = state->slab_config.slab_blocks;
 	if (!is_power_of_two(slab_size)) {
 		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
 					       "slab size must be a power of two");
@@ -401,13 +401,13 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int configure_state(BlockCount block_count,
+static int configure_state(block_count_t block_count,
 			   PhysicalBlockNumber first_block,
 			   struct slab_config slab_config,
 			   ZoneCount zone_count,
 			   struct slab_depot_state_2_0 *state)
 {
-	BlockCount slab_size = slab_config.slab_blocks;
+	block_count_t slab_size = slab_config.slab_blocks;
 	logDebug("slabDepot configure_state(block_count=%" PRIu64
 		 ", first_block=%llu, slab_size=%" PRIu64
 		 ", zone_count=%u)",
@@ -426,8 +426,8 @@ static int configure_state(BlockCount block_count,
 		return VDO_TOO_MANY_SLABS;
 	}
 
-	BlockCount total_slab_blocks = slab_count * slab_config.slab_blocks;
-	BlockCount total_data_blocks = slab_count * slab_config.data_blocks;
+	block_count_t total_slab_blocks = slab_count * slab_config.slab_blocks;
+	block_count_t total_data_blocks = slab_count * slab_config.data_blocks;
 	PhysicalBlockNumber last_block = first_block + total_slab_blocks;
 
 	*state = (struct slab_depot_state_2_0) {
@@ -448,12 +448,12 @@ static int configure_state(BlockCount block_count,
 }
 
 /**********************************************************************/
-int make_slab_depot(BlockCount block_count,
+int make_slab_depot(block_count_t block_count,
 		    PhysicalBlockNumber first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    Nonce nonce,
-		    BlockCount vio_pool_size,
+		    block_count_t vio_pool_size,
 		    PhysicalLayer *layer,
 		    struct partition *summary_partition,
 		    struct read_only_notifier *read_only_notifier,
@@ -534,7 +534,7 @@ size_t get_slab_depot_encoded_size(void)
 static int decode_slab_config(struct buffer *buffer,
 			      struct slab_config *config)
 {
-	BlockCount count;
+	block_count_t count;
 	int result = get_uint64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -875,9 +875,9 @@ bool is_physical_data_block(const struct slab_depot *depot,
 }
 
 /**********************************************************************/
-BlockCount get_depot_allocated_blocks(const struct slab_depot *depot)
+block_count_t get_depot_allocated_blocks(const struct slab_depot *depot)
 {
-	BlockCount total = 0;
+	block_count_t total = 0;
 	ZoneCount zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		// The allocators are responsible for thread safety.
@@ -887,7 +887,7 @@ BlockCount get_depot_allocated_blocks(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
-BlockCount get_depot_data_blocks(const struct slab_depot *depot)
+block_count_t get_depot_data_blocks(const struct slab_depot *depot)
 {
 	// XXX This needs to be thread safe, but resize changes the slab count.
 	// It does so on the admin thread (our usual caller), so it's usually
@@ -896,7 +896,7 @@ BlockCount get_depot_data_blocks(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
-BlockCount get_depot_free_blocks(const struct slab_depot *depot)
+block_count_t get_depot_free_blocks(const struct slab_depot *depot)
 {
 	/*
 	 * We can't ever shrink a volume except when resize fails, and we can't
@@ -906,7 +906,7 @@ BlockCount get_depot_free_blocks(const struct slab_depot *depot)
 	 * on a full volume could lose a race with a sucessful resize, resulting
 	 * in a nonsensical negative/underflow result.
 	 */
-	BlockCount allocated = get_depot_allocated_blocks(depot);
+	block_count_t allocated = get_depot_allocated_blocks(depot);
 	memoryFence();
 	return (get_depot_data_blocks(depot) - allocated);
 }
@@ -981,7 +981,7 @@ void update_slab_depot_size(struct slab_depot *depot)
 }
 
 /**********************************************************************/
-int prepare_to_grow_slab_depot(struct slab_depot *depot, BlockCount new_size)
+int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
 {
 	if ((new_size >> depot->slab_size_shift) <= depot->slab_count) {
 		return VDO_INCREMENT_TOO_SMALL;
@@ -1160,7 +1160,7 @@ bool has_unrecovered_slabs(struct slab_depot *depot)
 }
 
 /**********************************************************************/
-BlockCount get_new_depot_size(const struct slab_depot *depot)
+block_count_t get_new_depot_size(const struct slab_depot *depot)
 {
 	return (depot->new_slabs == NULL) ? 0 : depot->new_size;
 }

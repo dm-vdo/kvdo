@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#24 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -47,7 +47,7 @@ int make_block_allocator(struct slab_depot *depot,
 			 ZoneCount zone_number,
 			 ThreadID thread_id,
 			 Nonce nonce,
-			 BlockCount vio_pool_size,
+			 block_count_t vio_pool_size,
 			 PhysicalLayer *layer,
 			 struct read_only_notifier *read_only_notifier,
 			 struct block_allocator **allocator_ptr)
@@ -114,7 +114,7 @@ void release_block_reference(struct block_allocator *allocator,
  *
  * @return The number of blocks with a non-zero reference count
  **/
-BlockCount get_allocated_blocks(const struct block_allocator *allocator)
+block_count_t get_allocated_blocks(const struct block_allocator *allocator)
 	__attribute__((warn_unused_result));
 
 /**
@@ -124,7 +124,7 @@ BlockCount get_allocated_blocks(const struct block_allocator *allocator)
  *
  * @return The number of slabs that are unrecovered
  **/
-BlockCount get_unrecovered_slab_count(const struct block_allocator *allocator)
+block_count_t get_unrecovered_slab_count(const struct block_allocator *allocator)
 	__attribute__((warn_unused_result));
 
 /**

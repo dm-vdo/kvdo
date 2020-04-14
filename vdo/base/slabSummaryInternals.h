@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#14 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -52,7 +52,7 @@ struct slab_summary_block {
 	/** The zone to which this block belongs */
 	struct slab_summary_zone *zone;
 	/** The index of this block in its zone's summary */
-	BlockCount index;
+	block_count_t index;
 	/** Whether this block has a write outstanding */
 	bool writing;
 	/** Ring of updates waiting on the outstanding write */
@@ -83,7 +83,7 @@ struct slab_summary_zone {
 	/** The number of this zone */
 	ZoneCount zone_number;
 	/** Count of the number of blocks currently out for writing */
-	BlockCount write_count;
+	block_count_t write_count;
 	/** The state of this zone */
 	struct admin_state state;
 	/** The array (owned by the blocks) of all entries */
@@ -102,7 +102,7 @@ struct slab_summary {
 	/** The number of bits to shift to get a 7-bit fullness hint */
 	unsigned int hint_shift;
 	/** The number of blocks (calculated based on MAX_SLABS) */
-	BlockCount blocks_per_zone;
+	block_count_t blocks_per_zone;
 	/** The number of slabs per block (calculated from block size) */
 	SlabCount entries_per_block;
 	/** The entries for all of the zones the partition can hold */

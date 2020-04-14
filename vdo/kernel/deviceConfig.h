@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#10 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -53,7 +53,7 @@ struct device_config {
 	char *original_string;
 	TableVersion version;
 	char *parent_device_name;
-	BlockCount physical_blocks;
+	block_count_t physical_blocks;
 	unsigned int logical_block_size;
 	write_policy write_policy;
 	unsigned int cache_size;
@@ -61,7 +61,7 @@ struct device_config {
 	bool md_raid5_mode_enabled;
 	char *pool_name;
 	struct thread_count_config thread_counts;
-	BlockCount max_discard_blocks;
+	block_count_t max_discard_blocks;
 };
 
 /**

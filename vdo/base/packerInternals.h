@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#13 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -95,7 +95,7 @@ struct packer {
 	/** The selector for determining which physical zone to allocate from */
 	struct allocation_selector *selector;
 	/** The number of input bins */
-	BlockCount size;
+	block_count_t size;
 	/** The block size minus header size */
 	size_t bin_data_size;
 	/** The number of compression slots */

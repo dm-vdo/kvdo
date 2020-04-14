@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#18 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -154,8 +154,10 @@ const char *get_journal_operation_name(journal_operation operation)
  * @return a success or error code
  **/
 int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
-			  struct partition *partition, uint64_t recovery_count,
-			  BlockCount journal_size, BlockCount tail_buffer_size,
+			  struct partition *partition,
+			  uint64_t recovery_count,
+			  block_count_t journal_size,
+			  block_count_t tail_buffer_size,
 			  struct read_only_notifier *read_only_notifier,
 			  const struct thread_config *thread_config,
 			  struct recovery_journal **journal_ptr)
@@ -198,11 +200,12 @@ void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
  * @param logical_blocks_used   The new number of logical blocks used
  * @param block_map_data_blocks The new number of block map data blocks
  **/
-void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
-					      uint64_t recovery_count,
-					      SequenceNumber tail,
-					      BlockCount logical_blocks_used,
-					      BlockCount block_map_data_blocks);
+void
+initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
+					 uint64_t recovery_count,
+					 SequenceNumber tail,
+					 block_count_t logical_blocks_used,
+					 block_count_t block_map_data_blocks);
 
 /**
  * Get the number of block map pages, allocated from data blocks, currently
@@ -212,7 +215,7 @@ void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
  *
  * @return  The number of block map pages allocated from slabs
  **/
-BlockCount
+block_count_t
 get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
 	__attribute__((warn_unused_result));
 
@@ -224,7 +227,7 @@ get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
  * @param pages     The number of block map pages allocated from slabs
  **/
 void set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
-					    BlockCount pages);
+					    block_count_t pages);
 
 /**
  * Get the ID of a recovery journal's thread.
@@ -265,7 +268,7 @@ get_current_journal_sequence_number(struct recovery_journal *journal);
  *
  * @return the number of recovery journal blocks usable for entries
  **/
-BlockCount get_recovery_journal_length(BlockCount journal_size)
+block_count_t get_recovery_journal_length(block_count_t journal_size)
 	__attribute__((warn_unused_result));
 
 /**
@@ -396,7 +399,7 @@ void resume_recovery_journal(struct recovery_journal *journal,
  *
  * @return the number of logical blocks in use by the VDO
  **/
-BlockCount
+block_count_t
 get_journal_logical_blocks_used(const struct recovery_journal *journal)
 	__attribute__((warn_unused_result));
 
