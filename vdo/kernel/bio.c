@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#17 $
  */
 
 #include "bio.h"
@@ -155,7 +155,7 @@ void bio_zero_data(struct bio *bio)
 }
 
 /**********************************************************************/
-static void set_bio_size(struct bio *bio, BlockSize bio_size)
+static void set_bio_size(struct bio *bio, block_size_t bio_size)
 {
 #ifdef USE_BI_ITER
 	bio->bi_iter.bi_size = bio_size;

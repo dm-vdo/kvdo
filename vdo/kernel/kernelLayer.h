@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#36 $
  */
 
 #ifndef KERNELLAYER_H
@@ -410,8 +410,8 @@ static inline sector_t sector_to_block(struct kernel_layer *layer,
  *
  * @return      the offset within the block
  **/
-static inline BlockSize sector_to_block_offset(struct kernel_layer *layer,
-					       sector_t sector_number)
+static inline block_size_t sector_to_block_offset(struct kernel_layer *layer,
+						  sector_t sector_number)
 {
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
 	return to_bytes(sector_number & sectors_per_block_mask);

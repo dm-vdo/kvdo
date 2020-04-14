@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#14 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -158,7 +158,7 @@ struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin);
  * @param packer  The packer
  * @param slots   The new number of slots
  **/
-void reset_slot_count(struct packer *packer, CompressedFragmentCount slots);
+void reset_slot_count(struct packer *packer, compressed_fragment_count_t slots);
 
 /**
  * Remove a data_vio from the packer. This method is exposed for testing.

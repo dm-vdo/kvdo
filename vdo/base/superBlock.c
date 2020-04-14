@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#17 $
  */
 
 #include "superBlock.h"
@@ -203,7 +203,7 @@ encode_super_block(struct vdo_super_block *super_block)
 	}
 
 	// Compute and encode the checksum.
-	CRC32Checksum checksum =
+	crc32_checksum_t checksum =
 		update_crc32(INITIAL_CHECKSUM, super_block->encoded_super_block,
 			     content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
@@ -347,7 +347,7 @@ decode_super_block(struct vdo_super_block *super_block)
 
 	// The component data is all the rest, except for the checksum.
 	size_t component_data_size =
-		content_length(buffer) - sizeof(CRC32Checksum);
+		content_length(buffer) - sizeof(crc32_checksum_t);
 	result = put_buffer(super_block->component_buffer, buffer,
 			    component_data_size);
 	if (result != VDO_SUCCESS) {
@@ -356,12 +356,12 @@ decode_super_block(struct vdo_super_block *super_block)
 
 	// Checksum everything up to but not including the saved checksum
 	// itself.
-	CRC32Checksum checksum =
+	crc32_checksum_t checksum =
 		update_crc32(INITIAL_CHECKSUM, super_block->encoded_super_block,
 			     uncompacted_amount(buffer));
 
 	// Decode and verify the saved checksum.
-	CRC32Checksum saved_checksum;
+	crc32_checksum_t saved_checksum;
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		return result;

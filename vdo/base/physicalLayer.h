@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#25 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -24,11 +24,11 @@
 
 #include "types.h"
 
-static const CRC32Checksum INITIAL_CHECKSUM = 0xffffffff;
+static const crc32_checksum_t INITIAL_CHECKSUM = 0xffffffff;
 
 enum {
 	/* The size of a CRC-32 checksum */
-	CHECKSUM_SIZE = sizeof(CRC32Checksum),
+	CHECKSUM_SIZE = sizeof(crc32_checksum_t),
 };
 
 /**
@@ -387,8 +387,8 @@ ThreadID getCallbackThreadID(void);
  *
  * @return The updated value of the checksum
  **/
-CRC32Checksum
-update_crc32(CRC32Checksum crc, const byte *buffer, size_t length);
+crc32_checksum_t
+update_crc32(crc32_checksum_t crc, const byte *buffer, size_t length);
 
 /**
  * Destroy a vio. The pointer to the vio will be nulled out.

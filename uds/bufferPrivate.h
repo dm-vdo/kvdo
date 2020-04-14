@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferPrivate.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferPrivate.h#2 $
  */
 
 #ifndef BUFFER_PRIVATE_H
@@ -25,11 +25,11 @@
 #include "common.h"
 
 struct buffer {
-  size_t  start;
-  size_t  end;
-  size_t  length;
-  byte   *data;
-  bool    wrapped;
+	size_t start;
+	size_t end;
+	size_t length;
+	byte *data;
+	bool wrapped;
 };
 
 #endif /* BUFFER_PRIVATE_H */

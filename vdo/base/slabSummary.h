@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#16 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -73,7 +73,7 @@ struct slab_status {
  *
  * @return the blocks required to store the slab_summary on disk
  **/
-block_count_t get_slab_summary_size(BlockSize block_size)
+block_count_t get_slab_summary_size(block_size_t block_size)
 	__attribute__((warn_unused_result));
 
 /**

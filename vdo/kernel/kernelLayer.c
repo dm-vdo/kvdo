@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#85 $
  */
 
 #include "kernelLayer.h"
@@ -88,7 +88,8 @@ static const struct kvdo_work_queue_type cpu_q_type = {
 int default_max_requests_active = 2000;
 
 /**********************************************************************/
-CRC32Checksum update_crc32(CRC32Checksum crc, const byte *buffer, size_t length)
+crc32_checksum_t update_crc32(crc32_checksum_t crc, const byte *buffer,
+			      size_t length)
 {
 	/*
 	 * The kernel's CRC 32 implementation does not do pre- and post-

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#7 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -71,7 +71,7 @@ struct reference_block {
 	/** The parent RefCount structure */
 	struct ref_counts *ref_counts;
 	/** The number of references in this block that represent allocations */
-	BlockSize allocated_count;
+	block_size_t allocated_count;
 	/** The slab journal block on which this block must hold a lock */
 	SequenceNumber slab_journal_lock;
 	/**

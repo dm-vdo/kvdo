@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#2 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -118,7 +118,7 @@ typedef struct pageCache {
   QueuedRead     *readQueue;
   // Cache counters for stats.  This is the first field of a PageCache that is
   // not constant after the struct is initialized.
-  CacheCounters   counters;
+  struct cache_counters counters;
   /**
    * Entries are enqueued at readQueueLast.
    * To 'reserve' entries, we get the entry pointed to by readQueueLastRead

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#43 $
  */
 
 #include "packerInternals.h"
@@ -591,7 +591,7 @@ static void launch_compressed_write(struct packer *packer,
  **/
 static void get_next_batch(struct packer *packer, struct output_batch *batch)
 {
-	BlockSize space_remaining = packer->bin_data_size;
+	block_size_t space_remaining = packer->bin_data_size;
 	batch->slots_used = 0;
 
 	struct data_vio *data_vio;
@@ -990,7 +990,7 @@ void resume_packer(struct packer *packer, struct vdo_completion *parent)
 }
 
 /**********************************************************************/
-void reset_slot_count(struct packer *packer, CompressedFragmentCount slots)
+void reset_slot_count(struct packer *packer, compressed_fragment_count_t slots)
 {
 	if (slots > MAX_COMPRESSION_SLOTS) {
 		return;

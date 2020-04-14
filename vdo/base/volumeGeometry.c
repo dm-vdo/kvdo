@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#18 $
  */
 
 #include "volumeGeometry.h"
@@ -43,7 +43,7 @@ struct geometry_block {
 	char magic_number[MAGIC_NUMBER_SIZE];
 	struct header header;
 	struct volume_geometry geometry;
-	CRC32Checksum checksum;
+	crc32_checksum_t checksum;
 } __attribute__((packed));
 
 static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
@@ -317,7 +317,7 @@ static int decode_geometry_block(struct buffer *buffer,
 
 	// Leave the CRC for the caller to decode and verify.
 	return ASSERT(header.size == (uncompacted_amount(buffer) +
-				      sizeof(CRC32Checksum)),
+				      sizeof(crc32_checksum_t)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -350,7 +350,8 @@ static int encode_geometry_block(const struct volume_geometry *geometry,
 
 	// Leave the CRC for the caller to compute and encode.
 	return ASSERT(GEOMETRY_BLOCK_HEADER_4_0.size ==
-			      (content_length(buffer) + sizeof(CRC32Checksum)),
+			      (content_length(buffer) +
+			       sizeof(crc32_checksum_t)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -412,9 +413,9 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 	}
 
 	// Checksum everything decoded so far.
-	CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, block,
-					      uncompacted_amount(buffer));
-	CRC32Checksum saved_checksum;
+	crc32_checksum_t checksum = update_crc32(INITIAL_CHECKSUM, block,
+						 uncompacted_amount(buffer));
+	crc32_checksum_t saved_checksum;
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(&buffer);
@@ -546,8 +547,9 @@ int write_volume_geometry(PhysicalLayer *layer,
 	}
 
 	// Checksum everything encoded so far and then encode the checksum.
-	CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, (byte *) block,
-					      content_length(buffer));
+	crc32_checksum_t checksum = update_crc32(INITIAL_CHECKSUM,
+						 (byte *) block,
+						 content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(&buffer);

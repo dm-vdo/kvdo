@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#2 $
  */
 
 #include "cacheCounters.h"
@@ -29,9 +29,9 @@
 #include "uds.h"
 
 /**********************************************************************/
-void incrementCacheCounter(CacheCounters   *counters,
-                           int              probeType,
-                           CacheResultKind  kind)
+void incrementCacheCounter(struct cache_counters *counters,
+                           int                    probeType,
+                           CacheResultKind        kind)
 {
   CacheProbeType basicProbeType = probeType & ~CACHE_PROBE_IGNORE_FAILURE;
   int result = ASSERT(basicProbeType <= CACHE_PROBE_RECORD_RETRY,
@@ -50,7 +50,7 @@ void incrementCacheCounter(CacheCounters   *counters,
     return;
   }
 
-  CacheCountsByKind *kindCounts;
+  struct cache_counts_by_kind *kindCounts;
   switch (basicProbeType) {
   case CACHE_PROBE_INDEX_FIRST:
     kindCounts = &counters->firstTime.indexPage;

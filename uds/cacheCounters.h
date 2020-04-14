@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.h#2 $
  */
 
 #ifndef CACHE_COUNTERS_H
@@ -27,14 +27,14 @@
 /**
  * Basic counts of hits and misses for a given type of cache probe.
  **/
-typedef struct cacheCountsByKind {
+struct cache_counts_by_kind {
   /** Number of hits */
   uint64_t hits;
   /** Number of misses */
   uint64_t misses;
   /** Number of probes for data already queued for read */
   uint64_t queued;
-} CacheCountsByKind;
+};
 
 /**
  * The various types of cache probes we care about.
@@ -58,34 +58,34 @@ enum {
 /**
  * Result-type counts for both kinds of data pages in the page cache.
  **/
-typedef struct cacheCountsByPageType {
+struct cache_counts_by_page_type {
   /** His/miss counts for index pages. */
-  CacheCountsByKind indexPage;
+  struct cache_counts_by_kind indexPage;
   /** Hit/miss counts for record pages. */
-  CacheCountsByKind recordPage;
-} CacheCountsByPageType;
+  struct cache_counts_by_kind recordPage;
+};
 
 /**
  * All the counters used for an entry cache.
  **/
-typedef struct cacheCounters {
+struct cache_counters {
   // counters for the page cache
   /** Hit/miss counts for the first attempt per request */
-  CacheCountsByPageType firstTime;
+  struct cache_counts_by_page_type firstTime;
   /** Hit/miss counts when a second (or later) attempt is needed */
-  CacheCountsByPageType retried;
+  struct cache_counts_by_page_type retried;
 
   /** Number of cache entry invalidations due to single-entry eviction */
-  uint64_t              evictions;
+  uint64_t                         evictions;
   /** Number of cache entry invalidations due to chapter expiration */
-  uint64_t              expirations;
+  uint64_t                         expirations;
 
   // counters for the sparse chapter index cache
   /** Hit/miss counts for the sparse cache chapter probes */
-  CacheCountsByKind     sparseChapters;
+  struct cache_counts_by_kind      sparseChapters;
   /** Hit/miss counts for the sparce cache name searches */
-  CacheCountsByKind     sparseSearches;
-} CacheCounters;
+  struct cache_counts_by_kind      sparseSearches;
+};
 
 /**
  * Success/failure assessment of cache probe result.
@@ -106,8 +106,8 @@ typedef enum cacheResultKind {
  * @param probeType   type of access done
  * @param kind        result of probe
  **/
-void incrementCacheCounter(CacheCounters   *counters,
-                           int              probeType,
-                           CacheResultKind  kind);
+void incrementCacheCounter(struct cache_counters *counters,
+                           int                    probeType,
+                           CacheResultKind        kind);
 
 #endif /* CACHE_COUNTERS_H */
