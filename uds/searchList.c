@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#3 $
  */
 
 #include "searchList.h"
@@ -69,9 +69,9 @@ void freeSearchList(SearchList **listPtr)
 }
 
 /**********************************************************************/
-void purgeSearchList(SearchList               *searchList,
-                     const CachedChapterIndex  chapters[],
-                     uint64_t                  oldestVirtualChapter)
+void purgeSearchList(SearchList                        *searchList,
+                     const struct cached_chapter_index  chapters[],
+                     uint64_t                           oldestVirtualChapter)
 {
   if (searchList->firstDeadEntry == 0) {
     // There are no live entries in the list to purge.
@@ -94,11 +94,11 @@ void purgeSearchList(SearchList               *searchList,
   int i;
   for (i = 0; i < searchList->firstDeadEntry; i++) {
     uint8_t entry = entries[i];
-    const CachedChapterIndex *chapter = &chapters[entry];
-    if ((chapter->virtualChapter < oldestVirtualChapter)
-        || (chapter->virtualChapter == UINT64_MAX)) {
+    const struct cached_chapter_index *chapter = &chapters[entry];
+    if ((chapter->virtual_chapter < oldestVirtualChapter)
+        || (chapter->virtual_chapter == UINT64_MAX)) {
       dead[nextDead++] = entry;
-    } else if (chapter->skipSearch) {
+    } else if (chapter->skip_search) {
       skipped[nextSkipped++] = entry;
     } else {
       alive[nextAlive++] = entry;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#5 $
  */
 
 /**
@@ -71,7 +71,7 @@
  * indicating whether a chapter is a member of the cache or not. The value
  * <code>UINT64_MAX</code> is used to represent a null, undefined, or wildcard
  * chapter number. When present in the virtual chapter number field
- * CachedChapterIndex, it indicates that the cache entry is dead, and all
+ * cached_chapter_index, it indicates that the cache entry is dead, and all
  * the other fields of that entry (other than immutable pointers to cache
  * memory) are undefined and irrelevant. Any cache entry that is not marked as
  * dead is fully defined and a member of the cache--sparseCacheContains()
@@ -157,29 +157,29 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sparseCacheCounters {
  **/
 struct sparseCache {
   /** the number of cache entries, which is the size of the chapters array */
-  unsigned int           capacity;
+  unsigned int                capacity;
 
   /** the number of zone threads using the cache */
-  unsigned int           zoneCount;
+  unsigned int                zoneCount;
 
   /** the geometry governing the volume */
-  const Geometry        *geometry;
+  const Geometry             *geometry;
 
   /** the number of search misses in zone zero that will disable searching */
-  unsigned int           skipSearchThreshold;
+  unsigned int                skipSearchThreshold;
 
   /** pointers to the cache-aligned chapter search order for each zone */
-  SearchList            *searchLists[MAX_ZONES];
+  SearchList                 *searchLists[MAX_ZONES];
 
   /** the thread barriers used to synchronize the zone threads for update */
-  Barrier                beginCacheUpdate;
-  Barrier                endCacheUpdate;
+  Barrier                     beginCacheUpdate;
+  Barrier                     endCacheUpdate;
 
   /** frequently-updated counter fields (cache-aligned) */
-  SparseCacheCounters    counters;
+  SparseCacheCounters         counters;
 
   /** the counted array of chapter index cache entries (cache-aligned) */
-  CachedChapterIndex     chapters[];
+  struct cached_chapter_index chapters[];
 };
 
 /**
@@ -216,7 +216,7 @@ static int initializeSparseCache(SparseCache    *cache,
   }
   unsigned int i;
   for (i = 0; i < capacity; i++) {
-    result = initializeCachedChapterIndex(&cache->chapters[i], geometry);
+    result = initialize_cached_chapter_index(&cache->chapters[i], geometry);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -239,7 +239,7 @@ int makeSparseCache(const Geometry  *geometry,
                     SparseCache    **cachePtr)
 {
   unsigned int bytes
-    = (sizeof(SparseCache) + (capacity * sizeof(CachedChapterIndex)));
+    = (sizeof(SparseCache) + (capacity * sizeof(struct cached_chapter_index)));
 
   SparseCache *cache;
   int result = allocateCacheAligned(bytes, "sparse cache", &cache);
@@ -273,11 +273,11 @@ size_t getSparseCacheMemorySize(const SparseCache *cache)
  * @param cache      the cache to update
  * @param chapter    the cache entry to update
  **/
-static void scoreChapterHit(SparseCache        *cache,
-                            CachedChapterIndex *chapter)
+static void scoreChapterHit(SparseCache                 *cache,
+                            struct cached_chapter_index *chapter)
 {
   cache->counters.chapterHits += 1;
-  setSkipSearch(chapter, false);
+  set_skip_search(chapter, false);
 }
 
 /**
@@ -298,14 +298,14 @@ static void scoreChapterMiss(SparseCache *cache)
  * @param cache      the cache to update
  * @param chapter    the cache entry about to be replaced
  **/
-static void scoreEviction(IndexZone          *zone,
-                          SparseCache        *cache,
-                          CachedChapterIndex *chapter)
+static void scoreEviction(IndexZone                   *zone,
+                          SparseCache                 *cache,
+                          struct cached_chapter_index *chapter)
 {
-  if (chapter->virtualChapter == UINT64_MAX) {
+  if (chapter->virtual_chapter == UINT64_MAX) {
     return;
   }
-  if (chapter->virtualChapter < zone->oldestVirtualChapter) {
+  if (chapter->virtual_chapter < zone->oldestVirtualChapter) {
     cache->counters.invalidations += 1;
   } else {
     cache->counters.evictions += 1;
@@ -319,13 +319,13 @@ static void scoreEviction(IndexZone          *zone,
  * @param cache      the cache to update
  * @param chapter    the cache entry to update
  **/
-static void scoreSearchHit(SparseCache        *cache,
-                           CachedChapterIndex *chapter)
+static void scoreSearchHit(SparseCache                 *cache,
+                           struct cached_chapter_index *chapter)
 {
   cache->counters.searchHits += 1;
-  chapter->counters.searchHits += 1;
-  chapter->counters.consecutiveMisses = 0;
-  setSkipSearch(chapter, false);
+  chapter->counters.search_hits += 1;
+  chapter->counters.consecutive_misses = 0;
+  set_skip_search(chapter, false);
 }
 
 /**
@@ -336,14 +336,14 @@ static void scoreSearchHit(SparseCache        *cache,
  * @param cache      the cache to update
  * @param chapter    the cache entry to update
  **/
-static void scoreSearchMiss(SparseCache        *cache,
-                            CachedChapterIndex *chapter)
+static void scoreSearchMiss(SparseCache                 *cache,
+                            struct cached_chapter_index *chapter)
 {
   cache->counters.searchMisses += 1;
-  chapter->counters.searchMisses += 1;
-  chapter->counters.consecutiveMisses += 1;
-  if (chapter->counters.consecutiveMisses > cache->skipSearchThreshold) {
-    setSkipSearch(chapter, true);
+  chapter->counters.search_misses += 1;
+  chapter->counters.consecutive_misses += 1;
+  if (chapter->counters.consecutive_misses > cache->skipSearchThreshold) {
+    set_skip_search(chapter, true);
   }
 }
 
@@ -360,8 +360,8 @@ void freeSparseCache(SparseCache *cache)
   }
 
   for (i = 0; i < cache->capacity; i++) {
-    CachedChapterIndex *chapter = &cache->chapters[i];
-    destroyCachedChapterIndex(chapter);
+    struct cached_chapter_index *chapter = &cache->chapters[i];
+    destroy_cached_chapter_index(chapter);
   }
 
   destroyBarrier(&cache->beginCacheUpdate);
@@ -388,8 +388,8 @@ bool sparseCacheContains(SparseCache  *cache,
   SearchListIterator iterator
     = iterateSearchList(cache->searchLists[zoneNumber], cache->chapters);
   while (hasNextChapter(&iterator)) {
-    CachedChapterIndex *chapter = getNextChapter(&iterator);
-    if (virtualChapter == chapter->virtualChapter) {
+    struct cached_chapter_index *chapter = getNextChapter(&iterator);
+    if (virtualChapter == chapter->virtual_chapter) {
       if (zoneNumber == ZONE_ZERO) {
         scoreChapterHit(cache, chapter);
       }
@@ -442,7 +442,7 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
     if (virtualChapter >= index->oldestVirtualChapter) {
       // Evict the least recently used live chapter, or replace a dead cache
       // entry, all by rotating the the last list entry to the front.
-      CachedChapterIndex *victim
+      struct cached_chapter_index *victim
         = &cache->chapters[rotateSearchList(zoneZeroList, cache->capacity)];
 
       // Check if the victim is already dead, and if it's not, add to the
@@ -450,7 +450,7 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
       scoreEviction(zone, cache, victim);
 
       // Read the index page bytes and initialize the page array.
-      result = cacheChapterIndex(victim, virtualChapter, index->volume);
+      result = cache_chapter_index(victim, virtualChapter, index->volume);
     }
 
     // Copy the new search list state to all the other zone threads so they'll
@@ -487,16 +487,16 @@ int searchSparseCache(IndexZone          *zone,
   SearchListIterator iterator
     = iterateSearchList(cache->searchLists[zoneNumber], cache->chapters);
   while (hasNextChapter(&iterator)) {
-    CachedChapterIndex *chapter = getNextChapter(&iterator);
+    struct cached_chapter_index *chapter = getNextChapter(&iterator);
 
     // Skip chapters no longer cached, or that have too many search misses.
-    if (shouldSkipChapterIndex(zone, chapter, *virtualChapterPtr)) {
+    if (should_skip_chapter_index(zone, chapter, *virtualChapterPtr)) {
       continue;
     }
 
-    int result = searchCachedChapterIndex(chapter, cache->geometry,
-                                          volume->indexPageMap, name,
-                                          recordPagePtr);
+    int result = search_cached_chapter_index(chapter, cache->geometry,
+                                             volume->indexPageMap, name,
+                                             recordPagePtr);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -514,7 +514,7 @@ int searchSparseCache(IndexZone          *zone,
       // Return a matching entry as soon as it is found. It might be a false
       // collision that has a true match in another chapter, but that's a very
       // rare case and not worth the extra search cost or complexity.
-      *virtualChapterPtr = chapter->virtualChapter;
+      *virtualChapterPtr = chapter->virtual_chapter;
       return UDS_SUCCESS;
     }
 

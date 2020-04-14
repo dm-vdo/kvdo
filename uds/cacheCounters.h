@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.h#3 $
  */
 
 #ifndef CACHE_COUNTERS_H
@@ -28,86 +28,92 @@
  * Basic counts of hits and misses for a given type of cache probe.
  **/
 struct cache_counts_by_kind {
-  /** Number of hits */
-  uint64_t hits;
-  /** Number of misses */
-  uint64_t misses;
-  /** Number of probes for data already queued for read */
-  uint64_t queued;
+	/** Number of hits */
+	uint64_t hits;
+	/** Number of misses */
+	uint64_t misses;
+	/** Number of probes for data already queued for read */
+	uint64_t queued;
 };
 
 /**
  * The various types of cache probes we care about.
  **/
 typedef enum cacheProbeType {
-  /** First attempt to look up an index page, for a given request. */
-  CACHE_PROBE_INDEX_FIRST = 0,
-  /** First attempt to look up a record page, for a given request. */
-  CACHE_PROBE_RECORD_FIRST,
-  /** Second or later attempt to look up an index page, for a given request. */
-  CACHE_PROBE_INDEX_RETRY,
-  /** Second or later attempt to look up a record page, for a given request. */
-  CACHE_PROBE_RECORD_RETRY
+	/** First attempt to look up an index page, for a given request. */
+	CACHE_PROBE_INDEX_FIRST = 0,
+	/** First attempt to look up a record page, for a given request. */
+	CACHE_PROBE_RECORD_FIRST,
+	/** Second or later attempt to look up an index page, for a given
+	  * request.
+	  */
+	CACHE_PROBE_INDEX_RETRY,
+	/** Second or later attempt to look up a record page, for a given
+	  * request.
+	  */
+	CACHE_PROBE_RECORD_RETRY
 } CacheProbeType;
 
 enum {
-  /** Flag bit to indicate that failures shouldn't be recorded.  */
-  CACHE_PROBE_IGNORE_FAILURE = 128
+	/** Flag bit to indicate that failures shouldn't be recorded.  */
+	CACHE_PROBE_IGNORE_FAILURE = 128
 };
 
 /**
  * Result-type counts for both kinds of data pages in the page cache.
  **/
 struct cache_counts_by_page_type {
-  /** His/miss counts for index pages. */
-  struct cache_counts_by_kind indexPage;
-  /** Hit/miss counts for record pages. */
-  struct cache_counts_by_kind recordPage;
+	/** His/miss counts for index pages. */
+	struct cache_counts_by_kind index_page;
+	/** Hit/miss counts for record pages. */
+	struct cache_counts_by_kind record_page;
 };
 
 /**
  * All the counters used for an entry cache.
  **/
 struct cache_counters {
-  // counters for the page cache
-  /** Hit/miss counts for the first attempt per request */
-  struct cache_counts_by_page_type firstTime;
-  /** Hit/miss counts when a second (or later) attempt is needed */
-  struct cache_counts_by_page_type retried;
+	// counters for the page cache
+	/** Hit/miss counts for the first attempt per request */
+	struct cache_counts_by_page_type first_time;
+	/** Hit/miss counts when a second (or later) attempt is needed */
+	struct cache_counts_by_page_type retried;
 
-  /** Number of cache entry invalidations due to single-entry eviction */
-  uint64_t                         evictions;
-  /** Number of cache entry invalidations due to chapter expiration */
-  uint64_t                         expirations;
+	/** Number of cache entry invalidations due to single-entry eviction */
+	uint64_t evictions;
+	/** Number of cache entry invalidations due to chapter expiration */
+	uint64_t expirations;
 
-  // counters for the sparse chapter index cache
-  /** Hit/miss counts for the sparse cache chapter probes */
-  struct cache_counts_by_kind      sparseChapters;
-  /** Hit/miss counts for the sparce cache name searches */
-  struct cache_counts_by_kind      sparseSearches;
+	// counters for the sparse chapter index cache
+	/** Hit/miss counts for the sparse cache chapter probes */
+	struct cache_counts_by_kind sparse_chapters;
+	/** Hit/miss counts for the sparce cache name searches */
+	struct cache_counts_by_kind sparse_searches;
 };
 
 /**
  * Success/failure assessment of cache probe result.
  **/
 typedef enum cacheResultKind {
-  /** The requested entry was found in the cache */
-  CACHE_RESULT_HIT,
-  /** The requested entry was not found in the cache */
-  CACHE_RESULT_MISS,
-  /** The requested entry wasn't found in the cache but is queued for read */
-  CACHE_RESULT_QUEUED
+	/** The requested entry was found in the cache */
+	CACHE_RESULT_HIT,
+	/** The requested entry was not found in the cache */
+	CACHE_RESULT_MISS,
+	/** The requested entry wasn't found in the cache but is queued for
+	  * read
+	 */
+	CACHE_RESULT_QUEUED
 } CacheResultKind;
 
 /**
  * Increment one of the cache counters.
  *
  * @param counters    pointer to the counters
- * @param probeType   type of access done
+ * @param probe_type  type of access done
  * @param kind        result of probe
  **/
-void incrementCacheCounter(struct cache_counters *counters,
-                           int                    probeType,
-                           CacheResultKind        kind);
+void increment_cache_counter(struct cache_counters *counters,
+			     int probe_type,
+			     CacheResultKind kind);
 
 #endif /* CACHE_COUNTERS_H */

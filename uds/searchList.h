@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#2 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -57,8 +57,8 @@ typedef struct searchList {
 
 /**
  * SearchListIterator captures the fields needed to iterate over the live
- * entries in a search list and return the CachedChapterIndex pointers that
- * the search code actually wants to deal with.
+ * entries in a search list and return the struct cached_chapter_index pointers
+ * that the search code actually wants to deal with.
  **/
 typedef struct {
   /** The search list defining the chapter search iteration order */
@@ -68,7 +68,7 @@ typedef struct {
   unsigned int        nextEntry;
 
   /** The cached chapters that are referenced by the search list */
-  CachedChapterIndex *chapters;
+  struct cached_chapter_index *chapters;
 } SearchListIterator;
 
 /**
@@ -114,7 +114,7 @@ static INLINE void copySearchList(const SearchList *source,
  * @return an iterator positioned at the start of the search list
  **/
 static INLINE SearchListIterator
-iterateSearchList(SearchList *list, CachedChapterIndex chapters[])
+iterateSearchList(SearchList *list, struct cached_chapter_index chapters[])
 {
   SearchListIterator iterator = {
     .list      = list,
@@ -145,7 +145,8 @@ static INLINE bool hasNextChapter(const SearchListIterator *iterator)
  *
  * @return a pointer to the next live chapter index in the search list order
  **/
-static INLINE CachedChapterIndex *getNextChapter(SearchListIterator *iterator)
+static INLINE struct cached_chapter_index *
+getNextChapter(SearchListIterator *iterator)
 {
   return &iterator->chapters[iterator->list->entries[iterator->nextEntry++]];
 }
@@ -209,8 +210,8 @@ static INLINE uint8_t rotateSearchList(SearchList *searchList,
  * @param chapters              the chapter index cache entries
  * @param oldestVirtualChapter  the oldest virtual chapter
  **/
-void purgeSearchList(SearchList               *searchList,
-                     const CachedChapterIndex  chapters[],
-                     uint64_t                  oldestVirtualChapter);
+void purgeSearchList(SearchList                        *searchList,
+                     const struct cached_chapter_index  chapters[],
+                     uint64_t                           oldestVirtualChapter);
 
 #endif /* SEARCH_LIST_H */

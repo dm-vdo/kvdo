@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#3 $
  */
 
 #include "cachedChapterIndex.h"
@@ -24,93 +24,103 @@
 #include "memoryAlloc.h"
 
 /**********************************************************************/
-int initializeCachedChapterIndex(CachedChapterIndex *chapter,
-                                 const Geometry     *geometry)
+int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
+				    const Geometry *geometry)
 {
-  chapter->virtualChapter  = UINT64_MAX;
-  chapter->indexPagesCount = geometry->indexPagesPerChapter;
+	chapter->virtual_chapter = UINT64_MAX;
+	chapter->index_pages_count = geometry->indexPagesPerChapter;
 
-  int result = ALLOCATE(chapter->indexPagesCount, DeltaIndexPage, __func__,
-                        &chapter->indexPages);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(chapter->index_pages_count,
+			      DeltaIndexPage,
+			      __func__,
+			      &chapter->index_pages);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = ALLOCATE(chapter->indexPagesCount, struct volume_page,
-                    "sparse index VolumePages", &chapter->volumePages);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  
-  unsigned int i;
-  for (i = 0; i < chapter->indexPagesCount; i++) {
-    result = initializeVolumePage(geometry, &chapter->volumePages[i]);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
-  return UDS_SUCCESS;
+	result = ALLOCATE(chapter->index_pages_count,
+			  struct volume_page,
+			  "sparse index VolumePages",
+			  &chapter->volume_pages);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	unsigned int i;
+	for (i = 0; i < chapter->index_pages_count; i++) {
+		result = initializeVolumePage(geometry,
+					      &chapter->volume_pages[i]);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void destroyCachedChapterIndex(CachedChapterIndex *chapter)
+void destroy_cached_chapter_index(struct cached_chapter_index *chapter)
 {
-  if (chapter->volumePages != NULL) {
-    unsigned int i;
-    for (i = 0; i < chapter->indexPagesCount; i++) {
-      destroyVolumePage(&chapter->volumePages[i]);
-    }
-  }
-  FREE(chapter->indexPages);
-  FREE(chapter->volumePages);
+	if (chapter->volume_pages != NULL) {
+		unsigned int i;
+		for (i = 0; i < chapter->index_pages_count; i++) {
+			destroyVolumePage(&chapter->volume_pages[i]);
+		}
+	}
+	FREE(chapter->index_pages);
+	FREE(chapter->volume_pages);
 }
 
 /**********************************************************************/
-int cacheChapterIndex(CachedChapterIndex *chapter,
-                      uint64_t            virtualChapter,
-                      const Volume       *volume)
+int cache_chapter_index(struct cached_chapter_index *chapter,
+			uint64_t virtual_chapter,
+			const Volume *volume)
 {
-  // Mark the cached chapter as unused in case the update fails midway.
-  chapter->virtualChapter = UINT64_MAX;
+	// Mark the cached chapter as unused in case the update fails midway.
+	chapter->virtual_chapter = UINT64_MAX;
 
-  // Read all the page data and initialize the entire DeltaIndexPage array.
-  // (It's not safe for the zone threads to do it lazily--they'll race.)
-  int result = readChapterIndexFromVolume(volume, virtualChapter,
-                                          chapter->volumePages,
-                                          chapter->indexPages);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	// Read all the page data and initialize the entire DeltaIndexPage
+	// array. (It's not safe for the zone threads to do it lazily--they'll
+	// race.)
+	int result = readChapterIndexFromVolume(volume,
+						virtual_chapter,
+						chapter->volume_pages,
+						chapter->index_pages);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  // Reset all chapter counter values to zero.
-  chapter->counters.searchHits        = 0;
-  chapter->counters.searchMisses      = 0;
-  chapter->counters.consecutiveMisses = 0;
+	// Reset all chapter counter values to zero.
+	chapter->counters.search_hits = 0;
+	chapter->counters.search_misses = 0;
+	chapter->counters.consecutive_misses = 0;
 
-  // Mark the entry as valid--it's now in the cache.
-  chapter->virtualChapter = virtualChapter;
-  chapter->skipSearch     = false;
+	// Mark the entry as valid--it's now in the cache.
+	chapter->virtual_chapter = virtual_chapter;
+	chapter->skip_search = false;
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int searchCachedChapterIndex(CachedChapterIndex *chapter,
-                             const Geometry     *geometry,
-                             const IndexPageMap *indexPageMap,
-                             const UdsChunkName *name,
-                             int                *recordPagePtr)
+int search_cached_chapter_index(struct cached_chapter_index *chapter,
+				const Geometry *geometry,
+				const IndexPageMap *index_page_map,
+				const UdsChunkName *name,
+				int *record_page_ptr)
 {
-  // Find the indexPageNumber in the chapter that would have the chunk name.
-  unsigned int physicalChapter
-    = mapToPhysicalChapter(geometry, chapter->virtualChapter);
-  unsigned int indexPageNumber;
-  int result = findIndexPageNumber(indexPageMap, name, physicalChapter,
-                                   &indexPageNumber);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	// Find the index_page_number in the chapter that would have the chunk
+	// name.
+	unsigned int physical_chapter =
+		mapToPhysicalChapter(geometry, chapter->virtual_chapter);
+	unsigned int index_page_number;
+	int result = findIndexPageNumber(
+		index_page_map, name, physical_chapter, &index_page_number);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  return searchChapterIndexPage(&chapter->indexPages[indexPageNumber],
-                                geometry, name, recordPagePtr);
+	return searchChapterIndexPage(&chapter->index_pages[index_page_number],
+				      geometry,
+				      name,
+				      record_page_ptr);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#3 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -33,100 +33,101 @@
 #include "volumeStore.h"
 
 /**
- * These counters are essentially fields of the CachedChapterIndex, but are
- * segregated into this structure because they are frequently modified. They
- * are grouped and aligned to keep them on different cache lines from the
+ * These counters are essentially fields of the struct cached_chapter_index,
+ * but are segregated into this structure because they are frequently modified.
+ * They are grouped and aligned to keep them on different cache lines from the
  * chapter fields that are accessed far more often than they are updated.
  **/
-struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedIndexCounters {
-  /** the total number of search hits since this chapter was cached */
-  uint64_t searchHits;
+struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_index_counters {
+	/** the total number of search hits since this chapter was cached */
+	uint64_t search_hits;
 
-  /** the total number of search misses since this chapter was cached */
-  uint64_t searchMisses;
+	/** the total number of search misses since this chapter was cached */
+	uint64_t search_misses;
 
-  /** the number of consecutive search misses since the last cache hit */
-  uint64_t consecutiveMisses;
+	/** the number of consecutive search misses since the last cache hit */
+	uint64_t consecutive_misses;
 };
-typedef struct cachedIndexCounters CachedIndexCounters;
 
 /**
- * CachedChapterIndex is the structure for a cache entry, representing a
- * single cached chapter index in the sparse chapter index cache.
+ * struct cached_chapter_index is the structure for a cache entry, representing
+ * a single cached chapter index in the sparse chapter index cache.
  **/
-struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedChapterIndex {
-  /*
-   * The virtual chapter number of the cached chapter index. UINT64_MAX means
-   * this cache entry is unused. Must only be modified in the critical section
-   * in updateSparseCache().
-   */
-  uint64_t          virtualChapter;
+struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
+	/*
+	 * The virtual chapter number of the cached chapter index. UINT64_MAX
+	 * means this cache entry is unused. Must only be modified in the
+	 * critical section in updateSparseCache().
+	 */
+	uint64_t virtual_chapter;
 
-  /* The number of index pages in a chapter */
-  unsigned int      indexPagesCount;
+	/* The number of index pages in a chapter */
+	unsigned int index_pages_count;
 
-  /*
-   * This flag is mutable between cache updates, but it rarely changes and
-   * is frequently accessed, so it groups with the immutable fields.
-   *
-   * If set, skip the chapter when searching the entire cache.  This flag is
-   * just a performance optimization.  If we do not see a recent change to it,
-   * it will be corrected when we pass through a memory barrier while getting
-   * the next request from the queue.  So we may do one extra search of the
-   * chapter index, or miss one deduplication opportunity.
-   */
-  bool              skipSearch;
+	/*
+	 * This flag is mutable between cache updates, but it rarely changes
+	 * and is frequently accessed, so it groups with the immutable fields.
+	 *
+	 * If set, skip the chapter when searching the entire cache.  This flag
+	 * is just a performance optimization.  If we do not see a recent
+	 * change to it, it will be corrected when we pass through a memory
+	 * barrier while getting the next request from the queue.  So we may do
+	 * one extra search of the chapter index, or miss one deduplication
+	 * opportunity.
+	 */
+	bool skip_search;
 
-  // These pointers are immutable during the life of the cache. The contents
-  // of the arrays change when the cache entry is replaced.
+	// These pointers are immutable during the life of the cache. The
+	// contents of the arrays change when the cache entry is replaced.
 
-  /* pointer to a cache-aligned array of ChapterIndexPages */
-  DeltaIndexPage *indexPages;
+	/* pointer to a cache-aligned array of ChapterIndexPages */
+	DeltaIndexPage *index_pages;
 
-  /* pointer to an array of VolumePages containing the index pages */
-  struct volume_page *volumePages;
+	/* pointer to an array of VolumePages containing the index pages */
+	struct volume_page *volume_pages;
 
-  // The cache-aligned counters change often and are placed at the end of the
-  // structure to prevent false sharing with the more stable fields above.
+	// The cache-aligned counters change often and are placed at the end of
+	// the structure to prevent false sharing with the more stable fields
+	// above.
 
-  /* counter values updated by the thread servicing zone zero */
-  CachedIndexCounters counters;
+	/* counter values updated by the thread servicing zone zero */
+	struct cached_index_counters counters;
 };
-typedef struct cachedChapterIndex CachedChapterIndex;
 
 /**
- * Initialize a CachedChapterIndex, allocating the memory for the array of
- * ChapterIndexPages and the raw index page data. The chapter index will be
- * marked as unused (virtualChapter == UINT64_MAX).
+ * Initialize a struct cached_chapter_index, allocating the memory for the
+ * array of ChapterIndexPages and the raw index page data. The chapter index
+ * will be marked as unused (virtual_chapter == UINT64_MAX).
  *
  * @param chapter   the chapter index cache entry to initialize
  * @param geometry  the geometry governing the volume
  **/
-int initializeCachedChapterIndex(CachedChapterIndex *chapter,
-                                 const Geometry     *geometry)
-  __attribute__((warn_unused_result));
+int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
+				    const Geometry *geometry)
+	__attribute__((warn_unused_result));
 
 /**
- * Destroy a CachedChapterIndex, freeing the memory allocated for the
+ * Destroy a cached_chapter_index, freeing the memory allocated for the
  * ChapterIndexPages and raw index page data.
  *
  * @param chapter   the chapter index cache entry to destroy
  **/
-void destroyCachedChapterIndex(CachedChapterIndex *chapter);
+void destroy_cached_chapter_index(struct cached_chapter_index *chapter);
 
 /**
- * Assign a new value to the skipSearch flag of a cached chapter index.
+ * Assign a new value to the skip_search flag of a cached chapter index.
  *
- * @param chapter     the chapter index cache entry to modify
- * @param skipSearch  the new value of the skipSearch falg
+ * @param chapter      the chapter index cache entry to modify
+ * @param skip_search  the new value of the skip_search falg
  **/
-static INLINE void setSkipSearch(CachedChapterIndex *chapter, bool skipSearch)
+static INLINE void set_skip_search(struct cached_chapter_index *chapter,
+				   bool skip_search)
 {
-  // Explicitly check if the field is set so we don't keep dirtying the memory
-  // cache line on continued search hits.
-  if (READ_ONCE(chapter->skipSearch) != skipSearch) {
-    WRITE_ONCE(chapter->skipSearch, skipSearch);
-  }
+	// Explicitly check if the field is set so we don't keep dirtying the
+	// memory cache line on continued search hits.
+	if (READ_ONCE(chapter->skip_search) != skip_search) {
+		WRITE_ONCE(chapter->skip_search, skip_search);
+	}
 }
 
 /**
@@ -134,71 +135,72 @@ static INLINE void setSkipSearch(CachedChapterIndex *chapter, bool skipSearch)
  * for a chunk name. Filters out unused, invalid, disabled, and irrelevant
  * cache entries.
  *
- * @param zone            the zone doing the check
- * @param chapter         the cache entry search candidate
- * @param virtualChapter  the virtualChapter containing a hook, or UINT64_MAX
- *                        if searching the whole cache for a non-hook
+ * @param zone             the zone doing the check
+ * @param chapter          the cache entry search candidate
+ * @param virtual_chapter  the virtual_chapter containing a hook, or UINT64_MAX
+ *                         if searching the whole cache for a non-hook
  *
  * @return <code>true</code> if the provided chapter index should be skipped
  **/
-static INLINE bool shouldSkipChapterIndex(const IndexZone *zone,
-                                          const CachedChapterIndex *chapter,
-                                          uint64_t virtualChapter)
+static INLINE bool
+should_skip_chapter_index(const IndexZone *zone,
+		          const struct cached_chapter_index *chapter,
+		          uint64_t virtual_chapter)
 {
-  // Don't search unused entries (contents undefined) or invalid entries
-  // (the chapter is no longer the zone's view of the volume).
-  if ((chapter->virtualChapter == UINT64_MAX)
-      || (chapter->virtualChapter < zone->oldestVirtualChapter)) {
-    return true;
-  }
+	// Don't search unused entries (contents undefined) or invalid entries
+	// (the chapter is no longer the zone's view of the volume).
+	if ((chapter->virtual_chapter == UINT64_MAX) ||
+	    (chapter->virtual_chapter < zone->oldestVirtualChapter)) {
+		return true;
+	}
 
-  if (virtualChapter != UINT64_MAX) {
-    // If the caller specified a virtual chapter, only search the cache
-    // entry containing that chapter.
-    return (virtualChapter != chapter->virtualChapter);
-  } else {
-    // When searching the entire cache, save time by skipping over chapters
-    // that have had too many consecutive misses.
-    return READ_ONCE(chapter->skipSearch);
-  }
+	if (virtual_chapter != UINT64_MAX) {
+		// If the caller specified a virtual chapter, only search the
+		// cache entry containing that chapter.
+		return (virtual_chapter != chapter->virtual_chapter);
+	} else {
+		// When searching the entire cache, save time by skipping over
+		// chapters that have had too many consecutive misses.
+		return READ_ONCE(chapter->skip_search);
+	}
 }
 
 /**
  * Cache a chapter index, reading all the index pages from the volume and
  * initializing the array of ChapterIndexPages in the cache entry to represent
- * them. The virtualChapter field of the cache entry will be set to UINT64_MAX
+ * them. The virtual_chapter field of the cache entry will be set to UINT64_MAX
  * if there is any error since the remaining mutable fields will be in an
  * undefined state.
  *
- * @param chapter         the chapter index cache entry to replace
- * @param virtualChapter  the virtual chapter number of the index to read
- * @param volume          the volume containing the chapter index
+ * @param chapter          the chapter index cache entry to replace
+ * @param virtual_chapter  the virtual chapter number of the index to read
+ * @param volume           the volume containing the chapter index
  *
  * @return UDS_SUCCESS or an error code
  **/
-int cacheChapterIndex(CachedChapterIndex *chapter,
-                      uint64_t            virtualChapter,
-                      const Volume       *volume)
-  __attribute__((warn_unused_result));
+int cache_chapter_index(struct cached_chapter_index *chapter,
+			uint64_t virtual_chapter,
+			const Volume *volume)
+	__attribute__((warn_unused_result));
 
 /**
  * Search a single cached sparse chapter index for a chunk name, returning the
  * record page number that may contain the name.
  *
- * @param [in]  chapter        the cache entry for the chapter to search
- * @param [in]  geometry       the geometry governing the volume
- * @param [in]  indexPageMap   the index page number map for the volume
- * @param [in]  name           the chunk name to search for
- * @param [out] recordPagePtr  the record page number of a match, else
- *                             NO_CHAPTER_INDEX_ENTRY if nothing matched
+ * @param [in]  chapter          the cache entry for the chapter to search
+ * @param [in]  geometry         the geometry governing the volume
+ * @param [in]  index_page_map   the index page number map for the volume
+ * @param [in]  name             the chunk name to search for
+ * @param [out] record_page_ptr  the record page number of a match, else
+ *                               NO_CHAPTER_INDEX_ENTRY if nothing matched
  *
  * @return UDS_SUCCESS or an error code
  **/
-int searchCachedChapterIndex(CachedChapterIndex *chapter,
-                             const Geometry     *geometry,
-                             const IndexPageMap *indexPageMap,
-                             const UdsChunkName *name,
-                             int                *recordPagePtr)
-  __attribute__((warn_unused_result));
+int search_cached_chapter_index(struct cached_chapter_index *chapter,
+				const Geometry *geometry,
+				const IndexPageMap *index_page_map,
+				const UdsChunkName *name,
+				int *record_page_ptr)
+	__attribute__((warn_unused_result));
 
 #endif /* CACHED_CHAPTER_INDEX_H */
