@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#9 $
  */
 
 #include "deviceRegistry.h"
@@ -67,9 +67,8 @@ static bool layer_is_equal(struct kernel_layer *layer, void *context)
  *
  * @return the layer object found, if any
  **/
-__attribute__((warn_unused_result))
-static struct kernel_layer *filter_layers_locked(LayerFilter *filter,
-						 void        *context)
+static struct kernel_layer * __must_check
+filter_layers_locked(LayerFilter *filter, void *context)
 {
 	struct registered_device *device;
 

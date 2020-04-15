@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#5 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -37,8 +37,7 @@ void initialize_device_registry_once(void);
  *
  * @return VDO_SUCCESS or an error
  **/
-int add_layer_to_device_registry(struct kernel_layer *layer)
-  __attribute__((warn_unused_result));
+int __must_check add_layer_to_device_registry(struct kernel_layer *layer);
 
 /**
  * Remove a layer from the device registry.
@@ -53,7 +52,7 @@ void remove_layer_from_device_registry(struct kernel_layer *layer);
  * @param filter   The filter function to apply to layers
  * @param context  A bit of context to provide the filter.
  **/
-struct kernel_layer *find_layer_matching(LayerFilter *filter, void *context)
-  __attribute__((warn_unused_result));
+struct kernel_layer * __must_check
+find_layer_matching(LayerFilter *filter, void *context);
 
 #endif // DEVICE_REGISTRY_H

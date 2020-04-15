@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#5 $
  */
 
 #ifndef ERRORS_H
@@ -85,9 +85,9 @@ enum {
 const char *string_error(int errnum, char *buf, size_t buflen);
 const char *string_error_name(int errnum, char *buf, size_t buflen);
 
-int make_unrecoverable(int result_code) __attribute__((warn_unused_result));
-bool is_unrecoverable(int result_code) __attribute__((warn_unused_result));
-int sans_unrecoverable(int result_code) __attribute__((warn_unused_result));
+int __must_check make_unrecoverable(int result_code);
+bool __must_check is_unrecoverable(int result_code);
+int __must_check sans_unrecoverable(int result_code);
 
 typedef struct errorInfo {
 	const char *name;

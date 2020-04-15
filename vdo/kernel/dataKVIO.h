@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#32 $
  */
 
 #ifndef DATA_KVIO_H
@@ -335,11 +335,11 @@ static inline bool requestor_set_fua(struct data_kvio *data_kvio)
  *
  * @return VDO_SUCCESS or a system error code
  **/
-int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
-				   struct bio *bio,
-				   Jiffies arrival_time,
-				   bool has_discard_permit)
-	__attribute__((warn_unused_result));
+int __must_check
+kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
+			       struct bio *bio,
+			       Jiffies arrival_time,
+			       bool has_discard_permit);
 
 /**
  * Return a batch of data_kvio objects to the pool.
@@ -380,10 +380,10 @@ void kvdo_read_block(struct data_vio *data_vio,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_data_kvio_buffer_pool(struct kernel_layer *layer,
-			       uint32_t pool_size,
-			       struct buffer_pool **buffer_pool_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_data_kvio_buffer_pool(struct kernel_layer *layer,
+			   uint32_t pool_size,
+			   struct buffer_pool **buffer_pool_ptr);
 
 /**
  * Get the state needed to generate UDS metadata from the data_kvio
@@ -393,8 +393,8 @@ int make_data_kvio_buffer_pool(struct kernel_layer *layer,
  *
  * @return the advice to store in the UDS index
  **/
-struct data_location get_dedupe_advice(const struct dedupe_context *context)
-	__attribute__((warn_unused_result));
+struct data_location __must_check
+get_dedupe_advice(const struct dedupe_context *context);
 
 /**
  * Set the result of a dedupe query for the data_kvio associated with a

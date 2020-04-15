@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#11 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -89,11 +89,11 @@ static inline struct device_config *as_device_config(RingNode *node)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int get_pool_name_from_argv(int argc,
-			    char **argv,
-			    char **error_ptr,
-			    char **pool_name_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+get_pool_name_from_argv(int argc,
+			char **argv,
+			char **error_ptr,
+			char **pool_name_ptr);
 
 /**
  * Convert the dmsetup table into a struct device_config.
@@ -106,12 +106,11 @@ int get_pool_name_from_argv(int argc,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parse_device_config(int argc,
-			char **argv,
-			struct dm_target *ti,
-			bool verbose,
-			struct device_config **config_ptr)
-	__attribute__((warn_unused_result));
+int __must_check parse_device_config(int argc,
+				     char **argv,
+				     struct dm_target *ti,
+				     bool verbose,
+				     struct device_config **config_ptr);
 
 /**
  * Free a device config created by parse_device_config().
@@ -127,8 +126,8 @@ void free_device_config(struct device_config **config_ptr);
  *
  * @returns a pointer to a string describing the write policy
  **/
-const char *get_config_write_policy_string(struct device_config *config)
-	__attribute__((warn_unused_result));
+const char * __must_check
+get_config_write_policy_string(struct device_config *config);
 
 /**
  * Acquire or release a reference from the config to a kernel layer.

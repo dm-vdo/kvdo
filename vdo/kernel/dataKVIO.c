@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#57 $
  */
 
 #include "dataKVIO.h"
@@ -703,10 +703,9 @@ void compressDataVIO(struct data_vio *data_vio)
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
-make_data_kvio(struct kernel_layer *layer,
-	       struct bio *bio,
-	       struct data_kvio **data_kvio_ptr)
+static int __must_check make_data_kvio(struct kernel_layer *layer,
+				       struct bio *bio,
+				       struct data_kvio **data_kvio_ptr)
 {
 	struct data_kvio *data_kvio;
 	int result = alloc_buffer_from_pool(layer->data_kvio_pool,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.h#3 $
  */
 
 #ifndef THREADS_H
@@ -30,7 +30,6 @@
  *
  * @return       the thread id
  **/
-pid_t get_thread_id(void)
-  __attribute__((warn_unused_result));
+pid_t __must_check get_thread_id(void);
 
 #endif /* THREADS_H */

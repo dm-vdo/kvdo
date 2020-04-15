@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#37 $
  */
 
 #ifndef KERNELLAYER_H
@@ -216,8 +216,7 @@ struct kvdo_enqueueable {
 /**
  * Implements LayerFilter.
  **/
-bool layer_is_named(struct kernel_layer *layer, void *context)
-  __attribute__((warn_unused_result));
+bool __must_check layer_is_named(struct kernel_layer *layer, void *context);
 
 /**
  * Creates a kernel specific physical layer to be used by VDO
@@ -233,14 +232,14 @@ bool layer_is_named(struct kernel_layer *layer, void *context)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_kernel_layer(uint64_t starting_sector,
-		      unsigned int instance,
-		      struct device_config *config,
-		      struct kobject *parent_kobject,
-		      struct thread_config **thread_config_pointer,
-		      char **reason,
-		      struct kernel_layer **layer_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_kernel_layer(uint64_t starting_sector,
+		  unsigned int instance,
+		  struct device_config *config,
+		  struct kobject *parent_kobject,
+		  struct thread_config **thread_config_pointer,
+		  char **reason,
+		  struct kernel_layer **layer_ptr);
 
 /**
  * Prepare to modify a kernel layer.
@@ -251,10 +250,10 @@ int make_kernel_layer(uint64_t starting_sector,
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
-				   struct device_config *config,
-				   char **error_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_to_modify_kernel_layer(struct kernel_layer *layer,
+			       struct device_config *config,
+			       char **error_ptr);
 
 /**
  * Modify a kernel physical layer.
@@ -264,9 +263,8 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int modify_kernel_layer(struct kernel_layer *layer,
-			struct device_config *config)
-	__attribute__((warn_unused_result));
+int __must_check
+modify_kernel_layer(struct kernel_layer *layer, struct device_config *config);
 
 /**
  * Free a kernel physical layer.
@@ -424,8 +422,8 @@ static inline block_size_t sector_to_block_offset(struct kernel_layer *layer,
  *
  * @return The block device object under the layer
  **/
-struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
-	__attribute__((warn_unused_result));
+struct block_device * __must_check
+get_kernel_layer_bdev(const struct kernel_layer *layer);
 
 /**
  * Set the layer's active config.

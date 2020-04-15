@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#3 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -75,10 +75,8 @@ char *v_append_to_buffer(char *buffer,
  *
  * @return  UDS_SUCCESS or -ENOMEM
  **/
-int split_string(const char *string,
-		 char separator,
-		 char ***substring_array_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+split_string(const char *string, char separator, char ***substring_array_ptr);
 
 /**
  * Join the input substrings into one string, joined with the indicated
@@ -93,11 +91,10 @@ int split_string(const char *string,
  *
  * @return  VDO_SUCCESS or an error
  **/
-int join_strings(char **substring_array,
-		 size_t array_length,
-		 char separator,
-		 char **string_ptr)
-	__attribute__((warn_unused_result));
+int __must_check join_strings(char **substring_array,
+			      size_t array_length,
+			      char separator,
+			      char **string_ptr);
 
 /**
  * Free a list of non-NULL string pointers, and then the list itself.
@@ -116,7 +113,6 @@ void free_string_array(char **string_array);
  *
  * @return  UDS_SUCCESS or -EINVAL or -ERANGE.
  **/
-int string_to_uint(const char *input, unsigned int *value_ptr)
-	__attribute__((warn_unused_result));
+int __must_check string_to_uint(const char *input, unsigned int *value_ptr);
 
 #endif /* VDO_STRING_UTILS_H */

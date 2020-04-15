@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#24 $
  */
 
 #ifndef KVIO_H
@@ -292,13 +292,13 @@ free_compressed_write_kvio(struct compressed_write_kvio **compressed_write_kvio_
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     vio_type vio_type,
-			     vio_priority priority,
-			     void *parent,
-			     char *data,
-			     struct vio **vio_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+kvdo_create_metadata_vio(PhysicalLayer *layer,
+			 vio_type vio_type,
+			 vio_priority priority,
+			 void *parent,
+			 char *data,
+			 struct vio **vio_ptr);
 
 /**
  * Create a new allocating_vio (and its enclosing kvio) for compressed writes.
@@ -313,11 +313,11 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
-				     void *parent,
-				     char *data,
-				     struct allocating_vio **allocating_vio_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+kvdo_create_compressed_write_vio(PhysicalLayer *layer,
+				 void *parent,
+				 char *data,
+				 struct allocating_vio **allocating_vio_ptr);
 
 /**
  * Issue an empty flush to the lower layer using the bio in a metadata vio.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#15 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -95,9 +95,9 @@ struct kvdo_work_queue_stats {
  *
  * @return  0 or a kernel error code
  **/
-int initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
-				struct kobject *queue_kobject)
-	__attribute__((warn_unused_result));
+int __must_check
+initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
+			    struct kobject *queue_kobject);
 
 /**
  * Tear down any allocated storage or objects for statistics tracking.

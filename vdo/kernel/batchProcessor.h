@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#8 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -81,8 +81,8 @@ void add_to_batch_processor(struct batch_processor *batch,
  *
  * @return   An object pointer or NULL
  **/
-struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
-	__attribute__((warn_unused_result));
+struct kvdo_work_item * __must_check
+next_batch_item(struct batch_processor *batch);
 
 /**
  * Free the batch-processor data and null out the pointer.

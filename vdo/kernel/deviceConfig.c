@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#13 $
  */
 
 #include "deviceConfig.h"
@@ -187,11 +187,11 @@ static void resolve_config_with_device(struct device_config *config,
  * @return VDO_SUCCESS or an error if bool_str is neither true_str
  *                        nor false_str
  **/
-__attribute__((warn_unused_result))
-static inline int parse_bool(const char *bool_str,
-			     const char *true_str,
-			     const char *false_str,
-			     bool *bool_ptr)
+static inline int __must_check
+parse_bool(const char *bool_str,
+	   const char *true_str,
+	   const char *false_str,
+	   bool *bool_ptr)
 {
 	bool value = false;
 

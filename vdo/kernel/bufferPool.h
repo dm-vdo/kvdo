@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#5 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -56,14 +56,13 @@ typedef void buffer_dump_function(void *pool_data, void *data);
  *
  * @return a success or error code
  */
-int make_buffer_pool(const char *pool_name,
-		     unsigned int size,
-		     buffer_allocate_function *allocate_function,
-		     buffer_free_function *free_function,
-		     buffer_dump_function *dump_function,
-		     void *pool_data,
-		     struct buffer_pool **pool_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_buffer_pool(const char *pool_name,
+				  unsigned int size,
+				  buffer_allocate_function *allocate_function,
+				  buffer_free_function *free_function,
+				  buffer_dump_function *dump_function,
+				  void *pool_data,
+				  struct buffer_pool **pool_ptr);
 
 /**
  * Free a buffer pool and null out the reference to it. This will free
@@ -91,8 +90,8 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements);
  *
  * @return a success or error code
  */
-int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr);
 
 /**
  * Returns a buffer to the free list of a pool

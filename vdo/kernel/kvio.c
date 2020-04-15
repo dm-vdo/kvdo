@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#33 $
  */
 
 #include "kvio.h"
@@ -307,7 +307,7 @@ void initialize_kvio(struct kvio *kvio,
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 make_metadata_kvio(struct kernel_layer *layer,
 		   vio_type vio_type,
 		   vio_priority priority,
@@ -354,11 +354,11 @@ make_metadata_kvio(struct kernel_layer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result))
-static int make_compressed_write_kvio(struct kernel_layer *layer,
-				      void *parent,
-				      struct bio *bio,
-				      struct compressed_write_kvio **compressed_write_kvio_ptr)
+static int __must_check
+make_compressed_write_kvio(struct kernel_layer *layer,
+			   void *parent,
+			   struct bio *bio,
+			   struct compressed_write_kvio **compressed_write_kvio_ptr)
 {
 	// Compressed write vios should use direct allocation and not use the
 	// buffer pool, which is reserved for submissions from the linux block

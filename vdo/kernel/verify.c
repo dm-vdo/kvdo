@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#16 $
  */
 
 #include "physicalLayer.h"
@@ -41,11 +41,8 @@
  *
  * @return   true iff the two blocks are equal
  **/
-__attribute__((warn_unused_result))
-static bool
-memory_equal(void *pointer_argument1,
-	     void *pointer_argument2,
-	     size_t length)
+static bool __must_check
+memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 {
 	byte *pointer1 = pointer_argument1;
 	byte *pointer2 = pointer_argument2;

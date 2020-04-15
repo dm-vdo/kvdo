@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#27 $
  */
 
 #include "workQueue.h"
@@ -154,9 +154,9 @@ poll_for_work_item(struct simple_work_queue *queue)
  *
  * @return  true iff the caller should wake the worker thread
  **/
-__attribute__((warn_unused_result))
-static bool enqueue_work_queue_item(struct simple_work_queue *queue,
-				    struct kvdo_work_item *item)
+static bool __must_check
+enqueue_work_queue_item(struct simple_work_queue *queue,
+			struct kvdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"item %" PRIptr " (fn %" PRIptr "/%" PRIptr

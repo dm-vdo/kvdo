@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#50 $
  */
 
 #include "dmvdo.h"
@@ -263,10 +263,10 @@ static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_st
  * @return -EINVAL if the message is unrecognized or the result of processing
  *                 the message
  **/
-__attribute__((warn_unused_result))
-static int process_vdo_message_locked(struct kernel_layer *layer,
-				      unsigned int argc,
-				      char **argv)
+static int __must_check
+process_vdo_message_locked(struct kernel_layer *layer,
+			   unsigned int argc,
+			   char **argv)
 {
 	// Messages with variable numbers of arguments.
 	if (strncasecmp(argv[0], "x-", 2) == 0) {
@@ -376,10 +376,8 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
  * @return -EBUSY if another message is being processed or the result of
  *                processsing the message
  **/
-__attribute__((warn_unused_result))
-static int process_vdo_message(struct kernel_layer *layer,
-			       unsigned int argc,
-			       char **argv)
+static int __must_check
+process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 {
 	/*
 	 * All messages which may be processed in parallel with other messages
