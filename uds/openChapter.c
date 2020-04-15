@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#4 $
  */
 
 #include "openChapter.h"
@@ -53,10 +53,10 @@ enum {
 };
 
 /**********************************************************************/
-static int fillDeltaChapterIndex(OpenChapterZone **chapterZones,
-                                 unsigned int      zoneCount,
-                                 OpenChapterIndex *index,
-                                 UdsChunkRecord   *collatedRecords)
+static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
+                                 unsigned int                zoneCount,
+                                 struct open_chapter_index  *index,
+                                 UdsChunkRecord             *collatedRecords)
 {
   // Find a record to replace any deleted records, and fill the chapter if
   // it was closed early. The last record in any filled zone is guaranteed
@@ -130,12 +130,12 @@ static int fillDeltaChapterIndex(OpenChapterZone **chapterZones,
 }
 
 /**********************************************************************/
-int closeOpenChapter(OpenChapterZone  **chapterZones,
-                     unsigned int       zoneCount,
-                     Volume            *volume,
-                     OpenChapterIndex  *chapterIndex,
-                     UdsChunkRecord    *collatedRecords,
-                     uint64_t           virtualChapterNumber)
+int closeOpenChapter(OpenChapterZone           **chapterZones,
+                     unsigned int                zoneCount,
+                     Volume                     *volume,
+                     struct open_chapter_index  *chapterIndex,
+                     UdsChunkRecord             *collatedRecords,
+                     uint64_t                    virtualChapterNumber)
 {
   // Empty the delta chapter index, and prepare it for the new virtual chapter.
   emptyOpenChapterIndex(chapterIndex, virtualChapterNumber);

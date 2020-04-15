@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#2 $
  */
 
 #include "chapterIndex.h"
@@ -31,13 +31,13 @@
 
 
 /**********************************************************************/
-int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry,
-                         bool               chapterIndexHeaderNativeEndian,
-                         uint64_t           volumeNonce)
+int makeOpenChapterIndex(struct open_chapter_index **openChapterIndex,
+                         const Geometry *geometry,
+                         bool chapterIndexHeaderNativeEndian,
+                         uint64_t volumeNonce)
 {
 
-  int result = ALLOCATE(1, OpenChapterIndex, "open chapter index",
+  int result = ALLOCATE(1, struct open_chapter_index, "open chapter index",
                         openChapterIndex);
   if (result != UDS_SUCCESS) {
     return result;
@@ -62,7 +62,7 @@ int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
 }
 
 /**********************************************************************/
-void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex)
+void freeOpenChapterIndex(struct open_chapter_index *openChapterIndex)
 {
   if (openChapterIndex == NULL) {
     return;
@@ -74,8 +74,8 @@ void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex)
 }
 
 /**********************************************************************/
-void emptyOpenChapterIndex(OpenChapterIndex *openChapterIndex,
-                           uint64_t          virtualChapterNumber)
+void emptyOpenChapterIndex(struct open_chapter_index *openChapterIndex,
+                           uint64_t                   virtualChapterNumber)
 {
   emptyDeltaIndex(&openChapterIndex->deltaIndex);
   openChapterIndex->virtualChapterNumber = virtualChapterNumber;
@@ -97,9 +97,9 @@ static INLINE bool wasEntryFound(const DeltaIndexEntry *entry,
 }
 
 /**********************************************************************/
-int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
-                              const UdsChunkName *name,
-                              unsigned int        pageNumber)
+int putOpenChapterIndexRecord(struct open_chapter_index   *openChapterIndex,
+                              const UdsChunkName          *name,
+                              unsigned int                 pageNumber)
 {
   const Geometry *geometry = openChapterIndex->geometry;
   int result
@@ -134,11 +134,11 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
 }
 
 /**********************************************************************/
-int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             byte             *memory,
-                             unsigned int      firstList,
-                             bool              lastPage,
-                             unsigned int     *numLists)
+int packOpenChapterIndexPage(struct open_chapter_index *openChapterIndex,
+                             byte                      *memory,
+                             unsigned int               firstList,
+                             bool                       lastPage,
+                             unsigned int              *numLists)
 {
   DeltaIndex *deltaIndex = &openChapterIndex->deltaIndex;
   const Geometry *geometry = openChapterIndex->geometry;
@@ -211,7 +211,7 @@ int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
 }
 
 /**********************************************************************/
-int getOpenChapterIndexSize(OpenChapterIndex *openChapterIndex)
+int getOpenChapterIndexSize(struct open_chapter_index *openChapterIndex)
 {
   DeltaIndexStats stats;
   getDeltaIndexStats(&openChapterIndex->deltaIndex, &stats);
@@ -219,11 +219,12 @@ int getOpenChapterIndexSize(OpenChapterIndex *openChapterIndex)
 }
 
 /**********************************************************************/
-size_t getOpenChapterIndexMemoryAllocated(OpenChapterIndex *openChapterIndex)
+size_t
+getOpenChapterIndexMemoryAllocated(struct open_chapter_index *openChapterIndex)
 {
   DeltaIndexStats stats;
   getDeltaIndexStats(&openChapterIndex->deltaIndex, &stats);
-  return stats.memoryAllocated + sizeof(OpenChapterIndex);
+  return stats.memoryAllocated + sizeof(struct open_chapter_index);
 }
 
 /**********************************************************************/

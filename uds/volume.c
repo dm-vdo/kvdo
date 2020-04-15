@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#5 $
  */
 
 #include "volume.h"
@@ -784,10 +784,10 @@ static int donateIndexPageLocked(Volume             *volume,
 }
 
 /**********************************************************************/
-int writeIndexPages(Volume            *volume,
-                    int                physicalPage,
-                    OpenChapterIndex  *chapterIndex,
-                    byte             **pages)
+int writeIndexPages(Volume                     *volume,
+                    int                         physicalPage,
+                    struct open_chapter_index  *chapterIndex,
+                    byte                      **pages)
 {
   Geometry *geometry = volume->geometry;
   unsigned int physicalChapterNumber
@@ -909,9 +909,9 @@ int writeRecordPages(Volume                *volume,
 }
 
 /**********************************************************************/
-int writeChapter(Volume                 *volume,
-                 OpenChapterIndex       *chapterIndex,
-                 const UdsChunkRecord    records[])
+int writeChapter(Volume                    *volume,
+                 struct open_chapter_index *chapterIndex,
+                 const UdsChunkRecord       records[])
 {
   // Determine the position of the virtual chapter in the volume file.
   Geometry *geometry = volume->geometry;

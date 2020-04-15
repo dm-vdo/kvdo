@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#2 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -52,18 +52,18 @@ extern const IndexComponentInfo OPEN_CHAPTER_INFO;
  * @param chapterZones         The zones of the chapter to close
  * @param zoneCount            The number of zones
  * @param volume               The volume to which to write the chapter
- * @param chapterIndex         The OpenChapterIndex to use while writing
+ * @param chapterIndex         The open_chapter_index to use while writing
  * @param collatedRecords      Collated records array to use while writing
  * @param virtualChapterNumber The virtual chapter number of the open chapter
  *
  * @return UDS_SUCCESS or an error code
  **/
-int closeOpenChapter(OpenChapterZone  **chapterZones,
-                     unsigned int       zoneCount,
-                     Volume            *volume,
-                     OpenChapterIndex  *chapterIndex,
-                     UdsChunkRecord    *collatedRecords,
-                     uint64_t           virtualChapterNumber)
+int closeOpenChapter(OpenChapterZone           **chapterZones,
+                     unsigned int                zoneCount,
+                     Volume                     *volume,
+                     struct open_chapter_index  *chapterIndex,
+                     UdsChunkRecord             *collatedRecords,
+                     uint64_t                    virtualChapterNumber)
   __attribute__((warn_unused_result));
 
 /**

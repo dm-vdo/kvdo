@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#4 $
  */
 
 #ifndef VOLUME_H
@@ -248,10 +248,10 @@ int forgetChapter(Volume             *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeIndexPages(Volume            *volume,
-                    int                physicalPage,
-                    OpenChapterIndex  *chapterIndex,
-                    byte             **pages)
+int writeIndexPages(Volume                     *volume,
+                    int                         physicalPage,
+                    struct open_chapter_index  *chapterIndex,
+                    byte                      **pages)
 __attribute__((warn_unused_result));
 
 /**
@@ -281,9 +281,9 @@ __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeChapter(Volume               *volume,
-                 OpenChapterIndex     *chapterIndex,
-                 const UdsChunkRecord  records[])
+int writeChapter(Volume                    *volume,
+                 struct open_chapter_index *chapterIndex,
+                 const UdsChunkRecord       records[])
   __attribute__((warn_unused_result));
 
 /**

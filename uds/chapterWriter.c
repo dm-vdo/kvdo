@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#2 $
  */
 
 #include "chapterWriter.h"
@@ -33,27 +33,27 @@
 
 struct chapterWriter {
   /* The index to which we belong */
-  Index            *index;
+  Index                     *index;
   /* The thread to do the writing */
-  Thread            thread;
+  Thread                     thread;
   /* lock protecting the following fields */
-  Mutex             mutex;
+  Mutex                      mutex;
   /* condition signalled on state changes */
-  CondVar           cond;
+  CondVar                    cond;
   /* Set to true to stop the thread */
-  bool              stop;
+  bool                       stop;
   /* The result from the most recent write */
-  int               result;
+  int                        result;
   /* The number of bytes allocated by the chapter writer */
-  size_t            memoryAllocated;
+  size_t                     memoryAllocated;
   /* The number of zones which have submitted a chapter for writing */
-  unsigned int      zonesToWrite;
+  unsigned int               zonesToWrite;
   /* Open chapter index used by closeOpenChapter() */
-  OpenChapterIndex *openChapterIndex;
+  struct open_chapter_index *openChapterIndex;
   /* Collated records used by closeOpenChapter() */
-  UdsChunkRecord   *collatedRecords;
+  UdsChunkRecord            *collatedRecords;
   /* The chapters to write (one per zone) */
-  OpenChapterZone  *chapters[];
+  OpenChapterZone           *chapters[];
 };
 
 /**

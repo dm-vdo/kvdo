@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#2 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -31,13 +31,13 @@ enum {
   NO_CHAPTER_INDEX_ENTRY  = -1
 };
 
-typedef struct openChapterIndex {
+struct open_chapter_index {
   const Geometry *geometry;
   DeltaIndex      deltaIndex;
   uint64_t        virtualChapterNumber;
   bool            headerNativeEndian;
   uint64_t        volumeNonce;
-} OpenChapterIndex;
+};
 
 
 /**
@@ -50,10 +50,10 @@ typedef struct openChapterIndex {
  *
  * @return error code or UDS_SUCCESS
  **/
-int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry,
-                         bool               chapterIndexHeaderNativeEndian,
-                         uint64_t           volumeNonce)
+int makeOpenChapterIndex(struct open_chapter_index **openChapterIndex,
+                         const Geometry *geometry,
+                         bool chapterIndexHeaderNativeEndian,
+                         uint64_t volumeNonce)
   __attribute__((warn_unused_result));
 
 /**
@@ -61,7 +61,7 @@ int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
  *
  * @param openChapterIndex  The open chapter index to terminate
  **/
-void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex);
+void freeOpenChapterIndex(struct open_chapter_index *openChapterIndex);
 
 /**
  * Empty an open chapter index, and prepare it for writing a new virtual
@@ -70,8 +70,8 @@ void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex);
  * @param openChapterIndex      The open chapter index to empty
  * @param virtualChapterNumber  The virtual chapter number
  **/
-void emptyOpenChapterIndex(OpenChapterIndex *openChapterIndex,
-                           uint64_t          virtualChapterNumber);
+void emptyOpenChapterIndex(struct open_chapter_index *openChapterIndex,
+                           uint64_t                   virtualChapterNumber);
 
 /**
  * Create a new record in an open chapter index, associating a chunk name with
@@ -83,9 +83,9 @@ void emptyOpenChapterIndex(OpenChapterIndex *openChapterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
-                              const UdsChunkName *name,
-                              unsigned int        pageNumber)
+int putOpenChapterIndexRecord(struct open_chapter_index *openChapterIndex,
+                              const UdsChunkName        *name,
+                              unsigned int               pageNumber)
   __attribute__((warn_unused_result));
 
 /**
@@ -105,11 +105,11 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  * @return error code or UDS_SUCCESS.  On UDS_SUCCESS, the numLists
  *         argument contains the number of lists copied.
  **/
-int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             byte             *memory,
-                             unsigned int      firstList,
-                             bool              lastPage,
-                             unsigned int     *numLists)
+int packOpenChapterIndexPage(struct open_chapter_index *openChapterIndex,
+                             byte                      *memory,
+                             unsigned int               firstList,
+                             bool                       lastPage,
+                             unsigned int              *numLists)
   __attribute__((warn_unused_result));
 
 /**
@@ -119,7 +119,7 @@ int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
  *
  * @return The number of records
  **/
-int getOpenChapterIndexSize(OpenChapterIndex *openChapterIndex)
+int getOpenChapterIndexSize(struct open_chapter_index *openChapterIndex)
   __attribute__((warn_unused_result));
 
 /**
@@ -129,7 +129,8 @@ int getOpenChapterIndexSize(OpenChapterIndex *openChapterIndex)
  *
  * @return the number of bytes allocated
  **/
-size_t getOpenChapterIndexMemoryAllocated(OpenChapterIndex *openChapterIndex);
+size_t
+getOpenChapterIndexMemoryAllocated(struct open_chapter_index *openChapterIndex);
 
 /**
  * Make a new chapter index page, initializing it with the data from the
