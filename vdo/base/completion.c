@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#14 $
  */
 
 #include "completion.h"
@@ -131,14 +131,9 @@ static inline bool requires_enqueue(struct vdo_completion *completion)
 void invoke_callback(struct vdo_completion *completion)
 {
 	if (requires_enqueue(completion)) {
-		if (completion->enqueueable != NULL) {
-			completion->layer->enqueue(completion->enqueueable);
-			return;
-		}
-		ASSERT_LOG_ONLY(false,
-				"non-enqueueable completion (type %s) on correct thread",
-				get_completion_type_name(completion->type));
-	}
+                completion->layer->enqueue(completion);
+                return;
+        }
 
 	run_callback(completion);
 }

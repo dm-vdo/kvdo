@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#20 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -278,11 +278,10 @@ void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 		  void *stats_function, unsigned int action);
 
 /**
- * Enqueue an arbitrary completion for execution on its indicated
- * thread.
+ * Enqueue an arbitrary completion for execution on its indicated thread.
  *
- * @param enqueueable  The Enqueueable object containing the completion pointer
+ * @param completion  The completion to enqueue
  **/
-void kvdo_enqueue(Enqueueable *enqueueable);
+void kvdo_enqueue(struct vdo_completion *completion);
 
 #endif // KERNEL_VDO_H

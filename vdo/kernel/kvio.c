@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#32 $
  */
 
 #include "kvio.h"
@@ -315,9 +315,13 @@ make_metadata_kvio(struct kernel_layer *layer,
 		   struct bio *bio,
 		   struct metadata_kvio **metadata_kvio_ptr)
 {
+#ifdef ENQUEUEABLE_REMOVAL
 	// If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
 	// VDOSTORY-176.
 	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
+#else // NOT ENQUEUEABLE_REMOVAL
+        STATIC_ASSERT(sizeof(struct enqueueable) > 0);
+#endif // ENQUEUEABLE_REMOVAL
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.

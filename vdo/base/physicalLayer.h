@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#26 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -300,12 +300,12 @@ typedef int enqueueable_creator(struct vdo_completion *completion);
 typedef void enqueueable_destructor(Enqueueable **enqueueablePtr);
 
 /**
- * A function to enqueue the Enqueueable object to run on the thread specified
- * by its associated completion.
+ * A function to enqueue a vdo_completion to run on the thread specified by its
+ * 'callbackThreadID' field.
  *
- * @param enqueueable  The object to be enqueued
+ * @param completion  The completion to be enqueued
  **/
-typedef void enqueuer(Enqueueable *enqueueable);
+typedef void enqueuer(struct vdo_completion *completion);
 
 /**
  * A function to wait for an admin operation to complete. This function should

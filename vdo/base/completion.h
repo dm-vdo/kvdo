@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#14 $
  */
 
 #ifndef COMPLETION_H
@@ -27,6 +27,20 @@
 #include "physicalLayer.h"
 #include "ringNode.h"
 #include "types.h"
+
+#ifdef USER_SPACE
+
+#include "util/funnelQueue.h"
+
+struct kvdo_work_item {
+        FunnelQueueEntry fqentry;
+};
+
+#else // NOT USER_SPACE
+
+#include "workQueue.h"
+
+#endif // USER_SPACE
 
 typedef enum __attribute__((packed)) {
 	// Keep UNSET_COMPLETION_TYPE at the top.
@@ -108,6 +122,9 @@ struct vdo_completion {
 
 	/** The enqueueable for this completion (may be NULL) */
 	Enqueueable *enqueueable;
+
+        /** The work item for enqueuing this completion */
+        struct kvdo_work_item work_item;
 };
 
 /**
