@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#10 $
  */
 
 #include "indexLayout.h"
@@ -1398,7 +1398,6 @@ static void expect_sub_index(struct sub_index_layout *sil,
  * stored in stable storage.
  *
  * @param layout      the layout to initialize
- * @param region      the IO region for this layout
  * @param super       the super block data read from the superblock
  * @param table       the region table read from the superblock
  * @param first_block  the first block number in the region

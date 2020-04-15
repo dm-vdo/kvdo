@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#3 $
  */
 
 #ifndef BUFFERED_WRITER_H
@@ -71,7 +71,7 @@ int write_to_buffered_writer(BufferedWriter *buffer,
 /**
  * Zero data in the buffer, writing as needed.
  *
- * @param buffer        The buffered writer object.
+ * @param bw            The buffered writer object.
  * @param len           The number of zero bytes to write.
  *
  * @return              UDS_SUCCESS or an error code.

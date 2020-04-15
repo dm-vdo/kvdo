@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#6 $
  */
 #include "masterIndex005.h"
 
@@ -1146,14 +1146,6 @@ int removeMasterIndexRecord(MasterIndexRecord *record)
 }
 
 /***********************************************************************/
-/**
- * Set the chapter number associated with a block name.
- *
- * @param record         The master index record found by getRecord()
- * @param virtualChapter The chapter number where the block info is now found.
- *
- * @return UDS_SUCCESS or an error code
- **/
 int setMasterIndexRecordChapter(MasterIndexRecord *record,
                                 uint64_t virtualChapter)
 {

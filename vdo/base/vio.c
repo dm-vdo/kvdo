@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#20 $
  */
 
 #include "vio.h"
@@ -160,7 +160,7 @@ void launch_flush(struct vio *vio,
 		  vdo_action *callback,
 		  vdo_action *error_handler)
 {
-	ASSERT_LOG_ONLY(get_write_policy(vio->vdo) == WRITE_POLICY_ASYNC,
+	ASSERT_LOG_ONLY(get_write_policy(vio->vdo) != WRITE_POLICY_SYNC,
 			"pure flushes should not currently be issued in sync mode");
 
 	struct vdo_completion *completion = vio_as_completion(vio);

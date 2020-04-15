@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#2 $
  */
 
 #ifndef IO_FACTORY_H
@@ -110,7 +110,7 @@ int makeBufio(IOFactory               *factory,
  * @param factory    The IOFactory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
+ * @param readerPtr  The BufferedReader is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
@@ -126,7 +126,7 @@ int openBufferedReader(IOFactory       *factory,
  * @param factory    The IOFactory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
+ * @param writerPtr  The BufferedWriter is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/

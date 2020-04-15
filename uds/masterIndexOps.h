@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#2 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -459,7 +459,8 @@ static INLINE void setMasterIndexOpenChapter(MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setMasterIndexRecordChapter(MasterIndexRecord *record, uint64_t chapter)
+int setMasterIndexRecordChapter(MasterIndexRecord *record,
+                                uint64_t virtualChapter)
   __attribute__((warn_unused_result));
 
 /**
