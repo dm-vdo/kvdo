@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#44 $
  */
 
 #include "dedupeIndex.h"
@@ -67,7 +67,6 @@ typedef enum {
 // Data managing the reporting of UDS timeouts
 struct periodic_event_reporter {
 	uint64_t last_reported_value;
-	const char *format;
 	atomic64_t value;
 	struct ratelimit_state ratelimiter;
 	/*
@@ -373,7 +372,8 @@ static void report_events(struct periodic_event_reporter *reporter,
 
 	if (difference != 0) {
 		if (!ratelimit || __ratelimit(&reporter->ratelimiter)) {
-			logDebug(reporter->format, difference);
+			logDebug("UDS index timeout on %llu requests",
+				 difference);
 			reporter->last_reported_value = new_value;
 		} else {
 			/**
@@ -405,14 +405,12 @@ static void report_events_work(struct kvdo_work_item *item)
 /**********************************************************************/
 static void
 init_periodic_event_reporter(struct periodic_event_reporter *reporter,
-			     const char *format,
 			     struct kernel_layer *layer)
 {
 	setup_work_item(&reporter->work_item,
 			report_events_work,
 			NULL,
 			CPU_Q_ACTION_EVENT_REPORTER);
-	reporter->format = format;
 	reporter->layer = layer;
 	ratelimit_default_init(&reporter->ratelimiter);
 	// Since we will save up the timeouts that would have been reported
@@ -1064,7 +1062,6 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	// UDS Timeout Reporter
 	init_periodic_event_reporter(&index->timeout_reporter,
-				     "UDS index timeout on %llu requests",
 				     layer);
 
 	*index_ptr = index;
