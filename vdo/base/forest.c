@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#30 $
  */
 
 #include "forest.h"
@@ -71,7 +71,7 @@ struct cursors;
 struct cursor {
 	struct waiter waiter;
 	struct block_map_tree *tree;
-	Height height;
+	height_t height;
 	struct cursors *parent;
 	struct boundary boundary;
 	struct cursor_level levels[BLOCK_MAP_TREE_HEIGHT];
@@ -91,7 +91,7 @@ struct cursors {
 /**********************************************************************/
 struct tree_page *get_tree_page_by_index(struct forest *forest,
 					 RootCount root_index,
-					 Height height,
+					 height_t height,
 					 page_number_t page_index)
 {
 	page_number_t offset = 0;
@@ -134,7 +134,7 @@ static block_count_t compute_new_pages(RootCount root_count,
 				 flat_page_count, 1);
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
-	Height height;
+	height_t height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
 		level_size = compute_bucket_count(level_size,
 						  BLOCK_MAP_ENTRIES_PER_PAGE);
@@ -196,7 +196,7 @@ static int make_segment(struct forest *old_forest,
 	       sizeof(struct boundary));
 
 	page_count_t segment_sizes[BLOCK_MAP_TREE_HEIGHT];
-	Height height;
+	height_t height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
 		segment_sizes[height] = new_boundary->levels[height];
 		if (index > 0) {
@@ -225,7 +225,7 @@ static int make_segment(struct forest *old_forest,
 
 		struct block_map_tree_segment *segment =
 			&(tree->segments[index]);
-		Height height;
+		height_t height;
 		for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
 			if (segment_sizes[height] == 0) {
 				continue;
@@ -398,7 +398,7 @@ static void finishTraversalLoad(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
 	struct cursor *cursor = entry->parent;
-	Height height = cursor->height;
+	height_t height = cursor->height;
 	struct cursor_level *level = &cursor->levels[height];
 
 	struct tree_page *treePage =
@@ -421,7 +421,7 @@ static void finishTraversalLoad(struct vdo_completion *completion)
 static void traverse(struct cursor *cursor)
 {
 	for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
-		Height height = cursor->height;
+		height_t height = cursor->height;
 		struct cursor_level *level = &cursor->levels[height];
 		struct tree_page *tree_page =
 			&(cursor->tree->segments[0]
@@ -553,7 +553,7 @@ static struct boundary compute_boundary(struct block_map *map,
 	}
 
 	struct boundary boundary;
-	Height height;
+	height_t height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
 		boundary.levels[height] = level_pages;
 		level_pages = compute_bucket_count(level_pages,

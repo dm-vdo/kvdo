@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#23 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -110,7 +110,7 @@ struct block_allocator {
 	/** The notifier for entering read-only mode */
 	struct read_only_notifier *read_only_notifier;
 	/** The nonce of the VDO */
-	Nonce nonce;
+	nonce_t nonce;
 	/** The physical zone number of this allocator */
 	ZoneCount zone_number;
 	/** The thread ID for this allocator's physical zone */

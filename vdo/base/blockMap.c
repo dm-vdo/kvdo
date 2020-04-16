@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#57 $
  */
 
 #include "blockMap.h"
@@ -81,7 +81,7 @@ static int validate_page_on_read(void *buffer,
 {
 	struct block_map_page *page = buffer;
 	struct block_map_page_context *context = page_context;
-	Nonce nonce = zone->block_map->nonce;
+	nonce_t nonce = zone->block_map->nonce;
 
 	block_map_page_validity validity = validate_block_map_page(page,
 								   nonce,
@@ -390,7 +390,7 @@ int make_block_map_caches(struct block_map *map,
 			  PhysicalLayer *layer,
 			  struct read_only_notifier *read_only_notifier,
 			  struct recovery_journal *journal,
-			  Nonce nonce,
+			  nonce_t nonce,
 			  page_count_t cache_size,
 			  block_count_t maximum_age)
 {

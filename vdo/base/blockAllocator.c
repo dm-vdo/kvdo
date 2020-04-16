@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#65 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -278,7 +278,7 @@ static int allocate_components(struct block_allocator *allocator,
 int make_block_allocator(struct slab_depot *depot,
 			 ZoneCount zone_number,
 			 ThreadID thread_id,
-			 Nonce nonce,
+			 nonce_t nonce,
 			 block_count_t vio_pool_size,
 			 PhysicalLayer *layer,
 			 struct read_only_notifier *read_only_notifier,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#18 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -159,7 +159,7 @@ int make_block_map_caches(struct block_map *map,
 			  PhysicalLayer *layer,
 			  struct read_only_notifier *read_only_notifier,
 			  struct recovery_journal *journal,
-			  Nonce nonce,
+			  nonce_t nonce,
 			  page_count_t cache_size,
 			  block_count_t maximum_age)
 	__attribute__((warn_unused_result));

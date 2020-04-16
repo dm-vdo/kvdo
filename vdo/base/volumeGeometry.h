@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#10 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -55,7 +55,7 @@ struct volume_geometry {
 	/** The release version number of this volume */
 	ReleaseVersionNumber release_version;
 	/** The nonce of this volume */
-	Nonce nonce;
+	nonce_t nonce;
 	/** The UUID of this volume */
 	UUID uuid;
 	/** The regions in ID order */
@@ -123,7 +123,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
  *
  * @return VDO_SUCCESS or an error
  **/
-int initialize_volume_geometry(Nonce nonce,
+int initialize_volume_geometry(nonce_t nonce,
 			       UUID uuid,
 			       struct index_config *index_config,
 			       struct volume_geometry *geometry)

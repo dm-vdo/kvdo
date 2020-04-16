@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#9 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -112,7 +112,7 @@ int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
  *
  * @return <code>true</code> if the page was copied (valid)
  **/
-bool copy_valid_page(char *buffer, Nonce nonce, PhysicalBlockNumber pbn,
+bool copy_valid_page(char *buffer, nonce_t nonce, PhysicalBlockNumber pbn,
 		     struct block_map_page *page);
 
 #endif // BLOCK_MAP_TREE_INTERNALS_H

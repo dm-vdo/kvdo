@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#53 $
  */
 
 #include "recoveryJournal.h"
@@ -421,7 +421,7 @@ static void set_journal_tail(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
+int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 			  struct partition *partition,
 			  uint64_t recovery_count,
 			  block_count_t journal_size,

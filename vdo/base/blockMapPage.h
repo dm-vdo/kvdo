@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#7 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -170,7 +170,7 @@ bool is_current_block_map_page(const struct block_map_page *page)
  * @return the buffer pointer, as a block map page (for convenience)
  **/
 struct block_map_page *format_block_map_page(void *buffer,
-					     Nonce nonce,
+					     nonce_t nonce,
 					     PhysicalBlockNumber pbn,
 					     bool initialized);
 
@@ -186,7 +186,7 @@ struct block_map_page *format_block_map_page(void *buffer,
  * @return The validity of the page
  **/
 block_map_page_validity validate_block_map_page(struct block_map_page *page,
-						Nonce nonce,
+						nonce_t nonce,
 						PhysicalBlockNumber pbn)
 	__attribute__((warn_unused_result));
 

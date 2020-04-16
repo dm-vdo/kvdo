@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#29 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -86,7 +86,7 @@ int make_slab_depot(block_count_t block_count,
 		    PhysicalBlockNumber first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
-		    Nonce nonce,
+		    nonce_t nonce,
 		    block_count_t vio_pool_size,
 		    PhysicalLayer *layer,
 		    struct partition *summary_partition,
@@ -137,7 +137,7 @@ int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
  **/
 int decode_sodium_slab_depot(struct buffer *buffer,
 			     const struct thread_config *thread_config,
-			     Nonce nonce,
+			     nonce_t nonce,
 			     PhysicalLayer *layer,
 			     struct partition *summary_partition,
 			     struct read_only_notifier *read_only_notifier,
@@ -162,7 +162,7 @@ int decode_sodium_slab_depot(struct buffer *buffer,
  **/
 int decode_slab_depot(struct buffer *buffer,
 		      const struct thread_config *thread_config,
-		      Nonce nonce,
+		      nonce_t nonce,
 		      PhysicalLayer *layer,
 		      struct partition *summary_partition,
 		      struct read_only_notifier *read_only_notifier,

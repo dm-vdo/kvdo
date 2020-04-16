@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#58 $
  */
 
 #include "slabDepot.h"
@@ -229,7 +229,7 @@ static bool scheduleTailBlockCommit(void *context)
  * @return VDO_SUCCESS or an error
  **/
 static int allocate_components(struct slab_depot *depot,
-			       Nonce nonce,
+			       nonce_t nonce,
 			       const struct thread_config *thread_config,
 			       block_count_t vio_pool_size,
 			       PhysicalLayer *layer,
@@ -335,7 +335,7 @@ static int allocate_components(struct slab_depot *depot,
 __attribute__((warn_unused_result)) static int
 allocate_depot(const struct slab_depot_state_2_0 *state,
 	       const struct thread_config *thread_config,
-	       Nonce nonce,
+	       nonce_t nonce,
 	       block_count_t vio_pool_size,
 	       PhysicalLayer *layer,
 	       struct partition *summary_partition,
@@ -452,7 +452,7 @@ int make_slab_depot(block_count_t block_count,
 		    PhysicalBlockNumber first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
-		    Nonce nonce,
+		    nonce_t nonce,
 		    block_count_t vio_pool_size,
 		    PhysicalLayer *layer,
 		    struct partition *summary_partition,
@@ -718,7 +718,7 @@ static int decode_slab_depot_state_2_0(struct buffer *buffer,
 /**********************************************************************/
 int decode_slab_depot(struct buffer *buffer,
 		      const struct thread_config *thread_config,
-		      Nonce nonce,
+		      nonce_t nonce,
 		      PhysicalLayer *layer,
 		      struct partition *summary_partition,
 		      struct read_only_notifier *read_only_notifier,
@@ -759,7 +759,7 @@ int decode_slab_depot(struct buffer *buffer,
 /**********************************************************************/
 int decode_sodium_slab_depot(struct buffer *buffer,
 			     const struct thread_config *thread_config,
-			     Nonce nonce,
+			     nonce_t nonce,
 			     PhysicalLayer *layer,
 			     struct partition *summary_partition,
 			     struct read_only_notifier *read_only_notifier,

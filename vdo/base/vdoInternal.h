@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#32 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -62,7 +62,7 @@ struct vdo {
 	/* The load-time configuration of this vdo */
 	struct vdo_load_config load_config;
 	/* The nonce for this vdo */
-	Nonce nonce;
+	nonce_t nonce;
 
 	/* The super block */
 	struct vdo_super_block *super_block;

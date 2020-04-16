@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#58 $
  */
 
 #include "blockMapTree.h"
@@ -47,7 +47,7 @@ enum {
 
 struct page_descriptor {
 	RootCount root_index;
-	Height height;
+	height_t height;
 	page_number_t page_index;
 	SlotNumber slot;
 } __attribute__((packed));
@@ -176,7 +176,7 @@ get_tree_page(const struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-bool copy_valid_page(char *buffer, Nonce nonce, PhysicalBlockNumber pbn,
+bool copy_valid_page(char *buffer, nonce_t nonce, PhysicalBlockNumber pbn,
 		     struct block_map_page *page)
 {
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
@@ -712,7 +712,7 @@ static void abort_load(struct data_vio *data_vio, int result)
 __attribute__((warn_unused_result)) static bool
 is_invalid_tree_entry(const struct vdo *vdo,
 		      const struct data_location *mapping,
-		      Height height)
+		      height_t height)
 {
 	if (!is_valid_location(mapping) || is_compressed(mapping->state) ||
 	    (is_mapped_location(mapping) && (mapping->pbn == ZERO_BLOCK))) {
@@ -810,7 +810,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
 	struct block_map_page *page =
 		(struct block_map_page *) tree_page->page_buffer;
-	Nonce nonce = zone->map_zone->block_map->nonce;
+	nonce_t nonce = zone->map_zone->block_map->nonce;
 	if (!copy_valid_page(entry->buffer, nonce, pbn, page)) {
 		format_block_map_page(page, nonce, pbn, false);
 	}
@@ -875,7 +875,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 			     struct data_vio *data_vio)
 {
 	struct tree_lock *lock = &data_vio->treeLock;
-	Height height = lock->height;
+	height_t height = lock->height;
 	struct block_map_tree_slot tree_slot = lock->treeSlots[height];
 	page_key key;
 	key.descriptor = (struct page_descriptor) {
@@ -1010,7 +1010,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
-	Height height = tree_lock->height;
+	height_t height = tree_lock->height;
 
 	PhysicalBlockNumber pbn =
 		tree_lock->treeSlots[height - 1].blockMapSlot.pbn;

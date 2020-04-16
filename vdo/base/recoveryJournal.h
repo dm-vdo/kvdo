@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#19 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -153,7 +153,7 @@ const char *get_journal_operation_name(journal_operation operation)
  *
  * @return a success or error code
  **/
-int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
+int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 			  struct partition *partition,
 			  uint64_t recovery_count,
 			  block_count_t journal_size,

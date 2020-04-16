@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#20 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -83,7 +83,7 @@ struct slab_journal_block_header {
 	/** Sequence number for this block */
 	SequenceNumber sequence_number;
 	/** The nonce for a given VDO instance */
-	Nonce nonce;
+	nonce_t nonce;
 	/** Recovery journal point for last entry */
 	struct journal_point recovery_point;
 	/** Metadata type */
@@ -131,7 +131,7 @@ typedef union __attribute__((packed)) {
 		SequenceNumber head;
 		SequenceNumber sequence_number;
 		struct packed_journal_point recovery_point;
-		Nonce nonce;
+		nonce_t nonce;
 		vdo_metadata_type metadata_type;
 		bool has_block_map_increments;
 		JournalEntryCount entry_count;

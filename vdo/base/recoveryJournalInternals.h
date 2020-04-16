@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#19 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -81,7 +81,7 @@ struct recovery_journal {
 	 */
 	struct journal_point commit_point;
 	/** The nonce of the VDO */
-	Nonce nonce;
+	nonce_t nonce;
 	/** The number of recoveries completed by the VDO */
 	uint8_t recovery_count;
 	/** The number of entries which fit in a single block */

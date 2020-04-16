@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#30 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -100,7 +100,7 @@ struct block_map {
 	/** The number of entries in block map */
 	block_count_t entry_count;
 	/** The VDO's nonce, for the pages */
-	Nonce nonce;
+	nonce_t nonce;
 	/** The recovery journal for this map */
 	struct recovery_journal *journal;
 

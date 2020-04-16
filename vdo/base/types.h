@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#48 $
  */
 
 #ifndef TYPES_H
@@ -49,7 +49,7 @@ typedef uint32_t crc32_checksum_t;
 /**
  * A height within a tree.
  **/
-typedef uint8_t Height;
+typedef uint8_t height_t;
 
 /**
  * The logical block number as used by the consumer.
@@ -59,7 +59,7 @@ typedef uint64_t logical_block_number_t;
 /**
  * The type of the nonce used to identify instances of VDO.
  **/
-typedef uint64_t Nonce;
+typedef uint64_t nonce_t;
 
 /**
  * A size in pages.
@@ -353,7 +353,7 @@ struct vdo_load_config {
 	/** the expected release version number of the VDO */
 	ReleaseVersionNumber release_version;
 	/** the expected nonce of the VDO */
-	Nonce nonce;
+	nonce_t nonce;
 	/** the thread configuration of the VDO */
 	struct thread_config *thread_config;
 	/** the page cache size, in pages */
