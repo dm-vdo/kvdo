@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#24 $
  */
 
 #include "blockMapRecovery.h"
@@ -76,9 +76,9 @@ struct block_map_recovery_completion {
 	/** the absolute PBN of the current page being processed */
 	PhysicalBlockNumber pbn;
 	/** number of pending (non-ready) requests */
-	PageCount outstanding;
+	page_count_t outstanding;
 	/** number of page completions */
-	PageCount page_count;
+	page_count_t page_count;
 	/** array of requested, potentially ready page completions */
 	struct vdo_page_completion page_completions[];
 };
@@ -204,7 +204,7 @@ make_recovery_completion(struct vdo *vdo,
 			 struct block_map_recovery_completion **recovery_ptr)
 {
 	struct block_map *block_map = get_block_map(vdo);
-	PageCount page_count =
+	page_count_t page_count =
 		min_page_count(get_configured_cache_size(vdo) >> 1,
 			       MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
@@ -570,7 +570,7 @@ void recover_block_map(struct vdo *vdo,
 	recovery->launching = true;
 	recovery->pbn = recovery->current_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry = recovery->current_entry;
-	PageCount i;
+	page_count_t i;
 	for (i = 0; i < recovery->page_count; i++) {
 		if (recovery->current_unfetched_entry <
 		    recovery->journal_entries) {

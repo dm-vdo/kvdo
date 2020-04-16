@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#14 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -106,7 +106,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio);
  * @return The PBN of the page
  **/
 PhysicalBlockNumber find_block_map_page_pbn(struct block_map *map,
-					    PageNumber page_number);
+					    page_number_t page_number);
 
 /**
  * Write a tree page or indicate that it has been re-dirtied if it is already

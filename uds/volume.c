@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#6 $
  */
 
 #include "volume.h"
@@ -171,8 +171,8 @@ static int initChapterIndexPage(const Volume   *volume,
 {
   Geometry *geometry = volume->geometry;
 
-  int result = initializeChapterIndexPage(chapterIndexPage, geometry,
-                                          indexPage, volume->nonce);
+  int result = initialize_chapter_index_page(chapterIndexPage, geometry,
+                                             indexPage, volume->nonce);
   if (volume->lookupMode == LOOKUP_FOR_REBUILD) {
     return result;
   }
@@ -595,8 +595,8 @@ static int searchCachedIndexPage(Volume             *volume,
     return result;
   }
 
-  result = searchChapterIndexPage(&page->cp_indexPage, volume->geometry, name,
-                                  recordPageNumber);
+  result = search_chapter_index_page(&page->cp_indexPage, volume->geometry, name,
+                                     recordPageNumber);
   endPendingSearch(volume->pageCache, zoneNumber);
   return result;
 }
@@ -791,7 +791,7 @@ int writeIndexPages(Volume                     *volume,
 {
   Geometry *geometry = volume->geometry;
   unsigned int physicalChapterNumber
-    = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
+    = mapToPhysicalChapter(geometry, chapterIndex->virtual_chapter_number);
   unsigned int deltaListNumber = 0;
 
   unsigned int indexPageNumber;
@@ -808,9 +808,11 @@ int writeIndexPages(Volume                     *volume,
     // Pack as many delta lists into the index page as will fit.
     unsigned int listsPacked;
     bool lastPage = ((indexPageNumber + 1) == geometry->indexPagesPerChapter);
-    result = packOpenChapterIndexPage(chapterIndex,
-                                      getPageData(&volume->scratchPage),
-                                      deltaListNumber, lastPage, &listsPacked);
+    result = pack_open_chapter_index_page(chapterIndex,
+                                          getPageData(&volume->scratchPage),
+                                          deltaListNumber,
+                                          lastPage,
+                                          &listsPacked);
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result, "failed to pack index page");
     }
@@ -837,7 +839,7 @@ int writeIndexPages(Volume                     *volume,
       deltaListNumber += listsPacked;
     }
     result = updateIndexPageMap(volume->indexPageMap,
-                                chapterIndex->virtualChapterNumber,
+                                chapterIndex->virtual_chapter_number,
                                 physicalChapterNumber,
                                 indexPageNumber, deltaListNumber - 1);
     if (result != UDS_SUCCESS) {
@@ -916,7 +918,7 @@ int writeChapter(Volume                    *volume,
   // Determine the position of the virtual chapter in the volume file.
   Geometry *geometry = volume->geometry;
   unsigned int physicalChapterNumber
-    = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
+    = mapToPhysicalChapter(geometry, chapterIndex->virtual_chapter_number);
   int physicalPage = mapToPhysicalPage(geometry, physicalChapterNumber, 0);
 
   // Pack and write the delta chapter index pages to the volume.
@@ -984,7 +986,7 @@ static int probeChapter(Volume       *volume,
     }
     expectedListNumber = page->highestListNumber + 1;
 
-    result = validateChapterIndexPage(page, geometry);
+    result = validate_chapter_index_page(page, geometry);
     if (result != UDS_SUCCESS) {
       return result;
     }

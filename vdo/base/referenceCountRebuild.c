@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#32 $
  */
 
 #include "referenceCountRebuild.h"
@@ -63,15 +63,15 @@ struct rebuild_completion {
 	/** The number of block map data blocks */
 	block_count_t *block_map_data_blocks;
 	/** the next page to fetch */
-	PageCount page_to_fetch;
+	page_count_t page_to_fetch;
 	/** the number of leaf pages in the block map */
-	PageCount leaf_pages;
+	page_count_t leaf_pages;
 	/** the last slot of the block map */
 	struct block_map_slot last_slot;
 	/** number of pending (non-ready) requests*/
-	PageCount outstanding;
+	page_count_t outstanding;
 	/** number of page completions */
-	PageCount page_count;
+	page_count_t page_count;
 	/** array of requested, potentially ready page completions */
 	struct vdo_page_completion page_completions[];
 };
@@ -143,7 +143,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 				   struct rebuild_completion **rebuild_ptr)
 {
 	struct block_map *block_map = get_block_map(vdo);
-	PageCount page_count =
+	page_count_t page_count =
 		min_page_count(get_configured_cache_size(vdo) >> 1,
 			       MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
@@ -450,7 +450,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	// Prevent any page from being processed until all pages have been
 	// launched.
 	rebuild->launching = true;
-	PageCount i;
+	page_count_t i;
 	for (i = 0; i < rebuild->page_count; i++) {
 		fetch_page(rebuild, &rebuild->page_completions[i].completion);
 	}

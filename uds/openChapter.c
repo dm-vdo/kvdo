@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#5 $
  */
 
 #include "openChapter.h"
@@ -110,7 +110,7 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
       UdsChunkRecord *nextRecord = &chapterZones[zone]->records[recordNumber];
       collatedRecords[1 + recordsAdded] = *nextRecord;
 
-      int result = putOpenChapterIndexRecord(index, &nextRecord->name, page);
+      int result = put_open_chapter_index_record(index, &nextRecord->name, page);
       switch (result) {
       case UDS_SUCCESS:
         break;
@@ -138,7 +138,7 @@ int closeOpenChapter(OpenChapterZone           **chapterZones,
                      uint64_t                    virtualChapterNumber)
 {
   // Empty the delta chapter index, and prepare it for the new virtual chapter.
-  emptyOpenChapterIndex(chapterIndex, virtualChapterNumber);
+  empty_open_chapter_index(chapterIndex, virtualChapterNumber);
 
   // Map each non-deleted record name to its record page number in the delta
   // chapter index.

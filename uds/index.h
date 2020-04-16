@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#3 $
  */
 
 #ifndef INDEX_H
@@ -57,12 +57,12 @@ typedef struct index {
    * zones' views of the index depending upon the progress made by the chapter
    * writer.
    */
-  uint64_t       oldestVirtualChapter;
-  uint64_t       newestVirtualChapter;
+  uint64_t               oldestVirtualChapter;
+  uint64_t               newestVirtualChapter;
 
-  uint64_t       lastCheckpoint;
-  uint64_t       prevCheckpoint;
-  ChapterWriter *chapterWriter;
+  uint64_t               lastCheckpoint;
+  uint64_t               prevCheckpoint;
+  struct chapter_writer *chapterWriter;
 
   // checkpoint state used by indexCheckpoint.c
   IndexCheckpoint *checkpoint;

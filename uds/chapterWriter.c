@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#4 $
  */
 
 #include "chapterWriter.h"
@@ -31,7 +31,7 @@
 #include "threads.h"
 
 
-struct chapterWriter {
+struct chapter_writer {
   /* The index to which we belong */
   Index                     *index;
   /* The thread to do the writing */
@@ -62,7 +62,7 @@ struct chapterWriter {
  **/
 static void closeChapters(void *arg)
 {
-  ChapterWriter *writer = arg;
+  struct chapter_writer *writer = arg;
   logDebug("chapter writer starting");
   lockMutex(&writer->mutex);
   for (;;) {
@@ -124,13 +124,13 @@ static void closeChapters(void *arg)
 /**********************************************************************/
 int makeChapterWriter(Index                       *index,
                       const struct index_version  *indexVersion,
-                      ChapterWriter              **writerPtr)
+                      struct chapter_writer      **writerPtr)
 {
   size_t collatedRecordsSize
     = (sizeof(UdsChunkRecord)
        * (1 + index->volume->geometry->recordsPerChapter));
-  ChapterWriter *writer;
-  int result = ALLOCATE_EXTENDED(ChapterWriter,
+  struct chapter_writer *writer;
+  int result = ALLOCATE_EXTENDED(struct chapter_writer,
                                  index->zoneCount, OpenChapterZone *,
                                  "Chapter Writer", &writer);
   if (result != UDS_SUCCESS) {
@@ -157,18 +157,18 @@ int makeChapterWriter(Index                       *index,
     freeChapterWriter(writer);
     return makeUnrecoverable(result);
   }
-  result = makeOpenChapterIndex(&writer->openChapterIndex,
-                                index->volume->geometry,
-                                indexVersion->chapterIndexHeaderNativeEndian,
-                                index->volume->nonce);
+  result = make_open_chapter_index(&writer->openChapterIndex,
+                                   index->volume->geometry,
+                                   indexVersion->chapterIndexHeaderNativeEndian,
+                                   index->volume->nonce);
   if (result != UDS_SUCCESS) {
     freeChapterWriter(writer);
     return makeUnrecoverable(result);
   }
 
   size_t openChapterIndexMemoryAllocated
-    = getOpenChapterIndexMemoryAllocated(writer->openChapterIndex);
-  writer->memoryAllocated = (sizeof(ChapterWriter)
+    = get_open_chapter_index_memory_allocated(writer->openChapterIndex);
+  writer->memoryAllocated = (sizeof(struct chapter_writer)
                              + index->zoneCount * sizeof(OpenChapterZone *)
                              + collatedRecordsSize
                              + openChapterIndexMemoryAllocated);
@@ -185,7 +185,7 @@ int makeChapterWriter(Index                       *index,
 }
 
 /**********************************************************************/
-void freeChapterWriter(ChapterWriter *writer)
+void freeChapterWriter(struct chapter_writer *writer)
 {
   if (writer == NULL) {
     return;
@@ -194,15 +194,15 @@ void freeChapterWriter(ChapterWriter *writer)
   int result __attribute__((unused)) = stopChapterWriter(writer);
   destroyMutex(&writer->mutex);
   destroyCond(&writer->cond);
-  freeOpenChapterIndex(writer->openChapterIndex);
+  free_open_chapter_index(writer->openChapterIndex);
   FREE(writer->collatedRecords);
   FREE(writer);
 }
 
 /**********************************************************************/
-unsigned int startClosingChapter(ChapterWriter   *writer,
-                                 unsigned int     zoneNumber,
-                                 OpenChapterZone *chapter)
+unsigned int startClosingChapter(struct chapter_writer *writer,
+                                 unsigned int           zoneNumber,
+                                 OpenChapterZone       *chapter)
 {
   lockMutex(&writer->mutex);
   unsigned int finishedZones = ++writer->zonesToWrite;
@@ -214,7 +214,8 @@ unsigned int startClosingChapter(ChapterWriter   *writer,
 }
 
 /**********************************************************************/
-int finishPreviousChapter(ChapterWriter *writer, uint64_t currentChapterNumber)
+int finishPreviousChapter(struct chapter_writer *writer,
+                          uint64_t currentChapterNumber)
 {
   int result;
   lockMutex(&writer->mutex);
@@ -231,7 +232,7 @@ int finishPreviousChapter(ChapterWriter *writer, uint64_t currentChapterNumber)
 }
 
 /**********************************************************************/
-void waitForIdleChapterWriter(ChapterWriter *writer)
+void waitForIdleChapterWriter(struct chapter_writer *writer)
 {
   lockMutex(&writer->mutex);
   while (writer->zonesToWrite > 0) {
@@ -243,7 +244,7 @@ void waitForIdleChapterWriter(ChapterWriter *writer)
 }
 
 /**********************************************************************/
-int stopChapterWriter(ChapterWriter *writer)
+int stopChapterWriter(struct chapter_writer *writer)
 {
   Thread writerThread = 0;
 
@@ -268,7 +269,7 @@ int stopChapterWriter(ChapterWriter *writer)
 }
 
 /**********************************************************************/
-size_t getChapterWriterMemoryAllocated(ChapterWriter *writer)
+size_t getChapterWriterMemoryAllocated(struct chapter_writer *writer)
 {
   return writer->memoryAllocated;
 }

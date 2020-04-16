@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#29 $
  */
 
 #include "forest.h"
@@ -62,7 +62,7 @@ struct forest {
 };
 
 struct cursor_level {
-	PageNumber page_index;
+	page_number_t page_index;
 	SlotNumber slot;
 };
 
@@ -92,12 +92,12 @@ struct cursors {
 struct tree_page *get_tree_page_by_index(struct forest *forest,
 					 RootCount root_index,
 					 Height height,
-					 PageNumber page_index)
+					 page_number_t page_index)
 {
-	PageNumber offset = 0;
+	page_number_t offset = 0;
 	size_t segment;
 	for (segment = 0; segment < forest->segments; segment++) {
-		PageNumber border =
+		page_number_t border =
 			forest->boundaries[segment].levels[height - 1];
 		if (page_index < border) {
 			struct block_map_tree *tree = &forest->trees[root_index];
@@ -129,10 +129,10 @@ static block_count_t compute_new_pages(RootCount root_count,
 				       block_count_t entries,
 				       struct boundary *new_sizes)
 {
-	PageCount leaf_pages
+	page_count_t leaf_pages
 		= max_page_count(compute_block_map_page_count(entries) -
 				 flat_page_count, 1);
-	PageCount level_size = compute_bucket_count(leaf_pages, root_count);
+	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	Height height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
@@ -195,7 +195,7 @@ static int make_segment(struct forest *old_forest,
 	       new_boundary,
 	       sizeof(struct boundary));
 
-	PageCount segment_sizes[BLOCK_MAP_TREE_HEIGHT];
+	page_count_t segment_sizes[BLOCK_MAP_TREE_HEIGHT];
 	Height height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
 		segment_sizes[height] = new_boundary->levels[height];
@@ -451,7 +451,7 @@ static void traverse(struct cursor *cursor)
 				continue;
 			}
 
-			PageNumber entry_index =
+			page_number_t entry_index =
 				(BLOCK_MAP_ENTRIES_PER_PAGE *
 				 level->page_index) + level->slot;
 
@@ -531,8 +531,9 @@ static void launch_cursor(struct waiter *waiter, void *context)
 static struct boundary compute_boundary(struct block_map *map,
 				       RootCount root_index)
 {
-	PageCount leaf_pages = compute_block_map_page_count(map->entry_count);
-	PageCount tree_leaf_pages = leaf_pages - map->flat_page_count;
+	page_count_t leaf_pages =
+		compute_block_map_page_count(map->entry_count);
+	page_count_t tree_leaf_pages = leaf_pages - map->flat_page_count;
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
@@ -540,10 +541,10 @@ static struct boundary compute_boundary(struct block_map *map,
 	 * extra page. Extra pages are assigned to roots starting at
 	 * first_tree_root and going up.
 	 */
-	PageCount first_tree_root = map->flat_page_count % map->root_count;
-	PageCount last_tree_root = (leaf_pages - 1) % map->root_count;
+	page_count_t first_tree_root = map->flat_page_count % map->root_count;
+	page_count_t last_tree_root = (leaf_pages - 1) % map->root_count;
 
-	PageCount level_pages = tree_leaf_pages / map->root_count;
+	page_count_t level_pages = tree_leaf_pages / map->root_count;
 	if (in_cyclic_range(first_tree_root,
 			    root_index,
 			    last_tree_root,

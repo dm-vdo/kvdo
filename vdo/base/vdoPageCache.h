@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#15 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -151,7 +151,7 @@ typedef bool vdo_page_write_function(void *raw_page,
  * @return a success or error code
  **/
 int make_vdo_page_cache(PhysicalLayer *layer,
-			PageCount page_count,
+			page_count_t page_count,
 			vdo_page_read_function *read_hook,
 			vdo_page_write_function *write_hook,
 			size_t page_context_size,

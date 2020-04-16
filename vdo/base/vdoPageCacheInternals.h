@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#17 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -50,13 +50,13 @@ struct vdo_page_cache {
 	/** the physical layer to page to */
 	PhysicalLayer *layer;
 	/** number of pages in cache */
-	PageCount page_count;
+	page_count_t page_count;
 	/** function to call on page read */
 	vdo_page_read_function *read_hook;
 	/** function to call on page write */
 	vdo_page_write_function *write_hook;
 	/** number of pages to write in the current batch */
-	PageCount pages_in_batch;
+	page_count_t pages_in_batch;
 	/** Whether the VDO is doing a read-only rebuild */
 	bool rebuilding;
 
@@ -77,13 +77,13 @@ struct vdo_page_cache {
 	/** outgoing page list */
 	page_info_node outgoing_list;
 	/** number of read I/O operations pending */
-	PageCount outstanding_reads;
+	page_count_t outstanding_reads;
 	/** number of write I/O operations pending */
-	PageCount outstanding_writes;
+	page_count_t outstanding_writes;
 	/** number of pages covered by the current flush */
-	PageCount pages_in_flush;
+	page_count_t pages_in_flush;
 	/** number of pages waiting to be included in the next flush */
-	PageCount pages_to_flush;
+	page_count_t pages_to_flush;
 	/** number of discards in progress */
 	unsigned int discard_count;
 	/** how many VPCs waiting for free page */

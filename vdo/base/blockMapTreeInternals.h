@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#8 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -66,7 +66,7 @@ struct tree_page {
 };
 
 struct boundary {
-	PageNumber levels[BLOCK_MAP_TREE_HEIGHT];
+	page_number_t levels[BLOCK_MAP_TREE_HEIGHT];
 };
 
 /**

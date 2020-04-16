@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#46 $
  */
 
 #ifndef TYPES_H
@@ -64,17 +64,17 @@ typedef uint64_t Nonce;
 /**
  * A size in pages.
  **/
-typedef uint32_t PageCount;
+typedef uint32_t page_count_t;
 
 /**
  * A page number.
  **/
-typedef uint32_t PageNumber;
+typedef uint32_t page_number_t;
 
 /**
  * The size of a page.  Must be evenly divisible by block size.
  **/
-typedef uint32_t PageSize;
+typedef uint32_t page_size_t;
 
 /**
  * The physical (well, less logical) block number at which the block is found
@@ -299,7 +299,7 @@ struct block_map_slot {
  * A position in the arboreal block map at a specific level.
  **/
 struct block_map_tree_slot {
-	PageNumber pageIndex;
+	page_number_t pageIndex;
 	struct block_map_slot blockMapSlot;
 };
 
@@ -357,7 +357,7 @@ struct vdo_load_config {
 	/** the thread configuration of the VDO */
 	struct thread_config *thread_config;
 	/** the page cache size, in pages */
-	PageCount cache_size;
+	page_count_t cache_size;
 	/** whether writes are synchronous */
 	write_policy write_policy;
 	/**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#56 $
  */
 
 #include "blockMap.h"
@@ -130,7 +130,7 @@ static bool handle_page_write(void *raw_page,
 }
 
 /**********************************************************************/
-PageCount compute_block_map_page_count(block_count_t entries)
+page_count_t compute_block_map_page_count(block_count_t entries)
 {
 	return compute_bucket_count(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
 }
@@ -299,7 +299,7 @@ __attribute__((warn_unused_result)) static int
 initialize_block_map_zone(struct block_map_zone *zone,
 		       PhysicalLayer *layer,
 		       struct read_only_notifier *read_only_notifier,
-		       PageCount cache_size,
+		       page_count_t cache_size,
 		       block_count_t maximum_age)
 {
 	zone->read_only_notifier = read_only_notifier;
@@ -391,7 +391,7 @@ int make_block_map_caches(struct block_map *map,
 			  struct read_only_notifier *read_only_notifier,
 			  struct recovery_journal *journal,
 			  Nonce nonce,
-			  PageCount cache_size,
+			  page_count_t cache_size,
 			  block_count_t maximum_age)
 {
 	int result = ASSERT(cache_size > 0,
@@ -524,7 +524,7 @@ ZoneCount compute_logical_zone(struct data_vio *data_vio)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->treeLock;
-	PageNumber page_number = compute_page_number(data_vio->logical.lbn);
+	page_number_t page_number = compute_page_number(data_vio->logical.lbn);
 	tree_lock->treeSlots[0].pageIndex = page_number;
 	tree_lock->rootIndex = page_number % map->root_count;
 	return (tree_lock->rootIndex % map->zone_count);
@@ -559,7 +559,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 }
 
 /**********************************************************************/
-PageCount get_number_of_fixed_block_map_pages(const struct block_map *map)
+page_count_t get_number_of_fixed_block_map_pages(const struct block_map *map)
 {
 	return (map->flat_page_count + map->root_count);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#17 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -160,7 +160,7 @@ int make_block_map_caches(struct block_map *map,
 			  struct read_only_notifier *read_only_notifier,
 			  struct recovery_journal *journal,
 			  Nonce nonce,
-			  PageCount cache_size,
+			  page_count_t cache_size,
 			  block_count_t maximum_age)
 	__attribute__((warn_unused_result));
 
@@ -240,7 +240,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
  *
  * @return The number of fixed pages used by the map
  **/
-PageCount get_number_of_fixed_block_map_pages(const struct block_map *map)
+page_count_t get_number_of_fixed_block_map_pages(const struct block_map *map)
 	__attribute__((warn_unused_result));
 
 /**

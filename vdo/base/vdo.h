@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#12 $
  */
 
 #ifndef VDO_H
@@ -192,7 +192,7 @@ block_count_t get_configured_block_map_maximum_age(const struct vdo *vdo)
  *
  * @return The number of pages for the page cache
  **/
-PageCount get_configured_cache_size(const struct vdo *vdo)
+page_count_t get_configured_cache_size(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**

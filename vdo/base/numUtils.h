@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#4 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -110,8 +110,8 @@ min_sequence_number(SequenceNumber a, SequenceNumber b)
 /**
  * Return the minimum of two page counts.
  **/
-__attribute__((warn_unused_result)) static inline PageCount
-min_page_count(PageCount a, PageCount b)
+__attribute__((warn_unused_result)) static inline page_count_t
+min_page_count(page_count_t a, page_count_t b)
 {
 	return (a < b) ? a : b;
 }
@@ -119,8 +119,8 @@ min_page_count(PageCount a, PageCount b)
 /**
  * Return the maximum of two page counts.
  **/
-__attribute__((warn_unused_result)) static inline PageCount
-max_page_count(PageCount a, PageCount b)
+__attribute__((warn_unused_result)) static inline page_count_t
+max_page_count(page_count_t a, page_count_t b)
 {
 	return (a > b) ? a : b;
 }

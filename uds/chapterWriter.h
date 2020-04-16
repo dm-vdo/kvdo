@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#2 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -26,7 +26,7 @@
 #include "indexVersion.h"
 #include "openChapterZone.h"
 
-typedef struct chapterWriter ChapterWriter;
+struct chapter_writer;
 
 // This opaque declaration breaks the dependency loop with index.h
 struct index;
@@ -41,17 +41,16 @@ struct index;
  *
  * @return           UDS_SUCCESS or an error code
  **/
-int makeChapterWriter(struct index                *index,
-                      const struct index_version  *indexVersion,
-                      ChapterWriter              **writerPtr)
-  __attribute__((warn_unused_result));
+int __must_check makeChapterWriter(struct index *index,
+				   const struct index_version *indexVersion,
+				   struct chapter_writer **writerPtr);
 
 /**
  * Free a chapter writer, waiting for its thread to finish.
  *
  * @param writer  the chapter writer to destroy
  **/
-void freeChapterWriter(ChapterWriter *writer);
+void freeChapterWriter(struct chapter_writer *writer);
 
 /**
  * Asychronously close and write a chapter by passing it to the writer
@@ -63,10 +62,10 @@ void freeChapterWriter(ChapterWriter *writer);
  *
  * @return The number of zones which have submitted the current chapter
  **/
-unsigned int startClosingChapter(ChapterWriter   *writer,
-                                 unsigned int     zoneNumber,
-                                 OpenChapterZone *chapter)
-  __attribute__((warn_unused_result));
+unsigned int __must_check
+startClosingChapter(struct chapter_writer *writer,
+		    unsigned int zoneNumber,
+		    OpenChapterZone *chapter);
 
 /**
  * Wait for the chapter writer thread to finish closing the chapter previous
@@ -78,16 +77,16 @@ unsigned int startClosingChapter(ChapterWriter   *writer,
  * @return UDS_SUCCESS or an error code from the most recent write
  *         request
  **/
-int finishPreviousChapter(ChapterWriter *writer, uint64_t currentChapterNumber)
-  __attribute__((warn_unused_result));
-
+int __must_check
+finishPreviousChapter(struct chapter_writer *writer,
+		      uint64_t currentChapterNumber);
 
 /**
  * Wait for the chapter writer thread to finish all writes to storage.
  *
  * @param writer  the chapter writer
  **/
-void waitForIdleChapterWriter(ChapterWriter *writer);
+void waitForIdleChapterWriter(struct chapter_writer *writer);
 
 /**
  * Stop the chapter writer and wait for it to finish.
@@ -97,8 +96,7 @@ void waitForIdleChapterWriter(ChapterWriter *writer);
  * @return UDS_SUCCESS or an error code from the most recent write
  *         request
  **/
-int stopChapterWriter(ChapterWriter *writer)
-  __attribute__((warn_unused_result));
+int __must_check stopChapterWriter(struct chapter_writer *writer);
 
 /**
  * Get the number of bytes allocated for the chapter writer.
@@ -107,6 +105,6 @@ int stopChapterWriter(ChapterWriter *writer)
  *
  * @return the number of bytes allocated
  **/
-size_t getChapterWriterMemoryAllocated(ChapterWriter *writer);
+size_t getChapterWriterMemoryAllocated(struct chapter_writer *writer);
 
 #endif /* CHAPTER_WRITER_H */
