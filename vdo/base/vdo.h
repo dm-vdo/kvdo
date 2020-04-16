@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#13 $
  */
 
 #ifndef VDO_H
@@ -231,7 +231,7 @@ bool was_new(const struct vdo *vdo) __attribute__((warn_unused_result));
  **/
 struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 					const struct data_location *advice,
-					LogicalBlockNumber lbn)
+					logical_block_number_t lbn)
 	__attribute__((warn_unused_result));
 
 // TEST SUPPORT ONLY BEYOND THIS POINT

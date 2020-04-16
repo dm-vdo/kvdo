@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#58 $
  */
 
 #include "dataKVIO.h"
@@ -971,8 +971,9 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 		operation |= VIO_FLUSH_AFTER;
 	}
 
-	LogicalBlockNumber lbn = sector_to_block(layer,
-		get_bio_sector(bio) - layer->starting_sector_offset);
+	logical_block_number_t lbn =
+		sector_to_block(layer, get_bio_sector(bio) -
+				layer->starting_sector_offset);
 	prepare_data_vio(&data_kvio->data_vio, lbn, operation, is_trim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,
 		     vio_as_completion(kvio->vio)->callback,

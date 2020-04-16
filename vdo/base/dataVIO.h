@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#35 $
  */
 
 #ifndef DATA_VIO_H
@@ -85,7 +85,7 @@ typedef enum __attribute__((packed)) {
  */
 struct lbn_lock {
 	/* The LBN being locked */
-	LogicalBlockNumber lbn;
+	logical_block_number_t lbn;
 	/* Whether the lock is locked */
 	bool locked;
 	/* The queue of waiters for the lock */
@@ -484,7 +484,7 @@ static inline bool has_allocation(struct data_vio *data_vio)
  *                   operation
  **/
 void prepare_data_vio(struct data_vio *data_vio,
-		      LogicalBlockNumber lbn,
+		      logical_block_number_t lbn,
 		      vio_operation operation,
 		      bool isTrim,
 		      vdo_action *callback);

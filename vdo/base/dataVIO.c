@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#29 $
  */
 
 #include "dataVIO.h"
@@ -76,7 +76,7 @@ static const char *ASYNC_OPERATION_NAMES[] = {
  * @param lbn       The lbn on which the data_vio will operate
  **/
 static void initialize_lbn_lock(struct data_vio *data_vio,
-				LogicalBlockNumber lbn)
+				logical_block_number_t lbn)
 {
 	struct lbn_lock *lock = &data_vio->logical;
 	lock->lbn = lbn;
@@ -90,7 +90,7 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 
 /**********************************************************************/
 void prepare_data_vio(struct data_vio *data_vio,
-		      LogicalBlockNumber lbn,
+		      logical_block_number_t lbn,
 		      vio_operation operation,
 		      bool is_trim,
 		      vdo_action *callback)

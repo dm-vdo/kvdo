@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#47 $
  */
 
 #ifndef TYPES_H
@@ -54,7 +54,7 @@ typedef uint8_t Height;
 /**
  * The logical block number as used by the consumer.
  **/
-typedef uint64_t LogicalBlockNumber;
+typedef uint64_t logical_block_number_t;
 
 /**
  * The type of the nonce used to identify instances of VDO.
