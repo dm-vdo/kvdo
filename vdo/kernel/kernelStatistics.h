@@ -67,7 +67,7 @@ struct index_statistics {
 
 struct kernel_statistics {
   uint32_t version;
-  uint32_t releaseVersion;
+  uint32_t release_version;
   /** The VDO instance */
   uint32_t instance;
   /** Current number of active VIOs */

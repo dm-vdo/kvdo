@@ -763,7 +763,7 @@ int write_vdo_statistics(char *prefix,
               return result;
        }
        result = write_uint32_t("releaseVersion : ",
-                               stats->releaseVersion,
+                               stats->release_version,
                                ", ",
                                buf,
                                maxlen);
@@ -1210,7 +1210,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_uint32_t("releaseVersion : ",
-                               stats->releaseVersion,
+                               stats->release_version,
                                ", ",
                                buf,
                                maxlen);

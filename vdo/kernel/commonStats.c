@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#6 $
  *
  * Common stat functions
  *
@@ -62,7 +62,7 @@ void get_kernel_statistics(struct kernel_layer *layer,
 			   struct kernel_statistics *stats)
 {
 	stats->version = STATISTICS_VERSION;
-	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
+	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = layer->instance;
 	get_limiter_values_atomically(&layer->request_limiter,
 				      &stats->current_vios_in_progress,

@@ -1040,7 +1040,7 @@ static struct pool_stats_attribute pool_stats_hash_lock_concurrent_hash_collisio
 
 /**********************************************************************/
 /** number of times VDO got an invalid dedupe advice PBN from UDS */
-static ssize_t pool_stats_errors_invalid_advicePBNCount_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_errors_invalid_advice_pbn_count_show(struct kernel_layer *layer, char *buf)
 {
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
@@ -1050,9 +1050,9 @@ static ssize_t pool_stats_errors_invalid_advicePBNCount_show(struct kernel_layer
 	return retval;
 }
 
-static struct pool_stats_attribute pool_stats_errors_invalid_advicePBNCount_attr = {
-	.attr  = { .name = "errors_invalid_advicePBNCount", .mode = 0444, },
-	.show  = pool_stats_errors_invalid_advicePBNCount_show,
+static struct pool_stats_attribute pool_stats_errors_invalid_advice_pbn_count_attr = {
+	.attr  = { .name = "errors_invalid_advice_pbn_count", .mode = 0444, },
+	.show  = pool_stats_errors_invalid_advice_pbn_count_show,
 };
 
 /**********************************************************************/
@@ -1108,7 +1108,7 @@ static struct pool_stats_attribute pool_stats_instance_attr = {
 
 /**********************************************************************/
 /** Current number of active VIOs */
-static ssize_t pool_stats_currentVIOs_in_progress_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_current_vios_in_progress_show(struct kernel_layer *layer, char *buf)
 {
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
@@ -1118,14 +1118,14 @@ static ssize_t pool_stats_currentVIOs_in_progress_show(struct kernel_layer *laye
 	return retval;
 }
 
-static struct pool_stats_attribute pool_stats_currentVIOs_in_progress_attr = {
-	.attr  = { .name = "currentVIOs_in_progress", .mode = 0444, },
-	.show  = pool_stats_currentVIOs_in_progress_show,
+static struct pool_stats_attribute pool_stats_current_vios_in_progress_attr = {
+	.attr  = { .name = "current_vios_in_progress", .mode = 0444, },
+	.show  = pool_stats_current_vios_in_progress_show,
 };
 
 /**********************************************************************/
 /** Maximum number of active VIOs */
-static ssize_t pool_stats_maxVIOs_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_max_vios_show(struct kernel_layer *layer, char *buf)
 {
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
@@ -1135,9 +1135,9 @@ static ssize_t pool_stats_maxVIOs_show(struct kernel_layer *layer, char *buf)
 	return retval;
 }
 
-static struct pool_stats_attribute pool_stats_maxVIOs_attr = {
-	.attr  = { .name = "maxVIOs", .mode = 0444, },
-	.show  = pool_stats_maxVIOs_show,
+static struct pool_stats_attribute pool_stats_max_vios_attr = {
+	.attr  = { .name = "max_vios", .mode = 0444, },
+	.show  = pool_stats_max_vios_show,
 };
 
 /**********************************************************************/
@@ -2542,12 +2542,12 @@ struct attribute *pool_stats_attrs[] = {
 	&pool_stats_hash_lock_dedupe_advice_stale_attr.attr,
 	&pool_stats_hash_lock_concurrent_data_matches_attr.attr,
 	&pool_stats_hash_lock_concurrent_hash_collisions_attr.attr,
-	&pool_stats_errors_invalid_advicePBNCount_attr.attr,
+	&pool_stats_errors_invalid_advice_pbn_count_attr.attr,
 	&pool_stats_errors_no_space_error_count_attr.attr,
 	&pool_stats_errors_read_only_error_count_attr.attr,
 	&pool_stats_instance_attr.attr,
-	&pool_stats_currentVIOs_in_progress_attr.attr,
-	&pool_stats_maxVIOs_attr.attr,
+	&pool_stats_current_vios_in_progress_attr.attr,
+	&pool_stats_max_vios_attr.attr,
 	&pool_stats_dedupe_advice_timeouts_attr.attr,
 	&pool_stats_flush_out_attr.attr,
 	&pool_stats_logical_block_size_attr.attr,
