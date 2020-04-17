@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#16 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -112,7 +112,7 @@ struct atomic_page_cache_statistics {
  *         formatted
  **/
 typedef int vdo_page_read_function(void *raw_page,
-				   PhysicalBlockNumber pbn,
+				   physical_block_number_t pbn,
 				   struct block_map_zone *zone,
 				   void *page_context);
 
@@ -245,7 +245,7 @@ struct vdo_page_completion {
 	/** The waiter for the pending list */
 	struct waiter waiter;
 	/** The absolute physical block number of the page on disk */
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	/** Whether the page may be modified */
 	bool writable;
 	/** Whether the page is available */
@@ -272,7 +272,7 @@ struct vdo_page_completion {
  **/
 void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
-			      PhysicalBlockNumber pbn,
+			      physical_block_number_t pbn,
 			      bool writable,
 			      void *parent,
 			      vdo_action *callback,

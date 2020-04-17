@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#86 $
  */
 
 #include "kernelLayer.h"
@@ -419,7 +419,7 @@ static int kvdo_allocate_io_buffer(PhysicalLayer *layer __attribute__((unused)),
  * it is read.
  **/
 static int kvdo_synchronous_read(PhysicalLayer *layer,
-				 PhysicalBlockNumber start_block,
+				 physical_block_number_t start_block,
 				 size_t block_count,
 				 char *buffer,
 				 size_t *blocks_read)

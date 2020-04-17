@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#33 $
  */
 
 #include "slab.h"
@@ -118,18 +118,18 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 }
 
 /**********************************************************************/
-PhysicalBlockNumber
+physical_block_number_t
 get_slab_journal_start_block(const struct slab_config *slab_config,
-			     PhysicalBlockNumber origin)
+			     physical_block_number_t origin)
 {
 	return origin + slab_config->data_blocks
 	       + slab_config->reference_count_blocks;
 }
 
 /**********************************************************************/
-int make_slab(PhysicalBlockNumber slab_origin,
+int make_slab(physical_block_number_t slab_origin,
 	      struct block_allocator *allocator,
-	      PhysicalBlockNumber translation,
+	      physical_block_number_t translation,
 	      struct recovery_journal *recovery_journal,
 	      SlabCount slab_number,
 	      bool is_new,
@@ -279,7 +279,7 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 
 /**********************************************************************/
 int acquire_provisional_reference(struct vdo_slab *slab,
-				  PhysicalBlockNumber pbn,
+				  physical_block_number_t pbn,
 				  struct pbn_lock *lock)
 {
 	if (has_provisional_reference(lock)) {
@@ -301,7 +301,7 @@ int acquire_provisional_reference(struct vdo_slab *slab,
 
 /**********************************************************************/
 int slab_block_number_from_pbn(struct vdo_slab *slab,
-			       PhysicalBlockNumber physical_block_number,
+			       physical_block_number_t physical_block_number,
 			       slab_block_number *slab_block_number_ptr)
 {
 	if (physical_block_number < slab->start) {

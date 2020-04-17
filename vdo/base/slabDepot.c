@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#59 $
  */
 
 #include "slabDepot.h"
@@ -43,8 +43,8 @@
 
 struct slab_depot_state_2_0 {
 	struct slab_config slab_config;
-	PhysicalBlockNumber first_block;
-	PhysicalBlockNumber last_block;
+	physical_block_number_t first_block;
+	physical_block_number_t last_block;
 	ZoneCount zone_count;
 } __attribute__((packed));
 
@@ -67,8 +67,8 @@ static const struct header SLAB_DEPOT_HEADER_2_0 = {
  * @return The number of slabs
  **/
 __attribute__((warn_unused_result)) static SlabCount
-compute_slab_count(PhysicalBlockNumber first_block,
-		   PhysicalBlockNumber last_block,
+compute_slab_count(physical_block_number_t first_block,
+		   physical_block_number_t last_block,
 		   unsigned int slab_size_shift)
 {
 	block_count_t data_blocks = last_block - first_block;
@@ -125,7 +125,7 @@ static int allocate_slabs(struct slab_depot *depot, SlabCount slab_count)
 	}
 
 	block_count_t slab_size = get_slab_config(depot)->slab_blocks;
-	PhysicalBlockNumber slab_origin =
+	physical_block_number_t slab_origin =
 		depot->first_block + (depot->slab_count * slab_size);
 
 	// The translation between allocator partition PBNs and layer PBNs.
@@ -402,7 +402,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
  * @return VDO_SUCCESS or an error code
  **/
 static int configure_state(block_count_t block_count,
-			   PhysicalBlockNumber first_block,
+			   physical_block_number_t first_block,
 			   struct slab_config slab_config,
 			   ZoneCount zone_count,
 			   struct slab_depot_state_2_0 *state)
@@ -428,7 +428,7 @@ static int configure_state(block_count_t block_count,
 
 	block_count_t total_slab_blocks = slab_count * slab_config.slab_blocks;
 	block_count_t total_data_blocks = slab_count * slab_config.data_blocks;
-	PhysicalBlockNumber last_block = first_block + total_slab_blocks;
+	physical_block_number_t last_block = first_block + total_slab_blocks;
 
 	*state = (struct slab_depot_state_2_0) {
 		.slab_config = slab_config,
@@ -449,7 +449,7 @@ static int configure_state(block_count_t block_count,
 
 /**********************************************************************/
 int make_slab_depot(block_count_t block_count,
-		    PhysicalBlockNumber first_block,
+		    physical_block_number_t first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    nonce_t nonce,
@@ -691,14 +691,14 @@ static int decode_slab_depot_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	PhysicalBlockNumber first_block;
+	physical_block_number_t first_block;
 	result = get_uint64_le_from_buffer(buffer, &first_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	state->first_block = first_block;
 
-	PhysicalBlockNumber last_block;
+	physical_block_number_t last_block;
 	result = get_uint64_le_from_buffer(buffer, &last_block);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -801,7 +801,7 @@ struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
 
 /**********************************************************************/
 int get_slab_number(const struct slab_depot *depot,
-		    PhysicalBlockNumber pbn,
+		    physical_block_number_t pbn,
 		    SlabCount *slab_number_ptr)
 {
 	if (pbn < depot->first_block) {
@@ -820,7 +820,7 @@ int get_slab_number(const struct slab_depot *depot,
 
 /**********************************************************************/
 struct vdo_slab *get_slab(const struct slab_depot *depot,
-			  PhysicalBlockNumber pbn)
+			  physical_block_number_t pbn)
 {
 	if (pbn == ZERO_BLOCK) {
 		return NULL;
@@ -838,14 +838,15 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
 
 /**********************************************************************/
 struct slab_journal *get_slab_journal(const struct slab_depot *depot,
-				      PhysicalBlockNumber pbn)
+				      physical_block_number_t pbn)
 {
 	struct vdo_slab *slab = get_slab(depot, pbn);
 	return ((slab != NULL) ? slab->journal : NULL);
 }
 
 /**********************************************************************/
-uint8_t get_increment_limit(struct slab_depot *depot, PhysicalBlockNumber pbn)
+uint8_t get_increment_limit(struct slab_depot *depot,
+			    physical_block_number_t pbn)
 {
 	struct vdo_slab *slab = get_slab(depot, pbn);
 	if ((slab == NULL) || is_unrecovered_slab(slab)) {
@@ -857,7 +858,7 @@ uint8_t get_increment_limit(struct slab_depot *depot, PhysicalBlockNumber pbn)
 
 /**********************************************************************/
 bool is_physical_data_block(const struct slab_depot *depot,
-			    PhysicalBlockNumber pbn)
+			    physical_block_number_t pbn)
 {
 	if (pbn == ZERO_BLOCK) {
 		return true;

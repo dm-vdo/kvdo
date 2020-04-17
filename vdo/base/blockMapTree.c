@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#59 $
  */
 
 #include "blockMapTree.h"
@@ -66,7 +66,7 @@ struct write_if_not_dirtied_context {
  * An invalid PBN used to indicate that the page holding the location of a
  * tree root has been "loaded".
  **/
-const PhysicalBlockNumber INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
+const physical_block_number_t INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
 /**
  * Convert a RingNode to a tree_page.
@@ -176,7 +176,7 @@ get_tree_page(const struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-bool copy_valid_page(char *buffer, nonce_t nonce, PhysicalBlockNumber pbn,
+bool copy_valid_page(char *buffer, nonce_t nonce, physical_block_number_t pbn,
 		     struct block_map_page *page)
 {
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
@@ -805,7 +805,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 
 	tree_lock->height--;
-	PhysicalBlockNumber pbn =
+	physical_block_number_t pbn =
 		tree_lock->treeSlots[tree_lock->height].blockMapSlot.pbn;
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
 	struct block_map_page *page =
@@ -978,7 +978,7 @@ static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct tree_lock *tree_lock = &data_vio->treeLock;
-	PhysicalBlockNumber pbn = *((PhysicalBlockNumber *) context);
+	physical_block_number_t pbn = *((physical_block_number_t *) context);
 
 	tree_lock->height--;
 	data_vio->treeLock.treeSlots[tree_lock->height].blockMapSlot.pbn = pbn;
@@ -1012,7 +1012,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
 	height_t height = tree_lock->height;
 
-	PhysicalBlockNumber pbn =
+	physical_block_number_t pbn =
 		tree_lock->treeSlots[height - 1].blockMapSlot.pbn;
 
 	// Record the allocation.
@@ -1106,7 +1106,7 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 	}
 
 	struct tree_lock *lock = &data_vio->treeLock;
-	PhysicalBlockNumber pbn =
+	physical_block_number_t pbn =
 		lock->treeSlots[lock->height - 1].blockMapSlot.pbn;
 	completion->callback = release_block_map_write_lock;
 	add_slab_journal_entry(get_slab_journal(get_vdo_from_data_vio(data_vio)->depot,
@@ -1154,7 +1154,7 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 		return;
 	}
 
-	PhysicalBlockNumber pbn = allocating_vio->allocation;
+	physical_block_number_t pbn = allocating_vio->allocation;
 	struct tree_lock *lock = &data_vio->treeLock;
 	lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
 	set_up_reference_operation_with_lock(BLOCK_MAP_INCREMENT,
@@ -1226,7 +1226,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 	     lock->height++) {
 		lock->treeSlots[lock->height] = tree_slot;
 		page = (struct block_map_page *) (get_tree_page(zone, lock)->page_buffer);
-		PhysicalBlockNumber pbn = get_block_map_page_pbn(page);
+		physical_block_number_t pbn = get_block_map_page_pbn(page);
 		if (pbn != ZERO_BLOCK) {
 			lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
 			break;
@@ -1272,8 +1272,8 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-PhysicalBlockNumber find_block_map_page_pbn(struct block_map *map,
-					    page_number_t page_number)
+physical_block_number_t find_block_map_page_pbn(struct block_map *map,
+						page_number_t page_number)
 {
 	if (page_number < map->flat_page_count) {
 		return (BLOCK_MAP_FLAT_PAGE_ORIGIN + page_number);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#18 $
  */
 
 #include "superBlock.h"
@@ -216,7 +216,7 @@ encode_super_block(struct vdo_super_block *super_block)
 
 /**********************************************************************/
 int save_super_block(PhysicalLayer *layer, struct vdo_super_block *super_block,
-		     PhysicalBlockNumber super_block_offset)
+		     physical_block_number_t super_block_offset)
 {
 	int result = encode_super_block(super_block);
 	if (result != VDO_SUCCESS) {
@@ -266,7 +266,7 @@ static void handle_save_error(struct vdo_completion *completion)
 
 /**********************************************************************/
 void save_super_block_async(struct vdo_super_block *super_block,
-			    PhysicalBlockNumber super_block_offset,
+			    physical_block_number_t super_block_offset,
 			    struct vdo_completion *parent)
 {
 	if (super_block->unwriteable) {
@@ -379,7 +379,7 @@ decode_super_block(struct vdo_super_block *super_block)
 
 /**********************************************************************/
 int load_super_block(PhysicalLayer *layer,
-		     PhysicalBlockNumber super_block_offset,
+		     physical_block_number_t super_block_offset,
 		     struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block = NULL;
@@ -422,7 +422,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 
 /**********************************************************************/
 void load_super_block_async(struct vdo_completion *parent,
-			    PhysicalBlockNumber super_block_offset,
+			    physical_block_number_t super_block_offset,
 			    struct vdo_super_block **super_block_ptr)
 {
 	PhysicalLayer *layer = parent->layer;

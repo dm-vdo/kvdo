@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#66 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -443,9 +443,9 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
  * @return UDS_SUCCESS or an error code
  **/
 static int allocate_slab_block(struct vdo_slab *slab,
-			       PhysicalBlockNumber *block_number_ptr)
+			       physical_block_number_t *block_number_ptr)
 {
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	int result = allocate_unreferenced_block(slab->reference_counts, &pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -459,7 +459,7 @@ static int allocate_slab_block(struct vdo_slab *slab,
 
 /**********************************************************************/
 int allocate_block(struct block_allocator *allocator,
-		   PhysicalBlockNumber *block_number_ptr)
+		   physical_block_number_t *block_number_ptr)
 {
 	if (allocator->open_slab != NULL) {
 		// Try to allocate the next block in the currently open slab.
@@ -492,7 +492,7 @@ int allocate_block(struct block_allocator *allocator,
 
 /**********************************************************************/
 void release_block_reference(struct block_allocator *allocator,
-			     PhysicalBlockNumber pbn,
+			     physical_block_number_t pbn,
 			     const char *why)
 {
 	if (pbn == ZERO_BLOCK) {

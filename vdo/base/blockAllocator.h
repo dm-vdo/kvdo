@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#26 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -92,7 +92,7 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment);
  * @return UDS_SUCCESS or an error code
  **/
 int allocate_block(struct block_allocator *allocator,
-		   PhysicalBlockNumber *block_number_ptr)
+		   physical_block_number_t *block_number_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -103,7 +103,7 @@ int allocate_block(struct block_allocator *allocator,
  * @param why        Why the block was referenced (for logging)
  **/
 void release_block_reference(struct block_allocator *allocator,
-			     PhysicalBlockNumber pbn,
+			     physical_block_number_t pbn,
 			     const char *why);
 
 /**

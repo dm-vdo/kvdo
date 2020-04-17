@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#19 $
  */
 
 #include "allocatingVIO.h"
@@ -237,7 +237,7 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
 void release_allocation_lock(struct allocating_vio *allocating_vio)
 {
 	assertInPhysicalZone(allocating_vio);
-	PhysicalBlockNumber lockedPBN = allocating_vio->allocation;
+	physical_block_number_t lockedPBN = allocating_vio->allocation;
 	if (has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = ZERO_BLOCK;
 	}

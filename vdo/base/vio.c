@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#21 $
  */
 
 #include "vio.h"
@@ -125,7 +125,7 @@ static void handle_metadata_io_error(struct vdo_completion *completion)
 
 /**********************************************************************/
 void launch_metadata_vio(struct vio *vio,
-			 PhysicalBlockNumber physical,
+			 physical_block_number_t physical,
 			 vdo_action *callback,
 			 vdo_action *error_handler,
 			 vio_operation operation)

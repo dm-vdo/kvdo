@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#8 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -85,7 +85,7 @@ struct block_allocator *get_block_allocator(const struct physical_zone *zone)
  * @return The lock or NULL if the PBN is not locked
  **/
 struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
-			      PhysicalBlockNumber pbn)
+			      physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -104,7 +104,7 @@ struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
  * @return VDO_SUCCESS or an error
  **/
 int attempt_pbn_lock(struct physical_zone *zone,
-		     PhysicalBlockNumber pbn,
+		     physical_block_number_t pbn,
 		     pbn_lock_type type,
 		     struct pbn_lock **lock_ptr)
 	__attribute__((warn_unused_result));
@@ -120,7 +120,7 @@ int attempt_pbn_lock(struct physical_zone *zone,
  * @param [in,out] lock_ptr    The last reference to the lock being released
  **/
 void release_pbn_lock(struct physical_zone *zone,
-		      PhysicalBlockNumber locked_pbn,
+		      physical_block_number_t locked_pbn,
 		      struct pbn_lock **lock_ptr);
 
 /**

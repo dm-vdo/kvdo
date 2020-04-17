@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#11 $
  */
 
 #ifndef EXTENT_H
@@ -108,7 +108,7 @@ void free_extent(struct vdo_extent **extent_ptr);
  *                     equal to the length of the extent)
  **/
 void read_partial_metadata_extent(struct vdo_extent *extent,
-				  PhysicalBlockNumber start_block,
+				  physical_block_number_t start_block,
 				  block_count_t count);
 
 /**
@@ -119,7 +119,7 @@ void read_partial_metadata_extent(struct vdo_extent *extent,
  *                     in the extent
  **/
 static inline void read_metadata_extent(struct vdo_extent *extent,
-					PhysicalBlockNumber start_block)
+					physical_block_number_t start_block)
 {
 	read_partial_metadata_extent(extent, start_block, extent->count);
 }
@@ -134,7 +134,7 @@ static inline void read_metadata_extent(struct vdo_extent *extent,
  *                     equal to the length of the extent)
  **/
 void write_partial_metadata_extent(struct vdo_extent *extent,
-				   PhysicalBlockNumber start_block,
+				   physical_block_number_t start_block,
 				   block_count_t count);
 /**
  * Write metadata to the underlying storage.
@@ -144,7 +144,7 @@ void write_partial_metadata_extent(struct vdo_extent *extent,
  *                     extent
  **/
 static inline void write_metadata_extent(struct vdo_extent *extent,
-					 PhysicalBlockNumber start_block)
+					 physical_block_number_t start_block)
 {
 	write_partial_metadata_extent(extent, start_block, extent->count);
 }

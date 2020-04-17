@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#7 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -59,7 +59,7 @@ void free_super_block(struct vdo_super_block **super_block_ptr);
  * @return VDO_SUCCESS or an error
  **/
 int save_super_block(PhysicalLayer *layer, struct vdo_super_block *super_block,
-		     PhysicalBlockNumber super_block_offset)
+		     physical_block_number_t super_block_offset)
 	__attribute__((warn_unused_result));
 
 /**
@@ -70,7 +70,7 @@ int save_super_block(PhysicalLayer *layer, struct vdo_super_block *super_block,
  * @param parent              The object to notify when the save is complete
  **/
 void save_super_block_async(struct vdo_super_block *super_block,
-			    PhysicalBlockNumber super_block_offset,
+			    physical_block_number_t super_block_offset,
 			    struct vdo_completion *parent);
 
 /**
@@ -84,7 +84,7 @@ void save_super_block_async(struct vdo_super_block *super_block,
  * @return VDO_SUCCESS or an error
  **/
 int load_super_block(PhysicalLayer *layer,
-		     PhysicalBlockNumber super_block_offset,
+		     physical_block_number_t super_block_offset,
 		     struct vdo_super_block **super_block_ptr)
 	__attribute__((warn_unused_result));
 
@@ -100,7 +100,7 @@ int load_super_block(PhysicalLayer *layer,
  * @param [out] super_block_ptr     A pointer to hold the super block
  **/
 void load_super_block_async(struct vdo_completion *parent,
-			    PhysicalBlockNumber super_block_offset,
+			    physical_block_number_t super_block_offset,
 			    struct vdo_super_block **super_block_ptr);
 
 /**

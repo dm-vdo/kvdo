@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#37 $
  */
 
 #include "ioSubmitter.h"
@@ -174,7 +174,7 @@ bio_queue_to_submitter(struct bio_queue_data *bio_queue)
  * @return read cache zone number
  **/
 static unsigned int bio_queue_number_for_pbn(struct io_submitter *io_submitter,
-					     PhysicalBlockNumber pbn)
+					     physical_block_number_t pbn)
 {
 	unsigned int bio_queue_index =
 		((pbn % (io_submitter->num_bio_queues_used *
@@ -192,7 +192,7 @@ static unsigned int bio_queue_number_for_pbn(struct io_submitter *io_submitter,
  *
  * @param pbn  The PBN that should have been used in thread selection
  **/
-static void assert_running_in_bio_queue_for_pbn(PhysicalBlockNumber pbn)
+static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 {
 	assert_running_in_bio_queue();
 
@@ -518,7 +518,7 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 /**********************************************************************/
 static struct bio_queue_data *
 bio_queue_data_for_pbn(struct io_submitter *io_submitter,
-		       PhysicalBlockNumber pbn)
+		       physical_block_number_t pbn)
 {
 	unsigned int bio_queue_index =
 		bio_queue_number_for_pbn(io_submitter, pbn);

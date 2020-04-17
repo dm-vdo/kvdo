@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#17 $
  */
 
 #ifndef REF_COUNTS_H
@@ -46,7 +46,7 @@
  **/
 int make_ref_counts(block_count_t block_count,
 		    struct vdo_slab *slab,
-		    PhysicalBlockNumber origin,
+		    physical_block_number_t origin,
 		    struct read_only_notifier *read_only_notifier,
 		    struct ref_counts **ref_counts_ptr)
 	__attribute__((warn_unused_result));
@@ -86,7 +86,7 @@ block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
  * @return the number of increments that can be performed
  **/
 uint8_t get_available_references(struct ref_counts *ref_counts,
-				 PhysicalBlockNumber pbn)
+				 physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -121,7 +121,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
  * @return VDO_SUCCESS or an error
  **/
 int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
-				       PhysicalBlockNumber pbn,
+				       physical_block_number_t pbn,
 				       journal_operation operation)
 	__attribute__((warn_unused_result));
 
@@ -169,7 +169,7 @@ bool are_equivalent_reference_counters(struct ref_counts *counter_a,
  *         otherwise an error code
  **/
 int allocate_unreferenced_block(struct ref_counts *ref_counts,
-				PhysicalBlockNumber *allocated_ptr)
+				physical_block_number_t *allocated_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -182,7 +182,7 @@ int allocate_unreferenced_block(struct ref_counts *ref_counts,
  * @return VDO_SUCCESS or an error
  **/
 int provisionally_reference_block(struct ref_counts *ref_counts,
-				  PhysicalBlockNumber pbn,
+				  physical_block_number_t pbn,
 				  struct pbn_lock *lock)
 	__attribute__((warn_unused_result));
 
@@ -199,8 +199,8 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
  * @return The number of unreferenced blocks
  **/
 block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
-					PhysicalBlockNumber start_pbn,
-					PhysicalBlockNumber end_pbn)
+					physical_block_number_t start_pbn,
+					physical_block_number_t end_pbn)
 	__attribute__((warn_unused_result));
 
 /**

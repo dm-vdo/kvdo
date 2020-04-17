@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#14 $
  */
 
 #include "partitionCopy.h"
@@ -43,9 +43,9 @@ struct copy_completion {
 	/** the target partition to copy to */
 	struct partition *target;
 	/** the current in-partition PBN the copy is beginning at */
-	PhysicalBlockNumber current_index;
+	physical_block_number_t current_index;
 	/** the last block to copy */
-	PhysicalBlockNumber ending_index;
+	physical_block_number_t ending_index;
 	/** the backing data used by the extent */
 	char *data;
 	/** the extent being used to copy */
@@ -160,7 +160,7 @@ static void complete_write_for_copy(struct vdo_completion *completion)
 static void completeReadForCopy(struct vdo_completion *completion)
 {
 	struct copy_completion *copy = as_copy_completion(completion->parent);
-	PhysicalBlockNumber layer_start_block;
+	physical_block_number_t layer_start_block;
 	int result = translate_to_pbn(copy->target, copy->current_index,
 				      &layer_start_block);
 	if (result != VDO_SUCCESS) {
@@ -181,7 +181,7 @@ static void completeReadForCopy(struct vdo_completion *completion)
  **/
 static void copy_partition_stride(struct copy_completion *copy)
 {
-	PhysicalBlockNumber layer_start_block;
+	physical_block_number_t layer_start_block;
 	int result = translate_to_pbn(copy->source, copy->current_index,
 				      &layer_start_block);
 	if (result != VDO_SUCCESS) {
@@ -212,12 +212,12 @@ static int validate_partition_copy(struct partition *source,
 	block_count_t sourceSize = get_fixed_layout_partition_size(source);
 	block_count_t targetSize = get_fixed_layout_partition_size(target);
 
-	PhysicalBlockNumber source_start =
+	physical_block_number_t source_start =
 		get_fixed_layout_partition_offset(source);
-	PhysicalBlockNumber source_end = source_start + sourceSize;
-	PhysicalBlockNumber target_start =
+	physical_block_number_t source_end = source_start + sourceSize;
+	physical_block_number_t target_start =
 		get_fixed_layout_partition_offset(target);
-	PhysicalBlockNumber target_end = target_start + targetSize;
+	physical_block_number_t target_end = target_start + targetSize;
 
 	int result = ASSERT(sourceSize <= targetSize,
 			    "target partition must be not smaller than source partition");

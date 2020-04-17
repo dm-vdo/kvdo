@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#24 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -36,9 +36,9 @@ struct slab_depot {
 	struct read_only_notifier *read_only_notifier;
 	struct action_manager *action_manager;
 
-	PhysicalBlockNumber first_block;
-	PhysicalBlockNumber last_block;
-	PhysicalBlockNumber origin;
+	physical_block_number_t first_block;
+	physical_block_number_t last_block;
+	physical_block_number_t origin;
 
 	/** slabSize == (1 << slab_size_shift) */
 	unsigned int slab_size_shift;
@@ -70,9 +70,9 @@ struct slab_depot {
 	block_count_t new_size;
 
 	/** The last block before resize, for rollback */
-	PhysicalBlockNumber old_last_block;
+	physical_block_number_t old_last_block;
 	/** The last block after resize, for resize */
-	PhysicalBlockNumber new_last_block;
+	physical_block_number_t new_last_block;
 
 	/** The block allocators for this depot */
 	struct block_allocator *allocators[];

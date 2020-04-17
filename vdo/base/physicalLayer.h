@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#27 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -77,7 +77,7 @@ typedef int buffer_allocator(PhysicalLayer *layer,
  * @return a success or error code
  **/
 typedef int extent_reader(PhysicalLayer *layer,
-			  PhysicalBlockNumber startBlock,
+			  physical_block_number_t startBlock,
 			  size_t blockCount,
 			  char *buffer,
 			  size_t *blocksRead);
@@ -96,7 +96,7 @@ typedef int extent_reader(PhysicalLayer *layer,
  * @return a success or error code
  **/
 typedef int extent_writer(PhysicalLayer *layer,
-			  PhysicalBlockNumber startBlock,
+			  physical_block_number_t startBlock,
 			  size_t blockCount,
 			  char *buffer,
 			  size_t *blocksWritten);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#18 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -36,7 +36,7 @@ enum {
 	MAX_PAGE_CONTEXT_SIZE = 8,
 };
 
-static const PhysicalBlockNumber NO_PAGE = 0xFFFFFFFFFFFFFFFF;
+static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
 /**
  * A page_info_node is a ring node.
@@ -143,7 +143,7 @@ struct page_info {
 	/** back-link for references */
 	struct vdo_page_cache *cache;
 	/** the pbn of the page */
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	/** page is busy (temporarily locked) */
 	uint16_t busy;
 	/** the write status the page */
@@ -275,7 +275,7 @@ page_completion_from_waiter(struct waiter *waiter)
  * @return the page info for the page if available, or NULL if not
  **/
 struct page_info *vpc_find_page(struct vdo_page_cache *cache,
-				PhysicalBlockNumber pbn)
+				physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**

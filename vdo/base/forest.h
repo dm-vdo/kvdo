@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#10 $
  */
 
 #ifndef FOREST_H
@@ -33,7 +33,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int entry_callback(PhysicalBlockNumber pbn,
+typedef int entry_callback(physical_block_number_t pbn,
 			   struct vdo_completion *completion);
 
 /**

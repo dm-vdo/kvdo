@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#49 $
  */
 
 #ifndef TYPES_H
@@ -80,7 +80,7 @@ typedef uint32_t page_size_t;
  * The physical (well, less logical) block number at which the block is found
  * on the underlying device.
  **/
-typedef uint64_t PhysicalBlockNumber;
+typedef uint64_t physical_block_number_t;
 
 /**
  * A release version number. These numbers are used to make the numbering
@@ -291,7 +291,7 @@ typedef enum {
  * A position in the block map where a block map entry is stored.
  **/
 struct block_map_slot {
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	SlotNumber slot;
 };
 
@@ -349,7 +349,7 @@ struct vdo_config {
  **/
 struct vdo_load_config {
 	/** the offset on the physical layer where the VDO begins */
-	PhysicalBlockNumber first_block_offset;
+	physical_block_number_t first_block_offset;
 	/** the expected release version number of the VDO */
 	ReleaseVersionNumber release_version;
 	/** the expected nonce of the VDO */
@@ -410,12 +410,12 @@ struct vio;
 struct vio_pool;
 
 struct data_location {
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	BlockMappingState state;
 };
 
 struct zoned_pbn {
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	BlockMappingState state;
 	struct physical_zone *zone;
 };

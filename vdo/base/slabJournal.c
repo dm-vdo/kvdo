@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#49 $
  */
 
 #include "slabJournalInternals.h"
@@ -96,7 +96,7 @@ slab_journal_from_slab_summary_waiter(struct waiter *waiter)
  *
  * @return the block number corresponding to the sequence number
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_block_number(struct slab_journal *journal, SequenceNumber sequence)
 {
 	TailBlockOffset offset = get_slab_journal_block_offset(journal,
@@ -723,7 +723,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 		journal->partial_write_in_progress = !block_is_full(journal);
 	}
 
-	PhysicalBlockNumber block_number =
+	physical_block_number_t block_number =
 		get_block_number(journal, header->sequence_number);
 
 	entry->parent = journal;
@@ -836,7 +836,7 @@ decode_slab_journal_entry(struct packed_slab_journal_block *block,
  * @param recovery_point  The recovery journal point for this entry
  **/
 static void add_entry(struct slab_journal *journal,
-		      PhysicalBlockNumber pbn,
+		      physical_block_number_t pbn,
 		      journal_operation operation,
 		      const struct journal_point *recovery_point)
 {
@@ -878,7 +878,7 @@ static void add_entry(struct slab_journal *journal,
 
 /**********************************************************************/
 bool attempt_replay_into_slab_journal(struct slab_journal *journal,
-				      PhysicalBlockNumber pbn,
+				      physical_block_number_t pbn,
 				      journal_operation operation,
 				      struct journal_point *recovery_point,
 				      struct vdo_completion *parent)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#19 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -47,7 +47,7 @@ struct allocating_vio {
 	struct physical_zone *zone;
 
 	/** The block allocated to this vio */
-	PhysicalBlockNumber allocation;
+	physical_block_number_t allocation;
 
 	/**
 	 * If non-NULL, the pooled PBN lock held on the allocated block. Must be

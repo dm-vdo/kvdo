@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#20 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -133,7 +133,7 @@ struct recovery_journal {
  *
  * @return The block number corresponding to the sequence number
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_recovery_journal_block_number(const struct recovery_journal *journal,
 				  SequenceNumber sequence)
 {

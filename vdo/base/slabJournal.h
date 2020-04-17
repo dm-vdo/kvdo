@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#18 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -138,7 +138,7 @@ void reopen_slab_journal(struct slab_journal *journal);
  * @return <code>true</code> if the entry was added immediately
  **/
 bool attempt_replay_into_slab_journal(struct slab_journal *journal,
-				      PhysicalBlockNumber pbn,
+				      physical_block_number_t pbn,
 				      journal_operation operation,
 				      struct journal_point *recovery_point,
 				      struct vdo_completion *parent)

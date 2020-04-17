@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#20 $
  */
 
 #include "recoveryUtils.h"
@@ -88,9 +88,9 @@ void load_journal_async(struct recovery_journal *journal,
 __attribute__((warn_unused_result)) static bool
 is_congruent_recovery_journal_block(struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
-				    PhysicalBlockNumber offset)
+				    physical_block_number_t offset)
 {
-	PhysicalBlockNumber expected_offset =
+	physical_block_number_t expected_offset =
 		get_recovery_journal_block_number(journal,
 						  header->sequence_number);
 	return ((expected_offset == offset)
@@ -108,7 +108,7 @@ bool find_head_and_tail(struct recovery_journal *journal,
 	SequenceNumber block_map_head_max = 0;
 	SequenceNumber slab_journal_head_max = 0;
 	bool found_entries = false;
-	PhysicalBlockNumber i;
+	physical_block_number_t i;
 	for (i = 0; i < journal->size; i++) {
 		union packed_journal_header *packed_header =
 			get_journal_block_header(journal, journal_data, i);

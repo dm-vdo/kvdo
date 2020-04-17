@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#30 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -83,7 +83,7 @@ SlabCount calculate_slab_count(struct slab_depot *depot)
  * @return A success or error code
  **/
 int make_slab_depot(block_count_t block_count,
-		    PhysicalBlockNumber first_block,
+		    physical_block_number_t first_block,
 		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    nonce_t nonce,
@@ -204,7 +204,7 @@ struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
  * @return VDO_SUCCESS or an error
  **/
 int get_slab_number(const struct slab_depot *depot,
-		    PhysicalBlockNumber pbn,
+		    physical_block_number_t pbn,
 		    SlabCount *slab_number_ptr)
 	__attribute__((warn_unused_result));
 
@@ -220,7 +220,7 @@ int get_slab_number(const struct slab_depot *depot,
  *         zero block or otherwise out of range
  **/
 struct vdo_slab *get_slab(const struct slab_depot *depot,
-			  PhysicalBlockNumber pbn)
+			  physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -234,7 +234,7 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
  *         block number is for the zero block or otherwise out of range
  **/
 struct slab_journal *get_slab_journal(const struct slab_depot *depot,
-				      PhysicalBlockNumber pbn)
+				      physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -246,7 +246,7 @@ struct slab_journal *get_slab_journal(const struct slab_depot *depot,
  *
  * @return the number of available references
  **/
-uint8_t get_increment_limit(struct slab_depot *depot, PhysicalBlockNumber pbn)
+uint8_t get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -258,7 +258,7 @@ uint8_t get_increment_limit(struct slab_depot *depot, PhysicalBlockNumber pbn)
  * @return <code>True</code> if the PBN corresponds to a data block
  **/
 bool is_physical_data_block(const struct slab_depot *depot,
-			    PhysicalBlockNumber pbn)
+			    physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**

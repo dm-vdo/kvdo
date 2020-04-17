@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#6 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -30,8 +30,8 @@
 /**
  * The entry for each logical block in the block map is encoded into five
  * bytes, which saves space in both the on-disk and in-memory layouts. It
- * consists of the 36 low-order bits of a PhysicalBlockNumber (addressing 256
- * terabytes with a 4KB block size) and a 4-bit encoding of a
+ * consists of the 36 low-order bits of a physical_block_number_t
+ * (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of a
  * BlockMappingState.
  **/
 typedef union __attribute__((packed)) {
@@ -80,8 +80,8 @@ typedef union __attribute__((packed)) {
 static inline struct data_location
 unpack_block_map_entry(const block_map_entry *entry)
 {
-	PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbn_low_word);
-	PhysicalBlockNumber high4 = entry->fields.pbn_high_nibble;
+	physical_block_number_t low32 = getUInt32LE(entry->fields.pbn_low_word);
+	physical_block_number_t high4 = entry->fields.pbn_high_nibble;
 	return (struct data_location) {
 		.pbn = ((high4 << 32) | low32),
 		.state = entry->fields.mapping_state,
@@ -105,7 +105,7 @@ static inline bool is_valid_location(const struct data_location *location)
 }
 
 /**
- * Pack a PhysicalBlockNumber into a block_map_entry.
+ * Pack a physical_block_number_t into a block_map_entry.
  *
  * @param pbn             The physical block number to convert to its
  *                        packed five-byte representation
@@ -115,7 +115,7 @@ static inline bool is_valid_location(const struct data_location *location)
  *
  * @note unrepresentable high bits of the unpacked PBN are silently truncated
  **/
-static inline block_map_entry pack_pbn(PhysicalBlockNumber pbn,
+static inline block_map_entry pack_pbn(physical_block_number_t pbn,
 				       BlockMappingState mapping_state)
 {
 	block_map_entry entry;

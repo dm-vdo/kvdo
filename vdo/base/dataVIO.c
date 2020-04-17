@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#30 $
  */
 
 #include "dataVIO.h"
@@ -200,7 +200,7 @@ void clear_mapped_location(struct data_vio *data_vio)
 
 /**********************************************************************/
 int set_mapped_location(struct data_vio *data_vio,
-			PhysicalBlockNumber pbn,
+			physical_block_number_t pbn,
 			BlockMappingState state)
 {
 	struct physical_zone *zone;

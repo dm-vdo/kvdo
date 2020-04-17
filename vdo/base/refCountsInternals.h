@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#16 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -64,7 +64,7 @@ struct search_cursor {
 /*
  * ref_counts structure
  *
- * A reference count is maintained for each PhysicalBlockNumber.  The vast
+ * A reference count is maintained for each physical block number.  The vast
  * majority of blocks have a very small reference count (usually 0 or 1).
  * For references less than or equal to MAXIMUM_REFS (254) the reference count
  * is stored in counters[pbn].
@@ -104,7 +104,7 @@ struct ref_counts {
 	 */
 	struct atomic_ref_count_statistics *statistics;
 	/** The layer PBN for the first struct reference_block */
-	PhysicalBlockNumber origin;
+	physical_block_number_t origin;
 	/**
 	 * The latest slab journal entry this ref_counts has been updated with
 	 */
@@ -177,7 +177,7 @@ void pack_reference_block(struct reference_block *block, void *buffer);
  *                          VDO_OUT_OF_RANGE if the pbn is out of range.
  **/
 int get_reference_status(struct ref_counts *ref_counts,
-			 PhysicalBlockNumber pbn,
+			 physical_block_number_t pbn,
 			 reference_status *status_ptr)
 	__attribute__((warn_unused_result));
 

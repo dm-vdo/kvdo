@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#25 $
  */
 
 #include "blockMapRecovery.h"
@@ -74,7 +74,7 @@ struct block_map_recovery_completion {
 
 	// Fields tracking requested pages.
 	/** the absolute PBN of the current page being processed */
-	PhysicalBlockNumber pbn;
+	physical_block_number_t pbn;
 	/** number of pending (non-ready) requests */
 	page_count_t outstanding;
 	/** number of page completions */
@@ -452,7 +452,7 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 	}
 
 	// Fetch the next page we haven't yet requested.
-	PhysicalBlockNumber new_pbn =
+	physical_block_number_t new_pbn =
 		recovery->current_unfetched_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery,

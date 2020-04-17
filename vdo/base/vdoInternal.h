@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#33 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -384,7 +384,7 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
  *         or an error code for any other failure
  **/
 int get_physical_zone(const struct vdo *vdo,
-		      PhysicalBlockNumber pbn,
+		      physical_block_number_t pbn,
 		      struct physical_zone **zone_ptr)
 	__attribute__((warn_unused_result));
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#10 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -73,7 +73,7 @@ struct boundary {
  * An invalid PBN used to indicate that the page holding the location of a
  * tree root has been "loaded".
  **/
-extern const PhysicalBlockNumber INVALID_PBN;
+extern const physical_block_number_t INVALID_PBN;
 
 /**
  * Extract the block_map_page from a tree_page.
@@ -112,7 +112,7 @@ int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
  *
  * @return <code>true</code> if the page was copied (valid)
  **/
-bool copy_valid_page(char *buffer, nonce_t nonce, PhysicalBlockNumber pbn,
+bool copy_valid_page(char *buffer, nonce_t nonce, physical_block_number_t pbn,
 		     struct block_map_page *page);
 
 #endif // BLOCK_MAP_TREE_INTERNALS_H

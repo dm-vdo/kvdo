@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#11 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -45,7 +45,7 @@ struct volume_region {
 	 * The absolute starting offset on the device. The region continues
 	 * until the next region begins.
 	 */
-	PhysicalBlockNumber start_block;
+	physical_block_number_t start_block;
 } __attribute__((packed));
 
 /** A binary UUID is 16 bytes. */
@@ -71,7 +71,7 @@ struct volume_geometry {
  *
  * @return The start of the index region
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_index_region_offset(struct volume_geometry geometry)
 {
 	return geometry.regions[INDEX_REGION].start_block;
@@ -84,7 +84,7 @@ get_index_region_offset(struct volume_geometry geometry)
  *
  * @return The start of the data region
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_data_region_offset(struct volume_geometry geometry)
 {
 	return geometry.regions[DATA_REGION].start_block;
@@ -97,7 +97,7 @@ get_data_region_offset(struct volume_geometry geometry)
  *
  * @return the size of the index region
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_index_region_size(struct volume_geometry geometry)
 {
 	return get_data_region_offset(geometry) -

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#8 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -76,7 +76,7 @@ typedef union __attribute__((packed)) {
 	// for ease of directly examining packed entries in GDB.
 	struct __attribute__((packed)) {
 		uint64_t nonce;
-		PhysicalBlockNumber pbn;
+		physical_block_number_t pbn;
 		uint64_t unused_long_word;
 		bool initialized;
 		uint8_t unused_byte1;
@@ -143,7 +143,7 @@ static inline bool mark_block_map_page_initialized(struct block_map_page *page,
  *
  * @return the page's physical block number
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+__attribute__((warn_unused_result)) static inline physical_block_number_t
 get_block_map_page_pbn(const struct block_map_page *page)
 {
 	return getUInt64LE(page->header.fields.pbn);
@@ -171,7 +171,7 @@ bool is_current_block_map_page(const struct block_map_page *page)
  **/
 struct block_map_page *format_block_map_page(void *buffer,
 					     nonce_t nonce,
-					     PhysicalBlockNumber pbn,
+					     physical_block_number_t pbn,
 					     bool initialized);
 
 /**
@@ -187,7 +187,7 @@ struct block_map_page *format_block_map_page(void *buffer,
  **/
 block_map_page_validity validate_block_map_page(struct block_map_page *page,
 						nonce_t nonce,
-						PhysicalBlockNumber pbn)
+						physical_block_number_t pbn)
 	__attribute__((warn_unused_result));
 
 /**
@@ -203,7 +203,7 @@ block_map_page_validity validate_block_map_page(struct block_map_page *page,
  **/
 void update_block_map_page(struct block_map_page *page,
 			   struct data_vio *data_vio,
-			   PhysicalBlockNumber pbn,
+			   physical_block_number_t pbn,
 			   BlockMappingState mapping_state,
 			   SequenceNumber *recovery_lock);
 

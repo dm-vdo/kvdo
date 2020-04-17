@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#66 $
  */
 
 /*
@@ -997,7 +997,7 @@ page_count_t get_configured_cache_size(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-PhysicalBlockNumber get_first_block_offset(const struct vdo *vdo)
+physical_block_number_t get_first_block_offset(const struct vdo *vdo)
 {
 	return vdo->load_config.first_block_offset;
 }
@@ -1114,7 +1114,7 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
 
 /**********************************************************************/
 int get_physical_zone(const struct vdo *vdo,
-		      PhysicalBlockNumber pbn,
+		      physical_block_number_t pbn,
 		      struct physical_zone **zone_ptr)
 {
 	if (pbn == ZERO_BLOCK) {

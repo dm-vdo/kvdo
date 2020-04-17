@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#34 $
  */
 
 #include "slabSummary.h"
@@ -421,7 +421,7 @@ static void launch_write(struct slab_summary_block *block)
 	// Flush before writing to ensure that the slab journal tail blocks and
 	// reference updates covered by this summary update are stable
 	// (VDO-2332).
-	PhysicalBlockNumber pbn =
+	physical_block_number_t pbn =
 		(summary->origin + (summary->blocks_per_zone * zone->zone_number)
 		 + block->index);
 	launch_write_metadata_vio_with_flush(block->vio, pbn, finish_update,

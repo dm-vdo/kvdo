@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#9 $
  */
 
 /**
@@ -50,7 +50,7 @@
  * @return VDO_SUCCESS or an error
  **/
 int make_vdo_layout(block_count_t physical_blocks,
-		    PhysicalBlockNumber starting_offset,
+		    physical_block_number_t starting_offset,
 		    block_count_t block_map_blocks,
 		    block_count_t journal_blocks,
 		    block_count_t summary_blocks,

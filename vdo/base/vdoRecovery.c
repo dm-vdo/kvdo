@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#56 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -445,7 +445,7 @@ get_entry(const struct recovery_completion *recovery,
 	  const struct recovery_point *point)
 {
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
-	PhysicalBlockNumber block_number =
+	physical_block_number_t block_number =
 		get_recovery_journal_block_number(journal,
 						  point->sequence_number);
 	off_t sectorOffset = (block_number * VDO_BLOCK_SIZE) +

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#20 $
  */
 
 #include "volumeGeometry.h"
@@ -166,7 +166,7 @@ static int decode_volume_region(struct buffer *buffer,
 		return result;
 	}
 
-	PhysicalBlockNumber start_block;
+	physical_block_number_t start_block;
 	result = get_uint64_le_from_buffer(buffer, &start_block);
 	if (result != VDO_SUCCESS) {
 		return result;

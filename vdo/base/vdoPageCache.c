@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#31 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -377,7 +377,7 @@ static void set_info_state(struct page_info *info, page_state new_state)
  * @param pbn   The physical block number to set
  **/
 __attribute__((warn_unused_result)) static int
-set_info_pbn(struct page_info *info, PhysicalBlockNumber pbn)
+set_info_pbn(struct page_info *info, physical_block_number_t pbn)
 {
 	struct vdo_page_cache *cache = info->cache;
 
@@ -445,7 +445,7 @@ find_free_page(struct vdo_page_cache *cache)
 
 /**********************************************************************/
 struct page_info *vpc_find_page(struct vdo_page_cache *cache,
-				PhysicalBlockNumber pbn)
+				physical_block_number_t pbn)
 {
 	if ((cache->last_found != NULL) && (cache->last_found->pbn == pbn)) {
 		return cache->last_found;
@@ -628,7 +628,7 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 /**********************************************************************/
 void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
-			      PhysicalBlockNumber pbn,
+			      physical_block_number_t pbn,
 			      bool writable,
 			      void *parent,
 			      vdo_action *callback,
@@ -808,7 +808,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result)) static int
-launch_page_load(struct page_info *info, PhysicalBlockNumber pbn)
+launch_page_load(struct page_info *info, physical_block_number_t pbn)
 {
 	struct vdo_page_cache *cache = info->cache;
 	assert_io_allowed(cache);
@@ -940,7 +940,7 @@ static void launch_page_save(struct page_info *info)
  **/
 static bool completion_needs_page(struct waiter *waiter, void *context)
 {
-	PhysicalBlockNumber *pbn = context;
+	physical_block_number_t *pbn = context;
 	return (page_completion_from_waiter(waiter)->pbn == *pbn);
 }
 
@@ -968,7 +968,8 @@ static void allocate_free_page(struct page_info *info)
 	}
 
 	struct waiter *oldest_waiter = get_first_waiter(&cache->free_waiters);
-	PhysicalBlockNumber pbn = page_completion_from_waiter(oldest_waiter)->pbn;
+	physical_block_number_t pbn =
+		page_completion_from_waiter(oldest_waiter)->pbn;
 
 	// Remove all entries which match the page number in question
 	// and push them onto the page info's wait queue.

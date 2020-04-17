@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#39 $
  */
 
 #include "refCounts.h"
@@ -77,8 +77,8 @@ ref_counts_from_waiter(struct waiter *waiter)
  *
  * @return the physical block number corresponding to the index
  **/
-static PhysicalBlockNumber index_to_pbn(const struct ref_counts *ref_counts,
-					uint64_t index)
+static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts,
+					    uint64_t index)
 {
 	return (ref_counts->slab->start + index);
 }
@@ -94,7 +94,7 @@ static PhysicalBlockNumber index_to_pbn(const struct ref_counts *ref_counts,
  * @return the index corresponding to the physical block number
  **/
 static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
-			     PhysicalBlockNumber pbn)
+			     physical_block_number_t pbn)
 {
 	if (pbn < ref_counts->slab->start) {
 		return 0;
@@ -171,7 +171,7 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 /**********************************************************************/
 int make_ref_counts(block_count_t block_count,
 		    struct vdo_slab *slab,
-		    PhysicalBlockNumber origin,
+		    physical_block_number_t origin,
 		    struct read_only_notifier *read_only_notifier,
 		    struct ref_counts **ref_counts_ptr)
 {
@@ -332,7 +332,7 @@ struct reference_block *get_reference_block(struct ref_counts *ref_counts,
 
  **/
 static int get_reference_counter(struct ref_counts *ref_counts,
-				 PhysicalBlockNumber pbn,
+				 physical_block_number_t pbn,
 				 ReferenceCount **counter_ptr)
 {
 	slab_block_number index;
@@ -348,7 +348,7 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 uint8_t get_available_references(struct ref_counts *ref_counts,
-				 PhysicalBlockNumber pbn)
+				 physical_block_number_t pbn)
 {
 	ReferenceCount *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
@@ -716,7 +716,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
-				       PhysicalBlockNumber pbn,
+				       physical_block_number_t pbn,
 				       journal_operation operation)
 {
 	slab_block_number slab_block_number;
@@ -784,7 +784,7 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 int get_reference_status(struct ref_counts *ref_counts,
-			 PhysicalBlockNumber pbn,
+			 physical_block_number_t pbn,
 			 reference_status *status_ptr)
 {
 	ReferenceCount *counter_ptr = NULL;
@@ -976,7 +976,7 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 int allocate_unreferenced_block(struct ref_counts *ref_counts,
-				PhysicalBlockNumber *allocated_ptr)
+				physical_block_number_t *allocated_ptr)
 {
 	if (!is_slab_open(ref_counts->slab)) {
 		return VDO_INVALID_ADMIN_STATE;
@@ -1002,7 +1002,7 @@ int allocate_unreferenced_block(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 int provisionally_reference_block(struct ref_counts *ref_counts,
-				  PhysicalBlockNumber pbn,
+				  physical_block_number_t pbn,
 				  struct pbn_lock *lock)
 {
 	if (!is_slab_open(ref_counts->slab)) {
@@ -1029,8 +1029,8 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
 
 /**********************************************************************/
 block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
-					PhysicalBlockNumber start_pbn,
-					PhysicalBlockNumber end_pbn)
+					physical_block_number_t start_pbn,
+					physical_block_number_t end_pbn)
 {
 	block_count_t free_blocks = 0;
 	slab_block_number start_index = pbn_to_index(ref_counts, start_pbn);
@@ -1253,7 +1253,7 @@ static void write_reference_block(struct waiter *block_waiter,
 	pack_reference_block(block, entry->buffer);
 
 	size_t block_offset = (block - block->ref_counts->blocks);
-	PhysicalBlockNumber pbn = (block->ref_counts->origin + block_offset);
+	physical_block_number_t pbn = (block->ref_counts->origin + block_offset);
 	block->slab_journal_lock_to_release = block->slab_journal_lock;
 	entry->parent = block;
 
@@ -1450,7 +1450,7 @@ static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 	struct vio_pool_entry *entry = vio_context;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
 	size_t block_offset = (block - block->ref_counts->blocks);
-	PhysicalBlockNumber pbn = (block->ref_counts->origin + block_offset);
+	physical_block_number_t pbn = (block->ref_counts->origin + block_offset);
 	entry->parent = block;
 
 	entry->vio->completion.callbackThreadID =

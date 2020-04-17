@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#13 $
  */
 
 #include "extent.h"
@@ -102,7 +102,7 @@ void free_extent(struct vdo_extent **extent_ptr)
  * @param operation    The operation to perform on the extent
  **/
 static void launchMetadataExtent(struct vdo_extent *extent,
-				 PhysicalBlockNumber start_block,
+				 physical_block_number_t start_block,
 				 block_count_t count, vio_operation operation)
 {
 	reset_completion(&extent->completion);
@@ -124,7 +124,7 @@ static void launchMetadataExtent(struct vdo_extent *extent,
 
 /**********************************************************************/
 void read_partial_metadata_extent(struct vdo_extent *extent,
-				  PhysicalBlockNumber start_block,
+				  physical_block_number_t start_block,
 				  block_count_t count)
 {
 	launchMetadataExtent(extent, start_block, count, VIO_READ);
@@ -132,7 +132,7 @@ void read_partial_metadata_extent(struct vdo_extent *extent,
 
 /**********************************************************************/
 void write_partial_metadata_extent(struct vdo_extent *extent,
-				   PhysicalBlockNumber start_block,
+				   physical_block_number_t start_block,
 				   block_count_t count)
 {
 	launchMetadataExtent(extent, start_block, count, VIO_WRITE);

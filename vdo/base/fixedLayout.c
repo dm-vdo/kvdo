@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#14 $
  */
 
 #include "fixedLayout.h"
@@ -31,8 +31,8 @@
 const block_count_t ALL_FREE_BLOCKS = (uint64_t) -1;
 
 struct fixed_layout {
-	PhysicalBlockNumber first_free;
-	PhysicalBlockNumber last_free;
+	physical_block_number_t first_free;
+	physical_block_number_t last_free;
 	size_t num_partitions;
 	struct partition *head;
 };
@@ -41,23 +41,23 @@ struct partition {
 	partition_id id; // The id of this partition
 	struct fixed_layout *layout; // The layout to which this partition
 				     // belongs
-	PhysicalBlockNumber offset; // The offset into the layout of this
+	physical_block_number_t offset; // The offset into the layout of this
 				    // partition
-	PhysicalBlockNumber base; // The untranslated number of the first block
+	physical_block_number_t base; // The untranslated number of the first block
 	block_count_t count; // The number of blocks in the partition
 	struct partition *next; // A pointer to the next partition in the layout
 };
 
 struct layout_3_0 {
-	PhysicalBlockNumber first_free;
-	PhysicalBlockNumber last_free;
+	physical_block_number_t first_free;
+	physical_block_number_t last_free;
 	byte partition_count;
 } __attribute__((packed));
 
 struct partition_3_0 {
 	partition_id id;
-	PhysicalBlockNumber offset;
-	PhysicalBlockNumber base;
+	physical_block_number_t offset;
+	physical_block_number_t base;
 	block_count_t count;
 } __attribute__((packed));
 
@@ -73,7 +73,7 @@ static const struct header LAYOUT_HEADER_3_0 = {
 
 /**********************************************************************/
 int make_fixed_layout(block_count_t total_blocks,
-		      PhysicalBlockNumber start_offset,
+		      physical_block_number_t start_offset,
 		      struct fixed_layout **layout_ptr)
 {
 	struct fixed_layout *layout;
@@ -143,8 +143,8 @@ int get_partition(struct fixed_layout *layout,
 
 /**********************************************************************/
 int translate_to_pbn(const struct partition *partition,
-		     PhysicalBlockNumber partition_block_number,
-		     PhysicalBlockNumber *layer_block_number)
+		     physical_block_number_t partition_block_number,
+		     physical_block_number_t *layer_block_number)
 {
 	if (partition == NULL) {
 		*layer_block_number = partition_block_number;
@@ -155,7 +155,7 @@ int translate_to_pbn(const struct partition *partition,
 		return VDO_OUT_OF_RANGE;
 	}
 
-	PhysicalBlockNumber offset_from_base =
+	physical_block_number_t offset_from_base =
 		partition_block_number - partition->base;
 	if (offset_from_base >= partition->count) {
 		return VDO_OUT_OF_RANGE;
@@ -167,8 +167,8 @@ int translate_to_pbn(const struct partition *partition,
 
 /**********************************************************************/
 int translate_from_pbn(const struct partition *partition,
-		       PhysicalBlockNumber layer_block_number,
-		       PhysicalBlockNumber *partition_block_number_ptr)
+		       physical_block_number_t layer_block_number,
+		       physical_block_number_t *partition_block_number_ptr)
 {
 	if (partition == NULL) {
 		*partition_block_number_ptr = layer_block_number;
@@ -179,7 +179,7 @@ int translate_from_pbn(const struct partition *partition,
 		return VDO_OUT_OF_RANGE;
 	}
 
-	PhysicalBlockNumber partition_block_number =
+	physical_block_number_t partition_block_number =
 		layer_block_number - partition->offset;
 	if (partition_block_number >= partition->count) {
 		return VDO_OUT_OF_RANGE;
@@ -210,8 +210,8 @@ get_fixed_layout_blocks_available(const struct fixed_layout *layout)
  **/
 static int allocatePartition(struct fixed_layout *layout,
 			     byte id,
-			     PhysicalBlockNumber offset,
-			     PhysicalBlockNumber base,
+			     physical_block_number_t offset,
+			     physical_block_number_t base,
 			     block_count_t block_count)
 {
 	struct partition *partition;
@@ -237,7 +237,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
 				partition_id id,
 				block_count_t block_count,
 				partition_direction direction,
-				PhysicalBlockNumber base)
+				physical_block_number_t base)
 {
 	block_count_t free_blocks = layout->last_free - layout->first_free;
 	if (block_count == ALL_FREE_BLOCKS) {
@@ -255,7 +255,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
 		return VDO_PARTITION_EXISTS;
 	}
 
-	PhysicalBlockNumber offset =
+	physical_block_number_t offset =
 		((direction == FROM_END) ? (layout->last_free - block_count) :
 					   layout->first_free);
 	result = allocatePartition(layout, id, offset, base, block_count);
@@ -280,14 +280,14 @@ block_count_t get_fixed_layout_partition_size(const struct partition *partition)
 }
 
 /**********************************************************************/
-PhysicalBlockNumber
+physical_block_number_t
 get_fixed_layout_partition_offset(const struct partition *partition)
 {
 	return partition->offset;
 }
 
 /**********************************************************************/
-PhysicalBlockNumber
+physical_block_number_t
 get_fixed_layout_partition_base(const struct partition *partition)
 {
 	return partition->base;
@@ -478,13 +478,13 @@ static int decodeLayout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 {
 	size_t initial_length = content_length(buffer);
 
-	PhysicalBlockNumber first_free;
+	physical_block_number_t first_free;
 	int result = get_uint64_le_from_buffer(buffer, &first_free);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	PhysicalBlockNumber last_free;
+	physical_block_number_t last_free;
 	result = get_uint64_le_from_buffer(buffer, &last_free);
 	if (result != UDS_SUCCESS) {
 		return result;

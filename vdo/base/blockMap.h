@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#19 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -44,7 +44,7 @@
 int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
 		   block_count_t flat_page_count,
-		   PhysicalBlockNumber root_origin,
+		   physical_block_number_t root_origin,
 		   block_count_t root_count,
 		   struct block_map **map_ptr)
 	__attribute__((warn_unused_result));

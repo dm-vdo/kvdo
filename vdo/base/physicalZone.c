@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#18 $
  */
 
 #include "physicalZone.h"
@@ -122,14 +122,14 @@ struct block_allocator *get_block_allocator(const struct physical_zone *zone)
 
 /**********************************************************************/
 struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
-			      PhysicalBlockNumber pbn)
+			      physical_block_number_t pbn)
 {
 	return ((zone == NULL) ? NULL : int_map_get(zone->pbn_operations, pbn));
 }
 
 /**********************************************************************/
 int attempt_pbn_lock(struct physical_zone *zone,
-		     PhysicalBlockNumber pbn,
+		     physical_block_number_t pbn,
 		     pbn_lock_type type,
 		     struct pbn_lock **lock_ptr)
 {
@@ -171,7 +171,7 @@ int attempt_pbn_lock(struct physical_zone *zone,
 
 /**********************************************************************/
 void release_pbn_lock(struct physical_zone *zone,
-		      PhysicalBlockNumber locked_pbn,
+		      physical_block_number_t locked_pbn,
 		      struct pbn_lock **lock_ptr)
 {
 	struct pbn_lock *lock = *lock_ptr;

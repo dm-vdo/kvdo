@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#18 $
  */
 
 #ifndef VIO_H
@@ -46,7 +46,7 @@ struct vio {
 
 	/* The address on the underlying device of the block to be read/written
 	 */
-	PhysicalBlockNumber physical;
+	physical_block_number_t physical;
 
 	/* The type of request this vio is servicing */
 	vio_operation operation;
@@ -276,7 +276,7 @@ static inline bool vio_requires_flush_after(const struct vio *vio)
  * @param operation      The operation to perform (read or write)
  **/
 void launch_metadata_vio(struct vio *vio,
-			 PhysicalBlockNumber physical,
+			 physical_block_number_t physical,
 			 vdo_action *callback,
 			 vdo_action *error_handler,
 			 vio_operation operation);
@@ -290,7 +290,7 @@ void launch_metadata_vio(struct vio *vio,
  * @param error_handler  The handler for write errors
  **/
 static inline void launch_read_metadata_vio(struct vio *vio,
-					    PhysicalBlockNumber physical,
+					    physical_block_number_t physical,
 					    vdo_action *callback,
 					    vdo_action *error_handler)
 {
@@ -306,7 +306,7 @@ static inline void launch_read_metadata_vio(struct vio *vio,
  * @param error_handler  The handler for write errors
  **/
 static inline void launch_write_metadata_vio(struct vio *vio,
-					     PhysicalBlockNumber physical,
+					     physical_block_number_t physical,
 					     vdo_action *callback,
 					     vdo_action *error_handler)
 {
@@ -327,7 +327,7 @@ static inline void launch_write_metadata_vio(struct vio *vio,
  **/
 static inline void
 launch_write_metadata_vio_with_flush(struct vio *vio,
-				     PhysicalBlockNumber physical,
+				     physical_block_number_t physical,
 				     vdo_action *callback,
 				     vdo_action *error_handler,
 				     bool flush_before,

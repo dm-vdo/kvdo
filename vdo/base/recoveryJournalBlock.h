@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#15 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -46,7 +46,7 @@ struct recovery_journal_block {
 	/** The sequence number for this block */
 	SequenceNumber sequence_number;
 	/** The location of this block in the on-disk journal */
-	PhysicalBlockNumber block_number;
+	physical_block_number_t block_number;
 	/** Whether this block is being committed */
 	bool committing;
 	/**

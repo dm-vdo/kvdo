@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#58 $
  */
 
 #include "blockMap.h"
@@ -41,9 +41,9 @@
 #include "vdoPageCache.h"
 
 struct block_map_state_2_0 {
-	PhysicalBlockNumber flat_page_origin;
+	physical_block_number_t flat_page_origin;
 	block_count_t flat_page_count;
-	PhysicalBlockNumber root_origin;
+	physical_block_number_t root_origin;
 	block_count_t root_count;
 } __attribute__((packed));
 
@@ -75,7 +75,7 @@ struct block_map_page_context {
  * Implements VDOPageReadFunction.
  **/
 static int validate_page_on_read(void *buffer,
-				 PhysicalBlockNumber pbn,
+				 physical_block_number_t pbn,
 				 struct block_map_zone *zone,
 				 void *page_context)
 {
@@ -139,7 +139,7 @@ page_count_t compute_block_map_page_count(block_count_t entries)
 int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
 		   block_count_t flat_page_count,
-		   PhysicalBlockNumber root_origin,
+		   physical_block_number_t root_origin,
 		   block_count_t root_count,
 		   struct block_map **map_ptr)
 {
@@ -190,7 +190,7 @@ static int decode_block_map_state_2_0(struct buffer *buffer,
 {
 	size_t initial_length = content_length(buffer);
 
-	PhysicalBlockNumber flat_page_origin;
+	physical_block_number_t flat_page_origin;
 	int result = get_uint64_le_from_buffer(buffer, &flat_page_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -202,7 +202,7 @@ static int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	PhysicalBlockNumber root_origin;
+	physical_block_number_t root_origin;
 	result = get_uint64_le_from_buffer(buffer, &root_origin);
 	if (result != UDS_SUCCESS) {
 		return result;

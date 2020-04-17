@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#7 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -52,7 +52,7 @@ struct partition;
  * @return a success or error code
  **/
 int make_fixed_layout(block_count_t total_blocks,
-		      PhysicalBlockNumber start_offset,
+		      physical_block_number_t start_offset,
 		      struct fixed_layout **layout_ptr)
 	__attribute__((warn_unused_result));
 
@@ -99,8 +99,8 @@ int get_partition(struct fixed_layout *layout,
  * @return  VDO_SUCCESS or an error code
  **/
 int translate_to_pbn(const struct partition *partition,
-		     PhysicalBlockNumber partition_block_number,
-		     PhysicalBlockNumber *layer_block_number)
+		     physical_block_number_t partition_block_number,
+		     physical_block_number_t *layer_block_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -114,8 +114,8 @@ int translate_to_pbn(const struct partition *partition,
  * @return  VDO_SUCCESS or an error code
  **/
 int translate_from_pbn(const struct partition *partition,
-		       PhysicalBlockNumber layer_block_number,
-		       PhysicalBlockNumber *partition_block_number)
+		       physical_block_number_t layer_block_number,
+		       physical_block_number_t *partition_block_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -149,7 +149,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
 				partition_id id,
 				block_count_t block_count,
 				partition_direction direction,
-				PhysicalBlockNumber base)
+				physical_block_number_t base)
 	__attribute__((warn_unused_result));
 
 /**
@@ -169,7 +169,7 @@ block_count_t get_fixed_layout_partition_size(const struct partition *partition)
  *
  * @return the partition's offset in blocks
  **/
-PhysicalBlockNumber
+physical_block_number_t
 get_fixed_layout_partition_offset(const struct partition *partition)
 	__attribute__((warn_unused_result));
 
@@ -181,7 +181,7 @@ get_fixed_layout_partition_offset(const struct partition *partition)
  *
  * @return the number of the first block in the partition
  **/
-PhysicalBlockNumber
+physical_block_number_t
 get_fixed_layout_partition_base(const struct partition *partition)
 	__attribute__((warn_unused_result));
 

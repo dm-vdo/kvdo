@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#59 $
  */
 
 #include "dataKVIO.h"
@@ -422,7 +422,7 @@ static void read_bio_callback(struct bio *bio, int result)
 
 /**********************************************************************/
 void kvdo_read_block(struct data_vio *data_vio,
-		     PhysicalBlockNumber location,
+		     physical_block_number_t location,
 		     BlockMappingState mapping_state,
 		     bio_q_action action,
 		     DataKVIOCallback callback)

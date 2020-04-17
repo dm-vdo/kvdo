@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#12 $
  */
 
 #include "vdoLayout.h"
@@ -57,7 +57,7 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
  **/
 __attribute__((warn_unused_result)) static int
 make_vdo_fixed_layout(block_count_t physical_blocks,
-		      PhysicalBlockNumber starting_offset,
+		      physical_block_number_t starting_offset,
 		      block_count_t block_map_blocks,
 		      block_count_t journal_blocks,
 		      block_count_t summary_blocks,
@@ -137,7 +137,7 @@ get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 
 /**********************************************************************/
 int make_vdo_layout(block_count_t physical_blocks,
-		    PhysicalBlockNumber starting_offset,
+		    physical_block_number_t starting_offset,
 		    block_count_t block_map_blocks,
 		    block_count_t journal_blocks,
 		    block_count_t summary_blocks,

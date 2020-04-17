@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#33 $
  */
 
 #include "referenceCountRebuild.h"
@@ -398,7 +398,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
 		       struct vdo_completion *completion)
 {
 	while (rebuild->page_to_fetch < rebuild->leaf_pages) {
-		PhysicalBlockNumber pbn =
+		physical_block_number_t pbn =
 			find_block_map_page_pbn(rebuild->block_map,
 						rebuild->page_to_fetch++);
 		if (pbn == ZERO_BLOCK) {
@@ -468,7 +468,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int process_entry(PhysicalBlockNumber pbn,
+static int process_entry(physical_block_number_t pbn,
 			struct vdo_completion *completion)
 {
 	struct rebuild_completion *rebuild =

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#23 $
  */
 
 #ifndef VDO_SLAB_H
@@ -65,13 +65,13 @@ struct vdo_slab {
 	 * The offset in the allocator partition of the first block in this
 	 * slab
 	 */
-	PhysicalBlockNumber start;
+	physical_block_number_t start;
 	/** The offset of the first block past the end of this slab */
-	PhysicalBlockNumber end;
+	physical_block_number_t end;
 	/** The starting translated PBN of the slab journal */
-	PhysicalBlockNumber journal_origin;
+	physical_block_number_t journal_origin;
 	/** The starting translated PBN of the reference counts */
-	PhysicalBlockNumber ref_counts_origin;
+	physical_block_number_t ref_counts_origin;
 
 	/** The administrative state of the slab */
 	struct admin_state state;
@@ -117,9 +117,9 @@ static inline struct vdo_slab *slabFromRingNode(RingNode *ringNode)
  * @param slab_config  The slab configuration of the VDO
  * @param origin       The first block of the slab
  **/
-__attribute__((warn_unused_result)) PhysicalBlockNumber
+__attribute__((warn_unused_result)) physical_block_number_t
 get_slab_journal_start_block(const struct slab_config *slab_config,
-			     PhysicalBlockNumber origin);
+			     physical_block_number_t origin);
 
 /**
  * Construct a new, empty slab.
@@ -138,9 +138,9 @@ get_slab_journal_start_block(const struct slab_config *slab_config,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_slab(PhysicalBlockNumber slab_origin,
+int make_slab(physical_block_number_t slab_origin,
 	      struct block_allocator *allocator,
-	      PhysicalBlockNumber translation,
+	      physical_block_number_t translation,
 	      struct recovery_journal *recovery_journal,
 	      SlabCount slab_number,
 	      bool is_new,
@@ -260,7 +260,7 @@ int modify_slab_reference_count(struct vdo_slab *slab,
  * @return VDO_SUCCESS or an error
  **/
 int acquire_provisional_reference(struct vdo_slab *slab,
-				  PhysicalBlockNumber pbn,
+				  physical_block_number_t pbn,
 				  struct pbn_lock *lock)
 	__attribute__((warn_unused_result));
 
@@ -274,7 +274,7 @@ int acquire_provisional_reference(struct vdo_slab *slab,
  * @return VDO_SUCCESS or an error code
  **/
 int slab_block_number_from_pbn(struct vdo_slab *slab,
-			       PhysicalBlockNumber physical_block_number,
+			       physical_block_number_t physical_block_number,
 			       slab_block_number *slab_block_number_ptr)
 	__attribute__((warn_unused_result));
 

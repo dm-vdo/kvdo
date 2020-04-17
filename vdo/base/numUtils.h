@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#5 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -65,8 +65,8 @@ static inline int log_base_two(uint64_t n)
 /**
  * Find the minimum of two physical block numbers.
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
-min_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
+__attribute__((warn_unused_result)) static inline physical_block_number_t
+min_block(physical_block_number_t a, physical_block_number_t b)
 {
 	return (a < b) ? a : b;
 }
@@ -74,8 +74,8 @@ min_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
 /**
  * Find the maximum of two physical block numbers.
  **/
-__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
-max_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
+__attribute__((warn_unused_result)) static inline physical_block_number_t
+max_block(physical_block_number_t a, physical_block_number_t b)
 {
 	return (a > b) ? a : b;
 }

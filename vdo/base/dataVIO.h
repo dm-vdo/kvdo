@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#37 $
  */
 
 #ifndef DATA_VIO_H
@@ -454,7 +454,7 @@ get_thread_config_from_data_vio(struct data_vio *data_vio)
  * @return The allocation of the data_vio
  **/
 static inline
-PhysicalBlockNumber get_data_vio_allocation(struct data_vio *data_vio)
+physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
 {
 	return data_vio_as_allocating_vio(data_vio)->allocation;
 }
@@ -995,7 +995,7 @@ void clear_mapped_location(struct data_vio *data_vio);
  * @return VDO_SUCCESS or an error code if the mapping is unusable
  **/
 int set_mapped_location(struct data_vio *data_vio,
-			PhysicalBlockNumber pbn,
+			physical_block_number_t pbn,
 			BlockMappingState state)
 	__attribute__((warn_unused_result));
 

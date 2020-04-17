@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#31 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -88,7 +88,7 @@ struct block_map {
 	/**
 	 * The absolute PBN of the first root of the tree part of the block map
 	 */
-	PhysicalBlockNumber root_origin;
+	physical_block_number_t root_origin;
 	/** The count of root pages of the tree part of the block map */
 	block_count_t root_count;
 

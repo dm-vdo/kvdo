@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#27 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -259,7 +259,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 /**********************************************************************/
 __attribute__((warn_unused_result)) static int
 get_recovery_block_pbn(struct recovery_journal_block *block,
-		       PhysicalBlockNumber *pbn_ptr)
+		       physical_block_number_t *pbn_ptr)
 {
 	struct recovery_journal *journal = block->journal;
 	int result = translate_to_pbn(journal->partition, block->block_number,
@@ -295,7 +295,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 		return result;
 	}
 
-	PhysicalBlockNumber block_pbn;
+	physical_block_number_t block_pbn;
 	result = get_recovery_block_pbn(block, &block_pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
