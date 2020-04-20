@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#2 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -108,17 +108,17 @@ typedef struct indexLoadContext {
  * udsDestroyIndexSession() that the index session can be safely freed.
  **/
 struct uds_index_session {
-  unsigned int             state;   // Covered by requestMutex.
-  IndexRouter             *router;
-  RequestQueue            *callbackQueue;
-  struct udsConfiguration  userConfig;
-  IndexLoadContext         loadContext;
+  unsigned int              state;   // Covered by requestMutex.
+  IndexRouter              *router;
+  RequestQueue             *callbackQueue;
+  struct uds_configuration  userConfig;
+  IndexLoadContext          loadContext;
   // Asynchronous Request synchronization
-  Mutex                    requestMutex;
-  CondVar                  requestCond;
-  int                      requestCount;
+  Mutex                     requestMutex;
+  CondVar                   requestCond;
+  int                       requestCount;
   // Request statistics, all owned by the callback thread
-  SessionStats             stats;
+  SessionStats              stats;
 };
 
 /**

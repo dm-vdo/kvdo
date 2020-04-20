@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#40 $
  */
 
 #ifndef DATA_VIO_H
@@ -171,7 +171,7 @@ struct data_vio {
 	struct zoned_pbn mapped;
 
 	/** The hash of this vio (if not zero) */
-	UdsChunkName chunkName;
+	struct uds_chunk_name chunkName;
 
 	/* Used for logging and debugging */
 	AsyncOperationNumber lastAsyncOperation;

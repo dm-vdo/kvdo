@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#6 $
  */
 
 #ifndef HASH_ZONE_H
@@ -93,7 +93,7 @@ get_hash_zone_statistics(const struct hash_zone *zone)
  * @return VDO_SUCCESS or an error code
  **/
 int acquire_hash_lock_from_zone(struct hash_zone *zone,
-				const UdsChunkName *hash,
+				const struct uds_chunk_name *hash,
 				struct hash_lock *replace_lock,
 				struct hash_lock **lock_ptr)
 	__attribute__((warn_unused_result));

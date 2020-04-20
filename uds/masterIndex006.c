@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#6 $
  */
 #include "masterIndex006.h"
 
@@ -71,7 +71,7 @@ typedef struct {
  * @return whether to use as sample
  **/
 static INLINE bool isMasterIndexSample_006(const MasterIndex  *masterIndex,
-                                           const UdsChunkName *name)
+                                           const struct uds_chunk_name *name)
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
                                                common);
@@ -88,7 +88,7 @@ static INLINE bool isMasterIndexSample_006(const MasterIndex  *masterIndex,
  * @return the subindex
  **/
 static INLINE MasterIndex *getSubIndex(const MasterIndex *masterIndex,
-                                       const UdsChunkName *name)
+                                       const struct uds_chunk_name *name)
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
                                                common);
@@ -488,7 +488,7 @@ static void setMasterIndexOpenChapter_006(MasterIndex *masterIndex,
  * @return the zone that the chunk name belongs to
  **/
 static unsigned int getMasterIndexZone_006(const MasterIndex *masterIndex,
-                                           const UdsChunkName *name)
+                                           const struct uds_chunk_name *name)
 {
   return getMasterIndexZone(getSubIndex(masterIndex, name), name);
 }
@@ -505,7 +505,7 @@ static unsigned int getMasterIndexZone_006(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static int lookupMasterIndexName_006(const MasterIndex *masterIndex,
-                                     const UdsChunkName *name,
+                                     const struct uds_chunk_name *name,
                                      MasterIndexTriage *triage)
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
@@ -539,7 +539,7 @@ static int lookupMasterIndexName_006(const MasterIndex *masterIndex,
  **/
 static int lookupMasterIndexSampledName_006(const MasterIndex *masterIndex
                                             __attribute__((unused)),
-                                            const UdsChunkName *name
+                                            const struct uds_chunk_name *name
                                             __attribute__((unused)),
                                             MasterIndexTriage *triage
                                             __attribute__((unused)))
@@ -576,7 +576,7 @@ static int lookupMasterIndexSampledName_006(const MasterIndex *masterIndex
  * @return UDS_SUCCESS or an error code
  **/
 static int getMasterIndexRecord_006(MasterIndex *masterIndex,
-                                    const UdsChunkName *name,
+                                    const struct uds_chunk_name *name,
                                     MasterIndexRecord *record)
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,

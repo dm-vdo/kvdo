@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#6 $
  */
 
 #include "indexPageMap.h"
@@ -165,10 +165,10 @@ int updateIndexPageMap(IndexPageMap   *map,
 }
 
 /*****************************************************************************/
-int findIndexPageNumber(const IndexPageMap *map,
-                        const UdsChunkName *name,
-                        unsigned int        chapterNumber,
-                        unsigned int       *indexPageNumberPtr)
+int findIndexPageNumber(const IndexPageMap          *map,
+                        const struct uds_chunk_name *name,
+                        unsigned int                 chapterNumber,
+                        unsigned int                *indexPageNumberPtr)
 {
   const Geometry *geometry = map->geometry;
   if (chapterNumber >= geometry->chaptersPerVolume) {

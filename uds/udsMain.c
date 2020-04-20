@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#4 $
  */
 
 #include "uds.h"
@@ -30,10 +30,10 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX   = 1024;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_256MB = (UdsMemoryConfigSize) -256;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_512MB = (UdsMemoryConfigSize) -512;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB = (UdsMemoryConfigSize) -768;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX   = 1024;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB = (uds_memory_config_size_t) -256;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB = (uds_memory_config_size_t) -512;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB = (uds_memory_config_size_t) -768;
 
 /*
  * ===========================================================================
@@ -42,8 +42,8 @@ const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB = (UdsMemoryConfigSize) -768;
  */
 
 /**********************************************************************/
-int udsInitializeConfiguration(UdsConfiguration    *userConfig,
-                               UdsMemoryConfigSize  memGB)
+int udsInitializeConfiguration(struct uds_configuration **userConfig,
+                               uds_memory_config_size_t   memGB)
 {
   if (userConfig == NULL) {
     return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
@@ -79,7 +79,7 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
     return UDS_INVALID_MEMORY_SIZE;
   }
 
-  int result = ALLOCATE(1, struct udsConfiguration, "udsConfiguration",
+  int result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
                         userConfig);
   if (result != UDS_SUCCESS) {
     return result;
@@ -98,7 +98,8 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
 }
 
 /**********************************************************************/
-void udsConfigurationSetSparse(UdsConfiguration userConfig, bool sparse)
+void udsConfigurationSetSparse(struct uds_configuration *userConfig,
+                               bool sparse)
 {
   bool prevSparse = (userConfig->sparseChaptersPerVolume != 0);
   if (sparse == prevSparse) {
@@ -121,25 +122,26 @@ void udsConfigurationSetSparse(UdsConfiguration userConfig, bool sparse)
 }
 
 /**********************************************************************/
-bool udsConfigurationGetSparse(UdsConfiguration userConfig)
+bool udsConfigurationGetSparse(struct uds_configuration *userConfig)
 {
   return userConfig->sparseChaptersPerVolume > 0;
 }
 
 /**********************************************************************/
-void udsConfigurationSetNonce(UdsConfiguration userConfig, UdsNonce nonce)
+void udsConfigurationSetNonce(struct uds_configuration *userConfig,
+                              uds_nonce_t nonce)
 {
   userConfig->nonce = nonce;
 }
 
 /**********************************************************************/
-UdsNonce udsConfigurationGetNonce(UdsConfiguration userConfig)
+uds_nonce_t udsConfigurationGetNonce(struct uds_configuration *userConfig)
 {
   return userConfig->nonce;
 }
 
 /**********************************************************************/
-unsigned int udsConfigurationGetMemory(UdsConfiguration userConfig)
+unsigned int udsConfigurationGetMemory(struct uds_configuration *userConfig)
 {
   enum {
     CHAPTERS = DEFAULT_CHAPTERS_PER_VOLUME,
@@ -161,13 +163,13 @@ unsigned int udsConfigurationGetMemory(UdsConfiguration userConfig)
 
 /**********************************************************************/
 unsigned int
-udsConfigurationGetChaptersPerVolume(UdsConfiguration userConfig)
+udsConfigurationGetChaptersPerVolume(struct uds_configuration *userConfig)
 {
   return userConfig->chaptersPerVolume;
 }
 
 /**********************************************************************/
-void udsFreeConfiguration(UdsConfiguration userConfig)
+void udsFreeConfiguration(struct uds_configuration *userConfig)
 {
   FREE(userConfig);
 }
@@ -249,7 +251,7 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
 int udsOpenIndex(UdsOpenIndexType             openType,
                  const char                  *name,
                  const struct uds_parameters *userParams,
-                 UdsConfiguration             userConfig,
+                 struct uds_configuration    *userConfig,
                  struct uds_index_session    *session)
 {
   if (name == NULL) {

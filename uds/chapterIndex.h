@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#4 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -84,10 +84,10 @@ void empty_open_chapter_index(struct open_chapter_index *open_chapter_index,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
-				  const UdsChunkName *name,
-				  unsigned int page_number)
-	__attribute__((warn_unused_result));
+int __must_check
+put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
+			      const struct uds_chunk_name *name,
+			      unsigned int page_number);
 
 /**
  * Pack a section of an open chapter index into a chapter index page.  A
@@ -179,10 +179,10 @@ int validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int search_chapter_index_page(DeltaIndexPage *chapter_index_page,
-			      const Geometry *geometry,
-			      const UdsChunkName *name,
-			      int *record_page_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+search_chapter_index_page(DeltaIndexPage *chapter_index_page,
+			  const Geometry *geometry,
+			  const struct uds_chunk_name *name,
+			  int *record_page_ptr);
 
 #endif /* CHAPTER_INDEX_H */

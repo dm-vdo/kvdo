@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#4 $
  */
 
 /**
@@ -106,22 +106,22 @@ enum {
  *  integer number of gigabytes or one of the three special constants
  *  for configurations which are smaller than 1 gigabyte.
  **/
-typedef unsigned int UdsMemoryConfigSize;
+typedef unsigned int uds_memory_config_size_t;
 
-extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_256MB;
-extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_512MB;
-extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB;
 
 /**
  *  The maximum configurable amount of memory.
  **/
-extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX;
 
 /** The name (hash) of a chunk. */
-typedef struct udsChunkName {
+struct uds_chunk_name {
   /** The name (hash) of a chunk. */
   unsigned char name[UDS_CHUNK_NAME_SIZE];
-} UdsChunkName;
+};
 
 /**
  * An active index session.
@@ -131,8 +131,8 @@ struct uds_index_session;
 /**
  * The data used to configure a new index.
  **/
-typedef struct udsConfiguration *UdsConfiguration;
-typedef uint64_t UdsNonce;
+struct uds_configuration;
+typedef uint64_t uds_nonce_t;
 
 /**
  * The data used to configure a new index session.
@@ -157,7 +157,7 @@ struct uds_parameters {
  * These statistics capture the current index characteristics,
  * including resource usage.
  **/
-typedef struct udsIndexStats {
+struct uds_index_stats {
   /** The total number of chunk names stored in the index */
   uint64_t entriesIndexed;
   /** An estimate of the index's memory usage */
@@ -168,7 +168,7 @@ typedef struct udsIndexStats {
   uint64_t entriesDiscarded;
   /** The number of checkpoints done this session */
   uint64_t checkpoints;
-} UdsIndexStats;
+};
 
 /**
  * Context statistics
@@ -177,7 +177,7 @@ typedef struct udsIndexStats {
  * it was initialized or since its statistics were last reset, whichever
  * is more recent.
  **/
-typedef struct udsContextStats {
+struct uds_context_stats {
   /** The time at which context statistics were last fetched */
   int64_t   currentTime;
   /**
@@ -243,7 +243,7 @@ typedef struct udsContextStats {
    * statistics were last reset
    **/
   uint64_t requests;
-} UdsContextStats;
+};
 
 /**
  * Initializes an index configuration.
@@ -254,8 +254,8 @@ typedef struct udsContextStats {
  * @return                    Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsInitializeConfiguration(UdsConfiguration    *conf,
-                               UdsMemoryConfigSize  memGB);
+int udsInitializeConfiguration(struct uds_configuration **conf,
+                               uds_memory_config_size_t   memGB);
 
 /**
  * Sets or clears an index configuration's sparse indexing settings.
@@ -266,7 +266,7 @@ int udsInitializeConfiguration(UdsConfiguration    *conf,
  *                            a default index.
  *
  **/
-void udsConfigurationSetSparse(UdsConfiguration conf, bool sparse);
+void udsConfigurationSetSparse(struct uds_configuration *conf, bool sparse);
 
 /**
  * Tests whether an index configuration specifies sparse indexing.
@@ -277,7 +277,7 @@ void udsConfigurationSetSparse(UdsConfiguration conf, bool sparse);
  *                            is sparse, or <code>false</code> if not
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-bool udsConfigurationGetSparse(UdsConfiguration conf);
+bool udsConfigurationGetSparse(struct uds_configuration *conf);
 
 /**
  * Sets an index configuration's nonce.
@@ -286,7 +286,7 @@ bool udsConfigurationGetSparse(UdsConfiguration conf);
  * @param [in] nonce    The 64 bit nonce.
  *
  **/
-void udsConfigurationSetNonce(UdsConfiguration conf, UdsNonce nonce);
+void udsConfigurationSetNonce(struct uds_configuration *conf, uds_nonce_t nonce);
 
 /**
  * Gets an index configuration's nonce.
@@ -296,7 +296,7 @@ void udsConfigurationSetNonce(UdsConfiguration conf, UdsNonce nonce);
  * @return  The 64 bit nonce.
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-UdsNonce udsConfigurationGetNonce(UdsConfiguration conf);
+uds_nonce_t udsConfigurationGetNonce(struct uds_configuration *conf);
 
 /**
  * Fetches a configuration's maximum memory allocation.
@@ -306,7 +306,7 @@ UdsNonce udsConfigurationGetNonce(UdsConfiguration conf);
  * @return      The amount of memory allocated, in GB
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-UdsMemoryConfigSize udsConfigurationGetMemory(UdsConfiguration conf);
+uds_memory_config_size_t udsConfigurationGetMemory(struct uds_configuration *conf);
 
 /**
  * Fetches a configuration's chapters per volume value.
@@ -316,14 +316,14 @@ UdsMemoryConfigSize udsConfigurationGetMemory(UdsConfiguration conf);
  * @return      The number of chapters per volume
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-unsigned int udsConfigurationGetChaptersPerVolume(UdsConfiguration conf);
+unsigned int udsConfigurationGetChaptersPerVolume(struct uds_configuration *conf);
 
 /**
  * Frees memory used by a configuration.
  *
  * @param [in,out] conf The configuration for which memory is being freed
  **/
-void udsFreeConfiguration(UdsConfiguration conf);
+void udsFreeConfiguration(struct uds_configuration *conf);
 
 /**
  * Compute the size required to store the index on persistent storage.  This
@@ -331,7 +331,7 @@ void udsFreeConfiguration(UdsConfiguration conf);
  * device.  This size should be used when configuring a block device on which
  * to store an index.
  *
- * @param [in]  config          A UdsConfiguration for an index.
+ * @param [in]  config          A uds_configuration for an index.
  * @param [in]  numCheckpoints  The maximum number of checkpoints.
  * @param [out] indexSize       The number of bytes required to store
  *                              the index.
@@ -339,9 +339,9 @@ void udsFreeConfiguration(UdsConfiguration conf);
  * @return UDS_SUCCESS or an error code.
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int uds_compute_index_size(const UdsConfiguration  config,
-                           unsigned int            numCheckpoints,
-                           uint64_t               *indexSize);
+int uds_compute_index_size(const struct uds_configuration *config,
+                           unsigned int                    numCheckpoints,
+                           uint64_t                       *indexSize);
 
 /**
  * Opens an index session.
@@ -396,7 +396,7 @@ UDS_ATTR_WARN_UNUSED_RESULT
 int udsOpenIndex(UdsOpenIndexType             openType,
                  const char                  *name,
                  const struct uds_parameters *params,
-                 UdsConfiguration             conf,
+                 struct uds_configuration    *conf,
                  struct uds_index_session    *session);
 
 /**
@@ -468,8 +468,8 @@ int udsDestroyIndexSession(struct uds_index_session *session);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexConfiguration(struct uds_index_session *session,
-                             UdsConfiguration         *conf);
+int udsGetIndexConfiguration(struct uds_index_session  *session,
+                             struct uds_configuration **conf);
 
 /**
  * Fetches index statistics for the given index session.
@@ -480,7 +480,8 @@ int udsGetIndexConfiguration(struct uds_index_session *session,
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexStats(struct uds_index_session *session, UdsIndexStats *stats);
+int udsGetIndexStats(struct uds_index_session *session,
+                     struct uds_index_stats *stats);
 
 /**
  * Fetches index session statistics for the given index session.
@@ -492,7 +493,7 @@ int udsGetIndexStats(struct uds_index_session *session, UdsIndexStats *stats);
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsGetIndexSessionStats(struct uds_index_session *session,
-                            UdsContextStats          *stats);
+                            struct uds_context_stats *stats);
 
 /**
  * Convert an error code to a string.

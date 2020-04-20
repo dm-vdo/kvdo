@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#2 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -114,11 +114,10 @@ int updateIndexPageMap(IndexPageMap    *map,
  * @return UDS_SUCCESS, or UDS_INVALID_ARGUMENT if the chapter number
  *         is out of range
  **/
-int findIndexPageNumber(const IndexPageMap *map,
-                        const UdsChunkName *name,
-                        unsigned int        chapterNumber,
-                        unsigned int       *indexPageNumberPtr)
-  __attribute__((warn_unused_result));
+int __must_check findIndexPageNumber(const IndexPageMap *map,
+				     const struct uds_chunk_name *name,
+				     unsigned int chapterNumber,
+				     unsigned int *indexPageNumberPtr);
 
 /**
  * Get the lowest and highest numbered delta lists for the given immutable

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#11 $
  */
 
 #include "indexLayout.h"
@@ -188,11 +188,10 @@ static INLINE uint64_t block_count(uint64_t bytes, uint32_t block_size)
 }
 
 /*****************************************************************************/
-__attribute__((warn_unused_result)) static int
-compute_sizes(struct save_layout_sizes *sls,
-	      const UdsConfiguration config,
-	      size_t block_size,
-	      unsigned int num_checkpoints)
+static int __must_check compute_sizes(struct save_layout_sizes *sls,
+				      const struct uds_configuration *config,
+				      size_t block_size,
+				      unsigned int num_checkpoints)
 {
 	if (config->bytesPerPage % block_size != 0) {
 		return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
@@ -242,7 +241,7 @@ compute_sizes(struct save_layout_sizes *sls,
 }
 
 /*****************************************************************************/
-int uds_compute_index_size(const UdsConfiguration config,
+int uds_compute_index_size(const struct uds_configuration *config,
 			   unsigned int num_checkpoints,
 			   uint64_t *index_size)
 {
@@ -1799,7 +1798,8 @@ const struct index_version *get_index_version(struct index_layout *layout)
 }
 
 /*****************************************************************************/
-int write_index_config(struct index_layout *layout, UdsConfiguration config)
+int write_index_config(struct index_layout *layout,
+                       struct uds_configuration *config)
 {
 	BufferedWriter *writer = NULL;
 	int result = open_layout_writer(layout, &layout->config, &writer);
@@ -1825,7 +1825,8 @@ int write_index_config(struct index_layout *layout, UdsConfiguration config)
 }
 
 /*****************************************************************************/
-int verify_index_config(struct index_layout *layout, UdsConfiguration config)
+int verify_index_config(struct index_layout *layout,
+                        struct uds_configuration *config)
 {
 	BufferedReader *reader = NULL;
 	int result = open_layout_reader(layout, &layout->config, &reader);
@@ -1834,7 +1835,7 @@ int verify_index_config(struct index_layout *layout, UdsConfiguration config)
 					       "failed to open config reader");
 	}
 
-	struct udsConfiguration stored_config;
+	struct uds_configuration stored_config;
 	result = readConfigContents(reader, &stored_config);
 	if (result != UDS_SUCCESS) {
 		free_buffered_reader(reader);
@@ -2364,7 +2365,7 @@ int discard_index_saves(struct index_layout *layout, bool all)
 /*****************************************************************************/
 static int create_index_layout(struct index_layout *layout,
 			       uint64_t size,
-			       const UdsConfiguration config)
+			       const struct uds_configuration *config)
 {
 	if (config == NULL) {
 		return UDS_CONF_PTR_REQUIRED;
@@ -2490,7 +2491,7 @@ int make_index_layout_from_factory(IOFactory *factory,
 				   off_t offset,
 				   uint64_t named_size,
 				   bool new_layout,
-				   const UdsConfiguration config,
+				   const struct uds_configuration *config,
 				   struct index_layout **layout_ptr)
 {
 	// Get the device size and round it down to a multiple of

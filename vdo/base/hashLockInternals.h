@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#9 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -64,7 +64,7 @@ struct hash_lock {
 	RingNode pool_node;
 
 	/** The block hash covered by this lock */
-	UdsChunkName hash;
+	struct uds_chunk_name hash;
 
 	/**
 	 * A ring containing the DataVIOs sharing this lock, all having the same

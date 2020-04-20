@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#4 $
  */
 
 #include "chapterIndex.h"
@@ -103,7 +103,7 @@ static INLINE bool was_entry_found(const DeltaIndexEntry *entry,
 
 /**********************************************************************/
 int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
-				  const UdsChunkName *name,
+				  const struct uds_chunk_name *name,
 				  unsigned int page_number)
 {
 	const Geometry *geometry = open_chapter_index->geometry;
@@ -307,7 +307,7 @@ int validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
 /**********************************************************************/
 int search_chapter_index_page(DeltaIndexPage *chapter_index_page,
 			      const Geometry *geometry,
-			      const UdsChunkName *name,
+			      const struct uds_chunk_name *name,
 			      int *record_page_ptr)
 {
 	DeltaIndex *delta_index = &chapter_index_page->deltaIndex;

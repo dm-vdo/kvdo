@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.c#2 $
  */
 
 #include "config.h"
@@ -38,7 +38,8 @@ void freeIndexLocation(IndexLocation *loc)
 }
 
 /**********************************************************************/
-bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
+bool areUdsConfigurationsEqual(struct uds_configuration *a,
+                               struct uds_configuration *b)
 {
   bool result = true;
   if (a->recordPagesPerChapter != b->recordPagesPerChapter) {
@@ -85,7 +86,7 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
 }
 
 /**********************************************************************/
-void logUdsConfiguration(UdsConfiguration conf)
+void logUdsConfiguration(struct uds_configuration *conf)
 {
   logDebug("Configuration:");
   logDebug("  Record pages per chapter:   %10u", conf->recordPagesPerChapter);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#5 $
  */
 
 #ifndef VOLUME_H
@@ -111,13 +111,12 @@ typedef struct volume {
  *
  * @return          UDS_SUCCESS or an error code
  **/
-int makeVolume(const Configuration          *config,
-               struct index_layout	    *layout,
-               const struct uds_parameters  *userParams,
-               unsigned int                  readQueueMaxSize,
-               unsigned int                  zoneCount,
-               Volume                      **newVolume)
-  __attribute__((warn_unused_result));
+int __must_check makeVolume(const Configuration *config,
+			    struct index_layout *layout,
+			    const struct uds_parameters *userParams,
+			    unsigned int readQueueMaxSize,
+			    unsigned int zoneCount,
+			    Volume **newVolume);
 
 /**
  * Clean up a volume and its memory.
@@ -135,8 +134,8 @@ void freeVolume(Volume *volume);
  *
  * @return UDS_QUEUED if successful, or an error code
  **/
-int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
-  __attribute__((warn_unused_result));
+int __must_check
+enqueuePageRead(Volume *volume, Request *request, int physicalPage);
 
 /**
  * Find the lowest and highest contiguous chapters and determine their
@@ -162,11 +161,11 @@ int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
  *              identical and maintain the invariant that
  *              pcn == vcn % chaptersPerVolume.
  **/
-int findVolumeChapterBoundaries(Volume   *volume,
-                                uint64_t *lowestVCN,
-                                uint64_t *highestVCN,
-                                bool     *isEmpty)
-  __attribute__((warn_unused_result));
+int __must_check
+findVolumeChapterBoundaries(Volume *volume,
+			    uint64_t *lowestVCN,
+			    uint64_t *highestVCN,
+			    bool *isEmpty);
 
 /**
  * Find any matching metadata for the given name within a given physical
@@ -182,13 +181,12 @@ int findVolumeChapterBoundaries(Volume   *volume,
  *
  * @return UDS_SUCCESS or an error
  **/
-int searchVolumePageCache(Volume             *volume,
-                          Request            *request,
-                          const UdsChunkName *name,
-                          uint64_t            virtualChapter,
-                          UdsChunkData       *metadata,
-                          bool               *found)
-  __attribute__((warn_unused_result));
+int __must_check searchVolumePageCache(Volume *volume,
+				       Request *request,
+				       const struct uds_chunk_name *name,
+				       uint64_t virtualChapter,
+				       UdsChunkData *metadata,
+				       bool *found);
 
 /**
  * Fetch a record page from the cache or read it from the volume and search it
@@ -213,14 +211,13 @@ int searchVolumePageCache(Volume             *volume,
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int searchCachedRecordPage(Volume             *volume,
-                           Request            *request,
-                           const UdsChunkName *name,
-                           unsigned int        chapter,
-                           int                 recordPageNumber,
-                           UdsChunkData       *duplicate,
-                           bool               *found)
-  __attribute__((warn_unused_result));
+int __must_check searchCachedRecordPage(Volume *volume,
+					Request *request,
+					const struct uds_chunk_name *name,
+					unsigned int chapter,
+					int recordPageNumber,
+					UdsChunkData *duplicate,
+					bool *found);
 
 /**
  * Forget the contents of a chapter. Invalidates any cached state for the
@@ -232,10 +229,8 @@ int searchCachedRecordPage(Volume             *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int forgetChapter(Volume             *volume,
-                  uint64_t            chapter,
-                  InvalidationReason  reason)
-  __attribute__((warn_unused_result));
+int __must_check
+forgetChapter(Volume *volume, uint64_t chapter, InvalidationReason reason);
 
 /**
  * Write a chapter's worth of index pages to a volume
@@ -248,11 +243,10 @@ int forgetChapter(Volume             *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeIndexPages(Volume                     *volume,
-                    int                         physicalPage,
-                    struct open_chapter_index  *chapterIndex,
-                    byte                      **pages)
-__attribute__((warn_unused_result));
+int __must_check writeIndexPages(Volume *volume,
+				 int physicalPage,
+				 struct open_chapter_index *chapterIndex,
+				 byte **pages);
 
 /**
  * Write a chapter's worth of record pages to a volume
@@ -265,11 +259,10 @@ __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeRecordPages(Volume                *volume,
-                     int                    physicalPage,
-                     const UdsChunkRecord   records[],
-                     byte                 **pages)
-__attribute__((warn_unused_result));
+int __must_check writeRecordPages(Volume *volume,
+				  int physicalPage,
+				  const UdsChunkRecord records[],
+				  byte **pages);
 
 /**
  * Write the index and records from the most recently filled chapter to the
@@ -281,10 +274,9 @@ __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeChapter(Volume                    *volume,
-                 struct open_chapter_index *chapterIndex,
-                 const UdsChunkRecord       records[])
-  __attribute__((warn_unused_result));
+int __must_check writeChapter(Volume *volume,
+			      struct open_chapter_index *chapterIndex,
+			      const UdsChunkRecord records[]);
 
 /**
  * Read all the index pages for a chapter from the volume and initialize an
@@ -297,11 +289,11 @@ int writeChapter(Volume                    *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readChapterIndexFromVolume(const Volume       *volume,
-                               uint64_t            virtualChapter,
-                               struct volume_page  volumePages[],
-                               DeltaIndexPage      indexPages[])
-  __attribute__((warn_unused_result));
+int __must_check
+readChapterIndexFromVolume(const Volume *volume,
+			   uint64_t virtualChapter,
+			   struct volume_page volumePages[],
+			   DeltaIndexPage indexPages[]);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -324,12 +316,11 @@ int readChapterIndexFromVolume(const Volume       *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPageLocked(Volume          *volume,
-                  Request         *request,
-                  unsigned int     physicalPage,
-                  CacheProbeType   probeType,
-                  CachedPage     **entryPtr)
-  __attribute__((warn_unused_result));
+int __must_check getPageLocked(Volume *volume,
+			       Request *request,
+			       unsigned int physicalPage,
+			       CacheProbeType probeType,
+			       CachedPage **entryPtr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -356,12 +347,11 @@ int getPageLocked(Volume          *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPageProtected(Volume          *volume,
-                     Request         *request,
-                     unsigned int     physicalPage,
-                     CacheProbeType   probeType,
-                     CachedPage     **entryPtr)
-  __attribute__((warn_unused_result));
+int __must_check getPageProtected(Volume *volume,
+				  Request *request,
+				  unsigned int physicalPage,
+				  CacheProbeType probeType,
+				  CachedPage **entryPtr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -389,27 +379,26 @@ int getPageProtected(Volume          *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPage(Volume          *volume,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **dataPtr,
-            DeltaIndexPage **indexPagePtr)
-  __attribute__((warn_unused_result));
+int __must_check getPage(Volume *volume,
+			 unsigned int chapter,
+			 unsigned int pageNumber,
+			 CacheProbeType probeType,
+			 byte **dataPtr,
+			 DeltaIndexPage **indexPagePtr);
 
 /**********************************************************************/
-size_t getCacheSize(Volume *volume) __attribute__((warn_unused_result));
+size_t __must_check getCacheSize(Volume *volume);
 
 /**********************************************************************/
-int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
-                                    unsigned int  maxBadChapters,
-                                    uint64_t     *lowestVCN,
-                                    uint64_t     *highestVCN,
-                                    int (*probeFunc)(void         *aux,
-                                                     unsigned int  chapter,
-                                                     uint64_t     *vcn),
-                                    void *aux)
-  __attribute__((warn_unused_result));
+int __must_check
+findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
+                                unsigned int  maxBadChapters,
+                                uint64_t     *lowestVCN,
+                                uint64_t     *highestVCN,
+                                int (*probeFunc)(void         *aux,
+                                                 unsigned int  chapter,
+                                                 uint64_t     *vcn),
+                                void *aux);
 
 /**
  * Map a chapter number and page number to a phsical volume page number.
@@ -420,7 +409,7 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  *
  * @return the physical page number
  **/
-int mapToPhysicalPage(const Geometry *geometry, int chapter, int page)
-  __attribute__((warn_unused_result));
+int __must_check
+mapToPhysicalPage(const Geometry *geometry, int chapter, int page);
 
 #endif /* VOLUME_H */

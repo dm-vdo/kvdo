@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#13 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -160,7 +160,7 @@ int write_volume_geometry(PhysicalLayer *layer,
  * @return VDO_SUCCESS or an error
  **/
 int index_config_to_uds_configuration(struct index_config *index_config,
-				      UdsConfiguration *uds_config_ptr)
+				      struct uds_configuration **uds_config_ptr)
 	__attribute__((warn_unused_result));
 
 /**

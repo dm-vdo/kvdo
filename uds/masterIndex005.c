@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#7 $
  */
 #include "masterIndex005.h"
 
@@ -115,8 +115,8 @@ static INLINE unsigned int maxUint(unsigned int a, unsigned int b)
  *
  * @return the address
  **/
-static INLINE unsigned int extractAddress(const MasterIndex5 *mi5,
-                                          const UdsChunkName *name)
+static INLINE unsigned int extractAddress(const MasterIndex5          *mi5,
+                                          const struct uds_chunk_name *name)
 {
   return extractMasterIndexBytes(name) & mi5->addressMask;
 }
@@ -129,8 +129,8 @@ static INLINE unsigned int extractAddress(const MasterIndex5 *mi5,
  *
  * @return the delta list number
  **/
-static INLINE unsigned int extractDListNum(const MasterIndex5 *mi5,
-                                           const UdsChunkName *name)
+static INLINE unsigned int extractDListNum(const MasterIndex5          *mi5,
+                                           const struct uds_chunk_name *name)
 {
   uint64_t bits = extractMasterIndexBytes(name);
   return (bits >> mi5->addressBits) % mi5->numDeltaLists;
@@ -757,8 +757,8 @@ static void removeNewestChapters(MasterIndex5 *mi5,
     range.chapterStart = convertVirtualToIndex(mi5, virtualChapter);
     range.chapterCount = (mi5->chapterMask + 1
                           - (virtualChapter - masterZone->virtualChapterLow));
-    UdsChunkName name;
-    memset(&name, 0, sizeof(UdsChunkName));
+    struct uds_chunk_name name;
+    memset(&name, 0, sizeof(struct uds_chunk_name));
     MasterIndexRecord record = (MasterIndexRecord) {
       .magic       = masterIndexRecordMagic,
       .masterIndex = &mi5->common,
@@ -906,7 +906,7 @@ static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
  * @return the zone that the chunk name belongs to
  **/
 static unsigned int getMasterIndexZone_005(const MasterIndex *masterIndex,
-                                           const UdsChunkName *name)
+                                           const struct uds_chunk_name *name)
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
@@ -926,7 +926,7 @@ static unsigned int getMasterIndexZone_005(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static int lookupMasterIndexName_005(const MasterIndex *masterIndex,
-                                     const UdsChunkName *name,
+                                     const struct uds_chunk_name *name,
                                      MasterIndexTriage *triage)
 {
   triage->isSample = false;
@@ -950,7 +950,7 @@ static int lookupMasterIndexName_005(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static int lookupMasterIndexSampledName_005(const MasterIndex *masterIndex,
-                                            const UdsChunkName *name,
+                                            const struct uds_chunk_name *name,
                                             MasterIndexTriage *triage)
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
@@ -1006,7 +1006,7 @@ static int lookupMasterIndexSampledName_005(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static int getMasterIndexRecord_005(MasterIndex *masterIndex,
-                                    const UdsChunkName *name,
+                                    const struct uds_chunk_name *name,
                                     MasterIndexRecord *record)
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
@@ -1244,7 +1244,7 @@ static void getMasterIndexStats_005(const MasterIndex *masterIndex,
  **/
 static bool isMasterIndexSample_005(const MasterIndex  *masterIndex
                                     __attribute__((unused)),
-                                    const UdsChunkName *name
+                                    const struct uds_chunk_name *name
                                     __attribute__((unused)))
 {
   return false;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#3 $
  */
 
 #include "indexSession.h"
@@ -29,7 +29,7 @@
 
 /**********************************************************************/
 static void collectStats(const struct uds_index_session *indexSession,
-                         UdsContextStats                *stats)
+                         struct uds_context_stats       *stats)
 {
   const SessionStats *sessionStats = &indexSession->stats;
 
@@ -480,14 +480,14 @@ int udsSetCheckpointFrequency(struct uds_index_session *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexConfiguration(struct uds_index_session *indexSession,
-                             UdsConfiguration         *conf)
+int udsGetIndexConfiguration(struct uds_index_session  *indexSession,
+                             struct uds_configuration **conf)
 {
   if (conf == NULL) {
     return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
                                    "received a NULL config pointer");
   }
-  int result = ALLOCATE(1, struct udsConfiguration, __func__, conf);
+  int result = ALLOCATE(1, struct uds_configuration, __func__, conf);
   if (result == UDS_SUCCESS) {
     **conf = indexSession->userConfig;
   }
@@ -496,7 +496,7 @@ int udsGetIndexConfiguration(struct uds_index_session *indexSession,
 
 /**********************************************************************/
 int udsGetIndexStats(struct uds_index_session *indexSession,
-                     UdsIndexStats            *stats)
+                     struct uds_index_stats   *stats)
 {
   if (stats == NULL) {
     return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
@@ -508,7 +508,7 @@ int udsGetIndexStats(struct uds_index_session *indexSession,
 
 /**********************************************************************/
 int udsGetIndexSessionStats(struct uds_index_session *indexSession,
-                            UdsContextStats          *stats)
+                            struct uds_context_stats *stats)
 {
   if (stats == NULL) {
     return logWarningWithStringError(UDS_CONTEXT_STATS_PTR_REQUIRED,

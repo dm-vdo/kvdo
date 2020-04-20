@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#3 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -78,14 +78,14 @@ typedef struct {
   bool     isFound;         // This record is the block searched for
 
   // Private fields
-  unsigned char       magic;       // The magic number for valid records
-  unsigned int        zoneNumber;  // Zone that contains this block
-  MasterIndex        *masterIndex; // The master index
-  Mutex              *mutex;       // Mutex that must be held while accessing
-                                   // this delta index entry; used only for
-                                   // a sampled index; otherwise is NULL
-  const UdsChunkName *name;        // The blockname to which this record refers
-  DeltaIndexEntry     deltaEntry;  // The delta index entry for this record
+  unsigned char       magic;          // The magic number for valid records
+  unsigned int        zoneNumber;     // Zone that contains this block
+  MasterIndex        *masterIndex;    // The master index
+  Mutex              *mutex;          // Mutex that must be held while accessing
+                                      // this delta index entry; used only for
+                                      // a sampled index; otherwise is NULL
+  const struct uds_chunk_name *name;  // The blockname to which this record refers
+  DeltaIndexEntry     deltaEntry;     // The delta index entry for this record
 } MasterIndexRecord;
 
 struct masterIndex {
@@ -97,23 +97,23 @@ struct masterIndex {
   void (*freeMasterIndex)(MasterIndex *masterIndex);
   size_t (*getMasterIndexMemoryUsed)(const MasterIndex *masterIndex);
   int (*getMasterIndexRecord)(MasterIndex *masterIndex,
-                              const UdsChunkName *name,
+                              const struct uds_chunk_name *name,
                               MasterIndexRecord *record);
   void (*getMasterIndexStats)(const MasterIndex *masterIndex,
                               MasterIndexStats *dense,
                               MasterIndexStats *sparse);
   unsigned int (*getMasterIndexZone)(const MasterIndex *masterIndex,
-                                     const UdsChunkName *name);
+                                     const struct uds_chunk_name *name);
   bool (*isMasterIndexSample)(const MasterIndex *masterIndex,
-                              const UdsChunkName *name);
+                              const struct uds_chunk_name *name);
   bool (*isRestoringMasterIndexDone)(const MasterIndex *masterIndex);
   bool (*isSavingMasterIndexDone)(const MasterIndex *masterIndex,
                                   unsigned int zoneNumber);
   int (*lookupMasterIndexName)(const MasterIndex *masterIndex,
-                               const UdsChunkName *name,
+                               const struct uds_chunk_name *name,
                                MasterIndexTriage *triage);
   int (*lookupMasterIndexSampledName)(const MasterIndex *masterIndex,
-                                      const UdsChunkName *name,
+                                      const struct uds_chunk_name *name,
                                       MasterIndexTriage *triage);
   int (*restoreDeltaListToMasterIndex)(MasterIndex *masterIndex,
                                        const DeltaListSaveInfo *dlsi,
@@ -273,7 +273,7 @@ static INLINE size_t getMasterIndexMemoryUsed(const MasterIndex *masterIndex)
  * @return UDS_SUCCESS or an error code
  **/
 static INLINE int getMasterIndexRecord(MasterIndex *masterIndex,
-                                       const UdsChunkName *name,
+                                       const struct uds_chunk_name *name,
                                        MasterIndexRecord *record)
 {
   return masterIndex->getMasterIndexRecord(masterIndex, name, record);
@@ -302,7 +302,7 @@ static INLINE void getMasterIndexStats(const MasterIndex *masterIndex,
  * @return the zone that the chunk name belongs to
  **/
 static INLINE unsigned int getMasterIndexZone(const MasterIndex *masterIndex,
-                                              const UdsChunkName *name)
+                                              const struct uds_chunk_name *name)
 {
   return masterIndex->getMasterIndexZone(masterIndex, name);
 }
@@ -316,7 +316,7 @@ static INLINE unsigned int getMasterIndexZone(const MasterIndex *masterIndex,
  * @return whether to use as sample
  **/
 static INLINE bool isMasterIndexSample(const MasterIndex *masterIndex,
-                                       const UdsChunkName *name)
+                                       const struct uds_chunk_name *name)
 {
   return masterIndex->isMasterIndexSample(masterIndex, name);
 }
@@ -361,7 +361,7 @@ static INLINE bool isSavingMasterIndexDone(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static INLINE int lookupMasterIndexName(const MasterIndex *masterIndex,
-                                        const UdsChunkName *name,
+                                        const struct uds_chunk_name *name,
                                         MasterIndexTriage *triage)
 {
   return masterIndex->lookupMasterIndexName(masterIndex, name, triage);
@@ -381,7 +381,7 @@ static INLINE int lookupMasterIndexName(const MasterIndex *masterIndex,
  * @return UDS_SUCCESS or an error code
  **/
 static INLINE int lookupMasterIndexSampledName(const MasterIndex *masterIndex,
-                                               const UdsChunkName *name,
+                                               const struct uds_chunk_name *name,
                                                MasterIndexTriage *triage)
 {
   return masterIndex->lookupMasterIndexSampledName(masterIndex, name, triage);

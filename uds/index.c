@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#4 $
  */
 
 #include "index.h"
@@ -624,10 +624,10 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int replayRecord(Index              *index,
-                        const UdsChunkName *name,
-                        uint64_t            virtualChapter,
-                        bool                willBeSparseChapter)
+static int replayRecord(Index                       *index,
+                        const struct uds_chunk_name *name,
+                        uint64_t                     virtualChapter,
+                        bool                         willBeSparseChapter)
 {
   if (willBeSparseChapter && !isMasterIndexSample(index->masterIndex, name)) {
     // This entry will be in a sparse chapter after the rebuild completes,
@@ -820,7 +820,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
       for (k = 0; k < geometry->recordsPerPage; k++) {
         const byte *nameBytes = recordPage + (k * BYTES_PER_RECORD);
 
-        UdsChunkName name;
+        struct uds_chunk_name name;
         memcpy(&name.name, nameBytes, UDS_CHUNK_NAME_SIZE);
 
         result = replayRecord(index, &name, vcn, willBeSparseChapter);
@@ -853,7 +853,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
 }
 
 /**********************************************************************/
-void getIndexStats(Index *index, UdsIndexStats *counters)
+void getIndexStats(Index *index, struct uds_index_stats *counters)
 {
   uint64_t cwAllocated = getChapterWriterMemoryAllocated(index->chapterWriter);
   // We're accessing the master index while not on a zone thread, but that's

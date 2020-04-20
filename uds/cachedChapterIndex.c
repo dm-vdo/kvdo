@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#5 $
  */
 
 #include "cachedChapterIndex.h"
@@ -105,7 +105,7 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 int search_cached_chapter_index(struct cached_chapter_index *chapter,
 				const Geometry *geometry,
 				const IndexPageMap *index_page_map,
-				const UdsChunkName *name,
+				const struct uds_chunk_name *name,
 				int *record_page_ptr)
 {
 	// Find the index_page_number in the chapter that would have the chunk

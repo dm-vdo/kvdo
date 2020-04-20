@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#34 $
  */
 
 #ifndef DATA_KVIO_H
@@ -51,7 +51,7 @@ struct dedupe_context {
 	int status;
 	bool is_pending;
 	/** Hash of the associated VIO (NULL if not calculated) */
-	const UdsChunkName *chunk_name;
+	const struct uds_chunk_name *chunk_name;
 };
 
 struct read_block {

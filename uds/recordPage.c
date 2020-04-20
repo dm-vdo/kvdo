@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#3 $
  */
 
 #include "recordPage.h"
@@ -77,10 +77,10 @@ int encodeRecordPage(const Volume         *volume,
 }
 
 /**********************************************************************/
-bool searchRecordPage(const byte          recordPage[],
-                      const UdsChunkName *name,
-                      const Geometry     *geometry,
-                      UdsChunkData       *metadata)
+bool searchRecordPage(const byte                   recordPage[],
+                      const struct uds_chunk_name *name,
+                      const Geometry              *geometry,
+                      UdsChunkData                *metadata)
 {
   // The record page is just an array of chunk records.
   const UdsChunkRecord *records = (const UdsChunkRecord *) recordPage;

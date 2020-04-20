@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#2 $
  */
 
 #include "openChapterZone.h"
@@ -128,10 +128,11 @@ void resetOpenChapter(OpenChapterZone *openChapter)
 }
 
 /**********************************************************************/
-static UdsChunkRecord *probeChapterSlots(OpenChapterZone    *openChapter,
-                                         const UdsChunkName *name,
-                                         unsigned int       *slotPtr,
-                                         unsigned int       *recordNumberPtr)
+static UdsChunkRecord *
+probeChapterSlots(OpenChapterZone             *openChapter,
+                  const struct uds_chunk_name *name,
+                  unsigned int                *slotPtr,
+                  unsigned int                *recordNumberPtr)
 {
   unsigned int slots     = openChapter->slotCount;
   unsigned int probe     = nameToHashSlot(name, slots);
@@ -182,10 +183,10 @@ static UdsChunkRecord *probeChapterSlots(OpenChapterZone    *openChapter,
 }
 
 /**********************************************************************/
-void searchOpenChapter(OpenChapterZone     *openChapter,
-                       const UdsChunkName  *name,
-                       UdsChunkData        *metadata,
-                       bool                *found)
+void searchOpenChapter(OpenChapterZone              *openChapter,
+                       const struct uds_chunk_name  *name,
+                       UdsChunkData                 *metadata,
+                       bool                         *found)
 {
   UdsChunkRecord *record = probeChapterSlots(openChapter, name, NULL, NULL);
 
@@ -200,10 +201,10 @@ void searchOpenChapter(OpenChapterZone     *openChapter,
 }
 
 /**********************************************************************/
-int putOpenChapter(OpenChapterZone    *openChapter,
-                   const UdsChunkName *name,
-                   const UdsChunkData *metadata,
-                   unsigned int       *remaining)
+int putOpenChapter(OpenChapterZone             *openChapter,
+                   const struct uds_chunk_name *name,
+                   const UdsChunkData          *metadata,
+                   unsigned int                *remaining)
 {
   unsigned int slot;
   UdsChunkRecord *record = probeChapterSlots(openChapter, name, &slot, NULL);
@@ -229,9 +230,9 @@ int putOpenChapter(OpenChapterZone    *openChapter,
 }
 
 /**********************************************************************/
-void removeFromOpenChapter(OpenChapterZone    *openChapter,
-                           const UdsChunkName *name,
-                           bool               *removed)
+void removeFromOpenChapter(OpenChapterZone             *openChapter,
+                           const struct uds_chunk_name *name,
+                           bool                        *removed)
 {
   unsigned int recordNumber;
   UdsChunkRecord *record

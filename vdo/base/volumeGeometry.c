@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#22 $
  */
 
 #include "volumeGeometry.h"
@@ -441,7 +441,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 int compute_index_blocks(struct index_config *index_config,
 			 block_count_t *index_blocks_ptr)
 {
-	UdsConfiguration uds_configuration = NULL;
+	struct uds_configuration *uds_configuration = NULL;
 	int result = index_config_to_uds_configuration(index_config,
 						       &uds_configuration);
 	if (result != UDS_SUCCESS) {
@@ -566,9 +566,9 @@ int write_volume_geometry(PhysicalLayer *layer,
 
 /************************************************************************/
 int index_config_to_uds_configuration(struct index_config *index_config,
-				      UdsConfiguration *uds_config_ptr)
+				      struct uds_configuration **uds_config_ptr)
 {
-	UdsConfiguration uds_configuration;
+	struct uds_configuration *uds_configuration;
 	int result = udsInitializeConfiguration(&uds_configuration,
 						index_config->mem);
 	if (result != UDS_SUCCESS) {

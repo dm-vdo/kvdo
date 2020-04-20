@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#2 $
  */
 
 #ifndef HASH_UTILS_H
@@ -45,7 +45,7 @@ enum {
  *
  * @return The chapter index bytes
  **/
-static INLINE uint64_t extractChapterIndexBytes(const UdsChunkName *name)
+static INLINE uint64_t extractChapterIndexBytes(const struct uds_chunk_name *name)
 {
   // Get the high order 16 bits, then the low order 32 bits
   uint64_t bytes
@@ -61,7 +61,7 @@ static INLINE uint64_t extractChapterIndexBytes(const UdsChunkName *name)
  *
  * @return The master index portion of the block name
  **/
-static INLINE uint64_t extractMasterIndexBytes(const UdsChunkName *name)
+static INLINE uint64_t extractMasterIndexBytes(const struct uds_chunk_name *name)
 {
   return getUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET]);
 }
@@ -73,7 +73,7 @@ static INLINE uint64_t extractMasterIndexBytes(const UdsChunkName *name)
  *
  * @return The sparse sample portion of the block name
  **/
-static INLINE uint32_t extractSamplingBytes(const UdsChunkName *name)
+static INLINE uint32_t extractSamplingBytes(const struct uds_chunk_name *name)
 {
   return getUInt16BE(&name->name[SAMPLE_BYTES_OFFSET]);
 }
@@ -86,8 +86,9 @@ static INLINE uint32_t extractSamplingBytes(const UdsChunkName *name)
  *
  * @return The chapter delta list where we expect to find the given blockname
  **/
-static INLINE unsigned int hashToChapterDeltaList(const UdsChunkName *name,
-                                                  const Geometry     *geometry)
+static INLINE unsigned int
+hashToChapterDeltaList(const struct uds_chunk_name *name,
+                       const Geometry              *geometry)
 {
   return (unsigned int) ((extractChapterIndexBytes(name)
                           >> geometry->chapterAddressBits)
@@ -102,8 +103,9 @@ static INLINE unsigned int hashToChapterDeltaList(const UdsChunkName *name,
  *
  * @return The chapter delta address to use
  **/
-static INLINE unsigned int hashToChapterDeltaAddress(const UdsChunkName *name,
-                                                     const Geometry *geometry)
+static INLINE unsigned int
+hashToChapterDeltaAddress(const struct uds_chunk_name *name,
+                          const Geometry *geometry)
 {
   return (unsigned int) (extractChapterIndexBytes(name)
                          & ((1 << geometry->chapterAddressBits) - 1));
@@ -119,7 +121,7 @@ static INLINE unsigned int hashToChapterDeltaAddress(const UdsChunkName *name,
  * @return the record number in the index page where we expect to find
  #         the given blockname
  **/
-static INLINE unsigned int nameToHashSlot(const UdsChunkName *name,
+static INLINE unsigned int nameToHashSlot(const struct uds_chunk_name *name,
                                           unsigned int slotCount)
 {
   return (unsigned int) (extractChapterIndexBytes(name) % slotCount);
@@ -136,10 +138,9 @@ static INLINE unsigned int nameToHashSlot(const UdsChunkName *name,
  *                      or UDS_INVALID_ARGUMENT if hexDataLen
  *                      is too short.
  **/
-int chunkNameToHex(const UdsChunkName *chunkName,
-                   char               *hexData,
-                   size_t              hexDataLen)
-  __attribute__((warn_unused_result));
+int __must_check
+chunkNameToHex(const struct uds_chunk_name *chunkName, char *hexData,
+               size_t hexDataLen);
 
 /**
  * Convert chunk data to hex to make it more readable.
@@ -174,7 +175,8 @@ unsigned int computeBits(unsigned int maxValue)
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void setChapterIndexBytes(UdsChunkName *name, uint64_t value)
+static INLINE void setChapterIndexBytes(struct uds_chunk_name *name,
+                                        uint64_t value)
 {
   // Store the high order bytes, then the low-order bytes
   storeUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET],
@@ -190,9 +192,9 @@ static INLINE void setChapterIndexBytes(UdsChunkName *name, uint64_t value)
  * @param geometry The geometry to use
  * @param value    The value to store
  **/
-static INLINE void setChapterDeltaListBits(UdsChunkName   *name,
-                                           const Geometry *geometry,
-                                           uint64_t        value)
+static INLINE void setChapterDeltaListBits(struct uds_chunk_name *name,
+                                           const Geometry        *geometry,
+                                           uint64_t               value)
 {
   uint64_t deltaAddress = hashToChapterDeltaAddress(name, geometry);
   deltaAddress |= value << geometry->chapterAddressBits;
@@ -205,7 +207,8 @@ static INLINE void setChapterDeltaListBits(UdsChunkName   *name,
  * @param name  The block name
  * @param val   The value to store
  **/
-static INLINE void setMasterIndexBytes(UdsChunkName *name, uint64_t val)
+static INLINE void setMasterIndexBytes(struct uds_chunk_name *name,
+                                       uint64_t val)
 {
   storeUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET], val);
 }
@@ -216,7 +219,8 @@ static INLINE void setMasterIndexBytes(UdsChunkName *name, uint64_t val)
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void setSamplingBytes(UdsChunkName *name, uint32_t value)
+static INLINE void setSamplingBytes(struct uds_chunk_name *name,
+                                    uint32_t value)
 {
   storeUInt16BE(&name->name[SAMPLE_BYTES_OFFSET], (uint16_t)value);
 }

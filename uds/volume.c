@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#7 $
  */
 
 #include "volume.h"
@@ -559,12 +559,12 @@ int getPage(Volume          *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int searchCachedIndexPage(Volume             *volume,
-                                 Request            *request,
-                                 const UdsChunkName *name,
-                                 unsigned int        chapter,
-                                 unsigned int        indexPageNumber,
-                                 int                *recordPageNumber)
+static int searchCachedIndexPage(Volume                      *volume,
+                                 Request                     *request,
+                                 const struct uds_chunk_name *name,
+                                 unsigned int                 chapter,
+                                 unsigned int                 indexPageNumber,
+                                 int                         *recordPageNumber)
 {
   unsigned int zoneNumber = getZoneNumber(request);
   unsigned int physicalPage
@@ -602,13 +602,13 @@ static int searchCachedIndexPage(Volume             *volume,
 }
 
 /**********************************************************************/
-int searchCachedRecordPage(Volume             *volume,
-                           Request            *request,
-                           const UdsChunkName *name,
-                           unsigned int        chapter,
-                           int                 recordPageNumber,
-                           UdsChunkData       *duplicate,
-                           bool               *found)
+int searchCachedRecordPage(Volume                      *volume,
+                           Request                     *request,
+                           const struct uds_chunk_name *name,
+                           unsigned int                 chapter,
+                           int                          recordPageNumber,
+                           UdsChunkData                *duplicate,
+                           bool                        *found)
 {
   *found = false;
 
@@ -692,12 +692,12 @@ int readChapterIndexFromVolume(const Volume       *volume,
 }
 
 /**********************************************************************/
-int searchVolumePageCache(Volume             *volume,
-                          Request            *request,
-                          const UdsChunkName *name,
-                          uint64_t            virtualChapter,
-                          UdsChunkData       *metadata,
-                          bool               *found)
+int searchVolumePageCache(Volume                      *volume,
+                          Request                     *request,
+                          const struct uds_chunk_name *name,
+                          uint64_t                     virtualChapter,
+                          UdsChunkData                *metadata,
+                          bool                        *found)
 {
   unsigned int physicalChapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);

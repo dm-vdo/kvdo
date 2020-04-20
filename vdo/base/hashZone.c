@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#18 $
  */
 
 #include "hashZone.h"
@@ -85,7 +85,7 @@ struct hash_zone {
 static bool compare_keys(const void *this_key, const void *that_key)
 {
 	// Null keys are not supported.
-	return (memcmp(this_key, that_key, sizeof(UdsChunkName)) == 0);
+	return (memcmp(this_key, that_key, sizeof(struct uds_chunk_name)) == 0);
 }
 
 /**
@@ -93,7 +93,7 @@ static bool compare_keys(const void *this_key, const void *that_key)
  **/
 static uint32_t hash_key(const void *key)
 {
-	const UdsChunkName *name = key;
+	const struct uds_chunk_name *name = key;
 	/*
 	 * Use a fragment of the chunk name as a hash code. It must not overlap
 	 * with fragments used elsewhere to ensure uniform distributions.
@@ -211,7 +211,7 @@ static void returnHashLockToPool(struct hash_zone *zone,
 
 /**********************************************************************/
 int acquire_hash_lock_from_zone(struct hash_zone *zone,
-				const UdsChunkName *hash,
+				const struct uds_chunk_name *hash,
 				struct hash_lock *replace_lock,
 				struct hash_lock **lock_ptr)
 {

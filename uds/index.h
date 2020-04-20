@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#4 $
  */
 
 #ifndef INDEX_H
@@ -175,7 +175,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
  * @param index     The index
  * @param counters  the statistic counters for the index
  **/
-void getIndexStats(Index *index, UdsIndexStats *counters);
+void getIndexStats(Index *index, struct uds_index_stats *counters);
 
 /**
  * Set lookup state for this index.  Disabling lookups means assume

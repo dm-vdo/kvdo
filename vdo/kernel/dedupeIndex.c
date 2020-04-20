@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#45 $
  */
 
 #include "dedupeIndex.h"
@@ -90,7 +90,7 @@ struct dedupe_index {
 	struct kobject dedupe_object;
 	RegisteredThread allocating_thread;
 	char *index_name;
-	UdsConfiguration configuration;
+	struct uds_configuration *configuration;
 	struct uds_parameters uds_params;
 	struct uds_index_session *index_session;
 	atomic_t active;
@@ -808,7 +808,7 @@ void get_index_statistics(struct dedupe_index *index,
 	spin_unlock(&index->state_lock);
 	stats->curr_dedupe_queries = atomic_read(&index->active);
 	if (index_state == IS_OPENED) {
-		UdsIndexStats index_stats;
+		struct uds_index_stats index_stats;
 		int result =
 			udsGetIndexStats(index->index_session, &index_stats);
 		if (result == UDS_SUCCESS) {
@@ -817,7 +817,7 @@ void get_index_statistics(struct dedupe_index *index,
 			logErrorWithStringError(result,
 						"Error reading index stats");
 		}
-		UdsContextStats context_stats;
+		struct uds_context_stats context_stats;
 
 		result = udsGetIndexSessionStats(index->index_session,
 						 &context_stats);
@@ -1001,7 +1001,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 	udsConfigurationSetNonce(index->configuration,
-				 (UdsNonce) layer->geometry.nonce);
+				 (uds_nonce_t) layer->geometry.nonce);
 
 	result = udsCreateIndexSession(&index->index_session);
 	if (result != UDS_SUCCESS) {

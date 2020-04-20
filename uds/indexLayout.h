@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#6 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -42,16 +42,15 @@ struct index_layout;
  *                    backward compatibility a string without an equals is
  *                    treated as a platform-specific default parameter value.
  * @param new_layout  Whether this is a new layout.
- * @param config      The UdsConfiguration required for a new layout.
+ * @param config      The uds_configuration required for a new layout.
  * @param layout_ptr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int make_index_layout(const char *name,
-		      bool new_layout,
-		      const UdsConfiguration config,
-		      struct index_layout **layout_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_index_layout(const char *name,
+				   bool new_layout,
+				   const struct uds_configuration *config,
+				   struct index_layout **layout_ptr);
 
 /**
  * Construct an index layout using an IOFactory.  This method is common to all
@@ -63,18 +62,18 @@ int make_index_layout(const char *name,
  * @param named_size  The size in bytes of the space within the block storage
  *                    address space, as specified in the name string.
  * @param new_layout  Whether this is a new layout.
- * @param config      The UdsConfiguration required for a new layout.
+ * @param config      The uds_configuration required for a new layout.
  * @param layout_ptr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int make_index_layout_from_factory(IOFactory *factory,
-				   off_t offset,
-				   uint64_t named_size,
-				   bool new_layout,
-				   const UdsConfiguration config,
-				   struct index_layout **layout_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_index_layout_from_factory(IOFactory *factory,
+			       off_t offset,
+			       uint64_t named_size,
+			       bool new_layout,
+			       const struct uds_configuration *config,
+			       struct index_layout **layout_ptr);
 
 /**
  * Decrement the use count of an index layout.  If the count goes to zero, free
@@ -192,8 +191,9 @@ int open_volume_bufio(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int verify_index_config(struct index_layout *layout, UdsConfiguration config)
-	__attribute__((warn_unused_result));
+int __must_check
+verify_index_config(struct index_layout *layout,
+                    struct uds_configuration *config);
 
 /**
  * Determine which index save slot to use for a new index save.
@@ -222,8 +222,9 @@ int setup_index_save_slot(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int write_index_config(struct index_layout *layout, UdsConfiguration config)
-	__attribute__((warn_unused_result));
+int __must_check
+write_index_config(struct index_layout *layout,
+                   struct uds_configuration *config);
 
 /**
  * Get the index state buffer

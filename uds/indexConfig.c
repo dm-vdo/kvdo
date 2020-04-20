@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#6 $
  */
 
 #include "indexConfig.h"
@@ -35,8 +35,8 @@ enum {
 };
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int decodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
+static int __must_check
+decodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 {
   int result = get_uint32_le_from_buffer(buffer, &config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
@@ -85,9 +85,9 @@ static int decodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
 }
 
 /**********************************************************************/
-static int readVersion(BufferedReader    *reader,
-                       UdsConfiguration   conf,
-                       const char       **versionPtr)
+static int readVersion(BufferedReader            *reader,
+                       struct uds_configuration  *conf,
+                       const char               **versionPtr)
 {
   byte buffer[INDEX_CONFIG_VERSION_LENGTH];
   int result = read_from_buffered_reader(reader, buffer,
@@ -119,7 +119,7 @@ static int readVersion(BufferedReader    *reader,
     return result;
   } else if (memcmp(INDEX_CONFIG_VERSION_6_01, buffer,
                     INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration6_01 oldConf;
+    struct uds_configuration_6_01 oldConf;
     result = read_from_buffered_reader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
       logErrorWithStringError(result,
@@ -147,8 +147,8 @@ static int readVersion(BufferedReader    *reader,
 }
 
 /**********************************************************************/
-int readConfigContents(BufferedReader   *reader,
-                       UdsConfiguration  config)
+int readConfigContents(BufferedReader           *reader,
+                       struct uds_configuration *config)
 {
   int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
                                     INDEX_CONFIG_MAGIC_LENGTH);
@@ -170,8 +170,8 @@ int readConfigContents(BufferedReader   *reader,
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int encodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
+static int __must_check
+encodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 {
   int result = put_uint32_le_into_buffer(buffer, config->recordPagesPerChapter);
   if (result != UDS_SUCCESS) {
@@ -216,8 +216,8 @@ static int encodeIndexConfig(struct buffer *buffer, UdsConfiguration config)
 }
 
 /**********************************************************************/
-int writeConfigContents(BufferedWriter   *writer,
-                        UdsConfiguration  config)
+int writeConfigContents(BufferedWriter           *writer,
+                        struct uds_configuration *config)
 {
   int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
                                         INDEX_CONFIG_MAGIC_LENGTH);
@@ -246,7 +246,8 @@ int writeConfigContents(BufferedWriter   *writer,
 }
 
 /**********************************************************************/
-int makeConfiguration(UdsConfiguration conf, Configuration **configPtr)
+int makeConfiguration(const struct uds_configuration *conf,
+                      Configuration **configPtr)
 {
   *configPtr = NULL;
   if (conf == NULL) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#34 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -365,7 +365,7 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
  * @return  The hash zone responsible for the chunk name
  **/
 struct hash_zone *select_hash_zone(const struct vdo *vdo,
-				   const UdsChunkName *name)
+				   const struct uds_chunk_name *name)
 	__attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#2 $
  */
 
 #ifndef CONFIG_H
@@ -36,7 +36,7 @@ enum {
 /**
  * Data that are used for configuring a new index.
  **/
-struct udsConfiguration {
+struct uds_configuration {
   /** Smaller (16), Small (64) or large (256) indices */
   unsigned int recordPagesPerChapter;
   /** Total number of chapters per volume */
@@ -55,13 +55,13 @@ struct udsConfiguration {
   /** Sampling rate for sparse indexing */
   unsigned int sparseSampleRate;
   /** Index Owner's nonce */
-  UdsNonce     nonce;
+  uds_nonce_t  nonce;
 };
 
 /**
  * Data that are used for a 6.01 index.
  **/
-struct udsConfiguration6_01 {
+struct uds_configuration_6_01 {
   /** Smaller (16), Small (64) or large (256) indices */
   unsigned int recordPagesPerChapter;
   /** Total number of chapters per volume */
@@ -94,14 +94,14 @@ typedef struct configuration Configuration;
 /**
  * Construct a new indexer configuration.
  *
- * @param conf       UdsConfiguration to use
+ * @param conf       uds_configuration to use
  * @param configPtr  The new index configuration
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeConfiguration(UdsConfiguration   conf,
-                      Configuration    **configPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+makeConfiguration(const struct uds_configuration *conf,
+                  Configuration **configPtr);
 
 /**
  * Clean up the configuration struct.
@@ -116,9 +116,8 @@ void freeConfiguration(Configuration *config);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int readConfigContents(BufferedReader   *reader,
-                       UdsConfiguration  config)
-  __attribute__((warn_unused_result));
+int __must_check
+readConfigContents(BufferedReader *reader, struct uds_configuration *config);
 
 /**
  * Write the index configuration information to stable storage.
@@ -128,9 +127,8 @@ int readConfigContents(BufferedReader   *reader,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int writeConfigContents(BufferedWriter   *writer,
-                        UdsConfiguration  config)
-  __attribute__((warn_unused_result));
+int __must_check
+writeConfigContents(BufferedWriter *writer, struct uds_configuration *config);
 
 /**
  * Free the memory used by an IndexLocation.
@@ -147,14 +145,15 @@ void freeIndexLocation(IndexLocation *loc);
  *
  * @return true iff they are equal
  **/
-bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
-  __attribute__((warn_unused_result));
+bool __must_check
+areUdsConfigurationsEqual(struct uds_configuration *a,
+                          struct uds_configuration *b);
 
 /**
  * Log a user configuration.
  *
  * @param conf    The configuration
  **/
-void logUdsConfiguration(UdsConfiguration conf);
+void logUdsConfiguration(struct uds_configuration *conf);
 
 #endif /* CONFIG_H */

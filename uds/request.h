@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#2 $
  */
 
 #ifndef REQUEST_H
@@ -127,15 +127,15 @@ struct internalRequest {
    * The first part of this structure must be exactly parallel to the
    * UdsRequest structure, which is part of the public UDS API.
    */
-  UdsChunkName      chunkName;    // hash value
-  UdsChunkData      oldMetadata;  // metadata from index
-  UdsChunkData      newMetadata;  // metadata from request
-  UdsChunkCallback *callback;     // callback method when complete
-  struct uds_index_session *session; // The public index session
-  UdsCallbackType   type;            // the type of request
-  int               status;          // success or error code for this request
-  bool              found;           // True if the block was found in index
-  bool              update;          // move record to newest chapter if found
+  struct uds_chunk_name     chunkName;    // hash value
+  UdsChunkData              oldMetadata;  // metadata from index
+  UdsChunkData              newMetadata;  // metadata from request
+  UdsChunkCallback         *callback;     // callback method when complete
+  struct uds_index_session *session;      // The public index session
+  UdsCallbackType           type;         // the type of request
+  int                       status;       // success or error code for this request
+  bool                      found;        // True if the block was found in index
+  bool                      update;       // move record to newest chapter if found
 
   /*
    * The remainder of this structure is private to the UDS implementation.

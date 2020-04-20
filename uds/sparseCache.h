@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#3 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -54,11 +54,10 @@ struct index;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeSparseCache(const Geometry  *geometry,
-                    unsigned int     capacity,
-                    unsigned int     zoneCount,
-                    SparseCache    **cachePtr)
-  __attribute__((warn_unused_result));
+int __must_check makeSparseCache(const Geometry *geometry,
+				 unsigned int capacity,
+				 unsigned int zoneCount,
+				 SparseCache **cachePtr);
 
 /**
  * Destroy and free a sparse chapter index cache.
@@ -102,8 +101,7 @@ bool sparseCacheContains(SparseCache  *cache,
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check updateSparseCache(IndexZone *zone, uint64_t virtualChapter);
 
 
 /**
@@ -125,10 +123,9 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int searchSparseCache(IndexZone          *zone,
-                      const UdsChunkName *name,
-                      uint64_t           *virtualChapterPtr,
-                      int                *recordPagePtr)
-  __attribute__((warn_unused_result));
+int __must_check searchSparseCache(IndexZone *zone,
+				   const struct uds_chunk_name *name,
+				   uint64_t *virtualChapterPtr,
+				   int *recordPagePtr);
 
 #endif /* SPARSE_CACHE_H */

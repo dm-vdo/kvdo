@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#2 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -123,10 +123,10 @@ void resetOpenChapter(OpenChapterZone *openChapter);
  * @param found       A pointer which will be set to true if the chunk
  *                    name was found
  **/
-void searchOpenChapter(OpenChapterZone    *openChapter,
-                       const UdsChunkName *name,
-                       UdsChunkData       *metadata,
-                       bool               *found);
+void searchOpenChapter(OpenChapterZone *openChapter,
+                       const struct uds_chunk_name *name,
+                       UdsChunkData *metadata,
+                       bool *found);
 
 /**
  * Put a record into the open chapter.
@@ -139,11 +139,10 @@ void searchOpenChapter(OpenChapterZone    *openChapter,
  *
  * @return            UDS_SUCCESS or an error code
  **/
-int putOpenChapter(OpenChapterZone    *openChapter,
-                   const UdsChunkName *name,
-                   const UdsChunkData *metadata,
-                   unsigned int       *remaining)
-  __attribute__((warn_unused_result));
+int __must_check putOpenChapter(OpenChapterZone *openChapter,
+				const struct uds_chunk_name *name,
+				const UdsChunkData *metadata,
+				unsigned int *remaining);
 
 /**
  * Remove a record from the open chapter.
@@ -153,9 +152,9 @@ int putOpenChapter(OpenChapterZone    *openChapter,
  * @param removed     Pointer to bool set to <code>true</code> if the
  *                    record was found
  **/
-void removeFromOpenChapter(OpenChapterZone    *openChapter,
-                           const UdsChunkName *name,
-                           bool               *removed);
+void removeFromOpenChapter(OpenChapterZone             *openChapter,
+                           const struct uds_chunk_name *name,
+                           bool                        *removed);
 
 /**
  * Clean up an open chapter and its memory.
