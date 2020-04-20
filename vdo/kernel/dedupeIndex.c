@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#46 $
  */
 
 #include "dedupeIndex.h"
 
 #include <linux/ratelimit.h>
+#include <linux/workqueue.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -69,18 +70,7 @@ struct periodic_event_reporter {
 	uint64_t last_reported_value;
 	atomic64_t value;
 	struct ratelimit_state ratelimiter;
-	/*
-	 * Just an approximation.  If nonzero, then either the work item has
-	 * been queued to run, or some other thread currently has
-	 * responsibility for enqueueing it, or the reporter function is
-	 * running but hasn't looked at the current value yet.
-	 *
-	 * If this is set, don't set the timer again, because we don't want
-	 * the work item queued twice.  Use an atomic xchg or cmpxchg to
-	 * test-and-set it, and an atomic store to clear it.
-	 */
-	atomic_t work_item_queued;
-	struct kvdo_work_item work_item;
+	struct work_struct work;
 	struct kernel_layer *layer;
 };
 
@@ -366,7 +356,6 @@ uint64_t get_dedupe_timeout_count(struct dedupe_index *index)
 static void report_events(struct periodic_event_reporter *reporter,
 			  bool ratelimit)
 {
-	atomic_set(&reporter->work_item_queued, 0);
 	uint64_t new_value = atomic64_read(&reporter->value);
 	uint64_t difference = new_value - reporter->last_reported_value;
 
@@ -395,10 +384,10 @@ static void report_events(struct periodic_event_reporter *reporter,
 }
 
 /**********************************************************************/
-static void report_events_work(struct kvdo_work_item *item)
+static void report_events_work(struct work_struct *work)
 {
 	struct periodic_event_reporter *reporter =
-		container_of(item, struct periodic_event_reporter, work_item);
+		container_of(work, struct periodic_event_reporter, work);
 	report_events(reporter, true);
 }
 
@@ -407,10 +396,7 @@ static void
 init_periodic_event_reporter(struct periodic_event_reporter *reporter,
 			     struct kernel_layer *layer)
 {
-	setup_work_item(&reporter->work_item,
-			report_events_work,
-			NULL,
-			CPU_Q_ACTION_EVENT_REPORTER);
+	INIT_WORK(&reporter->work, report_events_work);
 	reporter->layer = layer;
 	ratelimit_default_init(&reporter->ratelimiter);
 	// Since we will save up the timeouts that would have been reported
@@ -432,18 +418,15 @@ static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
 				   unsigned int                    timeouts)
 {
 	atomic64_add(timeouts, &reporter->value);
-	int oldWorkItemQueued = atomic_xchg(&reporter->work_item_queued, 1);
-
-	if (oldWorkItemQueued == 0) {
-		enqueue_work_queue(reporter->layer->cpu_queue,
-				   &reporter->work_item);
-	}
+	// If it's already queued, requeueing it will do nothing.
+	schedule_work(&reporter->work);
 }
 
 /**********************************************************************/
 static void
 stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
+	cancel_work_sync(&reporter->work);
 	report_events(reporter, false);
 	ratelimit_state_exit(&reporter->ratelimiter);
 }
