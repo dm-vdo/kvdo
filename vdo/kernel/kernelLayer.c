@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#87 $
  */
 
 #include "kernelLayer.h"
@@ -374,17 +374,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 /**********************************************************************/
 static int kvdo_create_enqueueable(struct vdo_completion *completion)
 {
-	struct kvdo_enqueueable *kvdo_enqueueable;
-	int result = ALLOCATE(1,
-			      struct kvdo_enqueueable,
-			      "kvdo_enqueueable",
-			      &kvdo_enqueueable);
-	if (result != VDO_SUCCESS) {
-		logError("kvdo_enqueueable allocation failure %d", result);
-		return result;
-	}
-	kvdo_enqueueable->enqueueable.completion = completion;
-	completion->enqueueable = &kvdo_enqueueable->enqueueable;
+	completion->enqueueable = NULL;
 	return VDO_SUCCESS;
 }
 
@@ -392,15 +382,8 @@ static int kvdo_create_enqueueable(struct vdo_completion *completion)
 static void kvdo_destroy_enqueueable(Enqueueable **enqueueable_ptr)
 {
 	Enqueueable *enqueueable = *enqueueable_ptr;
-
-	if (enqueueable != NULL) {
-		struct kvdo_enqueueable *kvdo_enqueueable =
-		  container_of(enqueueable,
-			       struct kvdo_enqueueable,
-			       enqueueable);
-		FREE(kvdo_enqueueable);
-		*enqueueable_ptr = NULL;
-	}
+	ASSERT_LOG_ONLY((enqueueable == NULL),
+			"Enqueueable to destroy is NULL");
 }
 
 /**

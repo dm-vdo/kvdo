@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#48 $
  */
 
 /*
@@ -582,26 +582,15 @@ void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 /**********************************************************************/
 static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
 {
-	struct kvdo_enqueueable *kvdo_enqueueable =
-		container_of(work_item, struct kvdo_enqueueable, work_item);
-	run_callback(kvdo_enqueueable->enqueueable.completion);
+	run_callback(container_of(work_item, struct vdo_completion,
+				  work_item));
 }
 
 /**********************************************************************/
 void kvdo_enqueue(struct vdo_completion *completion)
 {
-	struct kvdo_enqueueable *enqueueable =
-		container_of(completion->enqueueable, struct kvdo_enqueueable,
-			     enqueueable);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
 	ThreadID thread_id = completion->callbackThreadID;
-
-	if (ASSERT((enqueueable != NULL),
-		   "non-enqueueable completion (type %s) not on correct thread",
-		   get_completion_type_name(completion->type))) {
-		BUG();
-	}
-
 
 	if (ASSERT(thread_id < layer->kvdo.initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
@@ -615,11 +604,11 @@ void kvdo_enqueue(struct vdo_completion *completion)
 		vio_add_trace_record(as_vio(completion),
 				     THIS_LOCATION("$F($cb)"));
 	}
-	setup_work_item(&enqueueable->work_item, kvdo_enqueue_work,
+	setup_work_item(&completion->work_item, kvdo_enqueue_work,
 			(KvdoWorkFunction) completion->callback,
 			REQ_Q_ACTION_COMPLETION);
 	enqueue_kvdo_thread_work(&layer->kvdo.threads[thread_id],
-				 &enqueueable->work_item);
+				 &completion->work_item);
 }
 
 /**********************************************************************/

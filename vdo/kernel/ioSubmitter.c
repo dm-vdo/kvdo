@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#38 $
  */
 
 #include "ioSubmitter.h"
@@ -406,34 +406,37 @@ static struct kvio *get_mergeable_locked(struct int_map *map,
 
 	struct kvio *kvio_merge = int_map_get(map, merge_sector);
 
-	if (kvio_merge != NULL) {
-		if (!are_work_item_actions_equal(
-			    &kvio->enqueueable.work_item,
-			    &kvio_merge->enqueueable.work_item)) {
+	if (kvio_merge == NULL) {
+		return NULL;
+	}
+
+	if (!are_work_item_actions_equal(work_item_from_kvio(kvio),
+					 work_item_from_kvio(kvio_merge))) {
+		return NULL;
+	}
+
+	if (bio_data_dir(bio) != bio_data_dir(kvio_merge->bio_to_submit)) {
+		return NULL;
+	}
+
+	if (bio_list_empty(&kvio_merge->bios_merged)) {
+		return NULL;
+	}
+
+	switch (merge_type) {
+	case ELEVATOR_BACK_MERGE:
+		if (get_bio_sector(kvio_merge->bios_merged.tail)
+		    != merge_sector) {
 			return NULL;
-		} else if (bio_data_dir(bio) !=
-			   bio_data_dir(kvio_merge->bio_to_submit)) {
-			return NULL;
-		} else if (bio_list_empty(&kvio_merge->bios_merged)) {
-			return NULL;
-		} else {
-			switch (merge_type) {
-			case ELEVATOR_BACK_MERGE:
-				if (get_bio_sector(
-					    kvio_merge->bios_merged.tail) !=
-				    merge_sector) {
-					return NULL;
-				}
-				break;
-			case ELEVATOR_FRONT_MERGE:
-				if (get_bio_sector(
-					    kvio_merge->bios_merged.head) !=
-				    merge_sector) {
-					return NULL;
-				}
-				break;
-			}
 		}
+		break;
+
+	case ELEVATOR_FRONT_MERGE:
+		if (get_bio_sector(kvio_merge->bios_merged.head) !=
+		    merge_sector) {
+			return NULL;
+		}
+		break;
 	}
 
 	return kvio_merge;

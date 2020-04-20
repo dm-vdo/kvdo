@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#34 $
  */
 
 #include "kvio.h"
@@ -30,8 +30,25 @@
 #include "waitQueue.h"
 
 #include "bio.h"
+#include "dataKVIO.h"
 #include "ioSubmitter.h"
 #include "kvdoFlush.h"
+
+/**********************************************************************/
+struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
+{
+	struct vio *vio = container_of(item, struct vio, completion.work_item);
+	if (is_metadata_vio(vio)) {
+                return &(vio_as_metadata_kvio(vio)->kvio);
+	}
+
+	if (is_compressed_write_vio(vio)) {
+		struct allocating_vio *avio = vio_as_allocating_vio(vio);
+		return &(allocating_vio_as_compressed_write_kvio(avio)->kvio);
+	}
+
+	return &(data_vio_as_data_kvio(vio_as_data_vio(vio))->kvio);
+}
 
 /**
  * A function to tell vdo that we have completed the requested async
@@ -287,11 +304,6 @@ void initialize_kvio(struct kvio *kvio,
 	// XXX: The "init" label should be replaced depending on the
 	// write/read/flush path followed.
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F;io=?init;j=normal"));
-
-	struct vdo_completion *completion = vio_as_completion(kvio->vio);
-
-	kvio->enqueueable.enqueueable.completion = completion;
-	completion->enqueueable = &kvio->enqueueable.enqueueable;
 }
 
 /**
@@ -315,13 +327,9 @@ make_metadata_kvio(struct kernel_layer *layer,
 		   struct bio *bio,
 		   struct metadata_kvio **metadata_kvio_ptr)
 {
-#ifdef ENQUEUEABLE_REMOVAL
 	// If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
 	// VDOSTORY-176.
 	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
-#else // NOT ENQUEUEABLE_REMOVAL
-        STATIC_ASSERT(sizeof(struct enqueueable) > 0);
-#endif // ENQUEUEABLE_REMOVAL
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.

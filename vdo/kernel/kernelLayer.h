@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#38 $
  */
 
 #ifndef KERNELLAYER_H
@@ -203,15 +203,6 @@ typedef enum {
 } bio_ack_q_action;
 
 typedef void (*dedupe_shutdown_callback_function)(struct kernel_layer *layer);
-
-/*
- * Wrapper for the Enqueueable object, to associate it with a kernel
- * layer work item.
- */
-struct kvdo_enqueueable {
-	struct kvdo_work_item work_item;
-	Enqueueable enqueueable;
-};
 
 /**
  * Implements LayerFilter.

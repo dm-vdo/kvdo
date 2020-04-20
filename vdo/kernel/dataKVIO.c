@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#60 $
  */
 
 #include "dataKVIO.h"
@@ -722,7 +722,6 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
 	struct kvio *kvio = &data_kvio->kvio;
 
 	kvio->vio = data_vio_as_vio(&data_kvio->data_vio);
-	memset(&kvio->enqueueable, 0, sizeof(struct kvdo_enqueueable));
 	memset(&data_kvio->dedupe_context.pending_list, 0,
 	       sizeof(struct list_head));
 	memset(&data_kvio->data_vio, 0, sizeof(struct data_vio));
@@ -1265,7 +1264,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 	 * in some circumstances syslogd may have trouble keeping up, so
 	 * keep it BRIEF rather than user-friendly.
 	 */
-	dump_work_item_to_buffer(&data_kvio->kvio.enqueueable.work_item,
+	dump_work_item_to_buffer(work_item_from_data_kvio(data_kvio),
 				 vio_work_item_dump_buffer,
 				 sizeof(vio_work_item_dump_buffer));
 	// Another static buffer...

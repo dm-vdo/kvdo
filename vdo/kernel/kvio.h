@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#25 $
  */
 
 #ifndef KVIO_H
@@ -31,7 +31,6 @@
  * A specific (semi-opaque) encapsulation of a single block
  **/
 struct kvio {
-	struct kvdo_enqueueable enqueueable;
 	struct vio *vio;
 	struct kernel_layer *layer;
 	struct bio *bio;
@@ -163,9 +162,18 @@ compressed_write_kvio_as_kvio(struct compressed_write_kvio *compressed_write_kvi
  *
  * @return the kvio
  **/
-static inline struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
+struct kvio * __must_check work_item_as_kvio(struct kvdo_work_item *item);
+
+/**
+ * Extracts the work item from a kvio.
+ *
+ * @param kvio  the kvio
+ *
+ * @return the kvio's work item
+ **/
+static inline struct kvdo_work_item *work_item_from_kvio(struct kvio *kvio)
 {
-	return container_of(item, struct kvio, enqueueable.work_item);
+	return &vio_as_completion(kvio->vio)->work_item;
 }
 
 /**
@@ -177,7 +185,7 @@ static inline struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
 static inline void enqueue_kvio_work(struct kvdo_work_queue *queue,
 				     struct kvio *kvio)
 {
-	enqueue_work_queue(queue, &kvio->enqueueable.work_item);
+	enqueue_work_queue(queue, work_item_from_kvio(kvio));
 }
 
 /**
@@ -205,7 +213,7 @@ static inline void setup_kvio_work(struct kvio *kvio,
 				   void *stats_function,
 				   unsigned int action)
 {
-	setup_work_item(&kvio->enqueueable.work_item,
+	setup_work_item(work_item_from_kvio(kvio),
 			work,
 			stats_function,
 			action);
