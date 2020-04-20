@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#4 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -31,7 +31,7 @@ typedef uint16_t JournalEntryCount;
  * The absolute position of an entry in a recovery journal or slab journal.
  **/
 struct journal_point {
-	SequenceNumber sequence_number;
+	sequence_number_t sequence_number;
 	JournalEntryCount entry_count;
 };
 

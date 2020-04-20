@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#15 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -36,7 +36,7 @@
  * the sector number and the entry number within the sector.
  **/
 struct recovery_point {
-	SequenceNumber sequence_number; // Block sequence number
+	sequence_number_t sequence_number; // Block sequence number
 	uint8_t sector_count; // Sector number
 	JournalEntryCount entry_count; // Entry number
 };
@@ -62,21 +62,21 @@ struct recovery_completion {
 	/**
 	 * The sequence number of the first valid block for block map recovery
 	 */
-	SequenceNumber block_map_head;
+	sequence_number_t block_map_head;
 	/**
 	 * The sequence number of the first valid block for slab journal replay
 	 */
-	SequenceNumber slab_journal_head;
+	sequence_number_t slab_journal_head;
 	/**
 	 * The sequence number of the last valid block of the journal (if
 	 * known)
 	 */
-	SequenceNumber tail;
+	sequence_number_t tail;
 	/**
 	 * The highest sequence number of the journal, not the same as the tail,
 	 * since the tail ignores blocks after the first hole.
 	 */
-	SequenceNumber highest_tail;
+	sequence_number_t highest_tail;
 
 	/** A location just beyond the last valid entry of the journal */
 	struct recovery_point tail_recovery_point;

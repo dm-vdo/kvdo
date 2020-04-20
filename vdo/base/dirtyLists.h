@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#5 $
  */
 
 #ifndef DIRTY_LISTS_H
@@ -72,7 +72,8 @@ void free_dirty_lists(struct dirty_lists **dirty_lists_ptr);
  * @param dirty_lists  The dirty_lists
  * @param period       The current period
  **/
-void set_current_period(struct dirty_lists *dirty_lists, SequenceNumber period);
+void set_current_period(struct dirty_lists *dirty_lists,
+			sequence_number_t period);
 
 /**
  * Add an element to the dirty lists.
@@ -85,7 +86,8 @@ void set_current_period(struct dirty_lists *dirty_lists, SequenceNumber period);
  *                     or 0 if it does not hold a lock
  **/
 void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
-			SequenceNumber old_period, SequenceNumber new_period);
+			sequence_number_t old_period,
+			sequence_number_t new_period);
 
 /**
  * Advance the current period. If the current period is greater than the number
@@ -94,7 +96,7 @@ void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
  * @param dirty_lists  The dirty_lists to advance
  * @param period       The new current period
  **/
-void advance_period(struct dirty_lists *dirty_lists, SequenceNumber period);
+void advance_period(struct dirty_lists *dirty_lists, sequence_number_t period);
 
 /**
  * Flush all dirty lists. This will cause the period to be advanced past the

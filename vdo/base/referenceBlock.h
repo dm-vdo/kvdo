@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#8 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -73,12 +73,12 @@ struct reference_block {
 	/** The number of references in this block that represent allocations */
 	block_size_t allocated_count;
 	/** The slab journal block on which this block must hold a lock */
-	SequenceNumber slab_journal_lock;
+	sequence_number_t slab_journal_lock;
 	/**
 	 * The slab journal block which should be released when this block
 	 * is committed
 	 **/
-	SequenceNumber slab_journal_lock_to_release;
+	sequence_number_t slab_journal_lock_to_release;
 	/** The point up to which each sector is accurate on disk */
 	struct journal_point commit_points[SECTORS_PER_BLOCK];
 	/** Whether this block has been modified since it was written to disk */

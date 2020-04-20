@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#59 $
  */
 
 #include "blockMap.h"
@@ -68,7 +68,7 @@ struct block_map_page_context {
 	 * this value changes, the reference on the old value must be released
 	 * and a reference on the new value must be acquired.
 	 **/
-	SequenceNumber recovery_lock;
+	sequence_number_t recovery_lock;
 };
 
 /**
@@ -572,7 +572,7 @@ block_count_t get_number_of_block_map_entries(const struct block_map *map)
 
 /**********************************************************************/
 void advance_block_map_era(struct block_map *map,
-			   SequenceNumber recovery_block_number)
+			   sequence_number_t recovery_block_number)
 {
 	if (map == NULL) {
 		return;
@@ -862,7 +862,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_page_context *context =
 		get_vdo_page_completion_context(completion);
-	SequenceNumber oldLock = context->recovery_lock;
+	sequence_number_t oldLock = context->recovery_lock;
 	update_block_map_page(page,
 			      data_vio,
 			      data_vio->newMapped.pbn,

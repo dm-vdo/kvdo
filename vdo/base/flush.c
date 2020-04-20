@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#24 $
  */
 
 #include "flush.h"
@@ -37,15 +37,15 @@ struct flusher {
 	/** The vdo to which this flusher belongs */
 	struct vdo *vdo;
 	/** The current flush generation of the vdo */
-	SequenceNumber flush_generation;
+	sequence_number_t flush_generation;
 	/** The first unacknowledged flush generation */
-	SequenceNumber first_unacknowledged_generation;
+	sequence_number_t first_unacknowledged_generation;
 	/** The queue of flush requests waiting to notify other threads */
 	struct wait_queue notifiers;
 	/** The queue of flush requests waiting for VIOs to complete */
 	struct wait_queue pending_flushes;
 	/** The flush generation for which notifications are being sent */
-	SequenceNumber notify_generation;
+	sequence_number_t notify_generation;
 	/** The logical zone to notify next */
 	struct logical_zone *logical_zone_to_notify;
 	/** The ID of the thread on which flush requests should be made */
@@ -228,11 +228,11 @@ void complete_flushes(struct flusher *flusher)
 	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
 			"complete_flushes() called from flusher thread");
 
-	SequenceNumber oldest_active_generation = UINT64_MAX;
+	sequence_number_t oldest_active_generation = UINT64_MAX;
 	struct logical_zone *zone;
 	for (zone = get_logical_zone(flusher->vdo->logical_zones, 0);
 	     zone != NULL; zone = get_next_logical_zone(zone)) {
-		SequenceNumber oldest_in_zone =
+		sequence_number_t oldest_in_zone =
 			get_oldest_locked_generation(zone);
 		oldest_active_generation =
 			min_sequence_number(oldest_active_generation,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#39 $
  */
 
 #ifndef DATA_VIO_H
@@ -225,7 +225,7 @@ struct data_vio {
 	 * The sequence number of the recovery journal block containing the
 	 * increment entry for this vio.
 	 */
-	SequenceNumber recoverySequenceNumber;
+	sequence_number_t recoverySequenceNumber;
 
 	/*
 	 * The point in the recovery journal where this write last made an
@@ -242,7 +242,7 @@ struct data_vio {
 	bool hasFlushGenerationLock;
 
 	/* The generation number of the VDO that this vio belongs to */
-	SequenceNumber flushGeneration;
+	sequence_number_t flushGeneration;
 
 	/* The completion to use for fetching block map pages for this vio */
 	struct vdo_page_completion pageCompletion;

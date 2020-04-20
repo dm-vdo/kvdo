@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#16 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -55,7 +55,7 @@ void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
  * @param period     The initial dirty period to set
  **/
 void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
-				  SequenceNumber period);
+				  sequence_number_t period);
 
 /**
  * Check whether a tree zone is active (i.e. has any active lookups,
@@ -75,7 +75,7 @@ bool is_tree_zone_active(struct block_map_tree_zone *zone)
  * @param period  The new dirty period
  **/
 void advance_zone_tree_period(struct block_map_tree_zone *zone,
-			      SequenceNumber period);
+			      sequence_number_t period);
 
 /**
  * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by

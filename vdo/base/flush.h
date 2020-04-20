@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#7 $
  */
 
 #ifndef FLUSH_H
@@ -32,7 +32,7 @@ struct vdo_flush {
 	/** The wait queue entry for this flush */
 	struct waiter waiter;
 	/** Which flush this struct represents */
-	SequenceNumber flush_generation;
+	sequence_number_t flush_generation;
 };
 
 /**

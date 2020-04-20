@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyListsInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyListsInternals.h#4 $
  */
 
 #ifndef DIRTY_LISTS_INTERNALS_H
@@ -31,7 +31,7 @@
  *
  * @param dirty_lists  The dirty_lists to examine
  **/
-SequenceNumber get_dirty_lists_next_period(struct dirty_lists *dirty_lists)
+sequence_number_t get_dirty_lists_next_period(struct dirty_lists *dirty_lists)
 	__attribute__((warn_unused_result));
 
 #endif // DIRTY_LISTS_INTERNALS_H

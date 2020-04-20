@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#11 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -54,12 +54,12 @@ struct tree_page {
 	 * The earliest journal block containing uncommitted updates to this
 	 * page
 	 */
-	SequenceNumber recovery_lock;
+	sequence_number_t recovery_lock;
 
 	/**
 	 * The value of recovery_lock when the this page last started writing
 	 */
-	SequenceNumber writing_recovery_lock;
+	sequence_number_t writing_recovery_lock;
 
 	/** The buffer to hold the on-disk representation of this page */
 	char page_buffer[VDO_BLOCK_SIZE];

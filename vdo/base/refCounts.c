@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#41 $
  */
 
 #include "refCounts.h"
@@ -691,7 +691,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 			return result;
 		}
 
-		SequenceNumber entry_lock = slab_journal_point->sequence_number;
+		sequence_number_t entry_lock = slab_journal_point->sequence_number;
 		adjust_slab_journal_block_reference(ref_counts->slab->journal,
 						    entry_lock,
 						    -1);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#17 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -174,7 +174,7 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr);
  * @param period The initial dirty period to set
  **/
 void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
-				       SequenceNumber period);
+				       sequence_number_t period);
 
 /**
  * Switch the page cache into or out of read-only rebuild mode.
@@ -204,7 +204,7 @@ bool is_page_cache_active(struct vdo_page_cache *cache)
  * @param period  The new dirty period
  **/
 void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
-				   SequenceNumber period);
+				   sequence_number_t period);
 
 /**
  * Write one or more batches of dirty pages.
@@ -315,8 +315,8 @@ void get_vdo_page_async(struct vdo_completion *completion);
  * @param new_dirty_period  the period in which the page is now dirty
  **/
 void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
-				   SequenceNumber old_dirty_period,
-				   SequenceNumber new_dirty_period);
+				   sequence_number_t old_dirty_period,
+				   sequence_number_t new_dirty_period);
 
 /**
  * Request that a VDO page be written out as soon as it is not busy.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#15 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -111,7 +111,7 @@ struct packer {
 	struct input_bin *canceled_bin;
 
 	/** The current flush generation */
-	SequenceNumber flush_generation;
+	sequence_number_t flush_generation;
 
 	/** The administrative state of the packer */
 	struct admin_state state;

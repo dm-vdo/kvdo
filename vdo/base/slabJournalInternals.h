@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#21 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -79,9 +79,9 @@ typedef union {
 /** The unpacked representation of the header of a slab journal block */
 struct slab_journal_block_header {
 	/** Sequence number for head of journal */
-	SequenceNumber head;
+	sequence_number_t head;
 	/** Sequence number for this block */
-	SequenceNumber sequence_number;
+	sequence_number_t sequence_number;
 	/** The nonce for a given VDO instance */
 	nonce_t nonce;
 	/** Recovery journal point for last entry */
@@ -128,8 +128,8 @@ typedef union __attribute__((packed)) {
 	// This view is only valid on little-endian machines and is only present
 	// for ease of directly examining packed entries in GDB.
 	struct __attribute__((packed)) {
-		SequenceNumber head;
-		SequenceNumber sequence_number;
+		sequence_number_t head;
+		sequence_number_t sequence_number;
 		struct packed_journal_point recovery_point;
 		nonce_t nonce;
 		vdo_metadata_type metadata_type;
@@ -174,7 +174,7 @@ struct packed_slab_journal_block {
 
 struct journal_lock {
 	uint16_t count;
-	SequenceNumber recovery_start;
+	sequence_number_t recovery_start;
 };
 
 struct slab_journal {
@@ -199,20 +199,20 @@ struct slab_journal {
 	bool partial_write_in_progress;
 
 	/** The oldest block in the journal on disk */
-	SequenceNumber head;
+	sequence_number_t head;
 	/** The oldest block in the journal which may not be reaped */
-	SequenceNumber unreapable;
+	sequence_number_t unreapable;
 	/** The end of the half-open interval of the active journal */
-	SequenceNumber tail;
+	sequence_number_t tail;
 	/** The next journal block to be committed */
-	SequenceNumber next_commit;
+	sequence_number_t next_commit;
 	/** The tail sequence number that is written in the slab summary */
-	SequenceNumber summarized;
+	sequence_number_t summarized;
 	/** The tail sequence number that was last summarized in slab summary */
-	SequenceNumber last_summarized;
+	sequence_number_t last_summarized;
 
 	/** The sequence number of the recovery journal lock */
-	SequenceNumber recovery_lock;
+	sequence_number_t recovery_lock;
 
 	/**
 	 * The number of entries which fit in a single block. Can't use the
@@ -277,7 +277,8 @@ struct slab_journal {
  * @return the offset corresponding to the sequence number
  **/
 __attribute__((warn_unused_result)) static inline TailBlockOffset
-get_slab_journal_block_offset(struct slab_journal *journal, SequenceNumber sequence)
+get_slab_journal_block_offset(struct slab_journal *journal,
+			      sequence_number_t sequence)
 {
 	return (sequence % journal->size);
 }

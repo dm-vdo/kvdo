@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#54 $
  */
 
 #include "recoveryJournal.h"
@@ -40,7 +40,7 @@
 
 struct recovery_journal_state_7_0 {
 	/** Sequence number to start the journal */
-	SequenceNumber journal_start;
+	sequence_number_t journal_start;
 	/** Number of logical blocks used by VDO */
 	block_count_t logical_blocks_used;
 	/** Number of block map pages allocated */
@@ -249,7 +249,7 @@ static void enter_journal_read_only_mode(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-SequenceNumber
+sequence_number_t
 get_current_journal_sequence_number(struct recovery_journal *journal)
 {
 	return journal->tail;
@@ -263,7 +263,7 @@ get_current_journal_sequence_number(struct recovery_journal *journal)
  *
  * @return the head of the journal
  **/
-static inline SequenceNumber
+static inline sequence_number_t
 get_recovery_journal_head(struct recovery_journal *journal)
 {
 	return min_sequence_number(journal->block_map_head,
@@ -312,7 +312,7 @@ static void assign_entries(struct recovery_journal *journal);
  **/
 static void finish_reaping(struct recovery_journal *journal)
 {
-	SequenceNumber old_head = get_recovery_journal_head(journal);
+	sequence_number_t old_head = get_recovery_journal_head(journal);
 	journal->block_map_head = journal->block_map_reap_head;
 	journal->slab_journal_head = journal->slab_journal_reap_head;
 	block_count_t blocks_reaped =
@@ -409,7 +409,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
  * @param tail    The new tail value
  **/
 static void set_journal_tail(struct recovery_journal *journal,
-			     SequenceNumber tail)
+			     sequence_number_t tail)
 {
 	// VDO does not support sequence numbers above 1 << 48 in the slab
 	// journal.
@@ -562,7 +562,7 @@ void set_recovery_journal_partition(struct recovery_journal *journal,
 /**********************************************************************/
 void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 					       uint64_t recovery_count,
-					       SequenceNumber tail)
+					       sequence_number_t tail)
 {
 	set_journal_tail(journal, tail + 1);
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
@@ -573,7 +573,7 @@ void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 void
 initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
 					 uint64_t recovery_count,
-					 SequenceNumber tail,
+					 sequence_number_t tail,
 					 block_count_t logical_blocks_used,
 					 block_count_t block_map_data_blocks)
 {
@@ -623,7 +623,7 @@ size_t get_recovery_journal_encoded_size(void)
 int encode_recovery_journal(struct recovery_journal *journal,
 			    struct buffer *buffer)
 {
-	SequenceNumber journal_start;
+	sequence_number_t journal_start;
 	if (is_saved(&journal->state)) {
 		// If the journal is saved, we should start one past the active
 		// block (since the active block is not guaranteed to be empty).
@@ -676,7 +676,7 @@ decodeRecoveryJournalState_7_0(struct buffer *buffer,
 {
 	size_t initial_length = content_length(buffer);
 
-	SequenceNumber journal_start;
+	sequence_number_t journal_start;
 	int result = get_uint64_le_from_buffer(buffer, &journal_start);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -1306,7 +1306,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 
 /**********************************************************************/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
-					      SequenceNumber sequence_number,
+					      sequence_number_t sequence_number,
 					      zone_type zone_type,
 					      ZoneCount zone_id)
 {
@@ -1322,7 +1322,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 
 /**********************************************************************/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
-					      SequenceNumber sequence_number,
+					      sequence_number_t sequence_number,
 					      zone_type zone_type,
 					      ZoneCount zone_id)
 {
@@ -1338,7 +1338,7 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 
 /**********************************************************************/
 void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
-					    SequenceNumber sequence_number)
+					    sequence_number_t sequence_number)
 {
 	if (sequence_number == 0) {
 		return;

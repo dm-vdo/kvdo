@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#33 $
  */
 
 #include "readOnlyRebuild.h"
@@ -53,12 +53,12 @@ struct read_only_rebuild_completion {
 	 * The sequence number of the first valid block of the journal (if
 	 * known)
 	 */
-	SequenceNumber head;
+	sequence_number_t head;
 	/**
 	 * The sequence number of the last valid block of the journal (if
 	 * known)
 	 */
-	SequenceNumber tail;
+	sequence_number_t tail;
 	/** The number of logical blocks in use */
 	block_count_t logical_blocks_used;
 	/** The number of allocated block map pages */
@@ -304,8 +304,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 {
 	struct vdo *vdo = rebuild->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
-	SequenceNumber first = rebuild->head;
-	SequenceNumber last = rebuild->tail;
+	sequence_number_t first = rebuild->head;
+	sequence_number_t last = rebuild->tail;
 	block_count_t max_count = ((last - first + 1) *
 				   journal->entries_per_block);
 
@@ -322,7 +322,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		return result;
 	}
 
-	SequenceNumber i;
+	sequence_number_t i;
 	for (i = first; i <= last; i++) {
 		union packed_journal_header *packed_header =
 			get_journal_block_header(journal,

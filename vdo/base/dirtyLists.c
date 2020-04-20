@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#6 $
  */
 
 #include "dirtyLists.h"
@@ -31,9 +31,9 @@ struct dirty_lists {
 	/** The number of periods after which an element will be expired */
 	block_count_t maximum_age;
 	/** The oldest period which has unexpired elements */
-	SequenceNumber oldest_period;
+	sequence_number_t oldest_period;
 	/** One more than the current period */
-	SequenceNumber next_period;
+	sequence_number_t next_period;
 	/** The function to call on expired elements */
 	dirty_callback *callback;
 	/** The callback context */
@@ -84,7 +84,8 @@ void free_dirty_lists(struct dirty_lists **dirty_lists_ptr)
 }
 
 /**********************************************************************/
-void set_current_period(struct dirty_lists *dirty_lists, SequenceNumber period)
+void set_current_period(struct dirty_lists *dirty_lists,
+			sequence_number_t period)
 {
 	ASSERT_LOG_ONLY(dirty_lists->next_period == 0, "current period not set");
 	dirty_lists->oldest_period = period;
@@ -118,7 +119,7 @@ static void expire_oldest_list(struct dirty_lists *dirty_lists)
  * @param period      The new period
  **/
 static void update_period(struct dirty_lists *dirty_lists,
-			  SequenceNumber period)
+			  sequence_number_t period)
 {
 	while (dirty_lists->next_period <= period) {
 		if ((dirty_lists->next_period - dirty_lists->oldest_period)
@@ -147,7 +148,8 @@ static void write_expired_elements(struct dirty_lists *dirty_lists)
 
 /**********************************************************************/
 void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
-			SequenceNumber old_period, SequenceNumber new_period)
+			sequence_number_t old_period,
+			sequence_number_t new_period)
 {
 	if ((old_period == new_period)
 	    || ((old_period != 0) && (old_period < new_period))) {
@@ -168,7 +170,7 @@ void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
 }
 
 /**********************************************************************/
-void advance_period(struct dirty_lists *dirty_lists, SequenceNumber period)
+void advance_period(struct dirty_lists *dirty_lists, sequence_number_t period)
 {
 	update_period(dirty_lists, period);
 	write_expired_elements(dirty_lists);
@@ -184,7 +186,7 @@ void flush_dirty_lists(struct dirty_lists *dirty_lists)
 }
 
 /**********************************************************************/
-SequenceNumber get_dirty_lists_next_period(struct dirty_lists *dirty_lists)
+sequence_number_t get_dirty_lists_next_period(struct dirty_lists *dirty_lists)
 {
 	return dirty_lists->next_period;
 }

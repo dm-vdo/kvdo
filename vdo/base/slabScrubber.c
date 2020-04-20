@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#30 $
  */
 
 #include "slabScrubberInternals.h"
@@ -264,7 +264,7 @@ static void handle_scrubber_error(struct vdo_completion *completion)
  **/
 static int apply_block_entries(struct packed_slab_journal_block *block,
 			       JournalEntryCount entry_count,
-			       SequenceNumber block_number,
+			       sequence_number_t block_number,
 			       struct vdo_slab *slab)
 {
 	struct journal_point entry_point = {
@@ -324,14 +324,14 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct ref_counts *reference_counts = slab->reference_counts;
 
 	// Find the boundaries of the useful part of the journal.
-	SequenceNumber tail = journal->tail;
+	sequence_number_t tail = journal->tail;
 	TailBlockOffset end_index = get_slab_journal_block_offset(journal,
 								  tail - 1);
 	char *end_data = scrubber->journal_data + (end_index * VDO_BLOCK_SIZE);
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
-	SequenceNumber head = getUInt64LE(end_block->header.fields.head);
+	sequence_number_t head = getUInt64LE(end_block->header.fields.head);
 	TailBlockOffset head_index = get_slab_journal_block_offset(journal,
 								   head);
 	block_count_t index = head_index;
@@ -339,7 +339,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct journal_point ref_counts_point =
 		reference_counts->slab_journal_point;
 	struct journal_point last_entry_applied = ref_counts_point;
-	SequenceNumber sequence;
+	sequence_number_t sequence;
 	for (sequence = head; sequence < tail; sequence++) {
 		char *block_data =
 			scrubber->journal_data + (index * VDO_BLOCK_SIZE);

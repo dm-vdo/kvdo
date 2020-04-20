@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#11 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -29,9 +29,9 @@
 #include "types.h"
 
 struct recovery_block_header {
-	SequenceNumber block_map_head; // Block map head sequence number
-	SequenceNumber slab_journal_head; // Slab journal head seq. number
-	SequenceNumber sequence_number; // Sequence number for this block
+	sequence_number_t block_map_head; // Block map head sequence number
+	sequence_number_t slab_journal_head; // Slab journal head seq. number
+	sequence_number_t sequence_number; // Sequence number for this block
 	nonce_t nonce; // A given VDO instance's nonce
 	block_count_t logical_blocks_used; // Logical blocks in use
 	block_count_t block_map_data_blocks; // Allocated block map pages
@@ -94,9 +94,9 @@ union packed_journal_header {
 	// This view is only valid on little-endian machines and is only
 	// present for ease of directly examining packed entries in GDB.
 	struct __attribute__((packed)) {
-		SequenceNumber block_map_head;
-		SequenceNumber slab_journal_head;
-		SequenceNumber sequence_number;
+		sequence_number_t block_map_head;
+		sequence_number_t slab_journal_head;
+		sequence_number_t sequence_number;
 		nonce_t nonce;
 		vdo_metadata_type metadata_type;
 		JournalEntryCount entry_count;

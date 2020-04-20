@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#17 $
  */
 
 #include "blockMapPage.h"
@@ -91,7 +91,7 @@ void update_block_map_page(struct block_map_page *page,
 			   struct data_vio *data_vio,
 			   physical_block_number_t pbn,
 			   BlockMappingState mapping_state,
-			   SequenceNumber *recovery_lock)
+			   sequence_number_t *recovery_lock)
 {
 	// Encode the new mapping.
 	struct tree_lock *tree_lock = &data_vio->treeLock;
@@ -104,8 +104,8 @@ void update_block_map_page(struct block_map_page *page,
 		get_block_map_for_zone(data_vio->logical.zone);
 	struct block_map *block_map = zone->block_map;
 	struct recovery_journal *journal = block_map->journal;
-	SequenceNumber old_locked = *recovery_lock;
-	SequenceNumber new_locked = data_vio->recoverySequenceNumber;
+	sequence_number_t old_locked = *recovery_lock;
+	sequence_number_t new_locked = data_vio->recoverySequenceNumber;
 
 	if ((old_locked == 0) || (old_locked > new_locked)) {
 		// Acquire a lock on the newly referenced journal block.

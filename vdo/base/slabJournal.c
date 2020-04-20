@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#50 $
  */
 
 #include "slabJournalInternals.h"
@@ -97,7 +97,7 @@ slab_journal_from_slab_summary_waiter(struct waiter *waiter)
  * @return the block number corresponding to the sequence number
  **/
 __attribute__((warn_unused_result)) static inline physical_block_number_t
-get_block_number(struct slab_journal *journal, SequenceNumber sequence)
+get_block_number(struct slab_journal *journal, sequence_number_t sequence)
 {
 	TailBlockOffset offset = get_slab_journal_block_offset(journal,
 							       sequence);
@@ -113,7 +113,7 @@ get_block_number(struct slab_journal *journal, SequenceNumber sequence)
  * @return the lock object for the given sequence number
  **/
 __attribute__((warn_unused_result)) static inline struct journal_lock *
-getLock(struct slab_journal *journal, SequenceNumber sequence_number)
+getLock(struct slab_journal *journal, sequence_number_t sequence_number)
 {
 	TailBlockOffset offset =
 		get_slab_journal_block_offset(journal, sequence_number);
@@ -313,7 +313,7 @@ bool is_slab_journal_dirty(const struct slab_journal *journal)
  * @param lock     The recovery journal lock held by the slab journal
  **/
 static void mark_slab_journal_dirty(struct slab_journal *journal,
-				    SequenceNumber lock)
+				    sequence_number_t lock)
 {
 	ASSERT_LOG_ONLY(!is_slab_journal_dirty(journal),
 			"slab journal was clean");
@@ -551,9 +551,9 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		add_entries(journal);
 	}
 
-	SequenceNumber first = journal->last_summarized;
+	sequence_number_t first = journal->last_summarized;
 	journal->last_summarized = journal->summarized;
-	SequenceNumber i;
+	sequence_number_t i;
 	for (i = journal->summarized - 1; i >= first; i--) {
 		// Release the lock the summarized block held on the recovery
 		// journal. (During replay, recovery_start will always be 0.)
@@ -632,7 +632,7 @@ void reopen_slab_journal(struct slab_journal *journal)
 	initialize_journal_state(journal);
 
 	// Ensure no locks are spuriously held on an empty journal.
-	SequenceNumber block;
+	sequence_number_t block;
 	for (block = 1; block <= journal->size; block++) {
 		ASSERT_LOG_ONLY((getLock(journal, block)->count == 0),
 				"Scrubbed journal's block %" PRIu64
@@ -644,7 +644,7 @@ void reopen_slab_journal(struct slab_journal *journal)
 }
 
 /**********************************************************************/
-static SequenceNumber
+static sequence_number_t
 get_committing_sequence_number(const struct vio_pool_entry *entry)
 {
 	const struct packed_slab_journal_block *block = entry->buffer;
@@ -663,7 +663,7 @@ static void complete_write(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct slab_journal *journal = entry->parent;
 
-	SequenceNumber committed = get_committing_sequence_number(entry);
+	sequence_number_t committed = get_committing_sequence_number(entry);
 	unspliceRingNode(&entry->node);
 	return_vio(journal->slab->allocator, entry);
 
@@ -968,7 +968,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct slab_journal *journal = (struct slab_journal *)context;
 	struct slab_journal_block_header *header = &journal->tail_header;
-	SequenceNumber recovery_block =
+	sequence_number_t recovery_block =
 		data_vio->recoveryJournalPoint.sequence_number;
 
 	if (header->entry_count == 0) {
@@ -1187,7 +1187,7 @@ void add_slab_journal_entry(struct slab_journal *journal,
 
 /**********************************************************************/
 void adjust_slab_journal_block_reference(struct slab_journal *journal,
-					 SequenceNumber sequence_number,
+					 sequence_number_t sequence_number,
 					 int adjustment)
 {
 	if (sequence_number == 0) {
@@ -1215,7 +1215,7 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
 
 /**********************************************************************/
 bool release_recovery_journal_lock(struct slab_journal *journal,
-				   SequenceNumber recovery_lock)
+				   sequence_number_t recovery_lock)
 {
 	if (recovery_lock > journal->recovery_lock) {
 		ASSERT_LOG_ONLY((recovery_lock < journal->recovery_lock),

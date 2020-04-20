@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#19 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -162,7 +162,7 @@ void add_slab_journal_entry(struct slab_journal *journal,
  * @param adjustment       Amount to adjust the reference counter
  **/
 void adjust_slab_journal_block_reference(struct slab_journal *journal,
-					 SequenceNumber sequence_number,
+					 sequence_number_t sequence_number,
 					 int adjustment);
 
 /**
@@ -177,7 +177,7 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
  *         block (which it will release)
  **/
 bool release_recovery_journal_lock(struct slab_journal *journal,
-				   SequenceNumber recovery_lock)
+				   sequence_number_t recovery_lock)
 	__attribute__((warn_unused_result));
 
 /**

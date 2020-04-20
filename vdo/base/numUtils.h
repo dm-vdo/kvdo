@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#6 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -101,8 +101,8 @@ max_block_count(block_count_t a, block_count_t b)
 /**
  * Find the minimum of two sequence numbers.
  **/
-__attribute__((warn_unused_result)) static inline SequenceNumber
-min_sequence_number(SequenceNumber a, SequenceNumber b)
+__attribute__((warn_unused_result)) static inline sequence_number_t
+min_sequence_number(sequence_number_t a, sequence_number_t b)
 {
 	return (a < b) ? a : b;
 }

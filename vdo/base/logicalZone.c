@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#31 $
  */
 
 #include "logicalZone.h"
@@ -50,9 +50,9 @@ struct logical_zone {
 	/** The logical to physical map */
 	struct block_map_zone *block_map_zone;
 	/** The current flush generation */
-	SequenceNumber flush_generation;
+	sequence_number_t flush_generation;
 	/** The oldest active generation in this zone */
-	SequenceNumber oldest_active_generation;
+	sequence_number_t oldest_active_generation;
 	/** The number of IOs in the current flush generation */
 	block_count_t ios_in_flush_generation;
 	/**
@@ -61,7 +61,7 @@ struct logical_zone {
 	 **/
 	Atomic64 oldest_locked_generation;
 	/** The youngest generation of the current notification */
-	SequenceNumber notification_generation;
+	sequence_number_t notification_generation;
 	/** Whether a notification is in progress */
 	bool notifying;
 	/** The queue of active data write VIOs */
@@ -331,7 +331,7 @@ static inline struct data_vio *data_vio_from_ring_node(RingNode *ring_node)
  **/
 static bool update_oldest_active_generation(struct logical_zone *zone)
 {
-	SequenceNumber current_oldest = zone->oldest_active_generation;
+	sequence_number_t current_oldest = zone->oldest_active_generation;
 	if (isRingEmpty(&zone->write_vios)) {
 		zone->oldest_active_generation = zone->flush_generation;
 	} else {
@@ -350,7 +350,7 @@ static bool update_oldest_active_generation(struct logical_zone *zone)
 
 /**********************************************************************/
 void increment_flush_generation(struct logical_zone *zone,
-				SequenceNumber expected_generation)
+				sequence_number_t expected_generation)
 {
 	assert_on_zone_thread(zone, __func__);
 	ASSERT_LOG_ONLY((zone->flush_generation == expected_generation),
@@ -365,9 +365,9 @@ void increment_flush_generation(struct logical_zone *zone,
 }
 
 /**********************************************************************/
-SequenceNumber get_oldest_locked_generation(const struct logical_zone *zone)
+sequence_number_t get_oldest_locked_generation(const struct logical_zone *zone)
 {
-	return (SequenceNumber) atomicLoad64(&zone->oldest_locked_generation);
+	return (sequence_number_t) atomicLoad64(&zone->oldest_locked_generation);
 }
 
 /**********************************************************************/

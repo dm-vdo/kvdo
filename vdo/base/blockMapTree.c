@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#61 $
  */
 
 #include "blockMapTree.h"
@@ -139,7 +139,7 @@ void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 
 /**********************************************************************/
 void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
-				  SequenceNumber period)
+				  sequence_number_t period)
 {
 	set_current_period(tree_zone->dirty_lists, period);
 }
@@ -589,7 +589,7 @@ static void write_dirty_pages_callback(RingNode *expired, void *context)
 
 /**********************************************************************/
 void advance_zone_tree_period(struct block_map_tree_zone *zone,
-			      SequenceNumber period)
+			      sequence_number_t period)
 {
 	advance_period(zone->dirty_lists, period);
 }
@@ -1018,7 +1018,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	// Record the allocation.
 	struct block_map_page *page =
 		(struct block_map_page *) tree_page->page_buffer;
-	SequenceNumber old_lock = tree_page->recovery_lock;
+	sequence_number_t old_lock = tree_page->recovery_lock;
 	update_block_map_page(page, data_vio, pbn, MAPPING_STATE_UNCOMPRESSED,
 			      &tree_page->recovery_lock);
 

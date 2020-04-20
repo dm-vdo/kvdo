@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#20 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -262,7 +262,7 @@ block_count_t get_number_of_block_map_entries(const struct block_map *map)
  *                               journal block
  **/
 void advance_block_map_era(struct block_map *map,
-			   SequenceNumber recovery_block_number);
+			   sequence_number_t recovery_block_number);
 
 /**
  * Get the block number of the physical block containing the data for the

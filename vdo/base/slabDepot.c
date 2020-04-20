@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#60 $
  */
 
 #include "slabDepot.h"
@@ -1086,7 +1086,7 @@ void resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 /**********************************************************************/
 void
 commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
-				       SequenceNumber recovery_block_number)
+				       sequence_number_t recovery_block_number)
 {
 	if (depot == NULL) {
 		return;

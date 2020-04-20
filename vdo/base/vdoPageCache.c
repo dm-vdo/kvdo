@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#32 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -206,7 +206,7 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 
 /**********************************************************************/
 void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
-				       SequenceNumber period)
+				       sequence_number_t period)
 {
 	set_current_period(cache->dirty_lists, period);
 }
@@ -1053,7 +1053,7 @@ static void discard_page_if_needed(struct vdo_page_cache *cache)
 
 /**********************************************************************/
 void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
-				   SequenceNumber period)
+				   sequence_number_t period)
 {
 	assert_on_cache_thread(cache, __func__);
 	advance_period(cache->dirty_lists, period);
@@ -1330,8 +1330,8 @@ void get_vdo_page_async(struct vdo_completion *completion)
 
 /**********************************************************************/
 void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
-				   SequenceNumber old_dirty_period,
-				   SequenceNumber new_dirty_period)
+				   sequence_number_t old_dirty_period,
+				   sequence_number_t new_dirty_period)
 {
 	struct vdo_page_completion *vdo_page_comp =
 		validate_completed_page(completion, true);

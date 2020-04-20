@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#21 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -66,15 +66,15 @@ struct recovery_journal {
 	struct partition *partition;
 	/** The oldest active block in the journal on disk for block map rebuild
 	 */
-	SequenceNumber block_map_head;
+	sequence_number_t block_map_head;
 	/** The oldest active block in the journal on disk for slab journal
 	 * replay */
-	SequenceNumber slab_journal_head;
+	sequence_number_t slab_journal_head;
 	/** The newest block in the journal on disk to which a write has
 	 * finished */
-	SequenceNumber last_write_acknowledged;
+	sequence_number_t last_write_acknowledged;
 	/** The end of the half-open interval of the active journal */
-	SequenceNumber tail;
+	sequence_number_t tail;
 	/** The point at which the last entry will have been added */
 	struct journal_point append_point;
 	/** The journal point of the vio most recently released from the journal
@@ -96,11 +96,11 @@ struct recovery_journal {
 	/** Journal blocks that need writing */
 	struct wait_queue pending_writes;
 	/** The new block map reap head after reaping */
-	SequenceNumber block_map_reap_head;
+	sequence_number_t block_map_reap_head;
 	/** The head block number for the block map rebuild range */
 	block_count_t block_map_head_block_number;
 	/** The new slab journal reap head after reaping */
-	SequenceNumber slab_journal_reap_head;
+	sequence_number_t slab_journal_reap_head;
 	/** The head block number for the slab journal replay range */
 	block_count_t slab_journal_head_block_number;
 	/** The vio on which we can call flush (less ick, but still ick) */
@@ -135,7 +135,7 @@ struct recovery_journal {
  **/
 __attribute__((warn_unused_result)) static inline physical_block_number_t
 get_recovery_journal_block_number(const struct recovery_journal *journal,
-				  SequenceNumber sequence)
+				  sequence_number_t sequence)
 {
 	// Since journal size is a power of two, the block number modulus can
 	// just be extracted from the low-order bits of the sequence.
@@ -152,7 +152,7 @@ get_recovery_journal_block_number(const struct recovery_journal *journal,
  **/
 __attribute__((warn_unused_result)) static inline uint8_t
 compute_recovery_check_byte(const struct recovery_journal *journal,
-			    SequenceNumber sequence)
+			    sequence_number_t sequence)
 {
 	// The check byte must change with each trip around the journal.
 	return (((sequence / journal->size) & 0x7F) | 0x80);

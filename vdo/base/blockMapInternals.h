@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#32 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -93,9 +93,9 @@ struct block_map {
 	block_count_t root_count;
 
 	/** The era point we are currently distributing to the zones */
-	SequenceNumber current_era_point;
+	sequence_number_t current_era_point;
 	/** The next era point, not yet distributed to any zone */
-	SequenceNumber pending_era_point;
+	sequence_number_t pending_era_point;
 
 	/** The number of entries in block map */
 	block_count_t entry_count;

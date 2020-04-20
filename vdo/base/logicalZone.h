@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#12 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -125,7 +125,7 @@ struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
  *                             before the increment
  **/
 void increment_flush_generation(struct logical_zone *zone,
-				SequenceNumber expected_generation);
+				sequence_number_t expected_generation);
 
 /**
  * Get the oldest flush generation which is locked by a logical zone.
@@ -134,7 +134,7 @@ void increment_flush_generation(struct logical_zone *zone,
  *
  * @return The oldest generation locked by the zone
  **/
-SequenceNumber get_oldest_locked_generation(const struct logical_zone *zone)
+sequence_number_t get_oldest_locked_generation(const struct logical_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

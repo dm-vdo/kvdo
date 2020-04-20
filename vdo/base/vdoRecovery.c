@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#57 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -932,8 +932,9 @@ find_missing_decrefs(struct recovery_completion *recovery)
 
 	// A buffer is allocated based on the number of incref entries found, so
 	// use the earliest head.
-	SequenceNumber head = min_sequence_number(recovery->block_map_head,
-						  recovery->slab_journal_head);
+	sequence_number_t head =
+		min_sequence_number(recovery->block_map_head,
+				    recovery->slab_journal_head);
 	struct recovery_point head_point = {
 		.sequence_number = head,
 		.sector_count = 1,
@@ -1161,11 +1162,12 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 static bool find_contiguous_range(struct recovery_completion *recovery)
 {
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
-	SequenceNumber head = min_sequence_number(recovery->block_map_head,
-						  recovery->slab_journal_head);
+	sequence_number_t head =
+		min_sequence_number(recovery->block_map_head,
+				    recovery->slab_journal_head);
 
 	bool found_entries = false;
-	SequenceNumber i;
+	sequence_number_t i;
 	for (i = head; i <= recovery->highest_tail; i++) {
 		recovery->tail = i;
 		recovery->tail_recovery_point = (struct recovery_point) {

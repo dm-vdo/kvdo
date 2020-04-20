@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#10 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -40,7 +40,7 @@
 __attribute__((warn_unused_result))
 static inline union packed_journal_header *
 get_journal_block_header(struct recovery_journal *journal, char *journal_data,
-			 SequenceNumber sequence)
+			 sequence_number_t sequence)
 {
 	off_t block_offset = (get_recovery_journal_block_number(journal,
 								sequence)
@@ -79,7 +79,7 @@ is_valid_recovery_journal_block(const struct recovery_journal *journal,
 __attribute__((warn_unused_result)) static inline bool
 is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				const struct recovery_block_header *header,
-				SequenceNumber sequence)
+				sequence_number_t sequence)
 {
 	return ((header->sequence_number == sequence)
 		&& is_valid_recovery_journal_block(journal, header));
@@ -133,9 +133,9 @@ void load_journal_async(struct recovery_journal *journal,
  * @return  <code>True</code> if there were valid journal blocks
  **/
 bool find_head_and_tail(struct recovery_journal *journal, char *journal_data,
-			SequenceNumber *tail_ptr,
-			SequenceNumber *block_map_head_ptr,
-			SequenceNumber *slab_journal_head_ptr);
+			sequence_number_t *tail_ptr,
+			sequence_number_t *block_map_head_ptr,
+			sequence_number_t *slab_journal_head_ptr);
 
 /**
  * Validate a recovery journal entry.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#20 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -189,7 +189,7 @@ void set_recovery_journal_partition(struct recovery_journal *journal,
  **/
 void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 					       uint64_t recovery_count,
-					       SequenceNumber tail);
+					       sequence_number_t tail);
 
 /**
  * Initialize the journal after a rebuild.
@@ -203,7 +203,7 @@ void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 void
 initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
 					 uint64_t recovery_count,
-					 SequenceNumber tail,
+					 sequence_number_t tail,
 					 block_count_t logical_blocks_used,
 					 block_count_t block_map_data_blocks);
 
@@ -258,7 +258,7 @@ void open_recovery_journal(struct recovery_journal *journal,
  *
  * @return the sequence number of the tail block
  **/
-SequenceNumber
+sequence_number_t
 get_current_journal_sequence_number(struct recovery_journal *journal);
 
 /**
@@ -339,7 +339,7 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
  * @param zone_id          The ID of the zone making the adjustment
  **/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
-					      SequenceNumber sequence_number,
+					      sequence_number_t sequence_number,
 					      zone_type zone_type,
 					      ZoneCount zone_id);
 
@@ -355,7 +355,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
  * @param zone_id          The ID of the zone making the adjustment
  **/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
-					      SequenceNumber sequence_number,
+					      sequence_number_t sequence_number,
 					      zone_type zone_type,
 					      ZoneCount zone_id);
 
@@ -368,7 +368,7 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
  * @param sequence_number  The journal sequence number of the referenced block
  **/
 void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
-					    SequenceNumber sequence_number);
+					    sequence_number_t sequence_number);
 
 /**
  * Drain recovery journal I/O. All uncommitted entries will be written out.

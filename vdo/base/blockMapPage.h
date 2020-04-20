@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#9 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -205,6 +205,6 @@ void update_block_map_page(struct block_map_page *page,
 			   struct data_vio *data_vio,
 			   physical_block_number_t pbn,
 			   BlockMappingState mapping_state,
-			   SequenceNumber *recovery_lock);
+			   sequence_number_t *recovery_lock);
 
 #endif // BLOCK_MAP_PAGE_H

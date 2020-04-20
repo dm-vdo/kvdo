@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#25 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -47,8 +47,8 @@ struct slab_depot {
 	slab_depot_load_type load_type;
 
 	/** The state for notifying slab journals to release recovery journal */
-	SequenceNumber active_release_request;
-	SequenceNumber new_release_request;
+	sequence_number_t active_release_request;
+	sequence_number_t new_release_request;
 
 	/** State variables for scrubbing complete handling */
 	Atomic32 *vdo_state;
