@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#38 $
  */
 
 #ifndef DATA_VIO_H
@@ -101,7 +101,7 @@ struct tree_lock {
 	/* The current height at which this data_vio is operating */
 	height_t height;
 	/* The block map tree for this LBN */
-	RootCount rootIndex;
+	root_count_t rootIndex;
 	/* Whether we hold a page lock */
 	bool locked;
 	/* The thread on which to run the callback */

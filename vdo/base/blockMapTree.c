@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#60 $
  */
 
 #include "blockMapTree.h"
@@ -46,7 +46,7 @@ enum {
 };
 
 struct page_descriptor {
-	RootCount root_index;
+	root_count_t root_index;
 	height_t height;
 	page_number_t page_index;
 	SlotNumber slot;
@@ -1279,7 +1279,7 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 		return (BLOCK_MAP_FLAT_PAGE_ORIGIN + page_number);
 	}
 
-	RootCount root_index = page_number % map->root_count;
+	root_count_t root_index = page_number % map->root_count;
 	page_number_t page_index =
 		((page_number - map->flat_page_count) / map->root_count);
 	SlotNumber slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE;

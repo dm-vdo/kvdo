@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#21 $
  */
 
 #include "volumeGeometry.h"
@@ -59,7 +59,7 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 
 static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
-static const ReleaseVersionNumber COMPATIBLE_RELEASE_VERSIONS[] = {
+static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 	MAGNESIUM_RELEASE_VERSION_NUMBER,
 	ALUMINUM_RELEASE_VERSION_NUMBER,
 };
@@ -72,7 +72,7 @@ static const ReleaseVersionNumber COMPATIBLE_RELEASE_VERSIONS[] = {
  *
  * @return <code>True</code> if the given version can be loaded.
  **/
-static inline bool is_loadable_release_version(ReleaseVersionNumber version)
+static inline bool is_loadable_release_version(release_version_number_t version)
 {
 	if (version == CURRENT_RELEASE_VERSION_NUMBER) {
 		return true;
@@ -209,7 +209,7 @@ static int encode_volume_region(const struct volume_region *region,
 static int decode_volume_geometry(struct buffer *buffer,
 				  struct volume_geometry *geometry)
 {
-	ReleaseVersionNumber release_version;
+	release_version_number_t release_version;
 	int result = get_uint32_le_from_buffer(buffer, &release_version);
 	if (result != VDO_SUCCESS) {
 		return result;

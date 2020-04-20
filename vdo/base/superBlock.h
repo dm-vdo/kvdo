@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#8 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -121,7 +121,7 @@ struct buffer *get_component_buffer(struct vdo_super_block *super_block)
  *
  * @return the release version number that was decoded from the volume
  **/
-ReleaseVersionNumber
+release_version_number_t
 get_loaded_release_version(const struct vdo_super_block *super_block)
 	__attribute__((warn_unused_result));
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#40 $
  */
 
 #include "refCounts.h"
@@ -756,7 +756,8 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 {
 	struct reference_block *block =
 		get_reference_block(ref_counts, entry.sbn);
-	SectorCount sector = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
+	sector_count_t sector = (entry.sbn % COUNTS_PER_BLOCK) /
+		COUNTS_PER_SECTOR;
 	if (!before_journal_point(&block->commit_points[sector], entry_point)) {
 		// This entry is already reflected in the existing counts, so do
 		// nothing.
@@ -1229,7 +1230,7 @@ void pack_reference_block(struct reference_block *block, void *buffer)
 
 	struct packed_reference_block *packed = buffer;
 	ReferenceCount *counters = get_reference_counters_for_block(block);
-	SectorCount i;
+	sector_count_t i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
 		packed->sectors[i].commit_point = commit_point;
 		memcpy(packed->sectors[i].counts,
@@ -1382,7 +1383,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 {
 	struct ref_counts *ref_counts = block->ref_counts;
 	ReferenceCount *counters = get_reference_counters_for_block(block);
-	SectorCount i;
+	sector_count_t i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
 		unpack_journal_point(&sector->commit_point,

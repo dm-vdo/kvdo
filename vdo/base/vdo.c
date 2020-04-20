@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#67 $
  */
 
 /*
@@ -423,7 +423,7 @@ int validate_vdo_version(struct vdo *vdo)
 		return result;
 	}
 
-	ReleaseVersionNumber loaded_release_version =
+	release_version_number_t loaded_release_version =
 		get_loaded_release_version(vdo->super_block);
 	if (vdo->load_config.release_version != loaded_release_version) {
 		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,

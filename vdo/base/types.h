@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#50 $
  */
 
 #ifndef TYPES_H
@@ -89,17 +89,17 @@ typedef uint64_t physical_block_number_t;
  * Really an enum, but we have to specify the size for encoding; see
  * releaseVersions.h for the enumeration values.
  **/
-typedef uint32_t ReleaseVersionNumber;
+typedef uint32_t release_version_number_t;
 
 /**
  * A count of tree roots.
  **/
-typedef uint8_t RootCount;
+typedef uint8_t root_count_t;
 
 /**
  * A number of sectors.
  **/
-typedef uint8_t SectorCount;
+typedef uint8_t sector_count_t;
 
 /**
  * A sequence number.
@@ -351,7 +351,7 @@ struct vdo_load_config {
 	/** the offset on the physical layer where the VDO begins */
 	physical_block_number_t first_block_offset;
 	/** the expected release version number of the VDO */
-	ReleaseVersionNumber release_version;
+	release_version_number_t release_version;
 	/** the expected nonce of the VDO */
 	nonce_t nonce;
 	/** the thread configuration of the VDO */

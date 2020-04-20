@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#24 $
  */
 
 #include "upgrade.h"
@@ -70,7 +70,7 @@ struct sodium_component_41_0 {
  **/
 static bool is_current_release_version(struct vdo *vdo)
 {
-	ReleaseVersionNumber loaded_version =
+	release_version_number_t loaded_version =
 		get_loaded_release_version(vdo->super_block);
 
 	return (loaded_version == CURRENT_RELEASE_VERSION_NUMBER);
@@ -95,7 +95,7 @@ static int validate_sodium_version(struct vdo *vdo)
 		return VDO_SUCCESS;
 	}
 
-	ReleaseVersionNumber loaded_version =
+	release_version_number_t loaded_version =
 		get_loaded_release_version(vdo->super_block);
 	return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
 				       "Release version %d, load version %d.%d"

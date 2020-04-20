@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#12 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -53,7 +53,7 @@ typedef unsigned char UUID[16];
 
 struct volume_geometry {
 	/** The release version number of this volume */
-	ReleaseVersionNumber release_version;
+	release_version_number_t release_version;
 	/** The nonce of this volume */
 	nonce_t nonce;
 	/** The UUID of this volume */

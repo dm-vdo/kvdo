@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#19 $
  */
 
 #include "superBlock.h"
@@ -50,14 +50,14 @@ struct vdo_super_block {
 	/** A 1-block buffer holding the encoded on-disk super block */
 	byte *encoded_super_block;
 	/** The release version number loaded from the volume */
-	ReleaseVersionNumber loaded_release_version;
+	release_version_number_t loaded_release_version;
 	/** Whether this super block may not be written */
 	bool unwriteable;
 };
 
 enum {
 	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE
-		+ sizeof(ReleaseVersionNumber) + CHECKSUM_SIZE,
+		+ sizeof(release_version_number_t) + CHECKSUM_SIZE,
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
@@ -451,7 +451,7 @@ struct buffer *get_component_buffer(struct vdo_super_block *super_block)
 }
 
 /**********************************************************************/
-ReleaseVersionNumber
+release_version_number_t
 get_loaded_release_version(const struct vdo_super_block *super_block)
 {
 	return super_block->loaded_release_version;
