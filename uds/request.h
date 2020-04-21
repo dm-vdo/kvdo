@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#3 $
  */
 
 #ifndef REQUEST_H
@@ -130,7 +130,7 @@ struct internalRequest {
   struct uds_chunk_name     chunkName;    // hash value
   UdsChunkData              oldMetadata;  // metadata from index
   UdsChunkData              newMetadata;  // metadata from request
-  UdsChunkCallback         *callback;     // callback method when complete
+  uds_chunk_callback_t       *callback;     // callback method when complete
   struct uds_index_session *session;      // The public index session
   UdsCallbackType           type;         // the type of request
   int                       status;       // success or error code for this request

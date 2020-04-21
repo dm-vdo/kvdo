@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#2 $
  */
 
 #include "request.h"
@@ -29,7 +29,7 @@
 #include "requestQueue.h"
 
 /**********************************************************************/
-int udsStartChunkOperation(UdsRequest *udsRequest)
+int udsStartChunkOperation(struct uds_request *udsRequest)
 {
   if (udsRequest->callback == NULL) {
     return UDS_CALLBACK_REQUIRED;

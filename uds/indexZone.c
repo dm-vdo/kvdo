@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#2 $
  */
 
 #include "indexZone.h"
@@ -102,8 +102,8 @@ void setActiveChapters(IndexZone *zone)
 static int swapOpenChapter(IndexZone *zone)
 {
   // Wait for any currently writing chapter to complete
-  int result = finishPreviousChapter(zone->index->chapterWriter,
-                                     zone->newestVirtualChapter);
+  int result = finish_previous_chapter(zone->index->chapterWriter,
+                                       zone->newestVirtualChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -260,7 +260,7 @@ int openNextChapter(IndexZone *zone, Request *request)
   resetOpenChapter(zone->openChapter);
 
   // begin, continue, or finish the checkpoint processing
-  // moved above startClosingChapter because some of the
+  // moved above start_closing_chapter because some of the
   // checkpoint processing now done by the chapter writer thread
   result = processCheckpointing(zone->index,
                                 zone->id,
@@ -269,9 +269,9 @@ int openNextChapter(IndexZone *zone, Request *request)
     return result;
   }
 
-  unsigned int finishedZones = startClosingChapter(zone->index->chapterWriter,
-                                                   zone->id,
-                                                   zone->writingChapter);
+  unsigned int finishedZones = start_closing_chapter(zone->index->chapterWriter,
+                                                     zone->id,
+                                                     zone->writingChapter);
   if ((finishedZones == 1) && (zone->index->zoneCount > 1)) {
     // This is the first zone of a multi-zone index to close this chapter,
     // so inform the other zones in order to control zone skew.

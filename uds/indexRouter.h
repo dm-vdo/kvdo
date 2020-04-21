@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#3 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -124,7 +124,7 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
  **/
 static INLINE void waitForIdleIndexRouter(IndexRouter *router)
 {
-  waitForIdleChapterWriter(router->index->chapterWriter);
+  wait_for_idle_chapter_writer(router->index->chapterWriter);
 }
 
 #endif /* INDEX_ROUTER_H */

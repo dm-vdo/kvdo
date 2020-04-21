@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#5 $
  */
 
 #include "index.h"
@@ -222,8 +222,8 @@ int makeIndex(struct index_layout          *layout,
     return result;
   }
 
-  result = makeChapterWriter(index, get_index_version(layout),
-                             &index->chapterWriter);
+  result = make_chapter_writer(index, get_index_version(layout),
+                               &index->chapterWriter);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;
@@ -282,7 +282,7 @@ void freeIndex(Index *index)
   if (index == NULL) {
     return;
   }
-  freeChapterWriter(index->chapterWriter);
+  free_chapter_writer(index->chapterWriter);
 
   if (index->masterIndex != NULL) {
     freeMasterIndex(index->masterIndex);
@@ -293,7 +293,7 @@ void freeIndex(Index *index)
 /**********************************************************************/
 int saveIndex(Index *index)
 {
-  waitForIdleChapterWriter(index->chapterWriter);
+  wait_for_idle_chapter_writer(index->chapterWriter);
   int result = finishCheckpointing(index);
   if (result != UDS_SUCCESS) {
     logInfo("save index failed");
@@ -855,7 +855,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
 /**********************************************************************/
 void getIndexStats(Index *index, struct uds_index_stats *counters)
 {
-  uint64_t cwAllocated = getChapterWriterMemoryAllocated(index->chapterWriter);
+  uint64_t cwAllocated
+    = get_chapter_writer_memory_allocated(index->chapterWriter);
   // We're accessing the master index while not on a zone thread, but that's
   // safe to do when acquiring statistics.
   MasterIndexStats denseStats, sparseStats;

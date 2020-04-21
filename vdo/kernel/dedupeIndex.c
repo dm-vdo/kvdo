@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#48 $
  */
 
 #include "dedupeIndex.h"
@@ -46,11 +46,11 @@ enum { UDS_Q_ACTION };
 
 // These are the values in the atomic dedupe_context.request_state field
 enum {
-	// The UdsRequest object is not in use.
+	// The uds_request object is not in use.
 	UR_IDLE = 0,
-	// The UdsRequest object is in use, and VDO is waiting for the result.
+	// The uds_request object is in use, and VDO is waiting for the result.
 	UR_BUSY = 1,
-	// The UdsRequest object is in use, but has timed out.
+	// The uds_request object is in use, but has timed out.
 	UR_TIMED_OUT = 2,
 };
 
@@ -169,7 +169,8 @@ static const char *index_state_to_string(struct dedupe_index *index,
  * @param request  The UDS request to receive the encoding
  * @param advice   The advice to encode
  **/
-static void encode_uds_advice(UdsRequest *request, struct data_location advice)
+static void encode_uds_advice(struct uds_request *request,
+			      struct data_location advice)
 {
 	size_t offset = 0;
 	struct udsChunkData *encoding = &request->newMetadata;
@@ -188,7 +189,7 @@ static void encode_uds_advice(UdsRequest *request, struct data_location advice)
  *
  * @return <code>true</code> if valid advice was found and decoded
  **/
-static bool decode_uds_advice(const UdsRequest *request,
+static bool decode_uds_advice(const struct uds_request *request,
 			      struct data_location *advice)
 {
 	if ((request->status != UDS_SUCCESS) || !request->found) {
@@ -263,7 +264,7 @@ void set_min_albireo_timer_interval(unsigned int value)
 }
 
 /*****************************************************************************/
-static void finish_index_operation(UdsRequest *uds_request)
+static void finish_index_operation(struct uds_request *uds_request)
 {
 	struct data_kvio *data_kvio = container_of(uds_request,
 						   struct data_kvio,
@@ -337,7 +338,7 @@ static void start_index_operation(struct kvdo_work_item *item)
 	start_expiration_timer_for_kvio(index, data_kvio);
 	spin_unlock_bh(&index->pending_lock);
 
-	UdsRequest *uds_request = &dedupe_context->uds_request;
+	struct uds_request *uds_request = &dedupe_context->uds_request;
 	int status = udsStartChunkOperation(uds_request);
 
 	if (status != UDS_SUCCESS) {
@@ -498,7 +499,8 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_time = jiffies;
 	if (compareAndSwap32(&dedupe_context->request_state, UR_IDLE, UR_BUSY)) {
-		UdsRequest *uds_request = &data_kvio->dedupe_context.uds_request;
+		struct uds_request *uds_request =
+			&data_kvio->dedupe_context.uds_request;
 
 		uds_request->chunkName = *dedupe_context->chunk_name;
 		uds_request->callback = finish_index_operation;

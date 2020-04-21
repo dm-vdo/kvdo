@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#3 $
  */
 
 /**
@@ -44,7 +44,7 @@ struct udsChunkData {
 /**
  * Represents a block address on disk.
  *
- * #UdsBlockAddress objects allow the Application Software and UDS
+ * #uds_block_address_t objects allow the Application Software and UDS
  * to refer to specific disk blocks.  It might be, for instance, the
  * logical block address divided by the block size.
  *
@@ -52,29 +52,29 @@ struct udsChunkData {
  * Therefore, make every effort to ensure that these objects are as small as
  * possible.
  **/
-typedef void *UdsBlockAddress;
+typedef void *uds_block_address_t;
 
 /** @{ */
 /** @name Deduplication */
 
-typedef struct udsRequest UdsRequest;
+struct uds_request;
 
 /**
  * Callback function invoked to inform the Application Software that an
  * operation started by #udsStartChunkOperation has completed.
  *
  * @param [in] request  The operation that finished.  When the callback
- *                      function is called, this UdsRequest structure can be
+ *                      function is called, this uds_request structure can be
  *                      reused or freed.
  **/
-typedef void UdsChunkCallback(UdsRequest *request);
+typedef void uds_chunk_callback_t(struct uds_request *request);
 
 /**
  * Request structure passed to #udsStartChunkOperation to begin an operation,
  * and returned to the Application Software when the callback function is
  * invoked.
  **/
-struct udsRequest {
+struct uds_request {
   /*
    * The name of the block.
    * Set before starting an operation.
@@ -99,7 +99,7 @@ struct udsRequest {
    * Set before starting an operation.
    * Unchanged at time of callback.
    */
-  UdsChunkCallback *callback;
+  uds_chunk_callback_t *callback;
   /*
    * The index session.
    * Set before starting an operation.
@@ -175,7 +175,7 @@ struct udsRequest {
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsStartChunkOperation(UdsRequest *request);
+int udsStartChunkOperation(struct uds_request *request);
 /** @} */
 
 #endif /* UDS_BLOCK_H */

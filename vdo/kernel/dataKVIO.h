@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#36 $
  */
 
 #ifndef DATA_KVIO_H
@@ -44,7 +44,7 @@ struct external_io_request {
 
 /* Dedupe support */
 struct dedupe_context {
-	UdsRequest uds_request;
+	struct uds_request uds_request;
 	struct list_head pending_list;
 	Jiffies submission_time;
 	Atomic32 request_state;
