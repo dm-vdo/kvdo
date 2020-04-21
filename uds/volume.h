@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#6 $
  */
 
 #ifndef VOLUME_H
@@ -185,7 +185,7 @@ int __must_check searchVolumePageCache(Volume *volume,
 				       Request *request,
 				       const struct uds_chunk_name *name,
 				       uint64_t virtualChapter,
-				       UdsChunkData *metadata,
+				       struct uds_chunk_data *metadata,
 				       bool *found);
 
 /**
@@ -216,7 +216,7 @@ int __must_check searchCachedRecordPage(Volume *volume,
 					const struct uds_chunk_name *name,
 					unsigned int chapter,
 					int recordPageNumber,
-					UdsChunkData *duplicate,
+					struct uds_chunk_data *duplicate,
 					bool *found);
 
 /**

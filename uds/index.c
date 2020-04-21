@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#6 $
  */
 
 #include "index.h"
@@ -423,7 +423,7 @@ static int searchIndexZone(IndexZone *zone, Request *request)
     return result;
   }
 
-  UdsChunkData *metadata;
+  struct uds_chunk_data *metadata;
   if (!found || (request->action == REQUEST_UPDATE)) {
     // This is a new record or we're updating an existing record.
     metadata = &request->newMetadata;

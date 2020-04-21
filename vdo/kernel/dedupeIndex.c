@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#49 $
  */
 
 #include "dedupeIndex.h"
@@ -173,7 +173,7 @@ static void encode_uds_advice(struct uds_request *request,
 			      struct data_location advice)
 {
 	size_t offset = 0;
-	struct udsChunkData *encoding = &request->newMetadata;
+	struct uds_chunk_data *encoding = &request->newMetadata;
 
 	encoding->data[offset++] = UDS_ADVICE_VERSION;
 	encoding->data[offset++] = advice.state;
@@ -197,7 +197,7 @@ static bool decode_uds_advice(const struct uds_request *request,
 	}
 
 	size_t offset = 0;
-	const struct udsChunkData *encoding = &request->oldMetadata;
+	const struct uds_chunk_data *encoding = &request->oldMetadata;
 	byte version = encoding->data[offset++];
 
 	if (version != UDS_ADVICE_VERSION) {

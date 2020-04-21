@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#3 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -125,7 +125,7 @@ void resetOpenChapter(OpenChapterZone *openChapter);
  **/
 void searchOpenChapter(OpenChapterZone *openChapter,
                        const struct uds_chunk_name *name,
-                       UdsChunkData *metadata,
+                       struct uds_chunk_data *metadata,
                        bool *found);
 
 /**
@@ -141,7 +141,7 @@ void searchOpenChapter(OpenChapterZone *openChapter,
  **/
 int __must_check putOpenChapter(OpenChapterZone *openChapter,
 				const struct uds_chunk_name *name,
-				const UdsChunkData *metadata,
+				const struct uds_chunk_data *metadata,
 				unsigned int *remaining);
 
 /**

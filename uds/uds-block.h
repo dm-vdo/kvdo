@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#4 $
  */
 
 /**
@@ -37,7 +37,7 @@ enum {
 /**
  * Metadata to associate with a blockName.
  **/
-struct udsChunkData {
+struct uds_chunk_data {
   unsigned char data[UDS_MAX_BLOCK_DATA_SIZE];
 };
 
@@ -86,14 +86,14 @@ struct uds_request {
    * (sometimes called the canonical address).
    * Set before the callback.
    */
-  struct udsChunkData oldMetadata;
+  struct uds_chunk_data oldMetadata;
   /*
    * The new metadata to associate with the name of the block (sometimes called
    * the duplicate address).
    * Set before starting a #UDS_POST or #UDS_QUERY operation.
    * Unchanged at time of callback.
    */
-  struct udsChunkData newMetadata;
+  struct uds_chunk_data newMetadata;
   /*
    * The callback method to be invoked when the operation finishes.
    * Set before starting an operation.

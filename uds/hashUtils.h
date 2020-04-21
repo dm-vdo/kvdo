@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#3 $
  */
 
 #ifndef HASH_UTILS_H
@@ -153,10 +153,9 @@ chunkNameToHex(const struct uds_chunk_name *chunkName, char *hexData,
  *                      or UDS_INVALID_ARGUMENT if hexDataLen
  *                      is too short.
  **/
-int chunkDataToHex(const UdsChunkData *chunkData,
-                   char               *hexData,
-                   size_t              hexDataLen)
-  __attribute__((warn_unused_result));
+int __must_check
+chunkDataToHex(const struct uds_chunk_data *chunkData, char *hexData,
+               size_t hexDataLen);
 
 /**
  * Compute the number of bits required to store a field with the given

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#3 $
  */
 
 #include "openChapterZone.h"
@@ -185,7 +185,7 @@ probeChapterSlots(OpenChapterZone             *openChapter,
 /**********************************************************************/
 void searchOpenChapter(OpenChapterZone              *openChapter,
                        const struct uds_chunk_name  *name,
-                       UdsChunkData                 *metadata,
+                       struct uds_chunk_data        *metadata,
                        bool                         *found)
 {
   UdsChunkRecord *record = probeChapterSlots(openChapter, name, NULL, NULL);
@@ -203,7 +203,7 @@ void searchOpenChapter(OpenChapterZone              *openChapter,
 /**********************************************************************/
 int putOpenChapter(OpenChapterZone             *openChapter,
                    const struct uds_chunk_name *name,
-                   const UdsChunkData          *metadata,
+                   const struct uds_chunk_data *metadata,
                    unsigned int                *remaining)
 {
   unsigned int slot;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#2 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -152,10 +152,9 @@ int getRecordFromZone(IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error
  **/
-int putRecordInZone(IndexZone          *zone,
-                    Request            *request,
-                    const UdsChunkData *metadata)
-  __attribute__((warn_unused_result));
+int __must_check putRecordInZone(IndexZone *zone,
+				 Request *request,
+				 const struct uds_chunk_data *metadata);
 
 /**
  * Search the cached sparse chapter index, either for a cached sparse hook, or

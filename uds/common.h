@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/common.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/common.h#3 $
  */
 
 #ifndef COMMON_H
@@ -33,11 +33,11 @@ enum {
   GIGABYTE = KILOBYTE * MEGABYTE
 };
 
-typedef struct udsChunkData UdsChunkData;
+struct uds_chunk_data;
 
 typedef struct {
   struct uds_chunk_name name;
-  UdsChunkData          data;
+  struct uds_chunk_data data;
 } UdsChunkRecord;
 
 #endif /* COMMON_H */

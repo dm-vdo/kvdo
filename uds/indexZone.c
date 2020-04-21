@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#3 $
  */
 
 #include "indexZone.h"
@@ -358,9 +358,9 @@ int getRecordFromZone(IndexZone *zone,
 }
 
 /**********************************************************************/
-int putRecordInZone(IndexZone          *zone,
-                    Request            *request,
-                    const UdsChunkData *metadata)
+int putRecordInZone(IndexZone                   *zone,
+                    Request                     *request,
+                    const struct uds_chunk_data *metadata)
 {
   unsigned int remaining;
   int result = putOpenChapter(zone->openChapter, &request->chunkName, metadata,
