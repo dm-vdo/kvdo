@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#15 $
  */
 
 #include "completion.h"
@@ -66,17 +66,6 @@ void initialize_completion(struct vdo_completion *completion,
 	completion->layer = layer;
 	completion->type = type;
 	reset_completion(completion);
-}
-
-/**********************************************************************/
-int initialize_enqueueable_completion(struct vdo_completion *completion,
-				      VDOCompletionType type,
-				      PhysicalLayer *layer)
-{
-	initialize_completion(completion, type, layer);
-	return ((layer->createEnqueueable == NULL) ?
-			VDO_SUCCESS :
-			layer->createEnqueueable(completion));
 }
 
 /**********************************************************************/
@@ -216,17 +205,6 @@ const char *get_completion_type_name(VDOCompletionType completion_type)
 	}
 
 	return VDO_COMPLETION_TYPE_NAMES[completion_type];
-}
-
-/**********************************************************************/
-void destroy_enqueueable(struct vdo_completion *completion)
-{
-	if ((completion == NULL) || (completion->layer == NULL) ||
-	    (completion->layer->destroy_enqueueable == NULL)) {
-		return;
-	}
-
-	completion->layer->destroy_enqueueable(&completion->enqueueable);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#14 $
  */
 
 #include "extent.h"
@@ -51,13 +51,8 @@ int create_extent(PhysicalLayer *layer, vio_type vio_type,
 		return result;
 	}
 
-	result = initialize_enqueueable_completion(&extent->completion,
-						   VDO_EXTENT_COMPLETION, layer);
-	if (result != VDO_SUCCESS) {
-		FREE(extent);
-		return result;
-	}
-
+	initialize_completion(&extent->completion, VDO_EXTENT_COMPLETION,
+			      layer);
 	for (; extent->count < block_count; extent->count++) {
 		result = layer->createMetadataVIO(layer, vio_type, priority,
 						  &extent->completion, data,
@@ -87,7 +82,6 @@ void free_extent(struct vdo_extent **extent_ptr)
 		free_vio(&extent->vios[i]);
 	}
 
-	destroy_enqueueable(&extent->completion);
 	FREE(extent);
 	*extent_ptr = NULL;
 }

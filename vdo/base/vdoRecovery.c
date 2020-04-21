@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#58 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -310,22 +310,10 @@ int make_recovery_completion(struct vdo *vdo,
 		initialize_wait_queue(&recovery->missing_decrefs[z]);
 	}
 
-	result = initialize_enqueueable_completion(&recovery->completion,
-						   RECOVERY_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		free_recovery_completion(&recovery);
-		return result;
-	}
-
-	result =
-		initialize_enqueueable_completion(&recovery->sub_task_completion,
-						  SUB_TASK_COMPLETION,
-						  vdo->layer);
-	if (result != VDO_SUCCESS) {
-		free_recovery_completion(&recovery);
-		return result;
-	}
+	initialize_completion(&recovery->completion, RECOVERY_COMPLETION,
+			      vdo->layer);
+	initialize_completion(&recovery->sub_task_completion,
+			      SUB_TASK_COMPLETION, vdo->layer);
 
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {
@@ -367,8 +355,6 @@ void free_recovery_completion(struct recovery_completion **recovery_ptr)
 
 	FREE(recovery->journal_data);
 	FREE(recovery->entries);
-	destroy_enqueueable(&recovery->sub_task_completion);
-	destroy_enqueueable(&recovery->completion);
 	FREE(recovery);
 	*recovery_ptr = NULL;
 }

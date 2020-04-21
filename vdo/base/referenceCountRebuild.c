@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#34 $
  */
 
 #include "referenceCountRebuild.h"
@@ -104,8 +104,6 @@ static void free_rebuild_completion(struct vdo_completion **completion_ptr)
 	}
 
 	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
-	destroy_enqueueable(&rebuild->sub_task_completion);
-	destroy_enqueueable(completion);
 	FREE(rebuild);
 	*completion_ptr = NULL;
 }
@@ -155,18 +153,10 @@ static int make_rebuild_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = initialize_enqueueable_completion(&rebuild->completion,
-						   REFERENCE_COUNT_REBUILD_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &rebuild->completion;
-		free_rebuild_completion(&completion);
-		return result;
-	}
-
-	result = initialize_enqueueable_completion(&rebuild->sub_task_completion,
-						   SUB_TASK_COMPLETION,
-						   vdo->layer);
+	initialize_completion(&rebuild->completion,
+			      REFERENCE_COUNT_REBUILD_COMPLETION, vdo->layer);
+	initialize_completion(&rebuild->sub_task_completion,
+			      SUB_TASK_COMPLETION, vdo->layer);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &rebuild->completion;
 		free_rebuild_completion(&completion);

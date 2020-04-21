@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#6 $
  */
 
 #ifndef VDO_DEBUG_H
@@ -51,13 +51,11 @@ struct vdo_command_completion {
  * @param vdo           The vdo.
  * @param argc          An argument count.
  * @param argv          An argument vector of length argc.
- *
- * @return VDO_SUCCESS or an error code
  **/
-int initialize_vdo_command_completion(struct vdo_command_completion *command,
-				      struct vdo *vdo,
-				      int argc,
-				      char **argv);
+void initialize_vdo_command_completion(struct vdo_command_completion *command,
+				       struct vdo *vdo,
+				       int argc,
+				       char **argv);
 
 /**
  * Destroy a vdo command completion.

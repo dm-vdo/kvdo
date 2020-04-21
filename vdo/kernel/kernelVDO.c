@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#49 $
  */
 
 /*
@@ -463,14 +463,7 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv)
 {
 	struct vdo_action_data data;
 	struct vdo_command_completion cmd;
-
-	int result =
-		initialize_vdo_command_completion(&cmd, get_vdo(kvdo),
-						  argc, argv);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
+	initialize_vdo_command_completion(&cmd, get_vdo(kvdo), argc, argv);
 	initialize_vdo_action_data(&data,
 				   execute_vdo_extended_command,
 				   &cmd.completion);

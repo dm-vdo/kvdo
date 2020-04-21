@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#31 $
  */
 
 #include "dataVIO.h"
@@ -112,8 +112,6 @@ void prepare_data_vio(struct data_vio *data_vio,
 	struct vio *vio = data_vio_as_vio(data_vio);
 	vio->operation = operation;
 	vio->callback = callback;
-	data_vio->pageCompletion.completion.enqueueable =
-		vio_as_completion(vio)->enqueueable;
 
 	data_vio->mapped.state = MAPPING_STATE_UNCOMPRESSED;
 	data_vio->newMapped.state =

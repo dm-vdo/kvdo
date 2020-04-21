@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#15 $
  */
 
 #include "adminCompletion.h"
@@ -73,35 +73,16 @@ struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
 }
 
 /**********************************************************************/
-int initialize_admin_completion(struct vdo *vdo,
-				struct admin_completion *admin_completion)
+void initialize_admin_completion(struct vdo *vdo,
+				 struct admin_completion *admin_completion)
 {
 	admin_completion->vdo = vdo;
-	int result = initialize_enqueueable_completion(&admin_completion->completion,
-						       ADMIN_COMPLETION,
-						       vdo->layer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
+	initialize_completion(&admin_completion->completion, ADMIN_COMPLETION,
+			      vdo->layer);
 
-	result = initialize_enqueueable_completion(&admin_completion->sub_task_completion,
-						   SUB_TASK_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		uninitialize_admin_completion(admin_completion);
-		return result;
-	}
-
+	initialize_completion(&admin_completion->sub_task_completion,
+			      SUB_TASK_COMPLETION, vdo->layer);
 	atomicStoreBool(&admin_completion->busy, false);
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void uninitialize_admin_completion(struct admin_completion *admin_completion)
-{
-	destroy_enqueueable(&admin_completion->sub_task_completion);
-	destroy_enqueueable(&admin_completion->completion);
 }
 
 /**********************************************************************/

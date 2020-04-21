@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#34 $
  */
 
 #include "readOnlyRebuild.h"
@@ -94,7 +94,6 @@ free_rebuild_completion(struct read_only_rebuild_completion **rebuild_ptr)
 		return;
 	}
 
-	destroy_enqueueable(&rebuild->sub_task_completion);
 	FREE(rebuild->journal_data);
 	FREE(rebuild->entries);
 	FREE(rebuild);
@@ -123,13 +122,8 @@ make_rebuild_completion(struct vdo *vdo,
 	initialize_completion(&rebuild->completion,
 			      READ_ONLY_REBUILD_COMPLETION,
 			      vdo->layer);
-	result = initialize_enqueueable_completion(&rebuild->sub_task_completion,
-						   SUB_TASK_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		free_rebuild_completion(&rebuild);
-		return result;
-	}
+	initialize_completion(&rebuild->sub_task_completion,
+			      SUB_TASK_COMPLETION, vdo->layer);
 
 	rebuild->vdo = vdo;
 	*rebuild_ptr  = rebuild;

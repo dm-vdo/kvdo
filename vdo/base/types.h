@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#52 $
  */
 
 #ifndef TYPES_H
@@ -448,13 +448,5 @@ typedef void compressed_writer(struct allocating_vio *allocatingVIO);
  * @param dataVIO  The data_vio on which to operate
  **/
 typedef void async_data_operation(struct data_vio *dataVIO);
-
-/**
- * A reference to a completion which (the reference) can be enqueued
- * for completion on a specified thread.
- **/
-typedef struct enqueueable {
-	struct vdo_completion *completion;
-} Enqueueable;
 
 #endif // TYPES_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#19 $
  */
 
 #include "actionManager.h"
@@ -152,14 +152,7 @@ int make_action_manager(ZoneCount zones,
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
 
-	result = initialize_enqueueable_completion(&manager->completion,
-						   ACTION_COMPLETION,
-						   layer);
-	if (result != VDO_SUCCESS) {
-		free_action_manager(&manager);
-		return result;
-	}
-
+	initialize_completion(&manager->completion, ACTION_COMPLETION, layer);
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
 }
@@ -172,7 +165,6 @@ void free_action_manager(struct action_manager **manager_ptr)
 		return;
 	}
 
-	destroy_enqueueable(&manager->completion);
 	FREE(manager);
 	*manager_ptr = NULL;
 }

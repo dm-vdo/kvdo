@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#32 $
  */
 
 #include "logicalZone.h"
@@ -129,13 +129,8 @@ static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 	}
 
 	struct vdo *vdo = zones->vdo;
-	result = initialize_enqueueable_completion(&zone->completion,
-						   GENERATION_FLUSHED_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
+	initialize_completion(&zone->completion, GENERATION_FLUSHED_COMPLETION,
+			      vdo->layer);
 	zone->zone_number = zone_number;
 	zone->thread_id = get_logical_zone_thread(get_thread_config(vdo),
 					       	  zone_number);
@@ -200,7 +195,6 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
 		free_allocation_selector(&zone->selector);
-		destroy_enqueueable(&zone->completion);
 		free_int_map(&zone->lbn_operations);
 	}
 

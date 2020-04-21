@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#67 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -212,13 +212,8 @@ static int allocate_components(struct block_allocator *allocator,
 	}
 
 	struct slab_depot *depot = allocator->depot;
-	result = initialize_enqueueable_completion(&allocator->completion,
-						   BLOCK_ALLOCATOR_COMPLETION,
-						   layer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
+	initialize_completion(&allocator->completion,
+			      BLOCK_ALLOCATOR_COMPLETION, layer);
 	allocator->summary =
 		get_slab_summary_for_zone(depot, allocator->zone_number);
 
@@ -318,7 +313,6 @@ void free_block_allocator(struct block_allocator **block_allocator_ptr)
 	free_slab_scrubber(&allocator->slab_scrubber);
 	free_vio_pool(&allocator->vio_pool);
 	free_priority_table(&allocator->prioritized_slabs);
-	destroy_enqueueable(&allocator->completion);
 	FREE(allocator);
 	*block_allocator_ptr = NULL;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#8 $
  */
 
 #include "lockCounter.h"
@@ -119,14 +119,8 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		return result;
 	}
 
-	result = initialize_enqueueable_completion(&lock_counter->completion,
-						   LOCK_COUNTER_COMPLETION,
-						   layer);
-	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
-		return result;
-	}
-
+	initialize_completion(&lock_counter->completion,
+			      LOCK_COUNTER_COMPLETION, layer);
 	set_callback_with_parent(&lock_counter->completion, callback, threadID,
 			         parent);
 	lock_counter->logical_zones = logical_zones;
@@ -144,7 +138,6 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
 	}
 
 	struct lock_counter *lock_counter = *lock_counter_ptr;
-	destroy_enqueueable(&lock_counter->completion);
 	freeVolatile(lock_counter->physical_zone_counts);
 	freeVolatile(lock_counter->logical_zone_counts);
 	freeVolatile(lock_counter->journal_decrement_counts);

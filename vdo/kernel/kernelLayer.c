@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#88 $
  */
 
 #include "kernelLayer.h"
@@ -371,21 +371,6 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	}
 }
 
-/**********************************************************************/
-static int kvdo_create_enqueueable(struct vdo_completion *completion)
-{
-	completion->enqueueable = NULL;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-static void kvdo_destroy_enqueueable(Enqueueable **enqueueable_ptr)
-{
-	Enqueueable *enqueueable = *enqueueable_ptr;
-	ASSERT_LOG_ONLY((enqueueable == NULL),
-			"Enqueueable to destroy is NULL");
-}
-
 /**
  * Implements buffer_allocator.
  **/
@@ -553,11 +538,8 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	// Allow the base VDO to allocate buffers and construct or destroy
-	// enqueuables as part of its allocation.
+	// Allow the base VDO to allocate buffers.
 	layer->common.allocateIOBuffer = kvdo_allocate_io_buffer;
-	layer->common.createEnqueueable = kvdo_create_enqueueable;
-	layer->common.destroy_enqueueable = kvdo_destroy_enqueueable;
 
 	struct kernel_layer *old_layer = find_layer_matching(layer_uses_device,
 							     config);

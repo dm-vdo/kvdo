@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#26 $
  */
 
 #include "blockMapRecovery.h"
@@ -162,8 +162,6 @@ free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
 		return;
 	}
 
-	destroy_enqueueable(&recovery->completion);
-	destroy_enqueueable(&recovery->sub_task_completion);
 	FREE(recovery);
 	*recovery_ptr = NULL;
 }
@@ -218,22 +216,10 @@ make_recovery_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = initialize_enqueueable_completion(&recovery->completion,
-						   BLOCK_MAP_RECOVERY_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		free_recovery_completion(&recovery);
-		return result;
-	}
-
-	result = initialize_enqueueable_completion(&recovery->sub_task_completion,
-						   SUB_TASK_COMPLETION,
-						   vdo->layer);
-	if (result != VDO_SUCCESS) {
-		free_recovery_completion(&recovery);
-		return result;
-	}
-
+	initialize_completion(&recovery->completion,
+			      BLOCK_MAP_RECOVERY_COMPLETION, vdo->layer);
+	initialize_completion(&recovery->sub_task_completion,
+			      SUB_TASK_COMPLETION, vdo->layer);
 	recovery->block_map = block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;

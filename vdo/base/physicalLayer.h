@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#28 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -282,24 +282,6 @@ typedef void flush_complete(struct vdo_flush **vdoFlush);
 typedef write_policy write_policy_getter(PhysicalLayer *layer);
 
 /**
- * A function to create an object that can be enqueued to run in a specified
- * thread. The Enqueueable will be put into the 'enqueueable' field of the
- * supplied completion.
- *
- * @param completion  The completion to invoke the callback of
- *
- * @return VDO_SUCCESS or an error code
- **/
-typedef int enqueueable_creator(struct vdo_completion *completion);
-
-/**
- * A function to destroy and deallocate an Enqueueable object.
- *
- * @param enqueueablePtr  Pointer to the object pointer to be destroyed
- **/
-typedef void enqueueable_destructor(Enqueueable **enqueueablePtr);
-
-/**
  * A function to enqueue a vdo_completion to run on the thread specified by its
  * 'callbackThreadID' field.
  *
@@ -363,8 +345,6 @@ struct physicalLayer {
 
 	// Asynchronous interface (other)
 	flush_complete *completeFlush;
-	enqueueable_creator *createEnqueueable;
-	enqueueable_destructor *destroy_enqueueable;
 	enqueuer *enqueue;
 	operation_waiter *waitForAdminOperation;
 	operation_complete *completeAdminOperation;

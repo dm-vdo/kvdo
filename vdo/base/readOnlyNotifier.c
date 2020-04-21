@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#15 $
  */
 
 #include "readOnlyNotifier.h"
@@ -145,13 +145,9 @@ int make_read_only_notifier(bool is_read_only,
 	} else {
 		atomicStore32(&notifier->state, MAY_NOTIFY);
 	}
-	result = initialize_enqueueable_completion(&notifier->completion,
-						   READ_ONLY_MODE_COMPLETION,
-						   layer);
-	if (result != VDO_SUCCESS) {
-		free_read_only_notifier(&notifier);
-		return result;
-	}
+
+	initialize_completion(&notifier->completion, READ_ONLY_MODE_COMPLETION,
+			      layer);
 
 	ThreadCount id;
 	for (id = 0; id < thread_config->base_thread_count; id++) {
@@ -181,7 +177,6 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 		}
 	}
 
-	destroy_enqueueable(&notifier->completion);
 	FREE(notifier);
 	*notifier_ptr = NULL;
 }

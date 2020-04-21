@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#11 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -117,19 +117,9 @@ struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
  *
  * @param vdo                The vdo which owns the completion
  * @param admin_completion   The admin_completion to initialize
- *
- * @return VDO_SUCCESS or an error
  **/
-int initialize_admin_completion(struct vdo *vdo,
-				struct admin_completion *admin_completion)
-	__attribute__((warn_unused_result));
-
-/**
- * Clean up an admin completion's resources.
- *
- * @param admin_completion  The admin_completion to uninitialize
- **/
-void uninitialize_admin_completion(struct admin_completion *admin_completion);
+void initialize_admin_completion(struct vdo *vdo,
+				 struct admin_completion *admin_completion);
 
 /**
  * Reset an admin_completion's sub-task completion.

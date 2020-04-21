@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#9 $
  */
 
 #include "vdoDebug.h"
@@ -28,10 +28,10 @@
 static const char x_log_debug_message[] = "x-log-debug-message";
 
 /**********************************************************************/
-int initialize_vdo_command_completion(struct vdo_command_completion *command,
-				      struct vdo *vdo,
-				      int argc,
-				      char **argv)
+void initialize_vdo_command_completion(struct vdo_command_completion *command,
+				       struct vdo *vdo,
+				       int argc,
+				       char **argv)
 {
 	*command = (struct vdo_command_completion) {
 		.vdo = vdo,
@@ -40,9 +40,8 @@ int initialize_vdo_command_completion(struct vdo_command_completion *command,
 	};
 	initialize_completion(&command->completion, VDO_COMMAND_COMPLETION,
 			      vdo->layer);
-	return initialize_enqueueable_completion(&command->sub_completion,
-					         VDO_COMMAND_SUB_COMPLETION,
-					         vdo->layer);
+	initialize_completion(&command->sub_completion,
+			      VDO_COMMAND_SUB_COMPLETION, vdo->layer);
 }
 
 /**********************************************************************/
@@ -52,7 +51,6 @@ int destroy_vdo_command_completion(struct vdo_command_completion *command)
 		return VDO_SUCCESS;
 	}
 
-	destroy_enqueueable(&command->sub_completion);
 	return command->completion.result;
 }
 

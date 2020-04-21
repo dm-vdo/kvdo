@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#16 $
  */
 
 #ifndef COMPLETION_H
@@ -108,9 +108,6 @@ struct vdo_completion {
 	/** The parent object, if any, that spawned this completion */
 	void *parent;
 
-	/** The enqueueable for this completion (may be NULL) */
-	Enqueueable *enqueueable;
-
         /** The work item for enqueuing this completion */
         struct kvdo_work_item work_item;
 };
@@ -148,20 +145,6 @@ void set_completion_result(struct vdo_completion *completion, int result);
 void initialize_completion(struct vdo_completion *completion,
 			   VDOCompletionType type,
 			   PhysicalLayer *layer);
-
-/**
- * Initialize a completion to a clean state and make an enqueueable for it.
- *
- * @param completion The completion to initialize
- * @param type       The type of the completion
- * @param layer      The physical layer of the completion
- *
- * @return VDO_SUCCESS or an error
- **/
-int initialize_enqueueable_completion(struct vdo_completion *completion,
-				      VDOCompletionType type,
-				      PhysicalLayer *layer)
-	__attribute__((warn_unused_result));
 
 /**
  * Reset a completion to a clean state, while keeping
@@ -250,13 +233,6 @@ static inline
 void noop_callback(struct vdo_completion *completion __attribute__((unused)))
 {
 }
-
-/**
- * Destroy the enqueueable associated with this completion.
- *
- * @param completion  The completion
- **/
-void destroy_enqueueable(struct vdo_completion *completion);
 
 /**
  * Assert that a completion is of the correct type
