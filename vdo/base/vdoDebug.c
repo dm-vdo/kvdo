@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#10 $
  */
 
 #include "vdoDebug.h"
@@ -42,16 +42,6 @@ void initialize_vdo_command_completion(struct vdo_command_completion *command,
 			      vdo->layer);
 	initialize_completion(&command->sub_completion,
 			      VDO_COMMAND_SUB_COMPLETION, vdo->layer);
-}
-
-/**********************************************************************/
-int destroy_vdo_command_completion(struct vdo_command_completion *command)
-{
-	if (command == NULL) {
-		return VDO_SUCCESS;
-	}
-
-	return command->completion.result;
 }
 
 /**********************************************************************/
