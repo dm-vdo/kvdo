@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#16 $
  */
 
 #include "completion.h"
@@ -28,18 +28,14 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 	// Keep UNSET_COMPLETION_TYPE at the top.
 	"UNSET_COMPLETION_TYPE",
 
-	// Keep the rest of these in sorted order. If you add or remove an
+	// Keep this block in sorted order. If you add or remove an
 	// entry, be sure to update the corresponding list in completion.h.
 	"ACTION_COMPLETION",
 	"ADMIN_COMPLETION",
-	"ASYNC_ACTION_CONTEXT",
 	"BLOCK_ALLOCATOR_COMPLETION",
 	"BLOCK_MAP_RECOVERY_COMPLETION",
-	"CHECK_IDENTIFIER_COMPLETION",
-	"EXTERNAL_COMPLETION",
 	"FLUSH_NOTIFICATION_COMPLETION",
 	"GENERATION_FLUSHED_COMPLETION",
-	"HEARTBEAT_COMPLETION",
 	"LOCK_COUNTER_COMPLETION",
 	"PARTITION_COPY_COMPLETION",
 	"READ_ONLY_MODE_COMPLETION",
@@ -48,13 +44,12 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 	"REFERENCE_COUNT_REBUILD_COMPLETION",
 	"SLAB_SCRUBBER_COMPLETION",
 	"SUB_TASK_COMPLETION",
-	"TEST_COMPLETION",
 	"VDO_COMMAND_COMPLETION",
 	"VDO_COMMAND_SUB_COMPLETION",
 	"VDO_EXTENT_COMPLETION",
 	"VDO_PAGE_COMPLETION",
 	"VIO_COMPLETION",
-	"WRAPPING_COMPLETION",
+
 };
 
 /**********************************************************************/
