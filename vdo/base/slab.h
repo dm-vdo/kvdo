@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#24 $
  */
 
 #ifndef VDO_SLAB_H
@@ -60,7 +60,7 @@ struct vdo_slab {
 	struct slab_journal *journal;
 
 	/** The slab number of this slab */
-	SlabCount slab_number;
+	slab_count_t slab_number;
 	/**
 	 * The offset in the allocator partition of the first block in this
 	 * slab
@@ -142,7 +142,7 @@ int make_slab(physical_block_number_t slab_origin,
 	      struct block_allocator *allocator,
 	      physical_block_number_t translation,
 	      struct recovery_journal *recovery_journal,
-	      SlabCount slab_number,
+	      slab_count_t slab_number,
 	      bool is_new,
 	      struct vdo_slab **slab_ptr)
 	__attribute__((warn_unused_result));

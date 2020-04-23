@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#24 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -52,7 +52,7 @@ typedef enum {
  **/
 struct slab_actor {
 	/** The number of slabs performing a slab action */
-	SlabCount slab_action_count;
+	slab_count_t slab_action_count;
 	/** The method to call when a slab action has been completed by all
 	 * slabs */
 	vdo_action *callback;
@@ -116,9 +116,9 @@ struct block_allocator {
 	/** The thread ID for this allocator's physical zone */
 	ThreadID thread_id;
 	/** The number of slabs in this allocator */
-	SlabCount slab_count;
+	slab_count_t slab_count;
 	/** The number of the last slab owned by this allocator */
-	SlabCount last_slab;
+	slab_count_t last_slab;
 	/** The reduced priority level used to preserve unopened slabs */
 	unsigned int unopened_slab_priority;
 	/** The state of this allocator */

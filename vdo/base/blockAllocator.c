@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#68 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -696,7 +696,7 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 		       get_data_block_count(allocator));
 
 	struct slab_depot *depot = allocator->depot;
-	SlabCount slab_count = depot->slab_count;
+	slab_count_t slab_count = depot->slab_count;
 
 	struct slab_status *slab_statuses;
 	int result = ALLOCATE(slab_count,
@@ -777,7 +777,7 @@ void register_new_slabs_for_allocator(void *context,
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
 	struct slab_depot *depot = allocator->depot;
-	SlabCount i;
+	slab_count_t i;
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
 		if (slab->allocator == allocator) {

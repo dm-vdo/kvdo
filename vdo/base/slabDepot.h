@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#32 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -60,7 +60,7 @@ typedef enum {
  *
  * @return The number of slabs
  **/
-SlabCount calculate_slab_count(struct slab_depot *depot)
+slab_count_t calculate_slab_count(struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**
@@ -205,7 +205,7 @@ struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
  **/
 int get_slab_number(const struct slab_depot *depot,
 		    physical_block_number_t pbn,
-		    SlabCount *slab_number_ptr)
+		    slab_count_t *slab_number_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -314,7 +314,7 @@ block_count_t get_depot_free_blocks(const struct slab_depot *depot)
  *
  * @return The total number of slabs
  **/
-SlabCount get_depot_slab_count(const struct slab_depot *depot)
+slab_count_t get_depot_slab_count(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**
@@ -326,7 +326,7 @@ SlabCount get_depot_slab_count(const struct slab_depot *depot)
  *
  * @return The total number of slabs that are unrecovered
  **/
-SlabCount get_depot_unrecovered_slab_count(const struct slab_depot *depot)
+slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**

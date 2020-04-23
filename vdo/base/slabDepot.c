@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#61 $
  */
 
 #include "slabDepot.h"
@@ -66,17 +66,17 @@ static const struct header SLAB_DEPOT_HEADER_2_0 = {
  *
  * @return The number of slabs
  **/
-__attribute__((warn_unused_result)) static SlabCount
+__attribute__((warn_unused_result)) static slab_count_t
 compute_slab_count(physical_block_number_t first_block,
 		   physical_block_number_t last_block,
 		   unsigned int slab_size_shift)
 {
 	block_count_t data_blocks = last_block - first_block;
-	return (SlabCount)(data_blocks >> slab_size_shift);
+	return (slab_count_t) (data_blocks >> slab_size_shift);
 }
 
 /**********************************************************************/
-SlabCount calculate_slab_count(struct slab_depot *depot)
+slab_count_t calculate_slab_count(struct slab_depot *depot)
 {
 	return compute_slab_count(depot->first_block, depot->last_block,
 				  depot->slab_size_shift);
@@ -106,7 +106,7 @@ static struct slab_iterator get_slab_iterator(struct slab_depot *depot)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int allocate_slabs(struct slab_depot *depot, SlabCount slab_count)
+static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 {
 	int result = ALLOCATE(slab_count,
 			      struct vdo_slab *,
@@ -163,7 +163,7 @@ void abandon_new_slabs(struct slab_depot *depot)
 	if (depot->new_slabs == NULL) {
 		return;
 	}
-	SlabCount i;
+	slab_count_t i;
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		free_slab(&depot->new_slabs[i]);
 	}
@@ -269,7 +269,7 @@ static int allocate_components(struct slab_depot *depot,
 		return result;
 	}
 
-	SlabCount slab_count = calculate_slab_count(depot);
+	slab_count_t slab_count = calculate_slab_count(depot);
 	if (thread_config->physical_zone_count > slab_count) {
 		return logErrorWithStringError(VDO_BAD_CONFIGURATION,
 					       "%u physical zones exceeds slab count %u",
@@ -301,7 +301,7 @@ static int allocate_components(struct slab_depot *depot,
 	}
 
 	// Use the new slabs.
-	SlabCount i;
+	slab_count_t i;
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
 		register_slab_with_allocator(slab->allocator, slab);
@@ -504,7 +504,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 	}
 
 	if (depot->slabs != NULL) {
-		SlabCount i;
+		slab_count_t i;
 		for (i = 0; i < depot->slab_count; i++) {
 			free_slab(&depot->slabs[i]);
 		}
@@ -802,13 +802,13 @@ struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
 /**********************************************************************/
 int get_slab_number(const struct slab_depot *depot,
 		    physical_block_number_t pbn,
-		    SlabCount *slab_number_ptr)
+		    slab_count_t *slab_number_ptr)
 {
 	if (pbn < depot->first_block) {
 		return VDO_OUT_OF_RANGE;
 	}
 
-	SlabCount slab_number =
+	slab_count_t slab_number =
 		(pbn - depot->first_block) >> depot->slab_size_shift;
 	if (slab_number >= depot->slab_count) {
 		return VDO_OUT_OF_RANGE;
@@ -826,7 +826,7 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
 		return NULL;
 	}
 
-	SlabCount slab_number;
+	slab_count_t slab_number;
 	int result = get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
 		enter_read_only_mode(depot->read_only_notifier, result);
@@ -864,7 +864,7 @@ bool is_physical_data_block(const struct slab_depot *depot,
 		return true;
 	}
 
-	SlabCount slab_number;
+	slab_count_t slab_number;
 	if (get_slab_number(depot, pbn, &slab_number) != VDO_SUCCESS) {
 		return false;
 	}
@@ -913,15 +913,15 @@ block_count_t get_depot_free_blocks(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
-SlabCount get_depot_slab_count(const struct slab_depot *depot)
+slab_count_t get_depot_slab_count(const struct slab_depot *depot)
 {
 	return depot->slab_count;
 }
 
 /**********************************************************************/
-SlabCount get_depot_unrecovered_slab_count(const struct slab_depot *depot)
+slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 {
-	SlabCount total = 0;
+	slab_count_t total = 0;
 	ZoneCount zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		// The allocators are responsible for thread safety.
@@ -999,9 +999,9 @@ int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
 		return result;
 	}
 
-	SlabCount new_slab_count = compute_slab_count(depot->first_block,
-						      new_state.last_block,
-						      depot->slab_size_shift);
+	slab_count_t new_slab_count =
+		compute_slab_count(depot->first_block, new_state.last_block,
+				   depot->slab_size_shift);
 	if (new_slab_count <= depot->slab_count) {
 		return logErrorWithStringError(VDO_INCREMENT_TOO_SMALL,
 					       "Depot can only grow");

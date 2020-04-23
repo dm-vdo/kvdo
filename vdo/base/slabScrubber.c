@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#31 $
  */
 
 #include "slabScrubberInternals.h"
@@ -147,7 +147,7 @@ bool has_slabs_to_scrub(struct slab_scrubber *scrubber)
 }
 
 /**********************************************************************/
-SlabCount get_scrubber_slab_count(const struct slab_scrubber *scrubber)
+slab_count_t get_scrubber_slab_count(const struct slab_scrubber *scrubber)
 {
 	return relaxedLoad64(&scrubber->slab_count);
 }

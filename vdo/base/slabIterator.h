@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#6 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -31,8 +31,8 @@
 struct slab_iterator {
 	struct vdo_slab **slabs;
 	struct vdo_slab *next;
-	SlabCount end;
-	SlabCount stride;
+	slab_count_t end;
+	slab_count_t stride;
 };
 
 /**
@@ -48,8 +48,9 @@ struct slab_iterator {
  * @return an initialized iterator structure
  **/
 static inline struct slab_iterator iterate_slabs(struct vdo_slab **slabs,
-						 SlabCount start, SlabCount end,
-						 SlabCount stride)
+						 slab_count_t start,
+						 slab_count_t end,
+						 slab_count_t stride)
 {
 	return (struct slab_iterator) {
 		.slabs = slabs,

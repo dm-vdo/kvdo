@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#70 $
  */
 
 /*
@@ -908,7 +908,7 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->block_map = get_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
-	SlabCount slab_total = get_depot_slab_count(depot);
+	slab_count_t slab_total = get_depot_slab_count(depot);
 	stats->recovery_percentage =
 		(slab_total - get_depot_unrecovered_slab_count(depot)) * 100 /
 		slab_total;

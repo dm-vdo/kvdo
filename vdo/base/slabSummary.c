@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#35 $
  */
 
 #include "slabSummary.h"
@@ -36,7 +36,7 @@
 /**********************************************************************/
 static block_count_t get_slab_summary_zone_size(block_size_t block_size)
 {
-	SlabCount entries_per_block =
+	slab_count_t entries_per_block =
 		block_size / sizeof(struct slab_summary_entry);
 	block_count_t blocks_needed = MAX_SLABS / entries_per_block;
 	return blocks_needed;
@@ -207,7 +207,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 {
 	block_count_t blocks_per_zone =
 		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
-	SlabCount entries_per_block = MAX_SLABS / blocks_per_zone;
+	slab_count_t entries_per_block = MAX_SLABS / blocks_per_zone;
 	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_SLABS,
 			    "block size must be a multiple of entry size");
 	if (result != VDO_SUCCESS) {
@@ -469,15 +469,16 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
  **/
 static struct slab_summary_block *
 get_summary_block_for_slab(struct slab_summary_zone *summary_zone,
-			   SlabCount slab_number)
+			   slab_count_t slab_number)
 {
-	SlabCount entries_per_block = summary_zone->summary->entries_per_block;
+	slab_count_t entries_per_block =
+		summary_zone->summary->entries_per_block;
 	return &summary_zone->summary_blocks[slab_number / entries_per_block];
 }
 
 /**********************************************************************/
 void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-			       struct waiter *waiter, SlabCount slab_number,
+			       struct waiter *waiter, slab_count_t slab_number,
 			       TailBlockOffset tail_block_offset,
 			       bool load_ref_counts, bool is_clean,
 			       block_count_t free_blocks)
@@ -516,21 +517,21 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 /**********************************************************************/
 TailBlockOffset
 get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				 SlabCount slab_number)
+				 slab_count_t slab_number)
 {
 	return summary_zone->entries[slab_number].tail_block_offset;
 }
 
 /**********************************************************************/
 bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
-			  SlabCount slab_number)
+			  slab_count_t slab_number)
 {
 	return summary_zone->entries[slab_number].load_ref_counts;
 }
 
 /**********************************************************************/
 bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-				SlabCount slab_number)
+				slab_count_t slab_number)
 {
 	return !summary_zone->entries[slab_number].is_dirty;
 }
@@ -538,7 +539,7 @@ bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
 /**********************************************************************/
 block_count_t
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				SlabCount slab_number)
+				slab_count_t slab_number)
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
 	return get_approximate_free_blocks(summary_zone->summary,
@@ -547,7 +548,7 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 
 /**********************************************************************/
 void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-				     SlabCount slab_number,
+				     slab_count_t slab_number,
 				     size_t *free_block_hint, bool *is_clean)
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
@@ -557,10 +558,10 @@ void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
 
 /**********************************************************************/
 void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
-				  SlabCount slab_count,
+				  slab_count_t slab_count,
 				  struct slab_status *statuses)
 {
-	SlabCount i;
+	slab_count_t i;
 	for (i = 0; i < slab_count; i++) {
 		statuses[i] = (struct slab_status){
 			.slabNumber = i,
@@ -602,7 +603,7 @@ void combine_zones(struct slab_summary *summary)
 	// corresponding to the first zone.
 	ZoneCount zone = 0;
 	if (summary->zones_to_combine > 1) {
-		SlabCount entry_number;
+		slab_count_t entry_number;
 		for (entry_number = 0; entry_number < MAX_SLABS;
 		     entry_number++) {
 			if (zone != 0) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#17 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -61,7 +61,7 @@ typedef uint8_t TailBlockOffset;
  * of slabs in the scrubbing process.
  **/
 struct slab_status {
-	SlabCount slabNumber;
+	slab_count_t slabNumber;
 	bool isClean;
 	uint8_t emptiness;
 };
@@ -153,7 +153,7 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
  * @param free_blocks       The number of free blocks
  **/
 void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-			       struct waiter *waiter, SlabCount slab_number,
+			       struct waiter *waiter, slab_count_t slab_number,
 			       TailBlockOffset tail_block_offset,
 			       bool load_ref_counts, bool is_clean,
 			       block_count_t free_blocks);
@@ -168,7 +168,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
  **/
 TailBlockOffset
 get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				 SlabCount slab_number)
+				 slab_count_t slab_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -180,7 +180,7 @@ get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
  * @return Whether ref_counts must be loaded
  **/
 bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
-			  SlabCount slab_number)
+			  slab_count_t slab_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -192,7 +192,7 @@ bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
  * @return Whether the slab is clean
  **/
 bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-				SlabCount slab_number)
+				slab_count_t slab_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -205,7 +205,7 @@ bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
  **/
 block_count_t
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				SlabCount slab_number)
+				slab_count_t slab_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -218,7 +218,7 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
  * @param [out] is_clean          Whether the slab is clean
  **/
 void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-				     SlabCount slab_number,
+				     slab_count_t slab_number,
 				     size_t *free_block_hint, bool *is_clean);
 
 /**
@@ -229,7 +229,7 @@ void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
  * @param [in,out] statuses       An array of slab_status structures to populate
  **/
 void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
-				  SlabCount slab_count,
+				  slab_count_t slab_count,
 				  struct slab_status *statuses);
 
 /**

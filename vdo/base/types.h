@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#53 $
  */
 
 #ifndef TYPES_H
@@ -109,7 +109,7 @@ typedef uint64_t sequence_number_t;
 /**
  * A size type in slabs.
  **/
-typedef uint16_t SlabCount;
+typedef uint16_t slab_count_t;
 
 /**
  * A slot in a bin or block map page.

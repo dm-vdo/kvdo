@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#13 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -141,7 +141,7 @@ int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
  *
  * @return the number of slabs that are unrecovered or being scrubbed
  **/
-SlabCount get_scrubber_slab_count(const struct slab_scrubber *scrubber)
+slab_count_t get_scrubber_slab_count(const struct slab_scrubber *scrubber)
 	__attribute__((warn_unused_result));
 
 /**
