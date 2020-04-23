@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#32 $
  */
 
 #include "forest.h"
@@ -115,7 +115,6 @@ struct tree_page *get_tree_page_by_index(struct forest *forest,
  * to grow the forest to a new number of entries.
  *
  * @param [in]  root_count       The number of roots
- * @param [in]  flat_page_count  The number of flat block map pages
  * @param [in]  old_sizes        The current size of the forest at each level
  * @param [in]  entries          The new number of entries the block map must
  *                               address
@@ -124,14 +123,12 @@ struct tree_page *get_tree_page_by_index(struct forest *forest,
  * @return The total number of non-leaf pages required
  **/
 static block_count_t compute_new_pages(root_count_t root_count,
-				       block_count_t flat_page_count,
 				       struct boundary *old_sizes,
 				       block_count_t entries,
 				       struct boundary *new_sizes)
 {
 	page_count_t leaf_pages
-		= max_page_count(compute_block_map_page_count(entries) -
-				 flat_page_count, 1);
+		= max_page_count(compute_block_map_page_count(entries), 1);
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
@@ -284,7 +281,6 @@ int make_forest(struct block_map *map, block_count_t entries)
 
 	struct boundary new_boundary;
 	block_count_t new_pages = compute_new_pages(map->root_count,
-						    map->flat_page_count,
 						    oldBoundary,
 						    entries,
 						    &new_boundary);
@@ -533,22 +529,15 @@ static struct boundary compute_boundary(struct block_map *map,
 {
 	page_count_t leaf_pages =
 		compute_block_map_page_count(map->entry_count);
-	page_count_t tree_leaf_pages = leaf_pages - map->flat_page_count;
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
 	 * does not distribute evenly, we must determine if this root gets an
-	 * extra page. Extra pages are assigned to roots starting at
-	 * first_tree_root and going up.
+	 * extra page. Extra pages are assigned to roots starting from tree 0.
 	 */
-	page_count_t first_tree_root = map->flat_page_count % map->root_count;
 	page_count_t last_tree_root = (leaf_pages - 1) % map->root_count;
-
-	page_count_t level_pages = tree_leaf_pages / map->root_count;
-	if (in_cyclic_range(first_tree_root,
-			    root_index,
-			    last_tree_root,
-			    map->root_count)) {
+	page_count_t level_pages = leaf_pages / map->root_count;
+	if (root_index <= last_tree_root) {
 		level_pages++;
 	}
 
@@ -571,13 +560,6 @@ void traverse_forest(struct block_map *map,
 		     entry_callback *entry_callback,
 		     struct vdo_completion *parent)
 {
-	if (compute_block_map_page_count(map->entry_count) <=
-	    map->flat_page_count) {
-		// There are no tree pages, so there's nothing to do.
-		finish_completion(parent, VDO_SUCCESS);
-		return;
-	}
-
 	struct cursors *cursors;
 	int result = ALLOCATE_EXTENDED(struct cursors,
 				       map->root_count,
@@ -617,7 +599,6 @@ block_count_t compute_forest_size(block_count_t logical_blocks,
 	struct boundary new_sizes;
 	block_count_t approximate_non_leaves =
 		compute_new_pages(root_count,
-				  0,
 				  NULL,
 				  logical_blocks,
 				  &new_sizes);

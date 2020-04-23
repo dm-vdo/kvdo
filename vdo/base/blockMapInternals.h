@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#33 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -83,8 +83,6 @@ struct block_map_zone {
 struct block_map {
 	/** The manager for block map actions */
 	struct action_manager *action_manager;
-	/** The count of pages in the linear part of the block map */
-	block_count_t flat_page_count;
 	/**
 	 * The absolute PBN of the first root of the tree part of the block map
 	 */

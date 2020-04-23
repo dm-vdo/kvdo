@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#60 $
  */
 
 #include "blockMap.h"
@@ -138,7 +138,6 @@ page_count_t compute_block_map_page_count(block_count_t entries)
 /**********************************************************************/
 int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
-		   block_count_t flat_page_count,
 		   physical_block_number_t root_origin,
 		   block_count_t root_count,
 		   struct block_map **map_ptr)
@@ -157,7 +156,6 @@ int make_block_map(block_count_t logical_blocks,
 		return result;
 	}
 
-	map->flat_page_count = flat_page_count;
 	map->root_origin = root_origin;
 	map->root_count = root_count;
 	map->entry_count = logical_blocks;
@@ -261,7 +259,6 @@ int decode_block_map(struct buffer *buffer,
 	struct block_map *map;
 	result = make_block_map(logical_blocks,
 				thread_config,
-				state.flat_page_count,
 				state.root_origin,
 				state.root_count,
 				&map);
@@ -483,7 +480,8 @@ int encode_block_map(const struct block_map *map, struct buffer *buffer)
 		return result;
 	}
 
-	result = put_uint64_le_into_buffer(buffer, map->flat_page_count);
+	// This is the flat page count, which has turned out to always be 0.
+	result = put_uint64_le_into_buffer(buffer, 0);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -544,15 +542,6 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 	struct block_map_tree_slot *slot = &tree_lock->treeSlots[0];
 	slot->blockMapSlot.slot = compute_slot(data_vio->logical.lbn);
-	if (slot->pageIndex < map->flat_page_count) {
-		slot->blockMapSlot.pbn =
-			slot->pageIndex + BLOCK_MAP_FLAT_PAGE_ORIGIN;
-		launch_callback(data_vio_as_completion(data_vio),
-			        callback,
-			        thread_id);
-		return;
-	}
-
 	tree_lock->callback = callback;
 	tree_lock->threadID = thread_id;
 	lookup_block_map_pbn(data_vio);
@@ -561,7 +550,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 /**********************************************************************/
 page_count_t get_number_of_fixed_block_map_pages(const struct block_map *map)
 {
-	return (map->flat_page_count + map->root_count);
+	return map->root_count;
 }
 
 /**********************************************************************/

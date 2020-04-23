@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#21 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -34,7 +34,6 @@
  *
  * @param [in]  logical_blocks     The number of logical blocks for the VDO
  * @param [in]  thread_config      The thread configuration of the VDO
- * @param [in]  flat_page_count    The number of flat pages
  * @param [in]  root_origin        The absolute PBN of the first root page
  * @param [in]  root_count         The number of tree roots
  * @param [out] map_ptr            The pointer to hold the new block map
@@ -43,7 +42,6 @@
  **/
 int make_block_map(block_count_t logical_blocks,
 		   const struct thread_config *thread_config,
-		   block_count_t flat_page_count,
 		   physical_block_number_t root_origin,
 		   block_count_t root_count,
 		   struct block_map **map_ptr)
