@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#13 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -38,7 +38,7 @@ enum {
 
 struct kvdo_work_item {
 	/** Entry link for lock-free work queue */
-	FunnelQueueEntry work_queue_entry_link;
+	struct funnel_queue_entry work_queue_entry_link;
 	/** Function to be called */
 	KvdoWorkFunction work;
 	/** Optional alternate function for display in queue stats */

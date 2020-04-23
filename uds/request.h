@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#5 $
  */
 
 #ifndef REQUEST_H
@@ -140,7 +140,7 @@ struct internalRequest {
   /*
    * The remainder of this structure is private to the UDS implementation.
    */
-  FunnelQueueEntry  requestQueueLink; // for lock-free request queue
+  struct funnel_queue_entry requestQueueLink; // for lock-free request queue
   Request          *nextRequest;
   IndexRouter      *router;
 

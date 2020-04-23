@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#12 $
  */
 
 #include "batchProcessor.h"
@@ -56,7 +56,7 @@
  * should be missed.
  *
  * It's a little subtler with funnel queues, since one interrupted or
- * delayed enqueue operation (see the commentary in funnelQueuePut)
+ * delayed enqueue operation (see the commentary in funnel_queue_put)
  * can cause another, concurrent enqueue operation to complete without
  * actually making the entry visible to the consumer. In essence, one
  * update makes no new work items visible to the consumer, and the
@@ -72,7 +72,7 @@ enum batch_processor_state {
 
 struct batch_processor {
 	spinlock_t consumer_lock;
-	FunnelQueue *queue;
+	struct funnel_queue *queue;
 	struct kvdo_work_item work_item;
 	atomic_t state;
 	batch_processor_callback callback;
@@ -96,12 +96,12 @@ static void batch_processor_work(struct kvdo_work_item *item)
 		container_of(item, struct batch_processor, work_item);
 
 	spin_lock(&batch->consumer_lock);
-	while (!isFunnelQueueEmpty(batch->queue)) {
+	while (!is_funnel_queue_empty(batch->queue)) {
 		batch->callback(batch, batch->closure);
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	memoryFence();
-	bool need_reschedule = !isFunnelQueueEmpty(batch->queue);
+	bool need_reschedule = !is_funnel_queue_empty(batch->queue);
 
 	spin_unlock(&batch->consumer_lock);
 	if (need_reschedule) {
@@ -132,7 +132,7 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	 * (Sometimes slightly faster still if we prefetch the state
 	 * field first.) Note that the read requires the fence,
 	 * otherwise it could be executed before the preceding store
-	 * by the FunnelQueue code to the "next" pointer, which can,
+	 * by the funnel queue code to the "next" pointer, which can,
 	 * very rarely, result in failing to issue a wakeup when
 	 * needed.
 	 *
@@ -168,7 +168,7 @@ int make_batch_processor(struct kernel_layer *layer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = makeFunnelQueue(&batch->queue);
+	result = make_funnel_queue(&batch->queue);
 	if (result != UDS_SUCCESS) {
 		FREE(batch);
 		return result;
@@ -192,14 +192,14 @@ int make_batch_processor(struct kernel_layer *layer,
 void add_to_batch_processor(struct batch_processor *batch,
 			    struct kvdo_work_item *item)
 {
-	funnelQueuePut(batch->queue, &item->work_queue_entry_link);
+	funnel_queue_put(batch->queue, &item->work_queue_entry_link);
 	schedule_batch_processing(batch);
 }
 
 /**********************************************************************/
 struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
 {
-	FunnelQueueEntry *fq_entry = funnelQueuePoll(batch->queue);
+	struct funnel_queue_entry *fq_entry = funnel_queue_poll(batch->queue);
 
 	if (fq_entry == NULL) {
 		return NULL;
@@ -223,7 +223,7 @@ void free_batch_processor(struct batch_processor **batch_ptr)
 	if (batch) {
 		memoryFence();
 		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
-		freeFunnelQueue(batch->queue);
+		free_funnel_queue(batch->queue);
 		FREE(batch);
 		*batch_ptr = NULL;
 	}

@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#9 $
  */
 
 #ifndef BATCHPROCESSOR_H
 #define BATCHPROCESSOR_H
 
 #include "kernelTypes.h"
-#include "util/funnelQueue.h"
 
 /**
  * Control data for managing collections of objects to be operated on
@@ -39,7 +38,7 @@
  * also call cond_resched_batch_processor now and then, to play nicely
  * with the OS scheduler.
  *
- * Objects to operate on are manipulated through a FunnelQueueEntry
+ * Objects to operate on are manipulated through a funnel_queue_entry
  * object which must be contained within them.
  **/
 struct batch_processor;

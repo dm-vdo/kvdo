@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#2 $
  */
 
 #include "funnelQueue.h"
@@ -26,12 +26,12 @@
 #include "uds.h"
 
 /**********************************************************************/
-int makeFunnelQueue(FunnelQueue **queuePtr)
+int make_funnel_queue(struct funnel_queue **queue_ptr)
 {
   // Allocate the queue on a cache line boundary so the producer and consumer
   // fields in the structure will land on separate cache lines.
-  FunnelQueue *queue;
-  int result = ALLOCATE(1, FunnelQueue, "funnel queue", &queue);
+  struct funnel_queue *queue;
+  int result = ALLOCATE(1, struct funnel_queue, "funnel queue", &queue);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -42,27 +42,27 @@ int makeFunnelQueue(FunnelQueue **queuePtr)
   queue->newest = &queue->stub;
   queue->oldest = &queue->stub;
 
-  *queuePtr = queue;
+  *queue_ptr = queue;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void freeFunnelQueue(FunnelQueue *queue)
+void free_funnel_queue(struct funnel_queue *queue)
 {
   FREE(queue);
 }
 
 /**********************************************************************/
-static FunnelQueueEntry *getOldest(FunnelQueue *queue)
+static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 {
  /*
   * Barrier requirements: We need a read barrier between reading a "next"
   * field pointer value and reading anything it points to. There's an
-  * accompanying barrier in funnelQueuePut between its caller setting up the
+  * accompanying barrier in funnel_queue_put between its caller setting up the
   * entry and making it visible.
   */
-  FunnelQueueEntry *oldest = queue->oldest;
-  FunnelQueueEntry *next   = oldest->next;
+  struct funnel_queue_entry *oldest = queue->oldest;
+  struct funnel_queue_entry *next   = oldest->next;
 
   if (oldest == &queue->stub) {
     // When the oldest entry is the stub and it has no successor, the queue is
@@ -81,7 +81,7 @@ static FunnelQueueEntry *getOldest(FunnelQueue *queue)
   // We have a non-stub candidate to dequeue. If it lacks a successor, we'll
   // need to put the stub entry back on the queue first.
   if (next == NULL) {
-    FunnelQueueEntry *newest = queue->newest;
+    struct funnel_queue_entry *newest = queue->newest;
     if (oldest != newest) {
       // Another thread has already swung queue->newest atomically, but not
       // yet assigned previous->next. The queue is really still empty.
@@ -90,7 +90,7 @@ static FunnelQueueEntry *getOldest(FunnelQueue *queue)
 
     // Put the stub entry back on the queue, ensuring a successor will
     // eventually be seen.
-    funnelQueuePut(queue, &queue->stub);
+    funnel_queue_put(queue, &queue->stub);
 
     // Check again for a successor.
     next = oldest->next;
@@ -104,9 +104,9 @@ static FunnelQueueEntry *getOldest(FunnelQueue *queue)
 }
 
 /**********************************************************************/
-FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
+struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 {
-  FunnelQueueEntry *oldest = getOldest(queue);
+  struct funnel_queue_entry *oldest = get_oldest(queue);
   if (oldest == NULL) {
     return oldest;
   }
@@ -136,7 +136,7 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
 }
 
 /**********************************************************************/
-bool isFunnelQueueEmpty(FunnelQueue *queue)
+bool is_funnel_queue_empty(struct funnel_queue *queue)
 {
-  return getOldest(queue) == NULL;
+  return get_oldest(queue) == NULL;
 }

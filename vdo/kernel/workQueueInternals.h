@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#10 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -76,7 +76,7 @@ struct simple_work_queue {
 	 **/
 	uint8_t priority_map[WORK_QUEUE_ACTION_COUNT];
 	/** The funnel queues */
-	FunnelQueue *priority_lists[WORK_QUEUE_PRIORITY_COUNT];
+	struct funnel_queue *priority_lists[WORK_QUEUE_PRIORITY_COUNT];
 	/** The kernel thread */
 	struct task_struct *thread;
 	/** Life cycle functions, etc */

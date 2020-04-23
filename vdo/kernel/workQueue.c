@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#28 $
  */
 
 #include "workQueue.h"
@@ -129,8 +129,8 @@ poll_for_work_item(struct simple_work_queue *queue)
 	int i;
 
 	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
-		FunnelQueueEntry *link =
-			funnelQueuePoll(queue->priority_lists[i]);
+		struct funnel_queue_entry *link =
+			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
 			item = container_of(link,
 					    struct kvdo_work_item,
@@ -176,11 +176,11 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 	item->my_queue = &queue->common;
 
 	// Funnel queue handles the synchronization for the put.
-	funnelQueuePut(queue->priority_lists[priority],
-		       &item->work_queue_entry_link);
+	funnel_queue_put(queue->priority_lists[priority],
+			 &item->work_queue_entry_link);
 
 	/*
-	 * Due to how funnel-queue synchronization is handled (just atomic
+	 * Due to how funnel queue synchronization is handled (just atomic
 	 * operations), the simplest safe implementation here would be to
 	 * wake-up any waiting threads after enqueueing each item. Even if the
 	 * funnel queue is not empty at the time of adding an item to the queue,
@@ -672,7 +672,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	}
 	queue->num_priority_lists = num_priority_lists;
 	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-		result = makeFunnelQueue(&queue->priority_lists[i]);
+		result = make_funnel_queue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
 			return result;
@@ -867,7 +867,7 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 	unsigned int i;
 
 	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-		freeFunnelQueue(queue->priority_lists[i]);
+		free_funnel_queue(queue->priority_lists[i]);
 	}
 	cleanup_work_queue_stats(&queue->stats);
 	kobject_put(&queue->common.kobj);

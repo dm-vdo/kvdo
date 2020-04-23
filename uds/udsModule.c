@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#11 $
  */
 
 #include <linux/module.h>
@@ -97,9 +97,9 @@ EXPORT_SYMBOL_GPL(ensure_available_space);
 EXPORT_SYMBOL_GPL(equal_buffers);
 EXPORT_SYMBOL_GPL(fixedSprintf);
 EXPORT_SYMBOL_GPL(free_buffer);
-EXPORT_SYMBOL_GPL(freeFunnelQueue);
+EXPORT_SYMBOL_GPL(free_funnel_queue);
 EXPORT_SYMBOL_GPL(freeMemory);
-EXPORT_SYMBOL_GPL(funnelQueuePoll);
+EXPORT_SYMBOL_GPL(funnel_queue_poll);
 EXPORT_SYMBOL_GPL(get_boolean);
 EXPORT_SYMBOL_GPL(get_buffer_contents);
 EXPORT_SYMBOL_GPL(get_byte);
@@ -116,9 +116,9 @@ EXPORT_SYMBOL_GPL(get_uint64_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
 EXPORT_SYMBOL_GPL(grow_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
-EXPORT_SYMBOL_GPL(isFunnelQueueEmpty);
+EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(make_buffer);
-EXPORT_SYMBOL_GPL(makeFunnelQueue);
+EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(nowUsec);
 EXPORT_SYMBOL_GPL(peek_byte);
