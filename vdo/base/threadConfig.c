@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#6 $
  */
 
 #include "threadConfig.h"
@@ -28,10 +28,10 @@
 #include "types.h"
 
 /**********************************************************************/
-static int allocate_thread_config(ZoneCount logical_zone_count,
-				  ZoneCount physical_zone_count,
-				  ZoneCount hash_zone_count,
-				  ZoneCount base_thread_count,
+static int allocate_thread_config(zone_count_t logical_zone_count,
+				  zone_count_t physical_zone_count,
+				  zone_count_t hash_zone_count,
+				  zone_count_t base_thread_count,
 				  struct thread_config **config_ptr)
 {
 	struct thread_config *config;
@@ -79,18 +79,18 @@ static int allocate_thread_config(ZoneCount logical_zone_count,
 
 /**********************************************************************/
 static void
-assign_thread_ids(ThreadID thread_ids[], ZoneCount count, ThreadID *id_ptr)
+assign_thread_ids(ThreadID thread_ids[], zone_count_t count, ThreadID *id_ptr)
 {
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < count; zone++) {
 		thread_ids[zone] = (*id_ptr)++;
 	}
 }
 
 /**********************************************************************/
-int make_thread_config(ZoneCount logical_zone_count,
-		       ZoneCount physical_zone_count,
-		       ZoneCount hash_zone_count,
+int make_thread_config(zone_count_t logical_zone_count,
+		       zone_count_t physical_zone_count,
+		       zone_count_t hash_zone_count,
 		       struct thread_config **config_ptr)
 {
 	if ((logical_zone_count == 0) && (physical_zone_count == 0) &&
@@ -117,7 +117,7 @@ int make_thread_config(ZoneCount logical_zone_count,
 	}
 
 	struct thread_config *config;
-	ThreadCount total =
+	thread_count_t total =
 		logical_zone_count + physical_zone_count + hash_zone_count + 2;
 	int result = allocate_thread_config(logical_zone_count,
 					    physical_zone_count,
@@ -192,7 +192,7 @@ int copy_thread_config(const struct thread_config *old_config,
 	config->admin_thread = old_config->admin_thread;
 	config->journal_thread = old_config->journal_thread;
 	config->packer_thread = old_config->packer_thread;
-	ZoneCount i;
+	zone_count_t i;
 	for (i = 0; i < config->logical_zone_count; i++) {
 		config->logical_threads[i] = old_config->logical_threads[i];
 	}
@@ -225,7 +225,7 @@ void free_thread_config(struct thread_config **config_ptr)
 
 /**********************************************************************/
 static bool get_zone_thread_name(const ThreadID thread_ids[],
-				 ZoneCount count,
+				 zone_count_t count,
 				 ThreadID id,
 				 const char *prefix,
 				 char *buffer,

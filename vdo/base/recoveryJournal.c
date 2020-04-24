@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#55 $
  */
 
 #include "recoveryJournal.h"
@@ -1308,7 +1308,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
 					      zone_type zone_type,
-					      ZoneCount zone_id)
+					      zone_count_t zone_id)
 {
 	if (sequence_number == 0) {
 		return;
@@ -1324,7 +1324,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
 					      zone_type zone_type,
-					      ZoneCount zone_id)
+					      zone_count_t zone_id)
 {
 	if (sequence_number == 0) {
 		return;

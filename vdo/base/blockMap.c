@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#61 $
  */
 
 #include "blockMap.h"
@@ -160,8 +160,8 @@ int make_block_map(block_count_t logical_blocks,
 	map->root_count = root_count;
 	map->entry_count = logical_blocks;
 
-	ZoneCount zone_count = thread_config->logical_zone_count;
-	ZoneCount zone = 0;
+	zone_count_t zone_count = thread_config->logical_zone_count;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < zone_count; zone++) {
 		struct block_map_zone *block_map_zone = &map->zones[zone];
 		block_map_zone->zone_number = zone;
@@ -317,7 +317,7 @@ initialize_block_map_zone(struct block_map_zone *zone,
 
 /**********************************************************************/
 struct block_map_zone *get_block_map_zone(struct block_map *map,
-					  ZoneCount zoneNumber)
+					  zone_count_t zoneNumber)
 {
 	return &map->zones[zoneNumber];
 }
@@ -328,7 +328,7 @@ struct block_map_zone *get_block_map_zone(struct block_map *map,
  * <p>Implements ZoneThreadGetter.
  **/
 static ThreadID get_block_map_zone_thread_id(void *context,
-					     ZoneCount zone_number)
+					     zone_count_t zone_number)
 {
 	return get_block_map_zone(context, zone_number)->thread_id;
 }
@@ -352,7 +352,7 @@ static void prepare_for_era_advance(void *context,
  * <p>Implements ZoneAction.
  **/
 static void advance_block_map_zone_era(void *context,
-				       ZoneCount zone_number,
+				       zone_count_t zone_number,
 				       struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
@@ -406,7 +406,7 @@ int make_block_map_caches(struct block_map *map,
 	}
 
 	replace_forest(map);
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
 		result = initialize_block_map_zone(&map->zones[zone],
 						   layer,
@@ -446,7 +446,7 @@ void free_block_map(struct block_map **map_ptr)
 		return;
 	}
 
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
 		uninitialize_block_map_zone(&map->zones[zone]);
 	}
@@ -508,7 +508,7 @@ void initialize_block_map_from_journal(struct block_map *map,
 	map->current_era_point = get_current_journal_sequence_number(journal);
 	map->pending_era_point = map->current_era_point;
 
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
 		set_tree_zone_initial_period(&map->zones[zone].tree_zone,
 					     map->current_era_point);
@@ -518,7 +518,7 @@ void initialize_block_map_from_journal(struct block_map *map,
 }
 
 /**********************************************************************/
-ZoneCount compute_logical_zone(struct data_vio *data_vio)
+zone_count_t compute_logical_zone(struct data_vio *data_vio)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->treeLock;
@@ -603,7 +603,8 @@ static void initiate_drain(struct admin_state *state)
  * <p>Implements ZoneAction.
  **/
 static void
-drain_zone(void *context, ZoneCount zone_number, struct vdo_completion *parent)
+drain_zone(void *context, zone_count_t zone_number,
+	   struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
 	start_draining(&zone->state,
@@ -627,7 +628,7 @@ void drain_block_map(struct block_map *map,
  * <p>Implements ZoneAction.
  **/
 static void resume_block_map_zone(void *context,
-				  ZoneCount zone_number,
+				  zone_count_t zone_number,
 				  struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
@@ -888,7 +889,7 @@ struct block_map_statistics get_block_map_statistics(struct block_map *map)
 	struct block_map_statistics stats;
 	memset(&stats, 0, sizeof(struct block_map_statistics));
 
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
 		const struct atomic_page_cache_statistics *atoms =
 			get_vdo_page_cache_statistics(map->zones[zone].page_cache);

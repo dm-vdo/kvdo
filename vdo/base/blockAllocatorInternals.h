@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#25 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -112,7 +112,7 @@ struct block_allocator {
 	/** The nonce of the VDO */
 	nonce_t nonce;
 	/** The physical zone number of this allocator */
-	ZoneCount zone_number;
+	zone_count_t zone_number;
 	/** The thread ID for this allocator's physical zone */
 	ThreadID thread_id;
 	/** The number of slabs in this allocator */

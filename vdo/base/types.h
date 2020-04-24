@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#55 $
  */
 
 #ifndef TYPES_H
@@ -129,7 +129,7 @@ struct thread_config;
 /**
  * A thread counter
  **/
-typedef uint8_t ThreadCount;
+typedef uint8_t thread_count_t;
 
 /**
  * A thread ID
@@ -147,7 +147,7 @@ static const ThreadID INVALID_THREAD_ID = (ThreadID) -1;
 /**
  * A zone counter
  **/
-typedef uint8_t ZoneCount;
+typedef uint8_t zone_count_t;
 
 /**
  * The type of request a vio is performing

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#27 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -44,7 +44,7 @@
  * @return A success or error code
  **/
 int make_block_allocator(struct slab_depot *depot,
-			 ZoneCount zone_number,
+			 zone_count_t zone_number,
 			 ThreadID thread_id,
 			 nonce_t nonce,
 			 block_count_t vio_pool_size,
@@ -133,7 +133,7 @@ block_count_t get_unrecovered_slab_count(const struct block_allocator *allocator
  * <p>Implements ZoneAction.
  **/
 void load_block_allocator(void *context,
-			  ZoneCount zone_number,
+			  zone_count_t zone_number,
 			  struct vdo_completion *parent);
 
 /**
@@ -152,7 +152,7 @@ void notify_slab_journals_are_recovered(struct block_allocator *allocator,
  * <p>Implements ZoneAction.
  **/
 void prepare_allocator_to_allocate(void *context,
-				   ZoneCount zone_number,
+				   zone_count_t zone_number,
 				   struct vdo_completion *parent);
 
 /**
@@ -170,7 +170,7 @@ void register_slab_with_allocator(struct block_allocator *allocator,
  * <p>Implements ZoneAction.
  **/
 void register_new_slabs_for_allocator(void *context,
-				      ZoneCount zone_number,
+				      zone_count_t zone_number,
 				      struct vdo_completion *parent);
 
 /**
@@ -181,7 +181,7 @@ void register_new_slabs_for_allocator(void *context,
  * <p>Implements ZoneAction.
  **/
 void drain_block_allocator(void *context,
-			   ZoneCount zone_number,
+			   zone_count_t zone_number,
 			   struct vdo_completion *parent);
 
 /**
@@ -190,7 +190,7 @@ void drain_block_allocator(void *context,
  * <p>Implements ZoneAction.
  **/
 void resume_block_allocator(void *context,
-			    ZoneCount zone_number,
+			    zone_count_t zone_number,
 			    struct vdo_completion *parent);
 
 /**
@@ -200,7 +200,7 @@ void resume_block_allocator(void *context,
  * <p>Implements ZoneAction.
  **/
 void release_tail_block_locks(void *context,
-			      ZoneCount zone_number,
+			      zone_count_t zone_number,
 			      struct vdo_completion *parent);
 
 /**
@@ -240,7 +240,7 @@ void return_vio(struct block_allocator *allocator,
  * <p>Implements ZoneAction.
  **/
 void scrub_all_unrecovered_slabs_in_zone(void *context,
-					 ZoneCount zone_number,
+					 zone_count_t zone_number,
 					 struct vdo_completion *parent);
 
 /**

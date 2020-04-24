@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#22 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -206,7 +206,7 @@ void initialize_block_map_from_journal(struct block_map *map,
  * @return The requested block map zone
  **/
 struct block_map_zone *get_block_map_zone(struct block_map *map,
-					  ZoneCount zone_number)
+					  zone_count_t zone_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -217,7 +217,7 @@ struct block_map_zone *get_block_map_zone(struct block_map *map,
  *
  * @return The logical zone number for the data_vio
  **/
-ZoneCount compute_logical_zone(struct data_vio *data_vio);
+zone_count_t compute_logical_zone(struct data_vio *data_vio);
 
 /**
  * Compute the block map slot in which the block map entry for a data_vio

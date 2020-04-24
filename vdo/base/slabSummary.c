@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#36 $
  */
 
 #include "slabSummary.h"
@@ -159,7 +159,8 @@ initialize_slab_summary_block(PhysicalLayer *layer,
  * @return VDO_SUCCESS or an error
  **/
 static int make_slab_summary_zone(struct slab_summary *summary,
-				  PhysicalLayer *layer, ZoneCount zoneNumber,
+				  PhysicalLayer *layer,
+				  zone_count_t zoneNumber,
 				  ThreadID thread_id,
 				  struct slab_summary_entry *entries)
 {
@@ -261,7 +262,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	}
 
 	set_slab_summary_origin(summary, partition);
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, layer, zone,
@@ -287,7 +288,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr)
 	}
 
 	struct slab_summary *summary = *slab_summary_ptr;
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		struct slab_summary_zone *summary_zone = summary->zones[zone];
 		if (summary_zone != NULL) {
@@ -307,7 +308,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr)
 
 /**********************************************************************/
 struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
-					       ZoneCount zone)
+					       zone_count_t zone)
 {
 	return summary->zones[zone];
 }
@@ -601,7 +602,7 @@ void combine_zones(struct slab_summary *summary)
 {
 	// Combine all the old summary data into the portion of the buffer
 	// corresponding to the first zone.
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	if (summary->zones_to_combine > 1) {
 		slab_count_t entry_number;
 		for (entry_number = 0; entry_number < MAX_SLABS;
@@ -650,7 +651,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
 /**********************************************************************/
 void load_slab_summary(struct slab_summary *summary,
 		       AdminStateCode operation,
-		       ZoneCount zones_to_combine,
+		       zone_count_t zones_to_combine,
 		       struct vdo_completion *parent)
 {
 	struct slab_summary_zone *zone = summary->zones[0];

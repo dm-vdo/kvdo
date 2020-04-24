@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#18 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -117,7 +117,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr);
  * @return The portion of the slab summary for the specified zone
  **/
 struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
-					       ZoneCount zone)
+					       zone_count_t zone)
 	__attribute__((warn_unused_result));
 
 /**
@@ -255,7 +255,7 @@ void set_slab_summary_origin(struct slab_summary *summary,
  **/
 void load_slab_summary(struct slab_summary *summary,
 		       AdminStateCode operation,
-		       ZoneCount zones_to_combine,
+		       zone_count_t zones_to_combine,
 		       struct vdo_completion *parent);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#17 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -81,7 +81,7 @@ struct slab_summary_zone {
 	/** The summary of which this is a zone */
 	struct slab_summary *summary;
 	/** The number of this zone */
-	ZoneCount zone_number;
+	zone_count_t zone_number;
 	/** Count of the number of blocks currently out for writing */
 	block_count_t write_count;
 	/** The state of this zone */
@@ -110,9 +110,9 @@ struct slab_summary {
 	/**
 	 * The number of zones which were active at the time of the last update
 	 */
-	ZoneCount zones_to_combine;
+	zone_count_t zones_to_combine;
 	/** The current number of active zones */
-	ZoneCount zone_count;
+	zone_count_t zone_count;
 	/** The currently active zones */
 	struct slab_summary_zone *zones[];
 };

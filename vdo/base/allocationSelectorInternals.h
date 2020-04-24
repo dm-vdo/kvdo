@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelectorInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelectorInternals.h#5 $
  */
 
 #ifndef ALLOCATION_SELECTOR_INTERNALS_H
@@ -29,9 +29,9 @@ struct allocation_selector {
 	/** The number of allocations done in the current zone */
 	block_count_t allocation_count;
 	/** The physical zone to allocate from next */
-	ZoneCount next_allocation_zone;
+	zone_count_t next_allocation_zone;
 	/** The number of the last physical zone */
-	ZoneCount last_physical_zone;
+	zone_count_t last_physical_zone;
 };
 
 #endif /* ALLOCATION_SELECTOR_INTERNALS_H */

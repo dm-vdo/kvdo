@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#33 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -191,7 +191,7 @@ int allocate_slab_ref_counts(struct slab_depot *depot)
  * @return The block allocator for the specified zone
  **/
 struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
-						     ZoneCount zone_number)
+						     zone_count_t zone_number)
 	__attribute__((warn_unused_result));
 
 /**
@@ -475,7 +475,7 @@ struct slab_summary *get_slab_summary(const struct slab_depot *depot)
  * @return The portion of the slab summary for the specified zone
  **/
 struct slab_summary_zone *
-get_slab_summary_for_zone(const struct slab_depot *depot, ZoneCount zone)
+get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone)
 	__attribute__((warn_unused_result));
 
 /**

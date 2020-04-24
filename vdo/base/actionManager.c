@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#20 $
  */
 
 #include "actionManager.h"
@@ -63,7 +63,7 @@ struct action_manager {
 	/** The current action slot */
 	struct action *current_action;
 	/** The number of zones in which an action is to be applied */
-	ZoneCount zones;
+	zone_count_t zones;
 	/** A function to schedule a default next action */
 	action_scheduler *scheduler;
 	/**
@@ -76,7 +76,7 @@ struct action_manager {
 	/** Opaque data associated with this action manager */
 	void *context;
 	/** The zone currently being acted upon */
-	ZoneCount acting_zone;
+	zone_count_t acting_zone;
 };
 
 /**
@@ -125,7 +125,7 @@ static int no_conclusion(void *context __attribute__((unused)))
 }
 
 /**********************************************************************/
-int make_action_manager(ZoneCount zones,
+int make_action_manager(zone_count_t zones,
 			zone_thread_getter *get_zone_thread_id,
 			ThreadID initiator_thread_id,
 			void *context,
@@ -241,7 +241,7 @@ static void apply_to_zone(struct vdo_completion *completion)
 			 getActingZoneThreadID(manager)),
 			"apply_to_zone() called on acting zones's thread");
 
-	ZoneCount zone = manager->acting_zone++;
+	zone_count_t zone = manager->acting_zone++;
 	if (manager->acting_zone == manager->zones) {
 		// We are about to apply to the last zone. Once that is
 		// finished, we're done, so go back to the initiator thread and

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#36 $
  */
 
 #include "slab.h"
@@ -213,7 +213,7 @@ void free_slab(struct vdo_slab **slab_ptr)
 }
 
 /**********************************************************************/
-ZoneCount get_slab_zone_number(struct vdo_slab *slab)
+zone_count_t get_slab_zone_number(struct vdo_slab *slab)
 {
 	return slab->allocator->zone_number;
 }

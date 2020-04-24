@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#62 $
  */
 
 #include "slabDepot.h"
@@ -45,7 +45,7 @@ struct slab_depot_state_2_0 {
 	struct slab_config slab_config;
 	physical_block_number_t first_block;
 	physical_block_number_t last_block;
-	ZoneCount zone_count;
+	zone_count_t zone_count;
 } __attribute__((packed));
 
 static const struct header SLAB_DEPOT_HEADER_2_0 = {
@@ -178,7 +178,7 @@ void abandon_new_slabs(struct slab_depot *depot)
  *
  * <p>Implements ZoneThreadGetter.
  **/
-static ThreadID get_allocator_thread_id(void *context, ZoneCount zone_number)
+static ThreadID get_allocator_thread_id(void *context, zone_count_t zone_number)
 {
 	return get_block_allocator_for_zone(context, zone_number)->thread_id;
 }
@@ -278,7 +278,7 @@ static int allocate_components(struct slab_depot *depot,
 	}
 
 	// Allocate the block allocators.
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		ThreadID threadID = get_physical_zone_thread(thread_config, zone);
 		result = make_block_allocator(depot,
@@ -404,7 +404,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 static int configure_state(block_count_t block_count,
 			   physical_block_number_t first_block,
 			   struct slab_config slab_config,
-			   ZoneCount zone_count,
+			   zone_count_t zone_count,
 			   struct slab_depot_state_2_0 *state)
 {
 	block_count_t slab_size = slab_config.slab_blocks;
@@ -498,7 +498,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 
 	abandon_new_slabs(depot);
 
-	ZoneCount zone = 0;
+	zone_count_t zone = 0;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		free_block_allocator(&depot->allocators[zone]);
 	}
@@ -659,7 +659,7 @@ int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
 	 * to do that next time we load with the old zone count rather
 	 * than 0.
 	 */
-	ZoneCount zones_to_record = depot->zone_count;
+	zone_count_t zones_to_record = depot->zone_count;
 	if (depot->zone_count == 0) {
 		zones_to_record = depot->old_zone_count;
 	}
@@ -794,7 +794,7 @@ int allocate_slab_ref_counts(struct slab_depot *depot)
 
 /**********************************************************************/
 struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
-						     ZoneCount zone_number)
+						     zone_count_t zone_number)
 {
 	return depot->allocators[zone_number];
 }
@@ -879,7 +879,7 @@ bool is_physical_data_block(const struct slab_depot *depot,
 block_count_t get_depot_allocated_blocks(const struct slab_depot *depot)
 {
 	block_count_t total = 0;
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		// The allocators are responsible for thread safety.
 		total += get_allocated_blocks(depot->allocators[zone]);
@@ -922,7 +922,7 @@ slab_count_t get_depot_slab_count(const struct slab_depot *depot)
 slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 {
 	slab_count_t total = 0;
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		// The allocators are responsible for thread safety.
 		total += get_unrecovered_slab_count(depot->allocators[zone]);
@@ -1110,7 +1110,7 @@ struct slab_summary *get_slab_summary(const struct slab_depot *depot)
 
 /**********************************************************************/
 struct slab_summary_zone *
-get_slab_summary_for_zone(const struct slab_depot *depot, ZoneCount zone)
+get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone)
 {
 	if (depot->slab_summary == NULL) {
 		return NULL;
@@ -1197,7 +1197,7 @@ bool are_equivalent_depots(struct slab_depot *depot_a,
 /**********************************************************************/
 void allocate_from_last_slab(struct slab_depot *depot)
 {
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		allocate_from_allocator_last_slab(depot->allocators[zone]);
 	}
@@ -1210,7 +1210,7 @@ get_depot_block_allocator_statistics(const struct slab_depot *depot)
 	struct block_allocator_statistics totals;
 	memset(&totals, 0, sizeof(totals));
 
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		struct block_allocator *allocator = depot->allocators[zone];
 		struct block_allocator_statistics stats =
@@ -1230,7 +1230,7 @@ get_depot_ref_counts_statistics(const struct slab_depot *depot)
 	struct ref_counts_statistics depot_stats;
 	memset(&depot_stats, 0, sizeof(depot_stats));
 
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		struct block_allocator *allocator = depot->allocators[zone];
 		struct ref_counts_statistics stats =
@@ -1248,7 +1248,7 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
 	struct slab_journal_statistics depot_stats;
 	memset(&depot_stats, 0, sizeof(depot_stats));
 
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		struct block_allocator *allocator = depot->allocators[zone];
 		struct slab_journal_statistics stats =

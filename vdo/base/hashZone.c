@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#20 $
  */
 
 #include "hashZone.h"
@@ -61,7 +61,7 @@ struct atomic_hash_lock_statistics {
 
 struct hash_zone {
 	/** Which hash zone this is */
-	ZoneCount zone_number;
+	zone_count_t zone_number;
 
 	/** The thread ID for this zone */
 	ThreadID thread_id;
@@ -110,7 +110,7 @@ static inline struct hash_lock *as_hash_lock(RingNode *pool_node)
 }
 
 /**********************************************************************/
-int make_hash_zone(struct vdo *vdo, ZoneCount zone_number,
+int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		   struct hash_zone **zone_ptr)
 {
 	struct hash_zone *zone;
@@ -164,7 +164,7 @@ void free_hash_zone(struct hash_zone **zone_ptr)
 }
 
 /**********************************************************************/
-ZoneCount get_hash_zone_number(const struct hash_zone *zone)
+zone_count_t get_hash_zone_number(const struct hash_zone *zone)
 {
 	return zone->zone_number;
 }

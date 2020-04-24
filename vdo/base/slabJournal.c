@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#51 $
  */
 
 #include "slabJournalInternals.h"
@@ -558,7 +558,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		// Release the lock the summarized block held on the recovery
 		// journal. (During replay, recovery_start will always be 0.)
 		if (journal->recoveryJournal != NULL) {
-			ZoneCount zone_number =
+			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
 			release_recovery_journal_block_reference(journal->recoveryJournal,
 								 getLock(journal, i)->recovery_start,
@@ -980,7 +980,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		getLock(journal, header->sequence_number)->recovery_start =
 			recovery_block;
 		if (journal->recoveryJournal != NULL) {
-			ZoneCount zone_number =
+			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
 			acquire_recovery_journal_block_reference(journal->recoveryJournal,
 								 recovery_block,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#7 $
  */
 
 #ifndef HASH_ZONE_H
@@ -36,7 +36,7 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_hash_zone(struct vdo *vdo, ZoneCount zone_number,
+int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		   struct hash_zone **zone_ptr)
 	__attribute__((warn_unused_result));
 
@@ -54,7 +54,7 @@ void free_hash_zone(struct hash_zone **zone_ptr);
  *
  * @return The number of the zone
  **/
-ZoneCount get_hash_zone_number(const struct hash_zone *zone)
+zone_count_t get_hash_zone_number(const struct hash_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

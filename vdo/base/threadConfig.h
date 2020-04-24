@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#5 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -27,10 +27,10 @@
 #include "types.h"
 
 struct thread_config {
-	ZoneCount logical_zone_count;
-	ZoneCount physical_zone_count;
-	ZoneCount hash_zone_count;
-	ThreadCount base_thread_count;
+	zone_count_t logical_zone_count;
+	zone_count_t physical_zone_count;
+	zone_count_t hash_zone_count;
+	thread_count_t base_thread_count;
 	ThreadID admin_thread;
 	ThreadID journal_thread;
 	ThreadID packer_thread;
@@ -52,9 +52,9 @@ struct thread_config {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_thread_config(ZoneCount logical_zone_count,
-		       ZoneCount physical_zone_count,
-		       ZoneCount hash_zone_count,
+int make_thread_config(zone_count_t logical_zone_count,
+		       zone_count_t physical_zone_count,
+		       zone_count_t hash_zone_count,
 		       struct thread_config **config_ptr)
 	__attribute__((warn_unused_result));
 
@@ -109,7 +109,7 @@ void free_thread_config(struct thread_config **config_ptr);
 __attribute__((warn_unused_result))
 static inline ThreadID
 get_logical_zone_thread(const struct thread_config *thread_config,
-			ZoneCount logical_zone)
+			zone_count_t logical_zone)
 {
 	ASSERT_LOG_ONLY((logical_zone <= thread_config->logical_zone_count),
 			"logical zone valid");
@@ -127,7 +127,7 @@ get_logical_zone_thread(const struct thread_config *thread_config,
 __attribute__((warn_unused_result))
 static inline ThreadID
 get_physical_zone_thread(const struct thread_config *thread_config,
-			 ZoneCount physical_zone)
+			 zone_count_t physical_zone)
 {
 	ASSERT_LOG_ONLY((physical_zone <= thread_config->physical_zone_count),
 			"physical zone valid");
@@ -145,7 +145,7 @@ get_physical_zone_thread(const struct thread_config *thread_config,
 __attribute__((warn_unused_result))
 static inline ThreadID
 get_hash_zone_thread(const struct thread_config *thread_config,
-		     ZoneCount hash_zone)
+		     zone_count_t hash_zone)
 {
 	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count),
 			"hash zone valid");

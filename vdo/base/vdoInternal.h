@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#35 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -342,7 +342,7 @@ void assert_on_admin_thread(struct vdo *vdo, const char *name);
  * @param name          The name of the calling function
  **/
 void assert_on_logical_zone_thread(const struct vdo *vdo,
-				   ZoneCount logical_zone,
+				   zone_count_t logical_zone,
 				   const char *name);
 
 /**
@@ -353,7 +353,7 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
  * @param name           The name of the calling function
  **/
 void assert_on_physical_zone_thread(const struct vdo *vdo,
-				    ZoneCount physical_zone,
+				    zone_count_t physical_zone,
 				    const char *name);
 
 /**

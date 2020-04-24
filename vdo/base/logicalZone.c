@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#33 $
  */
 
 #include "logicalZone.h"
@@ -42,7 +42,7 @@ struct logical_zone {
 	/** The owner of this zone */
 	struct logical_zones *zones;
 	/** Which logical zone this is */
-	ZoneCount zone_number;
+	zone_count_t zone_number;
 	/** The thread id for this zone */
 	ThreadID thread_id;
 	/** In progress operations keyed by LBN */
@@ -78,7 +78,7 @@ struct logical_zones {
 	/** The manager for administrative actions */
 	struct action_manager *manager;
 	/** The number of zones */
-	ZoneCount zone_count;
+	zone_count_t zone_count;
 	/** The logical zones themselves */
 	struct logical_zone zones[];
 };
@@ -98,7 +98,7 @@ static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 
 /**********************************************************************/
 struct logical_zone *get_logical_zone(struct logical_zones *zones,
-				      ZoneCount zone_number)
+				      zone_count_t zone_number)
 {
 	return (zone_number < zones->zone_count) ? &zones->zones[zone_number]
 		: NULL;
@@ -107,7 +107,7 @@ struct logical_zone *get_logical_zone(struct logical_zones *zones,
 /**
  * Implements ZoneThreadGetter
  **/
-static ThreadID get_thread_id_for_zone(void *context, ZoneCount zone_number)
+static ThreadID get_thread_id_for_zone(void *context, zone_count_t zone_number)
 {
 	return get_logical_zone_thread_id(get_logical_zone(context,
 							   zone_number));
@@ -119,7 +119,8 @@ static ThreadID get_thread_id_for_zone(void *context, ZoneCount zone_number)
  * @param zones        The logical_zones to which this zone belongs
  * @param zone_number  The logical_zone's index
  **/
-static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
+static int initialize_zone(struct logical_zones *zones,
+			   zone_count_t zone_number)
 {
 	struct logical_zone *zone = &zones->zones[zone_number];
 	zone->zones = zones;
@@ -160,7 +161,7 @@ int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 
 	zones->vdo = vdo;
 	zones->zone_count = thread_config->logical_zone_count;
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		result = initialize_zone(zones, zone);
 		if (result != VDO_SUCCESS) {
@@ -191,7 +192,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 
 	free_action_manager(&zones->manager);
 
-	ZoneCount index;
+	zone_count_t index;
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
 		free_allocation_selector(&zone->selector);
@@ -242,7 +243,7 @@ static void initiate_drain(struct admin_state *state)
  *
  * <p>Implements ZoneAction.
  **/
-static void drain_logical_zone(void *context, ZoneCount zone_number,
+static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);
@@ -264,7 +265,7 @@ void drain_logical_zones(struct logical_zones *zones, AdminStateCode operation,
  *
  * <p>Implements ZoneAction.
  **/
-static void resume_logical_zone(void *context, ZoneCount zone_number,
+static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);

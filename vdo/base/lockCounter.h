@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#7 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -57,8 +57,8 @@
  * @return VDO_SUCCESS or an error
  **/
 int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
-		      ThreadID thread_id, ZoneCount logical_zones,
-		      ZoneCount physical_zones, block_count_t locks,
+		      ThreadID thread_id, zone_count_t logical_zones,
+		      zone_count_t physical_zones, block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 	__attribute__((warn_unused_result));
 
@@ -107,7 +107,7 @@ void initialize_lock_count(struct lock_counter *counter,
 void acquire_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  ZoneCount zoneID);
+				  zone_count_t zoneID);
 
 /**
  * Release a reference to a given lock in the specified zone. This method
@@ -121,7 +121,7 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 void release_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  ZoneCount zone_id);
+				  zone_count_t zone_id);
 
 /**
  * Release a single journal zone reference from the journal zone. This method

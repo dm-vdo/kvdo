@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#69 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -271,7 +271,7 @@ static int allocate_components(struct block_allocator *allocator,
 
 /**********************************************************************/
 int make_block_allocator(struct slab_depot *depot,
-			 ZoneCount zone_number,
+			 zone_count_t zone_number,
 			 ThreadID thread_id,
 			 nonce_t nonce,
 			 block_count_t vio_pool_size,
@@ -670,7 +670,7 @@ static void initiate_load(struct admin_state *state)
 
 /**********************************************************************/
 void load_block_allocator(void *context,
-			  ZoneCount zone_number,
+			  zone_count_t zone_number,
 			  struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -751,7 +751,7 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 
 /**********************************************************************/
 void prepare_allocator_to_allocate(void *context,
-				   ZoneCount zone_number,
+				   zone_count_t zone_number,
 				   struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -771,7 +771,7 @@ void prepare_allocator_to_allocate(void *context,
 
 /**********************************************************************/
 void register_new_slabs_for_allocator(void *context,
-				      ZoneCount zone_number,
+				      zone_count_t zone_number,
 				      struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -842,7 +842,7 @@ static void initiate_drain(struct admin_state *state)
 
 /**********************************************************************/
 void drain_block_allocator(void *context,
-			   ZoneCount zone_number,
+			   zone_count_t zone_number,
 			   struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -907,7 +907,7 @@ static void initiate_resume(struct admin_state *state)
 
 /**********************************************************************/
 void resume_block_allocator(void *context,
-			    ZoneCount zone_number,
+			    zone_count_t zone_number,
 			    struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -920,7 +920,7 @@ void resume_block_allocator(void *context,
 
 /**********************************************************************/
 void release_tail_block_locks(void *context,
-			      ZoneCount zone_number,
+			      zone_count_t zone_number,
 			      struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
@@ -956,7 +956,7 @@ void return_vio(struct block_allocator *allocator, struct vio_pool_entry *entry)
 
 /**********************************************************************/
 void scrub_all_unrecovered_slabs_in_zone(void *context,
-					 ZoneCount zone_number,
+					 zone_count_t zone_number,
 					 struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =

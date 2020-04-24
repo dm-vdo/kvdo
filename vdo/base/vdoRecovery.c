@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#59 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -305,7 +305,7 @@ int make_recovery_completion(struct vdo *vdo,
 	}
 
 	recovery->vdo = vdo;
-	ZoneCount z;
+	zone_count_t z;
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		initialize_wait_queue(&recovery->missing_decrefs[z]);
 	}
@@ -347,7 +347,7 @@ void free_recovery_completion(struct recovery_completion **recovery_ptr)
 	free_int_map(&recovery->slot_entry_map);
 	const struct thread_config *thread_config =
 		get_thread_config(recovery->vdo);
-	ZoneCount z;
+	zone_count_t z;
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],
 				   free_missing_decref, NULL);
@@ -824,7 +824,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 
 	decref->slab_journal =
 		get_slab_journal((struct slab_depot *) context, mapping.pbn);
-	ZoneCount zoneNumber =
+	zone_count_t zoneNumber =
 		decref->slab_journal->slab->allocator->zone_number;
 	enqueue_missing_decref(&decref->recovery->missing_decrefs[zoneNumber],
 			     decref);

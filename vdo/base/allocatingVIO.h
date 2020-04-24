@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#20 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -60,7 +60,7 @@ struct allocating_vio {
 	pbn_lock_type write_lock_type;
 
 	/** The number of zones in which this vio has attempted an allocation */
-	ZoneCount allocation_attempts;
+	zone_count_t allocation_attempts;
 
 	/** Whether this vio should wait for a clean slab */
 	bool wait_for_clean_slab;

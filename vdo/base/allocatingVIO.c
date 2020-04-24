@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#20 $
  */
 
 #include "allocatingVIO.h"
@@ -183,7 +183,7 @@ static int allocateBlockInZone(struct allocating_vio *allocating_vio)
 	}
 
 	// Try the next zone
-	ZoneCount zoneNumber =
+	zone_count_t zoneNumber =
 		get_physical_zone_number(allocating_vio->zone) + 1;
 	if (zoneNumber == threadConfig->physical_zone_count) {
 		zoneNumber = 0;

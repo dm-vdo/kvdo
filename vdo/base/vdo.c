@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#71 $
  */
 
 /*
@@ -138,7 +138,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	if (vdo->hash_zones != NULL) {
-		ZoneCount zone;
+		zone_count_t zone;
 		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 			free_hash_zone(&vdo->hash_zones[zone]);
 		}
@@ -149,7 +149,7 @@ void destroy_vdo(struct vdo *vdo)
 	free_logical_zones(&vdo->logical_zones);
 
 	if (vdo->physical_zones != NULL) {
-		ZoneCount zone;
+		zone_count_t zone;
 		for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
 			free_physical_zone(&vdo->physical_zones[zone]);
 		}
@@ -814,7 +814,7 @@ get_hash_lock_statistics(const struct vdo *vdo)
 	memset(&totals, 0, sizeof(totals));
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		struct hash_lock_statistics stats =
 			get_hash_zone_statistics(vdo->hash_zones[zone]);
@@ -1020,7 +1020,7 @@ void dump_vdo_status(const struct vdo *vdo)
 	dump_slab_depot(vdo->depot);
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
-	ZoneCount zone;
+	zone_count_t zone;
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		dump_logical_zone(get_logical_zone(vdo->logical_zones, zone));
 	}
@@ -1057,7 +1057,7 @@ void assert_on_admin_thread(struct vdo *vdo, const char *name)
 
 /**********************************************************************/
 void assert_on_logical_zone_thread(const struct vdo *vdo,
-				   ZoneCount logical_zone,
+				   zone_count_t logical_zone,
 				   const char *name)
 {
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==
@@ -1069,7 +1069,7 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 
 /**********************************************************************/
 void assert_on_physical_zone_thread(const struct vdo *vdo,
-				    ZoneCount physical_zone,
+				    zone_count_t physical_zone,
 				    const char *name)
 {
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#9 $
  */
 
 #include "lockCounter.h"
@@ -43,9 +43,9 @@ struct lock_counter {
 	/** The completion for notifying the owner of a lock release */
 	struct vdo_completion completion;
 	/** The number of logical zones which may hold locks */
-	ZoneCount logical_zones;
+	zone_count_t logical_zones;
 	/** The number of physical zones which may hold locks */
-	ZoneCount physical_zones;
+	zone_count_t physical_zones;
 	/** The number of locks */
 	block_count_t locks;
 	/** Whether the lock release notification is in flight */
@@ -66,8 +66,8 @@ struct lock_counter {
 
 /**********************************************************************/
 int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
-		      ThreadID threadID, ZoneCount logical_zones,
-		      ZoneCount physical_zones, block_count_t locks,
+		      ThreadID threadID, zone_count_t logical_zones,
+		      zone_count_t physical_zones, block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 {
 	struct lock_counter *lock_counter;
@@ -179,7 +179,7 @@ static inline Atomic32 *get_zone_count_ptr(struct lock_counter *counter,
 static inline uint16_t *get_counter(struct lock_counter *counter,
 				    block_count_t lock_number,
 				    zone_type zone_type,
-				    ZoneCount zone_id)
+				    zone_count_t zone_id)
 {
 	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
 	if (zone_type == ZONE_TYPE_JOURNAL) {
@@ -261,7 +261,7 @@ void initialize_lock_count(struct lock_counter *counter,
 void acquire_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  ZoneCount zone_id)
+				  zone_count_t zone_id)
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"invalid lock count increment from journal zone");
@@ -292,7 +292,7 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 static uint16_t release_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  ZoneCount zone_id)
+				  zone_count_t zone_id)
 {
 	uint16_t *current_value =
 		get_counter(counter, lock_number, zone_type, zone_id);
@@ -322,7 +322,7 @@ static void attempt_notification(struct lock_counter *counter)
 void release_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  ZoneCount zone_id)
+				  zone_count_t zone_id)
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"invalid lock count decrement from journal zone");

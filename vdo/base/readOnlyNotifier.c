@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#16 $
  */
 
 #include "readOnlyNotifier.h"
@@ -149,7 +149,7 @@ int make_read_only_notifier(bool is_read_only,
 	initialize_completion(&notifier->completion, READ_ONLY_MODE_COMPLETION,
 			      layer);
 
-	ThreadCount id;
+	thread_count_t id;
 	for (id = 0; id < thread_config->base_thread_count; id++) {
 		notifier->thread_data[id].is_read_only = is_read_only;
 	}
@@ -166,7 +166,7 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 		return;
 	}
 
-	ThreadCount id;
+	thread_count_t id;
 	for (id = 0; id < notifier->thread_config->base_thread_count; id++) {
 		struct thread_data *thread_data = &notifier->thread_data[id];
 		struct read_only_listener *listener = thread_data->listeners;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#9 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -35,7 +35,7 @@
  * @return VDO_SUCCESS or an error code
  **/
 int make_physical_zone(struct vdo *vdo,
-		       ZoneCount zone_number,
+		       zone_count_t zone_number,
 		       struct physical_zone **zone_ptr)
 	__attribute__((warn_unused_result));
 
@@ -53,7 +53,7 @@ void free_physical_zone(struct physical_zone **zone_ptr);
  *
  * @return The number of the zone
  **/
-ZoneCount get_physical_zone_number(const struct physical_zone *zone)
+zone_count_t get_physical_zone_number(const struct physical_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

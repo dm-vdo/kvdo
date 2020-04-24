@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#35 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -65,7 +65,7 @@ struct block_map_tree_zone {
  **/
 struct block_map_zone {
 	/** The number of the zone this is */
-	ZoneCount zone_number;
+	zone_count_t zone_number;
 	/** The ID of this zone's logical thread */
 	ThreadID thread_id;
 	/** The block_map which owns this block_map_zone */
@@ -110,7 +110,7 @@ struct block_map {
 	block_count_t next_entry_count;
 
 	/** The number of logical zones */
-	ZoneCount zone_count;
+	zone_count_t zone_count;
 	/** The per zone block map structure */
 	struct block_map_zone zones[];
 };
