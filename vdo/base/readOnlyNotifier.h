@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#8 $
  */
 
 /*
@@ -54,11 +54,11 @@ typedef void read_only_notification(void *listener,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_read_only_notifier(bool is_read_only,
-			    const struct thread_config *thread_config,
-			    PhysicalLayer *layer,
-			    struct read_only_notifier **notifier_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_read_only_notifier(bool is_read_only,
+			const struct thread_config *thread_config,
+			PhysicalLayer *layer,
+			struct read_only_notifier **notifier_ptr);
 
 /**
  * Free a read_only_notifier and null out the reference to it.
@@ -110,8 +110,7 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code);
  * thread, as opposed to examining the VDO's state field which is only safe
  * to check from the admin thread.
  **/
-bool is_read_only(struct read_only_notifier *notifier)
-	__attribute__((warn_unused_result));
+bool __must_check is_read_only(struct read_only_notifier *notifier);
 
 /**
  * Register a listener to be notified when the VDO goes read-only.

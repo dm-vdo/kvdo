@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#17 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -123,8 +123,7 @@ struct ref_counts {
  *
  * @return  The appropriate reference status
  **/
-__attribute__((warn_unused_result)) reference_status
-reference_count_to_status(ReferenceCount count);
+reference_status __must_check reference_count_to_status(ReferenceCount count);
 
 /**
  * Convert a generic vdo_completion to a ref_counts object.
@@ -133,8 +132,8 @@ reference_count_to_status(ReferenceCount count);
  *
  * @return The completion as a ref_counts object
  **/
-struct ref_counts *as_ref_counts(struct vdo_completion *completion)
-	__attribute__((warn_unused_result));
+struct ref_counts * __must_check
+as_ref_counts(struct vdo_completion *completion);
 
 /**
  * Get the reference block that covers the given block index (exposed for
@@ -143,9 +142,8 @@ struct ref_counts *as_ref_counts(struct vdo_completion *completion)
  * @param ref_counts  The refcounts object
  * @param index       The block index
  **/
-struct reference_block *get_reference_block(struct ref_counts *ref_counts,
-					    slab_block_number index)
-	__attribute__((warn_unused_result));
+struct reference_block * __must_check
+get_reference_block(struct ref_counts *ref_counts, slab_block_number index);
 
 /**
  * Find the reference counters for a given block (exposed for testing).
@@ -154,8 +152,8 @@ struct reference_block *get_reference_block(struct ref_counts *ref_counts,
  *
  * @return A pointer to the reference counters for this block
  **/
-ReferenceCount *get_reference_counters_for_block(struct reference_block *block)
-	__attribute__((warn_unused_result));
+ReferenceCount * __must_check
+get_reference_counters_for_block(struct reference_block *block);
 
 /**
  * Copy data from a reference block to a buffer ready to be written out
@@ -176,10 +174,9 @@ void pack_reference_block(struct reference_block *block, void *buffer);
  * @return                  A success or error code, specifically:
  *                          VDO_OUT_OF_RANGE if the pbn is out of range.
  **/
-int get_reference_status(struct ref_counts *ref_counts,
-			 physical_block_number_t pbn,
-			 reference_status *status_ptr)
-	__attribute__((warn_unused_result));
+int __must_check get_reference_status(struct ref_counts *ref_counts,
+				      physical_block_number_t pbn,
+				      reference_status *status_ptr);
 
 /**
  * Find the first block with a reference count of zero in the specified range
@@ -194,11 +191,10 @@ int get_reference_status(struct ref_counts *ref_counts,
  *
  * @return true if a free block was found in the specified range
  **/
-bool find_free_block(const struct ref_counts *ref_counts,
-		     slab_block_number start_index,
-		     slab_block_number end_index,
-		     slab_block_number *index_ptr)
-	__attribute__((warn_unused_result));
+bool __must_check find_free_block(const struct ref_counts *ref_counts,
+				  slab_block_number start_index,
+				  slab_block_number end_index,
+				  slab_block_number *index_ptr);
 
 /**
  * Request a ref_counts object save its oldest dirty block asynchronously.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#28 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -112,9 +112,8 @@ void notify_zone_finished_scrubbing(struct vdo_completion *completion);
  *
  * @return <code>true</code> if the two depots are equivalent
  **/
-bool are_equivalent_depots(struct slab_depot *depot_a,
-			   struct slab_depot *depot_b)
-	__attribute__((warn_unused_result));
+bool __must_check
+are_equivalent_depots(struct slab_depot *depot_a, struct slab_depot *depot_b);
 
 /**
  * Start allocating from the highest numbered slab in each zone.

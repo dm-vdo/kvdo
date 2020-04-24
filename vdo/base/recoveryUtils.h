@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#11 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -37,9 +37,9 @@
  *
  * @return A pointer to a packed recovery journal blokck header.
  **/
-__attribute__((warn_unused_result))
-static inline union packed_journal_header *
-get_journal_block_header(struct recovery_journal *journal, char *journal_data,
+static inline union packed_journal_header * __must_check
+get_journal_block_header(struct recovery_journal *journal,
+			 char *journal_data,
 			 sequence_number_t sequence)
 {
 	off_t block_offset = (get_recovery_journal_block_number(journal,
@@ -58,7 +58,7 @@ get_journal_block_header(struct recovery_journal *journal, char *journal_data,
  *
  * @return <code>True</code> if the header is valid
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_valid_recovery_journal_block(const struct recovery_journal *journal,
 				const struct recovery_block_header *header)
 {
@@ -76,7 +76,7 @@ is_valid_recovery_journal_block(const struct recovery_journal *journal,
  *
  * @return <code>True</code> if the block matches
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				const struct recovery_block_header *header,
 				sequence_number_t sequence)
@@ -94,7 +94,7 @@ is_exact_recovery_journal_block(const struct recovery_journal *journal,
  *
  * @return <code>True</code> if the sector matches the block header
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 				 const struct packed_journal_sector *sector)
 {
@@ -145,8 +145,8 @@ bool find_head_and_tail(struct recovery_journal *journal, char *journal_data,
  *
  * @return VDO_SUCCESS or an error
  **/
-int validate_recovery_journal_entry(const struct vdo *vdo,
-				    const struct recovery_journal_entry *entry)
-	__attribute__((warn_unused_result));
+int __must_check
+validate_recovery_journal_entry(const struct vdo *vdo,
+				const struct recovery_journal_entry *entry);
 
 #endif // RECOVERY_UTILS_H

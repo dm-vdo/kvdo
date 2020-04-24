@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#6 $
  */
 
 #ifndef PBN_LOCK_POOL_H
@@ -35,8 +35,8 @@ struct pbn_lock_pool;
  *
  * @return a VDO_SUCCESS or an error code
  **/
-int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
 
 /**
  * Free a PBN lock pool null out the reference to it. This also frees all all
@@ -59,10 +59,10 @@ void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
  *
  * @return VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty
  **/
-int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			      pbn_lock_type type,
-			      struct pbn_lock **lock_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+			  pbn_lock_type type,
+			  struct pbn_lock **lock_ptr);
 
 /**
  * Return to the pool a lock that was borrowed from it, and null out the

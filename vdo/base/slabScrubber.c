@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#33 $
  */
 
 #include "slabScrubberInternals.h"
@@ -44,7 +44,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 			   PhysicalLayer *layer,
 			   block_count_t slab_journal_size)

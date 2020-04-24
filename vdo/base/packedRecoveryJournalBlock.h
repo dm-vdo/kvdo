@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#12 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -146,8 +146,7 @@ enum {
  *
  * @return A packed recovery journal sector
  **/
-__attribute__((warn_unused_result))
-static inline struct packed_journal_sector *
+static inline struct packed_journal_sector * __must_check
 get_journal_block_sector(union packed_journal_header *header,
 			 int sector_number)
 {

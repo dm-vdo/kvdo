@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#7 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -65,7 +65,7 @@ static inline int log_base_two(uint64_t n)
 /**
  * Find the minimum of two physical block numbers.
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 min_block(physical_block_number_t a, physical_block_number_t b)
 {
 	return (a < b) ? a : b;
@@ -74,7 +74,7 @@ min_block(physical_block_number_t a, physical_block_number_t b)
 /**
  * Find the maximum of two physical block numbers.
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 max_block(physical_block_number_t a, physical_block_number_t b)
 {
 	return (a > b) ? a : b;
@@ -83,7 +83,7 @@ max_block(physical_block_number_t a, physical_block_number_t b)
 /**
  * Find the minimum of two block counts.
  **/
-__attribute__((warn_unused_result)) static inline block_count_t
+static inline block_count_t __must_check
 min_block_count(block_count_t a, block_count_t b)
 {
 	return (a < b) ? a : b;
@@ -92,7 +92,7 @@ min_block_count(block_count_t a, block_count_t b)
 /**
  * Find the maximum of two block counts.
  **/
-__attribute__((warn_unused_result)) static inline block_count_t
+static inline block_count_t __must_check
 max_block_count(block_count_t a, block_count_t b)
 {
 	return (a > b) ? a : b;
@@ -101,7 +101,7 @@ max_block_count(block_count_t a, block_count_t b)
 /**
  * Find the minimum of two sequence numbers.
  **/
-__attribute__((warn_unused_result)) static inline sequence_number_t
+static inline sequence_number_t __must_check
 min_sequence_number(sequence_number_t a, sequence_number_t b)
 {
 	return (a < b) ? a : b;
@@ -110,7 +110,7 @@ min_sequence_number(sequence_number_t a, sequence_number_t b)
 /**
  * Return the minimum of two page counts.
  **/
-__attribute__((warn_unused_result)) static inline page_count_t
+static inline page_count_t __must_check
 min_page_count(page_count_t a, page_count_t b)
 {
 	return (a < b) ? a : b;
@@ -119,7 +119,7 @@ min_page_count(page_count_t a, page_count_t b)
 /**
  * Return the maximum of two page counts.
  **/
-__attribute__((warn_unused_result)) static inline page_count_t
+static inline page_count_t __must_check
 max_page_count(page_count_t a, page_count_t b)
 {
 	return (a > b) ? a : b;
@@ -133,7 +133,7 @@ max_page_count(page_count_t a, page_count_t b)
  *
  * @return the least multiple of quantum not less than number
  **/
-__attribute__((warn_unused_result)) static inline size_t
+static inline size_t __must_check
 round_up_to_multiple_size_t(size_t number, size_t quantum)
 {
 	return number + quantum - 1 - ((number + quantum - 1) % quantum);
@@ -147,7 +147,7 @@ round_up_to_multiple_size_t(size_t number, size_t quantum)
  *
  * @return the least multiple of quantum not less than number
  **/
-__attribute__((warn_unused_result)) static inline uint64_t
+static inline uint64_t __must_check
 round_up_to_multiple_u_int64_t(uint64_t number, uint64_t quantum)
 {
 	return number + quantum - 1 - ((number + quantum - 1) % quantum);

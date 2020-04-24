@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#57 $
  */
 
 #include "recoveryJournal.h"
@@ -277,7 +277,7 @@ get_recovery_journal_head(struct recovery_journal *journal)
  *
  * @return The byte corresponding to the recovery count
  **/
-__attribute__((warn_unused_result)) static inline uint8_t
+static inline uint8_t __must_check
 compute_recovery_count_byte(uint64_t recovery_count)
 {
 	return (uint8_t)(recovery_count & RECOVERY_COUNT_MASK);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#26 $
  */
 
 #ifndef VDO_SLAB_H
@@ -93,9 +93,9 @@ struct vdo_slab {
  *
  * @return VDO_SUCCESS or an error code
  **/
-int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
-		   struct slab_config *slab_config)
-	__attribute__((warn_unused_result));
+int __must_check configure_slab(block_count_t slab_size,
+				block_count_t slab_journal_blocks,
+				struct slab_config *slab_config);
 
 /**
  * Convert a vdo_slab's ringNode back to the vdo_slab.
@@ -117,7 +117,7 @@ static inline struct vdo_slab *slabFromRingNode(RingNode *ringNode)
  * @param slab_config  The slab configuration of the VDO
  * @param origin       The first block of the slab
  **/
-__attribute__((warn_unused_result)) physical_block_number_t
+physical_block_number_t __must_check
 get_slab_journal_start_block(const struct slab_config *slab_config,
 			     physical_block_number_t origin);
 
@@ -138,14 +138,13 @@ get_slab_journal_start_block(const struct slab_config *slab_config,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_slab(physical_block_number_t slab_origin,
-	      struct block_allocator *allocator,
-	      physical_block_number_t translation,
-	      struct recovery_journal *recovery_journal,
-	      slab_count_t slab_number,
-	      bool is_new,
-	      struct vdo_slab **slab_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_slab(physical_block_number_t slab_origin,
+			   struct block_allocator *allocator,
+			   physical_block_number_t translation,
+			   struct recovery_journal *recovery_journal,
+			   slab_count_t slab_number,
+			   bool is_new,
+			   struct vdo_slab **slab_ptr);
 
 /**
  * Allocate the reference counts for a slab.
@@ -154,8 +153,7 @@ int make_slab(physical_block_number_t slab_origin,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int allocate_ref_counts_for_slab(struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+int __must_check allocate_ref_counts_for_slab(struct vdo_slab *slab);
 
 /**
  * Destroy a slab and null out the reference to it.
@@ -171,8 +169,7 @@ void free_slab(struct vdo_slab **slab_ptr);
  *
  * @return The number of the slab's physical zone
  **/
-zone_count_t get_slab_zone_number(struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+zone_count_t __must_check get_slab_zone_number(struct vdo_slab *slab);
 
 /**
  * Check whether a slab is unrecovered.
@@ -231,8 +228,8 @@ void mark_slab_unrecovered(struct vdo_slab *slab);
  *
  * @return the number of free blocks in the slab
  **/
-block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_slab_free_block_count(const struct vdo_slab *slab);
 
 /**
  * Increment or decrement the reference count of a block in a slab.
@@ -244,10 +241,10 @@ block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
  *
  * @return VDO_SUCCESS or an error
  **/
-int modify_slab_reference_count(struct vdo_slab *slab,
-				const struct journal_point *journal_point,
-				struct reference_operation operation)
-	__attribute__((warn_unused_result));
+int __must_check
+modify_slab_reference_count(struct vdo_slab *slab,
+			    const struct journal_point *journal_point,
+			    struct reference_operation operation);
 
 /**
  * Acquire a provisional reference on behalf of a PBN lock if the block it
@@ -259,10 +256,10 @@ int modify_slab_reference_count(struct vdo_slab *slab,
  *
  * @return VDO_SUCCESS or an error
  **/
-int acquire_provisional_reference(struct vdo_slab *slab,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock)
-	__attribute__((warn_unused_result));
+int __must_check
+acquire_provisional_reference(struct vdo_slab *slab,
+			      physical_block_number_t pbn,
+			      struct pbn_lock *lock);
 
 /**
  * Determine the index within the slab of a particular physical block number.
@@ -273,10 +270,10 @@ int acquire_provisional_reference(struct vdo_slab *slab,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int slab_block_number_from_pbn(struct vdo_slab *slab,
-			       physical_block_number_t physical_block_number,
-			       slab_block_number *slab_block_number_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+slab_block_number_from_pbn(struct vdo_slab *slab,
+			   physical_block_number_t physical_block_number,
+			   slab_block_number *slab_block_number_ptr);
 
 /**
  * Check whether the reference counts for a given rebuilt slab should be saved.
@@ -286,8 +283,7 @@ int slab_block_number_from_pbn(struct vdo_slab *slab,
  *
  * @return true if the slab should be saved
  **/
-bool should_save_fully_built_slab(const struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+bool __must_check should_save_fully_built_slab(const struct vdo_slab *slab);
 
 /**
  * Start an administrative operation on a slab.
@@ -314,7 +310,7 @@ void notify_slab_journal_is_loaded(struct vdo_slab *slab, int result);
  *
  * @return <code>true</code> if the slab is open
  **/
-bool is_slab_open(struct vdo_slab *slab) __attribute__((warn_unused_result));
+bool __must_check is_slab_open(struct vdo_slab *slab);
 
 /**
  * Check whether a slab is currently draining.
@@ -323,8 +319,7 @@ bool is_slab_open(struct vdo_slab *slab) __attribute__((warn_unused_result));
  *
  * @return <code>true</code> if the slab is performing a drain operation
  **/
-bool is_slab_draining(struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+bool __must_check is_slab_draining(struct vdo_slab *slab);
 
 /**
  * Check whether a slab has drained, and if so, send a notification thereof.
@@ -356,8 +351,7 @@ void notify_ref_counts_are_drained(struct vdo_slab *slab, int result);
  *
  * @return <code>true</code> if the slab is performing a resume operation
  **/
-bool is_slab_resuming(struct vdo_slab *slab)
-	__attribute__((warn_unused_result));
+bool __must_check is_slab_resuming(struct vdo_slab *slab);
 
 /**
  * Finish scrubbing a slab now that it has been rebuilt by updating its status,

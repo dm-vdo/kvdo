@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#15 $
  */
 
 #include "partitionCopy.h"
@@ -59,7 +59,7 @@ struct copy_completion {
  *
  * @return the completion as a copy_completion
  **/
-__attribute__((warn_unused_result)) static inline struct copy_completion *
+static inline struct copy_completion * __must_check
 as_copy_completion(struct vdo_completion *completion)
 {
 	assert_completion_type(completion->type, PARTITION_COPY_COMPLETION);

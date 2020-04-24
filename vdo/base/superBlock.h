@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#9 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -37,9 +37,8 @@ struct vdo_super_block;
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_super_block(PhysicalLayer *layer,
-		     struct vdo_super_block **super_block_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_super_block(PhysicalLayer *layer,
+				  struct vdo_super_block **super_block_ptr);
 
 /**
  * Free a super block and null out the reference to it.
@@ -58,9 +57,9 @@ void free_super_block(struct vdo_super_block **super_block_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int save_super_block(PhysicalLayer *layer, struct vdo_super_block *super_block,
-		     physical_block_number_t super_block_offset)
-	__attribute__((warn_unused_result));
+int __must_check save_super_block(PhysicalLayer *layer,
+				  struct vdo_super_block *super_block,
+				  physical_block_number_t super_block_offset);
 
 /**
  * Save a super block asynchronously.
@@ -83,10 +82,9 @@ void save_super_block_async(struct vdo_super_block *super_block,
  *
  * @return VDO_SUCCESS or an error
  **/
-int load_super_block(PhysicalLayer *layer,
-		     physical_block_number_t super_block_offset,
-		     struct vdo_super_block **super_block_ptr)
-	__attribute__((warn_unused_result));
+int __must_check load_super_block(PhysicalLayer *layer,
+				  physical_block_number_t super_block_offset,
+				  struct vdo_super_block **super_block_ptr);
 
 /**
  * Allocate a super block and read its contents from storage asynchronously.
@@ -110,8 +108,8 @@ void load_super_block_async(struct vdo_completion *parent,
  *
  * @return the component data in a buffer
  **/
-struct buffer *get_component_buffer(struct vdo_super_block *super_block)
-	__attribute__((warn_unused_result));
+struct buffer * __must_check
+get_component_buffer(struct vdo_super_block *super_block);
 
 /**
  * Get the release version number that was loaded from the volume when the
@@ -121,9 +119,8 @@ struct buffer *get_component_buffer(struct vdo_super_block *super_block)
  *
  * @return the release version number that was decoded from the volume
  **/
-release_version_number_t
-get_loaded_release_version(const struct vdo_super_block *super_block)
-	__attribute__((warn_unused_result));
+release_version_number_t __must_check
+get_loaded_release_version(const struct vdo_super_block *super_block);
 
 /**
  * Get the encoded size of the fixed (non-component data) portion of a super
@@ -131,6 +128,6 @@ get_loaded_release_version(const struct vdo_super_block *super_block)
  *
  * @return The encoded size of the fixed portion of the super block
  **/
-size_t get_fixed_super_block_size(void) __attribute__((warn_unused_result));
+size_t __must_check get_fixed_super_block_size(void);
 
 #endif /* SUPER_BLOCK_H */

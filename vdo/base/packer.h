@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#12 $
  */
 
 #ifndef PACKER_H
@@ -48,11 +48,11 @@ struct packer;
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_packer(PhysicalLayer *layer,
-		block_count_t input_bin_count,
-		block_count_t output_bin_count,
-		const struct thread_config *thread_config,
-		struct packer **packer_ptr) __attribute__((warn_unused_result));
+int __must_check make_packer(PhysicalLayer *layer,
+			     block_count_t input_bin_count,
+			     block_count_t output_bin_count,
+			     const struct thread_config *thread_config,
+			     struct packer **packer_ptr);
 
 /**
  * Free a block packer and null out the reference to it.
@@ -68,8 +68,7 @@ void free_packer(struct packer **packer_ptr);
  *
  * @return <code>true</code> if the data_vio will fit in a bin
  **/
-bool is_sufficiently_compressible(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+bool __must_check is_sufficiently_compressible(struct data_vio *data_vio);
 
 /**
  * Get the thread ID of the packer's zone.
@@ -87,8 +86,8 @@ thread_id_t get_packer_thread_id(struct packer *packer);
  *
  * @return a copy of the current statistics for the packer
  **/
-struct packer_statistics get_packer_statistics(const struct packer *packer)
-	__attribute__((warn_unused_result));
+struct packer_statistics __must_check
+get_packer_statistics(const struct packer *packer);
 
 /**
  * Attempt to rewrite the data in this data_vio as part of a compressed block.

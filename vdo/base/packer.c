@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#46 $
  */
 
 #include "packerInternals.h"
@@ -48,7 +48,7 @@ static inline void assert_on_packer_thread(struct packer *packer,
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result)) static inline struct input_bin *
+static inline struct input_bin * __must_check
 input_bin_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct input_bin, ring) == 0);
@@ -56,7 +56,7 @@ input_bin_from_ring_node(RingNode *node)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result)) static inline struct output_bin *
+static inline struct output_bin * __must_check
 output_bin_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct output_bin, ring) == 0);
@@ -110,8 +110,7 @@ static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
  *
  * @param packer  The packer
  **/
-__attribute__((warn_unused_result)) static int
-make_input_bin(struct packer *packer)
+static int __must_check make_input_bin(struct packer *packer)
 {
 	struct input_bin *bin;
 	int result = ALLOCATE_EXTENDED(struct input_bin, MAX_COMPRESSION_SLOTS,
@@ -146,8 +145,7 @@ static void push_output_bin(struct packer *packer, struct output_bin *bin)
  *
  * @return an idle output bin, or <code>NULL</code> if there are no idle bins
  **/
-__attribute__((warn_unused_result)) static struct output_bin *
-pop_output_bin(struct packer *packer)
+static struct output_bin * __must_check pop_output_bin(struct packer *packer)
 {
 	if (packer->idle_output_bin_count == 0) {
 		return NULL;
@@ -168,7 +166,7 @@ pop_output_bin(struct packer *packer)
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 make_output_bin(struct packer *packer, PhysicalLayer *layer)
 {
 	struct output_bin *output;
@@ -401,7 +399,7 @@ static void write_pending_batches(struct packer *packer);
  *
  * @return <code>true</code> if the completion is on the packer thread
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 switch_to_packer_thread(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
@@ -622,7 +620,7 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
  *
  * @return <code>true</code> if a write was issued for the output bin
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 write_next_batch(struct packer *packer, struct output_bin *output)
 {
 	struct output_batch batch;
@@ -798,7 +796,7 @@ static void write_pending_batches(struct packer *packer)
  * @param packer    The packer
  * @param data_vio  The data_vio
  **/
-__attribute__((warn_unused_result)) static struct input_bin *
+static struct input_bin * __must_check
 select_input_bin(struct packer *packer, struct data_vio *data_vio)
 {
 	// First best fit: select the bin with the least free space that has

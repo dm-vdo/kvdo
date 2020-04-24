@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#14 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -36,11 +36,11 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_slab_scrubber(PhysicalLayer *layer,
-		       block_count_t slab_journal_size,
-		       struct read_only_notifier *read_only_notifier,
-		       struct slab_scrubber **scrubber_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_slab_scrubber(PhysicalLayer *layer,
+		   block_count_t slab_journal_size,
+		   struct read_only_notifier *read_only_notifier,
+		   struct slab_scrubber **scrubber_ptr);
 
 /**
  * Free a slab scrubber and null out the reference to it.
@@ -56,8 +56,7 @@ void free_slab_scrubber(struct slab_scrubber **scrubber_ptr);
  *
  * @return <code>true</code> if the scrubber has slabs to scrub
  **/
-bool has_slabs_to_scrub(struct slab_scrubber *scrubber)
-	__attribute__((warn_unused_result));
+bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber);
 
 /**
  * Register a slab with a scrubber.
@@ -141,8 +140,8 @@ int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
  *
  * @return the number of slabs that are unrecovered or being scrubbed
  **/
-slab_count_t get_scrubber_slab_count(const struct slab_scrubber *scrubber)
-	__attribute__((warn_unused_result));
+slab_count_t __must_check
+get_scrubber_slab_count(const struct slab_scrubber *scrubber);
 
 /**
  * Dump information about a slab scrubber to the log for debugging.

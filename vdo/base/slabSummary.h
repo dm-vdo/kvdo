@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#19 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -73,8 +73,7 @@ struct slab_status {
  *
  * @return the blocks required to store the slab_summary on disk
  **/
-block_count_t get_slab_summary_size(block_size_t block_size)
-	__attribute__((warn_unused_result));
+block_count_t __must_check get_slab_summary_size(block_size_t block_size);
 
 /**
  * Create a slab summary.
@@ -92,14 +91,14 @@ block_count_t get_slab_summary_size(block_size_t block_size)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_slab_summary(PhysicalLayer *layer,
-		      struct partition *partition,
-		      const struct thread_config *thread_config,
-		      unsigned int slab_size_shift,
-		      block_count_t maximum_free_blocks_per_slab,
-		      struct read_only_notifier *read_only_notifier,
-		      struct slab_summary **slab_summary_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_slab_summary(PhysicalLayer *layer,
+		  struct partition *partition,
+		  const struct thread_config *thread_config,
+		  unsigned int slab_size_shift,
+		  block_count_t maximum_free_blocks_per_slab,
+		  struct read_only_notifier *read_only_notifier,
+		  struct slab_summary **slab_summary_ptr);
 
 /**
  * Destroy a slab_summary and NULL out the reference to it.
@@ -116,9 +115,8 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr);
  *
  * @return The portion of the slab summary for the specified zone
  **/
-struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
-					       zone_count_t zone)
-	__attribute__((warn_unused_result));
+struct slab_summary_zone * __must_check
+get_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
 
 /**
  * Drain a zone of the slab summary.
@@ -166,10 +164,9 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
  *
  * @return The tail block offset for the slab
  **/
-TailBlockOffset
+TailBlockOffset __must_check
 get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				 slab_count_t slab_number)
-	__attribute__((warn_unused_result));
+				 slab_count_t slab_number);
 
 /**
  * Whether ref_counts must be loaded from the layer.
@@ -179,9 +176,8 @@ get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
  *
  * @return Whether ref_counts must be loaded
  **/
-bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
-			  slab_count_t slab_number)
-	__attribute__((warn_unused_result));
+bool __must_check must_load_ref_counts(struct slab_summary_zone *summary_zone,
+				       slab_count_t slab_number);
 
 /**
  * Get the stored cleanliness information for a single slab.
@@ -191,9 +187,9 @@ bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
  *
  * @return Whether the slab is clean
  **/
-bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-				slab_count_t slab_number)
-	__attribute__((warn_unused_result));
+bool __must_check
+get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
+			   slab_count_t slab_number);
 
 /**
  * Get the stored emptiness information for a single slab.
@@ -203,10 +199,9 @@ bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
  *
  * @return An approximation to the free blocks in the slab
  **/
-block_count_t
+block_count_t __must_check
 get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				slab_count_t slab_number)
-	__attribute__((warn_unused_result));
+				slab_count_t slab_number);
 
 /**
  * Get the stored RefCounts state information for a single slab. Used
@@ -265,8 +260,7 @@ void load_slab_summary(struct slab_summary *summary,
  *
  * @return the cumulative slab summary statistics for the summary
  **/
-struct slab_summary_statistics
-get_slab_summary_statistics(const struct slab_summary *summary)
-	__attribute__((warn_unused_result));
+struct slab_summary_statistics __must_check
+get_slab_summary_statistics(const struct slab_summary *summary);
 
 #endif // SLAB_SUMMARY_H

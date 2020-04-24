@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#23 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -135,8 +135,8 @@ static inline bool is_increment_operation(journal_operation operation)
  *
  * @return The name of the operation
  **/
-const char *get_journal_operation_name(journal_operation operation)
-	__attribute__((warn_unused_result));
+const char * __must_check
+get_journal_operation_name(journal_operation operation);
 
 /**
  * Create a recovery journal.
@@ -153,15 +153,16 @@ const char *get_journal_operation_name(journal_operation operation)
  *
  * @return a success or error code
  **/
-int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
-			  struct partition *partition,
-			  uint64_t recovery_count,
-			  block_count_t journal_size,
-			  block_count_t tail_buffer_size,
-			  struct read_only_notifier *read_only_notifier,
-			  const struct thread_config *thread_config,
-			  struct recovery_journal **journal_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_recovery_journal(nonce_t nonce,
+		      PhysicalLayer *layer,
+		      struct partition *partition,
+		      uint64_t recovery_count,
+		      block_count_t journal_size,
+		      block_count_t tail_buffer_size,
+		      struct read_only_notifier *read_only_notifier,
+		      const struct thread_config *thread_config,
+		      struct recovery_journal **journal_ptr);
 
 /**
  * Free a recovery journal and null out the reference to it.
@@ -215,9 +216,8 @@ initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
  *
  * @return  The number of block map pages allocated from slabs
  **/
-block_count_t
-get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_journal_block_map_data_blocks_used(struct recovery_journal *journal);
 
 /**
  * Set the number of block map pages, allocated from data blocks, currently
@@ -236,8 +236,8 @@ void set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
  *
  * @return The ID of the journal's thread.
  **/
-thread_id_t get_recovery_journal_thread_id(struct recovery_journal *journal)
-	__attribute__((warn_unused_result));
+thread_id_t __must_check
+get_recovery_journal_thread_id(struct recovery_journal *journal);
 
 /**
  * Prepare the journal for new entries.
@@ -268,16 +268,15 @@ get_current_journal_sequence_number(struct recovery_journal *journal);
  *
  * @return the number of recovery journal blocks usable for entries
  **/
-block_count_t get_recovery_journal_length(block_count_t journal_size)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_recovery_journal_length(block_count_t journal_size);
 
 /**
  * Get the size of the encoded state of a recovery journal.
  *
  * @return the encoded size of the journal's state
  **/
-size_t get_recovery_journal_encoded_size(void)
-	__attribute__((warn_unused_result));
+size_t __must_check get_recovery_journal_encoded_size(void);
 
 /**
  * Encode the state of a recovery journal.
@@ -287,9 +286,9 @@ size_t get_recovery_journal_encoded_size(void)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int encode_recovery_journal(struct recovery_journal *journal,
-			    struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_recovery_journal(struct recovery_journal *journal,
+			struct buffer *buffer);
 
 /**
  * Decode the state of a recovery journal saved in a buffer.
@@ -299,9 +298,9 @@ int encode_recovery_journal(struct recovery_journal *journal,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_recovery_journal(struct recovery_journal *journal,
-			    struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_recovery_journal(struct recovery_journal *journal,
+			struct buffer *buffer);
 
 /**
  * Decode the state of a Sodium recovery journal saved in a buffer.
@@ -311,9 +310,9 @@ int decode_recovery_journal(struct recovery_journal *journal,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_sodium_recovery_journal(struct recovery_journal *journal,
-				   struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_sodium_recovery_journal(struct recovery_journal *journal,
+			       struct buffer *buffer);
 
 /**
  * Add an entry to a recovery journal. This method is asynchronous. The data_vio
@@ -399,9 +398,8 @@ void resume_recovery_journal(struct recovery_journal *journal,
  *
  * @return the number of logical blocks in use by the VDO
  **/
-block_count_t
-get_journal_logical_blocks_used(const struct recovery_journal *journal)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_journal_logical_blocks_used(const struct recovery_journal *journal);
 
 /**
  * Get the current statistics from the recovery journal.
@@ -410,9 +408,8 @@ get_journal_logical_blocks_used(const struct recovery_journal *journal)
  *
  * @return a copy of the current statistics for the journal
  **/
-struct recovery_journal_statistics
-get_recovery_journal_statistics(const struct recovery_journal *journal)
-	__attribute__((warn_unused_result));
+struct recovery_journal_statistics __must_check
+get_recovery_journal_statistics(const struct recovery_journal *journal);
 
 /**
  * Dump some current statistics and other debug info from the recovery

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#5 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -34,9 +34,8 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_copy_completion(PhysicalLayer *layer,
-			 struct vdo_completion **completion_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_copy_completion(PhysicalLayer *layer,
+				      struct vdo_completion **completion_ptr);
 
 /**
  * Free a copy completion and NULL out the reference to it.

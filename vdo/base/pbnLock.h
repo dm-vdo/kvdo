@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#8 $
  */
 
 #ifndef PBN_LOCK_H
@@ -88,8 +88,7 @@ void initialize_pbn_lock(struct pbn_lock *lock, pbn_lock_type type);
  *
  * @return <code>true</code> if the lock is a read lock
  **/
-bool is_pbn_read_lock(const struct pbn_lock *lock)
-	__attribute__((warn_unused_result));
+bool __must_check is_pbn_read_lock(const struct pbn_lock *lock);
 
 /**
  * Downgrade a PBN write lock to a PBN read lock. The lock holder count is
@@ -109,8 +108,7 @@ void downgrade_pbn_write_lock(struct pbn_lock *lock);
  * @return <code>true</code> if the claim succeeded, guaranteeing one
  *         increment can be made without overflowing the PBN's reference count
  **/
-bool claim_pbn_lock_increment(struct pbn_lock *lock)
-	__attribute__((warn_unused_result));
+bool __must_check claim_pbn_lock_increment(struct pbn_lock *lock);
 
 /**
  * Check whether a PBN lock has a provisional reference.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#4 $
  */
 
 #ifndef POINTER_MAP_H
@@ -93,12 +93,11 @@ typedef uint32_t pointer_key_hasher(const void *key);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int make_pointer_map(size_t initial_capacity,
-		     unsigned int initial_load,
-		     pointer_key_comparator comparator,
-		     pointer_key_hasher hasher,
-		     struct pointer_map **map_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_pointer_map(size_t initial_capacity,
+				  unsigned int initial_load,
+				  pointer_key_comparator comparator,
+				  pointer_key_hasher hasher,
+				  struct pointer_map **map_ptr);
 
 /**
  * Free a pointer_map and null out the reference to it. NOTE: The map does not
@@ -156,12 +155,11 @@ void *pointer_map_get(struct pointer_map *map, const void *key);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int pointer_map_put(struct pointer_map *map,
-		    const void *key,
-		    void *new_value,
-		    bool update,
-		    void **old_value_ptr)
-	__attribute__((warn_unused_result));
+int __must_check pointer_map_put(struct pointer_map *map,
+				 const void *key,
+				 void *new_value,
+				 bool update,
+				 void **old_value_ptr);
 
 /**
  * Remove the mapping for a given key from the pointer_map.

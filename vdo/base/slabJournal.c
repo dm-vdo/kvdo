@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#52 $
  */
 
 #include "slabJournalInternals.h"
@@ -40,7 +40,7 @@
  *
  * @return The slab journal
  **/
-__attribute__((warn_unused_result)) static inline struct slab_journal *
+static inline struct slab_journal * __must_check
 slab_journal_from_resource_waiter(struct waiter *waiter)
 {
 	STATIC_ASSERT(offsetof(struct slab_journal, resource_waiter) == 0);
@@ -54,7 +54,7 @@ slab_journal_from_resource_waiter(struct waiter *waiter)
  *
  * @return The slab journal
  **/
-__attribute__((warn_unused_result)) static inline struct slab_journal *
+static inline struct slab_journal * __must_check
 slab_journal_from_flush_waiter(struct waiter *waiter)
 {
 	if (waiter == NULL) {
@@ -79,7 +79,7 @@ struct slab_journal *slab_journal_from_dirty_node(RingNode *node)
  *
  * @return The slab journal
  **/
-__attribute__((warn_unused_result)) static inline struct slab_journal *
+static inline struct slab_journal * __must_check
 slab_journal_from_slab_summary_waiter(struct waiter *waiter)
 {
 	if (waiter == NULL) {
@@ -96,7 +96,7 @@ slab_journal_from_slab_summary_waiter(struct waiter *waiter)
  *
  * @return the block number corresponding to the sequence number
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 get_block_number(struct slab_journal *journal, sequence_number_t sequence)
 {
 	TailBlockOffset offset = get_slab_journal_block_offset(journal,
@@ -112,7 +112,7 @@ get_block_number(struct slab_journal *journal, sequence_number_t sequence)
  *
  * @return the lock object for the given sequence number
  **/
-__attribute__((warn_unused_result)) static inline struct journal_lock *
+static inline struct journal_lock * __must_check
 getLock(struct slab_journal *journal, sequence_number_t sequence_number)
 {
 	TailBlockOffset offset =
@@ -127,8 +127,7 @@ getLock(struct slab_journal *journal, sequence_number_t sequence_number)
  *
  * @return <code>true</code> if the VDO is in read-only mode
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_vdo_read_only(struct slab_journal *journal)
+static inline bool __must_check is_vdo_read_only(struct slab_journal *journal)
 {
 	return is_read_only(journal->slab->allocator->read_only_notifier);
 }
@@ -141,7 +140,7 @@ is_vdo_read_only(struct slab_journal *journal)
  * @return <code>true</code> if there are no entry waiters, or if the slab
  *         is unrecovered
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 must_make_entries_to_flush(struct slab_journal *journal)
 {
 	return (!slab_is_rebuilding(journal->slab) &&
@@ -155,8 +154,7 @@ must_make_entries_to_flush(struct slab_journal *journal)
  *
  * @return <code>true</code> if the journal is reaping
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_reaping(struct slab_journal *journal)
+static inline bool __must_check is_reaping(struct slab_journal *journal)
 {
 	return (journal->head != journal->unreapable);
 }
@@ -204,8 +202,7 @@ static void initialize_journal_state(struct slab_journal *journal)
  *
  * @return <code>true</code> if the tail block is full
  **/
-__attribute__((warn_unused_result)) static bool
-block_is_full(struct slab_journal *journal)
+static bool __must_check block_is_full(struct slab_journal *journal)
 {
 	JournalEntryCount count = journal->tail_header.entry_count;
 	return (journal->tail_header.has_block_map_increments ?

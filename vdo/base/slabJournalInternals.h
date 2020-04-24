@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#22 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -276,7 +276,7 @@ struct slab_journal {
  *
  * @return the offset corresponding to the sequence number
  **/
-__attribute__((warn_unused_result)) static inline TailBlockOffset
+static inline TailBlockOffset __must_check
 get_slab_journal_block_offset(struct slab_journal *journal,
 			      sequence_number_t sequence)
 {
@@ -304,10 +304,9 @@ void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
  *
  * @return The decoded entry
  **/
-struct slab_journal_entry
+struct slab_journal_entry __must_check
 decode_slab_journal_entry(struct packed_slab_journal_block *block,
-			  JournalEntryCount entry_count)
-	__attribute__((warn_unused_result));
+			  JournalEntryCount entry_count);
 
 /**
  * Generate the packed encoding of a slab journal entry.
@@ -333,7 +332,7 @@ static inline void pack_slab_journal_entry(packed_slab_journal_entry *packed,
  *
  * @return The decoded slab journal entry
  **/
-__attribute__((warn_unused_result)) static inline struct slab_journal_entry
+static inline struct slab_journal_entry __must_check
 unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;

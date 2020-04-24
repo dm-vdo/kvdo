@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#64 $
  */
 
 #include "slabDepot.h"
@@ -66,7 +66,7 @@ static const struct header SLAB_DEPOT_HEADER_2_0 = {
  *
  * @return The number of slabs
  **/
-__attribute__((warn_unused_result)) static slab_count_t
+static slab_count_t __must_check
 compute_slab_count(physical_block_number_t first_block,
 		   physical_block_number_t last_block,
 		   unsigned int slab_size_shift)
@@ -334,7 +334,7 @@ static int allocate_components(struct slab_depot *depot,
  *
  * @return A success or error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 allocate_depot(const struct slab_depot_state_2_0 *state,
 	       const struct thread_config *thread_config,
 	       nonce_t nonce,

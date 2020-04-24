@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#6 $
  */
 
 #ifndef PRIORITY_TABLE_H
@@ -56,9 +56,8 @@ struct priority_table;
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_priority_table(unsigned int max_priority,
-			struct priority_table **table_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_priority_table(unsigned int max_priority,
+				     struct priority_table **table_ptr);
 
 /**
  * Free a priority_table and null out the reference to it. NOTE: The table does
@@ -98,8 +97,7 @@ void reset_priority_table(struct priority_table *table);
  *
  * @return the dequeued entry, or NULL if the table is currently empty
  **/
-RingNode *priority_table_dequeue(struct priority_table *table)
-	__attribute__((warn_unused_result));
+RingNode * __must_check priority_table_dequeue(struct priority_table *table);
 
 /**
  * Remove a specified entry from its priority table.
@@ -116,7 +114,6 @@ void priority_table_remove(struct priority_table *table, RingNode *entry);
  *
  * @return <code>true</code> if the table is empty
  **/
-bool is_priority_table_empty(struct priority_table *table)
-	__attribute__((warn_unused_result));
+bool __must_check is_priority_table_empty(struct priority_table *table);
 
 #endif /* PRIORITY_TABLE_H */

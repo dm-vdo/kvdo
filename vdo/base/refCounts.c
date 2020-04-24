@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#42 $
  */
 
 #include "refCounts.h"
@@ -58,7 +58,7 @@ static const bool NORMAL_OPERATION = true;
  *
  * @return  The ref_counts
  **/
-__attribute__((warn_unused_result)) static inline struct ref_counts *
+static inline struct ref_counts * __must_check
 ref_counts_from_waiter(struct waiter *waiter)
 {
 	if (waiter == NULL) {
@@ -244,8 +244,7 @@ void free_ref_counts(struct ref_counts **ref_counts_ptr)
  * @return <code>true</code> if there is reference block I/O or a summary
  *         update in progress
  **/
-__attribute__((warn_unused_result)) static bool
-has_active_io(struct ref_counts *ref_counts)
+static bool __must_check has_active_io(struct ref_counts *ref_counts)
 {
 	return ((ref_counts->active_count > 0)
 		|| ref_counts->updating_slab_summary);

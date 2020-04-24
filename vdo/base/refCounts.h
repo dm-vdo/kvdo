@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#18 $
  */
 
 #ifndef REF_COUNTS_H
@@ -44,12 +44,11 @@
  *
  * @return a success or error code
  **/
-int make_ref_counts(block_count_t block_count,
-		    struct vdo_slab *slab,
-		    physical_block_number_t origin,
-		    struct read_only_notifier *read_only_notifier,
-		    struct ref_counts **ref_counts_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_ref_counts(block_count_t block_count,
+				 struct vdo_slab *slab,
+				 physical_block_number_t origin,
+				 struct read_only_notifier *read_only_notifier,
+				 struct ref_counts **ref_counts_ptr);
 
 /**
  * Free a reference counting object and null out the reference to it.
@@ -63,8 +62,7 @@ void free_ref_counts(struct ref_counts **ref_counts_ptr);
  *
  * @param ref_counts  The ref_counts to check
  **/
-bool are_ref_counts_active(struct ref_counts *ref_counts)
-	__attribute__((warn_unused_result));
+bool __must_check are_ref_counts_active(struct ref_counts *ref_counts);
 
 /**
  * Get the stored count of the number of blocks that are currently free.
@@ -73,8 +71,8 @@ bool are_ref_counts_active(struct ref_counts *ref_counts)
  *
  * @return the number of blocks with a reference count of zero
  **/
-block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_unreferenced_block_count(struct ref_counts *ref_counts);
 
 /**
  * Determine how many times a reference count can be incremented without
@@ -85,9 +83,9 @@ block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
  *
  * @return the number of increments that can be performed
  **/
-uint8_t get_available_references(struct ref_counts *ref_counts,
-				 physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+uint8_t __must_check
+get_available_references(struct ref_counts *ref_counts,
+			 physical_block_number_t pbn);
 
 /**
  * Adjust the reference count of a block.
@@ -105,11 +103,11 @@ uint8_t get_available_references(struct ref_counts *ref_counts,
  *                                   count greater than MAXIMUM_REFS
  *
  **/
-int adjust_reference_count(struct ref_counts *ref_counts,
-			   struct reference_operation operation,
-			   const struct journal_point *slab_journal_point,
-			   bool *free_status_changed)
-	__attribute__((warn_unused_result));
+int __must_check
+adjust_reference_count(struct ref_counts *ref_counts,
+		       struct reference_operation operation,
+		       const struct journal_point *slab_journal_point,
+		       bool *free_status_changed);
 
 /**
  * Adjust the reference count of a block during rebuild.
@@ -120,10 +118,10 @@ int adjust_reference_count(struct ref_counts *ref_counts,
  *
  * @return VDO_SUCCESS or an error
  **/
-int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
-				       physical_block_number_t pbn,
-				       journal_operation operation)
-	__attribute__((warn_unused_result));
+int __must_check
+adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
+				   physical_block_number_t pbn,
+				   journal_operation operation);
 
 /**
  * Replay the reference count adjustment from a slab journal entry into the
@@ -136,10 +134,10 @@ int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int replay_reference_count_change(struct ref_counts *ref_counts,
-				  const struct journal_point *entry_point,
-				  struct slab_journal_entry entry)
-	__attribute__((warn_unused_result));
+int __must_check
+replay_reference_count_change(struct ref_counts *ref_counts,
+			      const struct journal_point *entry_point,
+			      struct slab_journal_entry entry);
 
 /**
  * Check whether two reference counters are equivalent. This method is
@@ -150,9 +148,9 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
  *
  * @return <code>true</code> if the two counters are equivalent
  **/
-bool are_equivalent_reference_counters(struct ref_counts *counter_a,
-				       struct ref_counts *counter_b)
-	__attribute__((warn_unused_result));
+bool __must_check
+are_equivalent_reference_counters(struct ref_counts *counter_a,
+				  struct ref_counts *counter_b);
 
 /**
  * Find a block with a reference count of zero in the range of physical block
@@ -168,9 +166,9 @@ bool are_equivalent_reference_counters(struct ref_counts *counter_a,
  *         VDO_NO_SPACE if there are no unreferenced blocks;
  *         otherwise an error code
  **/
-int allocate_unreferenced_block(struct ref_counts *ref_counts,
-				physical_block_number_t *allocated_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+allocate_unreferenced_block(struct ref_counts *ref_counts,
+			    physical_block_number_t *allocated_ptr);
 
 /**
  * Provisionally reference a block if it is unreferenced.
@@ -181,10 +179,10 @@ int allocate_unreferenced_block(struct ref_counts *ref_counts,
  *
  * @return VDO_SUCCESS or an error
  **/
-int provisionally_reference_block(struct ref_counts *ref_counts,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock)
-	__attribute__((warn_unused_result));
+int __must_check
+provisionally_reference_block(struct ref_counts *ref_counts,
+			      physical_block_number_t pbn,
+			      struct pbn_lock *lock);
 
 /**
  * Count all unreferenced blocks in a range [start_block, end_block) of
@@ -198,10 +196,10 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
  *
  * @return The number of unreferenced blocks
  **/
-block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
-					physical_block_number_t start_pbn,
-					physical_block_number_t end_pbn)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+count_unreferenced_blocks(struct ref_counts *ref_counts,
+			  physical_block_number_t start_pbn,
+			  physical_block_number_t end_pbn);
 
 /**
  * Get the number of blocks required to save a reference counts state covering
@@ -212,8 +210,8 @@ block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
  * @return The number of blocks required to save reference counts with the
  *         given block count
  **/
-block_count_t get_saved_reference_count_size(block_count_t block_count)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_saved_reference_count_size(block_count_t block_count);
 
 /**
  * Request a ref_counts object save several dirty blocks asynchronously. This

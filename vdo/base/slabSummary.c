@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#38 $
  */
 
 #include "slabSummary.h"
@@ -68,7 +68,7 @@ block_count_t get_slab_summary_size(block_size_t block_size)
  *
  * @return A fullness hint, which can be stored in 7 bits.
  **/
-__attribute__((warn_unused_result)) static uint8_t
+static uint8_t __must_check
 compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 {
 	ASSERT_LOG_ONLY((free_blocks < (1 << 23)),
@@ -93,7 +93,7 @@ compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
  *
  * @return An approximation to the free block count
  **/
-__attribute__((warn_unused_result)) static block_count_t
+static block_count_t __must_check
 get_approximate_free_blocks(struct slab_summary *summary,
 			    uint8_t free_block_hint)
 {

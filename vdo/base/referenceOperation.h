@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#8 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -63,7 +63,7 @@ struct reference_operation {
  * @return The pbn_lock on the block of the current operation or NULL if there
  *         isn't one
  **/
-__attribute__((warn_unused_result)) static inline struct pbn_lock *
+static inline struct pbn_lock * __must_check
 get_reference_operation_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.lock_getter == NULL)

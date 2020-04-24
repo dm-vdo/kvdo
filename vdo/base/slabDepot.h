@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#34 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -60,8 +60,7 @@ typedef enum {
  *
  * @return The number of slabs
  **/
-slab_count_t calculate_slab_count(struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+slab_count_t __must_check calculate_slab_count(struct slab_depot *depot);
 
 /**
  * Create a slab depot.
@@ -82,19 +81,18 @@ slab_count_t calculate_slab_count(struct slab_depot *depot)
  *
  * @return A success or error code
  **/
-int make_slab_depot(block_count_t block_count,
-		    physical_block_number_t first_block,
-		    struct slab_config slab_config,
-		    const struct thread_config *thread_config,
-		    nonce_t nonce,
-		    block_count_t vio_pool_size,
-		    PhysicalLayer *layer,
-		    struct partition *summary_partition,
-		    struct read_only_notifier *read_only_notifier,
-		    struct recovery_journal *recovery_journal,
-		    Atomic32 *vdo_state,
-		    struct slab_depot **depot_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_slab_depot(block_count_t block_count,
+				 physical_block_number_t first_block,
+				 struct slab_config slab_config,
+				 const struct thread_config *thread_config,
+				 nonce_t nonce,
+				 block_count_t vio_pool_size,
+				 PhysicalLayer *layer,
+				 struct partition *summary_partition,
+				 struct read_only_notifier *read_only_notifier,
+				 struct recovery_journal *recovery_journal,
+				 Atomic32 *vdo_state,
+				 struct slab_depot **depot_ptr);
 
 /**
  * Destroy a slab depot and null out the reference to it.
@@ -108,7 +106,7 @@ void free_slab_depot(struct slab_depot **depot_ptr);
  *
  * @return The encoded size of the depot's state
  **/
-size_t get_slab_depot_encoded_size(void) __attribute__((warn_unused_result));
+size_t __must_check get_slab_depot_encoded_size(void);
 
 /**
  * Encode the state of a slab depot into a buffer.
@@ -118,8 +116,8 @@ size_t get_slab_depot_encoded_size(void) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer);
 
 /**
  * Decode the state of a slab depot saved in a buffer.
@@ -135,15 +133,15 @@ int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
  *
  * @return A success or error code
  **/
-int decode_sodium_slab_depot(struct buffer *buffer,
-			     const struct thread_config *thread_config,
-			     nonce_t nonce,
-			     PhysicalLayer *layer,
-			     struct partition *summary_partition,
-			     struct read_only_notifier *read_only_notifier,
-			     struct recovery_journal *recovery_journal,
-			     struct slab_depot **depot_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_sodium_slab_depot(struct buffer *buffer,
+			 const struct thread_config *thread_config,
+			 nonce_t nonce,
+			 PhysicalLayer *layer,
+			 struct partition *summary_partition,
+			 struct read_only_notifier *read_only_notifier,
+			 struct recovery_journal *recovery_journal,
+			 struct slab_depot **depot_ptr);
 
 /**
  * Decode the state of a slab depot saved in a buffer.
@@ -160,16 +158,16 @@ int decode_sodium_slab_depot(struct buffer *buffer,
  *
  * @return A success or error code
  **/
-int decode_slab_depot(struct buffer *buffer,
-		      const struct thread_config *thread_config,
-		      nonce_t nonce,
-		      PhysicalLayer *layer,
-		      struct partition *summary_partition,
-		      struct read_only_notifier *read_only_notifier,
-		      struct recovery_journal *recovery_journal,
-		      Atomic32 *vdo_state,
-		      struct slab_depot **depot_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_slab_depot(struct buffer *buffer,
+		  const struct thread_config *thread_config,
+		  nonce_t nonce,
+		  PhysicalLayer *layer,
+		  struct partition *summary_partition,
+		  struct read_only_notifier *read_only_notifier,
+		  struct recovery_journal *recovery_journal,
+		  Atomic32 *vdo_state,
+		  struct slab_depot **depot_ptr);
 
 /**
  * Allocate the RefCounts for all slabs in the depot. This method may be called
@@ -179,8 +177,7 @@ int decode_slab_depot(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int allocate_slab_ref_counts(struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+int __must_check allocate_slab_ref_counts(struct slab_depot *depot);
 
 /**
  * Get the block allocator for a specified physical zone from a depot.
@@ -190,9 +187,9 @@ int allocate_slab_ref_counts(struct slab_depot *depot)
  *
  * @return The block allocator for the specified zone
  **/
-struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
-						     zone_count_t zone_number)
-	__attribute__((warn_unused_result));
+struct block_allocator * __must_check
+get_block_allocator_for_zone(struct slab_depot *depot,
+			     zone_count_t zone_number);
 
 /**
  * Get the number of the slab that contains a specified block.
@@ -203,10 +200,9 @@ struct block_allocator *get_block_allocator_for_zone(struct slab_depot *depot,
  *
  * @return VDO_SUCCESS or an error
  **/
-int get_slab_number(const struct slab_depot *depot,
-		    physical_block_number_t pbn,
-		    slab_count_t *slab_number_ptr)
-	__attribute__((warn_unused_result));
+int __must_check get_slab_number(const struct slab_depot *depot,
+				 physical_block_number_t pbn,
+				 slab_count_t *slab_number_ptr);
 
 /**
  * Get the slab object for the slab that contains a specified block. Will put
@@ -219,9 +215,8 @@ int get_slab_number(const struct slab_depot *depot,
  * @return The slab containing the block, or NULL if the block number is the
  *         zero block or otherwise out of range
  **/
-struct vdo_slab *get_slab(const struct slab_depot *depot,
-			  physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+struct vdo_slab * __must_check
+get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
 
 /**
  * Get the slab journal for the slab that contains a specified block.
@@ -233,9 +228,8 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
  * @return The slab journal of the slab containing the block, or NULL if the
  *         block number is for the zero block or otherwise out of range
  **/
-struct slab_journal *get_slab_journal(const struct slab_depot *depot,
-				      physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+struct slab_journal * __must_check
+get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn);
 
 /**
  * Determine how many new references a block can acquire. This method must be
@@ -246,8 +240,8 @@ struct slab_journal *get_slab_journal(const struct slab_depot *depot,
  *
  * @return the number of available references
  **/
-uint8_t get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+uint8_t __must_check
+get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
 
 /**
  * Determine whether the given PBN refers to a data block.
@@ -257,9 +251,9 @@ uint8_t get_increment_limit(struct slab_depot *depot, physical_block_number_t pb
  *
  * @return <code>True</code> if the PBN corresponds to a data block
  **/
-bool is_physical_data_block(const struct slab_depot *depot,
-			    physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+bool __must_check
+is_physical_data_block(const struct slab_depot *depot,
+		       physical_block_number_t pbn);
 
 /**
  * Get the total number of data blocks allocated across all the slabs in the
@@ -270,8 +264,8 @@ bool is_physical_data_block(const struct slab_depot *depot,
  *
  * @return The total number of blocks with a non-zero reference count
  **/
-block_count_t get_depot_allocated_blocks(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_depot_allocated_blocks(const struct slab_depot *depot);
 
 /**
  * Get the total of the statistics from all the block allocators in the depot.
@@ -280,9 +274,8 @@ block_count_t get_depot_allocated_blocks(const struct slab_depot *depot)
  *
  * @return The statistics from all block allocators in the depot
  **/
-struct block_allocator_statistics
-get_depot_block_allocator_statistics(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+struct block_allocator_statistics __must_check
+get_depot_block_allocator_statistics(const struct slab_depot *depot);
 
 /**
  * Get the total number of data blocks in all the slabs in the depot. This may
@@ -292,8 +285,8 @@ get_depot_block_allocator_statistics(const struct slab_depot *depot)
  *
  * @return The total number of data blocks in all slabs
  **/
-block_count_t get_depot_data_blocks(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_depot_data_blocks(const struct slab_depot *depot);
 
 /**
  * Get the total number of free blocks remaining in all the slabs in the
@@ -304,8 +297,8 @@ block_count_t get_depot_data_blocks(const struct slab_depot *depot)
  *
  * @return The total number of blocks with a zero reference count
  **/
-block_count_t get_depot_free_blocks(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_depot_free_blocks(const struct slab_depot *depot);
 
 /**
  * Get the total number of slabs in the depot
@@ -314,8 +307,7 @@ block_count_t get_depot_free_blocks(const struct slab_depot *depot)
  *
  * @return The total number of slabs
  **/
-slab_count_t get_depot_slab_count(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+slab_count_t __must_check get_depot_slab_count(const struct slab_depot *depot);
 
 /**
  * Get the total number of unrecovered slabs in the depot, which is the total
@@ -326,8 +318,8 @@ slab_count_t get_depot_slab_count(const struct slab_depot *depot)
  *
  * @return The total number of slabs that are unrecovered
  **/
-slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+slab_count_t __must_check
+get_depot_unrecovered_slab_count(const struct slab_depot *depot);
 
 /**
  * Get the aggregated slab journal statistics for the depot.
@@ -336,9 +328,8 @@ slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
  *
  * @return The aggregated statistics for all slab journals in the depot
  **/
-struct slab_journal_statistics
-get_depot_slab_journal_statistics(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+struct slab_journal_statistics __must_check
+get_depot_slab_journal_statistics(const struct slab_depot *depot);
 
 /**
  * Get the cumulative RefCounts statistics for the depot.
@@ -347,9 +338,8 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
  *
  * @return The cumulative statistics for all RefCounts in the depot
  **/
-struct ref_counts_statistics
-get_depot_ref_counts_statistics(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+struct ref_counts_statistics __must_check
+get_depot_ref_counts_statistics(const struct slab_depot *depot);
 
 /**
  * Asynchronously load any slab depot state that isn't included in the
@@ -395,8 +385,8 @@ void update_slab_depot_size(struct slab_depot *depot);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size);
 
 /**
  * Use the new slabs allocated for resize.
@@ -453,8 +443,8 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
  *
  * @return The slab configuration of the specified depot
  **/
-const struct slab_config *get_slab_config(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+const struct slab_config * __must_check
+get_slab_config(const struct slab_depot *depot);
 
 /**
  * Get the slab summary.
@@ -463,8 +453,8 @@ const struct slab_config *get_slab_config(const struct slab_depot *depot)
  *
  * @return The slab summary
  **/
-struct slab_summary *get_slab_summary(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+struct slab_summary * __must_check
+get_slab_summary(const struct slab_depot *depot);
 
 /**
  * Get the portion of the slab summary for a given physical zone.
@@ -474,9 +464,8 @@ struct slab_summary *get_slab_summary(const struct slab_depot *depot)
  *
  * @return The portion of the slab summary for the specified zone
  **/
-struct slab_summary_zone *
-get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone)
-	__attribute__((warn_unused_result));
+struct slab_summary_zone * __must_check
+get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone);
 
 /**
  * Scrub all unrecovered slabs.
@@ -505,8 +494,7 @@ bool has_unrecovered_slabs(struct slab_depot *depot);
  * @return The new number of blocks the depot will be grown to, or 0 if the
  *         depot is not prepared to grow
  **/
-block_count_t get_new_depot_size(const struct slab_depot *depot)
-	__attribute__((warn_unused_result));
+block_count_t __must_check get_new_depot_size(const struct slab_depot *depot);
 
 /**
  * Dump the slab depot, in a thread-unsafe fashion.

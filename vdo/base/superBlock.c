@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#20 $
  */
 
 #include "superBlock.h"
@@ -83,7 +83,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 allocate_super_block(PhysicalLayer *layer,
 		     struct vdo_super_block **super_block_ptr)
 {
@@ -168,8 +168,7 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
-encode_super_block(struct vdo_super_block *super_block)
+static int __must_check encode_super_block(struct vdo_super_block *super_block)
 {
 	struct buffer *buffer = super_block->block_buffer;
 	int result = reset_buffer_end(buffer, 0);
@@ -301,8 +300,7 @@ void save_super_block_async(struct vdo_super_block *super_block,
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
-decode_super_block(struct vdo_super_block *super_block)
+static int __must_check decode_super_block(struct vdo_super_block *super_block)
 {
 	// Reset the block buffer to start decoding the entire first sector.
 	struct buffer *buffer = super_block->block_buffer;

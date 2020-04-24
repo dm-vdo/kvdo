@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#28 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -181,7 +181,7 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
  *
  * @return <code>true</code> if the sector is full
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 is_sector_full(const struct recovery_journal_block *block)
 {
 	return (block->sector->entry_count ==
@@ -195,7 +195,7 @@ is_sector_full(const struct recovery_journal_block *block)
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 add_queued_recovery_entries(struct recovery_journal_block *block)
 {
 	while (has_waiters(&block->entry_waiters)) {
@@ -257,7 +257,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 get_recovery_block_pbn(struct recovery_journal_block *block,
 		       physical_block_number_t *pbn_ptr)
 {

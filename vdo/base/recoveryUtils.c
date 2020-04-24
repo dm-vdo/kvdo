@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#22 $
  */
 
 #include "recoveryUtils.h"
@@ -85,7 +85,7 @@ void load_journal_async(struct recovery_journal *journal,
  *
  * @return <code>True</code> if the header matches
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 is_congruent_recovery_journal_block(struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
 				    physical_block_number_t offset)

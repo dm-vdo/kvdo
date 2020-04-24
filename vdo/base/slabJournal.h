@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#20 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -34,16 +34,15 @@
  *
  * @return The completion as a slab_journal
  **/
-struct slab_journal *as_slab_journal(struct vdo_completion *completion)
-	__attribute__((warn_unused_result));
+struct slab_journal * __must_check
+as_slab_journal(struct vdo_completion *completion);
 
 /**
  * Calculate the number of slab journal entries per block.
  *
  * @return The number of slab journal entries per block
  **/
-size_t get_slab_journal_entries_per_block(void)
-	__attribute__((warn_unused_result));
+size_t __must_check get_slab_journal_entries_per_block(void);
 
 /**
  * Obtain a pointer to a slab_journal structure from a pointer to the
@@ -53,8 +52,7 @@ size_t get_slab_journal_entries_per_block(void)
  *
  * @return The RingNode as a slab_journal
  **/
-struct slab_journal *slab_journal_from_dirty_node(RingNode *node)
-	__attribute__((warn_unused_result));
+struct slab_journal * __must_check slab_journal_from_dirty_node(RingNode *node);
 
 /**
  * Create a slab journal.
@@ -66,11 +64,10 @@ struct slab_journal *slab_journal_from_dirty_node(RingNode *node)
  *
  * @return VDO_SUCCESS or error code
  **/
-int make_slab_journal(struct block_allocator *allocator,
-		      struct vdo_slab *slab,
-		      struct recovery_journal *recovery_journal,
-		      struct slab_journal **journal_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_slab_journal(struct block_allocator *allocator,
+				   struct vdo_slab *slab,
+				   struct recovery_journal *recovery_journal,
+				   struct slab_journal **journal_ptr);
 
 /**
  * Free a slab journal and null out the reference to it.
@@ -87,8 +84,7 @@ void free_slab_journal(struct slab_journal **journal_ptr);
  *
  * @return <code>true</code> if the slab journal has never been modified
  **/
-bool is_slab_journal_blank(const struct slab_journal *journal)
-	__attribute__((warn_unused_result));
+bool __must_check is_slab_journal_blank(const struct slab_journal *journal);
 
 /**
  * Check whether the slab journal is on the block allocator's ring of dirty
@@ -98,8 +94,7 @@ bool is_slab_journal_blank(const struct slab_journal *journal)
  *
  * @return <code>true</code> if the journal has been added to the dirty ring
  **/
-bool is_slab_journal_dirty(const struct slab_journal *journal)
-	__attribute__((warn_unused_result));
+bool __must_check is_slab_journal_dirty(const struct slab_journal *journal);
 
 /**
  * Check whether a slab journal is active.
@@ -108,8 +103,7 @@ bool is_slab_journal_dirty(const struct slab_journal *journal)
  *
  * @return <code>true</code> if the journal is active
  **/
-bool is_slab_journal_active(struct slab_journal *journal)
-	__attribute__((warn_unused_result));
+bool __must_check is_slab_journal_active(struct slab_journal *journal);
 
 /**
  * Abort any VIOs waiting to make slab journal entries.
@@ -137,12 +131,12 @@ void reopen_slab_journal(struct slab_journal *journal);
  *
  * @return <code>true</code> if the entry was added immediately
  **/
-bool attempt_replay_into_slab_journal(struct slab_journal *journal,
-				      physical_block_number_t pbn,
-				      journal_operation operation,
-				      struct journal_point *recovery_point,
-				      struct vdo_completion *parent)
-	__attribute__((warn_unused_result));
+bool __must_check
+attempt_replay_into_slab_journal(struct slab_journal *journal,
+				 physical_block_number_t pbn,
+				 journal_operation operation,
+				 struct journal_point *recovery_point,
+				 struct vdo_completion *parent);
 
 /**
  * Add an entry to a slab journal.
@@ -176,9 +170,9 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
  * @return <code>true</code> if the journal does hold a lock on the specified
  *         block (which it will release)
  **/
-bool release_recovery_journal_lock(struct slab_journal *journal,
-				   sequence_number_t recovery_lock)
-	__attribute__((warn_unused_result));
+bool __must_check
+release_recovery_journal_lock(struct slab_journal *journal,
+			      sequence_number_t recovery_lock);
 
 /**
  * Commit the tail block of a slab journal.
@@ -209,8 +203,7 @@ void decode_slab_journal(struct slab_journal *journal);
  *
  * @return <code>true</code> if the journal requires scrubbing
  **/
-bool requires_scrubbing(const struct slab_journal *journal)
-	__attribute__((warn_unused_result));
+bool __must_check requires_scrubbing(const struct slab_journal *journal);
 
 /**
  * Dump the slab journal.

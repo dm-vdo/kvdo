@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#17 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -107,7 +107,7 @@ block_from_waiter(struct waiter *waiter)
  *
  * @return <code>true</code> if the block has any uncommitted entries
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_recovery_block_dirty(const struct recovery_journal_block *block)
 {
 	return (block->uncommitted_entry_count > 0);
@@ -120,7 +120,7 @@ is_recovery_block_dirty(const struct recovery_journal_block *block)
  *
  * @return <code>true</code> if the block has no entries
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_recovery_block_empty(const struct recovery_journal_block *block)
 {
 	return (block->entry_count == 0);
@@ -133,7 +133,7 @@ is_recovery_block_empty(const struct recovery_journal_block *block)
  *
  * @return <code>true</code> if the the block is full
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_recovery_block_full(const struct recovery_journal_block *block)
 {
 	return ((block == NULL)
@@ -149,9 +149,10 @@ is_recovery_block_full(const struct recovery_journal_block *block)
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
-			struct recovery_journal_block **block_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_recovery_block(PhysicalLayer *layer,
+		    struct recovery_journal *journal,
+		    struct recovery_journal_block **block_ptr);
 
 /**
  * Free a tail block and null out the reference to it.
@@ -178,9 +179,9 @@ void initialize_recovery_block(struct recovery_journal_block *block);
  *
  * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
  **/
-int enqueue_recovery_block_entry(struct recovery_journal_block *block,
-				 struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+int __must_check
+enqueue_recovery_block_entry(struct recovery_journal_block *block,
+			     struct data_vio *data_vio);
 
 /**
  * Attempt to commit a block. If the block is not the oldest block with
@@ -193,9 +194,9 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
  *
  * @return VDO_SUCCESS, or an error if the write could not be launched
  **/
-int commit_recovery_block(struct recovery_journal_block *block,
-			  vdo_action *callback, vdo_action *error_handler)
-	__attribute__((warn_unused_result));
+int __must_check commit_recovery_block(struct recovery_journal_block *block,
+				       vdo_action *callback,
+				       vdo_action *error_handler);
 
 /**
  * Dump the contents of the recovery block to the log.
@@ -211,7 +212,7 @@ void dump_recovery_block(const struct recovery_journal_block *block);
  *
  * @return <code>true</code> if the block can be committed now
  **/
-bool can_commit_recovery_block(struct recovery_journal_block *block)
-	__attribute__((warn_unused_result));
+bool __must_check
+can_commit_recovery_block(struct recovery_journal_block *block);
 
 #endif // RECOVERY_JOURNAL_BLOCK_H
