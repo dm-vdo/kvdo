@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#34 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -43,7 +43,7 @@ struct block_map_tree_zone {
 	/** The lists of dirty tree pages */
 	struct dirty_lists *dirty_lists;
 	/** The number of tree lookups in progress */
-	VIOCount active_lookups;
+	vio_count_t active_lookups;
 	/** The map of pages currently being loaded */
 	struct int_map *loading_pages;
 	/** The pool of vios for tree I/O */
@@ -148,7 +148,7 @@ compute_page_number(logical_block_number_t lbn)
  *
  * @return The slot containing the entry for the given logical block number
  **/
-__attribute__((warn_unused_result)) static inline SlotNumber
+__attribute__((warn_unused_result)) static inline slot_number_t
 compute_slot(logical_block_number_t lbn)
 {
 	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);

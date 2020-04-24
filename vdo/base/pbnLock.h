@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#7 $
  */
 
 #ifndef PBN_LOCK_H
@@ -45,7 +45,7 @@ struct pbn_lock {
 	const struct pbn_lock_implementation *implementation;
 
 	/** The number of VIOs holding or sharing this lock */
-	VIOCount holder_count;
+	vio_count_t holder_count;
 	/**
 	 * The number of compressed block writers holding a share of this lock
 	 * while they are acquiring a reference to the PBN.

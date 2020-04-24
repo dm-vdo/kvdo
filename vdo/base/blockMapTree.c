@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#63 $
  */
 
 #include "blockMapTree.h"
@@ -49,7 +49,7 @@ struct page_descriptor {
 	root_count_t root_index;
 	height_t height;
 	page_number_t page_index;
-	SlotNumber slot;
+	slot_number_t slot;
 } __attribute__((packed));
 
 typedef union {
@@ -1276,7 +1276,7 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 {
 	root_count_t root_index = page_number % map->root_count;
 	page_number_t page_index = page_number / map->root_count;
-	SlotNumber slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE;
+	slot_number_t slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE;
 	page_index /= BLOCK_MAP_ENTRIES_PER_PAGE;
 
 	struct tree_page *tree_page =

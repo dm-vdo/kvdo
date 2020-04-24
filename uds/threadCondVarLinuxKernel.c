@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#2 $
  */
 
 #include "threads.h"
@@ -27,29 +27,29 @@
 int initCond(CondVar *cv)
 {
   cv->eventCount = NULL;
-  return makeEventCount(&cv->eventCount);
+  return make_event_count(&cv->eventCount);
 }
 
 /**********************************************************************/
 int signalCond(CondVar *cv)
 {
-  eventCountBroadcast(cv->eventCount);
+  event_count_broadcast(cv->eventCount);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int broadcastCond(CondVar *cv)
 {
-  eventCountBroadcast(cv->eventCount);
+  event_count_broadcast(cv->eventCount);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int waitCond(CondVar *cv, Mutex *mutex)
 {
-  EventToken token = eventCountPrepare(cv->eventCount);
+  event_token_t token = event_count_prepare(cv->eventCount);
   unlockMutex(mutex);
-  eventCountWait(cv->eventCount, token, NULL);
+  event_count_wait(cv->eventCount, token, NULL);
   lockMutex(mutex);
   return UDS_SUCCESS;
 }
@@ -57,9 +57,9 @@ int waitCond(CondVar *cv, Mutex *mutex)
 /**********************************************************************/
 int timedWaitCond(CondVar *cv, Mutex *mutex, RelTime timeout)
 {
-  EventToken token = eventCountPrepare(cv->eventCount);
+  event_token_t token = event_count_prepare(cv->eventCount);
   unlockMutex(mutex);
-  bool happened = eventCountWait(cv->eventCount, token, &timeout);
+  bool happened = event_count_wait(cv->eventCount, token, &timeout);
   lockMutex(mutex);
   return happened ? UDS_SUCCESS : ETIMEDOUT;
 }
@@ -67,7 +67,7 @@ int timedWaitCond(CondVar *cv, Mutex *mutex, RelTime timeout)
 /**********************************************************************/
 int destroyCond(CondVar *cv)
 {
-  freeEventCount(cv->eventCount);
+  free_event_count(cv->eventCount);
   cv->eventCount = NULL;
   return UDS_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#22 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -50,7 +50,7 @@ struct recovery_journal {
 	/** The number of free entries in the journal */
 	uint64_t available_space;
 	/** The number of decrement entries which need to be made */
-	VIOCount pending_decrement_count;
+	vio_count_t pending_decrement_count;
 	/**
 	 * Whether the journal is adding entries from the increment or
 	 * decrement waiters queues

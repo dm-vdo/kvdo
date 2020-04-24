@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#10 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -74,10 +74,10 @@ struct hash_lock {
 	RingNode duplicate_ring;
 
 	/** The number of DataVIOs sharing this lock instance */
-	VIOCount reference_count;
+	vio_count_t reference_count;
 
 	/** The maximum value of reference_count in the lifetime of this lock */
-	VIOCount max_references;
+	vio_count_t max_references;
 
 	/** The current state of this lock */
 	hash_lock_state state;

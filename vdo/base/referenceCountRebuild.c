@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#35 $
  */
 
 #include "referenceCountRebuild.h"
@@ -284,7 +284,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	// Remove any bogus entries which exist beyond the end of the logical
 	// space.
 	if (get_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
-		SlotNumber slot;
+		slot_number_t slot;
 		for (slot = rebuild->last_slot.slot;
 		     slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 			struct data_location mapping =
@@ -299,7 +299,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	}
 
 	// Inform the slab depot of all entries on this page.
-	SlotNumber slot;
+	slot_number_t slot;
 	for (slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 		struct data_location mapping =
 			unpack_block_map_entry(&page->entries[slot]);

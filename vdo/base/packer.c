@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#44 $
  */
 
 #include "packerInternals.h"
@@ -645,7 +645,7 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 	reset_compressed_block_header(&output->block->header);
 
 	size_t space_used = 0;
-	SlotNumber slot;
+	slot_number_t slot;
 	for (slot = 0; slot < batch.slots_used; slot++) {
 		struct data_vio *data_vio = batch.slots[slot];
 		data_vio->compression.slot = slot;
@@ -692,7 +692,7 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 {
 	// Move all the data_vios in the current batch to the batched queue so
 	// they will get packed into the next free output bin.
-	SlotNumber slot;
+	slot_number_t slot;
 	for (slot = 0; slot < bin->slots_used; slot++) {
 		struct data_vio *data_vio = bin->incoming[slot];
 		data_vio->compression.bin = NULL;
@@ -923,7 +923,7 @@ void remove_from_packer(struct data_vio *data_vio)
 	struct input_bin *bin = data_vio->compression.bin;
 	ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has an input bin");
 
-	SlotNumber slot = data_vio->compression.slot;
+	slot_number_t slot = data_vio->compression.slot;
 	bin->slots_used--;
 	if (slot < bin->slots_used) {
 		bin->incoming[slot] = bin->incoming[bin->slots_used];

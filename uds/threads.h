@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threads.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threads.h#3 $
  */
 
 #ifndef THREADS_H
@@ -32,7 +32,7 @@
 #include <linux/semaphore.h>
 #include "util/eventCount.h"
 
-typedef struct { EventCount *eventCount; } CondVar;
+typedef struct { struct event_count *eventCount; } CondVar;
 typedef struct mutex                       Mutex;
 typedef struct semaphore                   Semaphore;
 typedef struct kernelThread               *Thread;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#33 $
  */
 
 #include "forest.h"
@@ -63,7 +63,7 @@ struct forest {
 
 struct cursor_level {
 	page_number_t page_index;
-	SlotNumber slot;
+	slot_number_t slot;
 };
 
 struct cursors;

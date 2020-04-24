@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#16 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -49,7 +49,7 @@ struct input_bin {
 	/** List links for packer.sortedBins */
 	RingNode ring;
 	/** The number of items in the bin */
-	SlotNumber slots_used;
+	slot_number_t slots_used;
 	/**
 	 * The number of compressed block bytes remaining in the current batch
 	 */
@@ -74,7 +74,7 @@ struct output_bin {
 	 */
 	struct allocating_vio *writer;
 	/** The number of compression slots used in the compressed block */
-	SlotNumber slots_used;
+	slot_number_t slots_used;
 	/** The data_vios packed into the block, waiting for the write to
 	 * complete */
 	struct wait_queue outgoing;

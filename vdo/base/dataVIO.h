@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#41 $
  */
 
 #ifndef DATA_VIO_H
@@ -136,7 +136,7 @@ struct compression_state {
 	 * The packer input or output bin slot which holds the enclosing
 	 * data_vio
 	 */
-	SlotNumber slot;
+	slot_number_t slot;
 
 	/*
 	 * The packer input bin to which the enclosing data_vio has been
