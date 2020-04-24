@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#18 $
  */
 
 #include "completion.h"
@@ -99,8 +99,8 @@ void set_completion_result(struct vdo_completion *completion, int result)
  * @return <code>false</code> if the callback must be run on this thread
  *         <code>true</code>  if the callback must be enqueued
  **/
-__attribute__((warn_unused_result))
-static inline bool requires_enqueue(struct vdo_completion *completion)
+static inline bool __must_check
+requires_enqueue(struct vdo_completion *completion)
 {
 	if (completion->requeue) {
 		completion->requeue = false;

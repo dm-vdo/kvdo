@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#9 $
  */
 
 #ifndef FLUSH_H
@@ -42,7 +42,7 @@ struct vdo_flush {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_flusher(struct vdo *vdo) __attribute__((warn_unused_result));
+int __must_check make_flusher(struct vdo *vdo);
 
 /**
  * Free a flusher and null out the reference to it.
@@ -58,8 +58,7 @@ void free_flusher(struct flusher **flusher_ptr);
  *
  * @return The ID of the thread which handles the flusher
  **/
-thread_id_t get_flusher_thread_id(struct flusher *flusher)
-	__attribute__((warn_unused_result));
+thread_id_t __must_check get_flusher_thread_id(struct flusher *flusher);
 
 /**
  * Handle empty flush requests.

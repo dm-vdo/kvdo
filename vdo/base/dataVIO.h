@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#43 $
  */
 
 #ifndef DATA_VIO_H
@@ -524,8 +524,7 @@ static inline void continue_data_vio(struct data_vio *data_vio, int result)
  *
  * @return The name of the last operation performed on the data_vio
  **/
-const char *get_operation_name(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+const char * __must_check get_operation_name(struct data_vio *data_vio);
 
 /**
  * Add a trace record for the current source location.
@@ -550,10 +549,10 @@ data_vio_add_trace_record(struct data_vio *data_vio,
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static inline int
+static inline int __must_check
 enqueue_data_vio(struct wait_queue *queue,
-	         struct data_vio *waiter,
-	         const struct trace_location *location)
+		 struct data_vio *waiter,
+		 const struct trace_location *location)
 {
 	data_vio_add_trace_record(waiter, location);
 	return enqueue_waiter(queue, data_vio_as_waiter(waiter));
@@ -996,10 +995,9 @@ void clear_mapped_location(struct data_vio *data_vio);
  *
  * @return VDO_SUCCESS or an error code if the mapping is unusable
  **/
-int set_mapped_location(struct data_vio *data_vio,
-			physical_block_number_t pbn,
-			BlockMappingState state)
-	__attribute__((warn_unused_result));
+int __must_check set_mapped_location(struct data_vio *data_vio,
+				     physical_block_number_t pbn,
+				     BlockMappingState state);
 
 /**
  * Attempt to acquire the lock on a logical block. This is the start of the

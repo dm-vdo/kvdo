@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#24 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -162,8 +162,7 @@ typedef void admin_initiator(struct admin_state *state);
  *
  * @return The name of the state's code
  **/
-const char *get_admin_state_code_name(AdminStateCode code)
-	__attribute__((warn_unused_result));
+const char * __must_check get_admin_state_code_name(AdminStateCode code);
 
 /**
  * Get the name of an admin_state's code for logging purposes.
@@ -172,8 +171,7 @@ const char *get_admin_state_code_name(AdminStateCode code)
  *
  * @return The name of the state's code
  **/
-const char *get_admin_state_name(const struct admin_state *state)
-	__attribute__((warn_unused_result));
+const char * __must_check get_admin_state_name(const struct admin_state *state);
 
 /**
  * Check whether an admin_state is in normal operation.
@@ -182,8 +180,7 @@ const char *get_admin_state_name(const struct admin_state *state)
  *
  * @return <code>true</code> if the state is normal
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_normal(struct admin_state *state)
+static inline bool __must_check is_normal(struct admin_state *state)
 {
 	return ((state->state & ADMIN_TYPE_MASK) == ADMIN_TYPE_NORMAL);
 }
@@ -195,8 +192,7 @@ is_normal(struct admin_state *state)
  *
  * @return <code>true</code> if the code is an operation
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_operation(AdminStateCode code)
+static inline bool __must_check is_operation(AdminStateCode code)
 {
 	return ((code & ADMIN_FLAG_OPERATING) == ADMIN_FLAG_OPERATING);
 }
@@ -208,8 +204,7 @@ is_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is operating
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_operating(struct admin_state *state)
+static inline bool __must_check is_operating(struct admin_state *state)
 {
 	return is_operation(state->state);
 }
@@ -221,8 +216,7 @@ is_operating(struct admin_state *state)
  *
  * @return <code>true</code> if the state is suspending
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_suspending(struct admin_state *state)
+static inline bool __must_check is_suspending(struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SUSPENDING);
 }
@@ -234,8 +228,7 @@ is_suspending(struct admin_state *state)
  *
  * @return <code>true</code> if the state is suspended
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_suspended(struct admin_state *state)
+static inline bool __must_check is_suspended(struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SUSPENDED);
 }
@@ -247,8 +240,7 @@ is_suspended(struct admin_state *state)
  *
  * @return <code>true</code> if the state is saving
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_saving(struct admin_state *state)
+static inline bool __must_check is_saving(struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SAVING);
 }
@@ -260,8 +252,7 @@ is_saving(struct admin_state *state)
  *
  * @return <code>true</code> if the state is saved
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_saved(struct admin_state *state)
+static inline bool __must_check is_saved(struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SAVED);
 }
@@ -273,8 +264,7 @@ is_saved(struct admin_state *state)
  *
  * @return <code>true</code> if the code is for a drain operation
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_drain_operation(AdminStateCode code)
+static inline bool __must_check is_drain_operation(AdminStateCode code)
 {
 	return ((code & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
 }
@@ -286,8 +276,7 @@ is_drain_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is draining
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_draining(struct admin_state *state)
+static inline bool __must_check is_draining(struct admin_state *state)
 {
 	return is_drain_operation(state->state);
 }
@@ -299,8 +288,7 @@ is_draining(struct admin_state *state)
  *
  * @return <code>true</code> if the code is for a load operation
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_load_operation(AdminStateCode code)
+static inline bool __must_check is_load_operation(AdminStateCode code)
 {
 	return ((code & ADMIN_FLAG_LOADING) == ADMIN_FLAG_LOADING);
 }
@@ -312,8 +300,7 @@ is_load_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is loading
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_loading(struct admin_state *state)
+static inline bool __must_check is_loading(struct admin_state *state)
 {
 	return is_load_operation(state->state);
 }
@@ -325,8 +312,7 @@ is_loading(struct admin_state *state)
  *
  * @return <code>true</code> if the code is for a resume operation
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_resume_operation(AdminStateCode code)
+static inline bool __must_check is_resume_operation(AdminStateCode code)
 {
 	return ((code & ADMIN_TYPE_MASK) == ADMIN_TYPE_RESUME);
 }
@@ -338,8 +324,7 @@ is_resume_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is resumeing
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_resuming(struct admin_state *state)
+static inline bool __must_check is_resuming(struct admin_state *state)
 {
 	return is_resume_operation(state->state);
 }
@@ -351,8 +336,7 @@ is_resuming(struct admin_state *state)
  *
  * @return <code>true</code> if the state is a clean load
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_clean_load(struct admin_state *state)
+static inline bool __must_check is_clean_load(struct admin_state *state)
 {
 	return ((state->state == ADMIN_STATE_FORMATTING) ||
 		(state->state == ADMIN_STATE_LOADING));
@@ -365,8 +349,7 @@ is_clean_load(struct admin_state *state)
  *
  * @return <code>true</code> is the state is quiescing
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_quiescing_code(AdminStateCode code)
+static inline bool __must_check is_quiescing_code(AdminStateCode code)
 {
 	return ((code & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
 }
@@ -378,8 +361,7 @@ is_quiescing_code(AdminStateCode code)
  *
  * @return <code>true</code> if the state is quiescing
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_quiescing(struct admin_state *state)
+static inline bool __must_check is_quiescing(struct admin_state *state)
 {
 	return is_quiescing_code(state->state);
 }
@@ -391,8 +373,7 @@ is_quiescing(struct admin_state *state)
  *
  * @return <code>true</code> is the state is quiescent
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_quiescent_code(AdminStateCode code)
+static inline bool __must_check is_quiescent_code(AdminStateCode code)
 {
 	return ((code & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
 }
@@ -404,8 +385,7 @@ is_quiescent_code(AdminStateCode code)
  *
  * @return <code>true</code> is the state is quiescent
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_quiescent(struct admin_state *state)
+static inline bool __must_check is_quiescent(struct admin_state *state)
 {
 	return is_quiescent_code(state->state);
 }
@@ -417,8 +397,7 @@ is_quiescent(struct admin_state *state)
  *
  * @return <code>true</code> if the code is a quiescent operation
  **/
-__attribute__((warn_unused_result)) static inline bool
-is_quiescent_operation(AdminStateCode code)
+static inline bool __must_check is_quiescent_operation(AdminStateCode code)
 {
 	return (is_quiescent_code(code) && is_operation(code));
 }
@@ -432,9 +411,8 @@ is_quiescent_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the specified operation is a drain
  **/
-bool assert_drain_operation(AdminStateCode operation,
-			    struct vdo_completion *waiter)
-	__attribute__((warn_unused_result));
+bool __must_check
+assert_drain_operation(AdminStateCode operation, struct vdo_completion *waiter);
 
 /**
  * Initiate a drain operation if the current state permits it.
@@ -484,9 +462,8 @@ bool finish_draining_with_result(struct admin_state *state, int result);
  *
  * @return <code>true</code> if the specified operation is a load
  **/
-bool assert_load_operation(AdminStateCode operation,
-			   struct vdo_completion *waiter)
-	__attribute__((warn_unused_result));
+bool __must_check
+assert_load_operation(AdminStateCode operation, struct vdo_completion *waiter);
 
 /**
  * Initiate a load operation if the current state permits it.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#17 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -37,9 +37,9 @@ struct tree_page;
  *
  * @return VDO_SUCCESS or an error
  **/
-int initialize_tree_zone(struct block_map_zone *zone, PhysicalLayer *layer,
-			 block_count_t maximum_age)
-	__attribute__((warn_unused_result));
+int __must_check initialize_tree_zone(struct block_map_zone *zone,
+				      PhysicalLayer *layer,
+				      block_count_t maximum_age);
 
 /**
  * Clean up a block_map_tree_zone.
@@ -65,8 +65,7 @@ void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
  *
  * @return <code>true</code> if the zone is active
  **/
-bool is_tree_zone_active(struct block_map_tree_zone *zone)
-	__attribute__((warn_unused_result));
+bool __must_check is_tree_zone_active(struct block_map_tree_zone *zone);
 
 /**
  * Advance the dirty period for a tree zone.

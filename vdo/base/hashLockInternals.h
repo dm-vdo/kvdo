@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#11 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -138,7 +138,6 @@ static inline void initialize_hash_lock(struct hash_lock *lock)
  *
  * @return The short string representing the state
  **/
-const char *get_hash_lock_state_name(hash_lock_state state)
-	__attribute__((warn_unused_result));
+const char * __must_check get_hash_lock_state_name(hash_lock_state state);
 
 #endif // HASH_LOCK_INTERNALS_H

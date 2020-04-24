@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#5 $
  */
 
 #ifndef HASH_LOCK_H
@@ -32,8 +32,7 @@
  *
  * @return The PBN lock on the data_vio's duplicate location
  **/
-struct pbn_lock *get_duplicate_lock(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+struct pbn_lock * __must_check get_duplicate_lock(struct data_vio *data_vio);
 
 /**
  * Acquire or share a lock on the hash (chunk name) of the data in a data_vio,
@@ -43,8 +42,7 @@ struct pbn_lock *get_duplicate_lock(struct data_vio *data_vio)
  *
  * @param data_vio  The data_vio acquiring a lock on its chunk name
  **/
-int acquire_hash_lock(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+int __must_check acquire_hash_lock(struct data_vio *data_vio);
 
 /**
  * Asynchronously process a data_vio that has just acquired its reference to a

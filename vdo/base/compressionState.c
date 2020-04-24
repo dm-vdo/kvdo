@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#13 $
  */
 
 #include "compressionStateInternals.h"
@@ -46,8 +46,7 @@ struct vio_compression_state get_compression_state(struct data_vio *data_vio)
  *
  * @return The compression state packed into a uint32_t
  **/
-__attribute__((warn_unused_result)) static uint32_t
-packState(struct vio_compression_state state)
+static uint32_t __must_check packState(struct vio_compression_state state)
 {
 	return state.status
 	       | (state.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#10 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -111,7 +111,7 @@ typedef enum {
  *
  * @return <code>true</code> if the page has been initialized
  **/
-__attribute__((warn_unused_result)) static inline bool
+static inline bool __must_check
 is_block_map_page_initialized(const struct block_map_page *page)
 {
 	return page->header.fields.initialized;
@@ -143,7 +143,7 @@ static inline bool mark_block_map_page_initialized(struct block_map_page *page,
  *
  * @return the page's physical block number
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 get_block_map_page_pbn(const struct block_map_page *page)
 {
 	return getUInt64LE(page->header.fields.pbn);
@@ -156,8 +156,7 @@ get_block_map_page_pbn(const struct block_map_page *page)
  *
  * @return <code>true</code> if the page has the current version
  **/
-bool is_current_block_map_page(const struct block_map_page *page)
-	__attribute__((warn_unused_result));
+bool __must_check is_current_block_map_page(const struct block_map_page *page);
 
 /**
  * Format a block map page in memory.
@@ -185,10 +184,10 @@ struct block_map_page *format_block_map_page(void *buffer,
  *
  * @return The validity of the page
  **/
-block_map_page_validity validate_block_map_page(struct block_map_page *page,
-						nonce_t nonce,
-						physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+block_map_page_validity __must_check
+validate_block_map_page(struct block_map_page *page,
+			nonce_t nonce,
+			physical_block_number_t pbn);
 
 /**
  * Update an entry on a block map page.

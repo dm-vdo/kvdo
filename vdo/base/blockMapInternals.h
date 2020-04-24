@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#37 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -134,7 +134,7 @@ page_count_t compute_block_map_page_count(block_count_t entries);
  * @return The number of the block map page containing the entry for
  *         the given logical block number
  **/
-__attribute__((warn_unused_result)) static inline page_number_t
+static inline page_number_t __must_check
 compute_page_number(logical_block_number_t lbn)
 {
 	return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
@@ -148,7 +148,7 @@ compute_page_number(logical_block_number_t lbn)
  *
  * @return The slot containing the entry for the given logical block number
  **/
-__attribute__((warn_unused_result)) static inline slot_number_t
+static inline slot_number_t __must_check
 compute_slot(logical_block_number_t lbn)
 {
 	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);

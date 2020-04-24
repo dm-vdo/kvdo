@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#64 $
  */
 
 #include "blockMapTree.h"
@@ -88,9 +88,11 @@ static void write_dirty_pages_callback(RingNode *expired, void *context);
  *
  * Implements VIOConstructor.
  **/
-__attribute__((warn_unused_result)) static int
-make_block_map_vios(PhysicalLayer *layer, void *parent, void *buffer,
-		     struct vio **vio_ptr)
+static int __must_check
+make_block_map_vios(PhysicalLayer *layer,
+		    void *parent,
+		    void *buffer,
+		    struct vio **vio_ptr)
 {
 	return create_vio(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
 			  VIO_PRIORITY_METADATA, parent, buffer, vio_ptr);
@@ -151,7 +153,7 @@ void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
  *
  * @return The block_map_tree_zone
  **/
-__attribute__((warn_unused_result)) static inline struct block_map_tree_zone *
+static inline struct block_map_tree_zone * __must_check
 get_block_map_tree_zone(struct data_vio *data_vio)
 {
 	return &(get_block_map_for_zone(data_vio->logical.zone)->tree_zone);
@@ -235,7 +237,7 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
  * @return <code>true</code> if generation a is not strictly older than
  *         generation b in the context of the zone
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 {
 	int result = ASSERT((in_cyclic_range(zone->oldest_generation, a,
@@ -709,7 +711,7 @@ static void abort_load(struct data_vio *data_vio, int result)
  *
  * @return <code>true</code> if the entry represents a invalid page mapping
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 is_invalid_tree_entry(const struct vdo *vdo,
 		      const struct data_location *mapping,
 		      height_t height)

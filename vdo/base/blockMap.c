@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#63 $
  */
 
 #include "blockMap.h"
@@ -292,12 +292,12 @@ int decode_sodium_block_map(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 initialize_block_map_zone(struct block_map_zone *zone,
-		       PhysicalLayer *layer,
-		       struct read_only_notifier *read_only_notifier,
-		       page_count_t cache_size,
-		       block_count_t maximum_age)
+			  PhysicalLayer *layer,
+			  struct read_only_notifier *read_only_notifier,
+			  page_count_t cache_size,
+			  block_count_t maximum_age)
 {
 	zone->read_only_notifier = read_only_notifier;
 	int result = initialize_tree_zone(zone, layer, maximum_age);
@@ -765,7 +765,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
  * @return VDO_SUCCESS or VDO_BAD_MAPPING if the map entry is invalid
  *         or an error code for any other failure
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
 {
 	// Unpack the PBN for logging purposes even if the entry is invalid.

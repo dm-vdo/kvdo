@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#12 $
  */
 
 #ifndef FOREST_H
@@ -46,11 +46,11 @@ typedef int entry_callback(physical_block_number_t pbn,
  *
  * @return The requested page
  **/
-struct tree_page *get_tree_page_by_index(struct forest *forest,
-					 root_count_t root_index,
-					 height_t height,
-					 page_number_t page_index)
-	__attribute__((warn_unused_result));
+struct tree_page * __must_check
+get_tree_page_by_index(struct forest *forest,
+		       root_count_t root_index,
+		       height_t height,
+		       page_number_t page_index);
 
 /**
  * Make a collection of trees for a block_map, expanding the existing forest if
@@ -61,8 +61,7 @@ struct tree_page *get_tree_page_by_index(struct forest *forest,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_forest(struct block_map *map, block_count_t entries)
-	__attribute__((warn_unused_result));
+int __must_check make_forest(struct block_map *map, block_count_t entries);
 
 /**
  * Free a forest and all of the segments it contains and NULL out the reference
@@ -110,7 +109,6 @@ void traverse_forest(struct block_map *map,
  * @return A (slight) over-estimate of the total number of possible forest
  *         pages including the leaves
  **/
-block_count_t compute_forest_size(block_count_t logical_blocks,
-				  root_count_t root_count)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+compute_forest_size(block_count_t logical_blocks, root_count_t root_count);
 #endif // FOREST_H

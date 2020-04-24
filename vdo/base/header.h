@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#6 $
  */
 
 #ifndef HEADER_H
@@ -123,10 +123,9 @@ static inline bool is_upgradable_version(struct version_number expected_version,
  * @return VDO_SUCCESS             if the versions are the same
  *         VDO_UNSUPPORTED_VERSION if the versions don't match
  **/
-int validate_version(struct version_number expected_version,
-		     struct version_number actual_version,
-		     const char *component_name)
-	__attribute__((warn_unused_result));
+int __must_check validate_version(struct version_number expected_version,
+				  struct version_number actual_version,
+				  const char *component_name);
 
 /**
  * Check whether a header matches expectations. Logs an error describing the
@@ -143,10 +142,10 @@ int validate_version(struct version_number expected_version,
  *         VDO_INCORRECT_COMPONENT if the component ids don't match
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
  **/
-int validate_header(const struct header *expected_header,
-		    const struct header *actual_header, bool exact_size,
-		    const char *component_name)
-	__attribute__((warn_unused_result));
+int __must_check validate_header(const struct header *expected_header,
+				 const struct header *actual_header,
+				 bool exact_size,
+				 const char *component_name);
 
 /**
  * Encode a header into a buffer.
@@ -156,8 +155,8 @@ int validate_header(const struct header *expected_header,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_header(const struct header *header, struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_header(const struct header *header, struct buffer *buffer);
 
 /**
  * Encode a version number into a buffer.
@@ -167,8 +166,8 @@ int encode_header(const struct header *header, struct buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_version_number(struct version_number version, struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_version_number(struct version_number version, struct buffer *buffer);
 
 /**
  * Decode a header from a buffer.
@@ -178,8 +177,7 @@ int encode_version_number(struct version_number version, struct buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_header(struct buffer *buffer, struct header *header)
-	__attribute__((warn_unused_result));
+int __must_check decode_header(struct buffer *buffer, struct header *header);
 
 /**
  * Decode a version number from a buffer.
@@ -189,9 +187,8 @@ int decode_header(struct buffer *buffer, struct header *header)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decode_version_number(struct buffer *buffer,
-			  struct version_number *version)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_version_number(struct buffer *buffer, struct version_number *version);
 
 /**
  * Convert a version_number to its packed on-disk representation.

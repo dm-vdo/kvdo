@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#13 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -85,9 +85,8 @@ void assert_admin_operation_type(struct admin_completion *completion,
  *
  * @return The sub-task completion as its enclosing admin_completion
  **/
-struct admin_completion *
-admin_completion_from_sub_task(struct vdo_completion *completion)
-	__attribute__((warn_unused_result));
+struct admin_completion * __must_check
+admin_completion_from_sub_task(struct vdo_completion *completion);
 
 /**
  * Assert that we are operating on the correct thread for the current phase.
@@ -108,9 +107,9 @@ void assert_admin_phase_thread(struct admin_completion *admin_completion,
  *
  * @return The vdo
  **/
-struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
-				    AdminOperationType expected)
-	__attribute__((warn_unused_result));
+struct vdo * __must_check
+vdo_from_admin_sub_task(struct vdo_completion *completion,
+			AdminOperationType expected);
 
 /**
  * Initialize an admin completion.
@@ -170,11 +169,11 @@ void prepare_admin_sub_task(struct vdo *vdo,
  *
  * @return The result of the operation
  **/
-int perform_admin_operation(struct vdo *vdo,
-			    AdminOperationType type,
-			    ThreadIDGetterForPhase *thread_id_getter,
-			    vdo_action *action,
-			    vdo_action *error_handler)
-	__attribute__((warn_unused_result));
+int __must_check
+perform_admin_operation(struct vdo *vdo,
+			AdminOperationType type,
+			ThreadIDGetterForPhase *thread_id_getter,
+			vdo_action *action,
+			vdo_action *error_handler);
 
 #endif /* ADMIN_COMPLETION_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#4 $
  */
 
 #ifndef INT_MAP_H
@@ -52,8 +52,9 @@ struct int_map;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int make_int_map(size_t initial_capacity, unsigned int initial_load,
-		 struct int_map **map_ptr) __attribute__((warn_unused_result));
+int __must_check make_int_map(size_t initial_capacity,
+			      unsigned int initial_load,
+			      struct int_map **map_ptr);
 
 /**
  * Free an int_map and null out the reference to it. NOTE: The map does not own
@@ -102,8 +103,11 @@ void *int_map_get(struct int_map *map, uint64_t key);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
-		void **old_value_ptr) __attribute__((warn_unused_result));
+int __must_check int_map_put(struct int_map *map,
+			     uint64_t key,
+			     void *new_value,
+			     bool update,
+			     void **old_value_ptr);
 
 /**
  * Remove the mapping for a given key from the int_map.

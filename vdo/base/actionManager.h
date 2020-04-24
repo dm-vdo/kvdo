@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#12 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -114,14 +114,13 @@ typedef thread_id_t zone_thread_getter(void *context, zone_count_t zoneNumber);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_action_manager(zone_count_t zones,
-			zone_thread_getter *get_zone_thread_id,
-			thread_id_t initiator_thread_id,
-			void *context,
-			action_scheduler *scheduler,
-			PhysicalLayer *layer,
-			struct action_manager **manager_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_action_manager(zone_count_t zones,
+				     zone_thread_getter *get_zone_thread_id,
+				     thread_id_t initiator_thread_id,
+				     void *context,
+				     action_scheduler *scheduler,
+				     PhysicalLayer *layer,
+				     struct action_manager **manager_ptr);
 
 /**
  * Destroy an action manager and null out the reference to it.
@@ -137,8 +136,8 @@ void free_action_manager(struct action_manager **manager_ptr);
  *
  * @return The manager's current operation
  **/
-AdminStateCode get_current_manager_operation(struct action_manager *manager)
-	__attribute__((warn_unused_result));
+AdminStateCode __must_check
+get_current_manager_operation(struct action_manager *manager);
 
 /**
  * Get the action-specific context for the operation an action manager is
@@ -149,8 +148,7 @@ AdminStateCode get_current_manager_operation(struct action_manager *manager)
  * @return The action-specific context for the manager's current action or
  *         NULL if there is no context or no current action
  **/
-void *get_current_action_context(struct action_manager *manager)
-	__attribute__((warn_unused_result));
+void * __must_check get_current_action_context(struct action_manager *manager);
 
 /**
  * Schedule an action to be applied to all zones. The action will be launched

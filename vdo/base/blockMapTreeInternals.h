@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#12 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -82,7 +82,7 @@ extern const physical_block_number_t INVALID_PBN;
  *
  * @return The block_map_page of the tree_page
  **/
-__attribute__((warn_unused_result)) static inline struct block_map_page *
+static inline struct block_map_page * __must_check
 as_block_map_page(struct tree_page *tree_page)
 {
 	return (struct block_map_page *) tree_page->page_buffer;
@@ -97,9 +97,10 @@ as_block_map_page(struct tree_page *tree_page)
  *
  * @return VDO_SUCCESS or an error
  **/
-int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			       PhysicalLayer *layer, size_t pool_size)
-	__attribute__((warn_unused_result));
+int __must_check
+replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
+			   PhysicalLayer *layer,
+			   size_t pool_size);
 
 /**
  * Check whether a buffer contains a valid page. If the page is bad, log an

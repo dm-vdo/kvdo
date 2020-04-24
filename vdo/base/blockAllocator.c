@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#71 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -338,7 +338,7 @@ int replace_vio_pool(struct block_allocator *allocator,
  *
  * @return The number of data blocks that can be allocated
  **/
-__attribute__((warn_unused_result)) static inline block_count_t
+static inline block_count_t __must_check
 get_data_block_count(const struct block_allocator *allocator)
 {
 	return (allocator->slab_count *

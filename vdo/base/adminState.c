@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#20 $
  */
 
 #include "adminState.h"
@@ -153,11 +153,10 @@ static bool end_operation(struct admin_state *state, int result)
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
-begin_operation(struct admin_state *state,
-		AdminStateCode operation,
-		struct vdo_completion *waiter,
-		admin_initiator *initiator)
+static int __must_check begin_operation(struct admin_state *state,
+					AdminStateCode operation,
+					struct vdo_completion *waiter,
+					admin_initiator *initiator)
 {
 	int result;
 	if (is_operating(state) ||

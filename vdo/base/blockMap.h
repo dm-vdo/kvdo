@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#24 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -40,12 +40,11 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_block_map(block_count_t logical_blocks,
-		   const struct thread_config *thread_config,
-		   physical_block_number_t root_origin,
-		   block_count_t root_count,
-		   struct block_map **map_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_block_map(block_count_t logical_blocks,
+				const struct thread_config *thread_config,
+				physical_block_number_t root_origin,
+				block_count_t root_count,
+				struct block_map **map_ptr);
 
 /**
  * Quiesce all block map I/O, possibly writing out all dirty metadata.
@@ -74,9 +73,9 @@ void resume_block_map(struct block_map *map, struct vdo_completion *parent);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_grow_block_map(struct block_map *map,
-			      block_count_t new_logical_blocks)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_to_grow_block_map(struct block_map *map,
+			  block_count_t new_logical_blocks);
 
 /**
  * Get the logical size to which this block map is prepared to grow.
@@ -86,8 +85,7 @@ int prepare_to_grow_block_map(struct block_map *map,
  * @return The new number of entries the block map will be grown to or 0 if
  *         the block map is not prepared to grow
  **/
-block_count_t get_new_entry_count(struct block_map *map)
-	__attribute__((warn_unused_result));
+block_count_t __must_check get_new_entry_count(struct block_map *map);
 
 /**
  * Grow a block map on which prepare_to_grow_block_map() has already been
@@ -116,11 +114,10 @@ void abandon_block_map_growth(struct block_map *map);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_block_map(struct buffer *buffer,
-		     block_count_t logical_blocks,
-		     const struct thread_config *thread_config,
-		     struct block_map **map_ptr)
-	__attribute__((warn_unused_result));
+int __must_check decode_block_map(struct buffer *buffer,
+				  block_count_t logical_blocks,
+				  const struct thread_config *thread_config,
+				  struct block_map **map_ptr);
 
 /**
  * Create a block map from the saved state of a Sodium block map, and do any
@@ -133,11 +130,11 @@ int decode_block_map(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decode_sodium_block_map(struct buffer *buffer,
-			    block_count_t logical_blocks,
-			    const struct thread_config *thread_config,
-			    struct block_map **map_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_sodium_block_map(struct buffer *buffer,
+			block_count_t logical_blocks,
+			const struct thread_config *thread_config,
+			struct block_map **map_ptr);
 
 /**
  * Allocate the page caches for a block map.
@@ -153,14 +150,14 @@ int decode_sodium_block_map(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_block_map_caches(struct block_map *map,
-			  PhysicalLayer *layer,
-			  struct read_only_notifier *read_only_notifier,
-			  struct recovery_journal *journal,
-			  nonce_t nonce,
-			  page_count_t cache_size,
-			  block_count_t maximum_age)
-	__attribute__((warn_unused_result));
+int __must_check
+make_block_map_caches(struct block_map *map,
+		      PhysicalLayer *layer,
+		      struct read_only_notifier *read_only_notifier,
+		      struct recovery_journal *journal,
+		      nonce_t nonce,
+		      page_count_t cache_size,
+		      block_count_t maximum_age);
 
 /**
  * Free a block map and null out the reference to it.
@@ -174,7 +171,7 @@ void free_block_map(struct block_map **map_ptr);
  *
  * @return The encoded size of the map's state
  **/
-size_t get_block_map_encoded_size(void) __attribute__((warn_unused_result));
+size_t __must_check get_block_map_encoded_size(void);
 
 /**
  * Encode the state of a block map into a buffer.
@@ -184,8 +181,8 @@ size_t get_block_map_encoded_size(void) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_block_map(const struct block_map *map, struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_block_map(const struct block_map *map, struct buffer *buffer);
 
 /**
  * Obtain any necessary state from the recovery journal that is needed for
@@ -205,9 +202,8 @@ void initialize_block_map_from_journal(struct block_map *map,
  *
  * @return The requested block map zone
  **/
-struct block_map_zone *get_block_map_zone(struct block_map *map,
-					  zone_count_t zone_number)
-	__attribute__((warn_unused_result));
+struct block_map_zone * __must_check
+get_block_map_zone(struct block_map *map, zone_count_t zone_number);
 
 /**
  * Compute the logical zone on which the entry for a data_vio
@@ -238,8 +234,8 @@ void find_block_map_slot_async(struct data_vio *data_vio,
  *
  * @return The number of fixed pages used by the map
  **/
-page_count_t get_number_of_fixed_block_map_pages(const struct block_map *map)
-	__attribute__((warn_unused_result));
+page_count_t __must_check
+get_number_of_fixed_block_map_pages(const struct block_map *map);
 
 /**
  * Get number of block map entries.
@@ -248,8 +244,8 @@ page_count_t get_number_of_fixed_block_map_pages(const struct block_map *map)
  *
  * @return The number of entries stored in the map
  **/
-block_count_t get_number_of_block_map_entries(const struct block_map *map)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_number_of_block_map_entries(const struct block_map *map);
 
 /**
  * Notify the block map that the recovery journal has finished a new block.
@@ -286,7 +282,7 @@ void put_mapped_block_async(struct data_vio *data_vio);
  *
  * @return The block map statistics
  **/
-struct block_map_statistics get_block_map_statistics(struct block_map *map)
-	__attribute__((warn_unused_result));
+struct block_map_statistics __must_check
+get_block_map_statistics(struct block_map *map);
 
 #endif // BLOCK_MAP_H

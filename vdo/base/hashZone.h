@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#9 $
  */
 
 #ifndef HASH_ZONE_H
@@ -36,9 +36,9 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
-		   struct hash_zone **zone_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_hash_zone(struct vdo *vdo,
+				zone_count_t zone_number,
+				struct hash_zone **zone_ptr);
 
 /**
  * Free a hash zone and null out the reference to it.
@@ -54,8 +54,7 @@ void free_hash_zone(struct hash_zone **zone_ptr);
  *
  * @return The number of the zone
  **/
-zone_count_t get_hash_zone_number(const struct hash_zone *zone)
-	__attribute__((warn_unused_result));
+zone_count_t __must_check get_hash_zone_number(const struct hash_zone *zone);
 
 /**
  * Get the ID of a hash zone's thread.
@@ -64,8 +63,7 @@ zone_count_t get_hash_zone_number(const struct hash_zone *zone)
  *
  * @return The zone's thread ID
  **/
-thread_id_t get_hash_zone_thread_id(const struct hash_zone *zone)
-	__attribute__((warn_unused_result));
+thread_id_t __must_check get_hash_zone_thread_id(const struct hash_zone *zone);
 
 /**
  * Get the statistics for this hash zone.
@@ -74,9 +72,8 @@ thread_id_t get_hash_zone_thread_id(const struct hash_zone *zone)
  *
  * @return A copy of the current statistics for the hash zone
  **/
-struct hash_lock_statistics
-get_hash_zone_statistics(const struct hash_zone *zone)
-	__attribute__((warn_unused_result));
+struct hash_lock_statistics __must_check
+get_hash_zone_statistics(const struct hash_zone *zone);
 
 /**
  * Get the lock for the hash (chunk name) of the data in a DataVIO, or if one
@@ -92,11 +89,11 @@ get_hash_zone_statistics(const struct hash_zone *zone)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquire_hash_lock_from_zone(struct hash_zone *zone,
-				const struct uds_chunk_name *hash,
-				struct hash_lock *replace_lock,
-				struct hash_lock **lock_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+acquire_hash_lock_from_zone(struct hash_zone *zone,
+			    const struct uds_chunk_name *hash,
+			    struct hash_lock *replace_lock,
+			    struct hash_lock **lock_ptr);
 
 /**
  * Return a hash lock to the zone it was borrowed from, remove it from the

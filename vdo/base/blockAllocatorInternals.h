@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#27 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -161,11 +161,11 @@ struct block_allocator {
  *
  * Implements VIOConstructor
  **/
-int make_allocator_pool_vios(PhysicalLayer *layer,
-			     void *parent,
-			     void *buffer,
-			     struct vio **vio_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_allocator_pool_vios(PhysicalLayer *layer,
+			 void *parent,
+			 void *buffer,
+			 struct vio **vio_ptr);
 
 /**
  * Replace the vio pool in a block allocator. This method exists for unit
@@ -177,9 +177,9 @@ int make_allocator_pool_vios(PhysicalLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int replace_vio_pool(struct block_allocator *allocator,
-		     size_t size,
-		     PhysicalLayer *layer) __attribute__((warn_unused_result));
+int __must_check replace_vio_pool(struct block_allocator *allocator,
+				  size_t size,
+				  PhysicalLayer *layer);
 
 /**
  * Prepare slabs for allocation or scrubbing. This method is exposed for
@@ -189,8 +189,8 @@ int replace_vio_pool(struct block_allocator *allocator,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepare_slabs_for_allocation(struct block_allocator *allocator)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_slabs_for_allocation(struct block_allocator *allocator);
 
 /**
  * Start allocating from the highest numbered slab.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#6 $
  */
 
 #ifndef DIRTY_LISTS_H
@@ -55,9 +55,10 @@ typedef void dirty_callback(RingNode *expired, void *context);
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
-		     void *context, struct dirty_lists **dirty_lists_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_dirty_lists(block_count_t maximum_age,
+				  dirty_callback *callback,
+				  void *context,
+				  struct dirty_lists **dirty_lists_ptr);
 
 /**
  * Free a set of dirty lists and null out the pointer to them.

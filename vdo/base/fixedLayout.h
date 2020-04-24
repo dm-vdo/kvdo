@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#8 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -51,10 +51,9 @@ struct partition;
  *
  * @return a success or error code
  **/
-int make_fixed_layout(block_count_t total_blocks,
-		      physical_block_number_t start_offset,
-		      struct fixed_layout **layout_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_fixed_layout(block_count_t total_blocks,
+				   physical_block_number_t start_offset,
+				   struct fixed_layout **layout_ptr);
 
 /**
  * Free the fixed layout and null out the reference to it.
@@ -72,8 +71,8 @@ void free_fixed_layout(struct fixed_layout **layout_ptr);
  *
  * @return The size of the layout
  **/
-block_count_t get_total_fixed_layout_size(const struct fixed_layout *layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_total_fixed_layout_size(const struct fixed_layout *layout);
 
 /**
  * Get a partition by id.
@@ -84,10 +83,9 @@ block_count_t get_total_fixed_layout_size(const struct fixed_layout *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-int get_partition(struct fixed_layout *layout,
-		  partition_id id,
-		  struct partition **partition_ptr)
-	__attribute__((warn_unused_result));
+int __must_check get_partition(struct fixed_layout *layout,
+			       partition_id id,
+			       struct partition **partition_ptr);
 
 /**
  * Translate a block number from the partition's view to the layer's
@@ -98,10 +96,10 @@ int get_partition(struct fixed_layout *layout,
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translate_to_pbn(const struct partition *partition,
-		     physical_block_number_t partition_block_number,
-		     physical_block_number_t *layer_block_number)
-	__attribute__((warn_unused_result));
+int __must_check
+translate_to_pbn(const struct partition *partition,
+		 physical_block_number_t partition_block_number,
+		 physical_block_number_t *layer_block_number);
 
 /**
  * Translate a block number from the layer's view to the partition's.
@@ -113,10 +111,10 @@ int translate_to_pbn(const struct partition *partition,
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translate_from_pbn(const struct partition *partition,
-		       physical_block_number_t layer_block_number,
-		       physical_block_number_t *partition_block_number)
-	__attribute__((warn_unused_result));
+int __must_check
+translate_from_pbn(const struct partition *partition,
+		   physical_block_number_t layer_block_number,
+		   physical_block_number_t *partition_block_number);
 
 /**
  * Return the number of unallocated blocks available.
@@ -125,9 +123,8 @@ int translate_from_pbn(const struct partition *partition,
  *
  * @return the number of blocks yet unallocated to partitions
  **/
-block_count_t
-get_fixed_layout_blocks_available(const struct fixed_layout *layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_fixed_layout_blocks_available(const struct fixed_layout *layout);
 
 /**
  * Create a new partition from the beginning or end of the unused space
@@ -145,12 +142,12 @@ get_fixed_layout_blocks_available(const struct fixed_layout *layout)
  * @return a success or error code, particularly
  *      VDO_NO_SPACE if there are less than block_count blocks remaining
  **/
-int make_fixed_layout_partition(struct fixed_layout *layout,
-				partition_id id,
-				block_count_t block_count,
-				partition_direction direction,
-				physical_block_number_t base)
-	__attribute__((warn_unused_result));
+int __must_check
+make_fixed_layout_partition(struct fixed_layout *layout,
+			    partition_id id,
+			    block_count_t block_count,
+			    partition_direction direction,
+			    physical_block_number_t base);
 
 /**
  * Return the size in blocks of a partition.
@@ -159,8 +156,8 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
  *
  * @return the size of the partition in blocks
  **/
-block_count_t get_fixed_layout_partition_size(const struct partition *partition)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_fixed_layout_partition_size(const struct partition *partition);
 
 /**
  * Get the first block of the partition in the layout.
@@ -169,9 +166,8 @@ block_count_t get_fixed_layout_partition_size(const struct partition *partition)
  *
  * @return the partition's offset in blocks
  **/
-physical_block_number_t
-get_fixed_layout_partition_offset(const struct partition *partition)
-	__attribute__((warn_unused_result));
+physical_block_number_t __must_check
+get_fixed_layout_partition_offset(const struct partition *partition);
 
 /**
  * Get the number of the first block in the partition from the partition users
@@ -181,9 +177,8 @@ get_fixed_layout_partition_offset(const struct partition *partition)
  *
  * @return the number of the first block in the partition
  **/
-physical_block_number_t
-get_fixed_layout_partition_base(const struct partition *partition)
-	__attribute__((warn_unused_result));
+physical_block_number_t __must_check
+get_fixed_layout_partition_base(const struct partition *partition);
 
 /**
  * Get the size of an encoded layout
@@ -192,8 +187,8 @@ get_fixed_layout_partition_base(const struct partition *partition)
  *
  * @return The encoded size of the layout
  **/
-size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
-	__attribute__((warn_unused_result));
+size_t __must_check
+get_fixed_layout_encoded_size(const struct fixed_layout *layout);
 
 /**
  * Encode a layout into a buffer.
@@ -203,9 +198,8 @@ size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encode_fixed_layout(const struct fixed_layout *layout,
-			struct buffer *buffer)
-	__attribute__((warn_unused_result));
+int __must_check
+encode_fixed_layout(const struct fixed_layout *layout, struct buffer *buffer);
 
 /**
  * Decode a fixed layout from a buffer.
@@ -215,8 +209,7 @@ int encode_fixed_layout(const struct fixed_layout *layout,
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_fixed_layout(struct buffer *buffer,
-			struct fixed_layout **layout_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+decode_fixed_layout(struct buffer *buffer, struct fixed_layout **layout_ptr);
 
 #endif // FIXED_LAYOUT_H

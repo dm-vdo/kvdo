@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#5 $
  */
 
 #ifndef COMPRESSION_STATE_H
@@ -54,7 +54,7 @@ struct vio_compression_state {
  *
  * @return The compression state
  **/
-__attribute__((warn_unused_result)) struct vio_compression_state
+struct vio_compression_state __must_check
 get_compression_state(struct data_vio *data_vio);
 
 /**
@@ -64,8 +64,7 @@ get_compression_state(struct data_vio *data_vio);
  *
  * @return <code>true</code> if the data_vio may be compressed at this time
  **/
-bool may_compress_data_vio(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+bool __must_check may_compress_data_vio(struct data_vio *data_vio);
 
 /**
  * Check whether a data_vio may go to the packer.
@@ -74,8 +73,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
  *
  * @return <code>true</code> if the data_vio may be packed at this time
  **/
-bool may_pack_data_vio(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+bool __must_check may_pack_data_vio(struct data_vio *data_vio);
 
 /**
  * Check whether a data_vio which has gone to the packer may block there. Any
@@ -86,8 +84,7 @@ bool may_pack_data_vio(struct data_vio *data_vio)
  *
  * @return <code>true</code> if the data_vio may block in the packer
  **/
-bool may_block_in_packer(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+bool __must_check may_block_in_packer(struct data_vio *data_vio);
 
 /**
  * Check whether the packer may write out a data_vio as part of a compressed
@@ -98,8 +95,7 @@ bool may_block_in_packer(struct data_vio *data_vio)
  * @return <code>true</code> if the data_vio may be written as part of a
  *         compressed block at this time
  **/
-bool may_write_compressed_data_vio(struct data_vio *data_vio)
-	__attribute__((warn_unused_result));
+bool __must_check may_write_compressed_data_vio(struct data_vio *data_vio);
 
 /**
  * Indicate that this data_vio is leaving the compression path.

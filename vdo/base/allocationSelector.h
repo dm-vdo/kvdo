@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#6 $
  */
 
 #ifndef ALLOCATION_SELECTOR_H
@@ -40,10 +40,10 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_allocation_selector(zone_count_t physical_zone_count,
-			     thread_id_t thread_id,
-			     struct allocation_selector **selector_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+make_allocation_selector(zone_count_t physical_zone_count,
+			 thread_id_t thread_id,
+			 struct allocation_selector **selector_ptr);
 
 /**
  * Free an allocation_selector and null out the reference to it.
@@ -59,7 +59,7 @@ void free_allocation_selector(struct allocation_selector **selector_ptr);
  *
  * @return The number of the physical zone from which to allocate
  **/
-zone_count_t get_next_allocation_zone(struct allocation_selector *selector)
-	__attribute__((warn_unused_result));
+zone_count_t __must_check
+get_next_allocation_zone(struct allocation_selector *selector);
 
 #endif /* ALLOCATION_SELECTOR_H */
