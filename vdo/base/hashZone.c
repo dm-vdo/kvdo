@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#22 $
  */
 
 #include "hashZone.h"
@@ -41,24 +41,6 @@ enum {
 	LOCK_POOL_CAPACITY = MAXIMUM_USER_VIOS,
 };
 
-/**
- * These fields are only modified by the locks sharing the hash zone thread,
- * but are queried by other threads.
- **/
-struct atomic_hash_lock_statistics {
-	/** Number of times the UDS advice proved correct */
-	Atomic64 dedupe_advice_valid;
-
-	/** Number of times the UDS advice proved incorrect */
-	Atomic64 dedupe_advice_stale;
-
-	/** Number of writes with the same data as another in-flight write */
-	Atomic64 concurrent_data_matches;
-
-	/** Number of writes whose hash collided with an in-flight write */
-	Atomic64 concurrent_hash_collisions;
-};
-
 struct hash_zone {
 	/** Which hash zone this is */
 	zone_count_t zone_number;
@@ -72,8 +54,11 @@ struct hash_zone {
 	/** Ring containing all unused HashLocks */
 	RingNode lock_pool;
 
-	/** Statistics shared by all hash locks in this zone */
-	struct atomic_hash_lock_statistics statistics;
+	/**
+	 * Statistics shared by all hash locks in this zone. Only modified on
+	 * the hash zone thread, but queried by other threads.
+	 **/
+	struct hash_lock_statistics statistics;
 
 	/** Array of all HashLocks */
 	struct hash_lock *lock_array;
@@ -179,16 +164,16 @@ thread_id_t get_hash_zone_thread_id(const struct hash_zone *zone)
 struct hash_lock_statistics
 get_hash_zone_statistics(const struct hash_zone *zone)
 {
-	const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
+	const struct hash_lock_statistics *stats = &zone->statistics;
 	return (struct hash_lock_statistics) {
 		.dedupe_advice_valid =
-			relaxedLoad64(&atoms->dedupe_advice_valid),
+			READ_ONCE(stats->dedupe_advice_valid),
 		.dedupe_advice_stale =
-			relaxedLoad64(&atoms->dedupe_advice_stale),
+			READ_ONCE(stats->dedupe_advice_stale),
 		.concurrent_data_matches =
-			relaxedLoad64(&atoms->concurrent_data_matches),
+			READ_ONCE(stats->concurrent_data_matches),
 		.concurrent_hash_collisions =
-			relaxedLoad64(&atoms->concurrent_hash_collisions),
+			READ_ONCE(stats->concurrent_hash_collisions),
 	};
 }
 
@@ -318,32 +303,40 @@ static void dump_hash_lock(const struct hash_lock *lock)
 		(void *) lock->agent);
 }
 
+/**
+ * Increment a statistic counter in a non-atomic yet thread-safe manner.
+ *
+ * @param stat  The statistic field to increment
+ **/
+static void increment_stat(uint64_t *stat)
+{
+	// Must only be mutated on the hash zone thread. Prevents any compiler
+	// shenanigans from affecting other threads reading stats.
+	WRITE_ONCE(*stat, *stat + 1);
+}
+
 /**********************************************************************/
 void bump_hash_zone_valid_advice_count(struct hash_zone *zone)
 {
-	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.dedupe_advice_valid, 1);
+	increment_stat(&zone->statistics.dedupe_advice_valid);
 }
 
 /**********************************************************************/
 void bump_hash_zone_stale_advice_count(struct hash_zone *zone)
 {
-	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.dedupe_advice_stale, 1);
+	increment_stat(&zone->statistics.dedupe_advice_stale);
 }
 
 /**********************************************************************/
 void bump_hash_zone_data_match_count(struct hash_zone *zone)
 {
-	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.concurrent_data_matches, 1);
+	increment_stat(&zone->statistics.concurrent_data_matches);
 }
 
 /**********************************************************************/
 void bump_hash_zone_collision_count(struct hash_zone *zone)
 {
-	// Must only be mutated on the hash zone thread.
-	relaxedAdd64(&zone->statistics.concurrent_hash_collisions, 1);
+	increment_stat(&zone->statistics.concurrent_hash_collisions);
 }
 
 /**********************************************************************/
