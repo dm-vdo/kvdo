@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#17 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -91,7 +91,7 @@ struct output_batch {
 
 struct packer {
 	/** The ID of the packer's callback thread */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	/** The selector for determining which physical zone to allocate from */
 	struct allocation_selector *selector;
 	/** The number of input bins */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#36 $
  */
 
 #include "referenceCountRebuild.h"
@@ -47,9 +47,9 @@ struct rebuild_completion {
 	/** the completion for flushing the block map */
 	struct vdo_completion sub_task_completion;
 	/** the thread on which all block map operations must be done */
-	ThreadID logical_thread_id;
+	thread_id_t logical_thread_id;
 	/** the admin thread */
-	ThreadID admin_thread_id;
+	thread_id_t admin_thread_id;
 	/** the block map */
 	struct block_map *block_map;
 	/** the slab depot */

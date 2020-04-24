@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#29 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -356,7 +356,7 @@ struct physicalLayer {
  *
  * @return the current thread ID
  **/
-ThreadID getCallbackThreadID(void);
+thread_id_t getCallbackThreadID(void);
 
 /**
  * A function to update a running CRC-32 checksum.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#45 $
  */
 
 #include "packerInternals.h"
@@ -326,7 +326,7 @@ bool is_sufficiently_compressible(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-ThreadID get_packer_thread_id(struct packer *packer)
+thread_id_t get_packer_thread_id(struct packer *packer)
 {
 	return packer->thread_id;
 }
@@ -405,7 +405,7 @@ __attribute__((warn_unused_result)) static bool
 switch_to_packer_thread(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
-	ThreadID thread_id = vio->vdo->packer->thread_id;
+	thread_id_t thread_id = vio->vdo->packer->thread_id;
 	if (completion->callbackThreadID == thread_id) {
 		return true;
 	}

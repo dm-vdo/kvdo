@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#12 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -47,7 +47,7 @@ struct admin_completion;
  *
  * @return The ID of the thread on which the current phase should be performed
  **/
-typedef ThreadID
+typedef thread_id_t
 ThreadIDGetterForPhase(struct admin_completion *admin_completion);
 
 struct admin_completion {
@@ -62,7 +62,7 @@ struct admin_completion {
 	AtomicBool busy;
 	/** The operation type */
 	AdminOperationType type;
-	/** Method to get the ThreadID for the current phase */
+	/** Method to get the thread id for the current phase */
 	ThreadIDGetterForPhase *get_thread_id;
 	/** The current phase of the operation */
 	uint32_t phase;
@@ -141,7 +141,7 @@ struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion);
 void prepare_admin_sub_task_on_thread(struct vdo *vdo,
 				      vdo_action *callback,
 				      vdo_action *error_handler,
-				      ThreadID thread_id);
+				      thread_id_t thread_id);
 
 /**
  * Prepare the sub-task completion of a vdo's admin_completion to run on the

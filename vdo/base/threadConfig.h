@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#6 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -31,12 +31,12 @@ struct thread_config {
 	zone_count_t physical_zone_count;
 	zone_count_t hash_zone_count;
 	thread_count_t base_thread_count;
-	ThreadID admin_thread;
-	ThreadID journal_thread;
-	ThreadID packer_thread;
-	ThreadID *logical_threads;
-	ThreadID *physical_threads;
-	ThreadID *hash_zone_threads;
+	thread_id_t admin_thread;
+	thread_id_t journal_thread;
+	thread_id_t packer_thread;
+	thread_id_t *logical_threads;
+	thread_id_t *physical_threads;
+	thread_id_t *hash_zone_threads;
 };
 
 /**
@@ -107,7 +107,7 @@ void free_thread_config(struct thread_config **config_ptr);
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID
+static inline thread_id_t
 get_logical_zone_thread(const struct thread_config *thread_config,
 			zone_count_t logical_zone)
 {
@@ -125,7 +125,7 @@ get_logical_zone_thread(const struct thread_config *thread_config,
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID
+static inline thread_id_t
 get_physical_zone_thread(const struct thread_config *thread_config,
 			 zone_count_t physical_zone)
 {
@@ -143,7 +143,7 @@ get_physical_zone_thread(const struct thread_config *thread_config,
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID
+static inline thread_id_t
 get_hash_zone_thread(const struct thread_config *thread_config,
 		     zone_count_t hash_zone)
 {
@@ -161,7 +161,7 @@ get_hash_zone_thread(const struct thread_config *thread_config,
  **/
 __attribute__((warn_unused_result))
 static inline
-ThreadID get_journal_zone_thread(const struct thread_config *thread_config)
+thread_id_t get_journal_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->journal_thread;
 }
@@ -175,7 +175,7 @@ ThreadID get_journal_zone_thread(const struct thread_config *thread_config)
  **/
 __attribute__((warn_unused_result))
 static inline
-ThreadID get_packer_zone_thread(const struct thread_config *thread_config)
+thread_id_t get_packer_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->packer_thread;
 }
@@ -189,7 +189,7 @@ ThreadID get_packer_zone_thread(const struct thread_config *thread_config)
  **/
 __attribute__((warn_unused_result))
 static inline
-ThreadID get_admin_thread(const struct thread_config *thread_config)
+thread_id_t get_admin_thread(const struct thread_config *thread_config)
 {
 	return thread_config->admin_thread;
 }
@@ -206,7 +206,7 @@ ThreadID get_admin_thread(const struct thread_config *thread_config)
  * @param buffer_length  Size of the output buffer
  **/
 void get_vdo_thread_name(const struct thread_config *thread_config,
-			 ThreadID thread_id,
+			 thread_id_t thread_id,
 			 char *buffer,
 			 size_t buffer_length);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#34 $
  */
 
 #include "logicalZone.h"
@@ -44,7 +44,7 @@ struct logical_zone {
 	/** Which logical zone this is */
 	zone_count_t zone_number;
 	/** The thread id for this zone */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	/** In progress operations keyed by LBN */
 	struct int_map *lbn_operations;
 	/** The logical to physical map */
@@ -107,7 +107,8 @@ struct logical_zone *get_logical_zone(struct logical_zones *zones,
 /**
  * Implements ZoneThreadGetter
  **/
-static ThreadID get_thread_id_for_zone(void *context, zone_count_t zone_number)
+static thread_id_t get_thread_id_for_zone(void *context,
+					  zone_count_t zone_number)
 {
 	return get_logical_zone_thread_id(get_logical_zone(context,
 							   zone_number));
@@ -281,7 +282,7 @@ void resume_logical_zones(struct logical_zones *zones,
 }
 
 /**********************************************************************/
-ThreadID get_logical_zone_thread_id(const struct logical_zone *zone)
+thread_id_t get_logical_zone_thread_id(const struct logical_zone *zone)
 {
 	return zone->thread_id;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#10 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -63,7 +63,7 @@ zone_count_t get_physical_zone_number(const struct physical_zone *zone)
  *
  * @return The zone's thread ID
  **/
-ThreadID get_physical_zone_thread_id(const struct physical_zone *zone)
+thread_id_t get_physical_zone_thread_id(const struct physical_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

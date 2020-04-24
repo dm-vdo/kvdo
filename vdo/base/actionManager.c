@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#21 $
  */
 
 #include "actionManager.h"
@@ -72,7 +72,7 @@ struct action_manager {
 	 **/
 	zone_thread_getter *get_zone_thread_id;
 	/** The ID of the thread on which actions may be initiated */
-	ThreadID initiator_thread_id;
+	thread_id_t initiator_thread_id;
 	/** Opaque data associated with this action manager */
 	void *context;
 	/** The zone currently being acted upon */
@@ -127,7 +127,7 @@ static int no_conclusion(void *context __attribute__((unused)))
 /**********************************************************************/
 int make_action_manager(zone_count_t zones,
 			zone_thread_getter *get_zone_thread_id,
-			ThreadID initiator_thread_id,
+			thread_id_t initiator_thread_id,
 			void *context,
 			action_scheduler *scheduler,
 			PhysicalLayer *layer,
@@ -194,7 +194,7 @@ static void apply_to_zone(struct vdo_completion *completion);
  *
  * @return The ID of the thread on which to run actions for the current zone
  **/
-static ThreadID getActingZoneThreadID(struct action_manager *manager)
+static thread_id_t getActingZoneThreadID(struct action_manager *manager)
 {
 	return manager->get_zone_thread_id(manager->context,
 					   manager->acting_zone);

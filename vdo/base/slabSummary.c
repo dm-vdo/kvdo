@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#37 $
  */
 
 #include "slabSummary.h"
@@ -121,7 +121,7 @@ static void launch_write(struct slab_summary_block *summary_block);
 static int
 initialize_slab_summary_block(PhysicalLayer *layer,
 			      struct slab_summary_zone *summary_zone,
-			      ThreadID thread_id,
+			      thread_id_t thread_id,
 			      struct slab_summary_entry *entries,
 			      block_count_t index,
 			      struct slab_summary_block *slab_summary_block)
@@ -161,7 +161,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 static int make_slab_summary_zone(struct slab_summary *summary,
 				  PhysicalLayer *layer,
 				  zone_count_t zoneNumber,
-				  ThreadID thread_id,
+				  thread_id_t thread_id,
 				  struct slab_summary_entry *entries)
 {
 	int result = ALLOCATE_EXTENDED(struct slab_summary_zone,

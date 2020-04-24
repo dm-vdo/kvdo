@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#29 $
  */
 
 #include "vdoResize.h"
@@ -52,7 +52,7 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 /**
  * Implements ThreadIDGetterForPhase.
  **/
-__attribute__((warn_unused_result)) static ThreadID
+__attribute__((warn_unused_result)) static thread_id_t
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	return get_admin_thread(get_thread_config(admin_completion->vdo));

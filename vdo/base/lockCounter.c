@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#10 $
  */
 
 #include "lockCounter.h"
@@ -66,7 +66,7 @@ struct lock_counter {
 
 /**********************************************************************/
 int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
-		      ThreadID threadID, zone_count_t logical_zones,
+		      thread_id_t threadID, zone_count_t logical_zones,
 		      zone_count_t physical_zones, block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 {

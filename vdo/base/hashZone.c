@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#21 $
  */
 
 #include "hashZone.h"
@@ -64,7 +64,7 @@ struct hash_zone {
 	zone_count_t zone_number;
 
 	/** The thread ID for this zone */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 
 	/** Mapping from chunkName fields to HashLocks */
 	struct pointer_map *hash_lock_map;
@@ -170,7 +170,7 @@ zone_count_t get_hash_zone_number(const struct hash_zone *zone)
 }
 
 /**********************************************************************/
-ThreadID get_hash_zone_thread_id(const struct hash_zone *zone)
+thread_id_t get_hash_zone_thread_id(const struct hash_zone *zone)
 {
 	return zone->thread_id;
 }

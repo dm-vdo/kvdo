@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#23 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -38,7 +38,7 @@ struct recovery_journal_block;
 
 struct recovery_journal {
 	/** The thread ID of the journal zone */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	/** The slab depot which can hold locks on this journal */
 	struct slab_depot *depot;
 	/** The block map which can hold locks on this journal */

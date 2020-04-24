@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#33 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -227,7 +227,7 @@ void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
 					  const char *function_name)
 {
-	ThreadID thread_id = getCallbackThreadID();
+	thread_id_t thread_id = getCallbackThreadID();
 	ASSERT_LOG_ONLY((thread_id == cache->zone->thread_id),
 			"%s() must only be called on cache thread %d, not thread %d",
 			function_name,

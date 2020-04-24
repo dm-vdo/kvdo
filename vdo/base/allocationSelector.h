@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#5 $
  */
 
 #ifndef ALLOCATION_SELECTOR_H
@@ -41,7 +41,7 @@
  * @return VDO_SUCCESS or an error
  **/
 int make_allocation_selector(zone_count_t physical_zone_count,
-			     ThreadID thread_id,
+			     thread_id_t thread_id,
 			     struct allocation_selector **selector_ptr)
 	__attribute__((warn_unused_result));
 

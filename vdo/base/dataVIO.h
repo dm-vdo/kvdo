@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#42 $
  */
 
 #ifndef DATA_VIO_H
@@ -105,7 +105,7 @@ struct tree_lock {
 	/* Whether we hold a page lock */
 	bool locked;
 	/* The thread on which to run the callback */
-	ThreadID threadID;
+	thread_id_t threadID;
 	/* The function to call after looking up a block map slot */
 	vdo_action *callback;
 	/* The key for the lock map */
@@ -566,8 +566,8 @@ enqueue_data_vio(struct wait_queue *queue,
  **/
 static inline void assert_in_hash_zone(struct data_vio *data_vio)
 {
-	ThreadID expected = get_hash_zone_thread_id(data_vio->hashZone);
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t expected = get_hash_zone_thread_id(data_vio->hashZone);
+	thread_id_t threadID = getCallbackThreadID();
 	// It's odd to use the LBN, but converting the chunk name to hex is a
 	// bit clunky for an inline, and the LBN better than nothing as an
 	// identifier.
@@ -621,8 +621,9 @@ launch_hash_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_logical_zone(struct data_vio *data_vio)
 {
-	ThreadID expected = get_logical_zone_thread_id(data_vio->logical.zone);
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t expected =
+		get_logical_zone_thread_id(data_vio->logical.zone);
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on thread %u",
@@ -717,9 +718,9 @@ launch_allocated_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
 {
-	ThreadID expected =
+	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->duplicate.zone);
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for duplicate physical block %" PRIu64
 			" on thread %u, should be on thread %u",
@@ -770,8 +771,9 @@ launch_duplicate_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_mapped_zone(struct data_vio *data_vio)
 {
-	ThreadID expected = get_physical_zone_thread_id(data_vio->mapped.zone);
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t expected =
+		get_physical_zone_thread_id(data_vio->mapped.zone);
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for mapped physical block %" PRIu64
 			" on thread %u, should be on thread %u",
@@ -806,9 +808,9 @@ set_mapped_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 {
-	ThreadID expected =
+	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->newMapped.zone);
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for newMapped physical block %" PRIu64
 			" on thread %u, should be on thread %u",
@@ -859,9 +861,9 @@ launch_new_mapped_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
-	ThreadID expected =
+	thread_id_t expected =
 		get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on journal thread %u",
@@ -910,9 +912,9 @@ launch_journal_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
-	ThreadID expected =
+	thread_id_t expected =
 		get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
-	ThreadID threadID = getCallbackThreadID();
+	thread_id_t threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on packer thread %u",

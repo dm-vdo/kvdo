@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#14 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -82,7 +82,7 @@ void resume_logical_zones(struct logical_zones *zones,
  *
  * @return The zone's thread ID
  **/
-ThreadID get_logical_zone_thread_id(const struct logical_zone *zone)
+thread_id_t get_logical_zone_thread_id(const struct logical_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

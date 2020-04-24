@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#13 $
  */
 
 #include "vioPool.h"
@@ -46,7 +46,7 @@ struct vio_pool {
 	/** The number of requests when no object was available */
 	uint64_t outage_count;
 	/** The ID of the thread on which this pool may be used */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	/** The buffer backing the pool's vios */
 	char *buffer;
 	/** The pool entries */
@@ -54,7 +54,7 @@ struct vio_pool {
 };
 
 /**********************************************************************/
-int make_vio_pool(PhysicalLayer *layer, size_t pool_size, ThreadID thread_id,
+int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		  vio_constructor *vio_constructor, void *context,
 		  struct vio_pool **pool_ptr)
 {

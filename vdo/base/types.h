@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#56 $
  */
 
 #ifndef TYPES_H
@@ -136,13 +136,13 @@ typedef uint8_t thread_count_t;
  *
  * Base-code threads are numbered sequentially starting from 0.
  **/
-typedef uint8_t ThreadID;
+typedef uint8_t thread_id_t;
 
 /**
  * The thread ID returned when the current base code thread ID cannot be found
  * or is otherwise undefined.
  **/
-static const ThreadID INVALID_THREAD_ID = (ThreadID) -1;
+static const thread_id_t INVALID_THREAD_ID = (thread_id_t) -1;
 
 /**
  * A zone counter

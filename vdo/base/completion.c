@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#17 $
  */
 
 #include "completion.h"
@@ -107,7 +107,7 @@ static inline bool requires_enqueue(struct vdo_completion *completion)
 		return true;
 	}
 
-	ThreadID callback_thread = completion->callbackThreadID;
+	thread_id_t callback_thread = completion->callbackThreadID;
 	return (callback_thread != getCallbackThreadID());
 }
 

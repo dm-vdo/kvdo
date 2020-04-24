@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#22 $
  */
 
 #include "vdoResume.h"
@@ -58,7 +58,7 @@ static const char *RESUME_PHASE_NAMES[] = {
 /**
  * Implements ThreadIDGetterForPhase.
  **/
-__attribute__((warn_unused_result)) static ThreadID
+__attribute__((warn_unused_result)) static thread_id_t
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#28 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -45,7 +45,7 @@
  **/
 int make_block_allocator(struct slab_depot *depot,
 			 zone_count_t zone_number,
-			 ThreadID thread_id,
+			 thread_id_t thread_id,
 			 nonce_t nonce,
 			 block_count_t vio_pool_size,
 			 PhysicalLayer *layer,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#62 $
  */
 
 #include "blockMap.h"
@@ -327,8 +327,8 @@ struct block_map_zone *get_block_map_zone(struct block_map *map,
  *
  * <p>Implements ZoneThreadGetter.
  **/
-static ThreadID get_block_map_zone_thread_id(void *context,
-					     zone_count_t zone_number)
+static thread_id_t get_block_map_zone_thread_id(void *context,
+						zone_count_t zone_number)
 {
 	return get_block_map_zone(context, zone_number)->thread_id;
 }
@@ -531,7 +531,7 @@ zone_count_t compute_logical_zone(struct data_vio *data_vio)
 /**********************************************************************/
 void find_block_map_slot_async(struct data_vio *data_vio,
 			       vdo_action *callback,
-			       ThreadID thread_id)
+			       thread_id_t thread_id)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	if (data_vio->logical.lbn >= map->entry_count) {

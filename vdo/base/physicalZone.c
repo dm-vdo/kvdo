@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#20 $
  */
 
 #include "physicalZone.h"
@@ -46,7 +46,7 @@ struct physical_zone {
 	/** Which physical zone this is */
 	zone_count_t zone_number;
 	/** The thread ID for this zone */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	/** In progress operations keyed by PBN */
 	struct int_map *pbn_operations;
 	/** Pool of unused pbn_lock instances */
@@ -109,7 +109,7 @@ zone_count_t get_physical_zone_number(const struct physical_zone *zone)
 }
 
 /**********************************************************************/
-ThreadID get_physical_zone_thread_id(const struct physical_zone *zone)
+thread_id_t get_physical_zone_thread_id(const struct physical_zone *zone)
 {
 	return zone->thread_id;
 }

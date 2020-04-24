@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#51 $
  */
 
 /*
@@ -285,7 +285,7 @@ struct sync_queue_work {
 static void performKVDOOperation(struct kvdo *kvdo,
 				 KvdoWorkFunction action,
 				 void *data,
-				 ThreadID thread_id,
+				 thread_id_t thread_id,
 				 struct completion *completion)
 {
 	struct sync_queue_work sync;
@@ -449,7 +449,7 @@ static void perform_vdo_action_work(struct kvdo_work_item *item)
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
 	struct vdo_action_data *data = work->data;
-	ThreadID id = getCallbackThreadID();
+	thread_id_t id = getCallbackThreadID();
 
 	set_callback_with_parent(data->vdo_completion,
 			        finish_vdo_action,
@@ -552,7 +552,7 @@ void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
 
 /**********************************************************************/
 void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
-		       ThreadID thread_id)
+		       thread_id_t thread_id)
 {
 	enqueue_kvdo_thread_work(&kvdo->threads[thread_id], item);
 }
@@ -561,7 +561,7 @@ void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
 void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 		  void *stats_function, unsigned int action)
 {
-	ThreadID thread_id = vio_as_completion(kvio->vio)->callbackThreadID;
+	thread_id_t thread_id = vio_as_completion(kvio->vio)->callbackThreadID;
 
 	BUG_ON(thread_id >= kvio->layer->kvdo.initialized_thread_count);
 	launch_kvio(kvio,
@@ -582,7 +582,7 @@ static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
 void kvdo_enqueue(struct vdo_completion *completion)
 {
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
-	ThreadID thread_id = completion->callbackThreadID;
+	thread_id_t thread_id = completion->callbackThreadID;
 
 	if (ASSERT(thread_id < layer->kvdo.initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
@@ -604,7 +604,7 @@ void kvdo_enqueue(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-ThreadID getCallbackThreadID(void)
+thread_id_t getCallbackThreadID(void)
 {
 	struct kvdo_thread *thread = get_work_queue_private_data();
 
@@ -612,7 +612,7 @@ ThreadID getCallbackThreadID(void)
 		return INVALID_THREAD_ID;
 	}
 
-	ThreadID thread_id = thread->thread_id;
+	thread_id_t thread_id = thread->thread_id;
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct kvdo *kvdo = thread->kvdo;

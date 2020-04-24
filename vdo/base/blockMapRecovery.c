@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#27 $
  */
 
 #include "blockMapRecovery.h"
@@ -46,9 +46,9 @@ struct block_map_recovery_completion {
 	/** the completion for flushing the block map */
 	struct vdo_completion sub_task_completion;
 	/** the thread from which the block map may be flushed */
-	ThreadID admin_thread;
+	thread_id_t admin_thread;
 	/** the thread on which all block map operations must be done */
-	ThreadID logical_thread_id;
+	thread_id_t logical_thread_id;
 	/** the block map */
 	struct block_map *block_map;
 	/** whether this recovery has been aborted */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#19 $
  */
 
 #ifndef COMPLETION_H
@@ -86,7 +86,7 @@ struct vdo_completion {
 	bool requeue;
 
 	/** The ID of the thread which should run the next callback */
-	ThreadID callbackThreadID;
+	thread_id_t callbackThreadID;
 
 	/** The result of the operation */
 	int result;
@@ -259,7 +259,7 @@ const char *get_completion_type_name(VDOCompletionType completion_type);
  **/
 static inline void set_callback(struct vdo_completion *completion,
 				vdo_action *callback,
-				ThreadID thread_id)
+				thread_id_t thread_id)
 {
 	completion->callback = callback;
 	completion->callbackThreadID = thread_id;
@@ -274,7 +274,7 @@ static inline void set_callback(struct vdo_completion *completion,
  **/
 static inline void launch_callback(struct vdo_completion *completion,
 				   vdo_action *callback,
-				   ThreadID thread_id)
+				   thread_id_t thread_id)
 {
 	set_callback(completion, callback, thread_id);
 	invoke_callback(completion);
@@ -290,7 +290,7 @@ static inline void launch_callback(struct vdo_completion *completion,
  **/
 static inline void set_callback_with_parent(struct vdo_completion *completion,
 					    vdo_action *callback,
-					    ThreadID thread_id,
+					    thread_id_t thread_id,
 					    void *parent)
 {
 	set_callback(completion, callback, thread_id);
@@ -309,7 +309,7 @@ static inline void set_callback_with_parent(struct vdo_completion *completion,
 static inline void
 launch_callback_with_parent(struct vdo_completion *completion,
 			    vdo_action *callback,
-			    ThreadID thread_id,
+			    thread_id_t thread_id,
 			    void *parent)
 {
 	set_callback_with_parent(completion, callback, thread_id, parent);
@@ -329,7 +329,7 @@ launch_callback_with_parent(struct vdo_completion *completion,
 static inline void prepare_completion(struct vdo_completion *completion,
 				      vdo_action *callback,
 				      vdo_action *error_handler,
-				      ThreadID thread_id,
+				      thread_id_t thread_id,
 				      void *parent)
 {
 	reset_completion(completion);
@@ -351,7 +351,7 @@ static inline void prepare_completion(struct vdo_completion *completion,
 static inline void prepare_for_requeue(struct vdo_completion *completion,
 				       vdo_action *callback,
 				       vdo_action *error_handler,
-				       ThreadID thread_id,
+				       thread_id_t thread_id,
 				       void *parent)
 {
 	prepare_completion(completion,

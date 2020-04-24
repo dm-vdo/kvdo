@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#26 $
  */
 
 #include "flush.h"
@@ -49,7 +49,7 @@ struct flusher {
 	/** The logical zone to notify next */
 	struct logical_zone *logical_zone_to_notify;
 	/** The ID of the thread on which flush requests should be made */
-	ThreadID thread_id;
+	thread_id_t thread_id;
 };
 
 /**
@@ -107,7 +107,7 @@ void free_flusher(struct flusher **flusher_ptr)
 }
 
 /**********************************************************************/
-ThreadID get_flusher_thread_id(struct flusher *flusher)
+thread_id_t get_flusher_thread_id(struct flusher *flusher)
 {
 	return flusher->thread_id;
 }

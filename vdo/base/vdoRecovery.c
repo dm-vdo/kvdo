@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#60 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -265,7 +265,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 {
 	const struct thread_config *thread_config =
 		get_thread_config(recovery->vdo);
-	ThreadID thread_id;
+	thread_id_t thread_id;
 	switch (zone_type) {
 	case ZONE_TYPE_LOGICAL:
 		// All blockmap access is done on single thread, so use logical

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#7 $
  */
 
 #include "threadConfig.h"
@@ -42,7 +42,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	}
 
 	result = ALLOCATE(logical_zone_count,
-			  ThreadID,
+			  thread_id_t,
 			  "logical thread array",
 			  &config->logical_threads);
 	if (result != VDO_SUCCESS) {
@@ -51,7 +51,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	}
 
 	result = ALLOCATE(physical_zone_count,
-			  ThreadID,
+			  thread_id_t,
 			  "physical thread array",
 			  &config->physical_threads);
 	if (result != VDO_SUCCESS) {
@@ -60,7 +60,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	}
 
 	result = ALLOCATE(hash_zone_count,
-			  ThreadID,
+			  thread_id_t,
 			  "hash thread array",
 			  &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
@@ -79,7 +79,8 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 
 /**********************************************************************/
 static void
-assign_thread_ids(ThreadID thread_ids[], zone_count_t count, ThreadID *id_ptr)
+assign_thread_ids(thread_id_t thread_ids[], zone_count_t count,
+		  thread_id_t *id_ptr)
 {
 	zone_count_t zone;
 	for (zone = 0; zone < count; zone++) {
@@ -128,7 +129,7 @@ int make_thread_config(zone_count_t logical_zone_count,
 		return result;
 	}
 
-	ThreadID id = 0;
+	thread_id_t id = 0;
 	config->admin_thread = id;
 	config->journal_thread = id++;
 	config->packer_thread = id++;
@@ -224,15 +225,15 @@ void free_thread_config(struct thread_config **config_ptr)
 }
 
 /**********************************************************************/
-static bool get_zone_thread_name(const ThreadID thread_ids[],
+static bool get_zone_thread_name(const thread_id_t thread_ids[],
 				 zone_count_t count,
-				 ThreadID id,
+				 thread_id_t id,
 				 const char *prefix,
 				 char *buffer,
 				 size_t buffer_length)
 {
 	if (id >= thread_ids[0]) {
-		ThreadID index = id - thread_ids[0];
+		thread_id_t index = id - thread_ids[0];
 		if (index < count) {
 			snprintf(buffer, buffer_length, "%s%d", prefix, index);
 			return true;
@@ -243,7 +244,7 @@ static bool get_zone_thread_name(const ThreadID thread_ids[],
 
 /**********************************************************************/
 void get_vdo_thread_name(const struct thread_config *thread_config,
-			 ThreadID thread_id,
+			 thread_id_t thread_id,
 			 char *buffer,
 			 size_t buffer_length)
 {
