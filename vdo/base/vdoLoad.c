@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#45 $
  */
 
 #include "vdoLoad.h"
@@ -39,6 +39,7 @@
 #include "slabSummary.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdoDecode.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
 #include "volumeGeometry.h"
@@ -273,88 +274,6 @@ int perform_vdo_load(struct vdo *vdo)
 				       load_callback, load_callback);
 }
 
-/**********************************************************************/
-__attribute__((warn_unused_result)) static int
-start_vdo_decode(struct vdo *vdo, bool validate_config)
-{
-	int result = validate_vdo_version(vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_vdo_component(vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	if (!validate_config) {
-		return VDO_SUCCESS;
-	}
-
-	if (vdo->load_config.nonce != vdo->nonce) {
-		return logErrorWithStringError(VDO_BAD_NONCE,
-					       "Geometry nonce %llu does not match superblock nonce %llu",
-					       vdo->load_config.nonce,
-					       vdo->nonce);
-	}
-
-	block_count_t block_count = vdo->layer->getBlockCount(vdo->layer);
-	return validate_vdo_config(&vdo->config, block_count, true);
-}
-
-/**********************************************************************/
-__attribute__((warn_unused_result)) static int
-finish_vdo_decode(struct vdo *vdo)
-{
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	const struct thread_config *thread_config = get_thread_config(vdo);
-	int result =
-		make_recovery_journal(vdo->nonce,
-				      vdo->layer,
-				      get_vdo_partition(vdo->layout,
-							RECOVERY_JOURNAL_PARTITION),
-				      vdo->complete_recoveries,
-				      vdo->config.recovery_journal_size,
-				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-				      vdo->read_only_notifier,
-				      thread_config,
-				      &vdo->recovery_journal);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_recovery_journal(vdo->recovery_journal, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_slab_depot(buffer,
-				   thread_config,
-				   vdo->nonce,
-				   vdo->layer,
-				   get_vdo_partition(vdo->layout,
-						     SLAB_SUMMARY_PARTITION),
-				   vdo->read_only_notifier,
-				   vdo->recovery_journal,
-				   &vdo->state,
-				   &vdo->depot);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_block_map(buffer,
-				  vdo->config.logical_blocks,
-				  thread_config,
-				  &vdo->block_map);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	ASSERT_LOG_ONLY((content_length(buffer) == 0),
-			"All decoded component data was used");
-	return VDO_SUCCESS;
-}
-
 /**
  * Decode the component data portion of a super block and fill in the
  * corresponding portions of the vdo being loaded. This will also allocate the
@@ -508,71 +427,4 @@ int prepare_to_load_vdo(struct vdo *vdo,
 				       NULL,
 				       pre_load_callback,
 				       pre_load_callback);
-}
-
-/**********************************************************************/
-__attribute__((warn_unused_result)) static int
-decode_synchronous_vdo(struct vdo *vdo, bool validate_config)
-{
-	int result = start_vdo_decode(vdo, validate_config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_vdo_layout(get_component_buffer(vdo->super_block),
-				   &vdo->layout);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return finish_vdo_decode(vdo);
-}
-
-/**********************************************************************/
-int load_vdo_superblock(PhysicalLayer *layer,
-			struct volume_geometry *geometry,
-			bool validate_config,
-			VDODecoder *decoder,
-			struct vdo **vdo_ptr)
-{
-	struct vdo *vdo;
-	int result = make_vdo(layer, &vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	setLoadConfigFromGeometry(geometry, &vdo->load_config);
-	result = load_super_block(layer, get_first_block_offset(vdo),
-				  &vdo->super_block);
-	if (result != VDO_SUCCESS) {
-		free_vdo(&vdo);
-		return result;
-	}
-
-	result =
-		((decoder == NULL) ? decode_synchronous_vdo(vdo,
-							    validate_config) :
-				     decoder(vdo, validate_config));
-	if (result != VDO_SUCCESS) {
-		free_vdo(&vdo);
-		return result;
-	}
-
-	*vdo_ptr = vdo;
-	return VDO_SUCCESS;
-}
-/**********************************************************************/
-int load_vdo(PhysicalLayer *layer,
-	     bool validate_config,
-	     VDODecoder *decoder,
-	     struct vdo **vdo_ptr)
-{
-	struct volume_geometry geometry;
-	int result = load_volume_geometry(layer, &geometry);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return load_vdo_superblock(layer, &geometry, validate_config,
-				   decoder, vdo_ptr);
 }

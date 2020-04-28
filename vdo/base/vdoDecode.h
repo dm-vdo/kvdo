@@ -16,34 +16,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.h#1 $
  */
 
-#ifndef VDO_LOAD_H
-#define VDO_LOAD_H
+#ifndef VDO_DECODE_H
+#define VDO_DECODE_H
 
-#include "volumeGeometry.h"
 #include "types.h"
 
 /**
- * Load a vdo for normal operation. This method must not be called from a base
- * thread.
+ * Start the process of decoding the component data in a VDO super block.
  *
- * @param vdo         The vdo to load
+ * @param vdo              The VDO to decode
+ * @param validate_config  If <code>true</code>, validate the VDO's
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_load(struct vdo *vdo)
-	__attribute__((warn_unused_result));
+int __must_check start_vdo_decode(struct vdo *vdo, bool validate_config);
 
 /**
- * Perpare a vdo for loading by reading structures off disk. This method does
- * not alter the on-disk state. It should be called from the vdo constructor,
- * whereas perform_vdo_load() will be called during pre-resume if the vdo has
- * not been resumed before.
+ * Finish the process of decoding the component data in a VDO super block, now
+ * that the layout has been decoded and validated.
+ *
+ * @param vdo  The VDO to decode
+ *
+ * @return VDO_SUCCESS or an error
  **/
-int prepare_to_load_vdo(struct vdo *vdo,
-			const struct vdo_load_config *load_config)
-	__attribute__((warn_unused_result));
+int __must_check finish_vdo_decode(struct vdo *vdo);
 
-#endif /* VDO_LOAD_H */
+#endif /* VDO_DECODE_H */
