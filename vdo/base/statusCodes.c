@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#5 $
  */
 
 #include "statusCodes.h"
@@ -68,9 +68,38 @@ const struct errorInfo vdo_status_list[] = {
 	{ "VDO_INVALID_ADMIN_STATE", "Invalid operation for current state" },
 };
 
+static OnceState vdo_status_codes_registered = ONCE_STATE_INITIALIZER;
+static int status_code_registration_result;
+
+/**********************************************************************/
+static void do_status_code_registration(void)
+{
+	STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) ==
+		      COUNT_OF(vdo_status_list));
+
+	int result = registerErrorBlock("VDO Status",
+					VDO_STATUS_CODE_BASE,
+					VDO_STATUS_CODE_BLOCK_END,
+					vdo_status_list,
+					sizeof(vdo_status_list));
+	/*
+	 *  The following test handles cases where libvdo is statically linked
+	 *  against both the test modules and the test driver (because multiple
+	 *  instances of this module call their own copy of this function
+	 *  once each, resulting in multiple calls to registerErrorBlock which
+	 *  is shared in libuds).
+	 */
+	if (result == UDS_DUPLICATE_NAME) {
+		result = UDS_SUCCESS;
+	}
+
+	status_code_registration_result =
+		(result == UDS_SUCCESS) ? VDO_SUCCESS : result;
+}
 
 /**********************************************************************/
 int register_status_codes(void)
 {
-	return VDO_SUCCESS;
+	performOnce(&vdo_status_codes_registered, do_status_code_registration);
+	return status_code_registration_result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#52 $
  */
 
 #include "dmvdo.h"
@@ -917,9 +917,16 @@ static int __init vdo_init(void)
 	int result = 0;
 
 	initialize_thread_device_registry();
-	initialize_standard_error_blocks();
 	initialize_device_registry_once();
 	logInfo("loaded version %s", CURRENT_VERSION);
+
+	// Add VDO errors to the already existing set of errors in UDS.
+	result = register_status_codes();
+	if (result != UDS_SUCCESS) {
+		logError("register_status_codes failed %d", result);
+		vdo_destroy();
+		return result;
+	}
 
 	result = dm_register_target(&vdo_target_bio);
 	if (result < 0) {
