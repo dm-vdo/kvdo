@@ -16,20 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#39 $
  */
 
 #ifndef KERNELLAYER_H
 #define KERNELLAYER_H
 
 #include <linux/device-mapper.h>
+#include <linux/list.h>
 
 #include "atomic.h"
 #include "constants.h"
 #include "flush.h"
 #include "intMap.h"
 #include "physicalLayer.h"
-#include "ringNode.h"
 #include "volumeGeometry.h"
 #include "waitQueue.h"
 
@@ -81,8 +81,8 @@ struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
 	struct device_config *device_config;
-	/** A ring of all DeviceConfigs referencing this layer */
-	RingNode device_config_ring;
+	/** A list of all DeviceConfigs referencing this layer */
+	struct list_head device_config_list;
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
 	struct kobject wq_directory;

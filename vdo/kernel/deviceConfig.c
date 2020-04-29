@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#14 $
  */
 
 #include "deviceConfig.h"
@@ -570,7 +570,7 @@ int parse_device_config(int argc,
 	}
 
 	config->owning_target = ti;
-	initializeRing(&config->config_node);
+	INIT_LIST_HEAD(&config->config_list);
 
 	// Save the original string.
 	result = join_strings(argv, argc, ' ', &config->original_string);
@@ -819,9 +819,9 @@ const char *get_config_write_policy_string(struct device_config *config)
 void set_device_config_layer(struct device_config *config,
 			     struct kernel_layer *layer)
 {
-	unspliceRingNode(&config->config_node);
+	list_del_init(&config->config_list);
 	if (layer != NULL) {
-		pushRingNode(&layer->device_config_ring, &config->config_node);
+		list_add_tail(&layer->device_config_list, &config->config_list);
 	}
 	config->layer = layer;
 }

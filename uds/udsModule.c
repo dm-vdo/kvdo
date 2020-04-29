@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#14 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#15 $
  */
 
 #include <linux/module.h>
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 #include "sysfs.h"
+#include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
 #include "uds-block.h"
@@ -122,6 +123,7 @@ EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(nowUsec);
 EXPORT_SYMBOL_GPL(peek_byte);
+EXPORT_SYMBOL_GPL(performOnce);
 EXPORT_SYMBOL_GPL(put_boolean);
 EXPORT_SYMBOL_GPL(put_buffer);
 EXPORT_SYMBOL_GPL(put_byte);

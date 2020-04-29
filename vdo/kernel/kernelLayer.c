@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#89 $
  */
 
 #include "kernelLayer.h"
@@ -601,7 +601,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->instance = instance;
 	layer->device_config = config;
 	layer->starting_sector_offset = starting_sector;
-	initializeRing(&layer->device_config_ring);
+	INIT_LIST_HEAD(&layer->device_config_list);
 
 	layer->common.getBlockCount = kvdo_get_block_count;
 	layer->common.getWritePolicy = kvdoGetWritePolicy;
