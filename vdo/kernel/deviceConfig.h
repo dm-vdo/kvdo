@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#13 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
 
 #include <linux/device-mapper.h>
-#include <linux/list.h>
+
+#include "ringNode.h"
 
 #include "kernelTypes.h"
 
@@ -47,8 +48,8 @@ struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
 	struct kernel_layer *layer;
-	/** All configs referencing a layer are kept on a list in the layer */
-	struct list_head config_list;
+	/** All configs referencing a layer are kept on a ring in the layer */
+	RingNode config_node;
 	char *original_string;
 	TableVersion version;
 	char *parent_device_name;
@@ -64,19 +65,18 @@ struct device_config {
 };
 
 /**
- * Convert a list entry to the device_config that contains it. If non-NULL,
- * the list must not be empty.
+ * Convert a RingNode to the device_config that contains it.
  *
- * @param entry  The list entry to convert
+ * @param node  The RingNode to convert
  *
- * @return The device_config wrapping the list entry
+ * @return The device_config wrapping the RingNode
  **/
-static inline struct device_config *as_device_config(struct list_head *entry)
+static inline struct device_config *as_device_config(RingNode *node)
 {
-	if (entry == NULL) {
+	if (node == NULL) {
 		return NULL;
 	}
-	return container_of(entry, struct device_config, config_list);
+	return container_of(node, struct device_config, config_node);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#53 $
  */
 
 #include "dmvdo.h"
@@ -733,7 +733,7 @@ static void vdo_dtr(struct dm_target *ti)
 
 	set_device_config_layer(config, NULL);
 
-	if (list_empty(&layer->device_config_list)) {
+	if (isRingEmpty(&layer->device_config_ring)) {
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		RegisteredThread allocating_thread, instance_thread;
@@ -755,8 +755,8 @@ static void vdo_dtr(struct dm_target *ti)
 	} else if (config == layer->device_config) {
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.
-		layer->device_config =
-			as_device_config(layer->device_config_list.next);
+		layer->device_config
+			= as_device_config(layer->device_config_ring.next);
 	}
 
 	free_device_config(&config);
