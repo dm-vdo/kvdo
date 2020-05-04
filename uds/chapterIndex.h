@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#5 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -51,11 +51,11 @@ struct open_chapter_index {
  *
  * @return error code or UDS_SUCCESS
  **/
-int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
-			    const Geometry *geometry,
-			    bool chapter_index_header_native_endian,
-			    uint64_t volume_nonce)
-	__attribute__((warn_unused_result));
+int __must_check
+make_open_chapter_index(struct open_chapter_index **open_chapter_index,
+			const Geometry *geometry,
+			bool chapter_index_header_native_endian,
+			uint64_t volume_nonce);
 
 /**
  * Terminate and clean up an open chapter index.
@@ -106,12 +106,12 @@ put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
  * @return error code or UDS_SUCCESS.  On UDS_SUCCESS, the num_lists
  *         argument contains the number of lists copied.
  **/
-int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
-				 byte *memory,
-				 unsigned int first_list,
-				 bool last_page,
-				 unsigned int *num_lists)
-	__attribute__((warn_unused_result));
+int __must_check
+pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
+			     byte *memory,
+			     unsigned int first_list,
+			     bool last_page,
+			     unsigned int *num_lists);
 
 /**
  * Get the number of records in an open chapter index.
@@ -120,8 +120,8 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
  *
  * @return The number of records
  **/
-int get_open_chapter_index_size(struct open_chapter_index *open_chapter_index)
-	__attribute__((warn_unused_result));
+int __must_check
+get_open_chapter_index_size(struct open_chapter_index *open_chapter_index);
 
 /**
  * Get the number of bytes allocated for the open chapter index.
@@ -144,11 +144,11 @@ get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_
  *
  * @return UDS_SUCCESS or an error code
  **/
-int initialize_chapter_index_page(DeltaIndexPage *chapter_index_page,
-				  const Geometry *geometry,
-				  byte *index_page,
-				  uint64_t volume_nonce)
-	__attribute__((warn_unused_result));
+int __must_check
+initialize_chapter_index_page(DeltaIndexPage *chapter_index_page,
+			      const Geometry *geometry,
+			      byte *index_page,
+			      uint64_t volume_nonce);
 
 /**
  * Validate a chapter index page.  This is called at rebuild time to ensure
@@ -163,9 +163,9 @@ int initialize_chapter_index_page(DeltaIndexPage *chapter_index_page,
  *         UDS_CORRUPT_DATA if there is a problem in a delta list bit stream
  *         UDS_BAD_STATE if the code follows an invalid code path
  **/
-int validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
-				const Geometry *geometry)
-	__attribute__((warn_unused_result));
+int __must_check
+validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
+			    const Geometry *geometry);
 
 /**
  * Search a chapter index page for a chunk name, returning the record page

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#3 $
  */
 
 #ifndef ERRORS_H
@@ -100,8 +100,7 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen);
  *
  * @return true if the result represents a success.
  */
-__attribute__((warn_unused_result))
-static INLINE bool isSuccessful(int result)
+static INLINE bool __must_check isSuccessful(int result)
 {
   return (result == UDS_SUCCESS) || (result == UDS_QUEUED);
 }
@@ -113,8 +112,7 @@ static INLINE bool isSuccessful(int result)
  *
  * @return true if the result has been marked unrecoverable.
  */
-__attribute__((warn_unused_result))
-static INLINE bool isUnrecoverable(int result)
+static INLINE bool __must_check isUnrecoverable(int result)
 {
   return (result & UDS_UNRECOVERABLE) != 0;
 }
@@ -126,8 +124,7 @@ static INLINE bool isUnrecoverable(int result)
  *
  * @return the result code with the unrecoverable marker added
  */
-__attribute__((warn_unused_result))
-static INLINE int makeUnrecoverable(int result)
+static INLINE int __must_check makeUnrecoverable(int result)
 {
   return isSuccessful(result) ? result : (result | UDS_UNRECOVERABLE);
 }
@@ -139,8 +136,7 @@ static INLINE int makeUnrecoverable(int result)
  *
  * @return the result code with the unrecoverable marker removed
  */
-__attribute__((warn_unused_result))
-static INLINE int sansUnrecoverable(int result)
+static INLINE int __must_check sansUnrecoverable(int result)
 {
   return result & ~UDS_UNRECOVERABLE;
 }

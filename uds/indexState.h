@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#4 $
  */
 
 #ifndef INDEX_STATE_H
@@ -69,11 +69,10 @@ typedef struct indexState {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexState(struct index_layout *layout,
-                   unsigned int         numZones,
-                   unsigned int         maxComponents,
-                   IndexState         **statePtr)
-  __attribute__((warn_unused_result));
+int __must_check makeIndexState(struct index_layout *layout,
+				unsigned int numZones,
+				unsigned int maxComponents,
+				IndexState **statePtr);
 
 /**
  * Free an index state (generically).
@@ -93,11 +92,10 @@ void freeIndexState(IndexState **statePtr);
  *
  * @return          UDS_SUCCESS or an error code.
  **/
-int addIndexStateComponent(IndexState               *state,
-                           const IndexComponentInfo *info,
-                           void                     *data,
-                           void                     *context)
-  __attribute__((warn_unused_result));
+int __must_check addIndexStateComponent(IndexState *state,
+					const IndexComponentInfo *info,
+					void *data,
+					void *context);
 
 /**
  * Load index state
@@ -107,8 +105,7 @@ int addIndexStateComponent(IndexState               *state,
  *
  * @return           UDS_SUCCESS or error
  **/
-int loadIndexState(IndexState *state, bool *replayPtr)
-  __attribute__((warn_unused_result));
+int __must_check loadIndexState(IndexState *state, bool *replayPtr);
 
 /**
  * Save the current index state, including the open chapter.
@@ -117,7 +114,7 @@ int loadIndexState(IndexState *state, bool *replayPtr)
  *
  * @return              UDS_SUCCESS or error
  **/
-int saveIndexState(IndexState *state) __attribute__((warn_unused_result));
+int __must_check saveIndexState(IndexState *state);
 
 /**
  *  Prepare to save the index state.
@@ -127,8 +124,8 @@ int saveIndexState(IndexState *state) __attribute__((warn_unused_result));
  *
  *  @return UDS_SUCCESS or an error code
  **/
-int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
-  __attribute__((warn_unused_result));
+int __must_check
+prepareToSaveIndexState(IndexState *state, IndexSaveType saveType);
 
 /**
  * Write index checkpoint non-incrementally (for testing).
@@ -137,8 +134,7 @@ int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
  *
  * @return              UDS_SUCCESS or error
  **/
-int writeIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check writeIndexStateCheckpoint(IndexState *state);
 
 /**
  * Sets up an index state checkpoint which will proceed incrementally.
@@ -148,8 +144,7 @@ int writeIndexStateCheckpoint(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int startIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check startIndexStateCheckpoint(IndexState *state);
 
 /**
  * Perform operations on index state checkpoints that are synchronized to
@@ -159,8 +154,8 @@ int startIndexStateCheckpoint(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check
+performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state);
 
 /**
  * Performs zone-specific (and, for zone 0, general) incremental checkpointing.
@@ -172,10 +167,10 @@ int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int performIndexStateCheckpointInZone(IndexState       *state,
-                                      unsigned int      zone,
-                                      CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+performIndexStateCheckpointInZone(IndexState *state,
+				  unsigned int zone,
+				  CompletionStatus *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint
@@ -188,10 +183,10 @@ int performIndexStateCheckpointInZone(IndexState       *state,
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int finishIndexStateCheckpointInZone(IndexState       *state,
-                                     unsigned int      zone,
-                                     CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+finishIndexStateCheckpointInZone(IndexState *state,
+				 unsigned int zone,
+				 CompletionStatus *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint once
@@ -201,8 +196,7 @@ int finishIndexStateCheckpointInZone(IndexState       *state,
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int finishIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check finishIndexStateCheckpoint(IndexState *state);
 
 /**
  * Aborts an index state checkpoint which is proceeding incrementally
@@ -259,9 +253,8 @@ int discardLastIndexStateSave(IndexState *state);
  *
  * @return      The index component, or NULL if not found
  **/
-IndexComponent *findIndexComponent(const IndexState         *state,
-                                   const IndexComponentInfo *info)
-  __attribute__((warn_unused_result));
+IndexComponent * __must_check
+findIndexComponent(const IndexState *state, const IndexComponentInfo *info);
 
 /**
  * Get the indexStateBuffer for a specified mode.
@@ -271,8 +264,8 @@ IndexComponent *findIndexComponent(const IndexState         *state,
  *
  * @return the index state buffer
  **/
-struct buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
-  __attribute__((warn_unused_result));
+struct buffer * __must_check
+getStateIndexStateBuffer(IndexState *state, IOAccessMode mode);
 
 /**
  * Open a BufferedReader for a specified state, kind, and zone.
@@ -285,11 +278,11 @@ struct buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openStateBufferedReader(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedReader **readerPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+openStateBufferedReader(IndexState *state,
+			RegionKind kind,
+			unsigned int zone,
+			BufferedReader **readerPtr);
 
 /**
  * Open a BufferedWriter for a specified state, kind, and zone.
@@ -302,10 +295,10 @@ int openStateBufferedReader(IndexState      *state,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openStateBufferedWriter(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedWriter **writerPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+openStateBufferedWriter(IndexState *state,
+			RegionKind kind,
+			unsigned int zone,
+			BufferedWriter **writerPtr);
 
 #endif // INDEX_STATE_H

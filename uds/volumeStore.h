@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.h#3 $
  */
 
 #ifndef VOLUME_STORE_H
@@ -62,8 +62,8 @@ void destroyVolumePage(struct volume_page *volumePage);
  *
  * @return the address of the data
  **/
-__attribute__((warn_unused_result))
-static INLINE byte *getPageData(const struct volume_page *volumePage)
+static INLINE byte * __must_check
+getPageData(const struct volume_page *volumePage)
 {
   return dm_bufio_get_block_data(volumePage->vp_buffer);
 }
@@ -76,9 +76,8 @@ static INLINE byte *getPageData(const struct volume_page *volumePage)
  *
  * @return UDS_SUCCESS or an error status
  **/
-int initializeVolumePage(const struct geometry *geometry,
-                         struct volume_page    *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check initializeVolumePage(const struct geometry *geometry,
+				      struct volume_page *volumePage);
 
 /**
  * Open a volume store.
@@ -88,11 +87,10 @@ int initializeVolumePage(const struct geometry *geometry,
  * @param reservedBuffers  The number of buffers that can be reserved
  * @param bytesPerPage     The number of bytes in a volume page
  **/
-int openVolumeStore(struct volume_store *volumeStore,
-                    struct index_layout *layout,
-                    unsigned int         reservedBuffers,
-                    size_t               bytesPerPage)
-  __attribute__((warn_unused_result));
+int __must_check openVolumeStore(struct volume_store *volumeStore,
+				 struct index_layout *layout,
+				 unsigned int reservedBuffers,
+				 size_t bytesPerPage);
 
 /**
  * Prefetch volume pages into memory.
@@ -114,10 +112,10 @@ void prefetchVolumePages(const struct volume_store *volumeStore,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int prepareToWriteVolumePage(const struct volume_store *volumeStore,
-                             unsigned int               physicalPage,
-                             struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check
+prepareToWriteVolumePage(const struct volume_store *volumeStore,
+			 unsigned int physicalPage,
+			 struct volume_page *volumePage);
 
 /**
  * Read a page from a volume store.
@@ -128,10 +126,9 @@ int prepareToWriteVolumePage(const struct volume_store *volumeStore,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readVolumePage(const struct volume_store *volumeStore,
-                   unsigned int               physicalPage,
-                   struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check readVolumePage(const struct volume_store *volumeStore,
+				unsigned int physicalPage,
+				struct volume_page *volumePage);
 
 /**
  * Release a volume page buffer, because it will no longer be accessed before a
@@ -158,8 +155,7 @@ void swapVolumePages(struct volume_page *volumePage1,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int syncVolumeStore(const struct volume_store *volumeStore)
-  __attribute__((warn_unused_result));
+int __must_check syncVolumeStore(const struct volume_store *volumeStore);
 
 /**
  * Write a page to a volume store.
@@ -170,9 +166,8 @@ int syncVolumeStore(const struct volume_store *volumeStore)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeVolumePage(const struct volume_store *volumeStore,
-                    unsigned int               physicalPage,
-                    struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check writeVolumePage(const struct volume_store *volumeStore,
+				 unsigned int physicalPage,
+				 struct volume_page *volumePage);
 
 #endif /* VOLUME_STORE_H */

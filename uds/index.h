@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#5 $
  */
 
 #ifndef INDEX_H
@@ -83,14 +83,13 @@ typedef struct index {
  *
  * @return         UDS_SUCCESS or an error code
  **/
-int makeIndex(struct index_layout          *layout,
-              const Configuration          *config,
-              const struct uds_parameters  *userParams,
-              unsigned int                  zoneCount,
-              LoadType                      loadType,
-              IndexLoadContext             *loadContext,
-              Index                       **newIndex)
-  __attribute__((warn_unused_result));
+int __must_check makeIndex(struct index_layout *layout,
+			   const Configuration *config,
+			   const struct uds_parameters *userParams,
+			   unsigned int zoneCount,
+			   LoadType loadType,
+			   IndexLoadContext *loadContext,
+			   Index **newIndex);
 
 /**
  * Save an index.
@@ -106,7 +105,7 @@ int makeIndex(struct index_layout          *layout,
  *
  * @return        UDS_SUCCESS if successful
  **/
-int saveIndex(Index *index) __attribute__((warn_unused_result));
+int __must_check saveIndex(Index *index);
 
 /**
  * Clean up the index and its memory.
@@ -146,8 +145,7 @@ void freeIndex(Index *index);
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int dispatchIndexRequest(Index *index, Request *request)
-  __attribute__((warn_unused_result));
+int __must_check dispatchIndexRequest(Index *index, Request *request);
 
 /**
  * Internal helper to prepare the index for saving.
@@ -166,8 +164,7 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber);
  *
  * @return              UDS_SUCCESS if successful
  **/
-int replayVolume(Index *index, uint64_t fromVCN)
-  __attribute__((warn_unused_result));
+int __must_check replayVolume(Index *index, uint64_t fromVCN);
 
 /**
  * Gather statistics from the master index, volume, and cache.
@@ -212,7 +209,6 @@ void advanceActiveChapters(Index *index);
  * @return the sparse chapter number for the sparse cache barrier message, or
  *         <code>UINT64_MAX</code> if the request does not require a barrier
  **/
-uint64_t triageIndexRequest(Index *index, Request *request)
-  __attribute__((warn_unused_result));
+uint64_t __must_check triageIndexRequest(Index *index, Request *request);
 
 #endif /* INDEX_H */

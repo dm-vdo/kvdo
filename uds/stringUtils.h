@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#3 $
  */
 
 #ifndef STRING_UTILS_H
@@ -51,8 +51,9 @@ static INLINE const char *boolToString(bool value)
  *
  * @return UDS_SUCCESS, or the appropriately translated asprintf error
  **/
-int allocSprintf(const char *what, char **strp, const char *fmt, ...)
-  __attribute__((format(printf, 3, 4), warn_unused_result));
+int __must_check
+allocSprintf(const char *what, char **strp, const char *fmt, ...)
+  __attribute__((format(printf, 3, 4)));
 
 /**
  * Write a printf-style string into a fixed-size buffer, returning
@@ -64,11 +65,15 @@ int allocSprintf(const char *what, char **strp, const char *fmt, ...)
  * @param [in]  bufSize The size of buf
  * @param [in]  error   Error code to return on overflow
  * @param [in]  fmt     The sprintf format parameter.
+ *
  * @return <code>UDS_SUCCESS</code> or <code>error</code>
  **/
-int fixedSprintf(const char *what, char *buf, size_t bufSize,
-                 int error, const char *fmt, ...)
-  __attribute__((format(printf, 5, 6), warn_unused_result));
+int __must_check fixedSprintf(const char *what,
+                              char *buf,
+                              size_t bufSize,
+                              int error,
+                              const char *fmt, ...)
+  __attribute__((format(printf, 5, 6)));
 
 /**
  * Write printf-style string into an existing buffer, returning a specified
@@ -91,9 +96,14 @@ int fixedSprintf(const char *what, char *buf, size_t bufSize,
  *         UDS_UNEXPECTED_RESULT if vsnprintf fails in some other undocumented
  *         way.
  **/
-int wrapVsnprintf(const char *what, char *buf, size_t bufSize,
-                  int error, const char *fmt, va_list ap, size_t *needed)
-  __attribute__((format(printf, 5, 0), warn_unused_result));
+int __must_check wrapVsnprintf(const char *what,
+                               char *buf,
+                               size_t bufSize,
+                               int error,
+                               const char *fmt,
+                               va_list ap,
+                               size_t *needed)
+  __attribute__((format(printf, 5, 0)));
 
 /**
  * Helper to append a string to a buffer.
@@ -149,8 +159,7 @@ char *nextToken(char *str, const char *delims, char **statePtr);
  * @return UDS_SUCCESS or the error UDS_INVALID_ARGUMENT if the string
  *         is not in the correct format.
  **/
-int parseUint64(const char *str, uint64_t *num)
-  __attribute__((warn_unused_result));
+int __must_check parseUint64(const char *str, uint64_t *num);
 
 /**
  * Attempt to convert a string to an integer (base 10)
@@ -160,8 +169,7 @@ int parseUint64(const char *str, uint64_t *num)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int stringToSignedInt(const char *nptr, int *num)
-  __attribute__((warn_unused_result));
+int __must_check stringToSignedInt(const char *nptr, int *num);
 
 /**
  * Attempt to convert a string to a long integer (base 10)
@@ -171,8 +179,7 @@ int stringToSignedInt(const char *nptr, int *num)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int stringToSignedLong(const char *nptr, long *num)
-  __attribute__((warn_unused_result));
+int __must_check stringToSignedLong(const char *nptr, long *num);
 
 /**
  * Attempt to convert a string to an unsigned integer (base 10).
@@ -182,8 +189,7 @@ int stringToSignedLong(const char *nptr, long *num)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int stringToUnsignedInt(const char *nptr, unsigned int *num)
-  __attribute__((warn_unused_result));
+int __must_check stringToUnsignedInt(const char *nptr, unsigned int *num);
 
 /**
  * Attempt to convert a string to an unsigned long integer (base 10).
@@ -193,7 +199,6 @@ int stringToUnsignedInt(const char *nptr, unsigned int *num)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int stringToUnsignedLong(const char *nptr, unsigned long *num)
-  __attribute__((warn_unused_result));
+int __must_check stringToUnsignedLong(const char *nptr, unsigned long *num);
 
 #endif /* STRING_UTILS_H */

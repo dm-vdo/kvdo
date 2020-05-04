@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#4 $
  */
 
 #ifndef HASH_UTILS_H
@@ -165,8 +165,7 @@ chunkDataToHex(const struct uds_chunk_data *chunkData, char *hexData,
  *
  * @return           the number of bits required
  **/
-unsigned int computeBits(unsigned int maxValue)
-  __attribute__((warn_unused_result));
+unsigned int __must_check computeBits(unsigned int maxValue);
 
 /**
  * FOR TESTING. Set the portion of a block name used by the chapter index.

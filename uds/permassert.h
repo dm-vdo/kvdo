@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#3 $
  */
 
 #ifndef PERMASSERT_H
@@ -43,8 +43,7 @@
  *
  * @return       The supplied value
  */
-__attribute__((warn_unused_result))
-static INLINE int mustUse(int value)
+static INLINE int __must_check mustUse(int value)
 {
   return value;
 }
@@ -145,13 +144,13 @@ bool setExitOnAssertionFailure(bool shouldExit);
  * @return The supplied errorCode unless exitOnAssertionFailure is
  *         true, in which case the process will be aborted
  **/
-int assertionFailed(const char *expressionString,
-                    int         errorCode,
-                    const char *fileName,
-                    int         lineNumber,
-                    const char *format,
-                    ...)
-  __attribute__((format(printf, 5, 6), warn_unused_result));
+int __must_check assertionFailed(const char *expressionString,
+                                 int         errorCode,
+                                 const char *fileName,
+                                 int         lineNumber,
+                                 const char *format,
+                                 ...)
+  __attribute__((format(printf, 5, 6)));
 
 /**
  * Log an assertion failure. This function is different from

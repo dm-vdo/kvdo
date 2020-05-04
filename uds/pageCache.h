@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#3 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -159,12 +159,11 @@ typedef struct pageCache {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makePageCache(const Geometry  *geometry,
-                  unsigned int     chaptersInCache,
-                  unsigned int     readQueueMaxSize,
-                  unsigned int     zoneCount,
-                  PageCache      **cachePtr)
-  __attribute__((warn_unused_result));
+int __must_check makePageCache(const Geometry *geometry,
+			       unsigned int chaptersInCache,
+			       unsigned int readQueueMaxSize,
+			       unsigned int zoneCount,
+			       PageCache **cachePtr);
 
 /**
  * Clean up a volume's cache
@@ -183,11 +182,11 @@ void freePageCache(PageCache *cache);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int invalidatePageCacheForChapter(PageCache          *cache,
-                                  unsigned int        chapter,
-                                  unsigned int        pagesPerChapter,
-                                  InvalidationReason  reason)
-  __attribute__((warn_unused_result));
+int __must_check
+invalidatePageCacheForChapter(PageCache *cache,
+			      unsigned int chapter,
+			      unsigned int pagesPerChapter,
+			      InvalidationReason reason);
 
 /**
  * Find a page, invalidate it, and make its memory the least recent.  This
@@ -227,8 +226,7 @@ void makePageMostRecent(PageCache *cache, CachedPage *pagePtr);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int assertPageInCache(PageCache *cache, CachedPage *page)
-  __attribute__((warn_unused_result));
+int __must_check assertPageInCache(PageCache *cache, CachedPage *page);
 
 /**
  * Gets a page from the cache.
@@ -241,11 +239,10 @@ int assertPageInCache(PageCache *cache, CachedPage *page)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPageFromCache(PageCache     *cache,
-                     unsigned int   physicalPage,
-                     int            probeType,
-                     CachedPage   **pagePtr)
-  __attribute__((warn_unused_result));
+int __must_check getPageFromCache(PageCache *cache,
+				  unsigned int physicalPage,
+				  int probeType,
+				  CachedPage **pagePtr);
 
 /**
  * Enqueue a read request
@@ -258,8 +255,8 @@ int getPageFromCache(PageCache     *cache,
  *         UDS_SUCCESS if the queue was full
  *         an error code if there was an error
  **/
-int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
-  __attribute__((warn_unused_result));
+int __must_check
+enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage);
 
 /**
  * Reserves a queued read for future dequeuing, but does not remove it from
@@ -327,9 +324,7 @@ static INLINE bool readQueueIsFull(PageCache *cache)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int selectVictimInCache(PageCache     *cache,
-                        CachedPage   **pagePtr)
-  __attribute__((warn_unused_result));
+int __must_check selectVictimInCache(PageCache *cache, CachedPage **pagePtr);
 
 /**
  * Completes an async page read in the cache, so that
@@ -344,10 +339,8 @@ int selectVictimInCache(PageCache     *cache,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putPageInCache(PageCache    *cache,
-                   unsigned int  physicalPage,
-                   CachedPage   *page)
-  __attribute__((warn_unused_result));
+int __must_check
+putPageInCache(PageCache *cache, unsigned int physicalPage, CachedPage *page);
 
 /**
  * Cancels an async page read in the cache, so that
@@ -374,8 +367,7 @@ void cancelPageInCache(PageCache    *cache,
  *
  * @return the size of the page cache
  **/
-size_t getPageCacheSize(PageCache *cache)
-  __attribute__((warn_unused_result));
+size_t __must_check getPageCacheSize(PageCache *cache);
 
 
 /**

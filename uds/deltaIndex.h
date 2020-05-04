@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#3 $
  */
 
 #ifndef DELTAINDEX_H
@@ -128,10 +128,12 @@ typedef struct {
  *
  * @return error code or UDS_SUCCESS
  **/
-int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
-                         unsigned int numLists, unsigned int meanDelta,
-                         unsigned int numPayloadBits, size_t memorySize)
-  __attribute__((warn_unused_result));
+int __must_check initializeDeltaIndex(DeltaIndex *deltaIndex,
+				      unsigned int numZones,
+				      unsigned int numLists,
+				      unsigned int meanDelta,
+				      unsigned int numPayloadBits,
+				      size_t memorySize);
 
 /**
  * Initialize an immutable delta index page.
@@ -145,13 +147,13 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
  *
  * @return error code or UDS_SUCCESS
  **/
-int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
-                             uint64_t        expectedNonce,
-                             unsigned int    meanDelta,
-                             unsigned int    numPayloadBits,
-                             byte           *memory,
-                             size_t          memSize)
-  __attribute__((warn_unused_result));
+int __must_check
+initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
+			 uint64_t expectedNonce,
+			 unsigned int meanDelta,
+			 unsigned int numPayloadBits,
+			 byte *memory,
+			 size_t memSize);
 
 /**
  * Uninitialize a delta index.
@@ -194,15 +196,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex,
  * @return error code or UDS_SUCCESS.  On UDS_SUCCESS, the numLists
  *         argument contains the number of lists copied.
  **/
-int packDeltaIndexPage(const DeltaIndex *deltaIndex,
-                       uint64_t          headerNonce,
-                       bool              headerNativeEndian,
-                       byte             *memory,
-                       size_t            memSize,
-                       uint64_t          virtualChapterNumber,
-                       unsigned int      firstList,
-                       unsigned int     *numLists)
-  __attribute__((warn_unused_result));
+int __must_check packDeltaIndexPage(const DeltaIndex *deltaIndex,
+				    uint64_t headerNonce,
+				    bool headerNativeEndian,
+				    byte *memory,
+				    size_t memSize,
+				    uint64_t virtualChapterNumber,
+				    unsigned int firstList,
+				    unsigned int *numLists);
 
 
 /**
@@ -222,9 +223,10 @@ void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag);
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
-                             BufferedReader **bufferedReaders, int numReaders)
-  __attribute__((warn_unused_result));
+int __must_check
+startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
+			 BufferedReader **bufferedReaders,
+			 int numReaders);
 
 /**
  * Have all the data been read while restoring a delta index from an
@@ -245,10 +247,10 @@ bool isRestoringDeltaIndexDone(const DeltaIndex *deltaIndex);
  *
  * @return error code or UDS_SUCCESS
  **/
-int restoreDeltaListToDeltaIndex(const DeltaIndex *deltaIndex,
-                                 const DeltaListSaveInfo *dlsi,
-                                 const byte data[DELTA_LIST_MAX_BYTE_COUNT])
-  __attribute__((warn_unused_result));
+int __must_check
+restoreDeltaListToDeltaIndex(const DeltaIndex *deltaIndex,
+			     const DeltaListSaveInfo *dlsi,
+			     const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
 
 /**
  * Abort restoring a delta index from an input stream.
@@ -266,10 +268,9 @@ void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex);
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
-                          unsigned int zoneNumber,
-                          BufferedWriter *bufferedWriter)
-  __attribute__((warn_unused_result));
+int __must_check startSavingDeltaIndex(const DeltaIndex *deltaIndex,
+				       unsigned int zoneNumber,
+				       BufferedWriter *bufferedWriter);
 
 /**
  * Have all the data been written while saving a delta index zone to an
@@ -294,9 +295,8 @@ bool isSavingDeltaIndexDone(const DeltaIndex *deltaIndex,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int finishSavingDeltaIndex(const DeltaIndex *deltaIndex,
-                           unsigned int zoneNumber)
-  __attribute__((warn_unused_result));
+int __must_check
+finishSavingDeltaIndex(const DeltaIndex *deltaIndex, unsigned int zoneNumber);
 
 /**
  * Abort saving a delta index zone to an output stream.  If an error
@@ -307,9 +307,8 @@ int finishSavingDeltaIndex(const DeltaIndex *deltaIndex,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int abortSavingDeltaIndex(const DeltaIndex *deltaIndex,
-                          unsigned int zoneNumber)
-  __attribute__((warn_unused_result));
+int __must_check
+abortSavingDeltaIndex(const DeltaIndex *deltaIndex, unsigned int zoneNumber);
 
 /**
  * Compute the number of bytes required to save a delta index
@@ -319,8 +318,8 @@ int abortSavingDeltaIndex(const DeltaIndex *deltaIndex,
  *
  * @return numBytes  The number of bytes required to save the master index
  **/
-size_t computeDeltaIndexSaveBytes(unsigned int numLists, size_t memorySize)
-  __attribute__((warn_unused_result));
+size_t __must_check
+computeDeltaIndexSaveBytes(unsigned int numLists, size_t memorySize);
 
 /**
  * Validate the delta index
@@ -329,8 +328,7 @@ size_t computeDeltaIndexSaveBytes(unsigned int numLists, size_t memorySize)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int validateDeltaIndex(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
+int __must_check validateDeltaIndex(const DeltaIndex *deltaIndex);
 
 /**
  * Prepare to search for an entry in the specified delta list.
@@ -348,10 +346,11 @@ int validateDeltaIndex(const DeltaIndex *deltaIndex)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int startDeltaIndexSearch(const DeltaIndex *deltaIndex,
-                          unsigned int listNumber, unsigned int key,
-                          bool readOnly, DeltaIndexEntry *iterator)
-  __attribute__((warn_unused_result));
+int __must_check startDeltaIndexSearch(const DeltaIndex *deltaIndex,
+				       unsigned int listNumber,
+				       unsigned int key,
+				       bool readOnly,
+				       DeltaIndexEntry *iterator);
 
 /**
  * Find the next entry in the specified delta list
@@ -361,8 +360,7 @@ int startDeltaIndexSearch(const DeltaIndex *deltaIndex,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int nextDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
-  __attribute__((warn_unused_result));
+int __must_check nextDeltaIndexEntry(DeltaIndexEntry *deltaEntry);
 
 /**
  * Remember the position of a delta index entry, so that we can use it when
@@ -375,8 +373,7 @@ int nextDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int rememberDeltaIndexOffset(const DeltaIndexEntry *deltaEntry)
-  __attribute__((warn_unused_result));
+int __must_check rememberDeltaIndexOffset(const DeltaIndexEntry *deltaEntry);
 
 /**
  * Find the delta index entry, or the insertion point for a delta index
@@ -391,10 +388,12 @@ int rememberDeltaIndexOffset(const DeltaIndexEntry *deltaEntry)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getDeltaIndexEntry(const DeltaIndex *deltaIndex, unsigned int listNumber,
-                       unsigned int key, const byte *name, bool readOnly,
-                       DeltaIndexEntry *deltaEntry)
-  __attribute__((warn_unused_result));
+int __must_check getDeltaIndexEntry(const DeltaIndex *deltaIndex,
+				    unsigned int listNumber,
+				    unsigned int key,
+				    const byte *name,
+				    bool readOnly,
+				    DeltaIndexEntry *deltaEntry);
 
 /**
  * Get the full name from a collision DeltaIndexEntry
@@ -404,8 +403,8 @@ int getDeltaIndexEntry(const DeltaIndex *deltaIndex, unsigned int listNumber,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getDeltaEntryCollision(const DeltaIndexEntry *deltaEntry, byte *name)
-  __attribute__((warn_unused_result));
+int __must_check
+getDeltaEntryCollision(const DeltaIndexEntry *deltaEntry, byte *name);
 
 /**
  * Get the bit offset into delta memory of a delta index entry.
@@ -446,8 +445,8 @@ static INLINE unsigned int getDeltaEntryKeyBits(const DeltaIndexEntry *entry)
  **/
 static INLINE unsigned int getDeltaEntryValue(const DeltaIndexEntry *deltaEntry)
 {
-  return getField(deltaEntry->deltaZone->memory,
-                  getDeltaEntryOffset(deltaEntry), deltaEntry->valueBits);
+  return get_field(deltaEntry->deltaZone->memory,
+                   getDeltaEntryOffset(deltaEntry), deltaEntry->valueBits);
 }
 
 /**
@@ -458,8 +457,8 @@ static INLINE unsigned int getDeltaEntryValue(const DeltaIndexEntry *deltaEntry)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setDeltaEntryValue(const DeltaIndexEntry *deltaEntry, unsigned int value)
-  __attribute__((warn_unused_result));
+int __must_check
+setDeltaEntryValue(const DeltaIndexEntry *deltaEntry, unsigned int value);
 
 /**
  * Create a new entry in the delta index
@@ -476,9 +475,10 @@ int setDeltaEntryValue(const DeltaIndexEntry *deltaEntry, unsigned int value)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putDeltaIndexEntry(DeltaIndexEntry *deltaEntry, unsigned int key,
-                       unsigned int value, const byte *name)
-  __attribute__((warn_unused_result));
+int __must_check putDeltaIndexEntry(DeltaIndexEntry *deltaEntry,
+				    unsigned int key,
+				    unsigned int value,
+				    const byte *name);
 
 /**
  * Remove an existing delta index entry, and advance to the next entry in
@@ -489,8 +489,7 @@ int putDeltaIndexEntry(DeltaIndexEntry *deltaEntry, unsigned int key,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int removeDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
-  __attribute__((warn_unused_result));
+int __must_check removeDeltaIndexEntry(DeltaIndexEntry *deltaEntry);
 
 /**
  * Map a delta list number to a delta zone number
@@ -536,9 +535,9 @@ unsigned int getDeltaIndexZoneNumLists(const DeltaIndex *deltaIndex,
  *
  * @return The number of bits in use
  **/
-uint64_t getDeltaIndexZoneDlistBitsUsed(const DeltaIndex *deltaIndex,
-                                        unsigned int zoneNumber)
-  __attribute__((warn_unused_result));
+uint64_t __must_check
+getDeltaIndexZoneDlistBitsUsed(const DeltaIndex *deltaIndex,
+			       unsigned int zoneNumber);
 
 /**
  * Get the number of bytes used for master index entries.
@@ -547,8 +546,7 @@ uint64_t getDeltaIndexZoneDlistBitsUsed(const DeltaIndex *deltaIndex,
  *
  * @return The number of bits in use
  **/
-uint64_t getDeltaIndexDlistBitsUsed(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
+uint64_t __must_check getDeltaIndexDlistBitsUsed(const DeltaIndex *deltaIndex);
 
 /**
  * Get the number of bytes allocated for master index entries.
@@ -557,8 +555,8 @@ uint64_t getDeltaIndexDlistBitsUsed(const DeltaIndex *deltaIndex)
  *
  * @return The number of bits allocated
  **/
-uint64_t getDeltaIndexDlistBitsAllocated(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
+uint64_t __must_check
+getDeltaIndexDlistBitsAllocated(const DeltaIndex *deltaIndex);
 
 /**
  * Get the delta index statistics.

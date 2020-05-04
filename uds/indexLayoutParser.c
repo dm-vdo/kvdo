@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#3 $
  */
 
 #include "indexLayoutParser.h"
@@ -29,8 +29,7 @@
 #include "uds.h"
 
 /*****************************************************************************/
-__attribute__((warn_unused_result)) static int
-setParameterValue(LayoutParameter *lp, char *data)
+static int __must_check setParameterValue(LayoutParameter *lp, char *data)
 {
 	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
 		int result = parseUint64(data, lp->value.num);

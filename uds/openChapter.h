@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#3 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -58,13 +58,12 @@ extern const IndexComponentInfo OPEN_CHAPTER_INFO;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int closeOpenChapter(OpenChapterZone           **chapterZones,
-                     unsigned int                zoneCount,
-                     Volume                     *volume,
-                     struct open_chapter_index  *chapterIndex,
-                     UdsChunkRecord             *collatedRecords,
-                     uint64_t                    virtualChapterNumber)
-  __attribute__((warn_unused_result));
+int __must_check closeOpenChapter(OpenChapterZone **chapterZones,
+				  unsigned int zoneCount,
+				  Volume *volume,
+				  struct open_chapter_index *chapterIndex,
+				  UdsChunkRecord *collatedRecords,
+				  uint64_t virtualChapterNumber);
 
 /**
  * Write out a partially filled chapter to a file.
@@ -74,8 +73,7 @@ int closeOpenChapter(OpenChapterZone           **chapterZones,
  *
  * @return UDS_SUCCESS on success
  **/
-int saveOpenChapters(Index *index, BufferedWriter *writer)
-  __attribute__((warn_unused_result));
+int __must_check saveOpenChapters(Index *index, BufferedWriter *writer);
 
 /**
  * Read a partially filled chapter from a file.
@@ -85,8 +83,7 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
  *
  * @return UDS_SUCCESS on success
  **/
-int loadOpenChapters(Index *index, BufferedReader *reader)
-  __attribute__((warn_unused_result));
+int __must_check loadOpenChapters(Index *index, BufferedReader *reader);
 
 /**
  * Compute the size of the maximum open chapter save image.

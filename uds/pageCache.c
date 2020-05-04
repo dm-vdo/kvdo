@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#4 $
  */
 
 #include "pageCache.h"
@@ -83,11 +83,10 @@ static void clearPage(PageCache *cache, CachedPage *page)
  *
  * @return UDS_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int getPageNoStats(PageCache     *cache,
-                          unsigned int   physicalPage,
-                          int           *queueIndex,
-                          CachedPage   **pagePtr)
+static int __must_check getPageNoStats(PageCache *cache,
+				       unsigned int physicalPage,
+				       int *queueIndex,
+				       CachedPage **pagePtr)
 {
   /*
    * ASSERTION: We are either a zone thread holding a searchPendingCounter,
@@ -170,10 +169,10 @@ static void waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
  *
  * @return UDS_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int invalidatePageInCache(PageCache          *cache,
-                                 CachedPage         *page,
-                                 InvalidationReason  reason)
+static int __must_check
+invalidatePageInCache(PageCache *cache,
+		      CachedPage *page,
+		      InvalidationReason reason)
 {
   // We hold the readThreadsMutex.
   if (page == NULL) {
@@ -256,12 +255,12 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int initializePageCache(PageCache      *cache,
-                               const Geometry *geometry,
-                               unsigned int    chaptersInCache,
-                               unsigned int    readQueueMaxSize,
-                               unsigned int    zoneCount)
+static int __must_check
+initializePageCache(PageCache *cache,
+		    const Geometry *geometry,
+		    unsigned int chaptersInCache,
+		    unsigned int readQueueMaxSize,
+		    unsigned int zoneCount)
 {
   cache->geometry  = geometry;
   cache->numIndexEntries = geometry->pagesPerVolume + 1;
@@ -421,8 +420,8 @@ void makePageMostRecent(PageCache *cache, CachedPage *page)
  *
  * @return UDS_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
+static int __must_check
+getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
 {
   // We hold the readThreadsMutex.
   int oldestIndex = 0;

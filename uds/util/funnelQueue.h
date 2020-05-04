@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#3 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -96,8 +96,7 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
  *
  * @return UDS_SUCCESS or an error code
  **/
- int make_funnel_queue(struct funnel_queue **queue_ptr)
-  __attribute__((warn_unused_result));
+int __must_check make_funnel_queue(struct funnel_queue **queue_ptr);
 
 /**
  * Free a queue.
@@ -158,8 +157,8 @@ static INLINE void funnel_queue_put(struct funnel_queue *queue,
  *
  * @return the oldest entry in the queue, or NULL if the queue is empty.
  **/
-struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
-  __attribute__((warn_unused_result));
+struct funnel_queue_entry * __must_check
+funnel_queue_poll(struct funnel_queue *queue);
 
 /**
  * Check whether the funnel queue is empty or not. This function must only be
@@ -174,7 +173,6 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
  *
  * @return true iff queue contains an entry which can be retrieved
  **/
-bool is_funnel_queue_empty(struct funnel_queue *queue)
-  __attribute__((warn_unused_result));
+bool __must_check is_funnel_queue_empty(struct funnel_queue *queue);
 
 #endif /* FUNNEL_QUEUE_H */

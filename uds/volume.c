@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#9 $
  */
 
 #include "volume.h"
@@ -1203,12 +1203,11 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  *
  * @return UDS_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int allocateVolume(const Configuration  *config,
-                          struct index_layout  *layout,
-                          unsigned int          readQueueMaxSize,
-                          unsigned int          zoneCount,
-                          Volume              **newVolume)
+static int __must_check allocateVolume(const Configuration *config,
+				       struct index_layout *layout,
+				       unsigned int readQueueMaxSize,
+				       unsigned int zoneCount,
+				       Volume **newVolume)
 {
   Volume *volume;
   int result = ALLOCATE(1, Volume, "volume", &volume);

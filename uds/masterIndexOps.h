@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#4 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -151,9 +151,10 @@ void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
  *
  * @return error code or UDS_SUCCESS
  **/
-int makeMasterIndex(const Configuration *config, unsigned int numZones,
-                    uint64_t volumeNonce, MasterIndex **masterIndex)
-  __attribute__((warn_unused_result));
+int __must_check makeMasterIndex(const Configuration *config,
+				 unsigned int numZones,
+				 uint64_t volumeNonce,
+				 MasterIndex **masterIndex);
 
 /**
  * Compute the number of blocks required to save a master index of a given
@@ -165,10 +166,10 @@ int makeMasterIndex(const Configuration *config, unsigned int numZones,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int computeMasterIndexSaveBlocks(const Configuration *config,
-                                 size_t               blockSize,
-                                 uint64_t            *blockCount)
-  __attribute__((warn_unused_result));
+int __must_check
+computeMasterIndexSaveBlocks(const Configuration *config,
+			     size_t blockSize,
+			     uint64_t *blockCount);
 
 /**
  * Restore a master index.  This is exposed for unit tests.
@@ -179,10 +180,9 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int restoreMasterIndex(BufferedReader **readers,
-                       unsigned int     numReaders,
-                       MasterIndex     *masterIndex)
-  __attribute__((warn_unused_result));
+int __must_check restoreMasterIndex(BufferedReader **readers,
+				    unsigned int numReaders,
+				    MasterIndex *masterIndex);
 
 /**
  * Abort restoring a master index from an input stream.
@@ -395,8 +395,8 @@ static INLINE int lookupMasterIndexSampledName(const MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check
+putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter);
 
 /**
  * Remove an existing record.
@@ -405,8 +405,7 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int removeMasterIndexRecord(MasterIndexRecord *record)
-  __attribute__((warn_unused_result));
+int __must_check removeMasterIndexRecord(MasterIndexRecord *record);
 
 /**
  * Restore a saved delta list
@@ -459,9 +458,9 @@ static INLINE void setMasterIndexOpenChapter(MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setMasterIndexRecordChapter(MasterIndexRecord *record,
-                                uint64_t virtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check
+setMasterIndexRecordChapter(MasterIndexRecord *record,
+			    uint64_t virtualChapter);
 
 /**
  * Set the tag value used when saving and/or restoring a master index.

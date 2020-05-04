@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#7 $
  */
 
 #include "indexPageMap.h"
@@ -299,8 +299,8 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int decodeIndexPageMap(struct buffer *buffer, IndexPageMap *map)
+static int __must_check
+decodeIndexPageMap(struct buffer *buffer, IndexPageMap *map)
 {
   int result = get_uint64_le_from_buffer(buffer, &map->lastUpdate);
   if (result != UDS_SUCCESS) {

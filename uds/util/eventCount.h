@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.h#3 $
  */
 
 #ifndef EVENT_COUNT_H
@@ -70,8 +70,7 @@ typedef unsigned int event_token_t;
  *
  * @param ec_ptr  a pointer to hold the new struct event_count
  **/
-__attribute__((warn_unused_result)) int
-make_event_count(struct event_count **ec_ptr);
+int __must_check make_event_count(struct event_count **ec_ptr);
 
 /**
  * Free a struct event_count. It must no longer be in use.
@@ -96,8 +95,7 @@ void event_count_broadcast(struct event_count *ec);
  *
  * @return an event_token_t to be passed to the next event_count_wait() call
  **/
-event_token_t event_count_prepare(struct event_count *ec)
-	__attribute__((warn_unused_result));
+event_token_t __must_check event_count_prepare(struct event_count *ec);
 
 /**
  * Cancel a wait token that has been prepared but not waited upon. This must

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#3 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -81,9 +81,7 @@ typedef struct {
  * @param [in]  capacity  the number of entries in the search list
  * @param [out] listPtr   a pointer in which to return the new search list
  **/
-int makeSearchList(unsigned int   capacity,
-                   SearchList   **listPtr)
-  __attribute__((warn_unused_result));
+int __must_check makeSearchList(unsigned int capacity, SearchList **listPtr);
 
 /**
  * Free a search list and null out the reference to it.

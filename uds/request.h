@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#6 $
  */
 
 #ifndef REQUEST_H
@@ -171,11 +171,11 @@ typedef void (*RequestRestarter)(Request *);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int launchZoneControlMessage(RequestAction  action,
-                             ZoneMessage    message,
-                             unsigned int   zone,
-                             IndexRouter   *router)
-  __attribute__((warn_unused_result));
+int __must_check
+launchZoneControlMessage(RequestAction action,
+			 ZoneMessage message,
+			 unsigned int zone,
+			 IndexRouter *router);
 
 /**
  * Free an index request.

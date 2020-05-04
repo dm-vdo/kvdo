@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#4 $
  */
 
 #ifndef BUFFER_H
@@ -36,11 +36,10 @@ struct buffer;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int wrap_buffer(byte *bytes,
-		size_t length,
-		size_t content_length,
-		struct buffer **buffer_ptr)
-	__attribute__((warn_unused_result));
+int __must_check wrap_buffer(byte *bytes,
+			     size_t length,
+			     size_t content_length,
+			     struct buffer **buffer_ptr);
 
 /**
  * Create a new buffer and allocate its memory.
@@ -50,8 +49,7 @@ int wrap_buffer(byte *bytes,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int make_buffer(size_t length, struct buffer **buffer_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_buffer(size_t length, struct buffer **buffer_ptr);
 
 /**
  * Release a buffer and, if not wrapped, free its memory.
@@ -68,8 +66,7 @@ void free_buffer(struct buffer **p_buffer);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int grow_buffer(struct buffer *buffer, size_t length)
-	__attribute__((warn_unused_result));
+int __must_check grow_buffer(struct buffer *buffer, size_t length);
 
 /**
  * Ensure that a buffer has a given amount of space available, compacting the
@@ -80,8 +77,7 @@ int grow_buffer(struct buffer *buffer, size_t length)
  *
  * @return <code>true</code> if the requested number of bytes are now available
  **/
-bool ensure_available_space(struct buffer *buffer, size_t bytes)
-	__attribute__((warn_unused_result));
+bool __must_check ensure_available_space(struct buffer *buffer, size_t bytes);
 
 /**
  * Clear the buffer. The start position is set to zero and the end position
@@ -109,8 +105,7 @@ void compact_buffer(struct buffer *buffer);
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the buffer is not long
  *         enough to skip forward the requested number of bytes
  **/
-int skip_forward(struct buffer *buffer, size_t bytes_to_skip)
-	__attribute__((warn_unused_result));
+int __must_check skip_forward(struct buffer *buffer, size_t bytes_to_skip);
 
 /**
  * Rewind the specified number of bytes in a buffer (back up the start
@@ -122,8 +117,7 @@ int skip_forward(struct buffer *buffer, size_t bytes_to_skip)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the buffer is not long
  *         enough to rewind backward the requested number of bytes
  **/
-int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
-	__attribute__((warn_unused_result));
+int __must_check rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind);
 
 /**
  * Return the length of the buffer.
@@ -180,8 +174,7 @@ size_t buffer_used(struct buffer *buffer);
  *
  * @return UDS_SUCCESS unless the end is larger than can fit
  **/
-int reset_buffer_end(struct buffer *buffer, size_t end)
-	__attribute__((warn_unused_result));
+int __must_check reset_buffer_end(struct buffer *buffer, size_t end);
 
 /**
  * Check whether the start of the content of a buffer matches a specified
@@ -194,8 +187,8 @@ int reset_buffer_end(struct buffer *buffer, size_t end)
  * @return <code>true</code> if the first length bytes of the buffer's
  *         contents match data
  **/
-bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
-	__attribute__((warn_unused_result));
+bool __must_check
+has_same_bytes(struct buffer *buffer, const byte *data, size_t length);
 
 /**
  * Check whether two buffers have the same contents.
@@ -217,8 +210,7 @@ bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2);
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are no bytes to
  *         retrieve
  **/
-int get_byte(struct buffer *buffer, byte *byte_ptr)
-	__attribute__((warn_unused_result));
+int __must_check get_byte(struct buffer *buffer, byte *byte_ptr);
 
 /**
  * Get a single byte from a buffer without advancing the start pointer.
@@ -230,8 +222,8 @@ int get_byte(struct buffer *buffer, byte *byte_ptr)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the offset is past the end
  * of the buffer
  **/
-int peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr);
 
 /**
  * Put a single byte into a buffer and advance the end pointer.
@@ -241,8 +233,7 @@ int peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr)
  *
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is no space in the buffer
  **/
-int put_byte(struct buffer *buffer, byte b)
-	__attribute__((warn_unused_result));
+int __must_check put_byte(struct buffer *buffer, byte b);
 
 /**
  * Get bytes out of a buffer and advance the start of the buffer past the
@@ -254,9 +245,8 @@ int put_byte(struct buffer *buffer, byte b)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int get_bytes_from_buffer(struct buffer *buffer, size_t length,
-			  void *destination)
-	__attribute__((warn_unused_result));
+int __must_check
+get_bytes_from_buffer(struct buffer *buffer, size_t length, void *destination);
 
 /**
  * Get a pointer to the current contents of the buffer. This will be a pointer
@@ -279,8 +269,8 @@ byte *get_buffer_contents(struct buffer *buffer);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr);
 
 /**
  * Copy bytes into a buffer and advance the end of the buffer past the
@@ -293,8 +283,8 @@ int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the buffer does not have
  *         length bytes available
  **/
-int put_bytes(struct buffer *buffer, size_t length, const void *source)
-	__attribute__((warn_unused_result));
+int __must_check
+put_bytes(struct buffer *buffer, size_t length, const void *source);
 
 /**
  * Copy the contents of a source buffer into the target buffer. Advances the
@@ -309,8 +299,8 @@ int put_bytes(struct buffer *buffer, size_t length, const void *source)
  *         length bytes available or if the source buffer does not have length
  *         bytes of content
  **/
-int put_buffer(struct buffer *target, struct buffer *source, size_t length)
-	__attribute__((warn_unused_result));
+int __must_check
+put_buffer(struct buffer *target, struct buffer *source, size_t length);
 
 /**
  * Zero bytes in a buffer starting at the start pointer, and advance the
@@ -322,8 +312,7 @@ int put_buffer(struct buffer *target, struct buffer *source, size_t length)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the buffer does not have
  *         length bytes available
  **/
-int zero_bytes(struct buffer *buffer, size_t length)
-	__attribute__((warn_unused_result));
+int __must_check zero_bytes(struct buffer *buffer, size_t length);
 
 /**
  * Get a boolean value from a buffer and advance the start pointer.
@@ -334,8 +323,7 @@ int zero_bytes(struct buffer *buffer, size_t length)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
  *         in the buffer
  **/
-int get_boolean(struct buffer *buffer, bool *b)
-	__attribute__((warn_unused_result));
+int __must_check get_boolean(struct buffer *buffer, bool *b);
 
 /**
  * Put a boolean value into a buffer and advance the end pointer.
@@ -345,8 +333,7 @@ int get_boolean(struct buffer *buffer, bool *b)
  *
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is no space in the buffer
  **/
-int put_boolean(struct buffer *buffer, bool b)
-	__attribute__((warn_unused_result));
+int __must_check put_boolean(struct buffer *buffer, bool b);
 
 /**
  * Get a 2 byte, big endian encoded integer from a buffer and advance the
@@ -358,8 +345,7 @@ int put_boolean(struct buffer *buffer, bool b)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
  *         bytes available
  **/
-int get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui);
 
 /**
  * Put a 2 byte, big endian encoded integer into a buffer and advance the
@@ -371,8 +357,7 @@ int get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
  *         bytes available
  **/
-int put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui)
-	__attribute__((warn_unused_result));
+int __must_check put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui);
 
 /**
  * Get a 4 byte, big endian encoded integer from a buffer and advance the
@@ -384,8 +369,7 @@ int put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
  *         bytes available
  **/
-int get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui);
 
 /**
  * Put a 4 byte, big endian encoded integer into a buffer and advance the
@@ -397,8 +381,7 @@ int get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
  *         bytes available
  **/
-int put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui)
-	__attribute__((warn_unused_result));
+int __must_check put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui);
 
 /**
  * Get a series of 4 byte, big endian encoded integer from a buffer and
@@ -411,9 +394,8 @@ int put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
  *         in the buffer
  **/
-int get_uint32_bes_from_buffer(struct buffer *buffer, size_t count,
-			       uint32_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+get_uint32_bes_from_buffer(struct buffer *buffer, size_t count, uint32_t *ui);
 
 /**
  * Put a series of 4 byte, big endian encoded integers into a buffer and
@@ -426,10 +408,10 @@ int get_uint32_bes_from_buffer(struct buffer *buffer, size_t count,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
  *         in the buffer
  **/
-int put_uint32_bes_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint32_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+put_uint32_bes_into_buffer(struct buffer *buffer,
+			   size_t count,
+			   const uint32_t *ui);
 
 /**
  * Get a series of 8 byte, big endian encoded integer from a buffer and
@@ -442,9 +424,8 @@ int put_uint32_bes_into_buffer(struct buffer *buffer,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
  *         in the buffer
  **/
-int get_uint64_bes_from_buffer(struct buffer *buffer, size_t count,
-			       uint64_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+get_uint64_bes_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui);
 
 /**
  * Put a series of 8 byte, big endian encoded integers into a buffer and
@@ -457,10 +438,10 @@ int get_uint64_bes_from_buffer(struct buffer *buffer, size_t count,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
  *         in the buffer
  **/
-int put_uint64_bes_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint64_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+put_uint64_bes_into_buffer(struct buffer *buffer,
+			   size_t count,
+			   const uint64_t *ui);
 
 /**
  * Get a 2 byte, little endian encoded integer from a buffer and
@@ -472,8 +453,7 @@ int put_uint64_bes_into_buffer(struct buffer *buffer,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
  *         bytes available
  **/
-int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui);
 
 /**
  * Put a 2 byte, little endian encoded integer into a buffer and advance the
@@ -485,8 +465,7 @@ int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
  *         bytes available
  **/
-int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
-	__attribute__((warn_unused_result));
+int __must_check put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui);
 
 /**
  * Get a series of 2 byte, little endian encoded integer from a buffer
@@ -499,9 +478,8 @@ int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
  *         in the buffer
  **/
-int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
-			       uint16_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+get_uint16_les_from_buffer(struct buffer *buffer, size_t count, uint16_t *ui);
 
 /**
  * Put a series of 2 byte, little endian encoded integers into a
@@ -514,10 +492,10 @@ int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
  *         in the buffer
  **/
-int put_uint16_les_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint16_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+put_uint16_les_into_buffer(struct buffer *buffer,
+			   size_t count,
+			   const uint16_t *ui);
 
 /**
  * Get a 4 byte, little endian encoded integer from a buffer and advance the
@@ -529,8 +507,7 @@ int put_uint16_les_into_buffer(struct buffer *buffer,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
  *         bytes available
  **/
-int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
-	__attribute__((warn_unused_result));
+int __must_check get_int32_le_from_buffer(struct buffer *buffer, int32_t *i);
 
 /**
  * Get a 4 byte, little endian encoded integer from a buffer and advance the
@@ -542,8 +519,7 @@ int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
  *         bytes available
  **/
-int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui);
 
 /**
  * Put a 4 byte, little endian encoded integer into a buffer and advance the
@@ -555,8 +531,7 @@ int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
  *         bytes available
  **/
-int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
-	__attribute__((warn_unused_result));
+int __must_check put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui);
 
 /**
  * Get an 8 byte, little endian encoded, unsigned integer from a
@@ -568,8 +543,7 @@ int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
  *         bytes available
  **/
-int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui);
 
 /**
  * Put an 8 byte, little endian encoded signed integer into a buffer
@@ -581,8 +555,7 @@ int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
  *         bytes available
  **/
-int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
-	__attribute__((warn_unused_result));
+int __must_check put_int64_le_into_buffer(struct buffer *buffer, int64_t i);
 
 /**
  * Put an 8 byte, little endian encoded integer into a buffer and advance the
@@ -594,8 +567,7 @@ int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
  *         bytes available
  **/
-int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
-	__attribute__((warn_unused_result));
+int __must_check put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui);
 
 /**
  * Get a series of 8 byte, little endian encoded integer from a buffer
@@ -608,9 +580,8 @@ int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
  *         in the buffer
  **/
-int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
-			       uint64_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+get_uint64_les_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui);
 
 /**
  * Put a series of 8 byte, little endian encoded integers into a buffer and
@@ -623,9 +594,9 @@ int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
  *         in the buffer
  **/
-int put_uint64_les_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint64_t *ui)
-	__attribute__((warn_unused_result));
+int __must_check
+put_uint64_les_into_buffer(struct buffer *buffer,
+			   size_t count,
+			   const uint64_t *ui);
 
 #endif /* BUFFER_H */

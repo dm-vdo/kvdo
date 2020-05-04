@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.c#2 $
  */
 
 #include "bits.h"
@@ -24,7 +24,7 @@
 #include "compiler.h"
 
 /**
- * This is the largest field size supported by getBigField & setBigField.
+ * This is the largest field size supported by get_big_field & set_big_field.
  * Any field that is larger is not guaranteed to fit in a single, byte
  * aligned uint64_t.
  **/
@@ -39,12 +39,12 @@ enum { MAX_BIG_FIELD_BITS = (sizeof(uint64_t) - 1) * CHAR_BIT + 1 };
  *
  * @return the bit field
  **/
-static INLINE uint64_t getBigField(const byte *memory,
-                                   uint64_t    offset,
-                                   int         size)
+static INLINE uint64_t get_big_field(const byte *memory,
+				     uint64_t offset,
+				     int size)
 {
-  const void *addr = memory + offset / CHAR_BIT;
-  return (getUInt64LE(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
+	const void *addr = memory + offset / CHAR_BIT;
+	return (getUInt64LE(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
 }
 
 /**
@@ -57,115 +57,136 @@ static INLINE uint64_t getBigField(const byte *memory,
  *
  * @return the bit field
  **/
-static INLINE void setBigField(uint64_t value, byte *memory, uint64_t offset,
-                               int size)
+static INLINE void
+set_big_field(uint64_t value, byte *memory, uint64_t offset, int size)
 {
-  void *addr = memory + offset / CHAR_BIT;
-  int shift = offset % CHAR_BIT;
-  uint64_t data = getUInt64LE(addr);
-  data &= ~(((1UL << size) - 1) << shift);
-  data |= value << shift;
-  storeUInt64LE(addr, data);
+	void *addr = memory + offset / CHAR_BIT;
+	int shift = offset % CHAR_BIT;
+	uint64_t data = getUInt64LE(addr);
+	data &= ~(((1UL << size) - 1) << shift);
+	data |= value << shift;
+	storeUInt64LE(addr, data);
 }
 
 /***********************************************************************/
-void getBytes(const byte *memory, uint64_t offset, byte *destination, int size)
+void get_bytes(const byte *memory, uint64_t offset, byte *destination, int size)
 {
-  const byte *addr = memory + offset / CHAR_BIT;
-  int shift = offset % CHAR_BIT;
-  while (--size >= 0) {
-    *destination++ = getUInt16LE(addr++) >> shift;
-  }
+	const byte *addr = memory + offset / CHAR_BIT;
+	int shift = offset % CHAR_BIT;
+	while (--size >= 0) {
+		*destination++ = getUInt16LE(addr++) >> shift;
+	}
 }
 
 /***********************************************************************/
-void setBytes(byte *memory, uint64_t offset, const byte *source, int size)
+void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 {
-  byte *addr = memory + offset / CHAR_BIT;
-  int shift = offset % CHAR_BIT;
-  uint16_t mask = ~((uint16_t) 0xFF << shift);
-  while (--size >= 0) {
-    uint16_t data = (getUInt16LE(addr) & mask) | (*source++ << shift);
-    storeUInt16LE(addr++, data);
-  }
+	byte *addr = memory + offset / CHAR_BIT;
+	int shift = offset % CHAR_BIT;
+	uint16_t mask = ~((uint16_t) 0xFF << shift);
+	while (--size >= 0) {
+		uint16_t data =
+			(getUInt16LE(addr) & mask) | (*source++ << shift);
+		storeUInt16LE(addr++, data);
+	}
 }
 
 /***********************************************************************/
-void moveBits(const byte *sMemory, uint64_t source, byte *dMemory,
-              uint64_t destination, int size)
+void move_bits(const byte *s_memory,
+	      uint64_t source,
+	      byte *d_memory,
+	      uint64_t destination,
+	      int size)
 {
-  enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
-  if (size > MAX_BIG_FIELD_BITS) {
-    if (source > destination) {
-      // This is a large move from a higher to a lower address.  We move
-      // the lower addressed bits first.  Start by moving one field that
-      // ends on a destination int boundary
-      int count
-        = MAX_BIG_FIELD_BITS - (destination + MAX_BIG_FIELD_BITS) % UINT32_BIT;
-      uint64_t field = getBigField(sMemory, source, count);
-      setBigField(field, dMemory, destination, count);
-      source      += count;
-      destination += count;
-      size        -= count;
-      // Now do the main loop to copy 32 bit chunks that are int-aligned
-      // at the destination.
-      int offset = source % UINT32_BIT;
-      const byte *src = sMemory + (source - offset) / CHAR_BIT;
-      byte *dest = dMemory + destination / CHAR_BIT;
-      while (size > MAX_BIG_FIELD_BITS) {
-        storeUInt32LE(dest, getUInt64LE(src) >> offset);
-        src  += sizeof(uint32_t);
-        dest += sizeof(uint32_t);
-        source      += UINT32_BIT;
-        destination += UINT32_BIT;
-        size        -= UINT32_BIT;
-      }
-    } else {
-      // This is a large move from a lower to a higher address.  We move
-      // the higher addressed bits first.  Start by moving one field that
-      // begins on a destination int boundary
-      int count = (destination + size) % UINT32_BIT;
-      if (count > 0) {
-        size -= count;
-        uint64_t field = getBigField(sMemory, source + size, count);
-        setBigField(field, dMemory, destination + size, count);
-      }
-      // Now do the main loop to copy 32 bit chunks that are int-aligned
-      // at the destination.
-      int offset = (source + size) % UINT32_BIT;
-      const byte *src = sMemory + (source + size - offset) / CHAR_BIT;
-      byte *dest = dMemory + (destination + size) / CHAR_BIT;
-      while (size > MAX_BIG_FIELD_BITS) {
-        src  -= sizeof(uint32_t);
-        dest -= sizeof(uint32_t);
-        size -= UINT32_BIT;
-        storeUInt32LE(dest, getUInt64LE(src) >> offset);
-      }
-    }
-  }
-  // Finish up by doing the last chunk, which can have any arbitrary alignment
-  if (size > 0) {
-    uint64_t field = getBigField(sMemory, source, size);
-    setBigField(field, dMemory, destination, size);
-  }
+	enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
+	if (size > MAX_BIG_FIELD_BITS) {
+		if (source > destination) {
+			// This is a large move from a higher to a lower
+			// address.  We move the lower addressed bits first.
+			// Start by moving one field that ends on a destination
+			// int boundary
+			int count =
+				MAX_BIG_FIELD_BITS -
+				(destination + MAX_BIG_FIELD_BITS) % UINT32_BIT;
+			uint64_t field = get_big_field(s_memory, source, count);
+			set_big_field(field, d_memory, destination, count);
+			source += count;
+			destination += count;
+			size -= count;
+			// Now do the main loop to copy 32 bit chunks that are
+			// int-aligned at the destination.
+			int offset = source % UINT32_BIT;
+			const byte *src =
+				s_memory + (source - offset) / CHAR_BIT;
+			byte *dest = d_memory + destination / CHAR_BIT;
+			while (size > MAX_BIG_FIELD_BITS) {
+				storeUInt32LE(dest, getUInt64LE(src) >> offset);
+				src += sizeof(uint32_t);
+				dest += sizeof(uint32_t);
+				source += UINT32_BIT;
+				destination += UINT32_BIT;
+				size -= UINT32_BIT;
+			}
+		} else {
+			// This is a large move from a lower to a higher
+			// address.  We move the higher addressed bits first.
+			// Start by moving one field that begins on a
+			// destination int boundary
+			int count = (destination + size) % UINT32_BIT;
+			if (count > 0) {
+				size -= count;
+				uint64_t field =
+					get_big_field(s_memory,
+						      source + size,
+						      count);
+				set_big_field(field,
+					      d_memory,
+					      destination + size,
+					      count);
+			}
+			// Now do the main loop to copy 32 bit chunks that are
+			// int-aligned at the destination.
+			int offset = (source + size) % UINT32_BIT;
+			const byte *src =
+				s_memory + (source + size - offset) / CHAR_BIT;
+			byte *dest = d_memory + (destination + size) / CHAR_BIT;
+			while (size > MAX_BIG_FIELD_BITS) {
+				src -= sizeof(uint32_t);
+				dest -= sizeof(uint32_t);
+				size -= UINT32_BIT;
+				storeUInt32LE(dest, getUInt64LE(src) >> offset);
+			}
+		}
+	}
+	// Finish up by doing the last chunk, which can have any arbitrary
+	// alignment
+	if (size > 0) {
+		uint64_t field = get_big_field(s_memory, source, size);
+		set_big_field(field, d_memory, destination, size);
+	}
 }
 
 /***********************************************************************/
-bool sameBits(const byte *mem1, uint64_t offset1, const byte *mem2,
-              uint64_t offset2, int size)
+bool same_bits(const byte *mem1,
+	      uint64_t offset1,
+	      const byte *mem2,
+	      uint64_t offset2,
+	      int size)
 {
-  while (size >= MAX_FIELD_BITS) {
-    unsigned int field1 = getField(mem1, offset1, MAX_FIELD_BITS);
-    unsigned int field2 = getField(mem2, offset2, MAX_FIELD_BITS);
-    if (field1 != field2) return false;
-    offset1 += MAX_FIELD_BITS;
-    offset2 += MAX_FIELD_BITS;
-    size    -= MAX_FIELD_BITS;
-  }
-  if (size > 0) {
-    unsigned int field1 = getField(mem1, offset1, size);
-    unsigned int field2 = getField(mem2, offset2, size);
-    if (field1 != field2) return false;
-  }
-  return true;
+	while (size >= MAX_FIELD_BITS) {
+		unsigned int field1 = get_field(mem1, offset1, MAX_FIELD_BITS);
+		unsigned int field2 = get_field(mem2, offset2, MAX_FIELD_BITS);
+		if (field1 != field2)
+			return false;
+		offset1 += MAX_FIELD_BITS;
+		offset2 += MAX_FIELD_BITS;
+		size -= MAX_FIELD_BITS;
+	}
+	if (size > 0) {
+		unsigned int field1 = get_field(mem1, offset1, size);
+		unsigned int field2 = get_field(mem2, offset2, size);
+		if (field1 != field2)
+			return false;
+	}
+	return true;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#3 $
  */
 
 #ifndef DELTAMEMORY_H
@@ -100,10 +100,12 @@ enum { DELTA_LIST_MAX_BYTE_COUNT = ((UINT16_MAX + CHAR_BIT) / CHAR_BIT
  *
  * @return error code or UDS_SUCCESS
  **/
-int initializeDeltaMemory(DeltaMemory *deltaMemory, size_t size,
-                          unsigned int firstList, unsigned int numLists,
-                          unsigned int meanDelta, unsigned int numPayloadBits)
-  __attribute__((warn_unused_result));
+int __must_check initializeDeltaMemory(DeltaMemory *deltaMemory,
+				       size_t size,
+				       unsigned int firstList,
+				       unsigned int numLists,
+				       unsigned int meanDelta,
+				       unsigned int numPayloadBits);
 
 /**
  * Uninitialize delta list memory.
@@ -151,8 +153,7 @@ bool areDeltaMemoryTransfersDone(const DeltaMemory *deltaMemory);
  *
  * @return error code or UDS_SUCCESS
  **/
-int startRestoringDeltaMemory(DeltaMemory *deltaMemory)
-  __attribute__((warn_unused_result));
+int __must_check startRestoringDeltaMemory(DeltaMemory *deltaMemory);
 
 /**
  * Read a saved delta list from a file descriptor
@@ -164,10 +165,9 @@ int startRestoringDeltaMemory(DeltaMemory *deltaMemory)
  * @return error code or UDS_SUCCESS
  *         or UDS_END_OF_FILE at end of the data stream
  **/
-int readSavedDeltaList(DeltaListSaveInfo *dlsi,
-                       byte data[DELTA_LIST_MAX_BYTE_COUNT],
-                       BufferedReader *bufferedReader)
-  __attribute__((warn_unused_result));
+int __must_check readSavedDeltaList(DeltaListSaveInfo *dlsi,
+				    byte data[DELTA_LIST_MAX_BYTE_COUNT],
+				    BufferedReader *bufferedReader);
 
 /**
  * Restore a saved delta list
@@ -178,9 +178,9 @@ int readSavedDeltaList(DeltaListSaveInfo *dlsi,
  *
  * @return error code or UDS_SUCCESS
  **/
-int restoreDeltaList(DeltaMemory *deltaMemory, const DeltaListSaveInfo *dlsi,
-                     const byte data[DELTA_LIST_MAX_BYTE_COUNT])
-  __attribute__((warn_unused_result));
+int __must_check restoreDeltaList(DeltaMemory *deltaMemory,
+				  const DeltaListSaveInfo *dlsi,
+				  const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
 
 /**
  * Abort restoring delta list memory from an input stream.
@@ -207,8 +207,7 @@ void startSavingDeltaMemory(DeltaMemory *deltaMemory,
  *
  * @return error code or UDS_SUCCESS
  **/
-int finishSavingDeltaMemory(DeltaMemory *deltaMemory)
-  __attribute__((warn_unused_result));
+int __must_check finishSavingDeltaMemory(DeltaMemory *deltaMemory);
 
 /**
  * Abort saving delta list memory to an output stream.  If an error
@@ -233,8 +232,7 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex);
  *
  * @return error code or UDS_SUCCESS
  **/
-int writeGuardDeltaList(BufferedWriter *bufferedWriter)
-  __attribute__((warn_unused_result));
+int __must_check writeGuardDeltaList(BufferedWriter *bufferedWriter);
 
 /**
  * Extend the memory used by the delta lists and rebalance the lists in the
@@ -256,9 +254,10 @@ int writeGuardDeltaList(BufferedWriter *bufferedWriter)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
-                      size_t growingSize, bool doCopy)
-  __attribute__((warn_unused_result));
+int __must_check extendDeltaMemory(DeltaMemory *deltaMemory,
+				   unsigned int growingIndex,
+				   size_t growingSize,
+				   bool doCopy);
 
 /**
  * Validate the delta list headers.
@@ -267,8 +266,7 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int validateDeltaLists(const DeltaMemory *deltaMemory)
-  __attribute__((warn_unused_result));
+int __must_check validateDeltaLists(const DeltaMemory *deltaMemory);
 
 /**
  * Get the number of bytes allocated for delta index entries and any
@@ -289,9 +287,9 @@ size_t getDeltaMemoryAllocated(const DeltaMemory *deltaMemory);
  *
  * @return  The expected size of a delta index in bits
  **/
-size_t getDeltaMemorySize(unsigned long numEntries, unsigned int meanDelta,
-                          unsigned int numPayloadBits)
-  __attribute__((warn_unused_result));
+size_t __must_check getDeltaMemorySize(unsigned long numEntries,
+				       unsigned int meanDelta,
+				       unsigned int numPayloadBits);
 
 /**
  * Get the bit offset to the start of the delta list bit stream
@@ -363,7 +361,7 @@ static INLINE bool isMutable(const DeltaMemory *deltaMemory)
 static INLINE void lazyFlushDeltaList(DeltaMemory *deltaMemory,
                                       unsigned int flushIndex)
 {
-  if (getField(deltaMemory->flags, flushIndex, 1) != 0) {
+  if (get_field(deltaMemory->flags, flushIndex, 1) != 0) {
     flushDeltaList(deltaMemory, flushIndex);
   }
 }

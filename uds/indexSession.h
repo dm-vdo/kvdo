@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#3 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -128,8 +128,7 @@ struct uds_index_session {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int checkIndexSession(struct uds_index_session *indexSession)
-  __attribute__((warn_unused_result));
+int __must_check checkIndexSession(struct uds_index_session *indexSession);
 
 /**
  * Make sure that the IndexSession is allowed to load an index, and if so, set
@@ -139,8 +138,8 @@ int checkIndexSession(struct uds_index_session *indexSession)
  *
  * @return UDS_SUCCESS, or an error code if an index already exists.
  **/
-int startLoadingIndexSession(struct uds_index_session *indexSession)
-  __attribute__((warn_unused_result));
+int __must_check
+startLoadingIndexSession(struct uds_index_session *indexSession);
 
 /**
  * Update the IndexSession state after attempting to load an index, to indicate
@@ -169,8 +168,7 @@ void disableIndexSession(struct uds_index_session *indexSession);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getIndexSession(struct uds_index_session *indexSession)
-  __attribute__((warn_unused_result));
+int __must_check getIndexSession(struct uds_index_session *indexSession);
 
 /**
  * Release a pointer to an index session.
@@ -186,8 +184,8 @@ void releaseIndexSession(struct uds_index_session *indexSession);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+makeEmptyIndexSession(struct uds_index_session **indexSessionPtr);
 
 /**
  * Save an index while the session is quiescent.
@@ -199,8 +197,7 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-int udsSaveIndex(struct uds_index_session *indexSession)
-  __attribute__((warn_unused_result));
+int __must_check udsSaveIndex(struct uds_index_session *indexSession);
 
 /**
  * Close the index by saving the underlying index.
@@ -218,8 +215,8 @@ int saveAndFreeIndex(struct uds_index_session *indexSession);
  * @return          Either UDS_SUCCESS or an error code.
  *
  **/
-int udsSetCheckpointFrequency(struct uds_index_session *session,
-                              unsigned int              frequency)
-  __attribute__((warn_unused_result));
+int __must_check
+udsSetCheckpointFrequency(struct uds_index_session *session,
+			  unsigned int frequency);
 
 #endif /* INDEX_SESSION_H */

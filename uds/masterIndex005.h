@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.h#2 $
  */
 
 #ifndef MASTERINDEX005_H
@@ -34,9 +34,10 @@
  *
  * @return error code or UDS_SUCCESS
  **/
-int makeMasterIndex005(const Configuration *config, unsigned int numZones,
-                       uint64_t volumeNonce, MasterIndex **masterIndex)
-  __attribute__((warn_unused_result));
+int __must_check makeMasterIndex005(const Configuration *config,
+				    unsigned int numZones,
+				    uint64_t volumeNonce,
+				    MasterIndex **masterIndex);
 
 /**
  * Compute the number of bytes required to save a master index of a given
@@ -47,8 +48,7 @@ int makeMasterIndex005(const Configuration *config, unsigned int numZones,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int computeMasterIndexSaveBytes005(const Configuration *config,
-                                   size_t *numBytes)
-  __attribute__((warn_unused_result));
+int __must_check
+computeMasterIndexSaveBytes005(const Configuration *config, size_t *numBytes);
 
 #endif /* MASTERINDEX005_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#3 $
  */
 
 #ifndef REQUEST_QUEUE_H
@@ -39,10 +39,9 @@ typedef void RequestQueueProcessor(Request *);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeRequestQueue(const char             *queueName,
-                     RequestQueueProcessor  *processOne,
-                     RequestQueue          **queuePtr)
-  __attribute__((warn_unused_result));
+int __must_check makeRequestQueue(const char *queueName,
+				  RequestQueueProcessor *processOne,
+				  RequestQueue **queuePtr);
 
 /**
  * Add a request to the end of the queue for processing by the worker thread.

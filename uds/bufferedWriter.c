@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#3 $
  */
 
 #include "bufferedWriter.h"
@@ -51,7 +51,7 @@ struct bufferedWriter {
 };
 
 /*****************************************************************************/
-__attribute__((warn_unused_result)) int prepare_next_buffer(BufferedWriter *bw)
+int __must_check prepare_next_buffer(BufferedWriter *bw)
 {
 	if (bw->bw_block_number >= bw->bw_limit) {
 		bw->bw_error = UDS_OUT_OF_RANGE;

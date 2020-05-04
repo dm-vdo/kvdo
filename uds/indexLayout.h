@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#7 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -84,16 +84,15 @@ make_index_layout_from_factory(IOFactory *factory,
 void put_index_layout(struct index_layout **layout_ptr);
 
 /*****************************************************************************/
-int cancel_index_save(struct index_layout *layout, unsigned int save_slot)
-	__attribute__((warn_unused_result));
+int __must_check
+cancel_index_save(struct index_layout *layout, unsigned int save_slot);
 
 /*****************************************************************************/
-int commit_index_save(struct index_layout *layout, unsigned int save_slot)
-	__attribute__((warn_unused_result));
+int __must_check
+commit_index_save(struct index_layout *layout, unsigned int save_slot);
 
 /*****************************************************************************/
-int discard_index_saves(struct index_layout *layout, bool all)
-	__attribute__((warn_unused_result));
+int __must_check discard_index_saves(struct index_layout *layout, bool all);
 
 /**
  * Find the latest index save slot.
@@ -105,10 +104,10 @@ int discard_index_saves(struct index_layout *layout, bool all)
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int find_latest_index_save_slot(struct index_layout *layout,
-				unsigned int *num_zones_ptr,
-				unsigned int *slot_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+find_latest_index_save_slot(struct index_layout *layout,
+			    unsigned int *num_zones_ptr,
+			    unsigned int *slot_ptr);
 
 /**
  * Get another reference to an index layout, incrementing it's use count.
@@ -130,12 +129,12 @@ void get_index_layout(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int open_index_buffered_reader(struct index_layout *layout,
-			       unsigned int slot,
-			       RegionKind kind,
-			       unsigned int zone,
-			       BufferedReader **reader_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+open_index_buffered_reader(struct index_layout *layout,
+			   unsigned int slot,
+			   RegionKind kind,
+			   unsigned int zone,
+			   BufferedReader **reader_ptr);
 
 /**
  * Open a BufferedWriter for a specified state, kind, and zone.
@@ -148,12 +147,12 @@ int open_index_buffered_reader(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int open_index_buffered_writer(struct index_layout *layout,
-			       unsigned int slot,
-			       RegionKind kind,
-			       unsigned int zone,
-			       BufferedWriter **writer_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+open_index_buffered_writer(struct index_layout *layout,
+			   unsigned int slot,
+			   RegionKind kind,
+			   unsigned int zone,
+			   BufferedWriter **writer_ptr);
 
 /**
  * Obtain the nonce to be used to store or validate the loading of volume index
@@ -163,8 +162,7 @@ int open_index_buffered_writer(struct index_layout *layout,
  *
  * @return The nonce to use.
  **/
-uint64_t get_volume_nonce(struct index_layout *layout)
-	__attribute__((warn_unused_result));
+uint64_t __must_check get_volume_nonce(struct index_layout *layout);
 
 /**
  * Obtain a dm_bufio_client for the specified index volume.
@@ -176,11 +174,10 @@ uint64_t get_volume_nonce(struct index_layout *layout)
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int open_volume_bufio(struct index_layout *layout,
-		      size_t block_size,
-		      unsigned int reserved_buffers,
-		      struct dm_bufio_client **client_ptr)
-	__attribute__((warn_unused_result));
+int __must_check open_volume_bufio(struct index_layout *layout,
+				   size_t block_size,
+				   unsigned int reserved_buffers,
+				   struct dm_bufio_client **client_ptr);
 
 /**
  * Read the index configuration, and verify that it matches the given
@@ -208,11 +205,10 @@ verify_index_config(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setup_index_save_slot(struct index_layout *layout,
-			  unsigned int num_zones,
-			  IndexSaveType save_type,
-			  unsigned int *save_slot_ptr)
-	__attribute__((warn_unused_result));
+int __must_check setup_index_save_slot(struct index_layout *layout,
+				       unsigned int num_zones,
+				       IndexSaveType save_type,
+				       unsigned int *save_slot_ptr);
 
 /**
  * Write the index configuration.
@@ -234,9 +230,8 @@ write_index_config(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-struct buffer *get_index_state_buffer(struct index_layout *layout,
-				      unsigned int slot)
-	__attribute__((warn_unused_result));
+struct buffer * __must_check
+get_index_state_buffer(struct index_layout *layout, unsigned int slot);
 
 /**
  * Get the index version parameters.
@@ -245,7 +240,7 @@ struct buffer *get_index_state_buffer(struct index_layout *layout,
  *
  * @return the index version parameters.
  **/
-const struct index_version *get_index_version(struct index_layout *layout)
-	__attribute__((warn_unused_result));
+const struct index_version * __must_check
+get_index_version(struct index_layout *layout);
 
 #endif // INDEX_LAYOUT_H

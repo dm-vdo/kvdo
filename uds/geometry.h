@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#2 $
  */
 
 #ifndef GEOMETRY_H
@@ -144,12 +144,11 @@ enum {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeGeometry(size_t       bytesPerPage,
-                 unsigned int recordPagesPerChapter,
-                 unsigned int chaptersPerVolume,
-                 unsigned int sparseChaptersPerVolume,
-                 Geometry   **geometryPtr)
-  __attribute__((warn_unused_result));
+int __must_check makeGeometry(size_t bytesPerPage,
+			      unsigned int recordPagesPerChapter,
+			      unsigned int chaptersPerVolume,
+			      unsigned int sparseChaptersPerVolume,
+			      Geometry **geometryPtr);
 
 /**
  * Allocate a new geometry and initialize it with the same parameters as an
@@ -160,9 +159,7 @@ int makeGeometry(size_t       bytesPerPage,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int copyGeometry(Geometry  *source,
-                 Geometry **geometryPtr)
-  __attribute__((warn_unused_result));
+int __must_check copyGeometry(Geometry *source, Geometry **geometryPtr);
 
 /**
  * Clean up a geometry and its memory.
@@ -179,9 +176,8 @@ void freeGeometry(Geometry *geometry);
  *
  * @return the corresponding physical chapter number
  **/
-__attribute__((warn_unused_result))
-static INLINE unsigned int mapToPhysicalChapter(const Geometry *geometry,
-                                                uint64_t virtualChapter)
+static INLINE unsigned int __must_check
+mapToPhysicalChapter(const Geometry *geometry, uint64_t virtualChapter)
 {
   return (virtualChapter % geometry->chaptersPerVolume);
 }
@@ -207,8 +203,7 @@ uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
  *
  * @return true if this geometry has sparse chapters
  **/
-__attribute__((warn_unused_result))
-static INLINE bool isSparse(const Geometry *geometry)
+static INLINE bool __must_check isSparse(const Geometry *geometry)
 {
   return (geometry->sparseChaptersPerVolume > 0);
 }
@@ -224,10 +219,9 @@ static INLINE bool isSparse(const Geometry *geometry)
  *
  * @return true if the index has filled at least one sparse chapter
  **/
-bool hasSparseChapters(const Geometry *geometry,
-                       uint64_t        oldestVirtualChapter,
-                       uint64_t        newestVirtualChapter)
-  __attribute__((warn_unused_result));
+bool __must_check hasSparseChapters(const Geometry *geometry,
+				    uint64_t oldestVirtualChapter,
+				    uint64_t newestVirtualChapter);
 
 /**
  * Check whether a chapter is sparse or dense.
@@ -239,11 +233,10 @@ bool hasSparseChapters(const Geometry *geometry,
  *
  * @return true if the chapter is sparse
  **/
-bool isChapterSparse(const Geometry *geometry,
-                     uint64_t        oldestVirtualChapter,
-                     uint64_t        newestVirtualChapter,
-                     uint64_t        virtualChapterNumber)
-  __attribute__((warn_unused_result));
+bool __must_check isChapterSparse(const Geometry *geometry,
+				  uint64_t oldestVirtualChapter,
+				  uint64_t newestVirtualChapter,
+				  uint64_t virtualChapterNumber);
 
 /**
  * Check whether two virtual chapter numbers correspond to the same
@@ -256,9 +249,9 @@ bool isChapterSparse(const Geometry *geometry,
  * @return <code>true</code> if both chapters correspond to the same
  *         physical chapter
  **/
-bool areSamePhysicalChapter(const Geometry *geometry,
-                            uint64_t        chapter1,
-                            uint64_t        chapter2)
-  __attribute__((warn_unused_result));
+bool __must_check
+areSamePhysicalChapter(const Geometry *geometry,
+		       uint64_t chapter1,
+		       uint64_t chapter2);
 
 #endif /* GEOMETRY_H */

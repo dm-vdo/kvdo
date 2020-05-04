@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#3 $
  */
 
 #ifndef TIME_UTILS_H
@@ -184,7 +184,7 @@ static INLINE int64_t relTimeToNanoseconds(RelTime reltime)
  *
  * @return the time in microseconds
  **/
-uint64_t nowUsec(void) __attribute__((warn_unused_result));
+uint64_t __must_check nowUsec(void);
 
 /**
  * Convert from an AbsTime to seconds truncating

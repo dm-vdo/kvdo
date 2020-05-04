@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#4 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -92,10 +92,9 @@ typedef struct openChapterZone {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeOpenChapter(const Geometry   *geometry,
-                    unsigned int      zoneCount,
-                    OpenChapterZone **openChapterPtr)
-  __attribute__((warn_unused_result));
+int __must_check makeOpenChapter(const Geometry *geometry,
+				 unsigned int zoneCount,
+				 OpenChapterZone **openChapterPtr);
 
 /**
  * Return the number of records in the open chapter zone that have not been
@@ -103,8 +102,7 @@ int makeOpenChapter(const Geometry   *geometry,
  *
  * @return the number of non-deleted records
  **/
-size_t openChapterSize(const OpenChapterZone *openChapter)
-  __attribute__((warn_unused_result));
+size_t __must_check openChapterSize(const OpenChapterZone *openChapter);
 
 /**
  * Open a chapter by marking it empty.

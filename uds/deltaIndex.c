@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#7 $
  */
 #include "deltaIndex.h"
 
@@ -219,8 +219,8 @@ static INLINE unsigned int getImmutableHeaderOffset(unsigned int listNumber)
 static INLINE unsigned int getImmutableStart(const byte *memory,
                                              unsigned int listNumber)
 {
-  return getField(memory, getImmutableHeaderOffset(listNumber),
-                  IMMUTABLE_HEADER_SIZE);
+  return get_field(memory, getImmutableHeaderOffset(listNumber),
+                   IMMUTABLE_HEADER_SIZE);
 }
 
 /**
@@ -233,8 +233,8 @@ static INLINE unsigned int getImmutableStart(const byte *memory,
 static INLINE void setImmutableStart(byte *memory, unsigned int listNumber,
                                      unsigned int startOffset)
 {
-  setField(startOffset, memory, getImmutableHeaderOffset(listNumber),
-           IMMUTABLE_HEADER_SIZE);
+  set_field(startOffset, memory, getImmutableHeaderOffset(listNumber),
+            IMMUTABLE_HEADER_SIZE);
 }
 
 //**********************************************************************
@@ -333,7 +333,7 @@ static void deleteBits(const DeltaIndexEntry *deltaEntry, int size)
     source = destination + size;
     count = afterSize;
   }
-  moveBits(memory, source, memory, destination, count);
+  move_bits(memory, source, memory, destination, count);
 }
 
 /**
@@ -359,15 +359,15 @@ static void encodeDelta(const DeltaIndexEntry *deltaEntry)
   byte *memory = deltaZone->memory;
   uint64_t offset = getDeltaEntryOffset(deltaEntry) + deltaEntry->valueBits;
   if (deltaEntry->delta < deltaZone->minKeys) {
-    setField(deltaEntry->delta, memory, offset, deltaZone->minBits);
+    set_field(deltaEntry->delta, memory, offset, deltaZone->minBits);
     return;
   }
   unsigned int temp = deltaEntry->delta - deltaZone->minKeys;
   unsigned int t1   = (temp % deltaZone->incrKeys) + deltaZone->minKeys;
   unsigned int t2   = temp / deltaZone->incrKeys;
-  setField(t1, memory, offset, deltaZone->minBits);
-  setZero(memory, offset + deltaZone->minBits, t2);
-  setOne(memory, offset + deltaZone->minBits + t2, 1);
+  set_field(t1, memory, offset, deltaZone->minBits);
+  set_zero(memory, offset + deltaZone->minBits, t2);
+  set_one(memory, offset + deltaZone->minBits + t2, 1);
 }
 
 /**
@@ -382,10 +382,10 @@ static void encodeEntry(const DeltaIndexEntry *deltaEntry, unsigned int value,
 {
   byte *memory = deltaEntry->deltaZone->memory;
   uint64_t offset = getDeltaEntryOffset(deltaEntry);
-  setField(value, memory, offset, deltaEntry->valueBits);
+  set_field(value, memory, offset, deltaEntry->valueBits);
   encodeDelta(deltaEntry);
   if (name != NULL) {
-    setBytes(memory, getCollisionOffset(deltaEntry), name, COLLISION_BYTES);
+    set_bytes(memory, getCollisionOffset(deltaEntry), name, COLLISION_BYTES);
   }
 }
 
@@ -467,7 +467,7 @@ static int insertBits(DeltaIndexEntry *deltaEntry, int size)
     count = afterSize;
   }
   byte *memory = deltaZone->memory;
-  moveBits(memory, source, memory, destination, count);
+  move_bits(memory, source, memory, destination, count);
   return UDS_SUCCESS;
 }
 
@@ -814,8 +814,8 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex,
   // Copy the delta list data onto the memory page
   for (i = 0; i < nLists; i++) {
     DeltaList *deltaList = &deltaLists[i];
-    moveBits(deltaZone->memory, getDeltaListStart(deltaList), memory,
-             getImmutableStart(memory, i), getDeltaListSize(deltaList));
+    move_bits(deltaZone->memory, getDeltaListStart(deltaList), memory,
+              getImmutableStart(memory, i), getDeltaListSize(deltaList));
   }
 
   // Set all the bits in the guard bytes.  Do not use the bit field
@@ -837,9 +837,8 @@ void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int decodeDeltaIndexHeader(struct buffer *buffer,
-				  struct di_header *header)
+static int __must_check
+decodeDeltaIndexHeader(struct buffer *buffer, struct di_header *header)
 {
   int result = get_bytes_from_buffer(buffer, MAGIC_SIZE, &header->magic);
   if (result != UDS_SUCCESS) {
@@ -877,9 +876,8 @@ static int decodeDeltaIndexHeader(struct buffer *buffer,
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int readDeltaIndexHeader(BufferedReader *reader,
-                                struct di_header *header)
+static int __must_check
+readDeltaIndexHeader(BufferedReader *reader, struct di_header *header)
 {
   struct buffer *buffer;
 
@@ -1072,9 +1070,8 @@ void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int encodeDeltaIndexHeader(struct buffer *buffer,
-				  struct di_header *header)
+static int __must_check
+encodeDeltaIndexHeader(struct buffer *buffer, struct di_header *header)
 {
   int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_DI_START);
   if (result != UDS_SUCCESS) {
@@ -1385,9 +1382,9 @@ int getDeltaIndexEntry(const DeltaIndex *deltaIndex, unsigned int listNumber,
         break;
       }
       byte collisionName[COLLISION_BYTES];
-      getBytes(deltaEntry->deltaZone->memory,
-               getCollisionOffset(&collisionEntry), collisionName,
-               COLLISION_BYTES);
+      get_bytes(deltaEntry->deltaZone->memory,
+                getCollisionOffset(&collisionEntry), collisionName,
+                COLLISION_BYTES);
       if (memcmp(collisionName, name, COLLISION_BYTES) == 0) {
         *deltaEntry = collisionEntry;
         break;
@@ -1411,8 +1408,8 @@ int getDeltaEntryCollision(const DeltaIndexEntry *deltaEntry, byte *name)
     return result;
   }
 
-  getBytes(deltaEntry->deltaZone->memory, getCollisionOffset(deltaEntry),
-           name, COLLISION_BYTES);
+  get_bytes(deltaEntry->deltaZone->memory, getCollisionOffset(deltaEntry),
+            name, COLLISION_BYTES);
   return UDS_SUCCESS;
 }
 
@@ -1446,8 +1443,8 @@ int setDeltaEntryValue(const DeltaIndexEntry *deltaEntry, unsigned int value)
     return result;
   }
 
-  setField(value, deltaEntry->deltaZone->memory,
-           getDeltaEntryOffset(deltaEntry), deltaEntry->valueBits);
+  set_field(value, deltaEntry->deltaZone->memory,
+            getDeltaEntryOffset(deltaEntry), deltaEntry->valueBits);
   return UDS_SUCCESS;
 }
 

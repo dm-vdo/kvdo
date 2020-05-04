@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#3 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -64,8 +64,8 @@ struct indexPageMap {
  *
  * @return             A success or error code.
  **/
-int makeIndexPageMap(const Geometry *geometry, IndexPageMap **mapPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+makeIndexPageMap(const Geometry *geometry, IndexPageMap **mapPtr);
 
 /**
  * Free an index page map.
@@ -94,12 +94,11 @@ uint64_t getLastUpdate(const IndexPageMap *map);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int updateIndexPageMap(IndexPageMap    *map,
-                       uint64_t         virtualChapterNumber,
-                       unsigned int     chapterNumber,
-                       unsigned int     indexPageNumber,
-                       unsigned int     deltaListNumber)
-  __attribute__((warn_unused_result));
+int __must_check updateIndexPageMap(IndexPageMap *map,
+				    uint64_t virtualChapterNumber,
+				    unsigned int chapterNumber,
+				    unsigned int indexPageNumber,
+				    unsigned int deltaListNumber);
 
 /**
  * Find the page number of the index page in a chapter that will contain the
@@ -131,11 +130,10 @@ int __must_check findIndexPageNumber(const IndexPageMap *map,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getListNumberBounds(const IndexPageMap *map,
-                        unsigned int        chapterNumber,
-                        unsigned int        indexPageNumber,
-                        IndexPageBounds    *bounds)
-  __attribute__((warn_unused_result));
+int __must_check getListNumberBounds(const IndexPageMap *map,
+				     unsigned int chapterNumber,
+				     unsigned int indexPageNumber,
+				     IndexPageBounds *bounds);
 
 /**
  * Compute the size of the index page map save image, including all headers.
@@ -154,7 +152,6 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry);
  * @return              The number of bytes required for the page map data,
  *                      exclusive of headers.
  **/
-size_t indexPageMapSize(const Geometry *geometry)
-  __attribute__((warn_unused_result));
+size_t __must_check indexPageMapSize(const Geometry *geometry);
 
 #endif // INDEX_PAGE_MAP_H

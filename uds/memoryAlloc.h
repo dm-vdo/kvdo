@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#2 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -43,8 +43,8 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
-  __attribute__((warn_unused_result));
+int __must_check
+allocateMemory(size_t size, size_t align, const char *what, void *ptr);
 
 /**
  * Free storage
@@ -113,12 +113,11 @@ static INLINE int doAllocation(size_t      count,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int reallocateMemory(void       *ptr,
-                     size_t      oldSize,
-                     size_t      size,
-                     const char *what,
-                     void       *newPtr)
-  __attribute__((warn_unused_result));
+int __must_check reallocateMemory(void *ptr,
+				  size_t oldSize,
+				  size_t size,
+				  const char *what,
+				  void *newPtr);
 
 /**
  * Allocate one or more elements of the indicated type, logging an
@@ -193,10 +192,8 @@ static INLINE void FREE(void *ptr)
  *
  * @return UDS_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static INLINE int allocateCacheAligned(size_t      size,
-                                       const char *what,
-                                       void       *ptr)
+static INLINE int __must_check
+allocateCacheAligned(size_t size, const char *what, void *ptr)
 {
   return allocateMemory(size, CACHE_LINE_BYTES, what, ptr);
 }
@@ -211,8 +208,7 @@ static INLINE int allocateCacheAligned(size_t      size,
  * @return pointer to the allocated memory, or NULL if the required space is
  *         not available.
  **/
-void *allocateMemoryNowait(size_t size, const char *what)
-  __attribute__((warn_unused_result));
+void * __must_check allocateMemoryNowait(size_t size, const char *what);
 
 /**
  * Allocate one element of the indicated type immediately, failing if the
@@ -234,8 +230,8 @@ void *allocateMemoryNowait(size_t size, const char *what)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int duplicateString(const char *string, const char *what, char **newString)
-  __attribute__((warn_unused_result));
+int __must_check
+duplicateString(const char *string, const char *what, char **newString);
 
 /**
  * Duplicate a buffer, logging an error if the allocation fails.
@@ -247,8 +243,8 @@ int duplicateString(const char *string, const char *what, char **newString)
  *
  * @return UDS_SUCCESS or ENOMEM
  **/
-int memdup(const void *ptr, size_t size, const char *what, void *dupPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+memdup(const void *ptr, size_t size, const char *what, void *dupPtr);
 
 /**
  * Wrapper which permits freeing a const pointer.

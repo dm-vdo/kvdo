@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#5 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -102,9 +102,9 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
  * @param chapter   the chapter index cache entry to initialize
  * @param geometry  the geometry governing the volume
  **/
-int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
-				    const Geometry *geometry)
-	__attribute__((warn_unused_result));
+int __must_check
+initialize_cached_chapter_index(struct cached_chapter_index *chapter,
+				const Geometry *geometry);
 
 /**
  * Destroy a cached_chapter_index, freeing the memory allocated for the
@@ -178,10 +178,9 @@ should_skip_chapter_index(const IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int cache_chapter_index(struct cached_chapter_index *chapter,
-			uint64_t virtual_chapter,
-			const Volume *volume)
-	__attribute__((warn_unused_result));
+int __must_check cache_chapter_index(struct cached_chapter_index *chapter,
+				     uint64_t virtual_chapter,
+				     const Volume *volume);
 
 /**
  * Search a single cached sparse chapter index for a chunk name, returning the

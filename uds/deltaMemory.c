@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#5 $
  */
 #include "deltaMemory.h"
 
@@ -134,7 +134,7 @@ static void flagNonEmptyDeltaLists(DeltaMemory *deltaMemory)
   unsigned int i;
   for (i = 0; i < deltaMemory->numLists; i++) {
     if (getDeltaListSize(&deltaMemory->deltaLists[i + 1]) > 0) {
-      setOne(deltaMemory->flags, i, 1);
+      set_one(deltaMemory->flags, i, 1);
       deltaMemory->numTransfers++;
     }
   }
@@ -372,17 +372,16 @@ int startRestoringDeltaMemory(DeltaMemory *deltaMemory)
 
   // The tail guard list needs to be set to ones
   DeltaList *deltaList = &deltaMemory->deltaLists[deltaMemory->numLists + 1];
-  setOne(deltaMemory->memory, getDeltaListStart(deltaList),
-         getDeltaListSize(deltaList));
+  set_one(deltaMemory->memory, getDeltaListStart(deltaList),
+          getDeltaListSize(deltaList));
 
   flagNonEmptyDeltaLists(deltaMemory);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int readDeltaListSaveInfo(BufferedReader *reader,
-                                 DeltaListSaveInfo *dlsi)
+static int __must_check
+readDeltaListSaveInfo(BufferedReader *reader, DeltaListSaveInfo *dlsi)
 {
   byte buffer[sizeof(DeltaListSaveInfo)];
   int result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
@@ -437,7 +436,7 @@ int restoreDeltaList(DeltaMemory *deltaMemory, const DeltaListSaveInfo *dlsi,
                                      + deltaMemory->numLists);
   }
 
-  if (getField(deltaMemory->flags, listNumber, 1) == 0) {
+  if (get_field(deltaMemory->flags, listNumber, 1) == 0) {
     return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
                                      "unexpected delta list number %u",
                                      dlsi->index);
@@ -453,9 +452,9 @@ int restoreDeltaList(DeltaMemory *deltaMemory, const DeltaListSaveInfo *dlsi,
                                      dlsi->byteCount, byteCount);
   }
 
-  moveBits(data, dlsi->bitOffset, deltaMemory->memory,
-           getDeltaListStart(deltaList), bitSize);
-  setZero(deltaMemory->flags, listNumber, 1);
+  move_bits(data, dlsi->bitOffset, deltaMemory->memory,
+            getDeltaListStart(deltaList), bitSize);
+  set_zero(deltaMemory->flags, listNumber, 1);
   deltaMemory->numTransfers--;
   return UDS_SUCCESS;
 }
@@ -502,9 +501,8 @@ void abortSavingDeltaMemory(DeltaMemory *deltaMemory)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static int writeDeltaListSaveInfo(BufferedWriter *bufferedWriter,
-                                  DeltaListSaveInfo *dlsi)
+static int __must_check
+writeDeltaListSaveInfo(BufferedWriter *bufferedWriter, DeltaListSaveInfo *dlsi)
 {
   byte buffer[sizeof(DeltaListSaveInfo)];
   buffer[0] = dlsi->tag;
@@ -517,9 +515,9 @@ static int writeDeltaListSaveInfo(BufferedWriter *bufferedWriter,
 /**********************************************************************/
 void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
 {
-  ASSERT_LOG_ONLY((getField(deltaMemory->flags, flushIndex, 1) != 0),
+  ASSERT_LOG_ONLY((get_field(deltaMemory->flags, flushIndex, 1) != 0),
                   "flush bit is set");
-  setZero(deltaMemory->flags, flushIndex, 1);
+  set_zero(deltaMemory->flags, flushIndex, 1);
   deltaMemory->numTransfers--;
 
   DeltaList *deltaList = &deltaMemory->deltaLists[flushIndex + 1];

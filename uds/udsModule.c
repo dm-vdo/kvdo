@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#15 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#17 $
  */
 
 #include <linux/module.h>
@@ -105,6 +105,7 @@ EXPORT_SYMBOL_GPL(get_boolean);
 EXPORT_SYMBOL_GPL(get_buffer_contents);
 EXPORT_SYMBOL_GPL(get_byte);
 EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
+EXPORT_SYMBOL_GPL(getLogLevel);
 EXPORT_SYMBOL_GPL(getMemoryStats);
 EXPORT_SYMBOL_GPL(get_uint16_be_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
@@ -118,10 +119,17 @@ EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
 EXPORT_SYMBOL_GPL(grow_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
+EXPORT_SYMBOL_GPL(logDebug);
+EXPORT_SYMBOL_GPL(logError);
+EXPORT_SYMBOL_GPL(logErrorWithStringError);
+EXPORT_SYMBOL_GPL(logInfo);
+EXPORT_SYMBOL_GPL(logWarning);
+EXPORT_SYMBOL_GPL(logWarningWithStringError);
 EXPORT_SYMBOL_GPL(make_buffer);
 EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(nowUsec);
+EXPORT_SYMBOL_GPL(pauseForLogger);
 EXPORT_SYMBOL_GPL(peek_byte);
 EXPORT_SYMBOL_GPL(performOnce);
 EXPORT_SYMBOL_GPL(put_boolean);
@@ -138,17 +146,22 @@ EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_bes_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
+EXPORT_SYMBOL_GPL(priorityToString);
 EXPORT_SYMBOL_GPL(reallocateMemory);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(registerErrorBlock);
 EXPORT_SYMBOL_GPL(reportMemoryUsage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
+EXPORT_SYMBOL_GPL(setLogLevel);
 EXPORT_SYMBOL_GPL(skip_forward);
 EXPORT_SYMBOL_GPL(stringError);
 EXPORT_SYMBOL_GPL(stringErrorName);
+EXPORT_SYMBOL_GPL(stringToPriority);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
+EXPORT_SYMBOL_GPL(vLogMessage);
+EXPORT_SYMBOL_GPL(vLogWithStringError);
 EXPORT_SYMBOL_GPL(wrap_buffer);
 EXPORT_SYMBOL_GPL(zero_bytes);
 

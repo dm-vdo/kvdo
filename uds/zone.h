@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/zone.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/zone.h#3 $
  */
 
 #ifndef ZONE_H
@@ -37,7 +37,6 @@ enum {
  *
  * @return the number of zones
  **/
-unsigned int getZoneCount(const struct uds_parameters *userParams)
-  __attribute__((warn_unused_result));
+unsigned int __must_check getZoneCount(const struct uds_parameters *userParams);
 
 #endif /* ZONE_H */

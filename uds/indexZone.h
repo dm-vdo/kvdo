@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#3 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -43,8 +43,7 @@ typedef struct {
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexZone(struct index *index, unsigned int zoneNumber)
-  __attribute__((warn_unused_result));
+int __must_check makeIndexZone(struct index *index, unsigned int zoneNumber);
 
 /**
  * Clean up an index zone.
@@ -64,9 +63,8 @@ void freeIndexZone(IndexZone *zone);
  *
  * @return true if the chapter is in the sparse part of the volume
  **/
-bool isZoneChapterSparse(const IndexZone *zone,
-                         uint64_t         virtualChapter)
-  __attribute__((warn_unused_result));
+bool __must_check
+isZoneChapterSparse(const IndexZone *zone, uint64_t virtualChapter);
 
 /**
  * Set the active chapter numbers for a zone based on its index. The active
@@ -84,8 +82,7 @@ void setActiveChapters(IndexZone *zone);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int dispatchIndexZoneControlRequest(Request *request)
-  __attribute__((warn_unused_result));
+int __must_check dispatchIndexZoneControlRequest(Request *request);
 
 /**
  * Execute a sparse chapter index cache barrier control request on the zone
@@ -98,9 +95,8 @@ int dispatchIndexZoneControlRequest(Request *request)
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int executeSparseCacheBarrierMessage(IndexZone          *zone,
-                                     BarrierMessageData *barrier)
-  __attribute__((warn_unused_result));
+int __must_check
+executeSparseCacheBarrierMessage(IndexZone *zone, BarrierMessageData *barrier);
 
 /**
  * Open the next chapter.
@@ -111,8 +107,7 @@ int executeSparseCacheBarrierMessage(IndexZone          *zone,
  *
  * @return UDS_SUCCESS if successful.
  **/
-int openNextChapter(IndexZone *zone, Request *request)
-  __attribute__((warn_unused_result));
+int __must_check openNextChapter(IndexZone *zone, Request *request);
 
 /**
  * Determine the IndexRegion in which a block was found.
@@ -136,11 +131,10 @@ IndexRegion computeIndexRegion(const IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getRecordFromZone(IndexZone *zone,
-                      Request   *request,
-                      bool      *found,
-                      uint64_t   virtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check getRecordFromZone(IndexZone *zone,
+				   Request *request,
+				   bool *found,
+				   uint64_t virtualChapter);
 
 /**
  * Put a record in the open chapter. If this fills the chapter, the chapter
@@ -169,10 +163,10 @@ int __must_check putRecordInZone(IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int searchSparseCacheInZone(IndexZone *zone,
-                            Request   *request,
-                            uint64_t   virtualChapter,
-                            bool      *found)
-  __attribute__((warn_unused_result));
+int __must_check
+searchSparseCacheInZone(IndexZone *zone,
+			Request *request,
+			uint64_t virtualChapter,
+			bool *found);
 
 #endif /* INDEX_ZONE_H */

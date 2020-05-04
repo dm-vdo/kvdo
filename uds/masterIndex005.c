@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#8 $
  */
 #include "masterIndex005.h"
 
@@ -365,9 +365,8 @@ static void setMasterIndexTag_005(MasterIndex *masterIndex, byte tag)
 }
 
 /***********************************************************************/
-__attribute__((warn_unused_result))
-static int encodeMasterIndexHeader(struct buffer *buffer,
-				   struct mi005_data *header)
+static int __must_check
+encodeMasterIndexHeader(struct buffer *buffer, struct mi005_data *header)
 {
   int result = put_bytes(buffer, MAGIC_SIZE, MAGIC_MI_START);
   if (result != UDS_SUCCESS) {
@@ -525,9 +524,8 @@ static int abortSavingMasterIndex_005(const MasterIndex *masterIndex,
 }
 
 /***********************************************************************/
-__attribute__((warn_unused_result))
-static int decodeMasterIndexHeader(struct buffer *buffer,
-				   struct mi005_data *header)
+static int __must_check
+decodeMasterIndexHeader(struct buffer *buffer, struct mi005_data *header)
 {
   int result = get_bytes_from_buffer(buffer, sizeof(header->magic),
                                      &header->magic);

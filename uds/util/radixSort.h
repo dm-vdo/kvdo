@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.h#4 $
  */
 
 #ifndef RADIX_SORT_H
@@ -40,8 +40,8 @@ struct radix_sorter;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
-	__attribute__((warn_unused_result));
+int __must_check
+make_radix_sorter(unsigned int count, struct radix_sorter **sorter);
 
 /**
  * Free the heap storage needed by the radix_sort routine.
@@ -63,9 +63,9 @@ void free_radix_sorter(struct radix_sorter *sorter);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int radix_sort(struct radix_sorter *sorter,
-	       const unsigned char *keys[],
-	       unsigned int count,
-	       unsigned short length) __attribute__((warn_unused_result));
+int __must_check radix_sort(struct radix_sorter *sorter,
+			    const unsigned char *keys[],
+			    unsigned int count,
+			    unsigned short length);
 
 #endif /* RADIX_SORT_H */

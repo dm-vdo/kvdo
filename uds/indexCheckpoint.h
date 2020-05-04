@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#2 $
  */
 
 #ifndef INDEX_CHECKPOINT_H
@@ -31,7 +31,7 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexCheckpoint(Index *index) __attribute__((warn_unused_result));
+int __must_check makeIndexCheckpoint(Index *index);
 
 /**
  * Free the checkpoint sub-structure of an index.
@@ -47,8 +47,8 @@ void freeIndexCheckpoint(IndexCheckpoint *checkpoint);
  *
  * @return the number of chapters between checkpoints
  **/
-unsigned int getIndexCheckpointFrequency(IndexCheckpoint *checkpoint)
-  __attribute__((warn_unused_result));
+unsigned int __must_check
+getIndexCheckpointFrequency(IndexCheckpoint *checkpoint);
 
 /**
  * Set checkpointing frequency for the index.
@@ -68,8 +68,7 @@ unsigned int setIndexCheckpointFrequency(IndexCheckpoint *checkpoint,
  *
  * @return            the number of checkpoints completed
  **/
-uint64_t getCheckpointCount(IndexCheckpoint *checkpoint)
-  __attribute__((warn_unused_result));
+uint64_t __must_check getCheckpointCount(IndexCheckpoint *checkpoint);
 
 /**
  * If incremental checkpointing is in progress, finish it.
@@ -84,7 +83,7 @@ uint64_t getCheckpointCount(IndexCheckpoint *checkpoint)
  *              error to call this function if checkpointing is not in
  *              progress, it silently returns success.
  **/
-int finishCheckpointing(Index *index) __attribute__((warn_unused_result));
+int __must_check finishCheckpointing(Index *index);
 
 /**
  * Process one zone's incremental checkpoint operation. Automatically
@@ -101,10 +100,9 @@ int finishCheckpointing(Index *index) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int processCheckpointing(Index        *index,
-                         unsigned int  zone,
-                         uint64_t      newVirtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check processCheckpointing(Index *index,
+				      unsigned int zone,
+				      uint64_t newVirtualChapter);
 
 /**
  * Process saves done outside any zone by the chapter writer.
@@ -115,7 +113,6 @@ int processCheckpointing(Index        *index,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int processChapterWriterCheckpointSaves(Index *index)
-  __attribute__((warn_unused_result));
+int __must_check processChapterWriterCheckpointSaves(Index *index);
 
 #endif // INDEX_CHECKPOINT_H

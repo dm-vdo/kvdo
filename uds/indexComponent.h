@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#2 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -139,13 +139,12 @@ typedef struct indexComponent {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexComponent(struct indexState         *state,
-                       const IndexComponentInfo  *info,
-                       unsigned int               zoneCount,
-                       void                      *data,
-                       void                      *context,
-                       IndexComponent           **componentPtr)
-  __attribute__((warn_unused_result));
+int __must_check makeIndexComponent(struct indexState *state,
+				    const IndexComponentInfo *info,
+				    unsigned int zoneCount,
+				    void *data,
+				    void *context,
+				    IndexComponent **componentPtr);
 
 /**
  * Destroy and index component.
@@ -221,8 +220,7 @@ missingIndexComponentRequiresReplay(IndexComponent *component)
  * @return UDS_SUCCESS, an error code from reading, or UDS_INVALID_ARGUMENT
  *         if the component is NULL.
  **/
-int readIndexComponent(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check readIndexComponent(IndexComponent *component);
 
 /**
  * Write a state file.
@@ -232,8 +230,7 @@ int readIndexComponent(IndexComponent *component)
  * @return UDS_SUCCESS, an error code from writing, or UDS_INVALID_ARGUMENT
  *         if the component is NULL.
  **/
-int writeIndexComponent(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check writeIndexComponent(IndexComponent *component);
 
 /**
  * Start an incremental save for this component (all zones).
@@ -242,8 +239,7 @@ int writeIndexComponent(IndexComponent *component)
  *
  * @return      UDS_SUCCESS or an error code.
  **/
-int startIndexComponentIncrementalSave(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check startIndexComponentIncrementalSave(IndexComponent *component);
 
 /**
  * Perform an incremental save for a component in a particular zone.
@@ -257,10 +253,10 @@ int startIndexComponentIncrementalSave(IndexComponent *component)
  * @note        If an incremental save is not supported, a regular
  *              save will be performed if this is the first call in zone 0.
  **/
- int performIndexComponentZoneSave(IndexComponent   *component,
-                                   unsigned int      zone,
-                                   CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+performIndexComponentZoneSave(IndexComponent *component,
+			      unsigned int zone,
+			      CompletionStatus *completed);
 
 /**
  * Perform an incremental save for a non-multizone component synchronized
@@ -268,8 +264,8 @@ int startIndexComponentIncrementalSave(IndexComponent *component)
  *
  * @param component     The index component.
  **/
-int performIndexComponentChapterWriterSave(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check
+performIndexComponentChapterWriterSave(IndexComponent *component);
 
 /**
  * Force the completion of an incremental save currently in progress in
@@ -281,10 +277,10 @@ int performIndexComponentChapterWriterSave(IndexComponent *component)
  *
  * @return      UDS_SUCCESS or an error code.
  **/
-int finishIndexComponentZoneSave(IndexComponent   *component,
-                                 unsigned int      zone,
-                                 CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+finishIndexComponentZoneSave(IndexComponent *component,
+			     unsigned int zone,
+			     CompletionStatus *completed);
 
 /**
  * Force the completion of an incremental save in all zones and complete
@@ -299,8 +295,7 @@ int finishIndexComponentZoneSave(IndexComponent   *component,
  *              which protects access to the index data structures from the
  *              invoking thread.
  **/
-int finishIndexComponentIncrementalSave(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check finishIndexComponentIncrementalSave(IndexComponent *component);
 
 /**
  * Abort the incremental save currently in progress in a particular zone.
@@ -315,10 +310,10 @@ int finishIndexComponentIncrementalSave(IndexComponent *component)
  *              Once any zone calls this function the entire save is
  *              useless unless every zone indicates CS_COMPLETED_PREVIOUSLY.
  **/
-int abortIndexComponentZoneSave(IndexComponent   *component,
-                                unsigned int      zone,
-                                CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+abortIndexComponentZoneSave(IndexComponent *component,
+			    unsigned int zone,
+			    CompletionStatus *completed);
 
 /**
  * Abort an incremental save currently in progress
@@ -332,8 +327,7 @@ int abortIndexComponentZoneSave(IndexComponent   *component,
  *              which protects access to the index data structures from the
  *              invoking thread.
  **/
-int abortIndexComponentIncrementalSave(IndexComponent *component)
-  __attribute__((warn_unused_result));
+int __must_check abortIndexComponentIncrementalSave(IndexComponent *component);
 
 /**
  * Remove or invalidate component state.
@@ -341,8 +335,7 @@ int abortIndexComponentIncrementalSave(IndexComponent *component)
  * @param component  The component whose file is to be removed.  If NULL
  *                   no action is taken.
  **/
-__attribute__((warn_unused_result))
-int discardIndexComponent(IndexComponent *component);
+int __must_check discardIndexComponent(IndexComponent *component);
 
 /**
  * Get a buffered reader for the specified component part.
@@ -355,9 +348,9 @@ int discardIndexComponent(IndexComponent *component);
  *
  * @note the reader is managed by the component portal
  **/
-__attribute__((warn_unused_result))
-int getBufferedReaderForPortal(ReadPortal      *portal,
-                               unsigned int     part,
-                               BufferedReader **readerPtr);
+int __must_check
+getBufferedReaderForPortal(ReadPortal *portal,
+			   unsigned int part,
+			   BufferedReader **readerPtr);
 
 #endif /* INDEX_COMPONENT_H */
