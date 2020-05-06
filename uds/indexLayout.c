@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#13 $
  */
 
 #include "indexLayout.h"
@@ -124,7 +124,7 @@ struct super_block_data {
 };
 
 struct index_layout {
-	IOFactory *factory;
+	struct io_factory *factory;
 	off_t offset;
 	struct index_version version;
 	struct super_block_data super;
@@ -266,7 +266,7 @@ open_layout_reader(struct index_layout *layout,
 {
 	off_t start = lr->startBlock * layout->super.block_size;
 	size_t size = lr->numBlocks * layout->super.block_size;
-	return openBufferedReader(layout->factory, start, size, reader_ptr);
+	return open_buffered_reader(layout->factory, start, size, reader_ptr);
 }
 
 /*****************************************************************************/
@@ -277,7 +277,7 @@ open_layout_writer(struct index_layout *layout,
 {
 	off_t start = lr->startBlock * layout->super.block_size;
 	size_t size = lr->numBlocks * layout->super.block_size;
-	return openBufferedWriter(layout->factory, start, size, writer_ptr);
+	return open_buffered_writer(layout->factory, start, size, writer_ptr);
 }
 
 /*****************************************************************************/
@@ -1130,8 +1130,8 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 static int load_index_layout(struct index_layout *layout)
 {
 	BufferedReader *reader;
-	int result = openBufferedReader(layout->factory, layout->offset,
-					UDS_BLOCK_SIZE, &reader);
+	int result = open_buffered_reader(layout->factory, layout->offset,
+					  UDS_BLOCK_SIZE, &reader);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "unable to read superblock");
@@ -1776,7 +1776,7 @@ void put_index_layout(struct index_layout **layout_ptr)
 	FREE(sil->saves);
 
 	if (layout->factory != NULL) {
-		putIOFactory(layout->factory);
+		put_io_factory(layout->factory);
 	}
 	FREE(layout);
 }
@@ -1797,7 +1797,7 @@ const struct index_version *get_index_version(struct index_layout *layout)
 
 /*****************************************************************************/
 int write_index_config(struct index_layout *layout,
-                       struct uds_configuration *config)
+		       struct uds_configuration *config)
 {
 	BufferedWriter *writer = NULL;
 	int result = open_layout_writer(layout, &layout->config, &writer);
@@ -1824,7 +1824,7 @@ int write_index_config(struct index_layout *layout,
 
 /*****************************************************************************/
 int verify_index_config(struct index_layout *layout,
-                        struct uds_configuration *config)
+			struct uds_configuration *config)
 {
 	BufferedReader *reader = NULL;
 	int result = open_layout_reader(layout, &layout->config, &reader);
@@ -1855,11 +1855,11 @@ int open_volume_bufio(struct index_layout *layout,
 {
 	off_t offset =
 		layout->index.volume.startBlock * layout->super.block_size;
-	return makeBufio(layout->factory,
-			 offset,
-			 block_size,
-			 reserved_buffers,
-			 client_ptr);
+	return make_bufio(layout->factory,
+			  offset,
+			  block_size,
+			  reserved_buffers,
+			  client_ptr);
 }
 
 /*****************************************************************************/
@@ -2485,7 +2485,7 @@ int open_index_buffered_writer(struct index_layout *layout,
 }
 
 /*****************************************************************************/
-int make_index_layout_from_factory(IOFactory *factory,
+int make_index_layout_from_factory(struct io_factory *factory,
 				   off_t offset,
 				   uint64_t named_size,
 				   bool new_layout,
@@ -2494,7 +2494,7 @@ int make_index_layout_from_factory(IOFactory *factory,
 {
 	// Get the device size and round it down to a multiple of
 	// UDS_BLOCK_SIZE.
-	size_t size = getWritableSize(factory) & -UDS_BLOCK_SIZE;
+	size_t size = get_writable_size(factory) & -UDS_BLOCK_SIZE;
 	if (named_size > size) {
 		return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
 					       "index storage (%zu) is smaller than the requested size %llu",
@@ -2526,12 +2526,12 @@ int make_index_layout_from_factory(IOFactory *factory,
 	}
 	layout->ref_count = 1;
 
-	getIOFactory(factory);
+	get_io_factory(factory);
 	layout->factory = factory;
 	layout->offset = offset;
 
 	if (new_layout) {
-		// Populate the layout from the UDSConfiguration
+		// Populate the layout from the UDS configuration
 		result = create_index_layout(layout, size, config);
 	} else {
 		// Populate the layout from the saved index.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#5 $
  */
 
 #ifndef BUFFERED_WRITER_H
@@ -25,21 +25,21 @@
 #include "common.h"
 
 struct dm_bufio_client;
-struct ioFactory;
+struct io_factory;
 
 typedef struct bufferedWriter BufferedWriter;
 
 /**
  * Make a new buffered writer.
  *
- * @param factory       The IOFactory creating the buffered writer
+ * @param factory       The IO factory creating the buffered writer
  * @param client        The dm_bufio_client to write to.
  * @param block_limit   The number of blocks that may be written to.
  * @param writer_ptr    The new buffered writer goes here.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check make_buffered_writer(struct ioFactory *factory,
+int __must_check make_buffered_writer(struct io_factory *factory,
 				      struct dm_bufio_client *client,
 				      sector_t block_limit,
 				      BufferedWriter **writer_ptr);

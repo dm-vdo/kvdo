@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#6 $
  */
 
 #include "indexLayout.h"
@@ -55,8 +55,8 @@ int make_index_layout(const char *name,
 		return result;
 	}
 
-	IOFactory *factory = NULL;
-	result = makeIOFactory(dev, &factory);
+	struct io_factory *factory = NULL;
+	result = make_io_factory(dev, &factory);
 	FREE(params);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -64,7 +64,7 @@ int make_index_layout(const char *name,
 	struct index_layout *layout;
 	result = make_index_layout_from_factory(
 		factory, offset, size, new_layout, config, &layout);
-	putIOFactory(factory);
+	put_io_factory(factory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

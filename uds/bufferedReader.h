@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#4 $
  */
 
 #ifndef BUFFERED_READER_H
@@ -25,7 +25,7 @@
 #include "common.h"
 
 struct dm_bufio_client;
-struct ioFactory;
+struct io_factory;
 
 /**
  * The buffered reader allows efficient IO for IORegions, which may be
@@ -37,14 +37,14 @@ typedef struct bufferedReader BufferedReader;
 /**
  * Make a new buffered reader.
  *
- * @param factory      The IOFactory creating the buffered reader.
+ * @param factory      The IO factory creating the buffered reader.
  * @param client       The dm_bufio_client to read from.
  * @param block_limit  The number of blocks that may be read.
  * @param reader_ptr   The pointer to hold the newly allocated buffered reader
  *
  * @return UDS_SUCCESS or error code.
  **/
-int __must_check make_buffered_reader(struct ioFactory *factory,
+int __must_check make_buffered_reader(struct io_factory *factory,
 				      struct dm_bufio_client *client,
 				      sector_t block_limit,
 				      BufferedReader **reader_ptr);
