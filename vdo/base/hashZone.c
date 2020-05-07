@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#23 $
  */
 
 #include "hashZone.h"
@@ -183,8 +183,8 @@ get_hash_zone_statistics(const struct hash_zone *zone)
  * @param [in]     zone     The zone from which the lock was borrowed
  * @param [in,out] lock_ptr  The last reference to the lock being returned
  **/
-static void returnHashLockToPool(struct hash_zone *zone,
-				 struct hash_lock **lock_ptr)
+static void return_hash_lock_to_pool(struct hash_zone *zone,
+				     struct hash_lock **lock_ptr)
 {
 	struct hash_lock *lock = *lock_ptr;
 	*lock_ptr = NULL;
@@ -217,7 +217,7 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
 				 (replace_lock != NULL), (void **) &lock);
 	if (result != VDO_SUCCESS) {
-		returnHashLockToPool(zone, &new_lock);
+		return_hash_lock_to_pool(zone, &new_lock);
 		return result;
 	}
 
@@ -238,7 +238,7 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	} else {
 		// There's already a lock for the hash, so we don't need the
 		// borrowed lock.
-		returnHashLockToPool(zone, &new_lock);
+		return_hash_lock_to_pool(zone, &new_lock);
 	}
 
 	*lock_ptr = lock;
@@ -275,7 +275,7 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
 	ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicate_ring),
 			"hash lock returned to zone must not reference DataVIOs");
 
-	returnHashLockToPool(zone, &lock);
+	return_hash_lock_to_pool(zone, &lock);
 }
 
 /**

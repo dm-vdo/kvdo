@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#10 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -106,12 +106,12 @@ void initialize_lock_count(struct lock_counter *counter,
  * @param counter      The lock_counter
  * @param lock_number  Which lock to increment
  * @param zone_type    The type of the zone acquiring the reference
- * @param zoneID       The ID of the zone acquiring the reference
+ * @param zone_id      The ID of the zone acquiring the reference
  **/
 void acquire_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
 				  zone_type zone_type,
-				  zone_count_t zoneID);
+				  zone_count_t zone_id);
 
 /**
  * Release a reference to a given lock in the specified zone. This method

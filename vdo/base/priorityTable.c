@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#8 $
  */
 
 #include "priorityTable.h"
@@ -155,15 +155,15 @@ RingNode *priority_table_dequeue(struct priority_table *table)
 {
 	// Find the highest priority non-empty bucket by finding the
 	// highest-order non-zero bit in the search vector.
-	int topPriority = log_base_two(table->search_vector);
+	int top_priority = log_base_two(table->search_vector);
 
-	if (topPriority < 0) {
+	if (top_priority < 0) {
 		// All buckets are empty.
 		return NULL;
 	}
 
 	// Dequeue the first entry in the bucket.
-	struct bucket *bucket = &table->buckets[topPriority];
+	struct bucket *bucket = &table->buckets[top_priority];
 	RingNode *entry = unspliceRingNode(bucket->queue.next);
 
 	// Clear the bit in the search vector if the bucket has been emptied.

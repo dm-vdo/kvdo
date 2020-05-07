@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#6 $
  */
 
 /**
@@ -503,12 +503,12 @@ static struct bucket *move_empty_bucket(struct pointer_map *map
  * @return <code>true</code> if the map contains a mapping for the key
  *         <code>false</code> if it does not
  **/
-static bool updateMapping(struct pointer_map *map,
-			  struct bucket *neighborhood,
-			  const void *key,
-			  void *new_value,
-			  bool update,
-			  void **old_value_ptr)
+static bool update_mapping(struct pointer_map *map,
+			   struct bucket *neighborhood,
+			   const void *key,
+			   void *new_value,
+			   bool update,
+			   void **old_value_ptr)
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
 	if (bucket == NULL) {
@@ -588,7 +588,7 @@ int pointer_map_put(struct pointer_map *map,
 
 	// Check whether the neighborhood already contains an entry for the key,
 	// in which case we optionally update it, returning the old value.
-	if (updateMapping(map, neighborhood, key, new_value, update,
+	if (update_mapping(map, neighborhood, key, new_value, update,
 			  old_value_ptr)) {
 		return UDS_SUCCESS;
 	}

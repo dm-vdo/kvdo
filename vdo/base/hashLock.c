@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#31 $
  */
 
 /**
@@ -91,11 +91,11 @@
  * The function names in this module follow a convention referencing the
  * states and transitions in the state machine diagram for VDOSTORY-190.
  * [XXX link or repository path to it?]
- * For example, for the LOCKING state, there are startLocking() and
- * finishLocking() functions. startLocking() is invoked by the finish function
+ * For example, for the LOCKING state, there are start_locking() and
+ * finish_locking() functions. start_locking() is invoked by the finish function
  * of the state (or states) that transition to LOCKING. It performs the actual
  * lock state change and must be invoked on the hash zone thread.
- * finishLocking() is called by (or continued via callback from) the code
+ * finish_locking() is called by (or continued via callback from) the code
  * actually obtaining the lock. It does any bookkeeping or decision-making
  * required and invokes the appropriate start function of the state being
  * transitioned to after LOCKING.
@@ -271,7 +271,7 @@ static void continue_data_vio_in(struct data_vio *data_vio,
  * @param data_vio  The data_vio to update
  * @param new_lock  The hash lock the data_vio is joining
  **/
-static void setHashLock(struct data_vio *data_vio, struct hash_lock *new_lock)
+static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 {
 	struct hash_lock *old_lock = data_vio->hashLock;
 	if (old_lock != NULL) {
@@ -372,14 +372,14 @@ static void compress_data_callback(struct vdo_completion *completion)
  * @param lock      The hash lock on which to wait
  * @param data_vio  The data_vio to add to the queue
  **/
-static void waitOnHashLock(struct hash_lock *lock, struct data_vio *data_vio)
+static void wait_on_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	int result =
 		enqueue_data_vio(&lock->waiters, data_vio, THIS_LOCATION(NULL));
 	if (result != VDO_SUCCESS) {
 		// This should be impossible, but if it somehow happens, give up
 		// on trying to dedupe the data.
-		setHashLock(data_vio, NULL);
+		set_hash_lock(data_vio, NULL);
 		continue_data_vio_in(data_vio, result, compress_data_callback);
 		return;
 	}
@@ -442,7 +442,7 @@ static void finish_bypassing(struct vdo_completion *completion)
  * @param lock   The hash lock
  * @param agent  The data_vio acting as the agent for the lock
  **/
-static void startBypassing(struct hash_lock *lock, struct data_vio *agent)
+static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, HASH_LOCK_BYPASSING);
 
@@ -484,7 +484,7 @@ static void startBypassing(struct hash_lock *lock, struct data_vio *agent)
  * @param lock     The hash_lock
  * @param data_vio  The data_vio with the error
  **/
-static void abortHashLock(struct hash_lock *lock, struct data_vio *data_vio)
+static void abort_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	// If we've already aborted the lock, don't try to re-abort it; just
 	// exit.
@@ -500,7 +500,7 @@ static void abortHashLock(struct hash_lock *lock, struct data_vio *data_vio)
 			// lock to report its error.
 			ASSERT_LOG_ONLY(
 				lock->agent == NULL,
-				"only active agent should call abortHashLock");
+				"only active agent should call abort_hash_lock");
 			exit_hash_lock(data_vio);
 			return;
 		}
@@ -509,7 +509,7 @@ static void abortHashLock(struct hash_lock *lock, struct data_vio *data_vio)
 		set_agent(lock, data_vio);
 	}
 
-	startBypassing(lock, data_vio);
+	start_bypassing(lock, data_vio);
 }
 
 /**
@@ -519,7 +519,7 @@ static void abortHashLock(struct hash_lock *lock, struct data_vio *data_vio)
  *
  * @param completion  The completion of the data_vio acting as the lock's agent
  **/
-static void finishUnlocking(struct vdo_completion *completion)
+static void finish_unlocking(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	assert_hash_lock_agent(agent, __func__);
@@ -530,7 +530,7 @@ static void finishUnlocking(struct vdo_completion *completion)
 		"must have released the duplicate lock for the hash lock");
 
 	if (completion->result != VDO_SUCCESS) {
-		abortHashLock(lock, agent);
+		abort_hash_lock(lock, agent);
 		return;
 	}
 
@@ -575,7 +575,7 @@ static void finishUnlocking(struct vdo_completion *completion)
 /**
  * Release a read lock on the PBN of the block that may or may not have
  * contained duplicate data. This continuation is launched by
- * startUnlocking(), and calls back to finishUnlocking() on the hash zone
+ * start_unlocking(), and calls back to finish_unlocking() on the hash zone
  * thread.
  *
  * @param completion  The completion of the data_vio acting as the lock's agent
@@ -596,7 +596,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 		launch_hash_zone_callback(agent, finish_bypassing,
 				          THIS_LOCATION(NULL));
 	} else {
-		launch_hash_zone_callback(agent, finishUnlocking,
+		launch_hash_zone_callback(agent, finish_unlocking,
 				          THIS_LOCATION(NULL));
 	}
 }
@@ -608,7 +608,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
  * @param lock   The hash lock
  * @param agent  The data_vio currently acting as the agent for the lock
  **/
-static void startUnlocking(struct hash_lock *lock, struct data_vio *agent)
+static void start_unlocking(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, HASH_LOCK_UNLOCKING);
 
@@ -628,14 +628,14 @@ static void startUnlocking(struct hash_lock *lock, struct data_vio *agent)
  *
  * @param completion  The completion of the data_vio that performed the update
  **/
-static void finishUpdating(struct vdo_completion *completion)
+static void finish_updating(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	assert_hash_lock_agent(agent, __func__);
 	struct hash_lock *lock = agent->hashLock;
 
 	if (completion->result != VDO_SUCCESS) {
-		abortHashLock(lock, agent);
+		abort_hash_lock(lock, agent);
 		return;
 	}
 
@@ -659,14 +659,14 @@ static void finishUpdating(struct vdo_completion *completion)
 		 * UPDATING -> UNLOCKING transition: No one is waiting to
 		 * dedupe, but we hold a duplicate PBN lock, so go release it.
 		 */
-		startUnlocking(lock, agent);
+		start_unlocking(lock, agent);
 	} else {
 		/*
 		 * UPDATING -> DESTROYING transition: No one is waiting to
 		 * dedupe and there's no lock to release.
 		 */
 		// XXX startDestroying(lock, agent);
-		startBypassing(lock, NULL);
+		start_bypassing(lock, NULL);
 		exit_hash_lock(agent);
 	}
 }
@@ -678,7 +678,7 @@ static void finishUpdating(struct vdo_completion *completion)
  * @param lock   The hash lock
  * @param agent  The data_vio currently acting as the agent for the lock
  **/
-static void startUpdating(struct hash_lock *lock, struct data_vio *agent)
+static void start_updating(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, HASH_LOCK_UPDATING);
 
@@ -687,7 +687,7 @@ static void startUpdating(struct hash_lock *lock, struct data_vio *agent)
 			"should only update advice if needed");
 
 	agent->lastAsyncOperation = UPDATE_INDEX;
-	set_hash_zone_callback(agent, finishUpdating, THIS_LOCATION(NULL));
+	set_hash_zone_callback(agent, finish_updating, THIS_LOCATION(NULL));
 	updateDedupeIndex(agent);
 }
 
@@ -702,7 +702,7 @@ static void startUpdating(struct hash_lock *lock, struct data_vio *agent)
  * @param lock     The hash lock
  * @param data_vio  The lock holder that has finished deduplicating
  **/
-static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
+static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(lock->agent == NULL,
 			"shouldn't have an agent in DEDUPING");
@@ -728,7 +728,7 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
 		 * was another change in location, but with only this data_vio
 		 * using the hash lock, it's time to update the advice.
 		 */
-		startUpdating(lock, agent);
+		start_updating(lock, agent);
 	} else {
 		/*
 		 * DEDUPING -> UNLOCKING transition: Release the PBN read lock
@@ -736,7 +736,7 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
 		 * released (contingent on no new data_vios arriving in the lock
 		 * before the agent returns).
 		 */
-		startUnlocking(lock, agent);
+		start_unlocking(lock, agent);
 	}
 }
 
@@ -744,13 +744,13 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
  * Implements waiter_callback. Binds the data_vio that was waiting to a new hash
  * lock and waits on that lock.
  **/
-static void enterForkedLock(struct waiter *waiter, void *context)
+static void enter_forked_lock(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct hash_lock *new_lock = (struct hash_lock *) context;
 
-	setHashLock(data_vio, new_lock);
-	waitOnHashLock(new_lock, data_vio);
+	set_hash_lock(data_vio, new_lock);
+	wait_on_hash_lock(new_lock, data_vio);
 }
 
 /**
@@ -760,16 +760,17 @@ static void enterForkedLock(struct waiter *waiter, void *context)
  * active, but will not update advice.
  *
  * @param old_lock   The hash lock to fork
- * @param newAgent  The data_vio that will be the agent for the new lock
+ * @param new_agent  The data_vio that will be the agent for the new lock
  **/
-static void forkHashLock(struct hash_lock *old_lock, struct data_vio *newAgent)
+static void fork_hash_lock(struct hash_lock *old_lock,
+			   struct data_vio *new_agent)
 {
 	struct hash_lock *new_lock;
-	int result = acquire_hash_lock_from_zone(newAgent->hashZone,
-						 &newAgent->chunkName,
+	int result = acquire_hash_lock_from_zone(new_agent->hashZone,
+						 &new_agent->chunkName,
 						 old_lock, &new_lock);
 	if (result != VDO_SUCCESS) {
-		abortHashLock(old_lock, newAgent);
+		abort_hash_lock(old_lock, new_agent);
 		return;
 	}
 
@@ -778,13 +779,13 @@ static void forkHashLock(struct hash_lock *old_lock, struct data_vio *newAgent)
 	old_lock->update_advice = false;
 	new_lock->update_advice = true;
 
-	setHashLock(newAgent, new_lock);
-	set_agent(new_lock, newAgent);
+	set_hash_lock(new_agent, new_lock);
+	set_agent(new_lock, new_agent);
 
-	notify_all_waiters(&old_lock->waiters, enterForkedLock, new_lock);
+	notify_all_waiters(&old_lock->waiters, enter_forked_lock, new_lock);
 
-	newAgent->isDuplicate = false;
-	start_writing(new_lock, newAgent);
+	new_agent->isDuplicate = false;
+	start_writing(new_lock, new_agent);
 }
 
 /**
@@ -792,17 +793,17 @@ static void forkHashLock(struct hash_lock *old_lock, struct data_vio *newAgent)
  * dedupe path. If no increments are available, this will roll over to a new
  * hash lock and launch the data_vio as the writing agent for that lock.
  *
- * @param lock      The hash lock
+ * @param lock       The hash lock
  * @param data_vio   The data_vio to deduplicate using the hash lock
- * @param hasClaim  <code>true</code> if the data_vio already has claimed
- *                  an increment from the duplicate lock
+ * @param has_claim  <code>true</code> if the data_vio already has claimed
+ *                   an increment from the duplicate lock
  **/
-static void launchDedupe(struct hash_lock *lock, struct data_vio *data_vio,
-			 bool hasClaim)
+static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio,
+			  bool has_claim)
 {
-	if (!hasClaim && !claim_pbn_lock_increment(lock->duplicate_lock)) {
+	if (!has_claim && !claim_pbn_lock_increment(lock->duplicate_lock)) {
 		// Out of increments, so must roll over to a new lock.
-		forkHashLock(lock, data_vio);
+		fork_hash_lock(lock, data_vio);
 		return;
 	}
 
@@ -855,11 +856,11 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 	 * waiters will be transferred to the new lock.
 	 */
 	if (!agent_is_done) {
-		launchDedupe(lock, agent, true);
+		launch_dedupe(lock, agent, true);
 		agent = NULL;
 	}
 	while (has_waiters(&lock->waiters)) {
-		launchDedupe(lock, dequeue_lock_waiter(lock), false);
+		launch_dedupe(lock, dequeue_lock_waiter(lock), false);
 	}
 
 	if (agent_is_done) {
@@ -869,17 +870,17 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 		 * this lock, and otherwise it just lets the agent exit the
 		 * lock.
 		 */
-		finishDeduping(lock, agent);
+		finish_deduping(lock, agent);
 	}
 }
 
 /**
  * Handle the result of the agent for the lock comparing its data to the
- * duplicate candidate. This continuation is registered in startVerifying().
+ * duplicate candidate. This continuation is registered in start_verifying().
  *
  * @param completion  The completion of the data_vio used to verify dedupe
  **/
-static void finishVerifying(struct vdo_completion *completion)
+static void finish_verifying(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	assert_hash_lock_agent(agent, __func__);
@@ -888,7 +889,7 @@ static void finishVerifying(struct vdo_completion *completion)
 	if (completion->result != VDO_SUCCESS) {
 		// XXX VDOSTORY-190 should convert verify IO errors to
 		// verification failure
-		abortHashLock(lock, agent);
+		abort_hash_lock(lock, agent);
 		return;
 	}
 
@@ -931,7 +932,7 @@ static void finishVerifying(struct vdo_completion *completion)
 		 * unlocked by the VERIFYING agent.
 		 */
 		lock->update_advice = true;
-		startUnlocking(lock, agent);
+		start_unlocking(lock, agent);
 	}
 }
 
@@ -946,7 +947,7 @@ static void finishVerifying(struct vdo_completion *completion)
  * @param lock   The hash lock (must be LOCKING)
  * @param agent  The data_vio to use to read and compare candidate data
  **/
-static void startVerifying(struct hash_lock *lock, struct data_vio *agent)
+static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, HASH_LOCK_VERIFYING);
 	ASSERT_LOG_ONLY(!lock->verified, "hash lock only verifies advice once");
@@ -960,19 +961,19 @@ static void startVerifying(struct hash_lock *lock, struct data_vio *agent)
 	 * state change).
 	 */
 	agent->lastAsyncOperation = VERIFY_DEDUPLICATION;
-	set_hash_zone_callback(agent, finishVerifying, THIS_LOCATION(NULL));
+	set_hash_zone_callback(agent, finish_verifying, THIS_LOCATION(NULL));
 	verifyDuplication(agent);
 }
 
 /**
  * Handle the result of the agent for the lock attempting to obtain a PBN read
  * lock on the candidate duplicate block. this continuation is registered in
- * lockDuplicatePBN().
+ * lock_duplicate_pbn().
  *
  * @param completion  The completion of the data_vio that attempted to get
  *                    the read lock
  **/
-static void finishLocking(struct vdo_completion *completion)
+static void finish_locking(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	assert_hash_lock_agent(agent, __func__);
@@ -981,7 +982,7 @@ static void finishLocking(struct vdo_completion *completion)
 	if (completion->result != VDO_SUCCESS) {
 		// XXX clearDuplicateLocation()?
 		agent->isDuplicate = false;
-		abortHashLock(lock, agent);
+		abort_hash_lock(lock, agent);
 		return;
 	}
 
@@ -1011,7 +1012,7 @@ static void finishLocking(struct vdo_completion *completion)
 		 * to the agent's data to decide whether it is a true duplicate
 		 * or stale advice.
 		 */
-		startVerifying(lock, agent);
+		start_verifying(lock, agent);
 		return;
 	}
 
@@ -1025,7 +1026,7 @@ static void finishLocking(struct vdo_completion *completion)
 		agent->isDuplicate = false;
 		lock->verified = false;
 		lock->update_advice = true;
-		startUnlocking(lock, agent);
+		start_unlocking(lock, agent);
 		return;
 	}
 
@@ -1042,26 +1043,26 @@ static void finishLocking(struct vdo_completion *completion)
  * data (compressed or uncompressed). If the PBN is already locked for
  * writing, the lock attempt is abandoned and isDuplicate will be cleared
  * before calling back. this continuation is launched from start_locking(), and
- * calls back to finishLocking() on the hash zone thread.
+ * calls back to finish_locking() on the hash zone thread.
  *
  * @param completion The completion of the data_vio attempting to acquire the
  *                   physical block lock on behalf of its hash lock
  **/
-static void lockDuplicatePBN(struct vdo_completion *completion)
+static void lock_duplicate_pbn(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct physical_zone *zone = agent->duplicate.zone;
 	assert_in_duplicate_zone(agent);
 
-	set_hash_zone_callback(agent, finishLocking, THIS_LOCATION(NULL));
+	set_hash_zone_callback(agent, finish_locking, THIS_LOCATION(NULL));
 
 	// While in the zone that owns it, find out how many additional
 	// references can be made to the block if it turns out to truly be a
 	// duplicate.
 	struct slab_depot *depot = get_slab_depot(get_vdo_from_data_vio(agent));
-	unsigned int incrementLimit =
+	unsigned int increment_limit =
 		get_increment_limit(depot, agent->duplicate.pbn);
-	if (incrementLimit == 0) {
+	if (increment_limit == 0) {
 		// We could deduplicate against it later if a reference happened
 		// to be released during verification, but it's probably better
 		// to bail out now.
@@ -1152,7 +1153,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 		 * Those rights will be claimed by hash locks sharing this read
 		 * lock.
 		 */
-		lock->increment_limit = incrementLimit;
+		lock->increment_limit = increment_limit;
 	}
 
 	// We've successfully acquired a read lock on behalf of the hash lock,
@@ -1190,7 +1191,7 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
 	 * can avoid a thread transition here.
 	 */
 	agent->lastAsyncOperation = ACQUIRE_PBN_READ_LOCK;
-	launch_duplicate_zone_callback(agent, lockDuplicatePBN,
+	launch_duplicate_zone_callback(agent, lock_duplicate_pbn,
 				       THIS_LOCATION(NULL));
 }
 
@@ -1208,7 +1209,7 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
  * @param lock   The hash lock, which must be in state WRITING
  * @param agent  The data_vio that wrote its data for the lock
  **/
-static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
+static void finish_writing(struct hash_lock *lock, struct data_vio *agent)
 {
 	// Dedupe against the data block or compressed block slot the agent
 	// wrote. Since we know the write succeeded, there's no need to verify
@@ -1244,7 +1245,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
 		 * launch the update. The happens on compression, rollover, or
 		 * the QUERYING agent not having an allocation.
 		 */
-		startUpdating(lock, agent);
+		start_updating(lock, agent);
 	} else if (lock->duplicate_lock != NULL) {
 		/*
 		 * WRITING -> UNLOCKING transition: There's no waiter and no
@@ -1252,7 +1253,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
 		 * duplicate lock that we must release.
 		 */
 		set_duplicate_location(agent, lock->duplicate);
-		startUnlocking(lock, agent);
+		start_unlocking(lock, agent);
 	} else {
 		/*
 		 * WRITING -> DESTROYING transition: There's no waiter, no
@@ -1261,7 +1262,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
 		 * allocation lock in cleanup.
 		 */
 		// XXX startDestroying(lock, agent);
-		startBypassing(lock, NULL);
+		start_bypassing(lock, NULL);
 		exit_hash_lock(agent);
 	}
 }
@@ -1273,7 +1274,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
  *
  * @param lock   The hash lock to modify
  **/
-static struct data_vio *selectWritingAgent(struct hash_lock *lock)
+static struct data_vio *select_writing_agent(struct hash_lock *lock)
 {
 	// This should-be-impossible condition is the only cause for
 	// enqueue_data_vio() to fail later on, where it would be a pain to
@@ -1284,8 +1285,8 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 		return lock->agent;
 	}
 
-	struct wait_queue tempQueue;
-	initialize_wait_queue(&tempQueue);
+	struct wait_queue temp_queue;
+	initialize_wait_queue(&temp_queue);
 
 	// Move waiters to the temp queue one-by-one until we find an
 	// allocation. Not ideal to search, but it only happens when nearly out
@@ -1296,7 +1297,8 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 		// Use the lower-level enqueue since we're just moving waiters
 		// around.
 		int result =
-			enqueue_waiter(&tempQueue, data_vio_as_waiter(data_vio));
+			enqueue_waiter(&temp_queue,
+				       data_vio_as_waiter(data_vio));
 		// The only error is the data_vio already being on a wait queue,
 		// and since we just dequeued it, that could only happen due to
 		// a memory smash or concurrent use of that data_vio.
@@ -1307,7 +1309,7 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 	if (data_vio != NULL) {
 		// Move the rest of the waiters over to the temp queue,
 		// preserving the order they arrived at the lock.
-		transfer_all_waiters(&lock->waiters, &tempQueue);
+		transfer_all_waiters(&lock->waiters, &temp_queue);
 
 		// The current agent is being replaced and will have to wait to
 		// dedupe; make it the first waiter since it was the first to
@@ -1323,7 +1325,7 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 	}
 
 	// Swap all the waiters back onto the lock's queue.
-	transfer_all_waiters(&tempQueue, &lock->waiters);
+	transfer_all_waiters(&temp_queue, &lock->waiters);
 	return data_vio;
 }
 
@@ -1342,7 +1344,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	// The agent might not have received an allocation and so can't be used
 	// for writing, but it's entirely possible that one of the waiters did.
 	if (!has_allocation(agent)) {
-		agent = selectWritingAgent(lock);
+		agent = select_writing_agent(lock);
 		// If none of the waiters had an allocation, the writes all have
 		// to fail.
 		if (!has_allocation(agent)) {
@@ -1355,7 +1357,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 			 * remain in the map as everything is currently spelled,
 			 * even if the agent and all the waiters release.
 			 */
-			startBypassing(lock, agent);
+			start_bypassing(lock, agent);
 			return;
 		}
 	}
@@ -1371,7 +1373,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	/*
 	 * Send the agent to the compress/pack/async-write path in vioWrite. If
 	 * it succeeds, it will return to the hash lock via continue_hash_lock()
-	 * and call finishWriting().
+	 * and call finish_writing().
 	 */
 	compress_data(agent);
 }
@@ -1389,7 +1391,7 @@ static void finish_querying(struct vdo_completion *completion)
 	struct hash_lock *lock = agent->hashLock;
 
 	if (completion->result != VDO_SUCCESS) {
-		abortHashLock(lock, agent);
+		abort_hash_lock(lock, agent);
 		return;
 	}
 
@@ -1465,7 +1467,7 @@ void enter_hash_lock(struct data_vio *data_vio)
 	case HASH_LOCK_VERIFYING:
 	case HASH_LOCK_UNLOCKING:
 		// The lock is busy, and can't be shared yet.
-		waitOnHashLock(lock, data_vio);
+		wait_on_hash_lock(lock, data_vio);
 		break;
 
 	case HASH_LOCK_BYPASSING:
@@ -1474,7 +1476,7 @@ void enter_hash_lock(struct data_vio *data_vio)
 		break;
 
 	case HASH_LOCK_DEDUPING:
-		launchDedupe(lock, data_vio, false);
+		launch_dedupe(lock, data_vio, false);
 		break;
 
 	case HASH_LOCK_DESTROYING:
@@ -1498,11 +1500,11 @@ void continue_hash_lock(struct data_vio *data_vio)
 	case HASH_LOCK_WRITING:
 		ASSERT_LOG_ONLY(data_vio == lock->agent,
 				"only the lock agent may continue the lock");
-		finishWriting(lock, data_vio);
+		finish_writing(lock, data_vio);
 		break;
 
 	case HASH_LOCK_DEDUPING:
-		finishDeduping(lock, data_vio);
+		finish_deduping(lock, data_vio);
 		break;
 
 	case HASH_LOCK_BYPASSING:
@@ -1534,7 +1536,7 @@ void continue_hash_lock_on_error(struct data_vio *data_vio)
 {
 	// XXX We could simply use continue_hash_lock() and check for errors in
 	// that.
-	abortHashLock(data_vio->hashLock, data_vio);
+	abort_hash_lock(data_vio->hashLock, data_vio);
 }
 
 /**
@@ -1611,7 +1613,7 @@ int acquire_hash_lock(struct data_vio *data_vio)
 		return VDO_SUCCESS;
 	}
 
-	setHashLock(data_vio, lock);
+	set_hash_lock(data_vio, lock);
 	return VDO_SUCCESS;
 }
 
@@ -1623,7 +1625,7 @@ void release_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	setHashLock(data_vio, NULL);
+	set_hash_lock(data_vio, NULL);
 
 	if (lock->reference_count > 0) {
 		// The lock is still in use by other data_vios.

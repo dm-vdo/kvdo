@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#15 $
  */
 
 #include "fixedLayout.h"
@@ -208,11 +208,11 @@ get_fixed_layout_blocks_available(const struct fixed_layout *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocatePartition(struct fixed_layout *layout,
-			     byte id,
-			     physical_block_number_t offset,
-			     physical_block_number_t base,
-			     block_count_t block_count)
+static int allocate_partition(struct fixed_layout *layout,
+			      byte id,
+			      physical_block_number_t offset,
+			      physical_block_number_t base,
+			      block_count_t block_count)
 {
 	struct partition *partition;
 	int result = ALLOCATE(1, struct partition,
@@ -258,7 +258,7 @@ int make_fixed_layout_partition(struct fixed_layout *layout,
 	physical_block_number_t offset =
 		((direction == FROM_END) ? (layout->last_free - block_count) :
 					   layout->first_free);
-	result = allocatePartition(layout, id, offset, base, block_count);
+	result = allocate_partition(layout, id, offset, base, block_count);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -294,7 +294,7 @@ get_fixed_layout_partition_base(const struct partition *partition)
 }
 
 /**********************************************************************/
-static inline size_t getEncodedSize(const struct fixed_layout *layout)
+static inline size_t get_encoded_size(const struct fixed_layout *layout)
 {
 	return sizeof(struct layout_3_0) +
 	       (sizeof(struct partition_3_0) * layout->num_partitions);
@@ -303,7 +303,7 @@ static inline size_t getEncodedSize(const struct fixed_layout *layout)
 /**********************************************************************/
 size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
 {
-	return ENCODED_HEADER_SIZE + getEncodedSize(layout);
+	return ENCODED_HEADER_SIZE + get_encoded_size(layout);
 }
 
 /**
@@ -315,8 +315,8 @@ size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encodePartitions_3_0(const struct fixed_layout *layout,
-				struct buffer *buffer)
+static int encode_partitions_3_0(const struct fixed_layout *layout,
+				 struct buffer *buffer)
 {
 	const struct partition *partition;
 	for (partition = layout->head;
@@ -356,8 +356,8 @@ static int encodePartitions_3_0(const struct fixed_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encodeLayout_3_0(const struct fixed_layout *layout,
-			    struct buffer *buffer)
+static int encode_layout_3_0(const struct fixed_layout *layout,
+			     struct buffer *buffer)
 {
 	int result = ASSERT(layout->num_partitions <= UINT8_MAX,
 			    "fixed layout partition count must fit in a byte");
@@ -388,7 +388,7 @@ int encode_fixed_layout(const struct fixed_layout *layout,
 	}
 
 	struct header header = LAYOUT_HEADER_3_0;
-	header.size = getEncodedSize(layout);
+	header.size = get_encoded_size(layout);
 	int result = encode_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -396,7 +396,7 @@ int encode_fixed_layout(const struct fixed_layout *layout,
 
 	size_t initial_length = content_length(buffer);
 
-	result = encodeLayout_3_0(layout, buffer);
+	result = encode_layout_3_0(layout, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -408,7 +408,7 @@ int encode_fixed_layout(const struct fixed_layout *layout,
 		return result;
 	}
 
-	result = encodePartitions_3_0(layout, buffer);
+	result = encode_partitions_3_0(layout, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -427,8 +427,8 @@ int encode_fixed_layout(const struct fixed_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodePartitions_3_0(struct buffer *buffer,
-				struct fixed_layout *layout)
+static int decode_partitions_3_0(struct buffer *buffer,
+				 struct fixed_layout *layout)
 {
 	size_t i;
 	for (i = 0; i < layout->num_partitions; i++) {
@@ -456,7 +456,7 @@ static int decodePartitions_3_0(struct buffer *buffer,
 			return result;
 		}
 
-		result = allocatePartition(layout, id, offset, base, count);
+		result = allocate_partition(layout, id, offset, base, count);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -474,7 +474,7 @@ static int decodePartitions_3_0(struct buffer *buffer,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodeLayout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
+static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 {
 	size_t initial_length = content_length(buffer);
 
@@ -502,8 +502,8 @@ static int decodeLayout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 		.partition_count = partition_count,
 	};
 
-	size_t decodedSize = initial_length - content_length(buffer);
-	return ASSERT(decodedSize == sizeof(struct layout_3_0),
+	size_t decoded_size = initial_length - content_length(buffer);
+	return ASSERT(decoded_size == sizeof(struct layout_3_0),
 		      "decoded size of fixed layout header must match structure");
 }
 
@@ -523,14 +523,14 @@ int decode_fixed_layout(struct buffer *buffer,
 		return result;
 	}
 
-	struct layout_3_0 layoutHeader;
-	result = decodeLayout_3_0(buffer, &layoutHeader);
+	struct layout_3_0 layout_header;
+	result = decode_layout_3_0(buffer, &layout_header);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	if (content_length(buffer) <
-	    (sizeof(struct partition_3_0) * layoutHeader.partition_count)) {
+	    (sizeof(struct partition_3_0) * layout_header.partition_count)) {
 		return VDO_UNSUPPORTED_VERSION;
 	}
 
@@ -540,11 +540,11 @@ int decode_fixed_layout(struct buffer *buffer,
 		return result;
 	}
 
-	layout->first_free = layoutHeader.first_free;
-	layout->last_free = layoutHeader.last_free;
-	layout->num_partitions = layoutHeader.partition_count;
+	layout->first_free = layout_header.first_free;
+	layout->last_free = layout_header.last_free;
+	layout->num_partitions = layout_header.partition_count;
 
-	result = decodePartitions_3_0(buffer, layout);
+	result = decode_partitions_3_0(buffer, layout);
 	if (result != VDO_SUCCESS) {
 		free_fixed_layout(&layout);
 		return result;

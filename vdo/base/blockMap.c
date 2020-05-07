@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#64 $
  */
 
 #include "blockMap.h"
@@ -852,13 +852,13 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_page_context *context =
 		get_vdo_page_completion_context(completion);
-	sequence_number_t oldLock = context->recovery_lock;
+	sequence_number_t old_lock = context->recovery_lock;
 	update_block_map_page(page,
 			      data_vio,
 			      data_vio->newMapped.pbn,
 			      data_vio->newMapped.state,
 			      &context->recovery_lock);
-	mark_completed_vdo_page_dirty(completion, oldLock,
+	mark_completed_vdo_page_dirty(completion, old_lock,
 				      context->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }

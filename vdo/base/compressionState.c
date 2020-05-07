@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#14 $
  */
 
 #include "compressionStateInternals.h"
@@ -46,7 +46,7 @@ struct vio_compression_state get_compression_state(struct data_vio *data_vio)
  *
  * @return The compression state packed into a uint32_t
  **/
-static uint32_t __must_check packState(struct vio_compression_state state)
+static uint32_t __must_check pack_state(struct vio_compression_state state)
 {
 	return state.status
 	       | (state.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);
@@ -57,8 +57,8 @@ bool set_compression_state(struct data_vio *data_vio,
 			   struct vio_compression_state state,
 			   struct vio_compression_state new_state)
 {
-	uint32_t expected = packState(state);
-	uint32_t replacement = packState(new_state);
+	uint32_t expected = pack_state(state);
+	uint32_t replacement = pack_state(new_state);
 
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.

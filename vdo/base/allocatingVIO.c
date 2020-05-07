@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#21 $
  */
 
 #include "allocatingVIO.h"
@@ -108,8 +108,9 @@ static void allocate_block_for_write(struct vdo_completion *completion);
  * @param waiter   The allocating_vio that was waiting to allocate
  * @param context  The context (unused)
  **/
-static void retryAllocateBlockForWrite(struct waiter *waiter,
-				       void *context __attribute__((unused)))
+static void
+retry_allocate_block_for_write(struct waiter *waiter,
+			       void *context __attribute__((unused)))
 {
 	struct allocating_vio *allocating_vio = waiter_as_allocating_vio(waiter);
 	allocate_block_for_write(allocating_vio_as_completion(allocating_vio));
@@ -129,7 +130,7 @@ static void retryAllocateBlockForWrite(struct waiter *waiter,
 static int wait_for_clean_slab(struct allocating_vio *allocating_vio)
 {
 	struct waiter *waiter = allocating_vio_as_waiter(allocating_vio);
-	waiter->callback = retryAllocateBlockForWrite;
+	waiter->callback = retry_allocate_block_for_write;
 
 	struct block_allocator *allocator =
 		get_block_allocator(allocating_vio->zone);
@@ -152,7 +153,7 @@ static int wait_for_clean_slab(struct allocating_vio *allocating_vio)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocateBlockInZone(struct allocating_vio *allocating_vio)
+static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 {
 	allocating_vio->allocation_attempts++;
 	int result = allocate_and_lock_block(allocating_vio);
@@ -197,7 +198,7 @@ static int allocateBlockInZone(struct allocating_vio *allocating_vio)
 
 /**
  * Attempt to allocate a block. This callback is registered in
- * allocate_data_block() and allocateBlockInZone().
+ * allocate_data_block() and allocate_block_in_zone().
  *
  * @param completion  The allocating_vio needing an allocation
  **/
@@ -206,7 +207,7 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 	assertInPhysicalZone(allocating_vio);
 	allocating_vio_add_trace_record(allocating_vio, THIS_LOCATION(NULL));
-	int result = allocateBlockInZone(allocating_vio);
+	int result = allocate_block_in_zone(allocating_vio);
 	if (result != VDO_SUCCESS) {
 		set_completion_result(completion, result);
 		allocating_vio->allocation_callback(allocating_vio);
@@ -237,13 +238,13 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
 void release_allocation_lock(struct allocating_vio *allocating_vio)
 {
 	assertInPhysicalZone(allocating_vio);
-	physical_block_number_t lockedPBN = allocating_vio->allocation;
+	physical_block_number_t locked_pbn = allocating_vio->allocation;
 	if (has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = ZERO_BLOCK;
 	}
 
 	release_pbn_lock(allocating_vio->zone,
-			 lockedPBN,
+			 locked_pbn,
 			 &allocating_vio->allocation_lock);
 }
 

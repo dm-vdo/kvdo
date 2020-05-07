@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#65 $
  */
 
 #include "slabDepot.h"
@@ -202,7 +202,7 @@ static void prepare_for_tail_block_commit(void *context,
  *
  * <p>Implements ActionScheduler,
  **/
-static bool scheduleTailBlockCommit(void *context)
+static bool schedule_tail_block_commit(void *context)
 {
 	struct slab_depot *depot = context;
 	if (depot->new_release_request == depot->active_release_request) {
@@ -250,7 +250,7 @@ static int allocate_components(struct slab_depot *depot,
 					 get_allocator_thread_id,
 					 get_journal_zone_thread(thread_config),
 					 depot,
-					 scheduleTailBlockCommit,
+					 schedule_tail_block_commit,
 					 layer,
 					 &depot->action_manager);
 	if (result != VDO_SUCCESS) {
@@ -1095,7 +1095,7 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 	}
 
 	depot->new_release_request = recovery_block_number;
-	scheduleTailBlockCommit(depot);
+	schedule_tail_block_commit(depot);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#53 $
  */
 
 #include "slabJournalInternals.h"
@@ -113,7 +113,7 @@ get_block_number(struct slab_journal *journal, sequence_number_t sequence)
  * @return the lock object for the given sequence number
  **/
 static inline struct journal_lock * __must_check
-getLock(struct slab_journal *journal, sequence_number_t sequence_number)
+get_lock(struct slab_journal *journal, sequence_number_t sequence_number)
 {
 	TailBlockOffset offset =
 		get_slab_journal_block_offset(journal, sequence_number);
@@ -189,7 +189,7 @@ static void initialize_tail_block(struct slab_journal *journal)
 static void initialize_journal_state(struct slab_journal *journal)
 {
 	journal->unreapable = journal->head;
-	journal->reap_lock = getLock(journal, journal->unreapable);
+	journal->reap_lock = get_lock(journal, journal->unreapable);
 	journal->next_commit = journal->tail;
 	journal->summarized = journal->last_summarized = journal->tail;
 	initialize_tail_block(journal);
@@ -558,7 +558,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
 			release_recovery_journal_block_reference(journal->recoveryJournal,
-								 getLock(journal, i)->recovery_start,
+								 get_lock(journal, i)->recovery_start,
 								 ZONE_TYPE_PHYSICAL,
 								 zone_number);
 		}
@@ -631,7 +631,7 @@ void reopen_slab_journal(struct slab_journal *journal)
 	// Ensure no locks are spuriously held on an empty journal.
 	sequence_number_t block;
 	for (block = 1; block <= journal->size; block++) {
-		ASSERT_LOG_ONLY((getLock(journal, block)->count == 0),
+		ASSERT_LOG_ONLY((get_lock(journal, block)->count == 0),
 				"Scrubbed journal's block %" PRIu64
 				" is not locked",
 				block);
@@ -708,15 +708,15 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	// Copy the tail block into the vio.
 	memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);
 
-	int unusedEntries = journal->entries_per_block - header->entry_count;
-	ASSERT_LOG_ONLY(unusedEntries >= 0,
+	int unused_entries = journal->entries_per_block - header->entry_count;
+	ASSERT_LOG_ONLY(unused_entries >= 0,
 			"vdo_slab journal block is not overfull");
-	if (unusedEntries > 0) {
+	if (unused_entries > 0) {
 		// Release the per-entry locks for any unused entries in the
 		// block we are about to write.
 		adjust_slab_journal_block_reference(journal,
 						    header->sequence_number,
-						    -unusedEntries);
+						    -unused_entries);
 		journal->partial_write_in_progress = !block_is_full(journal);
 	}
 
@@ -974,8 +974,8 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		 * lock on the recovery journal which we will hold until this
 		 * tail block is committed.
 		 */
-		getLock(journal, header->sequence_number)->recovery_start =
-			recovery_block;
+		get_lock(journal, header->sequence_number)->recovery_start =
+ 			recovery_block;
 		if (journal->recoveryJournal != NULL) {
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
@@ -1090,7 +1090,7 @@ static void add_entries(struct slab_journal *journal)
 
 		if (header->entry_count == 0) {
 			struct journal_lock *lock =
-				getLock(journal, header->sequence_number);
+				get_lock(journal, header->sequence_number);
 			// Check if the on disk slab journal is full. Because of
 			// the blocking and scrubbing thresholds, this should
 			// never happen.
@@ -1197,7 +1197,7 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
 	}
 
 	ASSERT_LOG_ONLY((adjustment != 0), "adjustment must be non-zero");
-	struct journal_lock *lock = getLock(journal, sequence_number);
+	struct journal_lock *lock = get_lock(journal, sequence_number);
 	if (adjustment < 0) {
 		ASSERT_LOG_ONLY((-adjustment <= lock->count),
 				"adjustment %d of lock count %u for slab journal block %llu must not underflow",

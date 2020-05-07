@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#72 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -65,7 +65,7 @@ static inline void assert_on_allocator_thread(thread_id_t thread_id,
  *
  * @return the queue priority of the slab
  **/
-static unsigned int calculateSlabPriority(struct vdo_slab *slab)
+static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 {
 	block_count_t free_blocks = get_slab_free_block_count(slab);
 
@@ -110,7 +110,7 @@ static void prioritize_slab(struct vdo_slab *slab)
 {
 	ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
 			"a slab must not already be on a ring when prioritizing");
-	slab->priority = calculateSlabPriority(slab);
+	slab->priority = calculate_slab_priority(slab);
 	priority_table_enqueue(slab->allocator->prioritized_slabs,
 			       slab->priority,
 			       &slab->ringNode);
@@ -238,7 +238,7 @@ static int allocate_components(struct block_allocator *allocator,
 	}
 
 	// The number of data blocks is the maximum number of free blocks that
-	// could be used in calculateSlabPriority().
+	// could be used in calculate_slab_priority().
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	result = make_priority_table(max_priority,
@@ -413,7 +413,7 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 
 	// The slab priority rarely changes; if no change, then don't requeue
 	// it.
-	if (slab->priority == calculateSlabPriority(slab)) {
+	if (slab->priority == calculate_slab_priority(slab)) {
 		return;
 	}
 

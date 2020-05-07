@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#18 $
  */
 
 #include "readOnlyNotifier.h"
@@ -347,7 +347,7 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 }
 
 /**********************************************************************/
-void enter_read_only_mode(struct read_only_notifier *notifier, int errorCode)
+void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 {
 	struct thread_data *thread_data =
 		&notifier->thread_data[getCallbackThreadID()];
@@ -361,7 +361,7 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int errorCode)
 
 	if (!compareAndSwap32(&notifier->read_only_error,
 			      (uint32_t) VDO_SUCCESS,
-			      (uint32_t) errorCode)) {
+			      (uint32_t) error_code)) {
 		// The notifier is already aware of a read-only error
 		return;
 	}

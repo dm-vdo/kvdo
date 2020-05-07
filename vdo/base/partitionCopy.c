@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#16 $
  */
 
 #include "partitionCopy.h"
@@ -157,7 +157,7 @@ static void complete_write_for_copy(struct vdo_completion *completion)
  *
  * @param completion  The extent which has just completed reading
  **/
-static void completeReadForCopy(struct vdo_completion *completion)
+static void complete_read_for_copy(struct vdo_completion *completion)
 {
 	struct copy_completion *copy = as_copy_completion(completion->parent);
 	physical_block_number_t layer_start_block;
@@ -190,7 +190,7 @@ static void copy_partition_stride(struct copy_completion *copy)
 	}
 
 	prepare_completion(&copy->extent->completion,
-			   completeReadForCopy,
+			   complete_read_for_copy,
 			   finish_parent_callback,
 			   copy->completion.callbackThreadID,
 			   &copy->completion);
@@ -209,17 +209,17 @@ static void copy_partition_stride(struct copy_completion *copy)
 static int validate_partition_copy(struct partition *source,
 				   struct partition *target)
 {
-	block_count_t sourceSize = get_fixed_layout_partition_size(source);
-	block_count_t targetSize = get_fixed_layout_partition_size(target);
+	block_count_t source_size = get_fixed_layout_partition_size(source);
+	block_count_t target_size = get_fixed_layout_partition_size(target);
 
 	physical_block_number_t source_start =
 		get_fixed_layout_partition_offset(source);
-	physical_block_number_t source_end = source_start + sourceSize;
+	physical_block_number_t source_end = source_start + source_size;
 	physical_block_number_t target_start =
 		get_fixed_layout_partition_offset(target);
-	physical_block_number_t target_end = target_start + targetSize;
+	physical_block_number_t target_end = target_start + target_size;
 
-	int result = ASSERT(sourceSize <= targetSize,
+	int result = ASSERT(source_size <= target_size,
 			    "target partition must be not smaller than source partition");
 	if (result != UDS_SUCCESS) {
 		return result;

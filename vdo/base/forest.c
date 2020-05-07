@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#34 $
  */
 
 #include "forest.h"
@@ -273,15 +273,15 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 int make_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *old_forest = map->forest;
-	struct boundary *oldBoundary = NULL;
+	struct boundary *old_boundary = NULL;
 	if (old_forest != NULL) {
-		oldBoundary =
+		old_boundary =
 			&(old_forest->boundaries[old_forest->segments - 1]);
 	}
 
 	struct boundary new_boundary;
 	block_count_t new_pages = compute_new_pages(map->root_count,
-						    oldBoundary,
+						    old_boundary,
 						    entries,
 						    &new_boundary);
 	if (new_pages == 0) {
@@ -312,15 +312,15 @@ int make_forest(struct block_map *map, block_count_t entries)
 }
 
 /**********************************************************************/
-void free_forest(struct forest **forestPtr)
+void free_forest(struct forest **forest_ptr)
 {
-	struct forest *forest = *forestPtr;
+	struct forest *forest = *forest_ptr;
 	if (forest == NULL) {
 		return;
 	}
 
 	deforest(forest, 0);
-	*forestPtr = NULL;
+	*forest_ptr = NULL;
 }
 
 /**********************************************************************/
@@ -378,7 +378,7 @@ static void traverse(struct cursor *cursor);
  *
  * @param completion  The VIO doing a read or write
  **/
-static void continueTraversal(struct vdo_completion *completion)
+static void continue_traversal(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *pool_entry = completion->parent;
 	struct cursor *cursor = pool_entry->parent;
@@ -390,17 +390,17 @@ static void continueTraversal(struct vdo_completion *completion)
  *
  * @param completion  The VIO doing the read
  **/
-static void finishTraversalLoad(struct vdo_completion *completion)
+static void finish_traversal_load(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
 	struct cursor *cursor = entry->parent;
 	height_t height = cursor->height;
 	struct cursor_level *level = &cursor->levels[height];
 
-	struct tree_page *treePage =
+	struct tree_page *tree_page =
 		&(cursor->tree->segments[0].levels[height][level->page_index]);
 	struct block_map_page *page =
-		(struct block_map_page *) treePage->page_buffer;
+		(struct block_map_page *) tree_page->page_buffer;
 	copy_valid_page(entry->buffer,
 			cursor->parent->map->nonce,
 			entry->vio->physical,
@@ -481,15 +481,15 @@ static void traverse(struct cursor *cursor)
 			}
 
 			cursor->height--;
-			struct cursor_level *nextLevel =
+			struct cursor_level *next_level =
 				&cursor->levels[cursor->height];
-			nextLevel->page_index = entry_index;
-			nextLevel->slot = 0;
+			next_level->page_index = entry_index;
+			next_level->slot = 0;
 			level->slot++;
 			launch_read_metadata_vio(cursor->vio_pool_entry->vio,
 						 location.pbn,
-						 finishTraversalLoad,
-						 continueTraversal);
+						 finish_traversal_load,
+						 continue_traversal);
 			return;
 		}
 	}

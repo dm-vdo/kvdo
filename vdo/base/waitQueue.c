@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#5 $
  */
 
 #include "waitQueue.h"
@@ -63,10 +63,10 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 		// Both queues are non-empty. Splice the two circular lists
 		// together by swapping the next (head) pointers in the list
 		// tails.
-		struct waiter *fromHead = from_queue->last_waiter->next_waiter;
-		struct waiter *toHead = to_queue->last_waiter->next_waiter;
-		to_queue->last_waiter->next_waiter = fromHead;
-		from_queue->last_waiter->next_waiter = toHead;
+		struct waiter *from_head = from_queue->last_waiter->next_waiter;
+		struct waiter *to_head = to_queue->last_waiter->next_waiter;
+		to_queue->last_waiter->next_waiter = from_head;
+		from_queue->last_waiter->next_waiter = to_head;
 	}
 
 	to_queue->last_waiter = from_queue->last_waiter;
@@ -139,26 +139,26 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 /**********************************************************************/
 struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 {
-	struct waiter *firstWaiter = get_first_waiter(queue);
-	if (firstWaiter == NULL) {
+	struct waiter *first_waiter = get_first_waiter(queue);
+	if (first_waiter == NULL) {
 		return NULL;
 	}
 
 	struct waiter *last_waiter = queue->last_waiter;
-	if (firstWaiter == last_waiter) {
+	if (first_waiter == last_waiter) {
 		// The queue has a single entry, so just empty it out by nulling
 		// the tail.
 		queue->last_waiter = NULL;
 	} else {
 		// The queue has more than one entry, so splice the first waiter
 		// out of the circular queue.
-		last_waiter->next_waiter = firstWaiter->next_waiter;
+		last_waiter->next_waiter = first_waiter->next_waiter;
 	}
 
 	// The waiter is no longer in a wait queue.
-	firstWaiter->next_waiter = NULL;
+	first_waiter->next_waiter = NULL;
 	queue->queue_length -= 1;
-	return firstWaiter;
+	return first_waiter;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#58 $
  */
 
 #include "recoveryJournal.h"
@@ -671,8 +671,8 @@ int encode_recovery_journal(struct recovery_journal *journal,
  * @return UDS_SUCCESS or an error code
  **/
 static int
-decodeRecoveryJournalState_7_0(struct buffer *buffer,
-			       struct recovery_journal_state_7_0 *state)
+decode_recovery_journal_state_7_0(struct buffer *buffer,
+				  struct recovery_journal_state_7_0 *state)
 {
 	size_t initial_length = content_length(buffer);
 
@@ -722,7 +722,7 @@ int decode_recovery_journal(struct recovery_journal *journal,
 	}
 
 	struct recovery_journal_state_7_0 state;
-	result = decodeRecoveryJournalState_7_0(buffer, &state);
+	result = decode_recovery_journal_state_7_0(buffer, &state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

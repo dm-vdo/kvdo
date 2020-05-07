@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#22 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -29,7 +29,7 @@
 #include "vio.h"
 #include "waitQueue.h"
 
-typedef void allocation_callback(struct allocating_vio *allocationVIO);
+typedef void allocation_callback(struct allocating_vio *allocation_vio);
 
 /**
  * A vio which can receive an allocation from the block allocator. Currently,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#37 $
  */
 
 #include "slab.h"
@@ -253,9 +253,9 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 	 * already captured all refCount updates.
 	 */
 	if (is_unrecovered_slab(slab)) {
-		sequence_number_t entryLock = journal_point->sequence_number;
+		sequence_number_t entry_lock = journal_point->sequence_number;
 		adjust_slab_journal_block_reference(slab->journal,
-						    entryLock,
+						    entry_lock,
 						    -1);
 		return VDO_SUCCESS;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#22 $
  */
 
 #include "actionManager.h"
@@ -194,7 +194,7 @@ static void apply_to_zone(struct vdo_completion *completion);
  *
  * @return The ID of the thread on which to run actions for the current zone
  **/
-static thread_id_t getActingZoneThreadID(struct action_manager *manager)
+static thread_id_t get_acting_zone_thread_id(struct action_manager *manager)
 {
 	return manager->get_zone_thread_id(manager->context,
 					   manager->acting_zone);
@@ -205,12 +205,12 @@ static thread_id_t getActingZoneThreadID(struct action_manager *manager)
  *
  * @param manager  The action manager
  **/
-static void prepareForNextZone(struct action_manager *manager)
+static void prepare_for_next_zone(struct action_manager *manager)
 {
 	prepare_for_requeue(&manager->completion,
 			    apply_to_zone,
 			    preserve_error_and_continue,
-			    getActingZoneThreadID(manager),
+			    get_acting_zone_thread_id(manager),
 			    manager->current_action->parent);
 }
 
@@ -220,7 +220,7 @@ static void prepareForNextZone(struct action_manager *manager)
  *
  * @param manager  The action manager
  **/
-static void prepareForConclusion(struct action_manager *manager)
+static void prepare_for_conclusion(struct action_manager *manager)
 {
 	prepare_for_requeue(&manager->completion,
 			    finish_action_callback,
@@ -238,7 +238,7 @@ static void apply_to_zone(struct vdo_completion *completion)
 {
 	struct action_manager *manager = as_action_manager(completion);
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==
-			 getActingZoneThreadID(manager)),
+			 get_acting_zone_thread_id(manager)),
 			"apply_to_zone() called on acting zones's thread");
 
 	zone_count_t zone = manager->acting_zone++;
@@ -246,10 +246,10 @@ static void apply_to_zone(struct vdo_completion *completion)
 		// We are about to apply to the last zone. Once that is
 		// finished, we're done, so go back to the initiator thread and
 		// finish up.
-		prepareForConclusion(manager);
+		prepare_for_conclusion(manager);
 	} else {
 		// Prepare to come back on the next zone
-		prepareForNextZone(manager);
+		prepare_for_next_zone(manager);
 	}
 
 	manager->current_action->zone_action(manager->context, zone, completion);
@@ -260,7 +260,7 @@ static void apply_to_zone(struct vdo_completion *completion)
  *
  * @param completion  The manager completion
  **/
-static void handlePreambleError(struct vdo_completion *completion)
+static void handle_preamble_error(struct vdo_completion *completion)
 {
 	// Skip the zone actions since the preamble failed.
 	completion->callback = finish_action_callback;
@@ -272,7 +272,7 @@ static void handlePreambleError(struct vdo_completion *completion)
  *
  * @param manager  The action manager
  **/
-static void launchCurrentAction(struct action_manager *manager)
+static void launch_current_action(struct action_manager *manager)
 {
 	struct action *action = manager->current_action;
 	int result = start_operation(&manager->state, action->operation);
@@ -289,13 +289,13 @@ static void launchCurrentAction(struct action_manager *manager)
 	}
 
 	if (action->zone_action == NULL) {
-		prepareForConclusion(manager);
+		prepare_for_conclusion(manager);
 	} else {
 		manager->acting_zone = 0;
 		prepare_for_requeue(&manager->completion,
 				    apply_to_zone,
-				    handlePreambleError,
-				    getActingZoneThreadID(manager),
+				    handle_preamble_error,
+				    get_acting_zone_thread_id(manager),
 				    manager->current_action->parent);
 	}
 
@@ -344,7 +344,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	}
 
 	if (has_next_action) {
-		launchCurrentAction(manager);
+		launch_current_action(manager);
 	}
 }
 
@@ -416,7 +416,7 @@ bool schedule_operation_with_context(struct action_manager *manager,
 	};
 
 	if (action == manager->current_action) {
-		launchCurrentAction(manager);
+		launch_current_action(manager);
 	}
 
 	return true;
