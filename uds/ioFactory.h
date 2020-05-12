@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#5 $
  */
 
 #ifndef IO_FACTORY_H
@@ -32,7 +32,7 @@
  * device or within a file.
  *
  * The IO factory holds the open device or file and is responsible for
- * closing it.  The IO factory has methods to make IORegions that are
+ * closing it.  The IO factory has methods to make IO regions that are
  * used to access sections of the index.
  */
 struct io_factory;

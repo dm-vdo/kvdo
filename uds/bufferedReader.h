@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#5 $
  */
 
 #ifndef BUFFERED_READER_H
@@ -28,7 +28,7 @@ struct dm_bufio_client;
 struct io_factory;
 
 /**
- * The buffered reader allows efficient IO for IORegions, which may be
+ * The buffered reader allows efficient IO for IO regions, which may be
  * file- or block-based. The internal buffer always reads aligned data
  * from the underlying region.
  **/
