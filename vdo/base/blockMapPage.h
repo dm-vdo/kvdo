@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#11 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -146,7 +146,7 @@ static inline bool mark_block_map_page_initialized(struct block_map_page *page,
 static inline physical_block_number_t __must_check
 get_block_map_page_pbn(const struct block_map_page *page)
 {
-	return getUInt64LE(page->header.fields.pbn);
+	return get_unaligned_le64(page->header.fields.pbn);
 }
 
 /**

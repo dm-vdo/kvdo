@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#6 $
  */
 
 #include "openChapter.h"
@@ -176,7 +176,7 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
 
   // Store the record count in little-endian order.
   byte totalRecordData[sizeof(totalRecords)];
-  storeUInt32LE(totalRecordData, totalRecords);
+  put_unaligned_le32(totalRecords, totalRecordData);
 
   result = write_to_buffered_writer(writer, totalRecordData,
                                     sizeof(totalRecordData));
@@ -268,7 +268,7 @@ static int loadVersion20(Index *index, BufferedReader *reader)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  uint32_t numRecords = getUInt32LE(numRecordsData);
+  uint32_t numRecords = get_unaligned_le32(numRecordsData);
 
   // Keep track of which zones cannot accept any more records.
   bool fullFlags[MAX_ZONES] = { false, };

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#43 $
  */
 
 #include "refCounts.h"
@@ -839,7 +839,7 @@ find_zero_byte_in_word(const byte *word_ptr,
 		       slab_block_number start_index,
 		       slab_block_number fail_index)
 {
-	uint64_t word = getUInt64LE(word_ptr);
+	uint64_t word = get_unaligned_le64(word_ptr);
 
 	// This looks like a loop, but GCC will unroll the eight iterations for
 	// us.

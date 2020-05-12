@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#30 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -289,7 +289,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 			  vdo_action *callback, vdo_action *error_handler)
 {
 	int result = ASSERT(can_commit_recovery_block(block),
-	 		    "should never call %s when the block can't be committed",
+			    "should never call %s when the block can't be committed",
 			    __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -315,10 +315,12 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;
 
-	storeUInt64LE(header->fields.block_map_head, journal->block_map_head);
-	storeUInt64LE(header->fields.slab_journal_head,
-		      journal->slab_journal_head);
-	storeUInt16LE(header->fields.entry_count, block->entry_count);
+	put_unaligned_le64(journal->block_map_head,
+			   header->fields.block_map_head);
+	put_unaligned_le64(journal->slab_journal_head,
+			   header->fields.slab_journal_head);
+	put_unaligned_le16(block->entry_count,
+			   header->fields.entry_count);
 
 	block->committing = true;
 
@@ -334,11 +336,11 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 */
 	PhysicalLayer *layer = vio_as_completion(block->vio)->layer;
 	bool fua = (block->has_fua_entry
- 		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
 	bool flush = (block->has_fua_entry
 		      || (layer->getWritePolicy(layer) !=
 			  WRITE_POLICY_ASYNC_UNSAFE)
-	       	      || block->has_partial_write_entry);
+		      || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
 	launch_write_metadata_vio_with_flush(block->vio, block_pbn, callback,

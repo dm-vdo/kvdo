@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#2 $
  */
 
 #include "nonce.h"
@@ -33,7 +33,7 @@ static uint64_t hashStuff(uint64_t start, const void *data, size_t len)
   uint32_t seed = start ^ (start >> 27);
   byte hashBuffer[16];
   MurmurHash3_x64_128(data, len, seed, hashBuffer);
-  return getUInt64LE(hashBuffer + 4);
+  return get_unaligned_le64(hashBuffer + 4);
 }
 
 /*****************************************************************************/

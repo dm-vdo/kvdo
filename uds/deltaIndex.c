@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#8 $
  */
 #include "deltaIndex.h"
 
@@ -257,7 +257,7 @@ static INLINE void decodeDelta(DeltaIndexEntry *deltaEntry)
     = getDeltaEntryOffset(deltaEntry) + deltaEntry->valueBits;
   const byte *addr = memory + deltaOffset / CHAR_BIT;
   int offset = deltaOffset % CHAR_BIT;
-  uint32_t data = getUInt32LE(addr) >> offset;
+  uint32_t data = get_unaligned_le32(addr) >> offset;
   addr += sizeof(uint32_t);
   int keyBits = deltaZone->minBits;
   unsigned int delta = data & ((1 << keyBits) - 1);
@@ -265,7 +265,7 @@ static INLINE void decodeDelta(DeltaIndexEntry *deltaEntry)
     data >>= keyBits;
     if (data == 0) {
       keyBits = sizeof(uint32_t) * CHAR_BIT - offset;
-      while ((data = getUInt32LE(addr)) == 0) {
+      while ((data = get_unaligned_le32(addr)) == 0) {
         addr += sizeof(uint32_t);
         keyBits += sizeof(uint32_t) * CHAR_BIT;
       }
@@ -665,16 +665,17 @@ int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
   }
 
   // First assume that the header is little endian
-  uint64_t nonce = getUInt64LE((const byte *) &header->nonce);
-  uint64_t vcn   = getUInt64LE((const byte *) &header->virtualChapterNumber);
-  uint16_t firstList = getUInt16LE((const byte *) &header->firstList);
-  uint16_t numLists  = getUInt16LE((const byte *) &header->numLists);
+  uint64_t nonce = get_unaligned_le64((const byte *) &header->nonce);
+  uint64_t vcn
+    = get_unaligned_le64((const byte *) &header->virtualChapterNumber);
+  uint16_t firstList = get_unaligned_le16((const byte *) &header->firstList);
+  uint16_t numLists = get_unaligned_le16((const byte *) &header->numLists);
   if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory, memSize)) {
     // That failed, so try big endian
-    nonce     = getUInt64BE((const byte *) &header->nonce);
-    vcn       = getUInt64BE((const byte *) &header->virtualChapterNumber);
-    firstList = getUInt16BE((const byte *) &header->firstList);
-    numLists  = getUInt16BE((const byte *) &header->numLists);
+    nonce = get_unaligned_be64((const byte *) &header->nonce);
+    vcn = get_unaligned_be64((const byte *) &header->virtualChapterNumber);
+    firstList = get_unaligned_be16((const byte *) &header->firstList);
+    numLists = get_unaligned_be16((const byte *) &header->numLists);
     if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory,
                               memSize)) {
       // Also failed.  Do not log this as an error.  It happens in normal
@@ -794,11 +795,11 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex,
     header->firstList            = firstList;
     header->numLists             = nLists;
   } else {
-    storeUInt64LE((byte *) &header->nonce,     headerNonce);
-    storeUInt64LE((byte *) &header->virtualChapterNumber,
-                  virtualChapterNumber);
-    storeUInt16LE((byte *) &header->firstList, firstList);
-    storeUInt16LE((byte *) &header->numLists,  nLists);
+    put_unaligned_le64(headerNonce, (byte *) &header->nonce);
+    put_unaligned_le64(virtualChapterNumber,
+                       (byte *) &header->virtualChapterNumber);
+    put_unaligned_le16(firstList, (byte *) &header->firstList);
+    put_unaligned_le16(nLists, (byte *) &header->numLists);
   }
 
   // Construct the delta list offset table, making sure that the memory
@@ -1008,7 +1009,7 @@ int startRestoringDeltaIndex(const DeltaIndex  *deltaIndex,
         return logWarningWithStringError(result,
                                          "failed to read delta index size");
       }
-      uint16_t deltaListSize = getUInt16LE(deltaListSizeData);
+      uint16_t deltaListSize = get_unaligned_le16(deltaListSizeData);
       unsigned int listNumber = firstList[z] + i;
       unsigned int zoneNumber = getDeltaIndexZone(deltaIndex, listNumber);
       const DeltaMemory *deltaZone = &deltaIndex->deltaZones[zoneNumber];
@@ -1145,7 +1146,7 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
   for (i = 0; i < deltaZone->numLists; i++) {
     uint16_t deltaListSize = getDeltaListSize(&deltaZone->deltaLists[i + 1]);
     byte data[2];
-    storeUInt16LE(data, deltaListSize);
+    put_unaligned_le16(deltaListSize, data);
     result = write_to_buffered_writer(bufferedWriter, data, sizeof(data));
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,

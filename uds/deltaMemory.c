@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#6 $
  */
 #include "deltaMemory.h"
 
@@ -390,8 +390,8 @@ readDeltaListSaveInfo(BufferedReader *reader, DeltaListSaveInfo *dlsi)
   }
   dlsi->tag =  buffer[0];
   dlsi->bitOffset = buffer[1];
-  dlsi->byteCount = getUInt16LE(&buffer[2]);
-  dlsi->index = getUInt32LE(&buffer[4]);
+  dlsi->byteCount = get_unaligned_le16(&buffer[2]);
+  dlsi->index = get_unaligned_le32(&buffer[4]);
   return result;
 }
 
@@ -507,8 +507,8 @@ writeDeltaListSaveInfo(BufferedWriter *bufferedWriter, DeltaListSaveInfo *dlsi)
   byte buffer[sizeof(DeltaListSaveInfo)];
   buffer[0] = dlsi->tag;
   buffer[1] = dlsi->bitOffset;
-  storeUInt16LE(&buffer[2], dlsi->byteCount);
-  storeUInt32LE(&buffer[4], dlsi->index);
+  put_unaligned_le16(dlsi->byteCount, &buffer[2]);
+  put_unaligned_le32(dlsi->index, &buffer[4]);
   return write_to_buffered_writer(bufferedWriter, buffer, sizeof(buffer));
 }
 

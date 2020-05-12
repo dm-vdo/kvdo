@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.h#4 $
  */
 
 #ifndef BITS_H
@@ -73,7 +73,8 @@ static INLINE unsigned int
 get_field(const byte *memory, uint64_t offset, int size)
 {
 	const void *addr = memory + offset / CHAR_BIT;
-	return (getUInt32LE(addr) >> (offset % CHAR_BIT)) & ((1 << size) - 1);
+	return (get_unaligned_le32(addr) >> (offset % CHAR_BIT)) &
+		((1 << size) - 1);
 }
 
 /**
@@ -91,10 +92,10 @@ set_field(unsigned int value, byte *memory, uint64_t offset, int size)
 {
 	void *addr = memory + offset / CHAR_BIT;
 	int shift = offset % CHAR_BIT;
-	uint32_t data = getUInt32LE(addr);
+	uint32_t data = get_unaligned_le32(addr);
 	data &= ~(((1 << size) - 1) << shift);
 	data |= value << shift;
-	storeUInt32LE(addr, data);
+	put_unaligned_le32(data, addr);
 }
 
 /**

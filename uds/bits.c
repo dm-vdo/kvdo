@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.c#3 $
  */
 
 #include "bits.h"
@@ -44,7 +44,8 @@ static INLINE uint64_t get_big_field(const byte *memory,
 				     int size)
 {
 	const void *addr = memory + offset / CHAR_BIT;
-	return (getUInt64LE(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
+	return (get_unaligned_le64(addr) >> (offset % CHAR_BIT)) &
+		((1UL << size) - 1);
 }
 
 /**
@@ -62,10 +63,10 @@ set_big_field(uint64_t value, byte *memory, uint64_t offset, int size)
 {
 	void *addr = memory + offset / CHAR_BIT;
 	int shift = offset % CHAR_BIT;
-	uint64_t data = getUInt64LE(addr);
+	uint64_t data = get_unaligned_le64(addr);
 	data &= ~(((1UL << size) - 1) << shift);
 	data |= value << shift;
-	storeUInt64LE(addr, data);
+	put_unaligned_le64(data, addr);
 }
 
 /***********************************************************************/
@@ -74,7 +75,7 @@ void get_bytes(const byte *memory, uint64_t offset, byte *destination, int size)
 	const byte *addr = memory + offset / CHAR_BIT;
 	int shift = offset % CHAR_BIT;
 	while (--size >= 0) {
-		*destination++ = getUInt16LE(addr++) >> shift;
+		*destination++ = get_unaligned_le16(addr++) >> shift;
 	}
 }
 
@@ -85,9 +86,9 @@ void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 	int shift = offset % CHAR_BIT;
 	uint16_t mask = ~((uint16_t) 0xFF << shift);
 	while (--size >= 0) {
-		uint16_t data =
-			(getUInt16LE(addr) & mask) | (*source++ << shift);
-		storeUInt16LE(addr++, data);
+		uint16_t data = (get_unaligned_le16(addr) & mask) |
+			(*source++ << shift);
+		put_unaligned_le16(data, addr++);
 	}
 }
 
@@ -120,7 +121,8 @@ void move_bits(const byte *s_memory,
 				s_memory + (source - offset) / CHAR_BIT;
 			byte *dest = d_memory + destination / CHAR_BIT;
 			while (size > MAX_BIG_FIELD_BITS) {
-				storeUInt32LE(dest, getUInt64LE(src) >> offset);
+				put_unaligned_le32(get_unaligned_le64(src) >>
+						   offset, dest);
 				src += sizeof(uint32_t);
 				dest += sizeof(uint32_t);
 				source += UINT32_BIT;
@@ -154,7 +156,8 @@ void move_bits(const byte *s_memory,
 				src -= sizeof(uint32_t);
 				dest -= sizeof(uint32_t);
 				size -= UINT32_BIT;
-				storeUInt32LE(dest, getUInt64LE(src) >> offset);
+				put_unaligned_le32(get_unaligned_le64(src) >>
+						   offset, dest);
 			}
 		}
 	}

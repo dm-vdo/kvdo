@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#23 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -356,10 +356,11 @@ static inline void
 pack_slab_journal_block_header(const struct slab_journal_block_header *header,
 			       packed_slab_journal_block_header *packed)
 {
-	storeUInt64LE(packed->fields.head, header->head);
-	storeUInt64LE(packed->fields.sequence_number, header->sequence_number);
-	storeUInt64LE(packed->fields.nonce, header->nonce);
-	storeUInt16LE(packed->fields.entry_count, header->entry_count);
+	put_unaligned_le64(header->head, packed->fields.head);
+	put_unaligned_le64(header->sequence_number,
+			   packed->fields.sequence_number);
+	put_unaligned_le64(header->nonce, packed->fields.nonce);
+	put_unaligned_le16(header->entry_count, packed->fields.entry_count);
 
 	packed->fields.metadata_type = header->metadata_type;
 	packed->fields.has_block_map_increments = header->has_block_map_increments;
@@ -379,10 +380,11 @@ unpack_slab_journal_block_header(const packed_slab_journal_block_header *packed,
 				 struct slab_journal_block_header *header)
 {
 	*header = (struct slab_journal_block_header) {
-		.head = getUInt64LE(packed->fields.head),
-		.sequence_number = getUInt64LE(packed->fields.sequence_number),
-		.nonce = getUInt64LE(packed->fields.nonce),
-		.entry_count = getUInt16LE(packed->fields.entry_count),
+		.head = get_unaligned_le64(packed->fields.head),
+		.sequence_number =
+			get_unaligned_le64(packed->fields.sequence_number),
+		.nonce = get_unaligned_le64(packed->fields.nonce),
+		.entry_count = get_unaligned_le16(packed->fields.entry_count),
 		.metadata_type = packed->fields.metadata_type,
 		.has_block_map_increments =
 			packed->fields.has_block_map_increments,

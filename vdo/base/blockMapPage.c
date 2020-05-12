@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#20 $
  */
 
 #include "blockMapPage.h"
@@ -57,8 +57,8 @@ struct block_map_page *format_block_map_page(void *buffer,
 	memset(buffer, 0, VDO_BLOCK_SIZE);
 	struct block_map_page *page = (struct block_map_page *)buffer;
 	page->version = pack_version_number(BLOCK_MAP_4_1);
-	storeUInt64LE(page->header.fields.nonce, nonce);
-	storeUInt64LE(page->header.fields.pbn, pbn);
+	put_unaligned_le64(nonce, page->header.fields.nonce);
+	put_unaligned_le64(pbn, page->header.fields.pbn);
 	page->header.fields.initialized = initialized;
 	return page;
 }
@@ -75,7 +75,7 @@ block_map_page_validity validate_block_map_page(struct block_map_page *page,
 	if (!are_same_version(BLOCK_MAP_4_1,
 			      unpack_version_number(page->version)) ||
 	    !is_block_map_page_initialized(page) ||
-	    (nonce != getUInt64LE(page->header.fields.nonce))) {
+	    (nonce != get_unaligned_le64(page->header.fields.nonce))) {
 		return BLOCK_MAP_PAGE_INVALID;
 	}
 

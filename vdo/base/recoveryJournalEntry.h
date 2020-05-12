@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#9 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -114,7 +114,8 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 			.block_map_entry = pack_pbn(entry->mapping.pbn,
 						    entry->mapping.state),
 		}};
-	storeUInt32LE(packed.fields.pbn_low_word, entry->slot.pbn & UINT_MAX);
+	put_unaligned_le32(entry->slot.pbn & UINT_MAX,
+			   packed.fields.pbn_low_word);
 	return packed;
 }
 
@@ -128,7 +129,8 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 static inline struct recovery_journal_entry
 unpack_recovery_journal_entry(const packed_recovery_journal_entry *entry)
 {
-	physical_block_number_t low32 = getUInt32LE(entry->fields.pbn_low_word);
+	physical_block_number_t low32 =
+		get_unaligned_le32(entry->fields.pbn_low_word);
 	physical_block_number_t high4 = entry->fields.pbn_high_nibble;
 	return (struct recovery_journal_entry) {
 		.operation = entry->fields.operation,

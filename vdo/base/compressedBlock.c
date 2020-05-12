@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#11 $
  */
 
 #include "compressedBlock.h"
@@ -43,7 +43,7 @@ static uint16_t
 get_compressed_fragment_size(const compressed_block_header *header,
 			     byte slot)
 {
-	return getUInt16LE(header->fields.sizes[slot]);
+	return get_unaligned_le16(header->fields.sizes[slot]);
 }
 
 /**********************************************************************/
@@ -95,6 +95,6 @@ void put_compressed_block_fragment(struct compressed_block *block,
 				   const char *data,
 				   uint16_t size)
 {
-	storeUInt16LE(block->header.fields.sizes[fragment], size);
+	put_unaligned_le16(size, block->header.fields.sizes[fragment]);
 	memcpy(&block->data[offset], data, size);
 }

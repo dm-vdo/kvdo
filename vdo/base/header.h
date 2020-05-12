@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#7 $
  */
 
 #ifndef HEADER_H
@@ -201,8 +201,8 @@ static inline struct packed_version_number
 pack_version_number(struct version_number version)
 {
 	struct packed_version_number packed;
-	storeUInt32LE(packed.major_version, version.major_version);
-	storeUInt32LE(packed.minor_version, version.minor_version);
+	put_unaligned_le32(version.major_version, packed.major_version);
+	put_unaligned_le32(version.minor_version, packed.minor_version);
 	return packed;
 }
 
@@ -217,8 +217,8 @@ static inline struct version_number
 unpack_version_number(struct packed_version_number version)
 {
 	return (struct version_number) {
-		.major_version = getUInt32LE(version.major_version),
-		.minor_version = getUInt32LE(version.minor_version),
+		.major_version = get_unaligned_le32(version.major_version),
+		.minor_version = get_unaligned_le32(version.minor_version),
 	};
 }
 

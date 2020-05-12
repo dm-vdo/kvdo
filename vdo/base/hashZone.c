@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#24 $
  */
 
 #include "hashZone.h"
@@ -84,7 +84,7 @@ static uint32_t hash_key(const void *key)
 	 * with fragments used elsewhere to ensure uniform distributions.
 	 */
 	// XXX pick an offset in the chunk name that isn't used elsewhere
-	return getUInt32LE(&name->name[4]);
+	return get_unaligned_le32(&name->name[4]);
 }
 
 /**********************************************************************/

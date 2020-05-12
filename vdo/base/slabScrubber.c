@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#34 $
  */
 
 #include "slabScrubberInternals.h"
@@ -331,9 +331,10 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
-	sequence_number_t head = getUInt64LE(end_block->header.fields.head);
-	TailBlockOffset head_index = get_slab_journal_block_offset(journal,
-								   head);
+	sequence_number_t head =
+		get_unaligned_le64(end_block->header.fields.head);
+	TailBlockOffset head_index =
+		get_slab_journal_block_offset(journal, head);
 	block_count_t index = head_index;
 
 	struct journal_point ref_counts_point =

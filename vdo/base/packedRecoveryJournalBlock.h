@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#13 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -165,16 +165,18 @@ static inline void
 pack_recovery_block_header(const struct recovery_block_header *header,
 			   union packed_journal_header *packed)
 {
-	storeUInt64LE(packed->fields.block_map_head, header->block_map_head);
-	storeUInt64LE(packed->fields.slab_journal_head,
-		      header->slab_journal_head);
-	storeUInt64LE(packed->fields.sequence_number, header->sequence_number);
-	storeUInt64LE(packed->fields.nonce, header->nonce);
-	storeUInt64LE(packed->fields.logical_blocks_used,
-		      header->logical_blocks_used);
-	storeUInt64LE(packed->fields.block_map_data_blocks,
-		      header->block_map_data_blocks);
-	storeUInt16LE(packed->fields.entry_count, header->entry_count);
+	put_unaligned_le64(header->block_map_head,
+			   packed->fields.block_map_head);
+	put_unaligned_le64(header->slab_journal_head,
+			   packed->fields.slab_journal_head);
+	put_unaligned_le64(header->sequence_number,
+			   packed->fields.sequence_number);
+	put_unaligned_le64(header->nonce, packed->fields.nonce);
+	put_unaligned_le64(header->logical_blocks_used,
+			   packed->fields.logical_blocks_used);
+	put_unaligned_le64(header->block_map_data_blocks,
+			   packed->fields.block_map_data_blocks);
+	put_unaligned_le16(header->entry_count, packed->fields.entry_count);
 
 	packed->fields.check_byte = header->check_byte;
 	packed->fields.recovery_count = header->recovery_count;
@@ -192,16 +194,18 @@ unpack_recovery_block_header(const union packed_journal_header *packed,
 			     struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {
-		.block_map_head = getUInt64LE(packed->fields.block_map_head),
+		.block_map_head =
+			get_unaligned_le64(packed->fields.block_map_head),
 		.slab_journal_head =
-			getUInt64LE(packed->fields.slab_journal_head),
-		.sequence_number = getUInt64LE(packed->fields.sequence_number),
-		.nonce = getUInt64LE(packed->fields.nonce),
+			get_unaligned_le64(packed->fields.slab_journal_head),
+		.sequence_number =
+			get_unaligned_le64(packed->fields.sequence_number),
+		.nonce = get_unaligned_le64(packed->fields.nonce),
 		.logical_blocks_used =
-			getUInt64LE(packed->fields.logical_blocks_used),
+			get_unaligned_le64(packed->fields.logical_blocks_used),
 		.block_map_data_blocks =
-			getUInt64LE(packed->fields.block_map_data_blocks),
-		.entry_count = getUInt16LE(packed->fields.entry_count),
+			get_unaligned_le64(packed->fields.block_map_data_blocks),
+		.entry_count = get_unaligned_le16(packed->fields.entry_count),
 		.check_byte = packed->fields.check_byte,
 		.recovery_count = packed->fields.recovery_count,
 		.metadata_type = packed->fields.metadata_type,

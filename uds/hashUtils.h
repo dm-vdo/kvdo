@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#5 $
  */
 
 #ifndef HASH_UTILS_H
@@ -48,9 +48,9 @@ enum {
 static INLINE uint64_t extractChapterIndexBytes(const struct uds_chunk_name *name)
 {
   // Get the high order 16 bits, then the low order 32 bits
-  uint64_t bytes
-    = (uint64_t) getUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET]) << 32;
-  bytes |= getUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
+  const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
+  uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
+  bytes |= get_unaligned_be32(chapter_bits + 2);
   return bytes;
 }
 
@@ -63,7 +63,7 @@ static INLINE uint64_t extractChapterIndexBytes(const struct uds_chunk_name *nam
  **/
 static INLINE uint64_t extractMasterIndexBytes(const struct uds_chunk_name *name)
 {
-  return getUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET]);
+  return get_unaligned_be64(&name->name[MASTER_INDEX_BYTES_OFFSET]);
 }
 
 /**
@@ -75,7 +75,7 @@ static INLINE uint64_t extractMasterIndexBytes(const struct uds_chunk_name *name
  **/
 static INLINE uint32_t extractSamplingBytes(const struct uds_chunk_name *name)
 {
-  return getUInt16BE(&name->name[SAMPLE_BYTES_OFFSET]);
+  return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**
@@ -177,10 +177,10 @@ static INLINE void setChapterIndexBytes(struct uds_chunk_name *name,
                                         uint64_t value)
 {
   // Store the high order bytes, then the low-order bytes
-  storeUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET],
-                (uint16_t)(value >> 32));
-  storeUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2],
-                (uint32_t)value);
+  put_unaligned_be16((uint16_t)(value >> 32),
+                     &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
+  put_unaligned_be32((uint32_t)value,
+                     &name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
 }
 
 /**
@@ -208,7 +208,7 @@ static INLINE void setChapterDeltaListBits(struct uds_chunk_name *name,
 static INLINE void setMasterIndexBytes(struct uds_chunk_name *name,
                                        uint64_t val)
 {
-  storeUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET], val);
+  put_unaligned_be64(val, &name->name[MASTER_INDEX_BYTES_OFFSET]);
 }
 
 /**
@@ -220,7 +220,7 @@ static INLINE void setMasterIndexBytes(struct uds_chunk_name *name,
 static INLINE void setSamplingBytes(struct uds_chunk_name *name,
                                     uint32_t value)
 {
-  storeUInt16BE(&name->name[SAMPLE_BYTES_OFFSET], (uint16_t)value);
+  put_unaligned_be16((uint16_t)value, &name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**

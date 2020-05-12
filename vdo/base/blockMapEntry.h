@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#7 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -80,7 +80,8 @@ typedef union __attribute__((packed)) {
 static inline struct data_location
 unpack_block_map_entry(const block_map_entry *entry)
 {
-	physical_block_number_t low32 = getUInt32LE(entry->fields.pbn_low_word);
+	physical_block_number_t low32 =
+		get_unaligned_le32(entry->fields.pbn_low_word);
 	physical_block_number_t high4 = entry->fields.pbn_high_nibble;
 	return (struct data_location) {
 		.pbn = ((high4 << 32) | low32),
@@ -121,7 +122,7 @@ static inline block_map_entry pack_pbn(physical_block_number_t pbn,
 	block_map_entry entry;
 	entry.fields.mapping_state = (mapping_state & 0x0F);
 	entry.fields.pbn_high_nibble = ((pbn >> 32) & 0x0F),
-	storeUInt32LE(entry.fields.pbn_low_word, pbn & UINT_MAX);
+	put_unaligned_le32(pbn & UINT_MAX, entry.fields.pbn_low_word);
 	return entry;
 }
 

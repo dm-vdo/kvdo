@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#5 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -124,7 +124,7 @@ static inline void pack_journal_point(const struct journal_point *unpacked,
 {
 	uint64_t native =
 		((unpacked->sequence_number << 16) | unpacked->entry_count);
-	storeUInt64LE(packed->encoded_point, native);
+	put_unaligned_le64(native, packed->encoded_point);
 }
 
 /**
@@ -138,7 +138,7 @@ static inline void
 unpack_journal_point(const struct packed_journal_point *packed,
 		     struct journal_point *unpacked)
 {
-	uint64_t native = getUInt64LE(packed->encoded_point);
+	uint64_t native = get_unaligned_le64(packed->encoded_point);
 	unpacked->sequence_number = (native >> 16);
 	unpacked->entry_count = (native & 0xffff);
 }

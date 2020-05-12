@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#4 $
  */
 
 #ifndef NUMERIC_H
@@ -132,19 +132,6 @@ static INLINE uint64_t __must_check minUInt64(uint64_t a, uint64_t b)
 }
 
 /**
- * Extract a 64 bit unsigned number from a buffer stored in
- * big-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint64_t __must_check getUInt64BE(const uint8_t* data)
-{
-  return get_unaligned_be64(data);
-}
-
-/**
  * Extract a 64 bit unsigned big-endian number from a buffer at a
  * specified offset.  The offset will be advanced to the first byte
  * after the number.
@@ -157,20 +144,8 @@ static INLINE void decodeUInt64BE(const uint8_t *buffer,
                                   size_t        *offset,
                                   uint64_t      *decoded)
 {
-  *decoded  = getUInt64BE(buffer + *offset);
+  *decoded  = get_unaligned_be64(buffer + *offset);
   *offset  += sizeof(uint64_t);
-}
-
-/**
- * Store a 64 bit unsigned number in a buffer in
- * big-endian representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeUInt64BE(uint8_t* data, uint64_t num)
-{
-  put_unaligned_be64(num, data);
 }
 
 /**
@@ -186,21 +161,8 @@ static INLINE void encodeUInt64BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint64_t  toEncode)
 {
-  storeUInt64BE(data + *offset, toEncode);
+  put_unaligned_be64(toEncode, data + *offset);
   *offset += sizeof(uint64_t);
-}
-
-/**
- * Extract a 32 bit unsigned number from a buffer stored in big-endian
- * representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint32_t __must_check getUInt32BE(const uint8_t* data)
-{
-  return get_unaligned_be32(data);
 }
 
 /**
@@ -217,20 +179,8 @@ static INLINE void decodeUInt32BE(const uint8_t *buffer,
                                   uint32_t      *decoded)
 
 {
-  *decoded = getUInt32BE(buffer + *offset);
+  *decoded = get_unaligned_be32(buffer + *offset);
   *offset += sizeof(uint32_t);
-}
-
-/**
- * Store a 32 bit number in a buffer in
- * big-endian representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeUInt32BE(uint8_t* data, uint32_t num)
-{
-  put_unaligned_be32(num, data);
 }
 
 /**
@@ -246,21 +196,8 @@ static INLINE void encodeUInt32BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint32_t  toEncode)
 {
-  storeUInt32BE(data + *offset, toEncode);
+  put_unaligned_be32(toEncode, data + *offset);
   *offset += sizeof(uint32_t);
-}
-
-/**
- * Extract a 16 bit number from a buffer stored in
- * big-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint16_t __must_check getUInt16BE(const uint8_t* data)
-{
-  return get_unaligned_be16(data);
 }
 
 /**
@@ -276,7 +213,7 @@ static INLINE void decodeUInt16BE(const uint8_t *buffer,
                                   size_t        *offset,
                                   uint16_t      *decoded)
 {
-  *decoded = getUInt16BE(buffer + *offset);
+  *decoded = get_unaligned_be16(buffer + *offset);
   *offset += sizeof(uint16_t);
 }
 
@@ -305,21 +242,8 @@ static INLINE void encodeUInt16BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint16_t  toEncode)
 {
-  storeUInt16BE(data + *offset, toEncode);
+  put_unaligned_be16(toEncode, data + *offset);
   *offset += sizeof(uint16_t);
-}
-
-/**
- * Extract a 64 bit signed number from a buffer stored in
- * little-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE int64_t __must_check getInt64LE(const uint8_t* data)
-{
-  return get_unaligned_le64(data);
 }
 
 /**
@@ -335,20 +259,8 @@ static INLINE void decodeInt64LE(const uint8_t *buffer,
                                  size_t        *offset,
                                  int64_t       *decoded)
 {
-  *decoded = getInt64LE(buffer + *offset);
+  *decoded = get_unaligned_le64(buffer + *offset);
   *offset += sizeof(int64_t);
-}
-
-/**
- * Store a signed 64 bit number in a buffer in little-endian
- * representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeInt64LE(uint8_t* data, int64_t num)
-{
-  put_unaligned_le64(num, data);
 }
 
 /**
@@ -364,21 +276,8 @@ static INLINE void encodeInt64LE(uint8_t *data,
                                  size_t  *offset,
                                  int64_t  toEncode)
 {
-  storeInt64LE(data + *offset, toEncode);
+  put_unaligned_le64(toEncode, data + *offset);
   *offset += sizeof(int64_t);
-}
-
-/**
- * Extract a 64 bit number from a buffer stored in
- * little-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint64_t __must_check getUInt64LE(const uint8_t* data)
-{
-  return get_unaligned_le64(data);
 }
 
 /**
@@ -394,20 +293,8 @@ static INLINE void decodeUInt64LE(const uint8_t *buffer,
                                   size_t        *offset,
                                   uint64_t      *decoded)
 {
-  *decoded = getUInt64LE(buffer + *offset);
+  *decoded = get_unaligned_le64(buffer + *offset);
   *offset += sizeof(uint64_t);
-}
-
-/**
- * Store a 64 bit unsigned number in a buffer in little-endian
- * representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeUInt64LE(uint8_t* data, uint64_t num)
-{
-  put_unaligned_le64(num, data);
 }
 
 /**
@@ -423,21 +310,8 @@ static INLINE void encodeUInt64LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint64_t  toEncode)
 {
-  storeUInt64LE(data + *offset, toEncode);
+  put_unaligned_le64(toEncode, data + *offset);
   *offset += sizeof(uint64_t);
-}
-
-/**
- * Extract a 32 bit signed number from a buffer stored in
- * little-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE int32_t __must_check getInt32LE(const uint8_t* data)
-{
-  return get_unaligned_le32(data);
 }
 
 /**
@@ -453,20 +327,8 @@ static INLINE void decodeInt32LE(const uint8_t *buffer,
                                  size_t        *offset,
                                  int32_t       *decoded)
 {
-  *decoded = getInt32LE(buffer + *offset);
+  *decoded = get_unaligned_le32(buffer + *offset);
   *offset += sizeof(int32_t);
-}
-
-/**
- * Store a signed 32 bit number in a buffer in little-endian
- * representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeInt32LE(uint8_t* data, int32_t num)
-{
-  put_unaligned_le32(num, data);
 }
 
 /**
@@ -482,22 +344,8 @@ static INLINE void encodeInt32LE(uint8_t *data,
                                  size_t  *offset,
                                  int32_t  toEncode)
 {
-  storeInt32LE(data + *offset, toEncode);
+  put_unaligned_le32(toEncode, data + *offset);
   *offset += sizeof(int32_t);
-}
-
-/**
- * Extract a 32 bit unsigned number from a buffer stored in
- * little-endian representation.
-
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint32_t __must_check getUInt32LE(const uint8_t* data)
-{
-  return get_unaligned_le32(data);
 }
 
 /**
@@ -513,20 +361,8 @@ static INLINE void decodeUInt32LE(const uint8_t *buffer,
                                   size_t        *offset,
                                   uint32_t      *decoded)
 {
-  *decoded = getUInt32LE(buffer + *offset);
+  *decoded = get_unaligned_le32(buffer + *offset);
   *offset += sizeof(uint32_t);
-}
-
-/**
- * Store a 32 bit unsigned number in a buffer in little-endian
- * representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeUInt32LE(uint8_t* data, uint32_t num)
-{
-  put_unaligned_le32(num, data);
 }
 
 /**
@@ -542,21 +378,8 @@ static INLINE void encodeUInt32LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint32_t  toEncode)
 {
-  storeUInt32LE(data + *offset, toEncode);
+  put_unaligned_le32(toEncode, data + *offset);
   *offset += sizeof(uint32_t);
-}
-
-/**
- * Extract a 16 bit number from a buffer stored in
- * little-endian representation.
- *
- * @param data The buffer from which to extract the number
- *
- * @return The extracted quantity
- **/
-static INLINE uint16_t __must_check getUInt16LE(const uint8_t* data)
-{
-  return get_unaligned_le16(data);
 }
 
 /**
@@ -573,19 +396,8 @@ static INLINE void decodeUInt16LE(const uint8_t *buffer,
                                   size_t        *offset,
                                   uint16_t      *decoded)
 {
-  *decoded = getUInt16LE(buffer + *offset);
+  *decoded = get_unaligned_le16(buffer + *offset);
   *offset += sizeof(uint16_t);
-}
-
-/**
- * Store a 16 bit number in a buffer in little-endian representation.
- *
- * @param data The buffer in which to store the number
- * @param num  The number to store
- **/
-static INLINE void storeUInt16LE(uint8_t* data, uint16_t num)
-{
-  put_unaligned_le16(num, data);
 }
 
 /**
@@ -601,7 +413,7 @@ static INLINE void encodeUInt16LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint16_t  toEncode)
 {
-  storeUInt16LE(data + *offset, toEncode);
+  put_unaligned_le16(toEncode, data + *offset);
   *offset += sizeof(uint16_t);
 }
 

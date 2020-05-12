@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#55 $
  */
 
 #include "slabJournalInternals.h"
@@ -645,7 +645,7 @@ static sequence_number_t
 get_committing_sequence_number(const struct vio_pool_entry *entry)
 {
 	const struct packed_slab_journal_block *block = entry->buffer;
-	return getUInt64LE(block->header.fields.sequence_number);
+	return get_unaligned_le64(block->header.fields.sequence_number);
 }
 
 /**
