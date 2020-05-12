@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#47 $
  */
 
 #include "packerInternals.h"
@@ -482,12 +482,12 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct output_bin *bin = context;
 
-	data_vio->newMapped = (struct zoned_pbn) {
+	data_vio->new_mapped = (struct zoned_pbn) {
 		.pbn = bin->writer->allocation,
 		.zone = bin->writer->zone,
 		.state = get_state_for_slot(data_vio->compression.slot),
 	};
-	data_vio_as_vio(data_vio)->physical = data_vio->newMapped.pbn;
+	data_vio_as_vio(data_vio)->physical = data_vio->new_mapped.pbn;
 
 	share_compressed_write_lock(data_vio, bin->writer->allocation_lock);
 
@@ -855,7 +855,7 @@ void attempt_packing(struct data_vio *data_vio)
 	// If packing of this data_vio is disallowed for administrative reasons,
 	// give up before making any state changes.
 	if (!is_normal(&packer->state) ||
-	    (data_vio->flushGeneration < packer->flush_generation)) {
+	    (data_vio->flush_generation < packer->flush_generation)) {
 		abort_packing(data_vio);
 		return;
 	}
@@ -947,8 +947,8 @@ void remove_lock_holder_from_packer(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_packer_zone(data_vio);
 
-	struct data_vio *lock_holder = data_vio->compression.lockHolder;
-	data_vio->compression.lockHolder = NULL;
+	struct data_vio *lock_holder = data_vio->compression.lock_holder;
+	data_vio->compression.lock_holder = NULL;
 	remove_from_packer(lock_holder);
 }
 

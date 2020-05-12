@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#19 $
  */
 
 #include "blockMapPage.h"
@@ -94,9 +94,9 @@ void update_block_map_page(struct block_map_page *page,
 			   sequence_number_t *recovery_lock)
 {
 	// Encode the new mapping.
-	struct tree_lock *tree_lock = &data_vio->treeLock;
+	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	slot_number_t slot =
-		tree_lock->treeSlots[tree_lock->height].blockMapSlot.slot;
+		tree_lock->tree_slots[tree_lock->height].blockMapSlot.slot;
 	page->entries[slot] = pack_pbn(pbn, mapping_state);
 
 	// Adjust references (locks) on the recovery journal blocks.
@@ -105,7 +105,7 @@ void update_block_map_page(struct block_map_page *page,
 	struct block_map *block_map = zone->block_map;
 	struct recovery_journal *journal = block_map->journal;
 	sequence_number_t old_locked = *recovery_lock;
-	sequence_number_t new_locked = data_vio->recoverySequenceNumber;
+	sequence_number_t new_locked = data_vio->recovery_sequence_number;
 
 	if ((old_locked == 0) || (old_locked > new_locked)) {
 		// Acquire a lock on the newly referenced journal block.
@@ -127,5 +127,5 @@ void update_block_map_page(struct block_map_page *page,
 
 	// Release the transferred lock from the data_vio.
 	release_per_entry_lock_from_other_zone(journal, new_locked);
-	data_vio->recoverySequenceNumber = 0;
+	data_vio->recovery_sequence_number = 0;
 }

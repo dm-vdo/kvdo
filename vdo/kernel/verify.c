@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#17 $
  */
 
 #include "physicalLayer.h"
@@ -97,9 +97,9 @@ static void verify_duplication_work(struct kvdo_work_item *item)
 	if (likely(memory_equal(data_kvio->data_block,
 				data_kvio->read_block.data,
 				VDO_BLOCK_SIZE))) {
-		// Leave data_kvio->data_vio.isDuplicate set to true.
+		// Leave data_kvio->data_vio.is_duplicate set to true.
 	} else {
-		data_kvio->data_vio.isDuplicate = false;
+		data_kvio->data_vio.is_duplicate = false;
 	}
 
 	kvdo_enqueue_data_vio_callback(data_kvio);
@@ -118,7 +118,7 @@ static void verify_read_block_callback(struct data_kvio *data_kvio)
 
 	if (unlikely(err != 0)) {
 		logDebug("%s: err %d", __func__, err);
-		data_kvio->data_vio.isDuplicate = false;
+		data_kvio->data_vio.is_duplicate = false;
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
 	}
@@ -132,13 +132,13 @@ static void verify_read_block_callback(struct data_kvio *data_kvio)
 /**********************************************************************/
 void verifyDuplication(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(data_vio->isDuplicate,
+	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"advice to verify must be valid");
 	ASSERT_LOG_ONLY(data_vio->duplicate.state != MAPPING_STATE_UNMAPPED,
 			"advice to verify must not be a discard");
 	ASSERT_LOG_ONLY(data_vio->duplicate.pbn != ZERO_BLOCK,
 			"advice to verify must not point to the zero block");
-	ASSERT_LOG_ONLY(!data_vio->isZeroBlock,
+	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zeroed block should not have advice to verify");
 
 	const struct trace_location *location =

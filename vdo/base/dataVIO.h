@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#44 $
  */
 
 #ifndef DATA_VIO_H
@@ -78,7 +78,7 @@ typedef enum __attribute__((packed)) {
 	VERIFY_DEDUPLICATION,
 	WRITE_DATA,
 	MAX_ASYNC_OPERATION_NUMBER,
-} AsyncOperationNumber;
+} async_operation_number;
 
 /*
  * An LBN lock.
@@ -101,20 +101,21 @@ struct tree_lock {
 	/* The current height at which this data_vio is operating */
 	height_t height;
 	/* The block map tree for this LBN */
-	root_count_t rootIndex;
+	root_count_t root_index;
 	/* Whether we hold a page lock */
 	bool locked;
 	/* The thread on which to run the callback */
-	thread_id_t threadID;
+	thread_id_t thread_id;
 	/* The function to call after looking up a block map slot */
 	vdo_action *callback;
 	/* The key for the lock map */
 	uint64_t key;
-	/* The queue of waiters for the page this vio is allocating or loading
+	/*
+	 * The queue of waiters for the page this vio is allocating or loading
 	 */
 	struct wait_queue waiters;
 	/* The block map tree slots for this LBN */
-	struct block_map_tree_slot treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
+	struct block_map_tree_slot tree_slots[BLOCK_MAP_TREE_HEIGHT + 1];
 };
 
 struct compression_state {
@@ -151,7 +152,7 @@ struct compression_state {
 	 * A vio which is blocked in the packer while holding a lock this vio
 	 * needs.
 	 */
-	struct data_vio *lockHolder;
+	struct data_vio *lock_holder;
 };
 
 /**
@@ -159,34 +160,34 @@ struct compression_state {
  **/
 struct data_vio {
 	/* The underlying struct allocating_vio */
-	struct allocating_vio allocatingVIO;
+	struct allocating_vio allocating_vio;
 
 	/* The logical block of this request */
 	struct lbn_lock logical;
 
 	/* The state for traversing the block map tree */
-	struct tree_lock treeLock;
+	struct tree_lock tree_lock;
 
 	/* The current partition address of this block */
 	struct zoned_pbn mapped;
 
 	/** The hash of this vio (if not zero) */
-	struct uds_chunk_name chunkName;
+	struct uds_chunk_name chunk_name;
 
 	/* Used for logging and debugging */
-	AsyncOperationNumber lastAsyncOperation;
+	async_operation_number last_async_operation;
 
 	/* The operation to record in the recovery and slab journals */
 	struct reference_operation operation;
 
 	/* Whether this vio is a read-and-write vio */
-	bool isPartialWrite;
+	bool is_partial_write;
 
 	/* Whether this vio contains all zeros */
-	bool isZeroBlock;
+	bool is_zero_block;
 
 	/* Whether this vio write is a duplicate */
-	bool isDuplicate;
+	bool is_duplicate;
 
 	/*
 	 * Whether this vio has received an allocation (needs to be atomic so
@@ -198,23 +199,23 @@ struct data_vio {
 	 * The new partition address of this block after the vio write
 	 * completes
 	 */
-	struct zoned_pbn newMapped;
+	struct zoned_pbn new_mapped;
 
 	/*
-	 * The hash zone responsible for the chunk name (NULL if isZeroBlock)
+	 * The hash zone responsible for the chunk name (NULL if is_zero_block)
 	 */
-	struct hash_zone *hashZone;
+	struct hash_zone *hash_zone;
 
 	/*
 	 * The lock this vio holds or shares with other vios with the same data
 	 */
-	struct hash_lock *hashLock;
+	struct hash_lock *hash_lock;
 
 	/*
-	 * All DataVIOs sharing a hash lock are kept in a ring linking these
+	 * All data_vios sharing a hash lock are kept in a ring linking these
 	 * nodes
 	 */
-	RingNode hashLockNode;
+	RingNode hash_lock_node;
 
 	/*
 	* The block number in the partition of the albireo deduplication advice
@@ -225,13 +226,13 @@ struct data_vio {
 	 * The sequence number of the recovery journal block containing the
 	 * increment entry for this vio.
 	 */
-	sequence_number_t recoverySequenceNumber;
+	sequence_number_t recovery_sequence_number;
 
 	/*
 	 * The point in the recovery journal where this write last made an
 	 * entry
 	 */
-	struct journal_point recoveryJournalPoint;
+	struct journal_point recovery_journal_point;
 
 	/* The RingNode of vios in user initiated write requests */
 	RingNode writeNode;
@@ -239,13 +240,13 @@ struct data_vio {
 	/*
 	 * A flag indicating that a data write vio has a flush generation lock
 	 */
-	bool hasFlushGenerationLock;
+	bool has_flush_generation_lock;
 
 	/* The generation number of the VDO that this vio belongs to */
-	sequence_number_t flushGeneration;
+	sequence_number_t flush_generation;
 
 	/* The completion to use for fetching block map pages for this vio */
-	struct vdo_page_completion pageCompletion;
+	struct vdo_page_completion page_completion;
 
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
@@ -264,7 +265,7 @@ allocating_vio_as_data_vio(struct allocating_vio *allocating_vio)
 	ASSERT_LOG_ONLY((allocating_vio_as_vio(allocating_vio)->type ==
 			 VIO_TYPE_DATA),
 			"allocating_vio is a struct data_vio");
-	return container_of(allocating_vio, struct data_vio, allocatingVIO);
+	return container_of(allocating_vio, struct data_vio, allocating_vio);
 }
 
 /**
@@ -279,7 +280,7 @@ static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 	ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
 	return container_of(container_of(vio, struct allocating_vio, vio),
 			    struct data_vio,
-			    allocatingVIO);
+			    allocating_vio);
 }
 
 /**
@@ -292,7 +293,7 @@ static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 static inline
 struct allocating_vio *data_vio_as_allocating_vio(struct data_vio *data_vio)
 {
-	return &data_vio->allocatingVIO;
+	return &data_vio->allocating_vio;
 }
 
 /**
@@ -401,7 +402,7 @@ static inline bool is_compressed_write_data_vio(struct data_vio *data_vio)
  **/
 static inline bool is_trim_data_vio(struct data_vio *data_vio)
 {
-	return (data_vio->newMapped.state == MAPPING_STATE_UNMAPPED);
+	return (data_vio->new_mapped.state == MAPPING_STATE_UNMAPPED);
 }
 
 /**
@@ -416,8 +417,8 @@ static inline struct data_location
 get_data_vio_new_advice(const struct data_vio *data_vio)
 {
 	return (struct data_location){
-		.pbn = data_vio->newMapped.pbn,
-		.state = data_vio->newMapped.state,
+		.pbn = data_vio->new_mapped.pbn,
+		.state = data_vio->new_mapped.state,
 	};
 }
 
@@ -479,14 +480,14 @@ static inline bool has_allocation(struct data_vio *data_vio)
  * @param data_vio   The data_vio to initialize
  * @param lbn        The logical block number of the data_vio
  * @param operation  The operation this data_vio will perform
- * @param isTrim     <code>true</code> if this data_vio is for a trim request
+ * @param is_trim    <code>true</code> if this data_vio is for a trim request
  * @param callback   The function to call once the vio has completed its
  *                   operation
  **/
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
 		      vio_operation operation,
-		      bool isTrim,
+		      bool is_trim,
 		      vdo_action *callback);
 
 /**
@@ -565,22 +566,22 @@ enqueue_data_vio(struct wait_queue *queue,
  **/
 static inline void assert_in_hash_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected = get_hash_zone_thread_id(data_vio->hashZone);
-	thread_id_t threadID = getCallbackThreadID();
+	thread_id_t expected = get_hash_zone_thread_id(data_vio->hash_zone);
+	thread_id_t thread_id = getCallbackThreadID();
 	// It's odd to use the LBN, but converting the chunk name to hex is a
 	// bit clunky for an inline, and the LBN better than nothing as an
 	// identifier.
-	ASSERT_LOG_ONLY((expected == threadID),
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on hash zone thread %u",
 			data_vio->logical.lbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
 /**
  * Set a callback as a hash zone operation. This function presumes that the
- * hashZone field of the data_vio has already been set.
+ * hash_zone field of the data_vio has already been set.
  *
  * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
@@ -593,7 +594,7 @@ set_hash_zone_callback(struct data_vio *data_vio,
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
-		     get_hash_zone_thread_id(data_vio->hashZone));
+		     get_hash_zone_thread_id(data_vio->hash_zone));
 	data_vio_add_trace_record(data_vio, location);
 }
 
@@ -622,18 +623,18 @@ static inline void assert_in_logical_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_logical_zone_thread_id(data_vio->logical.zone);
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on thread %u",
 			data_vio->logical.lbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
 /**
  * Set a callback as a logical block operation. This function presumes that the
- * logicalZone field of the data_vio has already been set.
+ * logical.zone field of the data_vio has already been set.
  *
  * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
@@ -719,12 +720,12 @@ static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->duplicate.zone);
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for duplicate physical block %" PRIu64
 			" on thread %u, should be on thread %u",
 			data_vio->duplicate.pbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
@@ -772,12 +773,12 @@ static inline void assert_in_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->mapped.zone);
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for mapped physical block %" PRIu64
 			" on thread %u, should be on thread %u",
 			data_vio->mapped.pbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
@@ -800,7 +801,7 @@ set_mapped_zone_callback(struct data_vio *data_vio,
 }
 
 /**
- * Check that a data_vio is running on the correct thread for its newMapped
+ * Check that a data_vio is running on the correct thread for its new_mapped
  * zone.
  *
  * @param data_vio The data_vio in question
@@ -808,18 +809,18 @@ set_mapped_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_physical_zone_thread_id(data_vio->newMapped.zone);
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
-			"data_vio for newMapped physical block %" PRIu64
+		get_physical_zone_thread_id(data_vio->new_mapped.zone);
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
+			"data_vio for new_mapped physical block %" PRIu64
 			" on thread %u, should be on thread %u",
-			data_vio->newMapped.pbn,
-			threadID,
+			data_vio->new_mapped.pbn,
+			thread_id,
 			expected);
 }
 
 /**
- * Set a callback as a physical block operation in a data_vio's newMapped zone.
+ * Set a callback as a physical block operation in a data_vio's new_mapped zone.
  *
  * @param data_vio  The data_vio
  * @param callback  The callback to set
@@ -832,12 +833,12 @@ set_new_mapped_zone_callback(struct data_vio *data_vio,
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
-		     get_physical_zone_thread_id(data_vio->newMapped.zone));
+		     get_physical_zone_thread_id(data_vio->new_mapped.zone));
 	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
- * Set a callback as a physical block operation in a data_vio's newMapped zone
+ * Set a callback as a physical block operation in a data_vio's new_mapped zone
  * and queue the data_vio and invoke it immediately.
  *
  * @param data_vio  The data_vio
@@ -862,12 +863,12 @@ static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on journal thread %u",
 			data_vio->logical.lbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
@@ -913,12 +914,12 @@ static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
-	thread_id_t threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((expected == threadID),
+	thread_id_t thread_id = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %" PRIu64
 			" on thread %u, should be on packer thread %u",
 			data_vio->logical.lbn,
-			threadID,
+			thread_id,
 			expected);
 }
 
@@ -968,7 +969,7 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 
 /**
  * Set the location of the duplicate block for a data_vio, updating the
- * isDuplicate and duplicate fields from a zoned_pbn.
+ * is_duplicate and duplicate fields from a zoned_pbn.
  *
  * @param data_vio The data_vio to modify
  * @param source   The location of the duplicate

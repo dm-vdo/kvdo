@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#29 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -207,7 +207,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			// entries are committed.
 			block->has_partial_write_entry =
 				(block->has_partial_write_entry
-				 || data_vio->isPartialWrite);
+				 || data_vio->is_partial_write);
 			/*
 			 * In order to not lose acknowledged writes with the FUA
 			 * flag set, we must issue a flush to cover the data
@@ -222,7 +222,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		// Compose and encode the entry.
 		packed_recovery_journal_entry *packed_entry =
 			&block->sector->entries[block->sector->entry_count++];
-		struct tree_lock *lock = &data_vio->treeLock;
+		struct tree_lock *lock = &data_vio->tree_lock;
 		struct recovery_journal_entry new_entry = {
 			.mapping =
 				{
@@ -230,12 +230,12 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 					.state = data_vio->operation.state,
 				},
 			.operation = data_vio->operation.type,
-			.slot = lock->treeSlots[lock->height].blockMapSlot,
+			.slot = lock->tree_slots[lock->height].blockMapSlot,
 		};
 		*packed_entry = pack_recovery_journal_entry(&new_entry);
 
 		if (is_increment_operation(data_vio->operation.type)) {
-			data_vio->recoverySequenceNumber =
+			data_vio->recovery_sequence_number =
 				block->sequence_number;
 		}
 

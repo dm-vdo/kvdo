@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#61 $
  */
 
 #include "dataKVIO.h"
@@ -529,7 +529,7 @@ void writeDataVIO(struct data_vio *data_vio)
 
 	set_bio_operation_write(bio);
 	set_bio_sector(bio,
-		       block_to_sector(kvio->layer, data_vio->newMapped.pbn));
+		       block_to_sector(kvio->layer, data_vio->new_mapped.pbn));
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -614,7 +614,7 @@ void applyPartialWrite(struct data_vio *data_vio)
 			   (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset)));
 	}
 
-	data_vio->isZeroBlock = is_zero_block(data_kvio);
+	data_vio->is_zero_block = is_zero_block(data_kvio);
 	data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
 	copy_bio_operation_and_flags(data_kvio->data_block_bio, bio);
 	// Make the bio a write, not (potentially) a discard.
@@ -812,7 +812,8 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 			// continue to use the data after we acknowledge the
 			// bio.
 			bio_copy_data_in(bio, data_kvio->data_block);
-			data_kvio->data_vio.isZeroBlock = is_zero_block(data_kvio);
+			data_kvio->data_vio.is_zero_block =
+				is_zero_block(data_kvio);
 		}
 	}
 
@@ -993,8 +994,8 @@ static void kvdo_hash_data_work(struct kvdo_work_item *item)
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	MurmurHash3_x64_128(data_kvio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
-			    &data_vio->chunkName);
-	data_kvio->dedupe_context.chunk_name = &data_vio->chunkName;
+			    &data_vio->chunk_name);
+	data_kvio->dedupe_context.chunk_name = &data_vio->chunk_name;
 
 	kvdo_enqueue_data_vio_callback(data_kvio);
 }
@@ -1014,9 +1015,9 @@ void checkForDuplication(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("checkForDuplication;dup=post"));
-	ASSERT_LOG_ONLY(!data_vio->isZeroBlock,
+	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero block not checked for duplication");
-	ASSERT_LOG_ONLY(data_vio->newMapped.state != MAPPING_STATE_UNMAPPED,
+	ASSERT_LOG_ONLY(data_vio->new_mapped.state != MAPPING_STATE_UNMAPPED,
 			"discard not checked for duplication");
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
@@ -1225,7 +1226,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	if (data_vio_as_allocating_vio(data_vio)->waiter.next_waiter != NULL) {
 		*p_flag++ = 'W';
 	}
-	if (data_vio->isDuplicate) {
+	if (data_vio->is_duplicate) {
 		*p_flag++ = 'D';
 	}
 	if (p_flag == &buffer[1]) {
@@ -1274,7 +1275,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 	static char vio_block_number_dump_buffer[sizeof("P L D") +
 						 3 *
 						 DECIMAL_DIGITS_PER_UINT64_T];
-	if (data_vio->isDuplicate) {
+	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu D%llu",
@@ -1294,10 +1295,10 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 	static char vio_flush_generation_buffer[sizeof(" FG") +
 						DECIMAL_DIGITS_PER_UINT64_T] =
 		"";
-	if (data_vio->flushGeneration != 0) {
+	if (data_vio->flush_generation != 0) {
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer), " FG%llu",
-			 data_vio->flushGeneration);
+			 data_vio->flush_generation);
 	}
 
 	// Encode VIO attributes as a string of one-character flags, usually
@@ -1339,8 +1340,8 @@ struct data_location get_dedupe_advice(const struct dedupe_context *context)
 						   struct data_kvio,
 						   dedupe_context);
 	return (struct data_location) {
-		.state = data_kvio->data_vio.newMapped.state,
-		.pbn = data_kvio->data_vio.newMapped.pbn,
+		.state = data_kvio->data_vio.new_mapped.state,
+		.pbn = data_kvio->data_vio.new_mapped.pbn,
 	};
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#35 $
  */
 
 #include "logicalZone.h"
@@ -332,7 +332,7 @@ static bool update_oldest_active_generation(struct logical_zone *zone)
 		zone->oldest_active_generation = zone->flush_generation;
 	} else {
 		zone->oldest_active_generation =
-			data_vio_from_ring_node(zone->write_vios.next)->flushGeneration;
+			data_vio_from_ring_node(zone->write_vios.next)->flush_generation;
 	}
 
 	if (zone->oldest_active_generation == current_oldest) {
@@ -375,9 +375,9 @@ int acquire_flush_generation_lock(struct data_vio *dataVIO)
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	dataVIO->flushGeneration = zone->flush_generation;
+	dataVIO->flush_generation = zone->flush_generation;
 	pushRingNode(&zone->write_vios, &dataVIO->writeNode);
-	dataVIO->hasFlushGenerationLock = true;
+	dataVIO->has_flush_generation_lock = true;
 	zone->ios_in_flush_generation++;
 	return VDO_SUCCESS;
 }
@@ -430,18 +430,19 @@ void release_flush_generation_lock(struct data_vio *data_vio)
 	if (isRingEmpty(&data_vio->writeNode)) {
 		// This VIO never got a lock, either because it is a read, or
 		// because we are in read-only mode.
-		ASSERT_LOG_ONLY(!data_vio->hasFlushGenerationLock,
-				"hasFlushGenerationLock false for VIO not on active list");
+		ASSERT_LOG_ONLY(!data_vio->has_flush_generation_lock,
+				"has_flush_generation_lock false for VIO not on active list");
 		return;
 	}
 
 	unspliceRingNode(&data_vio->writeNode);
-	data_vio->hasFlushGenerationLock = false;
+	data_vio->has_flush_generation_lock = false;
 	ASSERT_LOG_ONLY(zone->oldest_active_generation
-				<= data_vio->flushGeneration,
+				<= data_vio->flush_generation,
 			"data_vio releasing lock on generation %" PRIu64
 			" is not older than oldest active generation %llu",
-			data_vio->flushGeneration, zone->oldest_active_generation);
+			data_vio->flush_generation,
+			zone->oldest_active_generation);
 
 	if (!update_oldest_active_generation(zone) || zone->notifying) {
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#65 $
  */
 
 #include "blockMapTree.h"
@@ -173,8 +173,8 @@ get_tree_page(const struct block_map_tree_zone *zone,
 	      const struct tree_lock *lock)
 {
 	return get_tree_page_by_index(zone->map_zone->block_map->forest,
-				      lock->rootIndex, lock->height,
-				      lock->treeSlots[lock->height].pageIndex);
+				      lock->root_index, lock->height,
+				      lock->tree_slots[lock->height].pageIndex);
 }
 
 /**********************************************************************/
@@ -614,16 +614,16 @@ void drain_zone_trees(struct block_map_tree_zone *zone)
  **/
 static void release_page_lock(struct data_vio *data_vio, char *what)
 {
-	struct tree_lock *lock = &data_vio->treeLock;
+	struct tree_lock *lock = &data_vio->tree_lock;
 	ASSERT_LOG_ONLY(lock->locked,
 			"release of unlocked block map page %s for key %llu in tree %u",
-			what, lock->key, lock->rootIndex);
+			what, lock->key, lock->root_index);
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	struct tree_lock *lock_holder =
 		int_map_remove(zone->loading_pages, lock->key);
 	ASSERT_LOG_ONLY((lock_holder == lock),
 			"block map page %s mismatch for key %llu in tree %u",
-			what, lock->key, lock->rootIndex);
+			what, lock->key, lock->root_index);
 	lock->locked = false;
 }
 
@@ -635,15 +635,15 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
  **/
 static void finish_lookup(struct data_vio *data_vio, int result)
 {
-	data_vio->treeLock.height = 0;
+	data_vio->tree_lock.height = 0;
 
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	--zone->active_lookups;
 
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	set_completion_result(completion, result);
-	launch_callback(completion, data_vio->treeLock.callback,
-		        data_vio->treeLock.threadID);
+	launch_callback(completion, data_vio->tree_lock.callback,
+		        data_vio->tree_lock.thread_id);
 }
 
 /**
@@ -682,9 +682,9 @@ static void abort_lookup(struct data_vio *data_vio, int result, char *what)
 					  result);
 	}
 
-	if (data_vio->treeLock.locked) {
+	if (data_vio->tree_lock.locked) {
 		release_page_lock(data_vio, what);
-		notify_all_waiters(&data_vio->treeLock.waiters,
+		notify_all_waiters(&data_vio->tree_lock.waiters,
 				   abort_lookup_for_waiter, &result);
 	}
 
@@ -746,8 +746,8 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 static void continue_with_loaded_page(struct data_vio *data_vio,
 				      struct block_map_page *page)
 {
-	struct tree_lock *lock = &data_vio->treeLock;
-	struct block_map_tree_slot slot = lock->treeSlots[lock->height];
+	struct tree_lock *lock = &data_vio->tree_lock;
+	struct block_map_tree_slot slot = lock->tree_slots[lock->height];
 	struct data_location mapping =
 		unpack_block_map_entry(&page->entries[slot.blockMapSlot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
@@ -755,7 +755,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 					mapping.pbn, mapping.state,
-					lock->treeSlots[lock->height - 1].pageIndex,
+					lock->tree_slots[lock->height - 1].pageIndex,
 					lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;
@@ -768,7 +768,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		return;
 	}
 
-	lock->treeSlots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
+	lock->tree_slots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
 	if (lock->height == 1) {
 		finish_lookup(data_vio, VDO_SUCCESS);
 		return;
@@ -788,7 +788,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 static void continue_load_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	data_vio->treeLock.height--;
+	data_vio->tree_lock.height--;
 	continue_with_loaded_page(data_vio, (struct block_map_page *) context);
 }
 
@@ -804,11 +804,11 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	struct data_vio *data_vio = entry->parent;
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) entry->context;
-	struct tree_lock *tree_lock = &data_vio->treeLock;
+	struct tree_lock *tree_lock = &data_vio->tree_lock;
 
 	tree_lock->height--;
 	physical_block_number_t pbn =
-		tree_lock->treeSlots[tree_lock->height].blockMapSlot.pbn;
+		tree_lock->tree_slots[tree_lock->height].blockMapSlot.pbn;
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
 	struct block_map_page *page =
 		(struct block_map_page *) tree_page->page_buffer;
@@ -856,9 +856,9 @@ static void load_page(struct waiter *waiter, void *context)
 	entry->vio->completion.callbackThreadID =
 		get_block_map_for_zone(data_vio->logical.zone)->thread_id;
 
-	struct tree_lock *lock = &data_vio->treeLock;
+	struct tree_lock *lock = &data_vio->tree_lock;
 	launch_read_metadata_vio(entry->vio,
-				 lock->treeSlots[lock->height - 1].blockMapSlot.pbn,
+				 lock->tree_slots[lock->height - 1].blockMapSlot.pbn,
 				 finish_block_map_page_load,
 				 handle_io_error);
 }
@@ -866,7 +866,7 @@ static void load_page(struct waiter *waiter, void *context)
 /**
  * Attempt to acquire a lock on a page in the block map tree. If the page is
  * already locked, queue up to wait for the lock to be released. If the lock is
- * acquired, the data_vio's treeLock.locked field will be set to true.
+ * acquired, the data_vio's tree_lock.locked field will be set to true.
  *
  * @param zone      The block_map_tree_zone in which the data_vio operates
  * @param data_vio  The data_vio which desires a page lock
@@ -876,12 +876,12 @@ static void load_page(struct waiter *waiter, void *context)
 static int attempt_page_lock(struct block_map_tree_zone *zone,
 			     struct data_vio *data_vio)
 {
-	struct tree_lock *lock = &data_vio->treeLock;
+	struct tree_lock *lock = &data_vio->tree_lock;
 	height_t height = lock->height;
-	struct block_map_tree_slot tree_slot = lock->treeSlots[height];
+	struct block_map_tree_slot tree_slot = lock->tree_slots[height];
 	page_key key;
 	key.descriptor = (struct page_descriptor) {
-		.root_index = lock->rootIndex,
+		.root_index = lock->root_index,
 		.height = height,
 		.page_index = tree_slot.pageIndex,
 		.slot = tree_slot.blockMapSlot.slot,
@@ -897,7 +897,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 
 	if (lock_holder == NULL) {
 		// We got the lock
-		data_vio->treeLock.locked = true;
+		data_vio->tree_lock.locked = true;
 		return VDO_SUCCESS;
 	}
 
@@ -921,7 +921,7 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 		return;
 	}
 
-	if (data_vio->treeLock.locked) {
+	if (data_vio->tree_lock.locked) {
 		struct waiter *waiter = data_vio_as_waiter(data_vio);
 		waiter->callback = load_page;
 		result = acquire_vio_from_pool(zone->vio_pool, waiter);
@@ -939,8 +939,8 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 static void set_post_allocation_callback(struct data_vio *data_vio)
 {
 	set_callback(data_vio_as_completion(data_vio),
-		     data_vio->treeLock.callback,
-		     data_vio->treeLock.threadID);
+		     data_vio->tree_lock.callback,
+		     data_vio->tree_lock.thread_id);
 }
 
 /**
@@ -979,11 +979,11 @@ static void allocation_failure(struct vdo_completion *completion)
 static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct tree_lock *tree_lock = &data_vio->treeLock;
+	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	physical_block_number_t pbn = *((physical_block_number_t *) context);
 
 	tree_lock->height--;
-	data_vio->treeLock.treeSlots[tree_lock->height].blockMapSlot.pbn = pbn;
+	data_vio->tree_lock.tree_slots[tree_lock->height].blockMapSlot.pbn = pbn;
 
 	if (tree_lock->height == 0) {
 		finish_lookup(data_vio, VDO_SUCCESS);
@@ -1010,12 +1010,12 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	}
 
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
-	struct tree_lock *tree_lock = &data_vio->treeLock;
+	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	struct tree_page *tree_page = get_tree_page(zone, tree_lock);
 	height_t height = tree_lock->height;
 
 	physical_block_number_t pbn =
-		tree_lock->treeSlots[height - 1].blockMapSlot.pbn;
+		tree_lock->tree_slots[height - 1].blockMapSlot.pbn;
 
 	// Record the allocation.
 	struct block_map_page *page =
@@ -1107,9 +1107,9 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 		return;
 	}
 
-	struct tree_lock *lock = &data_vio->treeLock;
+	struct tree_lock *lock = &data_vio->tree_lock;
 	physical_block_number_t pbn =
-		lock->treeSlots[lock->height - 1].blockMapSlot.pbn;
+		lock->tree_slots[lock->height - 1].blockMapSlot.pbn;
 	completion->callback = release_block_map_write_lock;
 	add_slab_journal_entry(get_slab_journal(get_vdo_from_data_vio(data_vio)->depot,
 						pbn),
@@ -1157,8 +1157,8 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 	}
 
 	physical_block_number_t pbn = allocating_vio->allocation;
-	struct tree_lock *lock = &data_vio->treeLock;
-	lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
+	struct tree_lock *lock = &data_vio->tree_lock;
+	lock->tree_slots[lock->height - 1].blockMapSlot.pbn = pbn;
 	set_up_reference_operation_with_lock(BLOCK_MAP_INCREMENT,
 					     pbn,
 					     MAPPING_STATE_UNCOMPRESSED,
@@ -1190,7 +1190,7 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 		return;
 	}
 
-	if (!data_vio->treeLock.locked) {
+	if (!data_vio->tree_lock.locked) {
 		return;
 	}
 
@@ -1210,9 +1210,9 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		return;
 	}
 
-	struct tree_lock *lock = &data_vio->treeLock;
+	struct tree_lock *lock = &data_vio->tree_lock;
 	page_number_t page_index =
-		(lock->treeSlots[0].pageIndex /
+		(lock->tree_slots[0].pageIndex /
 		 zone->map_zone->block_map->root_count);
 	struct block_map_tree_slot tree_slot = {
 		.pageIndex = page_index / BLOCK_MAP_ENTRIES_PER_PAGE,
@@ -1225,11 +1225,11 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 	struct block_map_page *page = NULL;
 	for (lock->height = 1; lock->height <= BLOCK_MAP_TREE_HEIGHT;
 	     lock->height++) {
-		lock->treeSlots[lock->height] = tree_slot;
+		lock->tree_slots[lock->height] = tree_slot;
 		page = (struct block_map_page *) (get_tree_page(zone, lock)->page_buffer);
 		physical_block_number_t pbn = get_block_map_page_pbn(page);
 		if (pbn != ZERO_BLOCK) {
-			lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
+			lock->tree_slots[lock->height].blockMapSlot.pbn = pbn;
 			break;
 		}
 
@@ -1248,7 +1248,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 					mapping.pbn, mapping.state,
-					lock->treeSlots[lock->height - 1].pageIndex,
+					lock->tree_slots[lock->height - 1].pageIndex,
 					lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;
@@ -1261,7 +1261,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		return;
 	}
 
-	lock->treeSlots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
+	lock->tree_slots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
 	if (lock->height == 1) {
 		// This is the ultimate block map page, so we're done
 		finish_lookup(data_vio, VDO_SUCCESS);

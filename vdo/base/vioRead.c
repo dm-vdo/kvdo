@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#14 $
  */
 
 #include "vioRead.h"
@@ -47,7 +47,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	applyPartialWrite(data_vio);
 	struct vio *vio = data_vio_as_vio(data_vio);
 	vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
-	data_vio->isPartialWrite  = true;
+	data_vio->is_partial_write  = true;
 	launch_write_data_vio(data_vio);
 }
 
@@ -77,7 +77,7 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	vio->physical = data_vio->mapped.pbn;
-	data_vio->lastAsyncOperation = READ_DATA;
+	data_vio->last_async_operation = READ_DATA;
 	readDataVIO(data_vio);
 }
 
@@ -98,7 +98,7 @@ static void read_block_mapping(struct vdo_completion *completion)
 	assert_in_logical_zone(data_vio);
 	set_logical_callback(data_vio, read_block,
 			     THIS_LOCATION("$F;cb=read_block"));
-	data_vio->lastAsyncOperation = GET_MAPPED_BLOCK;
+	data_vio->last_async_operation = GET_MAPPED_BLOCK;
 	get_mapped_block_async(data_vio);
 }
 
@@ -106,7 +106,7 @@ static void read_block_mapping(struct vdo_completion *completion)
 void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_in_logical_zone(data_vio);
-	data_vio->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
+	data_vio->last_async_operation = FIND_BLOCK_MAP_SLOT;
 	// Go find the block map slot for the LBN mapping.
 	find_block_map_slot_async(data_vio,
 				  read_block_mapping,

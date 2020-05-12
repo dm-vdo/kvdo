@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#32 $
  */
 
 #include "dataVIO.h"
@@ -97,16 +97,16 @@ void prepare_data_vio(struct data_vio *data_vio,
 {
 	// Clearing the tree lock must happen before initializing the LBN lock,
 	// which also adds information to the tree lock.
-	memset(&data_vio->treeLock, 0, sizeof(data_vio->treeLock));
+	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
 	initialize_lbn_lock(data_vio, lbn);
-	initializeRing(&data_vio->hashLockNode);
+	initializeRing(&data_vio->hash_lock_node);
 	initializeRing(&data_vio->writeNode);
 
 	reset_allocation(data_vio_as_allocating_vio(data_vio));
 
-	data_vio->isDuplicate = false;
+	data_vio->is_duplicate = false;
 
-	memset(&data_vio->chunkName, 0, sizeof(data_vio->chunkName));
+	memset(&data_vio->chunk_name, 0, sizeof(data_vio->chunk_name));
 	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
 
 	struct vio *vio = data_vio_as_vio(data_vio);
@@ -114,7 +114,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 	vio->callback = callback;
 
 	data_vio->mapped.state = MAPPING_STATE_UNCOMPRESSED;
-	data_vio->newMapped.state =
+	data_vio->new_mapped.state =
 		(is_trim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
 	reset_completion(vio_as_completion(vio));
 	set_logical_callback(data_vio,
@@ -158,8 +158,8 @@ const char *get_operation_name(struct data_vio *data_vio)
 		(MAX_ASYNC_OPERATION_NUMBER - MIN_ASYNC_OPERATION_NUMBER) ==
 		COUNT_OF(ASYNC_OPERATION_NAMES));
 
-	return ((data_vio->lastAsyncOperation < MAX_ASYNC_OPERATION_NUMBER) ?
-			ASYNC_OPERATION_NAMES[data_vio->lastAsyncOperation] :
+	return ((data_vio->last_async_operation < MAX_ASYNC_OPERATION_NUMBER) ?
+			ASYNC_OPERATION_NAMES[data_vio->last_async_operation] :
 			"unknown async operation");
 }
 
@@ -184,7 +184,7 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 void set_duplicate_location(struct data_vio *data_vio,
 			    const struct zoned_pbn source)
 {
-	data_vio->isDuplicate = (source.pbn != ZERO_BLOCK);
+	data_vio->is_duplicate = (source.pbn != ZERO_BLOCK);
 	data_vio->duplicate = source;
 }
 
@@ -286,7 +286,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	data_vio->lastAsyncOperation = ACQUIRE_LOGICAL_BLOCK_LOCK;
+	data_vio->last_async_operation = ACQUIRE_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
 				data_vio,
 				THIS_LOCATION("$F;cb=logicalBlockLock"));
@@ -299,7 +299,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	// lock holders in the packer.
 	if (!is_read_data_vio(lock_holder) &&
 	    cancel_compression(lock_holder)) {
-		data_vio->compression.lockHolder = lock_holder;
+		data_vio->compression.lock_holder = lock_holder;
 		launch_packer_callback(
 			data_vio,
 			remove_lock_holder_from_packer,

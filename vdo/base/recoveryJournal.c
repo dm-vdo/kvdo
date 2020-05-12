@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#59 $
  */
 
 #include "recoveryJournal.h"
@@ -903,7 +903,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	struct recovery_journal *journal = block->journal;
 
 	// Record the point at which we will make the journal entry.
-	data_vio->recoveryJournalPoint = (struct journal_point) {
+	data_vio->recovery_journal_point = (struct journal_point) {
 		.sequence_number = block->sequence_number,
 		.entry_count = block->entry_count,
 	};
@@ -1033,16 +1033,16 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
 	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
-					     &data_vio->recoveryJournalPoint),
+					     &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. "
 			"Recovery journal point is (%llu, %" PRIu16
 			"), "
 			"but commit waiter point is (%llu, %" PRIu16 ")",
 			journal->commit_point.sequence_number,
 			journal->commit_point.entry_count,
-			data_vio->recoveryJournalPoint.sequence_number,
-			data_vio->recoveryJournalPoint.entry_count);
-	journal->commit_point = data_vio->recoveryJournalPoint;
+			data_vio->recovery_journal_point.sequence_number,
+			data_vio->recovery_journal_point.entry_count);
+	journal->commit_point = data_vio->recovery_journal_point;
 
 	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
 							      : VDO_SUCCESS);
@@ -1222,7 +1222,8 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 	}
 
 	bool increment = is_increment_operation(data_vio->operation.type);
-	ASSERT_LOG_ONLY((!increment || (data_vio->recoverySequenceNumber == 0)),
+	ASSERT_LOG_ONLY((!increment ||
+			 (data_vio->recovery_sequence_number == 0)),
 			"journal lock not held for increment");
 
 	advance_journal_point(&journal->append_point, journal->entries_per_block);

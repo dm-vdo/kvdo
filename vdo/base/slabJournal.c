@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#54 $
  */
 
 #include "slabJournalInternals.h"
@@ -966,7 +966,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	struct slab_journal *journal = (struct slab_journal *)context;
 	struct slab_journal_block_header *header = &journal->tail_header;
 	sequence_number_t recovery_block =
-		data_vio->recoveryJournalPoint.sequence_number;
+		data_vio->recovery_journal_point.sequence_number;
 
 	if (header->entry_count == 0) {
 		/*
@@ -1010,7 +1010,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	add_entry(journal,
 		  data_vio->operation.pbn,
 		  data_vio->operation.type,
-		  &data_vio->recoveryJournalPoint);
+		  &data_vio->recovery_journal_point);
 
 	// Now that an entry has been made in the slab journal, update the
 	// reference counts.
