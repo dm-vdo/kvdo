@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#36 $
  */
 
 /*
@@ -1185,7 +1185,8 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->tree_lock.tree_slots[0].blockMapSlot.pbn == ZERO_BLOCK) {
+	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
+	    ZERO_BLOCK) {
 		int result =
 			ASSERT(is_trim_data_vio(data_vio),
 			       "data_vio with no block map page is a trim");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#22 $
  */
 
 #include "allocatingVIO.h"
@@ -42,7 +42,7 @@
  **/
 static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 {
-	assertInPhysicalZone(allocating_vio);
+	assert_in_physical_zone(allocating_vio);
 
 	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
 			"must not acquire a lock while already referencing one");
@@ -205,7 +205,7 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 static void allocate_block_for_write(struct vdo_completion *completion)
 {
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
-	assertInPhysicalZone(allocating_vio);
+	assert_in_physical_zone(allocating_vio);
 	allocating_vio_add_trace_record(allocating_vio, THIS_LOCATION(NULL));
 	int result = allocate_block_in_zone(allocating_vio);
 	if (result != VDO_SUCCESS) {
@@ -237,7 +237,7 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
 /**********************************************************************/
 void release_allocation_lock(struct allocating_vio *allocating_vio)
 {
-	assertInPhysicalZone(allocating_vio);
+	assert_in_physical_zone(allocating_vio);
 	physical_block_number_t locked_pbn = allocating_vio->allocation;
 	if (has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = ZERO_BLOCK;

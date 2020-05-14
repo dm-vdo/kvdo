@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#45 $
  */
 
 #ifndef DATA_VIO_H
@@ -674,7 +674,7 @@ launch_logical_callback(struct data_vio *data_vio,
  **/
 static inline void assert_in_allocated_zone(struct data_vio *data_vio)
 {
-	assertInPhysicalZone(data_vio_as_allocating_vio(data_vio));
+	assert_in_physical_zone(data_vio_as_allocating_vio(data_vio));
 }
 
 /**

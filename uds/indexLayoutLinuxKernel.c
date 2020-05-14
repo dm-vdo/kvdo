@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#7 $
  */
 
 #include "indexLayout.h"
@@ -33,7 +33,7 @@ int make_index_layout(const char *name,
 	uint64_t offset = 0;
 	uint64_t size = 0;
 
-	LayoutParameter parameter_table[] = {
+	struct layout_parameter parameter_table[] = {
 		{ "dev", LP_STRING | LP_DEFAULT, { .str = &dev } },
 		{ "offset", LP_UINT64, { .num = &offset } },
 		{ "size", LP_UINT64, { .num = &size } },
@@ -49,7 +49,7 @@ int make_index_layout(const char *name,
 	}
 
 	// note dev will be set to memory owned by params
-	result = parseLayoutString(params, parameter_table, num_parameters);
+	result = parse_layout_string(params, parameter_table, num_parameters);
 	if (result != UDS_SUCCESS) {
 		FREE(params);
 		return result;

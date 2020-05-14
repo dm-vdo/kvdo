@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#33 $
  */
 
 #include "dataVIO.h"
@@ -35,9 +35,9 @@
 
 static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",
-	"acknowledgeWrite",
+	"acknowledge_write",
 	"acquire_hash_lock",
-	"acquireLogicalBlockLock",
+	"acquire_logical_block_lock",
 	"acquirePBNReadLock",
 	"checkForDedupeForRollover",
 	"checkForDeduplication",
@@ -119,7 +119,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 	reset_completion(vio_as_completion(vio));
 	set_logical_callback(data_vio,
 			     attempt_logical_block_lock,
-			     THIS_LOCATION("$F;cb=acquireLogicalBlockLock"));
+			     THIS_LOCATION("$F;cb=acquire_logical_block_lock"));
 }
 
 /**********************************************************************/

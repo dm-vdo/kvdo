@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#57 $
  */
 
 #ifndef TYPES_H
@@ -300,7 +300,7 @@ struct block_map_slot {
  **/
 struct block_map_tree_slot {
 	page_number_t pageIndex;
-	struct block_map_slot blockMapSlot;
+	struct block_map_slot block_map_slot;
 };
 
 /**
@@ -438,9 +438,9 @@ typedef void async_operation(struct vio *vio);
 /**
  * An asynchronous compressed write operation.
  *
- * @param allocatingVIO  The allocating_vio to write
+ * @param allocating_vio  The allocating_vio to write
  **/
-typedef void compressed_writer(struct allocating_vio *allocatingVIO);
+typedef void compressed_writer(struct allocating_vio *allocating_vio);
 
 /**
  * An asynchronous data operation.

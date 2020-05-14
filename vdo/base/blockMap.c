@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#66 $
  */
 
 #include "blockMap.h"
@@ -541,7 +541,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	struct block_map_tree_slot *slot = &tree_lock->tree_slots[0];
-	slot->blockMapSlot.slot = compute_slot(data_vio->logical.lbn);
+	slot->block_map_slot.slot = compute_slot(data_vio->logical.lbn);
 	tree_lock->callback = callback;
 	tree_lock->thread_id = thread_id;
 	lookup_block_map_pbn(data_vio);
@@ -747,7 +747,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 
 	init_vdo_page_completion(&data_vio->page_completion,
 				 zone->page_cache,
-				 data_vio->tree_lock.tree_slots[0].blockMapSlot.pbn,
+				 data_vio->tree_lock.tree_slots[0].block_map_slot.pbn,
 				 modifiable,
 				 data_vio_as_completion(data_vio),
 				 action,
@@ -826,7 +826,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 	struct block_map_tree_slot *tree_slot =
 		&data_vio->tree_lock.tree_slots[0];
 	const block_map_entry *entry =
-		&page->entries[tree_slot->blockMapSlot.slot];
+		&page->entries[tree_slot->block_map_slot.slot];
 
 	result = set_mapped_entry(data_vio, entry);
 	finish_processing_page(completion, result);
@@ -866,7 +866,8 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 /**********************************************************************/
 void get_mapped_block_async(struct data_vio *data_vio)
 {
-	if (data_vio->tree_lock.tree_slots[0].blockMapSlot.pbn == ZERO_BLOCK) {
+	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
+	    ZERO_BLOCK) {
 		// We know that the block map page for this LBN has not been
 		// allocated, so the block must be unmapped.
 		clear_mapped_location(data_vio);

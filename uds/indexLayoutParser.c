@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#4 $
  */
 
 #include "indexLayoutParser.h"
@@ -29,7 +29,8 @@
 #include "uds.h"
 
 /*****************************************************************************/
-static int __must_check setParameterValue(LayoutParameter *lp, char *data)
+static int __must_check set_parameter_value(struct layout_parameter *lp,
+					    char *data)
 {
 	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
 		int result = parseUint64(data, lp->value.num);
@@ -43,20 +44,22 @@ static int __must_check setParameterValue(LayoutParameter *lp, char *data)
 	} else {
 		return logErrorWithStringError(
 			UDS_INVALID_ARGUMENT,
-			"unkown LayoutParameter type code %x",
+			"unkown layout parameter type code %x",
 			(lp->type & LP_TYPE_MASK));
 	}
 	return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
-int parseLayoutString(char *info, LayoutParameter *params, size_t count)
+int parse_layout_string(char *info,
+			struct layout_parameter *params,
+			size_t count)
 {
 	if (!strchr(info, '=')) {
-		LayoutParameter *lp;
+		struct layout_parameter *lp;
 		for (lp = params; lp < params + count; ++lp) {
 			if (lp->type & LP_DEFAULT) {
-				int result = setParameterValue(lp, info);
+				int result = set_parameter_value(lp, info);
 				if (result != UDS_SUCCESS) {
 					return result;
 				}
@@ -69,7 +72,7 @@ int parseLayoutString(char *info, LayoutParameter *params, size_t count)
 		for (token = nextToken(info, " ", &data); token;
 		     token = nextToken(NULL, " ", &data)) {
 			char *equal = strchr(token, '=');
-			LayoutParameter *lp;
+			struct layout_parameter *lp;
 			for (lp = params; lp < params + count; ++lp) {
 				if (!equal && (lp->type & LP_DEFAULT)) {
 					break;
@@ -94,7 +97,7 @@ int parseLayoutString(char *info, LayoutParameter *params, size_t count)
 					token);
 			}
 			lp->seen = true;
-			int result = setParameterValue(
+			int result = set_parameter_value(
 				lp, equal ? equal + 1 : token);
 			if (result != UDS_SUCCESS) {
 				return result;

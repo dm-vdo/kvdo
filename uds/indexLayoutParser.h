@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#5 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
@@ -32,7 +32,7 @@ typedef enum {
 	LP_DEFAULT = 0x100,
 } LPType;
 
-typedef struct layoutParameter {
+struct layout_parameter {
 	const char *name;
 	LPType type;
 	union {
@@ -40,16 +40,17 @@ typedef struct layoutParameter {
 		uint64_t *num;
 	} value;
 	bool seen;
-} LayoutParameter;
+};
 
 /**
  * Function to parse an index layout specification.
  *
- * This parser treats the specification as a set of name=value parameters
- * or, in the absence of an '=' character, a single value for a default
- * parameter. The list of acceptable parameters is specified as an array
- * of LayoutParameter entries. Each such parameter contains the address
- * of the variable in which the value is to be stored.
+ * This parser treats the specification as a set of name=value
+ * parameters or, in the absence of an '=' character, a single value
+ * for a default parameter. The list of acceptable parameters is
+ * specified as an array of struct layout_parameter entries. Each such
+ * parameter contains the address of the variable in which the value
+ * is to be stored.
  *
  * @param info          A copy of the index layout specification that
  *                        will be altered by the parser to insert null
@@ -67,6 +68,6 @@ typedef struct layoutParameter {
  *      UDS_INDEX_NAME_REQUIRED for all parsing errors.
  **/
 int __must_check
-parseLayoutString(char *info, LayoutParameter *params, size_t count);
+parse_layout_string(char *info, struct layout_parameter *params, size_t count);
 
 #endif // INDEX_LAYOUT_PARSER_H

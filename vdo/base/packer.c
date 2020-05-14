@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#48 $
  */
 
 #include "packerInternals.h"
@@ -507,7 +507,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 static void finish_compressed_write(struct vdo_completion *completion)
 {
 	struct output_bin *bin = completion->parent;
-	assertInPhysicalZone(bin->writer);
+	assert_in_physical_zone(bin->writer);
 
 	if (completion->result != VDO_SUCCESS) {
 		release_allocation_lock(bin->writer);
