@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#8 $
  */
 
 #ifndef VOLUME_H
@@ -61,41 +61,41 @@ typedef enum indexLookupMode {
 
 typedef struct volume {
   /* The layout of the volume */
-  Geometry              *geometry;
+  Geometry                       *geometry;
   /* The configuration of the volume */
-  Configuration         *config;
+  struct configuration           *config;
   /* The access to the volume's backing store */
-  struct volume_store    volumeStore;
+  struct volume_store             volumeStore;
   /* A single page used for writing to the volume */
-  struct volume_page     scratchPage;
+  struct volume_page              scratchPage;
   /* The nonce used to save the volume */
-  uint64_t               nonce;
+  uint64_t                        nonce;
   /* A single page's records, for sorting */
-  const UdsChunkRecord **recordPointers;
+  const struct uds_chunk_record **recordPointers;
   /* For sorting record pages */
-  struct radix_sorter   *radixSorter;
+  struct radix_sorter            *radixSorter;
   /* The sparse chapter index cache */
-  SparseCache           *sparseCache;
+  SparseCache                    *sparseCache;
   /* The page cache */
-  PageCache             *pageCache;
+  PageCache                      *pageCache;
   /* The index page map maps delta list numbers to index page numbers */
-  IndexPageMap          *indexPageMap;
+  IndexPageMap                   *indexPageMap;
   /* Mutex to sync between read threads and index thread */
-  Mutex                  readThreadsMutex;
+  Mutex                           readThreadsMutex;
   /* Condvar to indicate when read threads should start working */
-  CondVar                readThreadsCond;
+  CondVar                         readThreadsCond;
   /* Condvar to indicate when a read thread has finished a read */
-  CondVar                readThreadsReadDoneCond;
+  CondVar                         readThreadsReadDoneCond;
   /* Threads to read data from disk */
-  Thread                *readerThreads;
+  Thread                         *readerThreads;
   /* Number of threads busy with reads */
-  unsigned int           busyReaderThreads;
+  unsigned int                    busyReaderThreads;
   /* The state of the reader threads */
-  ReaderState            readerState;
+  ReaderState                     readerState;
   /* The lookup mode for the index */
-  IndexLookupMode        lookupMode;
+  IndexLookupMode                 lookupMode;
   /* Number of read threads to use (run-time parameter) */
-  unsigned int           numReadThreads;
+  unsigned int                    numReadThreads;
 } Volume;
 
 /**
@@ -111,7 +111,7 @@ typedef struct volume {
  *
  * @return          UDS_SUCCESS or an error code
  **/
-int __must_check makeVolume(const Configuration *config,
+int __must_check makeVolume(const struct configuration *config,
 			    struct index_layout *layout,
 			    const struct uds_parameters *userParams,
 			    unsigned int readQueueMaxSize,
@@ -261,7 +261,7 @@ int __must_check writeIndexPages(Volume *volume,
  **/
 int __must_check writeRecordPages(Volume *volume,
 				  int physicalPage,
-				  const UdsChunkRecord records[],
+				  const struct uds_chunk_record records[],
 				  byte **pages);
 
 /**
@@ -276,7 +276,7 @@ int __must_check writeRecordPages(Volume *volume,
  **/
 int __must_check writeChapter(Volume *volume,
 			      struct open_chapter_index *chapterIndex,
-			      const UdsChunkRecord records[]);
+			      const struct uds_chunk_record records[]);
 
 /**
  * Read all the index pages for a chapter from the volume and initialize an

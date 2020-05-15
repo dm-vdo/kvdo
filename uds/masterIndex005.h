@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.h#3 $
  */
 
 #ifndef MASTERINDEX005_H
@@ -34,7 +34,7 @@
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check makeMasterIndex005(const Configuration *config,
+int __must_check makeMasterIndex005(const struct configuration *config,
 				    unsigned int numZones,
 				    uint64_t volumeNonce,
 				    MasterIndex **masterIndex);
@@ -49,6 +49,7 @@ int __must_check makeMasterIndex005(const Configuration *config,
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check
-computeMasterIndexSaveBytes005(const Configuration *config, size_t *numBytes);
+computeMasterIndexSaveBytes005(const struct configuration *config,
+                               size_t *numBytes);
 
 #endif /* MASTERINDEX005_H */

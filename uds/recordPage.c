@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#5 $
  */
 
 #include "recordPage.h"
@@ -24,11 +24,11 @@
 #include "permassert.h"
 
 /**********************************************************************/
-static unsigned int encodeTree(byte                  recordPage[],
-                               const UdsChunkRecord *sortedPointers[],
-                               unsigned int          nextRecord,
-                               unsigned int          node,
-                               unsigned int          nodeCount)
+static unsigned int encodeTree(byte                           recordPage[],
+                               const struct uds_chunk_record *sortedPointers[],
+                               unsigned int                   nextRecord,
+                               unsigned int                   node,
+                               unsigned int                   nodeCount)
 {
   if (node < nodeCount) {
     unsigned int child = (2 * node) + 1;
@@ -49,12 +49,12 @@ static unsigned int encodeTree(byte                  recordPage[],
 }
 
 /**********************************************************************/
-int encodeRecordPage(const Volume         *volume,
-                     const UdsChunkRecord  records[],
-                     byte                  recordPage[])
+int encodeRecordPage(const Volume                  *volume,
+                     const struct uds_chunk_record  records[],
+                     byte                           recordPage[])
 {
   unsigned int recordsPerPage = volume->geometry->recordsPerPage;
-  const UdsChunkRecord **recordPointers = volume->recordPointers;
+  const struct uds_chunk_record **recordPointers = volume->recordPointers;
 
   // Build an array of record pointers. We'll sort the pointers by the block
   // names in the records, which is less work than sorting the record values.
@@ -63,7 +63,7 @@ int encodeRecordPage(const Volume         *volume,
     recordPointers[i] = &records[i];
   }
 
-  STATIC_ASSERT(offsetof(UdsChunkRecord, name) == 0);
+  STATIC_ASSERT(offsetof(struct uds_chunk_record, name) == 0);
   int result = radix_sort(volume->radixSorter, (const byte **) recordPointers,
                          recordsPerPage, UDS_CHUNK_NAME_SIZE);
   if (result != UDS_SUCCESS) {
@@ -83,13 +83,14 @@ bool searchRecordPage(const byte                   recordPage[],
                       struct uds_chunk_data       *metadata)
 {
   // The record page is just an array of chunk records.
-  const UdsChunkRecord *records = (const UdsChunkRecord *) recordPage;
+  const struct uds_chunk_record *records
+    = (const struct uds_chunk_record *) recordPage;
 
   // The array of records is sorted by name and stored as a binary tree in
   // heap order, so the root of the tree is the first array element.
   unsigned int node = 0;
   while (node < geometry->recordsPerPage) {
-    const UdsChunkRecord *record = &records[node];
+    const struct uds_chunk_record *record = &records[node];
     int result = memcmp(name, &record->name, UDS_CHUNK_NAME_SIZE);
     if (result == 0) {
       if (metadata != NULL) {

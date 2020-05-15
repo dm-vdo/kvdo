@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#9 $
  */
 #include "masterIndex005.h"
 
@@ -1261,7 +1261,7 @@ typedef struct {
 } Parameters005;
 
 /***********************************************************************/
-static int computeMasterIndexParameters005(const Configuration *config,
+static int computeMasterIndexParameters005(const struct configuration *config,
                                            Parameters005 *params)
 {
   enum { DELTA_LIST_SIZE = 256 };
@@ -1365,7 +1365,7 @@ static int computeMasterIndexParameters005(const Configuration *config,
 }
 
 /***********************************************************************/
-int computeMasterIndexSaveBytes005(const Configuration *config,
+int computeMasterIndexSaveBytes005(const struct configuration *config,
                                    size_t *numBytes)
 {
   Parameters005 params = { .addressBits = 0 };
@@ -1383,8 +1383,9 @@ int computeMasterIndexSaveBytes005(const Configuration *config,
 }
 
 /***********************************************************************/
-int makeMasterIndex005(const Configuration *config, unsigned int numZones,
-                       uint64_t volumeNonce, MasterIndex  **masterIndex)
+int makeMasterIndex005(const struct configuration *config,
+                       unsigned int numZones, uint64_t volumeNonce,
+                       MasterIndex  **masterIndex)
 {
   Parameters005 params = { .addressBits = 0 };
   int result = computeMasterIndexParameters005(config, &params);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#16 $
  */
 
 #include "indexLayout.h"
@@ -147,7 +147,7 @@ struct index_layout {
  * assuming checkpointing is enabled, since that is also a run-time parameter.
  **/
 struct save_layout_sizes {
-	Configuration config; // this is a captive copy
+	struct configuration config; // this is a captive copy
 	Geometry geometry; // this is a captive copy
 	unsigned int num_saves; // per sub-index
 	size_t block_size; // in bytes
@@ -193,13 +193,13 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 				      size_t block_size,
 				      unsigned int num_checkpoints)
 {
-	if (config->bytesPerPage % block_size != 0) {
+	if (config->bytes_per_page % block_size != 0) {
 		return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
 					       "page size not a multiple of block size");
 	}
 
-	Configuration *cfg = NULL;
-	int result = makeConfiguration(config, &cfg);
+	struct configuration *cfg = NULL;
+	int result = make_configuration(config, &cfg);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "cannot compute layout size");
@@ -213,7 +213,7 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 	sls->config = *cfg;
 	sls->config.geometry = &sls->geometry;
 
-	freeConfiguration(cfg);
+	free_configuration(cfg);
 
 	sls->num_saves = 2 + num_checkpoints;
 	sls->block_size = block_size;
@@ -1806,7 +1806,7 @@ int write_index_config(struct index_layout *layout,
 					       "failed to open config region");
 	}
 
-	result = writeConfigContents(writer, config);
+	result = write_config_contents(writer, config);
 	if (result != UDS_SUCCESS) {
 		free_buffered_writer(writer);
 		return logErrorWithStringError(result,
@@ -1834,7 +1834,7 @@ int verify_index_config(struct index_layout *layout,
 	}
 
 	struct uds_configuration stored_config;
-	result = readConfigContents(reader, &stored_config);
+	result = read_config_contents(reader, &stored_config);
 	if (result != UDS_SUCCESS) {
 		free_buffered_reader(reader);
 		return logErrorWithStringError(result,
@@ -1842,7 +1842,7 @@ int verify_index_config(struct index_layout *layout,
 	}
 	free_buffered_reader(reader);
 
-	return (areUdsConfigurationsEqual(&stored_config, config) ?
+	return (are_uds_configurations_equal(&stored_config, config) ?
 			UDS_SUCCESS :
 			UDS_NO_INDEX);
 }

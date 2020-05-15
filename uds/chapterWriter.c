@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#6 $
  */
 
 #include "chapterWriter.h"
@@ -51,7 +51,7 @@ struct chapter_writer {
 	/* Open chapter index used by closeOpenChapter() */
 	struct open_chapter_index *open_chapter_index;
 	/* Collated records used by closeOpenChapter() */
-	UdsChunkRecord *collated_records;
+	struct uds_chunk_record *collated_records;
 	/* The chapters to write (one per zone) */
 	OpenChapterZone *chapters[];
 };
@@ -132,7 +132,7 @@ int make_chapter_writer(Index *index,
 			struct chapter_writer **writer_ptr)
 {
 	size_t collated_records_size =
-		(sizeof(UdsChunkRecord) *
+		(sizeof(struct uds_chunk_record) *
 		 (1 + index->volume->geometry->recordsPerChapter));
 	struct chapter_writer *writer;
 	int result = ALLOCATE_EXTENDED(struct chapter_writer,

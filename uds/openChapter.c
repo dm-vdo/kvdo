@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#7 $
  */
 
 #include "openChapter.h"
@@ -56,13 +56,13 @@ enum {
 static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
                                  unsigned int                zoneCount,
                                  struct open_chapter_index  *index,
-                                 UdsChunkRecord             *collatedRecords)
+                                 struct uds_chunk_record    *collatedRecords)
 {
   // Find a record to replace any deleted records, and fill the chapter if
   // it was closed early. The last record in any filled zone is guaranteed
   // to not have been deleted in this chapter, so use one of those.
   OpenChapterZone *fillChapterZone = NULL;
-  UdsChunkRecord  *fillRecord      = NULL;
+  struct uds_chunk_record  *fillRecord = NULL;
   unsigned int z;
   for (z = 0; z < zoneCount; ++z) {
     fillChapterZone = chapterZones[z];
@@ -107,7 +107,8 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
         continue;
       }
 
-      UdsChunkRecord *nextRecord = &chapterZones[zone]->records[recordNumber];
+      struct uds_chunk_record *nextRecord
+        = &chapterZones[zone]->records[recordNumber];
       collatedRecords[1 + recordsAdded] = *nextRecord;
 
       int result = put_open_chapter_index_record(index, &nextRecord->name, page);
@@ -134,7 +135,7 @@ int closeOpenChapter(OpenChapterZone           **chapterZones,
                      unsigned int                zoneCount,
                      Volume                     *volume,
                      struct open_chapter_index  *chapterIndex,
-                     UdsChunkRecord             *collatedRecords,
+                     struct uds_chunk_record    *collatedRecords,
                      uint64_t                    virtualChapterNumber)
 {
   // Empty the delta chapter index, and prepare it for the new virtual chapter.
@@ -196,9 +197,10 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
       if (index->zones[i]->openChapter->slots[recordIndex].recordDeleted) {
         continue;
       }
-      UdsChunkRecord *record
+      struct uds_chunk_record *record
         = &index->zones[i]->openChapter->records[recordIndex];
-      result = write_to_buffered_writer(writer, record, sizeof(UdsChunkRecord));
+      result = write_to_buffered_writer(writer, record,
+                                        sizeof(struct uds_chunk_record));
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -214,7 +216,8 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
 uint64_t computeSavedOpenChapterSize(Geometry *geometry)
 {
   return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH +
-    sizeof(uint32_t) + geometry->recordsPerChapter * sizeof(UdsChunkRecord);
+    sizeof(uint32_t) + geometry->recordsPerChapter
+      * sizeof(struct uds_chunk_record);
 }
 
 /**********************************************************************/
@@ -274,10 +277,11 @@ static int loadVersion20(Index *index, BufferedReader *reader)
   bool fullFlags[MAX_ZONES] = { false, };
 
   // Assign records to the correct zones.
-  UdsChunkRecord record;
+  struct uds_chunk_record record;
   uint32_t records;
   for (records = 0; records < numRecords; records++) {
-    result = read_from_buffered_reader(reader, &record, sizeof(UdsChunkRecord));
+    result = read_from_buffered_reader(reader, &record,
+                                       sizeof(struct uds_chunk_record));
     if (result != UDS_SUCCESS) {
       return result;
     }

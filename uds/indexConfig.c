@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#8 $
  */
 
 #include "indexConfig.h"
@@ -38,35 +38,37 @@ enum {
 static int __must_check
 decodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 {
-  int result = get_uint32_le_from_buffer(buffer, &config->recordPagesPerChapter);
+  int result = get_uint32_le_from_buffer(buffer,
+                                         &config->record_pages_per_chapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->chaptersPerVolume);
+  result = get_uint32_le_from_buffer(buffer, &config->chapters_per_volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->sparseChaptersPerVolume);
+  result = get_uint32_le_from_buffer(buffer,
+                                     &config->sparse_chapters_per_volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->cacheChapters);
+  result = get_uint32_le_from_buffer(buffer, &config->cache_chapters);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->checkpointFrequency);
+  result = get_uint32_le_from_buffer(buffer, &config->checkpoint_frequency);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->masterIndexMeanDelta);
+  result = get_uint32_le_from_buffer(buffer, &config->master_index_mean_delta);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->bytesPerPage);
+  result = get_uint32_le_from_buffer(buffer, &config->bytes_per_page);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = get_uint32_le_from_buffer(buffer, &config->sparseSampleRate);
+  result = get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -126,14 +128,14 @@ static int readVersion(BufferedReader            *reader,
                               "failed to read version 6.01 config file");
       return result;
     }
-    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
-    conf->bytesPerPage            = oldConf.bytesPerPage;
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
+    conf->record_pages_per_chapter   = oldConf.record_pages_per_chapter;
+    conf->chapters_per_volume        = oldConf.chapters_per_volume;
+    conf->sparse_chapters_per_volume = oldConf.sparse_chapters_per_volume;
+    conf->cache_chapters             = oldConf.cache_chapters;
+    conf->checkpoint_frequency       = oldConf.checkpoint_frequency;
+    conf->master_index_mean_delta    = oldConf.master_index_mean_delta;
+    conf->bytes_per_page             = oldConf.bytes_per_page;
+    conf->sparse_sample_rate         = oldConf.sparse_sample_rate;
     conf->nonce                   = 0;
     if (versionPtr != NULL) {
       *versionPtr = "6.01";
@@ -147,8 +149,8 @@ static int readVersion(BufferedReader            *reader,
 }
 
 /**********************************************************************/
-int readConfigContents(BufferedReader           *reader,
-                       struct uds_configuration *config)
+int read_config_contents(BufferedReader           *reader,
+                         struct uds_configuration *config)
 {
   int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
                                     INDEX_CONFIG_MAGIC_LENGTH);
@@ -173,35 +175,37 @@ int readConfigContents(BufferedReader           *reader,
 static int __must_check
 encodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 {
-  int result = put_uint32_le_into_buffer(buffer, config->recordPagesPerChapter);
+  int result = put_uint32_le_into_buffer(buffer,
+                                         config->record_pages_per_chapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->chaptersPerVolume);
+  result = put_uint32_le_into_buffer(buffer, config->chapters_per_volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->sparseChaptersPerVolume);
+  result = put_uint32_le_into_buffer(buffer,
+                                     config->sparse_chapters_per_volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->cacheChapters);
+  result = put_uint32_le_into_buffer(buffer, config->cache_chapters);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config-> checkpointFrequency);
+  result = put_uint32_le_into_buffer(buffer, config-> checkpoint_frequency);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->masterIndexMeanDelta);
+  result = put_uint32_le_into_buffer(buffer, config->master_index_mean_delta);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->bytesPerPage);
+  result = put_uint32_le_into_buffer(buffer, config->bytes_per_page);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = put_uint32_le_into_buffer(buffer, config->sparseSampleRate);
+  result = put_uint32_le_into_buffer(buffer, config->sparse_sample_rate);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -216,8 +220,8 @@ encodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 }
 
 /**********************************************************************/
-int writeConfigContents(BufferedWriter           *writer,
-                        struct uds_configuration *config)
+int write_config_contents(BufferedWriter           *writer,
+                          struct uds_configuration *config)
 {
   int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
                                         INDEX_CONFIG_MAGIC_LENGTH);
@@ -246,8 +250,8 @@ int writeConfigContents(BufferedWriter           *writer,
 }
 
 /**********************************************************************/
-int makeConfiguration(const struct uds_configuration *conf,
-                      Configuration **configPtr)
+int make_configuration(const struct uds_configuration *conf,
+                       struct configuration **configPtr)
 {
   *configPtr = NULL;
   if (conf == NULL) {
@@ -255,32 +259,32 @@ int makeConfiguration(const struct uds_configuration *conf,
                                    "received an invalid config");
   }
 
-  Configuration *config;
-  int result = ALLOCATE(1, Configuration, "configuration", &config);
+  struct configuration *config;
+  int result = ALLOCATE(1, struct configuration, "configuration", &config);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = makeGeometry(conf->bytesPerPage,
-                        conf->recordPagesPerChapter,
-                        conf->chaptersPerVolume,
-                        conf->sparseChaptersPerVolume,
+  result = makeGeometry(conf->bytes_per_page,
+                        conf->record_pages_per_chapter,
+                        conf->chapters_per_volume,
+                        conf->sparse_chapters_per_volume,
                         &config->geometry);
   if (result != UDS_SUCCESS) {
-    freeConfiguration(config);
+    free_configuration(config);
     return result;
   }
 
-  config->sparseSampleRate     = conf->sparseSampleRate;
-  config->cacheChapters        = conf->cacheChapters;
-  config->masterIndexMeanDelta = conf->masterIndexMeanDelta;
+  config->sparseSampleRate     = conf->sparse_sample_rate;
+  config->cacheChapters        = conf->cache_chapters;
+  config->masterIndexMeanDelta = conf->master_index_mean_delta;
 
   *configPtr = config;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void freeConfiguration(Configuration *config)
+void free_configuration(struct configuration *config)
 {
   if (config != NULL) {
     freeGeometry(config->geometry);

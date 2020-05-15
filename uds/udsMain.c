@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#6 $
  */
 
 #include "uds.h"
@@ -85,15 +85,16 @@ int udsInitializeConfiguration(struct uds_configuration **userConfig,
     return result;
   }
 
-  (*userConfig)->recordPagesPerChapter   = recordPagesPerChapter;
-  (*userConfig)->chaptersPerVolume       = chaptersPerVolume;
-  (*userConfig)->sparseChaptersPerVolume = DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
-  (*userConfig)->cacheChapters           = DEFAULT_CACHE_CHAPTERS;
-  (*userConfig)->checkpointFrequency     = DEFAULT_CHECKPOINT_FREQUENCY;
-  (*userConfig)->masterIndexMeanDelta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
-  (*userConfig)->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
-  (*userConfig)->sparseSampleRate        = DEFAULT_SPARSE_SAMPLE_RATE;
-  (*userConfig)->nonce                   = 0;
+  (*userConfig)->record_pages_per_chapter   = recordPagesPerChapter;
+  (*userConfig)->chapters_per_volume        = chaptersPerVolume;
+  (*userConfig)->sparse_chapters_per_volume
+    = DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
+  (*userConfig)->cache_chapters             = DEFAULT_CACHE_CHAPTERS;
+  (*userConfig)->checkpoint_frequency       = DEFAULT_CHECKPOINT_FREQUENCY;
+  (*userConfig)->master_index_mean_delta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
+  (*userConfig)->bytes_per_page             = DEFAULT_BYTES_PER_PAGE;
+  (*userConfig)->sparse_sample_rate         = DEFAULT_SPARSE_SAMPLE_RATE;
+  (*userConfig)->nonce                      = 0;
   return UDS_SUCCESS;
 }
 
@@ -101,30 +102,30 @@ int udsInitializeConfiguration(struct uds_configuration **userConfig,
 void udsConfigurationSetSparse(struct uds_configuration *userConfig,
                                bool sparse)
 {
-  bool prevSparse = (userConfig->sparseChaptersPerVolume != 0);
+  bool prevSparse = (userConfig->sparse_chapters_per_volume != 0);
   if (sparse == prevSparse) {
     // nothing to do
     return;
   }
 
-  unsigned int prevChaptersPerVolume = userConfig->chaptersPerVolume;
+  unsigned int prevChaptersPerVolume = userConfig->chapters_per_volume;
   if (sparse) {
     // Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB) footprint
-    userConfig->chaptersPerVolume = 10 * prevChaptersPerVolume;
-    userConfig->sparseChaptersPerVolume = 9 * prevChaptersPerVolume
+    userConfig->chapters_per_volume = 10 * prevChaptersPerVolume;
+    userConfig->sparse_chapters_per_volume = 9 * prevChaptersPerVolume
       + prevChaptersPerVolume / 2;
-    userConfig->sparseSampleRate = 32;
+    userConfig->sparse_sample_rate = 32;
   } else {
-    userConfig->chaptersPerVolume = prevChaptersPerVolume / 10;
-    userConfig->sparseChaptersPerVolume = 0;
-    userConfig->sparseSampleRate = 0;
+    userConfig->chapters_per_volume = prevChaptersPerVolume / 10;
+    userConfig->sparse_chapters_per_volume = 0;
+    userConfig->sparse_sample_rate = 0;
   }
 }
 
 /**********************************************************************/
 bool udsConfigurationGetSparse(struct uds_configuration *userConfig)
 {
-  return userConfig->sparseChaptersPerVolume > 0;
+  return userConfig->sparse_chapters_per_volume > 0;
 }
 
 /**********************************************************************/
@@ -148,9 +149,9 @@ unsigned int udsConfigurationGetMemory(struct uds_configuration *userConfig)
     SMALL_PAGES = CHAPTERS * SMALL_RECORD_PAGES_PER_CHAPTER,
     LARGE_PAGES = CHAPTERS * DEFAULT_RECORD_PAGES_PER_CHAPTER
   };
-  unsigned int pages = (userConfig->chaptersPerVolume
-                        * userConfig->recordPagesPerChapter);
-  if (userConfig->sparseChaptersPerVolume != 0) {
+  unsigned int pages = (userConfig->chapters_per_volume
+                        * userConfig->record_pages_per_chapter);
+  if (userConfig->sparse_chapters_per_volume != 0) {
     pages /= 10;
   }
   switch (pages) {
@@ -165,7 +166,7 @@ unsigned int udsConfigurationGetMemory(struct uds_configuration *userConfig)
 unsigned int
 udsConfigurationGetChaptersPerVolume(struct uds_configuration *userConfig)
 {
-  return userConfig->chaptersPerVolume;
+  return userConfig->chapters_per_volume;
 }
 
 /**********************************************************************/
@@ -205,8 +206,8 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
     return result;
   }
 
-  Configuration *indexConfig;
-  result = makeConfiguration(&indexSession->userConfig, &indexConfig);
+  struct configuration *indexConfig;
+  result = make_configuration(&indexSession->userConfig, &indexConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to allocate config");
     return result;
@@ -218,13 +219,13 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
   result = makeIndexRouter(layout, indexConfig, userParams, loadType,
                            &indexSession->loadContext, enterCallbackStage,
                            &indexSession->router);
-  freeConfiguration(indexConfig);
+  free_configuration(indexConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to make router");
     return result;
   }
 
-  logUdsConfiguration(&indexSession->userConfig);
+  log_uds_configuration(&indexSession->userConfig);
   return UDS_SUCCESS;
 }
 

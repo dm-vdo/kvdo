@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#5 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -70,17 +70,17 @@ typedef struct {
 
 typedef struct openChapterZone {
   /** Maximum number of records that can be stored */
-  unsigned int    capacity;
+  unsigned int             capacity;
   /** Number of records stored */
-  unsigned int    size;
+  unsigned int             size;
   /** Number of deleted records */
-  unsigned int    deleted;
+  unsigned int             deleted;
   /** Record data, stored as (name, metadata), 1-based */
-  UdsChunkRecord *records;
+  struct uds_chunk_record *records;
   /** The number of slots in the chapter zone hash table. */
-  unsigned int    slotCount;
+  unsigned int             slotCount;
   /** Hash table, referencing virtual record numbers */
-  Slot            slots[];
+  Slot                     slots[];
 } OpenChapterZone;
 
 /**

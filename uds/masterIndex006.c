@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#8 $
  */
 #include "masterIndex006.h"
 
@@ -640,14 +640,14 @@ static void getMasterIndexStats_006(const MasterIndex *masterIndex,
 
 /***********************************************************************/
 typedef struct {
-  Configuration hookConfig;      // Describe the hook part of the index
-  Geometry      hookGeometry;
-  Configuration nonHookConfig;   // Describe the non-hook part of the index
-  Geometry      nonHookGeometry;
+  struct configuration hookConfig;     // Describe hook part of the index
+  Geometry             hookGeometry;
+  struct configuration nonHookConfig;  // Describe non-hook part of the index
+  Geometry             nonHookGeometry;
 } SplitConfig;
 
 /***********************************************************************/
-static int splitConfiguration006(const Configuration *config,
+static int splitConfiguration006(const struct configuration *config,
                                  SplitConfig *split)
 {
   int result
@@ -693,7 +693,7 @@ static int splitConfiguration006(const Configuration *config,
 }
 
 /***********************************************************************/
-int computeMasterIndexSaveBytes006(const Configuration *config,
+int computeMasterIndexSaveBytes006(const struct configuration *config,
                                    size_t *numBytes)
 {
   SplitConfig split;
@@ -717,8 +717,9 @@ int computeMasterIndexSaveBytes006(const Configuration *config,
 }
 
 /***********************************************************************/
-int makeMasterIndex006(const Configuration *config, unsigned int numZones,
-                       uint64_t volumeNonce, MasterIndex **masterIndex)
+int makeMasterIndex006(const struct configuration *config,
+                       unsigned int numZones, uint64_t volumeNonce,
+                       MasterIndex **masterIndex)
 {
   SplitConfig split;
   int result = splitConfiguration006(config, &split);

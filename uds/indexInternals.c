@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#4 $
  */
 
 #include "indexInternals.h"
@@ -39,7 +39,7 @@ static const unsigned int MAX_COMPONENT_COUNT = 4;
 
 /**********************************************************************/
 int allocateIndex(struct index_layout          *layout,
-                  const Configuration          *config,
+                  const struct configuration   *config,
                   const struct uds_parameters  *userParams,
                   unsigned int                  zoneCount,
                   LoadType                      loadType,

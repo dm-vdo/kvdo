@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#11 $
  */
 
 #include "volume.h"
@@ -860,16 +860,16 @@ int writeIndexPages(Volume                     *volume,
 }
 
 /**********************************************************************/
-int writeRecordPages(Volume                *volume,
-                     int                    physicalPage,
-                     const UdsChunkRecord   records[],
-                     byte                 **pages)
+int writeRecordPages(Volume                         *volume,
+                     int                             physicalPage,
+                     const struct uds_chunk_record   records[],
+                     byte                          **pages)
 {
   Geometry *geometry = volume->geometry;
   // Skip over the index pages, which come before the record pages
   physicalPage += geometry->indexPagesPerChapter;
   // The record array from the open chapter is 1-based.
-  const UdsChunkRecord *nextRecord = &records[1];
+  const struct uds_chunk_record *nextRecord = &records[1];
 
   unsigned int recordPageNumber;
   for (recordPageNumber = 0;
@@ -911,9 +911,9 @@ int writeRecordPages(Volume                *volume,
 }
 
 /**********************************************************************/
-int writeChapter(Volume                    *volume,
-                 struct open_chapter_index *chapterIndex,
-                 const UdsChunkRecord       records[])
+int writeChapter(Volume                        *volume,
+                 struct open_chapter_index     *chapterIndex,
+                 const struct uds_chunk_record  records[])
 {
   // Determine the position of the virtual chapter in the volume file.
   Geometry *geometry = volume->geometry;
@@ -1203,7 +1203,7 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int __must_check allocateVolume(const Configuration *config,
+static int __must_check allocateVolume(const struct configuration *config,
 				       struct index_layout *layout,
 				       unsigned int readQueueMaxSize,
 				       unsigned int zoneCount,
@@ -1253,7 +1253,8 @@ static int __must_check allocateVolume(const Configuration *config,
     return result;
   }
 
-  result = ALLOCATE(config->geometry->recordsPerPage, const UdsChunkRecord *,
+  result = ALLOCATE(config->geometry->recordsPerPage,
+                    const struct uds_chunk_record *,
                     "record pointers", &volume->recordPointers);
   if (result != UDS_SUCCESS) {
     freeVolume(volume);
@@ -1285,7 +1286,7 @@ static int __must_check allocateVolume(const Configuration *config,
 }
 
 /**********************************************************************/
-int makeVolume(const Configuration          *config,
+int makeVolume(const struct configuration   *config,
                struct index_layout          *layout,
                const struct uds_parameters  *userParams,
                unsigned int                  readQueueMaxSize,

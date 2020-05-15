@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#6 $
  */
 
 #ifndef INDEX_H
@@ -84,7 +84,7 @@ typedef struct index {
  * @return         UDS_SUCCESS or an error code
  **/
 int __must_check makeIndex(struct index_layout *layout,
-			   const Configuration *config,
+			   const struct configuration *config,
 			   const struct uds_parameters *userParams,
 			   unsigned int zoneCount,
 			   LoadType loadType,

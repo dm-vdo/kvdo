@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#3 $
  */
 
 #include "indexRouter.h"
@@ -132,7 +132,7 @@ static INLINE RequestQueue *getZoneQueue(IndexRouter  *router,
 
 /**********************************************************************/
 int makeIndexRouter(struct index_layout          *layout,
-                    const Configuration          *config,
+                    const struct configuration   *config,
                     const struct uds_parameters  *userParams,
                     LoadType                      loadType,
                     IndexLoadContext             *loadContext,

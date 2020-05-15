@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#4 $
  */
 
 #include "openChapterZone.h"
@@ -30,7 +30,7 @@
 /**********************************************************************/
 static INLINE size_t recordsSize(const OpenChapterZone *openChapter)
 {
-  return (sizeof(UdsChunkRecord) * (1 + openChapter->capacity));
+  return (sizeof(struct uds_chunk_record) * (1 + openChapter->capacity));
 }
 
 /**********************************************************************/
@@ -128,7 +128,7 @@ void resetOpenChapter(OpenChapterZone *openChapter)
 }
 
 /**********************************************************************/
-static UdsChunkRecord *
+static struct uds_chunk_record *
 probeChapterSlots(OpenChapterZone             *openChapter,
                   const struct uds_chunk_name *name,
                   unsigned int                *slotPtr,
@@ -138,7 +138,7 @@ probeChapterSlots(OpenChapterZone             *openChapter,
   unsigned int probe     = nameToHashSlot(name, slots);
   unsigned int firstSlot = 0;
 
-  UdsChunkRecord *record;
+  struct uds_chunk_record *record;
   unsigned int probeSlot;
   unsigned int recordNumber;
   unsigned int probeAttempts;
@@ -188,7 +188,8 @@ void searchOpenChapter(OpenChapterZone              *openChapter,
                        struct uds_chunk_data        *metadata,
                        bool                         *found)
 {
-  UdsChunkRecord *record = probeChapterSlots(openChapter, name, NULL, NULL);
+  struct uds_chunk_record *record
+    = probeChapterSlots(openChapter, name, NULL, NULL);
 
   if (record == NULL) {
     *found = false;
@@ -207,7 +208,8 @@ int putOpenChapter(OpenChapterZone             *openChapter,
                    unsigned int                *remaining)
 {
   unsigned int slot;
-  UdsChunkRecord *record = probeChapterSlots(openChapter, name, &slot, NULL);
+  struct uds_chunk_record *record
+    = probeChapterSlots(openChapter, name, &slot, NULL);
 
   if (record != NULL) {
     record->data = *metadata;
@@ -235,7 +237,7 @@ void removeFromOpenChapter(OpenChapterZone             *openChapter,
                            bool                        *removed)
 {
   unsigned int recordNumber;
-  UdsChunkRecord *record
+  struct uds_chunk_record *record
     = probeChapterSlots(openChapter, name, NULL, &recordNumber);
 
   if (record == NULL) {

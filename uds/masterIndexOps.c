@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#2 $
  */
 #include "masterIndexOps.h"
 
@@ -32,7 +32,7 @@
 #include "zone.h"
 
 /**********************************************************************/
-static INLINE bool usesSparse(const Configuration *config)
+static INLINE bool usesSparse(const struct configuration *config)
 {
   return config->geometry->sparseChaptersPerVolume > 0;
 }
@@ -55,7 +55,7 @@ void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
 }
 
 /**********************************************************************/
-int makeMasterIndex(const Configuration  *config, unsigned int numZones,
+int makeMasterIndex(const struct configuration  *config, unsigned int numZones,
                     uint64_t volumeNonce, MasterIndex **masterIndex)
 {
   if (usesSparse(config)) {
@@ -66,7 +66,7 @@ int makeMasterIndex(const Configuration  *config, unsigned int numZones,
 }
 
 /**********************************************************************/
-int computeMasterIndexSaveBlocks(const Configuration *config,
+int computeMasterIndexSaveBlocks(const struct configuration *config,
                                  size_t blockSize, uint64_t *blockCount)
 {
   size_t numBytes;
