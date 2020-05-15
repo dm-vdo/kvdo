@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#60 $
  */
 
 #include "recoveryJournal.h"
@@ -1253,6 +1253,11 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
+	if (is_quiescent(&journal->state)) {
+		// We are supposed to not do IO. Don't botch it by reaping.
+		return;
+	}
+	
 	// Start reclaiming blocks only when the journal head has no references.
 	// Then stop when a block is referenced.
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
