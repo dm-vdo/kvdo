@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#6 $
  */
 
 #include "cachedChapterIndex.h"
@@ -40,7 +40,7 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 
 	result = ALLOCATE(chapter->index_pages_count,
 			  struct volume_page,
-			  "sparse index VolumePages",
+			  "sparse index volume pages",
 			  &chapter->volume_pages);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -48,8 +48,8 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 
 	unsigned int i;
 	for (i = 0; i < chapter->index_pages_count; i++) {
-		result = initializeVolumePage(geometry,
-					      &chapter->volume_pages[i]);
+		result = initialize_volume_page(geometry,
+						&chapter->volume_pages[i]);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -63,7 +63,7 @@ void destroy_cached_chapter_index(struct cached_chapter_index *chapter)
 	if (chapter->volume_pages != NULL) {
 		unsigned int i;
 		for (i = 0; i < chapter->index_pages_count; i++) {
-			destroyVolumePage(&chapter->volume_pages[i]);
+			destroy_volume_page(&chapter->volume_pages[i]);
 		}
 	}
 	FREE(chapter->index_pages);

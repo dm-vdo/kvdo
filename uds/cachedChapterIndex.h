@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#6 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -83,7 +83,7 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
 	/* pointer to a cache-aligned array of ChapterIndexPages */
 	DeltaIndexPage *index_pages;
 
-	/* pointer to an array of VolumePages containing the index pages */
+	/* pointer to an array of volume pages containing the index pages */
 	struct volume_page *volume_pages;
 
 	// The cache-aligned counters change often and are placed at the end of

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#8 $
  */
 
 #include "index.h"
@@ -792,7 +792,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
     bool willBeSparseChapter = isChapterSparse(geometry, fromVCN, uptoVCN,
                                                vcn);
     unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
-    prefetchVolumePages(&index->volume->volumeStore,
+    prefetch_volume_pages(&index->volume->volumeStore,
                         mapToPhysicalPage(geometry, chapter, 0),
                         geometry->pagesPerChapter);
     setMasterIndexOpenChapter(index->masterIndex, vcn);
