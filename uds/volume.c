@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#14 $
  */
 
 #include "volume.h"
@@ -163,11 +163,11 @@ static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
 }
 
 /**********************************************************************/
-static int initChapterIndexPage(const Volume   *volume,
-                                byte           *indexPage,
-                                unsigned int    chapter,
-                                unsigned int    indexPageNumber,
-                                DeltaIndexPage *chapterIndexPage)
+static int initChapterIndexPage(const Volume            *volume,
+                                byte                    *indexPage,
+                                unsigned int             chapter,
+                                unsigned int             indexPageNumber,
+                                struct delta_index_page *chapterIndexPage)
 {
   Geometry *geometry = volume->geometry;
 
@@ -190,11 +190,11 @@ static int initChapterIndexPage(const Volume   *volume,
     return result;
   }
 
-  uint64_t     ciVirtual = chapterIndexPage->virtualChapterNumber;
+  uint64_t     ciVirtual = chapterIndexPage->virtual_chapter_number;
   unsigned int ciChapter = mapToPhysicalChapter(geometry, ciVirtual);
   if ((chapter == ciChapter)
-      && (bounds.lowestList == chapterIndexPage->lowestListNumber)
-      && (bounds.highestList == chapterIndexPage->highestListNumber)) {
+      && (bounds.lowestList == chapterIndexPage->lowest_list_number)
+      && (bounds.highestList == chapterIndexPage->highest_list_number)) {
     return UDS_SUCCESS;
   }
 
@@ -204,8 +204,8 @@ static int initChapterIndexPage(const Volume   *volume,
              "but chapter index page has chapter %" PRIu64
              " with range %u to %u",
              chapter, indexPageNumber, bounds.lowestList, bounds.highestList,
-             ciVirtual, chapterIndexPage->lowestListNumber,
-             chapterIndexPage->highestListNumber);
+             ciVirtual, chapterIndexPage->lowest_list_number,
+             chapterIndexPage->highest_list_number);
   return ASSERT_WITH_ERROR_CODE(false,
                                 UDS_CORRUPT_DATA,
                                 "index page map mismatch with chapter index");
@@ -519,12 +519,12 @@ int getPageProtected(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume          *volume,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **dataPtr,
-            DeltaIndexPage **indexPagePtr)
+int getPage(Volume                   *volume,
+            unsigned int              chapter,
+            unsigned int              pageNumber,
+            CacheProbeType            probeType,
+            byte                    **dataPtr,
+            struct delta_index_page **indexPagePtr)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, chapter, pageNumber);
@@ -659,10 +659,10 @@ int searchCachedRecordPage(Volume                      *volume,
 }
 
 /**********************************************************************/
-int readChapterIndexFromVolume(const Volume       *volume,
-                               uint64_t            virtualChapter,
-                               struct volume_page  volume_pages[],
-                               DeltaIndexPage      indexPages[])
+int readChapterIndexFromVolume(const Volume            *volume,
+                               uint64_t                 virtualChapter,
+                               struct volume_page       volume_pages[],
+                               struct delta_index_page  indexPages[])
 {
   const Geometry *geometry = volume->geometry;
   unsigned int physicalChapter = mapToPhysicalChapter(geometry,
@@ -961,14 +961,14 @@ static int probeChapter(Volume       *volume,
 
   unsigned int i;
   for (i = 0; i < geometry->indexPagesPerChapter; ++i) {
-    DeltaIndexPage *page;
+    struct delta_index_page *page;
     int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
                          NULL, &page);
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    uint64_t vcn = page->virtualChapterNumber;
+    uint64_t vcn = page->virtual_chapter_number;
     if (lastVCN == UINT64_MAX) {
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
@@ -978,13 +978,13 @@ static int probeChapter(Volume       *volume,
       return UDS_CORRUPT_COMPONENT;
     }
 
-    if (expectedListNumber != page->lowestListNumber) {
+    if (expectedListNumber != page->lowest_list_number) {
       logError("inconsistent chapter %u index page %u: expected list number %u"
                ", got list number %u",
-               chapterNumber, i, expectedListNumber, page->lowestListNumber);
+               chapterNumber, i, expectedListNumber, page->lowest_list_number);
       return UDS_CORRUPT_COMPONENT;
     }
-    expectedListNumber = page->highestListNumber + 1;
+    expectedListNumber = page->highest_list_number + 1;
 
     result = validate_chapter_index_page(page, geometry);
     if (result != UDS_SUCCESS) {

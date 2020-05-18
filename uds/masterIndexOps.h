@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#6 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -78,14 +78,14 @@ typedef struct {
   bool     isFound;         // This record is the block searched for
 
   // Private fields
-  unsigned char       magic;          // The magic number for valid records
-  unsigned int        zoneNumber;     // Zone that contains this block
-  MasterIndex        *masterIndex;    // The master index
-  Mutex              *mutex;          // Mutex that must be held while accessing
-                                      // this delta index entry; used only for
-                                      // a sampled index; otherwise is NULL
-  const struct uds_chunk_name *name;  // The blockname to which this record refers
-  DeltaIndexEntry     deltaEntry;     // The delta index entry for this record
+  unsigned char       magic;            // The magic number for valid records
+  unsigned int        zoneNumber;       // Zone that contains this block
+  MasterIndex        *masterIndex;      // The master index
+  Mutex              *mutex;            // Mutex that must be held while accessing
+                                        // this delta index entry; used only for
+                                        // a sampled index; otherwise is NULL
+  const struct uds_chunk_name *name;    // The blockname to which this record refers
+  struct delta_index_entry deltaEntry;  // The delta index entry for this record
 } MasterIndexRecord;
 
 struct masterIndex {

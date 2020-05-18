@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#11 $
  */
 #include "masterIndex005.h"
 
@@ -62,7 +62,7 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) masterIndexZone {
 
 typedef struct {
   MasterIndex common;              // Common master index methods
-  DeltaIndex deltaIndex;           // The delta index
+  struct delta_index deltaIndex;   // The delta index
   uint64_t *flushChapters;         // The first chapter to be flushed
   MasterIndexZone *masterZones;    // The Zones
   uint64_t     volumeNonce;        // The volume nonce
@@ -217,12 +217,12 @@ static INLINE int flushInvalidEntries(MasterIndexRecord *record,
 {
   const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
                                          common);
-  int result = nextDeltaIndexEntry(&record->deltaEntry);
+  int result = next_delta_index_entry(&record->deltaEntry);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  while (!record->deltaEntry.atEnd) {
-    unsigned int indexChapter = getDeltaEntryValue(&record->deltaEntry);
+  while (!record->deltaEntry.at_end) {
+    unsigned int indexChapter = get_delta_entry_value(&record->deltaEntry);
     unsigned int relativeChapter = ((indexChapter - flushRange->chapterStart)
                                     & mi5->chapterMask);
     if (likely(relativeChapter >= flushRange->chapterCount)) {
@@ -231,7 +231,7 @@ static INLINE int flushInvalidEntries(MasterIndexRecord *record,
       }
       break;
     }
-    result = removeDeltaIndexEntry(&record->deltaEntry);
+    result = remove_delta_index_entry(&record->deltaEntry);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -259,8 +259,8 @@ static int getMasterIndexEntry(MasterIndexRecord *record,
                                          common);
   unsigned int nextChapterToInvalidate = mi5->chapterMask;
 
-  int result = startDeltaIndexSearch(&mi5->deltaIndex, listNumber, 0,
-                                     false, &record->deltaEntry);
+  int result = start_delta_index_search(&mi5->deltaIndex, listNumber, 0,
+                                        false, &record->deltaEntry);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -269,28 +269,29 @@ static int getMasterIndexEntry(MasterIndexRecord *record,
     if (result != UDS_SUCCESS) {
       return result;
     }
-  } while (!record->deltaEntry.atEnd && (key > record->deltaEntry.key));
+  } while (!record->deltaEntry.at_end && (key > record->deltaEntry.key));
 
-  result = rememberDeltaIndexOffset(&record->deltaEntry);
+  result = remember_delta_index_offset(&record->deltaEntry);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   // We probably found the record we want, but we need to keep going
   MasterIndexRecord otherRecord = *record;
-  if (!otherRecord.deltaEntry.atEnd && (key == otherRecord.deltaEntry.key)) {
+  if (!otherRecord.deltaEntry.at_end && (key == otherRecord.deltaEntry.key)) {
     for (;;) {
       result = flushInvalidEntries(&otherRecord, flushRange,
                                    &nextChapterToInvalidate);
       if (result != UDS_SUCCESS) {
         return result;
       }
-      if (otherRecord.deltaEntry.atEnd
-          || !otherRecord.deltaEntry.isCollision) {
+      if (otherRecord.deltaEntry.at_end
+          || !otherRecord.deltaEntry.is_collision) {
         break;
       }
       byte collisionName[UDS_CHUNK_NAME_SIZE];
-      result = getDeltaEntryCollision(&otherRecord.deltaEntry, collisionName);
+      result = get_delta_entry_collision(&otherRecord.deltaEntry,
+                                         collisionName);
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -301,7 +302,7 @@ static int getMasterIndexEntry(MasterIndexRecord *record,
       }
     }
   }
-  while (!otherRecord.deltaEntry.atEnd) {
+  while (!otherRecord.deltaEntry.at_end) {
     result = flushInvalidEntries(&otherRecord, flushRange,
                                  &nextChapterToInvalidate);
     if (result != UDS_SUCCESS) {
@@ -329,7 +330,7 @@ static void freeMasterIndex_005(MasterIndex *masterIndex)
     mi5->flushChapters = NULL;
     FREE(mi5->masterZones);
     mi5->masterZones = NULL;
-    uninitializeDeltaIndex(&mi5->deltaIndex);
+    uninitialize_delta_index(&mi5->deltaIndex);
     FREE(masterIndex);
   }
 }
@@ -361,7 +362,7 @@ struct mi005_data {
 static void setMasterIndexTag_005(MasterIndex *masterIndex, byte tag)
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  setDeltaIndexTag(&mi5->deltaIndex, tag);
+  set_delta_index_tag(&mi5->deltaIndex, tag);
 }
 
 /***********************************************************************/
@@ -414,10 +415,10 @@ static int startSavingMasterIndex_005(const MasterIndex *masterIndex,
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
   MasterIndexZone *masterZone = &mi5->masterZones[zoneNumber];
-  unsigned int firstList = getDeltaIndexZoneFirstList(&mi5->deltaIndex,
-                                                      zoneNumber);
-  unsigned int numLists = getDeltaIndexZoneNumLists(&mi5->deltaIndex,
-                                                    zoneNumber);
+  unsigned int firstList = get_delta_index_zone_first_list(&mi5->deltaIndex,
+                                                           zoneNumber);
+  unsigned int numLists = get_delta_index_zone_num_lists(&mi5->deltaIndex,
+                                                         zoneNumber);
 
   struct mi005_data header;
   memset(&header, 0, sizeof(header));
@@ -464,7 +465,8 @@ static int startSavingMasterIndex_005(const MasterIndex *masterIndex,
                                      "ranges");
   }
 
-  return startSavingDeltaIndex(&mi5->deltaIndex, zoneNumber, bufferedWriter);
+  return start_saving_delta_index(&mi5->deltaIndex, zoneNumber,
+                                  bufferedWriter);
 }
 
 /***********************************************************************/
@@ -483,7 +485,7 @@ static bool isSavingMasterIndexDone_005(const MasterIndex *masterIndex,
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  return isSavingDeltaIndexDone(&mi5->deltaIndex, zoneNumber);
+  return is_saving_delta_index_done(&mi5->deltaIndex, zoneNumber);
 }
 
 /***********************************************************************/
@@ -502,7 +504,7 @@ static int finishSavingMasterIndex_005(const MasterIndex *masterIndex,
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  return finishSavingDeltaIndex(&mi5->deltaIndex, zoneNumber);
+  return finish_saving_delta_index(&mi5->deltaIndex, zoneNumber);
 }
 
 /***********************************************************************/
@@ -520,7 +522,7 @@ static int abortSavingMasterIndex_005(const MasterIndex *masterIndex,
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  return abortSavingDeltaIndex(&mi5->deltaIndex, zoneNumber);
+  return abort_saving_delta_index(&mi5->deltaIndex, zoneNumber);
 }
 
 /***********************************************************************/
@@ -580,7 +582,7 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
                                      "cannot restore to null master index");
   }
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  emptyDeltaIndex(&mi5->deltaIndex);
+  empty_delta_index(&mi5->deltaIndex);
 
   uint64_t virtualChapterLow = 0;
   uint64_t virtualChapterHigh = 0;
@@ -670,8 +672,8 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
     mi5->masterZones[z].virtualChapterHigh = virtualChapterHigh;
   }
 
-  int result = startRestoringDeltaIndex(&mi5->deltaIndex, bufferedReaders,
-                                        numReaders);
+  int result = start_restoring_delta_index(&mi5->deltaIndex, bufferedReaders,
+                                           numReaders);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result, "restoring delta index failed");
   }
@@ -691,7 +693,7 @@ static bool isRestoringMasterIndexDone_005(const MasterIndex *masterIndex)
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  return isRestoringDeltaIndexDone(&mi5->deltaIndex);
+  return is_restoring_delta_index_done(&mi5->deltaIndex);
 }
 
 /***********************************************************************/
@@ -709,7 +711,7 @@ static int restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
                                              const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  return restoreDeltaListToDeltaIndex(&mi5->deltaIndex, dlsi, data);
+  return restore_delta_list_to_delta_index(&mi5->deltaIndex, dlsi, data);
 }
 
 /***********************************************************************/
@@ -721,7 +723,7 @@ static int restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
 static void abortRestoringMasterIndex_005(MasterIndex *masterIndex)
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  abortRestoringDeltaIndex(&mi5->deltaIndex);
+  abort_restoring_delta_index(&mi5->deltaIndex);
 }
 
 /***********************************************************************/
@@ -730,10 +732,10 @@ static void removeNewestChapters(MasterIndex5 *mi5,
                                  uint64_t virtualChapter)
 {
   // Get the range of delta lists belonging to this zone
-  unsigned int firstList = getDeltaIndexZoneFirstList(&mi5->deltaIndex,
-                                                      zoneNumber);
-  unsigned int numLists = getDeltaIndexZoneNumLists(&mi5->deltaIndex,
-                                                    zoneNumber);
+  unsigned int firstList = get_delta_index_zone_first_list(&mi5->deltaIndex,
+                                                           zoneNumber);
+  unsigned int numLists = get_delta_index_zone_num_lists(&mi5->deltaIndex,
+                                                         zoneNumber);
   unsigned int lastList = firstList + numLists - 1;
 
   if (virtualChapter > mi5->chapterMask) {
@@ -800,7 +802,7 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
      * Note that moving to the lowest virtual chapter counts as totally before
      * the old range, as we need to remove the entries in the open chapter.
      */
-    emptyDeltaIndexZone(&mi5->deltaIndex, zoneNumber);
+    empty_delta_index_zone(&mi5->deltaIndex, zoneNumber);
     masterZone->virtualChapterLow  = virtualChapter;
     masterZone->virtualChapterHigh = virtualChapter;
   } else if (virtualChapter <= masterZone->virtualChapterHigh) {
@@ -823,8 +825,8 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
   }
   // Check to see if the zone data has grown to be too large
   if (masterZone->virtualChapterLow < masterZone->virtualChapterHigh) {
-    uint64_t usedBits = getDeltaIndexZoneDlistBitsUsed(&mi5->deltaIndex,
-                                                       zoneNumber);
+    uint64_t usedBits = get_delta_index_zone_dlist_bits_used(&mi5->deltaIndex,
+                                                             zoneNumber);
     if (usedBits > mi5->maxZoneBits) {
       // Expire enough chapters to free the desired space
       uint64_t expireCount
@@ -909,7 +911,7 @@ static unsigned int getMasterIndexZone_005(const MasterIndex *masterIndex,
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
   unsigned int deltaListNumber = extractDListNum(mi5, name);
-  return getDeltaIndexZone(&mi5->deltaIndex, deltaListNumber);
+  return get_delta_index_zone(&mi5->deltaIndex, deltaListNumber);
 }
 
 /***********************************************************************/
@@ -955,16 +957,16 @@ static int lookupMasterIndexSampledName_005(const MasterIndex *masterIndex,
                                                common);
   unsigned int address = extractAddress(mi5, name);
   unsigned int deltaListNumber = extractDListNum(mi5, name);
-  DeltaIndexEntry deltaEntry;
-  int result = getDeltaIndexEntry(&mi5->deltaIndex, deltaListNumber, address,
-                                  name->name, true, &deltaEntry);
+  struct delta_index_entry deltaEntry;
+  int result = get_delta_index_entry(&mi5->deltaIndex, deltaListNumber, address,
+                                     name->name, true, &deltaEntry);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  triage->inSampledChapter = !deltaEntry.atEnd && (deltaEntry.key == address);
+  triage->inSampledChapter = !deltaEntry.at_end && (deltaEntry.key == address);
   if (triage->inSampledChapter) {
     const MasterIndexZone *masterZone = &mi5->masterZones[triage->zone];
-    unsigned int indexChapter = getDeltaEntryValue(&deltaEntry);
+    unsigned int indexChapter = get_delta_entry_value(&deltaEntry);
     unsigned int rollingChapter = ((indexChapter
                                     - masterZone->virtualChapterLow)
                                    & mi5->chapterMask);
@@ -1015,7 +1017,8 @@ static int getMasterIndexRecord_005(MasterIndex *masterIndex,
   record->masterIndex = masterIndex;
   record->mutex       = NULL;
   record->name        = name;
-  record->zoneNumber  = getDeltaIndexZone(&mi5->deltaIndex, deltaListNumber);
+  record->zoneNumber
+    = get_delta_index_zone(&mi5->deltaIndex, deltaListNumber);
   const MasterIndexZone *masterZone = getMasterZone(record);
 
   int result;
@@ -1033,19 +1036,19 @@ static int getMasterIndexRecord_005(MasterIndex *masterIndex,
     }
     mi5->flushChapters[deltaListNumber] = flushChapter;
   } else {
-    result = getDeltaIndexEntry(&mi5->deltaIndex, deltaListNumber, address,
-                                name->name, false, &record->deltaEntry);
+    result = get_delta_index_entry(&mi5->deltaIndex, deltaListNumber, address,
+                                   name->name, false, &record->deltaEntry);
   }
   if (result != UDS_SUCCESS) {
     return result;
   }
-  record->isFound = (!record->deltaEntry.atEnd
+  record->isFound = (!record->deltaEntry.at_end
                      && (record->deltaEntry.key == address));
   if (record->isFound) {
-    unsigned int indexChapter = getDeltaEntryValue(&record->deltaEntry);
+    unsigned int indexChapter = get_delta_entry_value(&record->deltaEntry);
     record->virtualChapter = convertIndexToVirtual(record, indexChapter);
   }
-  record->isCollision = record->deltaEntry.isCollision;
+  record->isCollision = record->deltaEntry.is_collision;
   return UDS_SUCCESS;
 }
 
@@ -1080,22 +1083,23 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
   if (unlikely(record->mutex != NULL)) {
     lockMutex(record->mutex);
   }
-  int result = putDeltaIndexEntry(&record->deltaEntry, address,
-                                  convertVirtualToIndex(mi5, virtualChapter),
-                                  record->isFound ? record->name->name : NULL);
+  int result
+    = put_delta_index_entry(&record->deltaEntry, address,
+                            convertVirtualToIndex(mi5, virtualChapter),
+                            record->isFound ? record->name->name : NULL);
   if (unlikely(record->mutex != NULL)) {
     unlockMutex(record->mutex);
   }
   switch (result) {
   case UDS_SUCCESS:
     record->virtualChapter = virtualChapter;
-    record->isCollision    = record->deltaEntry.isCollision;
+    record->isCollision    = record->deltaEntry.is_collision;
     record->isFound        = true;
     break;
   case UDS_OVERFLOW:
     logRatelimit(logWarningWithStringError, UDS_OVERFLOW,
                  "Master index entry dropped due to overflow condition");
-    logDeltaIndexEntry(&record->deltaEntry);
+    log_delta_index_entry(&record->deltaEntry);
     break;
   default:
     break;
@@ -1136,7 +1140,7 @@ int removeMasterIndexRecord(MasterIndexRecord *record)
   if (unlikely(record->mutex != NULL)) {
     lockMutex(record->mutex);
   }
-  result = removeDeltaIndexEntry(&record->deltaEntry);
+  result = remove_delta_index_entry(&record->deltaEntry);
   if (unlikely(record->mutex != NULL)) {
     unlockMutex(record->mutex);
   }
@@ -1166,8 +1170,8 @@ int setMasterIndexRecordChapter(MasterIndexRecord *record,
   if (unlikely(record->mutex != NULL)) {
     lockMutex(record->mutex);
   }
-  result = setDeltaEntryValue(&record->deltaEntry,
-                              convertVirtualToIndex(mi5, virtualChapter));
+  result = set_delta_entry_value(&record->deltaEntry,
+                                 convertVirtualToIndex(mi5, virtualChapter));
   if (unlikely(record->mutex != NULL)) {
     unlockMutex(record->mutex);
   }
@@ -1190,7 +1194,7 @@ static size_t getMasterIndexMemoryUsed_005(const MasterIndex *masterIndex)
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  uint64_t bits = getDeltaIndexDlistBitsUsed(&mi5->deltaIndex);
+  uint64_t bits = get_delta_index_dlist_bits_used(&mi5->deltaIndex);
   return (bits + CHAR_BIT - 1) / CHAR_BIT;
 }
 
@@ -1210,19 +1214,19 @@ static void getMasterIndexStats_005(const MasterIndex *masterIndex,
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
-  DeltaIndexStats dis;
-  getDeltaIndexStats(&mi5->deltaIndex, &dis);
-  dense->memoryAllocated = (dis.memoryAllocated
+  struct delta_index_stats dis;
+  get_delta_index_stats(&mi5->deltaIndex, &dis);
+  dense->memoryAllocated = (dis.memory_allocated
                             + sizeof(MasterIndex5)
                             + mi5->numDeltaLists * sizeof(uint64_t)
                             + mi5->numZones * sizeof(MasterIndexZone));
-  dense->rebalanceTime   = dis.rebalanceTime;
-  dense->rebalanceCount  = dis.rebalanceCount;
-  dense->recordCount     = dis.recordCount;
-  dense->collisionCount  = dis.collisionCount;
-  dense->discardCount    = dis.discardCount;
-  dense->overflowCount   = dis.overflowCount;
-  dense->numLists        = dis.numLists;
+  dense->rebalanceTime   = dis.rebalance_time;
+  dense->rebalanceCount  = dis.rebalance_count;
+  dense->recordCount     = dis.record_count;
+  dense->collisionCount  = dis.collision_count;
+  dense->discardCount    = dis.discard_count;
+  dense->overflowCount   = dis.overflow_count;
+  dense->numLists        = dis.num_lists;
   dense->earlyFlushes    = 0;
   unsigned int z;
   for (z = 0; z < mi5->numZones; z++) {
@@ -1270,7 +1274,7 @@ static int computeMasterIndexParameters005(const struct configuration *config,
    * to the square of the number of zones ensures that the distribution of
    * delta lists over zones doesn't underflow, leaving the last zone with
    * an invalid number of delta lists. See the explanation in
-   * initializeDeltaIndex(). Because we can restart with a different number
+   * initialize_delta_index(). Because we can restart with a different number
    * of zones but the number of delta lists is invariant across restart,
    * we must use the largest number of zones to compute this minimum.
    */
@@ -1377,8 +1381,8 @@ int computeMasterIndexSaveBytes005(const struct configuration *config,
   // list plus the delta index.
   *numBytes = (sizeof(struct mi005_data)
                + params.numDeltaLists * sizeof(uint64_t)
-               + computeDeltaIndexSaveBytes(params.numDeltaLists,
-                                            params.memorySize));
+               + compute_delta_index_save_bytes(params.numDeltaLists,
+                                                params.memorySize));
   return UDS_SUCCESS;
 }
 
@@ -1430,11 +1434,11 @@ int makeMasterIndex005(const struct configuration *config,
   mi5->chapterZoneBits = params.numBitsPerChapter / numZones;
   mi5->volumeNonce     = volumeNonce;
 
-  result = initializeDeltaIndex(&mi5->deltaIndex, numZones,
-                                params.numDeltaLists, params.meanDelta,
-                                params.chapterBits, params.memorySize);
+  result = initialize_delta_index(&mi5->deltaIndex, numZones,
+                                  params.numDeltaLists, params.meanDelta,
+                                  params.chapterBits, params.memorySize);
   if (result == UDS_SUCCESS) {
-    mi5->maxZoneBits = ((getDeltaIndexDlistBitsAllocated(&mi5->deltaIndex)
+    mi5->maxZoneBits = ((get_delta_index_dlist_bits_allocated(&mi5->deltaIndex)
                          - params.targetFreeSize * CHAR_BIT)
                         / numZones);
   }

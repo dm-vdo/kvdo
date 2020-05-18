@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#4 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -40,15 +40,15 @@ typedef struct requestList {
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool               cp_readPending;
+  bool                    cp_readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int       cp_physicalPage;
+  unsigned int            cp_physicalPage;
   /* the value of the volume clock when this page was last used */
-  int64_t            cp_lastUsed;
+  int64_t                 cp_lastUsed;
   /* the cache page data */
-  struct volume_page cp_pageData;
+  struct volume_page      cp_pageData;
   /* the chapter index page. This is here, even for record pages */
-  DeltaIndexPage     cp_indexPage;
+  struct delta_index_page cp_indexPage;
 } CachedPage;
 
 enum {

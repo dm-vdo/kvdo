@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#6 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -34,7 +34,7 @@ enum {
 
 struct open_chapter_index {
 	const Geometry *geometry;
-	DeltaIndex delta_index;
+	struct delta_index delta_index;
 	uint64_t virtual_chapter_number;
 	bool header_native_endian;
 	uint64_t volume_nonce;
@@ -145,7 +145,7 @@ get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-initialize_chapter_index_page(DeltaIndexPage *chapter_index_page,
+initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
 			      const Geometry *geometry,
 			      byte *index_page,
 			      uint64_t volume_nonce);
@@ -164,7 +164,7 @@ initialize_chapter_index_page(DeltaIndexPage *chapter_index_page,
  *         UDS_BAD_STATE if the code follows an invalid code path
  **/
 int __must_check
-validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
+validate_chapter_index_page(const struct delta_index_page *chapter_index_page,
 			    const Geometry *geometry);
 
 /**
@@ -180,7 +180,7 @@ validate_chapter_index_page(const DeltaIndexPage *chapter_index_page,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-search_chapter_index_page(DeltaIndexPage *chapter_index_page,
+search_chapter_index_page(struct delta_index_page *chapter_index_page,
 			  const Geometry *geometry,
 			  const struct uds_chunk_name *name,
 			  int *record_page_ptr);

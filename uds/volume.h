@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#9 $
  */
 
 #ifndef VOLUME_H
@@ -293,7 +293,7 @@ int __must_check
 readChapterIndexFromVolume(const Volume *volume,
 			   uint64_t virtualChapter,
 			   struct volume_page volumePages[],
-			   DeltaIndexPage indexPages[]);
+			   struct delta_index_page indexPages[]);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -384,7 +384,7 @@ int __must_check getPage(Volume *volume,
 			 unsigned int pageNumber,
 			 CacheProbeType probeType,
 			 byte **dataPtr,
-			 DeltaIndexPage **indexPagePtr);
+			 struct delta_index_page **indexPagePtr);
 
 /**********************************************************************/
 size_t __must_check getCacheSize(Volume *volume);

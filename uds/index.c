@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#10 $
  */
 
 #include "index.h"
@@ -583,7 +583,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
   for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    DeltaIndexPage *chapterIndexPage;
+    struct delta_index_page *chapterIndexPage;
     int result = getPage(index->volume, chapter, indexPageNumber,
                          CACHE_PROBE_INDEX_FIRST, NULL, &chapterIndexPage);
     if (result != UDS_SUCCESS) {
@@ -592,8 +592,8 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " in chapter %u",
                                      indexPageNumber, chapter);
     }
-    unsigned int lowestDeltaList = chapterIndexPage->lowestListNumber;
-    unsigned int highestDeltaList = chapterIndexPage->highestListNumber;
+    unsigned int lowestDeltaList = chapterIndexPage->lowest_list_number;
+    unsigned int highestDeltaList = chapterIndexPage->highest_list_number;
     if (lowestDeltaList != expectedListNumber) {
       return logErrorWithStringError(UDS_CORRUPT_DATA,
                                      "chapter %u index page %u is corrupt",

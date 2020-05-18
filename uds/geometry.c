@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#2 $
  */
 
 #include "geometry.h"
@@ -83,11 +83,11 @@ static int initializeGeometry(Geometry    *geometry,
        + computeBits(geometry->recordsPerChapter - 1));
   // Let the delta index code determine how many pages are needed for the index
   geometry->indexPagesPerChapter
-    = getDeltaIndexPageCount(geometry->recordsPerChapter,
-                             geometry->deltaListsPerChapter,
-                             geometry->chapterMeanDelta,
-                             geometry->chapterPayloadBits,
-                             bytesPerPage);
+    = get_delta_index_page_count(geometry->recordsPerChapter,
+                                 geometry->deltaListsPerChapter,
+                                 geometry->chapterMeanDelta,
+                                 geometry->chapterPayloadBits,
+                                 bytesPerPage);
 
   // Now that we have the size of a chapter index, we can calculate the
   // space used by chapters and volumes.

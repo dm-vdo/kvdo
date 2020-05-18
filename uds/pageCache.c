@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#6 $
  */
 
 #include "pageCache.h"
@@ -713,6 +713,6 @@ size_t getPageCacheSize(PageCache *cache)
   if (cache == NULL) {
     return 0;
   }
-  return sizeof(DeltaIndexPage) * cache->numCacheEntries;
+  return sizeof(struct delta_index_page) * cache->numCacheEntries;
 }
 

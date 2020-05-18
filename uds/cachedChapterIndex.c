@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#7 $
  */
 
 #include "cachedChapterIndex.h"
@@ -31,7 +31,7 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 	chapter->index_pages_count = geometry->indexPagesPerChapter;
 
 	int result = ALLOCATE(chapter->index_pages_count,
-			      DeltaIndexPage,
+			      struct delta_index_page,
 			      __func__,
 			      &chapter->index_pages);
 	if (result != UDS_SUCCESS) {
@@ -78,7 +78,7 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 	// Mark the cached chapter as unused in case the update fails midway.
 	chapter->virtual_chapter = UINT64_MAX;
 
-	// Read all the page data and initialize the entire DeltaIndexPage
+	// Read all the page data and initialize the entire delta_index_page
 	// array. (It's not safe for the zone threads to do it lazily--they'll
 	// race.)
 	int result = readChapterIndexFromVolume(volume,
