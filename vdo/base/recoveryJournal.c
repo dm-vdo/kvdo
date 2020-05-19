@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#61 $
  */
 
 #include "recoveryJournal.h"
@@ -165,6 +165,7 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 }
 
 /**********************************************************************/
+static void recycle_journal_blocks(struct recovery_journal *journal);
 static void recycle_journal_block(struct recovery_journal_block *block);
 static void notify_commit_waiters(struct recovery_journal *journal);
 
@@ -179,19 +180,20 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 	if (is_read_only(journal->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 		/*
-		 * Clean up any full active blocks which were not written due to
-		 * being in read-only mode.
+		 * Clean up any full active blocks which were not written due
+		 * to being in read-only mode.
 		 *
 		 * XXX: This would probably be better as a short-circuit in
 		 * write_block().
 		 */
 		notify_commit_waiters(journal);
+		recycle_journal_blocks(journal);
 
 		// Release any DataVIOs waiting to be assigned entries.
-		notify_all_waiters(&journal->decrement_waiters, continue_waiter,
-				   &result);
-		notify_all_waiters(&journal->increment_waiters, continue_waiter,
-				   &result);
+		notify_all_waiters(&journal->decrement_waiters,
+				   continue_waiter, &result);
+		notify_all_waiters(&journal->increment_waiters,
+				   continue_waiter, &result);
 	}
 
 	if (!is_draining(&journal->state) || journal->reaping
@@ -1050,42 +1052,65 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 }
 
 /**
- * Notify any VIOs whose entries have now committed, and recycle any
- * journal blocks which have been fully committed.
+ * Notify any VIOs whose entries have now committed.
  *
  * @param journal  The recovery journal to update
  **/
 static void notify_commit_waiters(struct recovery_journal *journal)
 {
-	struct recovery_journal_block *last_iteration_block = NULL;
-	while (!isRingEmpty(&journal->active_tail_blocks)) {
-		struct recovery_journal_block *block =
-			block_from_ring_node(journal->active_tail_blocks.next);
+	if (isRingEmpty(&journal->active_tail_blocks)) {
+		return;
+	}
 
-		int result = ASSERT(block != last_iteration_block,
-				    "Journal notification has entered an infinite loop");
-		if (result != VDO_SUCCESS) {
-			enter_journal_read_only_mode(journal, result);
-			return;
-		}
-		last_iteration_block = block;
+	for (RingNode *node = journal->active_tail_blocks.next;
+	     node != &journal->active_tail_blocks;
+	     node = node->next) {
+		struct recovery_journal_block *block
+			= block_from_ring_node(node);
 
 		if (block->committing) {
 			return;
 		}
 
 		notify_all_waiters(&block->commit_waiters,
-				   continue_committed_waiter, journal);
+				   continue_committed_waiter,
+				   journal);
 		if (is_read_only(journal->read_only_notifier)) {
 			notify_all_waiters(&block->entry_waiters,
-					   continue_committed_waiter, journal);
+					   continue_committed_waiter,
+					   journal);
 		} else if (is_recovery_block_dirty(block)
-			   || !is_recovery_block_full(block)) {
-			// Don't recycle partially-committed or partially-filled
+		           || !is_recovery_block_full(block)) {
+			// Stop at partially-committed or partially-filled
 			// blocks.
 			return;
 		}
+	}
+}
 
+/**
+ * Recycle any journal blocks which have been fully committed.
+ *
+ * @param journal  The recovery journal to update
+ **/
+static void recycle_journal_blocks(struct recovery_journal *journal)
+{
+	while (!isRingEmpty(&journal->active_tail_blocks)) {
+		struct recovery_journal_block *block
+		  = block_from_ring_node(journal->active_tail_blocks.next);
+
+		if (block->committing) {
+			// Don't recycle committing blocks.
+			 return;
+		}
+
+		if (!is_read_only(journal->read_only_notifier)
+		    && (is_recovery_block_dirty(block)
+			|| !is_recovery_block_full(block))) {
+			// Don't recycle partially written or partially full
+			// blocks, except in read-only mode.
+			return;
+		}
 		recycle_journal_block(block);
 	}
 }
@@ -1123,6 +1148,7 @@ static void complete_write(struct vdo_completion *completion)
 			"completed journal write is still active");
 
 	notify_commit_waiters(journal);
+	recycle_journal_blocks(journal);
 
 	// Is this block now full? Reaping, and adding entries, might have
 	// already sent it off for rewriting; else, queue it for rewrite.
