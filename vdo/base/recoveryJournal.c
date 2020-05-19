@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#62 $
  */
 
 #include "recoveryJournal.h"
@@ -1062,7 +1062,8 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 		return;
 	}
 
-	for (RingNode *node = journal->active_tail_blocks.next;
+	RingNode *node;
+	for (node = journal->active_tail_blocks.next;
 	     node != &journal->active_tail_blocks;
 	     node = node->next) {
 		struct recovery_journal_block *block
