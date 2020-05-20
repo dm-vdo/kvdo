@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#25 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -180,7 +180,7 @@ const char * __must_check get_admin_state_name(const struct admin_state *state);
  *
  * @return <code>true</code> if the state is normal
  **/
-static inline bool __must_check is_normal(struct admin_state *state)
+static inline bool __must_check is_normal(const struct admin_state *state)
 {
 	return ((state->state & ADMIN_TYPE_MASK) == ADMIN_TYPE_NORMAL);
 }
@@ -204,7 +204,7 @@ static inline bool __must_check is_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is operating
  **/
-static inline bool __must_check is_operating(struct admin_state *state)
+static inline bool __must_check is_operating(const struct admin_state *state)
 {
 	return is_operation(state->state);
 }
@@ -216,7 +216,7 @@ static inline bool __must_check is_operating(struct admin_state *state)
  *
  * @return <code>true</code> if the state is suspending
  **/
-static inline bool __must_check is_suspending(struct admin_state *state)
+static inline bool __must_check is_suspending(const struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SUSPENDING);
 }
@@ -228,7 +228,7 @@ static inline bool __must_check is_suspending(struct admin_state *state)
  *
  * @return <code>true</code> if the state is suspended
  **/
-static inline bool __must_check is_suspended(struct admin_state *state)
+static inline bool __must_check is_suspended(const struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SUSPENDED);
 }
@@ -240,7 +240,7 @@ static inline bool __must_check is_suspended(struct admin_state *state)
  *
  * @return <code>true</code> if the state is saving
  **/
-static inline bool __must_check is_saving(struct admin_state *state)
+static inline bool __must_check is_saving(const struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SAVING);
 }
@@ -252,7 +252,7 @@ static inline bool __must_check is_saving(struct admin_state *state)
  *
  * @return <code>true</code> if the state is saved
  **/
-static inline bool __must_check is_saved(struct admin_state *state)
+static inline bool __must_check is_saved(const struct admin_state *state)
 {
 	return (state->state == ADMIN_STATE_SAVED);
 }
@@ -276,7 +276,7 @@ static inline bool __must_check is_drain_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is draining
  **/
-static inline bool __must_check is_draining(struct admin_state *state)
+static inline bool __must_check is_draining(const struct admin_state *state)
 {
 	return is_drain_operation(state->state);
 }
@@ -300,7 +300,7 @@ static inline bool __must_check is_load_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is loading
  **/
-static inline bool __must_check is_loading(struct admin_state *state)
+static inline bool __must_check is_loading(const struct admin_state *state)
 {
 	return is_load_operation(state->state);
 }
@@ -324,7 +324,7 @@ static inline bool __must_check is_resume_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the state is resumeing
  **/
-static inline bool __must_check is_resuming(struct admin_state *state)
+static inline bool __must_check is_resuming(const struct admin_state *state)
 {
 	return is_resume_operation(state->state);
 }
@@ -336,7 +336,7 @@ static inline bool __must_check is_resuming(struct admin_state *state)
  *
  * @return <code>true</code> if the state is a clean load
  **/
-static inline bool __must_check is_clean_load(struct admin_state *state)
+static inline bool __must_check is_clean_load(const struct admin_state *state)
 {
 	return ((state->state == ADMIN_STATE_FORMATTING) ||
 		(state->state == ADMIN_STATE_LOADING));
@@ -361,7 +361,7 @@ static inline bool __must_check is_quiescing_code(AdminStateCode code)
  *
  * @return <code>true</code> if the state is quiescing
  **/
-static inline bool __must_check is_quiescing(struct admin_state *state)
+static inline bool __must_check is_quiescing(const struct admin_state *state)
 {
 	return is_quiescing_code(state->state);
 }
@@ -385,7 +385,7 @@ static inline bool __must_check is_quiescent_code(AdminStateCode code)
  *
  * @return <code>true</code> is the state is quiescent
  **/
-static inline bool __must_check is_quiescent(struct admin_state *state)
+static inline bool __must_check is_quiescent(const struct admin_state *state)
 {
 	return is_quiescent_code(state->state);
 }
