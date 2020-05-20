@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#7 $
  */
 
 #ifndef IO_FACTORY_H
@@ -105,33 +105,33 @@ int __must_check make_bufio(struct io_factory *factory,
 			    struct dm_bufio_client **client_ptr);
 
 /**
- * Create a BufferedReader for a region of the index.
+ * Create a buffered reader for a region of the index.
  *
  * @param factory    The IO factory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param reader_ptr The BufferedReader is returned here
+ * @param reader_ptr The buffered reader is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check open_buffered_reader(struct io_factory *factory,
 				      off_t offset,
 				      size_t size,
-				      BufferedReader **reader_ptr);
+				      struct buffered_reader **reader_ptr);
 
 /**
- * Create a BufferedWriter for a region of the index.
+ * Create a buffered writer for a region of the index.
  *
  * @param factory    The IO factory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param writer_ptr The BufferedWriter is returned here
+ * @param writer_ptr The buffered writer is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check open_buffered_writer(struct io_factory *factory,
 				      off_t offset,
 				      size_t size,
-				      BufferedWriter **writer_ptr);
+				      struct buffered_writer **writer_ptr);
 
 #endif // IO_FACTORY_H

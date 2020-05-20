@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#11 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -119,13 +119,13 @@ void get_index_layout(struct index_layout *layout,
 		      struct index_layout **layout_ptr);
 
 /**
- * Open a BufferedReader for a specified state, kind, and zone.
+ * Open a buffered reader for a specified state, kind, and zone.
  *
  * @param layout      The index layout
  * @param slot        The save slot
  * @param kind        The kind if index save region to open.
  * @param zone        The zone number for the region.
- * @param reader_ptr  Where to store the BufferedReader.
+ * @param reader_ptr  Where to store the buffered reader.
  *
  * @return UDS_SUCCESS or an error code.
  **/
@@ -134,16 +134,16 @@ open_index_buffered_reader(struct index_layout *layout,
 			   unsigned int slot,
 			   RegionKind kind,
 			   unsigned int zone,
-			   BufferedReader **reader_ptr);
+			   struct buffered_reader **reader_ptr);
 
 /**
- * Open a BufferedWriter for a specified state, kind, and zone.
+ * Open a buffered writer for a specified state, kind, and zone.
  *
  * @param layout      The index layout
  * @param slot        The save slot
  * @param kind        The kind if index save region to open.
  * @param zone        The zone number for the region.
- * @param writer_ptr  Where to store the BufferedWriter.
+ * @param writer_ptr  Where to store the buffered writer.
  *
  * @return UDS_SUCCESS or an error code.
  **/
@@ -152,7 +152,7 @@ open_index_buffered_writer(struct index_layout *layout,
 			   unsigned int slot,
 			   RegionKind kind,
 			   unsigned int zone,
-			   BufferedWriter **writer_ptr);
+			   struct buffered_writer **writer_ptr);
 
 /**
  * Obtain the nonce to be used to store or validate the loading of volume index

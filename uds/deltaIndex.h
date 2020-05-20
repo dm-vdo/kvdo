@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#8 $
  */
 
 #ifndef DELTAINDEX_H
@@ -32,13 +32,13 @@ enum {
 };
 
 struct delta_index {
-	DeltaMemory *delta_zones;     // The zones
-	unsigned int num_zones;       // The number of zones
-	unsigned int num_lists;       // The number of delta lists
-	unsigned int lists_per_zone;  // Lists per zone (last zone can be
-				      // smaller)
-	bool is_mutable;              // True if this index is mutable
-	byte tag;                     // Tag belonging to this delta index
+	struct delta_memory *delta_zones;  // The zones
+	unsigned int num_zones;            // The number of zones
+	unsigned int num_lists;            // The number of delta lists
+	unsigned int lists_per_zone;       // Lists per zone (last zone can be
+				           // smaller)
+	bool is_mutable;                   // True if this index is mutable
+	byte tag;                          // Tag belonging to this delta index
 };
 
 /*
@@ -55,7 +55,7 @@ struct delta_index_page {
 	unsigned int highest_list_number;
 	uint64_t virtual_chapter_number;
 	// This structure describes the single zone of a delta index page.
-	DeltaMemory delta_memory;
+	struct delta_memory delta_memory;
 };
 
 /*
@@ -75,15 +75,15 @@ struct delta_index_page {
  * (3) And it is also the result of an unsuccessful search and can be used
  *     to refer to the insertion point for a new record.
  *
- * (4) If at_end==true, the DeltaListEntry can only be used as the insertion
+ * (4) If at_end==true, the delta_list entry can only be used as the insertion
  *     point for a new record at the end of the list.
  *
- * (5) If at_end==false and is_collision==true, the DeltaListEntry fields
- *     refer to a collision entry in the list, and the DeltaListEntry can
+ * (5) If at_end==false and is_collision==true, the delta_list entry fields
+ *     refer to a collision entry in the list, and the delta_list entry can
  *     be used a a reference to this entry.
  *
- * (6) If at_end==false and is_collision==false, the DeltaListEntry fields
- *     refer to a non-collision entry in the list.  Such DeltaListEntries
+ * (6) If at_end==false and is_collision==false, the delta_list entry fields
+ *     refer to a non-collision entry in the list.  Such delta_list entries
  *     can be used as a reference to a found entry, or an insertion point
  *     for a non-collision entry before this entry, or an insertion point
  *     for a collision entry that collides with this entry.
@@ -91,22 +91,26 @@ struct delta_index_page {
 
 struct delta_index_entry {
 	// Public fields
-	unsigned int key;           // The key for this entry
-	bool at_end;                // We are after the last entry in the list
-	bool is_collision;          // This record is a collision
+	unsigned int key;                   // The key for this entry
+	bool at_end;                        // We are after the last entry in
+					    // the list
+	bool is_collision;                  // This record is a collision
 	// Private fields (but DeltaIndex_t1 cheats and looks at them)
-	bool list_overflow;         // This delta list overflowed
-	unsigned short value_bits;  // The number of bits used for the value
-	unsigned short entry_bits;  // The number of bits used for the entire
-				    // entry
-	DeltaMemory *delta_zone;    // The delta index zone
-	DeltaList *delta_list;      // The delta list containing the entry,
-	unsigned int list_number;   // The delta list number
-	uint32_t offset;            // Bit offset of this entry within the list
-	unsigned int delta;         // The delta between this and previous
-				    // entry
-	DeltaList temp_delta_list;  // Temporary delta list for immutable
-				    // indices
+	bool list_overflow;                 // This delta list overflowed
+	unsigned short value_bits;          // The number of bits used for
+					    // the value
+	unsigned short entry_bits;          // The number of bits used for
+					    // the entire entry
+	struct delta_memory *delta_zone;    // The delta index zone
+	struct delta_list *delta_list;      // The delta list containing
+					    // the entry
+	unsigned int list_number;           // The delta list number
+	uint32_t offset;                    // Bit offset of this entry within
+					    // the list
+	unsigned int delta;                 // The delta between this and
+					    // previous entry
+	struct delta_list temp_delta_list;  // Temporary delta list for
+					    // immutable indices
 };
 
 struct delta_index_stats {
@@ -229,7 +233,7 @@ void set_delta_index_tag(struct delta_index *delta_index, byte tag);
  **/
 int __must_check
 start_restoring_delta_index(const struct delta_index *delta_index,
-			    BufferedReader **buffered_readers,
+			    struct buffered_reader **buffered_readers,
 			    int num_readers);
 
 /**
@@ -246,14 +250,14 @@ bool is_restoring_delta_index_done(const struct delta_index *delta_index);
  * Restore a saved delta list
  *
  * @param delta_index  The delta index
- * @param dlsi         The DeltaListSaveInfo describing the delta list
+ * @param dlsi         The delta_list_save_info describing the delta list
  * @param data         The saved delta list bit stream
  *
  * @return error code or UDS_SUCCESS
  **/
 int __must_check
 restore_delta_list_to_delta_index(const struct delta_index *delta_index,
-				  const DeltaListSaveInfo *dlsi,
+				  const struct delta_list_save_info *dlsi,
 				  const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
 
 /**
@@ -272,9 +276,10 @@ void abort_restoring_delta_index(const struct delta_index *delta_index);
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int __must_check start_saving_delta_index(const struct delta_index *delta_index,
-					  unsigned int zone_number,
-					  BufferedWriter *buffered_writer);
+int __must_check
+start_saving_delta_index(const struct delta_index *delta_index,
+			 unsigned int zone_number,
+			 struct buffered_writer *buffered_writer);
 
 /**
  * Have all the data been written while saving a delta index zone to an

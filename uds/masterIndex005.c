@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#14 $
  */
 #include "masterIndex005.h"
 
@@ -408,9 +408,9 @@ encodeMasterIndexHeader(struct buffer *buffer, struct mi005_data *header)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static int startSavingMasterIndex_005(const MasterIndex *masterIndex,
-                                      unsigned int zoneNumber,
-                                      BufferedWriter *bufferedWriter)
+static int startSavingMasterIndex_005(const MasterIndex      *masterIndex,
+                                      unsigned int            zoneNumber,
+                                      struct buffered_writer *bufferedWriter)
 {
   const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
                                                common);
@@ -573,9 +573,10 @@ decodeMasterIndexHeader(struct buffer *buffer, struct mi005_data *header)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
-                                         BufferedReader **bufferedReaders,
-                                         int numReaders)
+static int
+startRestoringMasterIndex_005(MasterIndex             *masterIndex,
+                              struct buffered_reader **bufferedReaders,
+                              int                      numReaders)
 {
   if (masterIndex == NULL) {
     return logWarningWithStringError(UDS_BAD_STATE,
@@ -701,14 +702,15 @@ static bool isRestoringMasterIndexDone_005(const MasterIndex *masterIndex)
  * Restore a saved delta list
  *
  * @param masterIndex  The master index to restore into
- * @param dlsi         The DeltaListSaveInfo describing the delta list
+ * @param dlsi         The delta_list_save_info describing the delta list
  * @param data         The saved delta list bit stream
  *
  * @return error code or UDS_SUCCESS
  **/
-static int restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
-                                             const DeltaListSaveInfo *dlsi,
-                                             const byte data[DELTA_LIST_MAX_BYTE_COUNT])
+static int
+restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
+                                  const struct delta_list_save_info *dlsi,
+                                  const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
   return restore_delta_list_to_delta_index(&mi5->deltaIndex, dlsi, data);

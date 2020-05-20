@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.h#7 $
  */
 
 #ifndef BUFFERED_WRITER_H
@@ -27,7 +27,7 @@
 struct dm_bufio_client;
 struct io_factory;
 
-typedef struct bufferedWriter BufferedWriter;
+struct buffered_writer;
 
 /**
  * Make a new buffered writer.
@@ -42,14 +42,14 @@ typedef struct bufferedWriter BufferedWriter;
 int __must_check make_buffered_writer(struct io_factory *factory,
 				      struct dm_bufio_client *client,
 				      sector_t block_limit,
-				      BufferedWriter **writer_ptr);
+				      struct buffered_writer **writer_ptr);
 
 /**
  * Free a buffered writer, without flushing.
  *
  * @param [in] buffer   The buffered writer object.
  **/
-void free_buffered_writer(BufferedWriter *buffer);
+void free_buffered_writer(struct buffered_writer *buffer);
 
 /**
  * Append data to buffer, writing as needed.
@@ -63,8 +63,9 @@ void free_buffered_writer(BufferedWriter *buffer);
  *                      or flush the buffer.  Once a write or flush error
  *                      occurs it is sticky.
  **/
-int __must_check
-write_to_buffered_writer(BufferedWriter *buffer, const void *data, size_t len);
+int __must_check write_to_buffered_writer(struct buffered_writer *buffer,
+					  const void *data,
+					  size_t len);
 
 /**
  * Zero data in the buffer, writing as needed.
@@ -77,7 +78,8 @@ write_to_buffered_writer(BufferedWriter *buffer, const void *data, size_t len);
  *                      or flush the buffer.  Once a write or flush error
  *                      occurs it is sticky.
  **/
-int __must_check write_zeros_to_buffered_writer(BufferedWriter *bw, size_t len);
+int __must_check write_zeros_to_buffered_writer(struct buffered_writer *bw,
+						size_t len);
 
 /**
  * Flush any partial data from the buffer.
@@ -89,7 +91,7 @@ int __must_check write_zeros_to_buffered_writer(BufferedWriter *bw, size_t len);
  *                      or flush the buffer.  Once a write or flush error
  *                      occurs it is sticky.
  **/
-int __must_check flush_buffered_writer(BufferedWriter *buffer);
+int __must_check flush_buffered_writer(struct buffered_writer *buffer);
 
 /**
  * Return the size of the remaining space in the buffer (for testing)
@@ -98,7 +100,8 @@ int __must_check flush_buffered_writer(BufferedWriter *buffer);
  *
  * @return              The number of available bytes in the buffer.
  **/
-size_t __must_check space_remaining_in_write_buffer(BufferedWriter *buffer);
+size_t __must_check
+space_remaining_in_write_buffer(struct buffered_writer *buffer);
 
 /**
  * Return whether the buffer was ever written to.
@@ -108,13 +111,13 @@ size_t __must_check space_remaining_in_write_buffer(BufferedWriter *buffer);
  * @return              True if at least one call to write_to_buffered_writer
  *                      was made.
  **/
-bool __must_check was_buffered_writer_used(const BufferedWriter *buffer);
+bool __must_check was_buffered_writer_used(const struct buffered_writer *buffer);
 
 /**
  * Note the buffer has been used.
  *
  * @param buffer        The buffered writer object.
  **/
-void note_buffered_writer_used(BufferedWriter *buffer);
+void note_buffered_writer_used(struct buffered_writer *buffer);
 
 #endif // BUFFERED_WRITER_H

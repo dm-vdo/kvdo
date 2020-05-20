@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#6 $
  */
 
 #ifndef INDEX_STATE_H
@@ -268,13 +268,13 @@ struct buffer * __must_check
 getStateIndexStateBuffer(IndexState *state, IOAccessMode mode);
 
 /**
- * Open a BufferedReader for a specified state, kind, and zone.
+ * Open a buffered reader for a specified state, kind, and zone.
  * This helper function is used by IndexComponent.
  *
  * @param state      The index state.
  * @param kind       The kind if index save region to open.
  * @param zone       The zone number for the region.
- * @param readerPtr  Where to store the BufferedReader.
+ * @param readerPtr  Where to store the buffered reader.
  *
  * @return UDS_SUCCESS or an error code.
  **/
@@ -282,23 +282,23 @@ int __must_check
 openStateBufferedReader(IndexState *state,
 			RegionKind kind,
 			unsigned int zone,
-			BufferedReader **readerPtr);
+			struct buffered_reader **readerPtr);
 
 /**
- * Open a BufferedWriter for a specified state, kind, and zone.
+ * Open a buffered writer for a specified state, kind, and zone.
  * This helper function is used by IndexComponent.
  *
  * @param state      The index state.
  * @param kind       The kind if index save region to open.
  * @param zone       The zone number for the region.
- * @param writerPtr  Where to store the BufferedWriter.
+ * @param writerPtr  Where to store the buffered writer.
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check
-openStateBufferedWriter(IndexState *state,
-			RegionKind kind,
-			unsigned int zone,
-			BufferedWriter **writerPtr);
+openStateBufferedWriter(IndexState              *state,
+			RegionKind               kind,
+			unsigned int             zone,
+			struct buffered_writer **writerPtr);
 
 #endif // INDEX_STATE_H

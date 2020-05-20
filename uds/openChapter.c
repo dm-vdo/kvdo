@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#9 $
  */
 
 #include "openChapter.h"
@@ -29,7 +29,7 @@
 
 static int readOpenChapters(ReadPortal *portal);
 static int writeOpenChapters(IndexComponent *component,
-                             BufferedWriter *writer,
+                             struct buffered_writer *writer,
                              unsigned int    zone);
 
 const IndexComponentInfo OPEN_CHAPTER_INFO = {
@@ -155,7 +155,7 @@ int closeOpenChapter(OpenChapterZone           **chapterZones,
 }
 
 /**********************************************************************/
-int saveOpenChapters(Index *index, BufferedWriter *writer)
+int saveOpenChapters(Index *index, struct buffered_writer *writer)
 {
   int result = write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC,
                                         OPEN_CHAPTER_MAGIC_LENGTH);
@@ -222,7 +222,7 @@ uint64_t computeSavedOpenChapterSize(Geometry *geometry)
 
 /**********************************************************************/
 static int writeOpenChapters(IndexComponent *component,
-                             BufferedWriter *writer,
+                             struct buffered_writer *writer,
                              unsigned int    zone)
 {
   int result = ASSERT((zone == 0), "open chapter write not zoned");
@@ -246,7 +246,7 @@ static int writeOpenChapters(IndexComponent *component,
  * @return UDS_SUCCESS or an error code if the file could not be read or
  *         the version is invalid or unsupported
  **/
-static int readVersion(BufferedReader *reader, const byte **version)
+static int readVersion(struct buffered_reader *reader, const byte **version)
 {
   byte buffer[OPEN_CHAPTER_VERSION_LENGTH];
   int result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
@@ -263,7 +263,7 @@ static int readVersion(BufferedReader *reader, const byte **version)
 }
 
 /**********************************************************************/
-static int loadVersion20(Index *index, BufferedReader *reader)
+static int loadVersion20(Index *index, struct buffered_reader *reader)
 {
   byte numRecordsData[sizeof(uint32_t)];
   int result
@@ -308,7 +308,7 @@ static int loadVersion20(Index *index, BufferedReader *reader)
 }
 
 /**********************************************************************/
-int loadOpenChapters(Index *index, BufferedReader *reader)
+int loadOpenChapters(Index *index, struct buffered_reader *reader)
 {
   // Read and check the magic number.
   int result =
@@ -332,7 +332,7 @@ int readOpenChapters(ReadPortal *portal)
 {
   Index *index = indexComponentData(portal->component);
 
-  BufferedReader *reader;
+  struct buffered_reader *reader;
   int result = getBufferedReaderForPortal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#6 $
  */
 
 #include <linux/blkdev.h>
@@ -125,7 +125,7 @@ int make_bufio(struct io_factory *factory,
 int open_buffered_reader(struct io_factory *factory,
 			 off_t offset,
 			 size_t size,
-			 BufferedReader **reader_ptr)
+			 struct buffered_reader **reader_ptr)
 {
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return logErrorWithStringError(
@@ -153,7 +153,7 @@ int open_buffered_reader(struct io_factory *factory,
 int open_buffered_writer(struct io_factory *factory,
 			 off_t offset,
 			 size_t size,
-			 BufferedWriter **writer_ptr)
+			 struct buffered_writer **writer_ptr)
 {
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return logErrorWithStringError(

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#13 $
  */
 #include "deltaIndex.h"
 
@@ -40,14 +40,14 @@
  * The addresses are assumed to be uniformly distributed,and the deltas are
  * therefore exponentially distributed.
  *
- * The entries could be stored in a single DeltaList, but for efficiency we
+ * The entries could be stored in a single delta_list, but for efficiency we
  * use multiple DeltaLists.  These lists are stored in a single chunk of
- * memory managed by the DeltaMemory module.  The DeltaMemory module can
+ * memory managed by the delta_memory module.  The delta_memory module can
  * move the data around in memory, so we never keep any byte pointers into
- * DeltaList memory.  We only keep offsets into the memory.
+ * delta_list memory.  We only keep offsets into the memory.
  *
  * The delta lists are stored as bit streams.  These bit streams are stored
- * in little endian order, and all offsets into DeltaMemory are bit
+ * in little endian order, and all offsets into delta_memory are bit
  * offsets.
  *
  * All entries are stored as a fixed length payload (the value) followed by a
@@ -160,7 +160,8 @@ struct di_header {
  * @param delta_list  The delta list header
  * @param increment   The change in the start of the delta list
  **/
-static INLINE void move_delta_list_start(DeltaList *delta_list, int increment)
+static INLINE void move_delta_list_start(struct delta_list *delta_list,
+                                         int increment)
 {
 	delta_list->startOffset += increment;
 	delta_list->size -= increment;
@@ -172,7 +173,8 @@ static INLINE void move_delta_list_start(DeltaList *delta_list, int increment)
  * @param delta_list  The delta list header
  * @param increment   The change in the end of the delta list
  **/
-static INLINE void move_delta_list_end(DeltaList *delta_list, int increment)
+static INLINE void move_delta_list_end(struct delta_list *delta_list,
+                                       int increment)
 {
 	delta_list->size += increment;
 }
@@ -184,10 +186,11 @@ static INLINE void move_delta_list_end(DeltaList *delta_list, int increment)
 // Header data used for immutable delta index pages.  These data are
 // followed by the delta list offset table.
 struct delta_page_header {
-	uint64_t nonce; // Externally-defined nonce
-	uint64_t virtual_chapter_number; // The virtual chapter number
-	uint16_t first_list; // Index of the first delta list on the page
-	uint16_t num_lists; // Number of delta lists on the page
+	uint64_t nonce;                   // Externally-defined nonce
+	uint64_t virtual_chapter_number;  // The virtual chapter number
+	uint16_t first_list;              // Index of the first delta list on
+	                                  // the page
+	uint16_t num_lists;               // Number of delta lists on the page
 } __attribute__((packed));
 
 // Immutable delta lists are packed into pages containing a header that
@@ -255,7 +258,7 @@ static INLINE void set_immutable_start(byte *memory,
  **/
 static INLINE void decode_delta(struct delta_index_entry *delta_entry)
 {
-	const DeltaMemory *delta_zone = delta_entry->delta_zone;
+	const struct delta_memory *delta_zone = delta_entry->delta_zone;
 	const byte *memory = delta_zone->memory;
 	uint64_t delta_offset =
 		get_delta_entry_offset(delta_entry) + delta_entry->value_bits;
@@ -304,7 +307,7 @@ static INLINE void decode_delta(struct delta_index_entry *delta_entry)
  **/
 static void delete_bits(const struct delta_index_entry *delta_entry, int size)
 {
-	DeltaList *delta_list = delta_entry->delta_list;
+	struct delta_list *delta_list = delta_entry->delta_list;
 	byte *memory = delta_entry->delta_zone->memory;
 	// Compute how many bits are retained before and after the deleted bits
 	uint32_t total_size = getDeltaListSize(delta_list);
@@ -366,7 +369,7 @@ get_collision_offset(const struct delta_index_entry *entry)
  **/
 static void encode_delta(const struct delta_index_entry *delta_entry)
 {
-	const DeltaMemory *delta_zone = delta_entry->delta_zone;
+	const struct delta_memory *delta_zone = delta_entry->delta_zone;
 	byte *memory = delta_zone->memory;
 	uint64_t offset =
 		get_delta_entry_offset(delta_entry) + delta_entry->value_bits;
@@ -419,8 +422,8 @@ static void encode_entry(const struct delta_index_entry *delta_entry,
  **/
 static int insert_bits(struct delta_index_entry *delta_entry, int size)
 {
-	DeltaMemory *delta_zone = delta_entry->delta_zone;
-	DeltaList *delta_list = delta_entry->delta_list;
+	struct delta_memory *delta_zone = delta_entry->delta_zone;
+	struct delta_list *delta_list = delta_entry->delta_list;
 	// Compute how many bits are in use before and after the inserted bits
 	uint32_t total_size = getDeltaListSize(delta_list);
 	uint32_t before_size = delta_entry->offset;
@@ -556,7 +559,7 @@ static void set_collision(struct delta_index_entry *delta_entry)
  **/
 static void set_delta(struct delta_index_entry *delta_entry, unsigned int delta)
 {
-	const DeltaMemory *delta_zone = delta_entry->delta_zone;
+	const struct delta_memory *delta_zone = delta_entry->delta_zone;
 	delta_entry->delta = delta;
 	int key_bits = (delta_zone->minBits +
 			((delta_zone->incrKeys - delta_zone->minKeys + delta) /
@@ -581,7 +584,7 @@ int initialize_delta_index(struct delta_index *delta_index,
 	}
 
 	int result = ALLOCATE(num_zones,
-			      DeltaMemory,
+			      struct delta_memory,
 			      "Delta Index Zones",
 			      &delta_index->delta_zones);
 	if (result != UDS_SUCCESS) {
@@ -813,8 +816,9 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 			delta_index->num_lists);
 	}
 
-	const DeltaMemory *delta_zone = &delta_index->delta_zones[0];
-	DeltaList *delta_lists = &delta_zone->deltaLists[first_list + 1];
+	const struct delta_memory *delta_zone = &delta_index->delta_zones[0];
+	struct delta_list *delta_lists =
+		&delta_zone->deltaLists[first_list + 1];
 	unsigned int max_lists = delta_index->num_lists - first_list;
 
 	// Compute how many lists will fit on the page
@@ -873,7 +877,7 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 
 	// Copy the delta list data onto the memory page
 	for (i = 0; i < n_lists; i++) {
-		DeltaList *delta_list = &delta_lists[i];
+		struct delta_list *delta_list = &delta_lists[i];
 		move_bits(delta_zone->memory,
 			  getDeltaListStart(delta_list),
 			  memory,
@@ -940,7 +944,7 @@ static int __must_check decode_delta_index_header(struct buffer *buffer,
 }
 
 /**********************************************************************/
-static int __must_check read_delta_index_header(BufferedReader *reader,
+static int __must_check read_delta_index_header(struct buffered_reader *reader,
 						struct di_header *header)
 {
 	struct buffer *buffer;
@@ -968,7 +972,7 @@ static int __must_check read_delta_index_header(BufferedReader *reader,
 
 /**********************************************************************/
 int start_restoring_delta_index(const struct delta_index *delta_index,
-				BufferedReader **buffered_readers,
+				struct buffered_reader   **buffered_readers,
 				int num_readers)
 {
 	if (!delta_index->is_mutable) {
@@ -992,7 +996,7 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 	unsigned long collision_count = 0;
 	unsigned int first_list[MAX_ZONES];
 	unsigned int num_lists[MAX_ZONES];
-	BufferedReader *reader[MAX_ZONES];
+	struct buffered_reader *reader[MAX_ZONES];
 	bool zone_flags[MAX_ZONES] = {
 		false,
 	};
@@ -1077,8 +1081,8 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 	delta_index->delta_zones[0].recordCount = record_count;
 	delta_index->delta_zones[0].collisionCount = collision_count;
 
-	// Read the delta list sizes from the files, and distribute each of them
-	// to proper zone
+	// Read the delta list sizes from the files, and distribute each of
+	// them to proper zone
 	for (z = 0; z < num_zones; z++) {
 		unsigned int i;
 		for (i = 0; i < num_lists[z]; i++) {
@@ -1097,7 +1101,7 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 			unsigned int list_number = first_list[z] + i;
 			unsigned int zone_number =
 				get_delta_index_zone(delta_index, list_number);
-			const DeltaMemory *delta_zone =
+			const struct delta_memory *delta_zone =
 				&delta_index->delta_zones[zone_number];
 			list_number -= delta_zone->firstList;
 			delta_zone->deltaLists[list_number + 1].size =
@@ -1131,7 +1135,7 @@ bool is_restoring_delta_index_done(const struct delta_index *delta_index)
 
 /**********************************************************************/
 int restore_delta_list_to_delta_index(const struct delta_index *delta_index,
-				      const DeltaListSaveInfo *dlsi,
+				      const struct delta_list_save_info *dlsi,
 				      const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
 	// Make sure the data are intended for this delta list.  Do not
@@ -1206,9 +1210,10 @@ static int __must_check encode_delta_index_header(struct buffer *buffer,
 /**********************************************************************/
 int start_saving_delta_index(const struct delta_index *delta_index,
 			     unsigned int zone_number,
-			     BufferedWriter *buffered_writer)
+			     struct buffered_writer *buffered_writer)
 {
-	DeltaMemory *delta_zone = &delta_index->delta_zones[zone_number];
+	struct delta_memory *delta_zone =
+		&delta_index->delta_zones[zone_number];
 	struct di_header header;
 	memcpy(header.magic, MAGIC_DI_START, MAGIC_SIZE);
 	header.zone_number = zone_number;
@@ -1294,9 +1299,9 @@ size_t compute_delta_index_save_bytes(unsigned int num_lists,
 	}
 	// Saving a delta index requires a header ...
 	return (sizeof(struct di_header)
-		// ... plus a DeltaListSaveInfo per delta list
+		// ... plus a delta_list_save_info per delta list
 		// plus an extra byte per delta list ...
-		+ num_lists * (sizeof(DeltaListSaveInfo) + 1)
+		+ num_lists * (sizeof(struct delta_list_save_info) + 1)
 		// ... plus the delta list memory
 		+ max_mem_size);
 }
@@ -1326,8 +1331,8 @@ static int assert_not_at_end(const struct delta_index_entry *delta_entry,
 }
 
 /**********************************************************************/
-static void prefetch_delta_list(const DeltaMemory *delta_zone,
-				const DeltaList *delta_list)
+static void prefetch_delta_list(const struct delta_memory *delta_zone,
+				const struct delta_list *delta_list)
 {
 	const byte *memory = delta_zone->memory;
 	const byte *addr = &memory[getDeltaListStart(delta_list) / CHAR_BIT];
@@ -1354,7 +1359,8 @@ int start_delta_index_search(const struct delta_index *delta_index,
 
 	unsigned int zone_number =
 		get_delta_index_zone(delta_index, list_number);
-	DeltaMemory *delta_zone = &delta_index->delta_zones[zone_number];
+	struct delta_memory *delta_zone =
+		&delta_index->delta_zones[zone_number];
 	list_number -= delta_zone->firstList;
 	result = ASSERT_WITH_ERROR_CODE((list_number < delta_zone->numLists),
 					UDS_CORRUPT_DATA,
@@ -1367,7 +1373,7 @@ int start_delta_index_search(const struct delta_index *delta_index,
 		return result;
 	}
 
-	DeltaList *delta_list;
+	struct delta_list *delta_list;
 	if (delta_index->is_mutable) {
 		delta_list = &delta_zone->deltaLists[list_number + 1];
 		if (!read_only) {
@@ -1421,7 +1427,7 @@ next_delta_index_entry(struct delta_index_entry *delta_entry)
 		return result;
 	}
 
-	const DeltaList *delta_list = delta_entry->delta_list;
+	const struct delta_list *delta_list = delta_entry->delta_list;
 	delta_entry->offset += delta_entry->entry_bits;
 	unsigned int size = getDeltaListSize(delta_list);
 	if (unlikely(delta_entry->offset >= size)) {
@@ -1456,7 +1462,7 @@ int remember_delta_index_offset(const struct delta_index_entry *delta_entry)
 		return result;
 	}
 
-	DeltaList *delta_list = delta_entry->delta_list;
+	struct delta_list *delta_list = delta_entry->delta_list;
 	delta_list->saveKey = delta_entry->key - delta_entry->delta;
 	delta_list->saveOffset = delta_entry->offset;
 	return UDS_SUCCESS;
@@ -1591,9 +1597,9 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 		/*
 		 * The caller wants us to insert a collision entry onto a
 		 * collision entry.  This happens when we find a collision and
-		 * attempt to add the name again to the index.  This is normally
-		 * a fatal error unless we are replaying a closed chapter while
-		 * we are rebuilding a master index.
+		 * attempt to add the name again to the index.  This is
+		 * normally a fatal error unless we are replaying a closed
+		 * chapter while we are rebuilding a master index.
 		 */
 		return UDS_DUPLICATE_NAME;
 	}
@@ -1608,8 +1614,8 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 	}
 
 	if (name != NULL) {
-		// We are inserting a collision entry which is placed after this
-		// entry
+		// We are inserting a collision entry which is placed after
+		// this entry
 		result = assert_not_at_end(delta_entry, UDS_BAD_STATE);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -1673,7 +1679,7 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 	}
 	encode_entry(delta_entry, value, name);
 
-	DeltaMemory *delta_zone = delta_entry->delta_zone;
+	struct delta_memory *delta_zone = delta_entry->delta_zone;
 	delta_zone->recordCount++;
 	delta_zone->collisionCount += delta_entry->is_collision ? 1 : 0;
 	return UDS_SUCCESS;
@@ -1693,7 +1699,7 @@ int remove_delta_index_entry(struct delta_index_entry *delta_entry)
 		return result;
 	}
 
-	DeltaMemory *delta_zone = delta_entry->delta_zone;
+	struct delta_memory *delta_zone = delta_entry->delta_zone;
 
 	if (delta_entry->is_collision) {
 		// This is a collision entry, so just remove it
@@ -1726,11 +1732,11 @@ int remove_delta_index_entry(struct delta_index_entry *delta_entry)
 	delta_zone->discardCount++;
 	*delta_entry = next_entry;
 
-	DeltaList *delta_list = delta_entry->delta_list;
+	struct delta_list *delta_list = delta_entry->delta_list;
 	if (delta_entry->offset < delta_list->saveOffset) {
-		// The saved entry offset is after the entry we just removed and
-		// it will no longer be valid.  We must force the next search to
-		// start at the beginning.
+		// The saved entry offset is after the entry we just removed
+		// and it will no longer be valid.  We must force the next
+		// search to start at the beginning.
 		delta_list->saveKey = 0;
 		delta_list->saveOffset = 0;
 	}
@@ -1759,7 +1765,8 @@ get_delta_index_zone_dlist_bits_used(const struct delta_index *delta_index,
 				     unsigned int zone_number)
 {
 	uint64_t bit_count = 0;
-	const DeltaMemory *delta_zone = &delta_index->delta_zones[zone_number];
+	const struct delta_memory *delta_zone =
+		&delta_index->delta_zones[zone_number];
 	unsigned int i;
 	for (i = 0; i < delta_zone->numLists; i++) {
 		bit_count += getDeltaListSize(&delta_zone->deltaLists[i + 1]);
@@ -1786,7 +1793,8 @@ get_delta_index_dlist_bits_allocated(const struct delta_index *delta_index)
 	uint64_t byte_count = 0;
 	unsigned int z;
 	for (z = 0; z < delta_index->num_zones; z++) {
-		const DeltaMemory *delta_zone = &delta_index->delta_zones[z];
+		const struct delta_memory *delta_zone =
+			&delta_index->delta_zones[z];
 		byte_count += delta_zone->size;
 	}
 	return byte_count * CHAR_BIT;
@@ -1797,10 +1805,12 @@ void get_delta_index_stats(const struct delta_index *delta_index,
 			   struct delta_index_stats *stats)
 {
 	memset(stats, 0, sizeof(struct delta_index_stats));
-	stats->memory_allocated = delta_index->num_zones * sizeof(DeltaMemory);
+	stats->memory_allocated =
+		delta_index->num_zones * sizeof(struct delta_memory);
 	unsigned int z;
 	for (z = 0; z < delta_index->num_zones; z++) {
-		const DeltaMemory *delta_zone = &delta_index->delta_zones[z];
+		const struct delta_memory *delta_zone =
+			&delta_index->delta_zones[z];
 		stats->memory_allocated += getDeltaMemoryAllocated(delta_zone);
 		stats->rebalance_time += delta_zone->rebalanceTime;
 		stats->rebalance_count += delta_zone->rebalanceCount;

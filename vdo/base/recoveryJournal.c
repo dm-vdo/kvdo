@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#63 $
  */
 
 #include "recoveryJournal.h"
@@ -1149,7 +1149,6 @@ static void complete_write(struct vdo_completion *completion)
 			"completed journal write is still active");
 
 	notify_commit_waiters(journal);
-	recycle_journal_blocks(journal);
 
 	// Is this block now full? Reaping, and adding entries, might have
 	// already sent it off for rewriting; else, queue it for rewrite.
@@ -1157,6 +1156,7 @@ static void complete_write(struct vdo_completion *completion)
 		schedule_block_write(journal, block);
 	}
 
+	recycle_journal_blocks(journal);
 	write_blocks(journal);
 
 	check_for_drain_complete(journal);

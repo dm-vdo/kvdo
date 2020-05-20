@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#10 $
  */
 
 #include "indexConfig.h"
@@ -87,7 +87,7 @@ decodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 }
 
 /**********************************************************************/
-static int readVersion(BufferedReader            *reader,
+static int readVersion(struct buffered_reader    *reader,
                        struct uds_configuration  *conf,
                        const char               **versionPtr)
 {
@@ -149,7 +149,7 @@ static int readVersion(BufferedReader            *reader,
 }
 
 /**********************************************************************/
-int read_config_contents(BufferedReader           *reader,
+int read_config_contents(struct buffered_reader   *reader,
                          struct uds_configuration *config)
 {
   int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
@@ -220,7 +220,7 @@ encodeIndexConfig(struct buffer *buffer, struct uds_configuration *config)
 }
 
 /**********************************************************************/
-int write_config_contents(BufferedWriter           *writer,
+int write_config_contents(struct buffered_writer   *writer,
                           struct uds_configuration *config)
 {
   int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,

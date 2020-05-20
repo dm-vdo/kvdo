@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#19 $
  */
 
 #include "indexLayout.h"
@@ -262,7 +262,7 @@ int uds_compute_index_size(const struct uds_configuration *config,
 static int __must_check
 open_layout_reader(struct index_layout *layout,
 		   struct layout_region *lr,
-		   BufferedReader **reader_ptr)
+		   struct buffered_reader **reader_ptr)
 {
 	off_t start = lr->start_block * layout->super.block_size;
 	size_t size = lr->num_blocks * layout->super.block_size;
@@ -273,7 +273,7 @@ open_layout_reader(struct index_layout *layout,
 static int __must_check
 open_layout_writer(struct index_layout *layout,
 		   struct layout_region *lr,
-		   BufferedWriter **writer_ptr)
+		   struct buffered_writer **writer_ptr)
 {
 	off_t start = lr->start_block * layout->super.block_size;
 	size_t size = lr->num_blocks * layout->super.block_size;
@@ -390,8 +390,8 @@ decode_layout_region(struct buffer *buffer, struct layout_region *region)
 }
 
 /*****************************************************************************/
-static int __must_check
-load_region_table(BufferedReader *reader, struct region_table **table_ptr)
+static int __must_check load_region_table(struct buffered_reader *reader,
+					  struct region_table **table_ptr)
 {
 	struct buffer *buffer;
 	int result = make_buffer(sizeof(struct region_header), &buffer);
@@ -527,10 +527,9 @@ decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 }
 
 /*****************************************************************************/
-static int __must_check
-read_super_block_data(BufferedReader *reader,
-		      struct super_block_data *super,
-		      size_t saved_size)
+static int __must_check read_super_block_data(struct buffered_reader *reader,
+					      struct super_block_data *super,
+					      size_t saved_size)
 {
 	if (saved_size != sizeof(struct super_block_data)) {
 		return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
@@ -621,7 +620,7 @@ static int __must_check
 load_super_block(struct index_layout *layout,
 		 size_t block_size,
 		 uint64_t first_block,
-		 BufferedReader *reader)
+		 struct buffered_reader *reader)
 {
 	struct region_table *table = NULL;
 	int result = load_region_table(reader, &table);
@@ -668,7 +667,7 @@ load_super_block(struct index_layout *layout,
 
 /*****************************************************************************/
 static int __must_check
-read_index_save_data(BufferedReader *reader,
+read_index_save_data(struct buffered_reader *reader,
 		     struct index_save_data *save_data,
 		     size_t saved_size,
 		     struct buffer **buffer_ptr)
@@ -1034,7 +1033,7 @@ reconstruct_index_save(struct index_save_layout *isl,
 /*****************************************************************************/
 static int __must_check load_index_save(struct index_save_layout *isl,
 					struct super_block_data *super,
-					BufferedReader *reader,
+					struct buffered_reader *reader,
 					unsigned int save_id)
 {
 	struct region_table *table = NULL;
@@ -1098,7 +1097,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 	for (j = 0; j < layout->super.max_saves; ++j) {
 		struct index_save_layout *isl = &layout->index.saves[j];
 
-		BufferedReader *reader;
+		struct buffered_reader *reader;
 		int result =
 			open_layout_reader(layout, &isl->index_save, &reader);
 		if (result != UDS_SUCCESS) {
@@ -1134,7 +1133,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 /*****************************************************************************/
 static int load_index_layout(struct index_layout *layout)
 {
-	BufferedReader *reader;
+	struct buffered_reader *reader;
 	int result = open_buffered_reader(layout->factory, layout->offset,
 					  UDS_BLOCK_SIZE, &reader);
 	if (result != UDS_SUCCESS) {
@@ -1667,7 +1666,7 @@ static int __must_check
 write_single_file_header(struct index_layout *layout,
 			 struct region_table *table,
 			 unsigned int num_regions,
-			 BufferedWriter *writer)
+			 struct buffered_writer *writer)
 {
 	table->header = (struct region_header){
 		.magic = REGION_MAGIC,
@@ -1743,7 +1742,7 @@ save_single_file_configuration(struct index_layout *layout)
 		return result;
 	}
 
-	BufferedWriter *writer = NULL;
+	struct buffered_writer *writer = NULL;
 	result = open_layout_writer(layout, &layout->header, &writer);
 	if (result != UDS_SUCCESS) {
 		FREE(table);
@@ -1805,7 +1804,7 @@ const struct index_version *get_index_version(struct index_layout *layout)
 int write_index_config(struct index_layout *layout,
 		       struct uds_configuration *config)
 {
-	BufferedWriter *writer = NULL;
+	struct buffered_writer *writer = NULL;
 	int result = open_layout_writer(layout, &layout->config, &writer);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
@@ -1832,7 +1831,7 @@ int write_index_config(struct index_layout *layout,
 int verify_index_config(struct index_layout *layout,
 			struct uds_configuration *config)
 {
-	BufferedReader *reader = NULL;
+	struct buffered_reader *reader = NULL;
 	int result = open_layout_reader(layout, &layout->config, &reader);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
@@ -2185,7 +2184,7 @@ static int __must_check
 write_index_save_header(struct index_save_layout *isl,
 			struct region_table *table,
 			unsigned int num_regions,
-			BufferedWriter *writer)
+			struct buffered_writer *writer)
 {
 	size_t payload = sizeof(isl->save_data);
 	if (isl->index_state_buffer != NULL) {
@@ -2280,7 +2279,7 @@ static int write_index_save_layout(struct index_layout *layout,
 		return result;
 	}
 
-	BufferedWriter *writer = NULL;
+	struct buffered_writer *writer = NULL;
 	result = open_layout_writer(layout, &isl->header, &writer);
 	if (result != UDS_SUCCESS) {
 		FREE(table);
@@ -2465,7 +2464,7 @@ int open_index_buffered_reader(struct index_layout *layout,
 			       unsigned int slot,
 			       RegionKind kind,
 			       unsigned int zone,
-			       BufferedReader **reader_ptr)
+			       struct buffered_reader **reader_ptr)
 {
 	struct layout_region *lr = NULL;
 	int result = find_layout_region(layout, slot, "load", kind, zone, &lr);
@@ -2480,7 +2479,7 @@ int open_index_buffered_writer(struct index_layout *layout,
 			       unsigned int slot,
 			       RegionKind kind,
 			       unsigned int zone,
-			       BufferedWriter **writer_ptr)
+			       struct buffered_writer **writer_ptr)
 {
 	struct layout_region *lr = NULL;
 	int result = find_layout_region(layout, slot, "save", kind, zone, &lr);

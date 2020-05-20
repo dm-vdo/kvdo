@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#6 $
  */
 
 #ifndef DELTAMEMORY_H
@@ -45,43 +45,51 @@
  * delta list and we use the uint16_t type.
  */
 
-typedef struct deltaList {
+struct delta_list {
   uint64_t startOffset;  // The offset of the delta list start within memory
   uint16_t size;         // The number of bits in the delta list
   uint16_t saveOffset;   // Where the last search "found" the key
   unsigned int saveKey;  // The key for the record just before saveOffset.
-} DeltaList;
+};
 
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) deltaMemory {
-  byte *memory;                   // The delta list memory
-  DeltaList *deltaLists;          // The delta list headers
-  uint64_t *tempOffsets;          // Temporary starts of delta lists
-  byte *flags;                    // Transfer flags
-  BufferedWriter *bufferedWriter; // Buffered writer for saving an index
-  size_t size;                 // The size of delta list memory
-  RelTime rebalanceTime;       // The time spent rebalancing
-  int rebalanceCount;          // Number of memory rebalances
-  unsigned short valueBits;    // The number of bits of value
-  unsigned short minBits;      // The number of bits in the minimal key code
-  unsigned int minKeys;        // The number of keys used in a minimal code
-  unsigned int incrKeys;       // The number of keys used for another code bit
-  long recordCount;            // The number of records in the index
-  long collisionCount;         // The number of collision records
-  long discardCount;           // The number of records removed
-  long overflowCount;          // The number of UDS_OVERFLOWs detected
-  unsigned int firstList;      // The index of the first delta list
-  unsigned int numLists;       // The number of delta lists
-  unsigned int numTransfers;   // Number of transfer flags that are set
-  int transferStatus;          // Status of the transfers in progress
-  byte tag;                    // Tag belonging to this delta index
-} DeltaMemory;
+struct delta_memory {
+  byte *memory;                            // The delta list memory
+  struct delta_list *deltaLists;           // The delta list headers
+  uint64_t *tempOffsets;                   // Temporary starts of delta lists
+  byte *flags;                             // Transfer flags
+  struct buffered_writer *bufferedWriter;  // Buffered writer for saving an
+                                           // index
+  size_t size;                             // The size of delta list memory
+  RelTime rebalanceTime;                   // The time spent rebalancing
+  int rebalanceCount;                      // Number of memory rebalances
+  unsigned short valueBits;                // The number of bits of value
+  unsigned short minBits;                  // The number of bits in the minimal
+                                           // key code
+  unsigned int minKeys;                    // The number of keys used in a
+                                           // minimal code
+  unsigned int incrKeys;                   // The number of keys used for
+                                           // another code bit
+  long recordCount;                        // The number of records in the
+                                           // index
+  long collisionCount;                     // The number of collision records
+  long discardCount;                       // The number of records removed
+  long overflowCount;                      // The number of UDS_OVERFLOWs
+                                           // detected
+  unsigned int firstList;                  // The index of the first delta list
+  unsigned int numLists;                   // The number of delta lists
+  unsigned int numTransfers;               // Number of transfer flags that
+                                           // are set
+  int transferStatus;                      // Status of the transfers in
+                                           // progress
+  byte tag;                                // Tag belonging to this delta index
+} __attribute__((aligned(CACHE_LINE_BYTES)));
 
-typedef struct deltaListSaveInfo {
+struct delta_list_save_info {
   uint8_t tag;         // Tag identifying which delta index this list is in
   uint8_t bitOffset;   // Bit offset of the start of the list data
   uint16_t byteCount;  // Number of bytes of list data
   uint32_t index;      // The delta list number within the delta index
-} DeltaListSaveInfo;
+};
 
 // The maximum size of a single delta list (in bytes).  We add guard bytes
 // to this because such a buffer can be used with moveBits.
@@ -100,7 +108,7 @@ enum { DELTA_LIST_MAX_BYTE_COUNT = ((UINT16_MAX + CHAR_BIT) / CHAR_BIT
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check initializeDeltaMemory(DeltaMemory *deltaMemory,
+int __must_check initializeDeltaMemory(struct delta_memory *deltaMemory,
 				       size_t size,
 				       unsigned int firstList,
 				       unsigned int numLists,
@@ -112,7 +120,7 @@ int __must_check initializeDeltaMemory(DeltaMemory *deltaMemory,
  *
  * @param deltaMemory  A delta memory structure
  **/
-void uninitializeDeltaMemory(DeltaMemory *deltaMemory);
+void uninitializeDeltaMemory(struct delta_memory *deltaMemory);
 
 /**
  * Initialize delta list memory to refer to a cached page.
@@ -124,7 +132,7 @@ void uninitializeDeltaMemory(DeltaMemory *deltaMemory);
  * @param meanDelta       The mean delta
  * @param numPayloadBits  The number of payload bits
  **/
-void initializeDeltaMemoryPage(DeltaMemory *deltaMemory, byte *memory,
+void initializeDeltaMemoryPage(struct delta_memory *deltaMemory, byte *memory,
                                size_t size, unsigned int numLists,
                                unsigned int meanDelta,
                                unsigned int numPayloadBits);
@@ -134,7 +142,7 @@ void initializeDeltaMemoryPage(DeltaMemory *deltaMemory, byte *memory,
  *
  * @param deltaMemory  The delta memory
  **/
-void emptyDeltaLists(DeltaMemory *deltaMemory);
+void emptyDeltaLists(struct delta_memory *deltaMemory);
 
 /**
  * Is there a delta list memory save or restore in progress?
@@ -144,7 +152,7 @@ void emptyDeltaLists(DeltaMemory *deltaMemory);
  * @return true if there are no delta lists that need to be saved or
  *         restored
  **/
-bool areDeltaMemoryTransfersDone(const DeltaMemory *deltaMemory);
+bool areDeltaMemoryTransfersDone(const struct delta_memory *deltaMemory);
 
 /**
  * Start restoring delta list memory from a file descriptor
@@ -153,33 +161,33 @@ bool areDeltaMemoryTransfersDone(const DeltaMemory *deltaMemory);
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check startRestoringDeltaMemory(DeltaMemory *deltaMemory);
+int __must_check startRestoringDeltaMemory(struct delta_memory *deltaMemory);
 
 /**
  * Read a saved delta list from a file descriptor
  *
- * @param dlsi            The DeltaListSaveInfo describing the delta list
+ * @param dlsi            The delta_list_save_info describing the delta list
  * @param data            The saved delta list bit stream
  * @param bufferedReader  The buffered reader to read the delta list from
  *
  * @return error code or UDS_SUCCESS
  *         or UDS_END_OF_FILE at end of the data stream
  **/
-int __must_check readSavedDeltaList(DeltaListSaveInfo *dlsi,
+int __must_check readSavedDeltaList(struct delta_list_save_info *dlsi,
 				    byte data[DELTA_LIST_MAX_BYTE_COUNT],
-				    BufferedReader *bufferedReader);
+				    struct buffered_reader *bufferedReader);
 
 /**
  * Restore a saved delta list
  *
  * @param deltaMemory  A delta memory structure
- * @param dlsi         The DeltaListSaveInfo describing the delta list
+ * @param dlsi         The delta_list_save_info describing the delta list
  * @param data         The saved delta list bit stream
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check restoreDeltaList(DeltaMemory *deltaMemory,
-				  const DeltaListSaveInfo *dlsi,
+int __must_check restoreDeltaList(struct delta_memory *deltaMemory,
+				  const struct delta_list_save_info *dlsi,
 				  const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
 
 /**
@@ -187,7 +195,7 @@ int __must_check restoreDeltaList(DeltaMemory *deltaMemory,
  *
  * @param deltaMemory  A delta memory structure
  **/
-void abortRestoringDeltaMemory(DeltaMemory *deltaMemory);
+void abortRestoringDeltaMemory(struct delta_memory *deltaMemory);
 
 /**
  * Start saving delta list memory to a buffered output stream
@@ -195,8 +203,8 @@ void abortRestoringDeltaMemory(DeltaMemory *deltaMemory);
  * @param deltaMemory     A delta memory structure
  * @param bufferedWriter  The index state component being written
  **/
-void startSavingDeltaMemory(DeltaMemory *deltaMemory,
-                            BufferedWriter *bufferedWriter);
+void startSavingDeltaMemory(struct delta_memory *deltaMemory,
+                            struct buffered_writer *bufferedWriter);
 
 /**
  * Finish saving delta list memory to an output stream.  Force the writing
@@ -207,7 +215,7 @@ void startSavingDeltaMemory(DeltaMemory *deltaMemory,
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check finishSavingDeltaMemory(DeltaMemory *deltaMemory);
+int __must_check finishSavingDeltaMemory(struct delta_memory *deltaMemory);
 
 /**
  * Abort saving delta list memory to an output stream.  If an error
@@ -215,7 +223,7 @@ int __must_check finishSavingDeltaMemory(DeltaMemory *deltaMemory);
  *
  * @param deltaMemory  A delta memory structure
  **/
-void abortSavingDeltaMemory(DeltaMemory *deltaMemory);
+void abortSavingDeltaMemory(struct delta_memory *deltaMemory);
 
 /**
  * Flush a delta list to an output stream
@@ -223,7 +231,7 @@ void abortSavingDeltaMemory(DeltaMemory *deltaMemory);
  * @param deltaMemory  A delta memory structure
  * @param flushIndex   Index of the delta list that may need to be flushed.
  **/
-void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex);
+void flushDeltaList(struct delta_memory *deltaMemory, unsigned int flushIndex);
 
 /**
  * Write a guard delta list to mark the end of the saved data
@@ -232,7 +240,7 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex);
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check writeGuardDeltaList(BufferedWriter *bufferedWriter);
+int __must_check writeGuardDeltaList(struct buffered_writer *bufferedWriter);
 
 /**
  * Extend the memory used by the delta lists and rebalance the lists in the
@@ -254,7 +262,7 @@ int __must_check writeGuardDeltaList(BufferedWriter *bufferedWriter);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check extendDeltaMemory(DeltaMemory *deltaMemory,
+int __must_check extendDeltaMemory(struct delta_memory *deltaMemory,
 				   unsigned int growingIndex,
 				   size_t growingSize,
 				   bool doCopy);
@@ -266,7 +274,7 @@ int __must_check extendDeltaMemory(DeltaMemory *deltaMemory,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check validateDeltaLists(const DeltaMemory *deltaMemory);
+int __must_check validateDeltaLists(const struct delta_memory *deltaMemory);
 
 /**
  * Get the number of bytes allocated for delta index entries and any
@@ -276,7 +284,7 @@ int __must_check validateDeltaLists(const DeltaMemory *deltaMemory);
  *
  * @return The number of bytes allocated
  **/
-size_t getDeltaMemoryAllocated(const DeltaMemory *deltaMemory);
+size_t getDeltaMemoryAllocated(const struct delta_memory *deltaMemory);
 
 /**
  * Get the expected number of bits used in a delta index
@@ -298,7 +306,7 @@ size_t __must_check getDeltaMemorySize(unsigned long numEntries,
  *
  * @return the start of the delta list
  **/
-static INLINE uint64_t getDeltaListStart(const DeltaList *deltaList)
+static INLINE uint64_t getDeltaListStart(const struct delta_list *deltaList)
 {
   return deltaList->startOffset;
 }
@@ -310,7 +318,7 @@ static INLINE uint64_t getDeltaListStart(const DeltaList *deltaList)
  *
  * @return the size of the delta list
  **/
-static INLINE uint16_t getDeltaListSize(const DeltaList *deltaList)
+static INLINE uint16_t getDeltaListSize(const struct delta_list *deltaList)
 {
   return deltaList->size;
 }
@@ -322,7 +330,7 @@ static INLINE uint16_t getDeltaListSize(const DeltaList *deltaList)
  *
  * @return the end of the delta list
  **/
-static INLINE uint64_t getDeltaListEnd(const DeltaList *deltaList)
+static INLINE uint64_t getDeltaListEnd(const struct delta_list *deltaList)
 {
   return getDeltaListStart(deltaList) + getDeltaListSize(deltaList);
 }
@@ -347,7 +355,7 @@ static INLINE uint64_t getDeltaListEnd(const DeltaList *deltaList)
  *
  * @return true if the delta memory is mutable
  **/
-static INLINE bool isMutable(const DeltaMemory *deltaMemory)
+static INLINE bool isMutable(const struct delta_memory *deltaMemory)
 {
   return deltaMemory->deltaLists != NULL;
 }
@@ -358,7 +366,7 @@ static INLINE bool isMutable(const DeltaMemory *deltaMemory)
  * @param deltaMemory  A delta memory structure
  * @param flushIndex   Index of the delta list that may need to be flushed.
  **/
-static INLINE void lazyFlushDeltaList(DeltaMemory *deltaMemory,
+static INLINE void lazyFlushDeltaList(struct delta_memory *deltaMemory,
                                       unsigned int flushIndex)
 {
   if (get_field(deltaMemory->flags, flushIndex, 1) != 0) {

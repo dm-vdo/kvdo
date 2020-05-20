@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#5 $
  */
 #include "masterIndexOps.h"
 
@@ -76,7 +76,7 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  numBytes += sizeof(DeltaListSaveInfo);
+  numBytes += sizeof(struct delta_list_save_info);
   *blockCount = (numBytes + blockSize - 1) / blockSize + MAX_ZONES;
   return UDS_SUCCESS;
 }
@@ -92,7 +92,7 @@ static int readMasterIndex(ReadPortal *portal)
                                    numZones);
   }
 
-  BufferedReader *readers[MAX_ZONES];
+  struct buffered_reader *readers[MAX_ZONES];
   unsigned int z;
   for (z = 0; z < numZones; ++z) {
     int result = getBufferedReaderForPortal(portal, z, &readers[z]);
@@ -106,7 +106,7 @@ static int readMasterIndex(ReadPortal *portal)
 
 /**********************************************************************/
 static int writeMasterIndex(IndexComponent           *component,
-                            BufferedWriter           *writer,
+                            struct buffered_writer   *writer,
                             unsigned int              zone,
                             IncrementalWriterCommand  command,
                             bool                     *completed)
@@ -162,7 +162,7 @@ static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
 const IndexComponentInfo *const MASTER_INDEX_INFO = &MASTER_INDEX_INFO_DATA;
 
 /**********************************************************************/
-static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
+static int restoreMasterIndexBody(struct buffered_reader **bufferedReaders,
                                   unsigned int     numReaders,
                                   MasterIndex     *masterIndex,
                                   byte dlData[DELTA_LIST_MAX_BYTE_COUNT])
@@ -177,7 +177,7 @@ static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
   unsigned int z;
   for (z = 0; z < numReaders; z++) {
     for (;;) {
-      DeltaListSaveInfo dlsi;
+      struct delta_list_save_info dlsi;
       result = readSavedDeltaList(&dlsi, dlData, bufferedReaders[z]);
       if (result == UDS_END_OF_FILE) {
         break;
@@ -201,9 +201,9 @@ static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
 }
 
 /**********************************************************************/
-int restoreMasterIndex(BufferedReader **bufferedReaders,
-                       unsigned int     numReaders,
-                       MasterIndex     *masterIndex)
+int restoreMasterIndex(struct buffered_reader **bufferedReaders,
+                       unsigned int             numReaders,
+                       MasterIndex             *masterIndex)
 {
   byte *dlData;
   int result = ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dlData);

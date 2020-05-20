@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#6 $
  */
 
 #include "indexState.h"
@@ -489,20 +489,20 @@ struct buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
 }
 
 /*****************************************************************************/
-int openStateBufferedReader(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedReader **readerPtr)
+int openStateBufferedReader(IndexState              *state,
+                            RegionKind               kind,
+                            unsigned int             zone,
+                            struct buffered_reader **readerPtr)
 {
   return open_index_buffered_reader(state->layout, state->loadSlot, kind, zone,
                                     readerPtr);
 }
 
 /*****************************************************************************/
-int openStateBufferedWriter(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedWriter **writerPtr)
+int openStateBufferedWriter(IndexState              *state,
+                            RegionKind               kind,
+                            unsigned int             zone,
+                            struct buffered_writer **writerPtr)
 {
   return open_index_buffered_writer(state->layout, state->saveSlot, kind, zone,
                                     writerPtr);

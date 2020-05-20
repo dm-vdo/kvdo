@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#4 $
  */
 
 #include "indexStateData.h"
@@ -121,9 +121,10 @@ static int readIndexStateData(ReadPortal *portal)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int writeIndexStateData(IndexComponent *component,
-                               BufferedWriter *writer __attribute__((unused)),
-                               unsigned int zone __attribute__((unused)))
+static int
+writeIndexStateData(IndexComponent                 *component,
+                    struct buffered_writer *writer  __attribute__((unused)),
+                    unsigned int            zone __attribute__((unused)))
 {
   struct buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
   int result = reset_buffer_end(buffer, 0);

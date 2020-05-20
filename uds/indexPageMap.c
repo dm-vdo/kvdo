@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#9 $
  */
 
 #include "indexPageMap.h"
@@ -36,7 +36,7 @@
 
 static int readIndexPageMap(ReadPortal *portal);
 static int writeIndexPageMap(IndexComponent *component,
-                             BufferedWriter *writer,
+                             struct buffered_writer *writer,
                              unsigned int    zone);
 
 static const byte INDEX_PAGE_MAP_MAGIC[] = "ALBIPM02";
@@ -238,7 +238,7 @@ size_t indexPageMapSize(const Geometry *geometry)
 
 /*****************************************************************************/
 static int writeIndexPageMap(IndexComponent *component,
-                             BufferedWriter *writer,
+                             struct buffered_writer *writer,
                              unsigned int    zone)
 {
   int result = ASSERT((zone == 0), "unimplemented zone %d", zone);
@@ -323,7 +323,7 @@ static int readIndexPageMap(ReadPortal *portal)
 {
   IndexPageMap *map = indexComponentData(portal->component);
 
-  BufferedReader *reader = NULL;
+  struct buffered_reader *reader = NULL;
 
   int result = getBufferedReaderForPortal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {

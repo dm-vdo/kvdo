@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#6 $
  */
 
 #include "indexComponent.h"
@@ -128,7 +128,7 @@ static void freeReadPortal(ReadPortal *readPortal)
 /*****************************************************************************/
 int getBufferedReaderForPortal(ReadPortal      *portal,
                                unsigned int     part,
-                               BufferedReader **readerPtr)
+                               struct buffered_reader **readerPtr)
 {
   if (part >= portal->zones) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
@@ -159,11 +159,13 @@ int readIndexComponent(IndexComponent *component)
     return result;
   }
   int readZones = component->state->loadZones;
-  result = ALLOCATE(readZones, BufferedReader *, "read zone buffered readers",
-                    &portal->readers);
+  result = ALLOCATE(readZones,
+		    struct buffered_reader *,
+		    "read zone buffered readers",
+		    &portal->readers);
   if (result != UDS_SUCCESS) {
-    FREE(portal);
-    return result;
+	  FREE(portal);
+	  return result;
   }
 
   portal->component = component;
@@ -218,7 +220,7 @@ static int resolveWriteZone(const IndexComponent  *component,
  * @return UDS_SUCCESS or an error code
  **/
 static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
-                                                 BufferedWriter *writer,
+                                                 struct buffered_writer *writer,
                                                  unsigned int    zone)
 {
   IncrementalWriter incrFunc  = component->info->incremental;
@@ -444,7 +446,7 @@ static int closeBufferedWriter(WriteZone *writeZone)
  *       the save is complete unless the saver failed.
  **/
 static int wrapSaverAsIncremental(IndexComponent           *component,
-                                  BufferedWriter           *writer,
+                                  struct buffered_writer   *writer,
                                   unsigned int              zone,
                                   IncrementalWriterCommand  command,
                                   bool                     *completed)
@@ -723,7 +725,7 @@ int discardIndexComponent(IndexComponent *component)
 
   unsigned int z;
   for (z = 0; z < numZones; ++z) {
-    BufferedWriter *writer;
+    struct buffered_writer *writer;
     int result = openStateBufferedWriter(component->state,
                                          component->info->kind, z, &writer);
     if (result != UDS_SUCCESS) {

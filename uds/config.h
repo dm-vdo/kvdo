@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#6 $
  */
 
 #ifndef CONFIG_H
@@ -114,7 +114,7 @@ void free_configuration(struct configuration *config);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check read_config_contents(BufferedReader *reader,
+int __must_check read_config_contents(struct buffered_reader *reader,
 				      struct uds_configuration *config);
 
 /**
@@ -125,7 +125,7 @@ int __must_check read_config_contents(BufferedReader *reader,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check write_config_contents(BufferedWriter *writer,
+int __must_check write_config_contents(struct buffered_writer *writer,
 				       struct uds_configuration *config);
 
 /**

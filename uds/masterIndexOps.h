@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#9 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -116,7 +116,7 @@ struct masterIndex {
                                       const struct uds_chunk_name *name,
                                       MasterIndexTriage *triage);
   int (*restoreDeltaListToMasterIndex)(MasterIndex *masterIndex,
-                                       const DeltaListSaveInfo *dlsi,
+                                       const struct delta_list_save_info *dlsi,
                                        const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
   void (*setMasterIndexOpenChapter)(MasterIndex *masterIndex,
                                     uint64_t virtualChapter);
@@ -125,11 +125,11 @@ struct masterIndex {
                                         unsigned int zoneNumber,
                                         uint64_t virtualChapter);
   int (*startRestoringMasterIndex)(MasterIndex *masterIndex,
-                                   BufferedReader **bufferedReaders,
+                                   struct buffered_reader **bufferedReaders,
                                    int numReaders);
   int (*startSavingMasterIndex)(const MasterIndex *masterIndex,
                                 unsigned int zoneNumber,
-                                BufferedWriter *bufferedWriter);
+                                struct buffered_writer *bufferedWriter);
 };
 
 /**
@@ -180,7 +180,7 @@ computeMasterIndexSaveBlocks(const struct configuration *config,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int __must_check restoreMasterIndex(BufferedReader **readers,
+int __must_check restoreMasterIndex(struct buffered_reader **readers,
 				    unsigned int numReaders,
 				    MasterIndex *masterIndex);
 
@@ -411,14 +411,15 @@ int __must_check removeMasterIndexRecord(MasterIndexRecord *record);
  * Restore a saved delta list
  *
  * @param masterIndex  The master index to restore into
- * @param dlsi         The DeltaListSaveInfo describing the delta list
+ * @param dlsi         The delta_list_save_info describing the delta list
  * @param data         The saved delta list bit stream
  *
  * @return error code or UDS_SUCCESS
  **/
-static INLINE int restoreDeltaListToMasterIndex(MasterIndex *masterIndex,
-                                                const DeltaListSaveInfo *dlsi,
-                                                const byte data[DELTA_LIST_MAX_BYTE_COUNT])
+static INLINE int
+restoreDeltaListToMasterIndex(MasterIndex *masterIndex,
+                              const struct delta_list_save_info *dlsi,
+                              const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
   return masterIndex->restoreDeltaListToMasterIndex(masterIndex, dlsi, data);
 }
@@ -494,14 +495,15 @@ static INLINE void setMasterIndexZoneOpenChapter(MasterIndex *masterIndex,
  * Start restoring the master index from multiple buffered readers
  *
  * @param masterIndex      The master index to restore into
- * @param bufferedReaders  The buffered reader to read the master index from
+ * @param bufferedReaders  The buffered readers to read the master index from
  * @param numReaders       The number of buffered readers
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static INLINE int startRestoringMasterIndex(MasterIndex *masterIndex,
-                                            BufferedReader **bufferedReaders,
-                                            int numReaders)
+static INLINE int
+startRestoringMasterIndex(MasterIndex             *masterIndex,
+                          struct buffered_reader **bufferedReaders,
+                          int                      numReaders)
 {
   return masterIndex->startRestoringMasterIndex(masterIndex, bufferedReaders,
                                                 numReaders);
@@ -518,7 +520,7 @@ static INLINE int startRestoringMasterIndex(MasterIndex *masterIndex,
  **/
 static INLINE int startSavingMasterIndex(const MasterIndex *masterIndex,
                                          unsigned int zoneNumber,
-                                         BufferedWriter *bufferedWriter)
+                                         struct buffered_writer *bufferedWriter)
 {
   return masterIndex->startSavingMasterIndex(masterIndex, zoneNumber,
                                              bufferedWriter);

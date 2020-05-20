@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#6 $
  */
 
 #include "bufferedWriter.h"
@@ -29,7 +29,7 @@
 #include "numeric.h"
 
 
-struct bufferedWriter {
+struct buffered_writer {
 	// IO factory owning the block device
 	struct io_factory *bw_factory;
 	// The dm_bufio_client to write to
@@ -51,7 +51,7 @@ struct bufferedWriter {
 };
 
 /*****************************************************************************/
-int __must_check prepare_next_buffer(BufferedWriter *bw)
+int __must_check prepare_next_buffer(struct buffered_writer *bw)
 {
 	if (bw->bw_block_number >= bw->bw_limit) {
 		bw->bw_error = UDS_OUT_OF_RANGE;
@@ -71,7 +71,7 @@ int __must_check prepare_next_buffer(BufferedWriter *bw)
 }
 
 /*****************************************************************************/
-int flush_previous_buffer(BufferedWriter *bw)
+int flush_previous_buffer(struct buffered_writer *bw)
 {
 	if (bw->bw_buffer != NULL) {
 		if (bw->bw_error == UDS_SUCCESS) {
@@ -94,15 +94,16 @@ int flush_previous_buffer(BufferedWriter *bw)
 int make_buffered_writer(struct io_factory *factory,
 			 struct dm_bufio_client *client,
 			 sector_t block_limit,
-			 BufferedWriter **writer_ptr)
+			 struct buffered_writer **writer_ptr)
 {
-	BufferedWriter *writer;
-	int result = ALLOCATE(1, BufferedWriter, "buffered writer", &writer);
+	struct buffered_writer *writer;
+	int result =
+		ALLOCATE(1, struct buffered_writer, "buffered writer", &writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	*writer = (BufferedWriter){
+	*writer = (struct buffered_writer){
 		.bw_factory = factory,
 		.bw_client = client,
 		.bw_buffer = NULL,
@@ -120,7 +121,7 @@ int make_buffered_writer(struct io_factory *factory,
 }
 
 /*****************************************************************************/
-void free_buffered_writer(BufferedWriter *bw)
+void free_buffered_writer(struct buffered_writer *bw)
 {
 	if (bw == NULL) {
 		return;
@@ -128,8 +129,8 @@ void free_buffered_writer(BufferedWriter *bw)
 	flush_previous_buffer(bw);
 	int result = -dm_bufio_write_dirty_buffers(bw->bw_client);
 	if (result != UDS_SUCCESS) {
-		logWarningWithStringError(result, "%s cannot sync storage",
-					  __func__);
+		logWarningWithStringError(
+			result, "%s cannot sync storage", __func__);
 	}
 	dm_bufio_client_destroy(bw->bw_client);
 	put_io_factory(bw->bw_factory);
@@ -137,19 +138,21 @@ void free_buffered_writer(BufferedWriter *bw)
 }
 
 /*****************************************************************************/
-static INLINE size_t space_used_in_buffer(BufferedWriter *bw)
+static INLINE size_t space_used_in_buffer(struct buffered_writer *bw)
 {
 	return bw->bw_pointer - bw->bw_start;
 }
 
 /*****************************************************************************/
-size_t space_remaining_in_write_buffer(BufferedWriter *bw)
+size_t space_remaining_in_write_buffer(struct buffered_writer *bw)
 {
 	return UDS_BLOCK_SIZE - space_used_in_buffer(bw);
 }
 
 /*****************************************************************************/
-int write_to_buffered_writer(BufferedWriter *bw, const void *data, size_t len)
+int write_to_buffered_writer(struct buffered_writer *bw,
+			     const void *data,
+			     size_t len)
 {
 	if (bw->bw_error != UDS_SUCCESS) {
 		return bw->bw_error;
@@ -180,7 +183,7 @@ int write_to_buffered_writer(BufferedWriter *bw, const void *data, size_t len)
 }
 
 /*****************************************************************************/
-int write_zeros_to_buffered_writer(BufferedWriter *bw, size_t len)
+int write_zeros_to_buffered_writer(struct buffered_writer *bw, size_t len)
 {
 	if (bw->bw_error != UDS_SUCCESS) {
 		return bw->bw_error;
@@ -209,7 +212,7 @@ int write_zeros_to_buffered_writer(BufferedWriter *bw, size_t len)
 }
 
 /*****************************************************************************/
-int flush_buffered_writer(BufferedWriter *bw)
+int flush_buffered_writer(struct buffered_writer *bw)
 {
 	if (bw->bw_error != UDS_SUCCESS) {
 		return bw->bw_error;
@@ -219,13 +222,13 @@ int flush_buffered_writer(BufferedWriter *bw)
 }
 
 /*****************************************************************************/
-bool was_buffered_writer_used(const BufferedWriter *bw)
+bool was_buffered_writer_used(const struct buffered_writer *bw)
 {
 	return bw->bw_used;
 }
 
 /*****************************************************************************/
-void note_buffered_writer_used(BufferedWriter *bw)
+void note_buffered_writer_used(struct buffered_writer *bw)
 {
 	bw->bw_used = true;
 }

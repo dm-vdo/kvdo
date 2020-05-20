@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#4 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -36,9 +36,9 @@ typedef enum completionStatus {
 } CompletionStatus;
 
 typedef struct readPortal {
-  struct indexComponent  *component;
-  BufferedReader        **readers;
-  unsigned int            zones;
+  struct indexComponent   *component;
+  struct buffered_reader **readers;
+  unsigned int             zones;
 } ReadPortal;
 
 /**
@@ -60,9 +60,9 @@ typedef int (*Loader)(ReadPortal *portal);
  *
  * @return UDS_SUCCESS or an error code
  **/
-typedef int (*Saver)(struct indexComponent *component,
-                     BufferedWriter        *writer,
-                     unsigned int           zone);
+typedef int (*Saver)(struct indexComponent  *component,
+                     struct buffered_writer *writer,
+                     unsigned int            zone);
 
 /**
  * Command code used by IncrementalWriter function protocol.
@@ -79,7 +79,7 @@ typedef enum incrementalWriterCommand {
 typedef struct writeZone {
   struct indexComponent    *component;
   IncrementalWriterCommand  phase;
-  BufferedWriter           *writer;
+  struct buffered_writer   *writer;
   unsigned int              zone;
 } WriteZone;
 
@@ -93,7 +93,7 @@ typedef struct writeZone {
  * @return      UDS_SUCCESS or an error code
  **/
 typedef int (*IncrementalWriter)(struct indexComponent    *component,
-                                 BufferedWriter           *writer,
+                                 struct buffered_writer   *writer,
                                  unsigned int              zone,
                                  IncrementalWriterCommand  command,
                                  bool                     *completed);
@@ -348,9 +348,8 @@ int __must_check discardIndexComponent(IndexComponent *component);
  *
  * @note the reader is managed by the component portal
  **/
-int __must_check
-getBufferedReaderForPortal(ReadPortal *portal,
-			   unsigned int part,
-			   BufferedReader **readerPtr);
+int __must_check getBufferedReaderForPortal(ReadPortal *portal,
+					    unsigned int part,
+					    struct buffered_reader **readerPtr);
 
 #endif /* INDEX_COMPONENT_H */
