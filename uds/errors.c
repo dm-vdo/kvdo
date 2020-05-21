@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#2 $
  */
 
 #include "errors.h"
@@ -27,7 +27,7 @@
 
 #include <linux/errno.h>
 
-static const struct errorInfo successful = { "UDS_SUCCESS", "Success" };
+static const struct error_info successful = { "UDS_SUCCESS", "Success" };
 
 static const char *const messageTable[] = {
   [EPERM]   = "Operation not permitted",
@@ -66,7 +66,7 @@ static const char *const messageTable[] = {
   [ERANGE]  = "Numerical result out of range"
 };
 
-static const struct errorInfo errorList[] = {
+static const struct error_info errorList[] = {
   { "UDS_UNINITIALIZED", "UDS library is not initialized" },
   { "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
   { "UDS_EMODULE_LOAD", "Could not load modules" },
@@ -125,7 +125,7 @@ static const struct errorInfo errorList[] = {
   { "UDS_INVALID_OPERATION_TYPE", "Invalid type of request operation"},
 };
 
-static const struct errorInfo internalErrorList[] = {
+static const struct error_info internalErrorList[] = {
   { "UDS_INTERNAL_UNUSED_0", "Unused internal error 0" },
   { "UDS_OVERFLOW", "Index overflow" },
   { "UDS_INTERNAL_UNUSED_2", "Unused internal error 2" },
@@ -153,22 +153,22 @@ static const struct errorInfo internalErrorList[] = {
   { "UDS_OUT_OF_RANGE", "Cannot access data outside specified limits" },
 };
 
-typedef struct errorBlock {
-  const char      *name;
-  int              base;
-  int              last;
-  int              max;
-  const ErrorInfo *infos;
-} ErrorBlock;
+struct error_block {
+  const char              *name;
+  int                      base;
+  int                      last;
+  int                      max;
+  const struct error_info *infos;
+};
 
 enum {
   MAX_ERROR_BLOCKS = 6          // needed for testing
 };
 
 static struct errorInformation {
-  int        allocated;
-  int        count;
-  ErrorBlock blocks[MAX_ERROR_BLOCKS];
+  int                allocated;
+  int                count;
+  struct error_block blocks[MAX_ERROR_BLOCKS];
 } registeredErrors = {
   .allocated = MAX_ERROR_BLOCKS,
   .count     = 2,
@@ -199,7 +199,7 @@ static struct errorInformation {
  *
  * @return              the name of the error block (if known), NULL othersise
  **/
-static const char *getErrorInfo(int errnum, const ErrorInfo **infoPtr)
+static const char *getErrorInfo(int errnum, const struct error_info **infoPtr)
 {
 
   if (errnum == UDS_SUCCESS) {
@@ -209,7 +209,7 @@ static const char *getErrorInfo(int errnum, const ErrorInfo **infoPtr)
     return NULL;
   }
 
-  ErrorBlock *block;
+  struct error_block *block;
   for (block = registeredErrors.blocks;
        block < registeredErrors.blocks + registeredErrors.count;
        ++block) {
@@ -274,8 +274,8 @@ const char *stringError(int errnum, char *buf, size_t buflen)
     errnum = sansUnrecoverable(errnum);
   }
 
-  const ErrorInfo *info      = NULL;
-  const char      *blockName = getErrorInfo(errnum, &info);
+  const struct error_info *info      = NULL;
+  const char              *blockName = getErrorInfo(errnum, &info);
 
   if (blockName != NULL) {
     if (info != NULL) {
@@ -306,8 +306,8 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen)
   char *buffer = buf;
   char *bufEnd = buf + buflen;
 
-  const ErrorInfo *info      = NULL;
-  const char      *blockName = getErrorInfo(errnum, &info);
+  const struct error_info *info      = NULL;
+  const char              *blockName = getErrorInfo(errnum, &info);
 
   if (blockName != NULL) {
     if (info != NULL) {
@@ -329,11 +329,11 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen)
 }
 
 /*****************************************************************************/
-int registerErrorBlock(const char      *blockName,
-                       int              firstError,
-                       int              lastReservedError,
-                       const ErrorInfo *infos,
-                       size_t           infoSize)
+int registerErrorBlock(const char              *blockName,
+                       int                      firstError,
+                       int                      lastReservedError,
+                       const struct error_info *infos,
+                       size_t                   infoSize)
 {
   int result = ASSERT(firstError < lastReservedError,
                       "bad error block range");
@@ -346,7 +346,7 @@ int registerErrorBlock(const char      *blockName,
     return UDS_OVERFLOW;
   }
 
-  ErrorBlock *block;
+  struct error_block *block;
   for (block = registeredErrors.blocks;
        block < registeredErrors.blocks + registeredErrors.count;
        ++block) {
@@ -359,10 +359,10 @@ int registerErrorBlock(const char      *blockName,
     }
   }
 
-  registeredErrors.blocks[registeredErrors.count++] = (ErrorBlock) {
+  registeredErrors.blocks[registeredErrors.count++] = (struct error_block) {
     .name  = blockName,
     .base  = firstError,
-    .last  = firstError + (infoSize / sizeof(ErrorInfo)),
+    .last  = firstError + (infoSize / sizeof(struct error_info)),
     .max   = lastReservedError,
     .infos = infos
   };

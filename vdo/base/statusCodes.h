@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#4 $
  */
 
 #ifndef STATUS_CODES_H
@@ -119,7 +119,7 @@ enum vdo_status_codes {
 	VDO_STATUS_CODE_BLOCK_END = VDO_BLOCK_END
 };
 
-extern const struct errorInfo vdo_status_list[];
+extern const struct error_info vdo_status_list[];
 
 /**
  * Register the VDO status codes if needed.

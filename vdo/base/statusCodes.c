@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#6 $
  */
 
 #include "statusCodes.h"
@@ -25,7 +25,7 @@
 #include "permassert.h"
 #include "threadOnce.h"
 
-const struct errorInfo vdo_status_list[] = {
+const struct error_info vdo_status_list[] = {
 	{ "VDO_NOT_IMPLEMENTED", "Not implemented" },
 	{ "VDO_OUT_OF_RANGE", "Out of range" },
 	{ "VDO_REF_COUNT_INVALID", "Reference count would become invalid" },

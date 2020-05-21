@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#4 $
  */
 
 #ifndef ERRORS_H
@@ -141,10 +141,10 @@ static INLINE int __must_check sansUnrecoverable(int result)
   return result & ~UDS_UNRECOVERABLE;
 }
 
-typedef struct errorInfo {
+struct error_info {
   const char *name;
   const char *message;
-} ErrorInfo;
+};
 
 /**
  * Register an error code block for stringError and stringErrorName.
@@ -161,11 +161,11 @@ typedef struct errorInfo {
  *         block name is already present, or UDS_ALREADY_REGISTERED if a
  *         block with the specified error code is present
  **/
-int registerErrorBlock(const char      *blockName,
-                       int              firstError,
-                       int              lastReservedError,
-                       const ErrorInfo *infos,
-                       size_t           infoSize);
+int registerErrorBlock(const char              *blockName,
+                       int                      firstError,
+                       int                      lastReservedError,
+                       const struct error_info *infos,
+                       size_t                   infoSize);
 
 /**
  * Return the first error between result1 and result2.
