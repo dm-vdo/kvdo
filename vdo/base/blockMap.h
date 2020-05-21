@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#25 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -118,23 +118,6 @@ int __must_check decode_block_map(struct buffer *buffer,
 				  block_count_t logical_blocks,
 				  const struct thread_config *thread_config,
 				  struct block_map **map_ptr);
-
-/**
- * Create a block map from the saved state of a Sodium block map, and do any
- * necessary upgrade work.
- *
- * @param [in]  buffer          A buffer containing the super block state
- * @param [in]  logical_blocks  The number of logical blocks for the VDO
- * @param [in]  thread_config   The thread configuration of the VDO
- * @param [out] map_ptr         The pointer to hold the new block map
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check
-decode_sodium_block_map(struct buffer *buffer,
-			block_count_t logical_blocks,
-			const struct thread_config *thread_config,
-			struct block_map **map_ptr);
 
 /**
  * Allocate the page caches for a block map.

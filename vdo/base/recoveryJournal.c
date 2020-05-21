@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#64 $
  */
 
 #include "recoveryJournal.h"
@@ -741,14 +741,6 @@ int decode_recovery_journal(struct recovery_journal *journal,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-int decode_sodium_recovery_journal(struct recovery_journal *journal,
-				   struct buffer *buffer)
-{
-	// Sodium uses version 7.0, same as head, currently.
-	return decode_recovery_journal(journal, buffer);
-}
-
 /**
  * Advance the tail of the journal.
  *
@@ -1284,7 +1276,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		// We are supposed to not do IO. Don't botch it by reaping.
 		return;
 	}
-	
+
 	// Start reclaiming blocks only when the journal head has no references.
 	// Then stop when a block is referenced.
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)

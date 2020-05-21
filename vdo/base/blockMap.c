@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#67 $
  */
 
 #include "blockMap.h"
@@ -268,16 +268,6 @@ int decode_block_map(struct buffer *buffer,
 
 	*map_ptr = map;
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int decode_sodium_block_map(struct buffer *buffer,
-			    block_count_t logical_blocks,
-			    const struct thread_config *thread_config,
-			    struct block_map **map_ptr)
-{
-	// Sodium uses state version 2.0.
-	return decode_block_map(buffer, logical_blocks, thread_config, map_ptr);
 }
 
 /**

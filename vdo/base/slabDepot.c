@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#66 $
  */
 
 #include "slabDepot.h"
@@ -756,28 +756,6 @@ int decode_slab_depot(struct buffer *buffer,
 			      recovery_journal,
 			      vdo_state,
 			      depot_ptr);
-}
-
-/**********************************************************************/
-int decode_sodium_slab_depot(struct buffer *buffer,
-			     const struct thread_config *thread_config,
-			     nonce_t nonce,
-			     PhysicalLayer *layer,
-			     struct partition *summary_partition,
-			     struct read_only_notifier *read_only_notifier,
-			     struct recovery_journal *recovery_journal,
-			     struct slab_depot **depot_ptr)
-{
-	// Sodium uses version 2.0 of the slab depot state.
-	return decode_slab_depot(buffer,
-				 thread_config,
-				 nonce,
-				 layer,
-				 summary_partition,
-				 read_only_notifier,
-				 recovery_journal,
-				 NULL,
-				 depot_ptr);
 }
 
 /**********************************************************************/

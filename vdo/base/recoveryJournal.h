@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#24 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -301,18 +301,6 @@ encode_recovery_journal(struct recovery_journal *journal,
 int __must_check
 decode_recovery_journal(struct recovery_journal *journal,
 			struct buffer *buffer);
-
-/**
- * Decode the state of a Sodium recovery journal saved in a buffer.
- *
- * @param journal  the recovery journal
- * @param buffer   the buffer containing the saved state
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check
-decode_sodium_recovery_journal(struct recovery_journal *journal,
-			       struct buffer *buffer);
 
 /**
  * Add an entry to a recovery journal. This method is asynchronous. The data_vio

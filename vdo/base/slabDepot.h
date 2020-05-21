@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#35 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -118,30 +118,6 @@ size_t __must_check get_slab_depot_encoded_size(void);
  **/
 int __must_check
 encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer);
-
-/**
- * Decode the state of a slab depot saved in a buffer.
- *
- * @param [in]  buffer              The buffer containing the saved state
- * @param [in]  thread_config       The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summary_partition   The partition which holds the slab summary
- * @param [in]  read_only_notifier  The context for entering read-only mode
- * @param [in]  recovery_journal    The recovery journal of the VDO
- * @param [out] depot_ptr           A pointer to hold the depot
- *
- * @return A success or error code
- **/
-int __must_check
-decode_sodium_slab_depot(struct buffer *buffer,
-			 const struct thread_config *thread_config,
-			 nonce_t nonce,
-			 PhysicalLayer *layer,
-			 struct partition *summary_partition,
-			 struct read_only_notifier *read_only_notifier,
-			 struct recovery_journal *recovery_journal,
-			 struct slab_depot **depot_ptr);
 
 /**
  * Decode the state of a slab depot saved in a buffer.
