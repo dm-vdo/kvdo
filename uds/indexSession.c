@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -216,7 +216,7 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
 int udsSuspendIndexSession(struct uds_index_session *session, bool save)
 {
   int result;
-  bool saveIndex = false;
+  bool save_index = false;
   bool suspendIndex = false;
   lockMutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
@@ -226,7 +226,7 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
   } else if (!(session->state & IS_FLAG_LOADING)) {
     session->state |= IS_FLAG_SUSPENDED;
     broadcastCond(&session->requestCond);
-    saveIndex = save;
+    save_index = save;
     result = UDS_SUCCESS;
   } else {
     session->state |= IS_FLAG_WAITING;
@@ -234,7 +234,7 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
     result = UDS_SUCCESS;
   }
   unlockMutex(&session->requestMutex);
-  if (saveIndex) {
+  if (save_index) {
     result = udsSaveIndex(session);
   }
   if (!suspendIndex) {
@@ -502,7 +502,7 @@ int udsGetIndexStats(struct uds_index_session *indexSession,
     return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
                                    "received a NULL index stats pointer");
   }
-  getIndexStats(indexSession->router->index, stats);
+  get_index_stats(indexSession->router->index, stats);
   return UDS_SUCCESS;
 }
 

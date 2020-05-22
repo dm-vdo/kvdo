@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#55 $
  */
 
 #include "dmvdo.h"
@@ -576,6 +576,8 @@ static int vdo_initialize(struct dm_target *ti,
 		 (config->md_raid5_mode_enabled ? "on" : "off"));
 	logDebug("Write policy           = %s",
 		 get_config_write_policy_string(config));
+	logDebug("Deduplication          = %s",
+		 (config->deduplication ? "on" : "off"));
 
 	// The thread_config will be copied by the VDO if it's successfully
 	// created.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#10 $
  */
 
 #include "indexPageMap.h"
@@ -178,7 +178,7 @@ int findIndexPageNumber(const IndexPageMap          *map,
     				   geometry->chaptersPerVolume - 1);
   }
 
-  unsigned int deltaListNumber = hashToChapterDeltaList(name, geometry);
+  unsigned int deltaListNumber = hash_to_chapter_delta_list(name, geometry);
   unsigned int slot = (chapterNumber * (geometry->indexPagesPerChapter - 1));
   unsigned int limit = slot + (geometry->indexPagesPerChapter - 1);
   unsigned int indexPageNumber = 0;

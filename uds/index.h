@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#9 $
  */
 
 #ifndef INDEX_H
@@ -34,62 +34,63 @@
 /**
  * Index checkpoint state private to indexCheckpoint.c.
  **/
-typedef struct indexCheckpoint IndexCheckpoint;
+struct index_checkpoint;
 
-typedef struct index {
-  bool                  existed;
-  bool                  hasSavedOpenChapter;
-  LoadType              loadedType;
-  IndexLoadContext     *loadContext;
-  struct index_layout  *layout;
-  IndexState           *state;
-  MasterIndex          *masterIndex;
-  Volume               *volume;
-  unsigned int          zoneCount;
-  IndexZone           **zones;
+struct index {
+	bool existed;
+	bool has_saved_open_chapter;
+	LoadType loaded_type;
+	IndexLoadContext *load_context;
+	struct index_layout *layout;
+	struct index_state *state;
+	MasterIndex *master_index;
+	Volume *volume;
+	unsigned int zone_count;
+	IndexZone **zones;
 
-  /*
-   * ATTENTION!!!
-   * The meaning of the next two fields has changed.
-   *
-   * They now represent the oldest and newest chapters only at load time,
-   * and when the index is quiescent. At other times, they may lag individual
-   * zones' views of the index depending upon the progress made by the chapter
-   * writer.
-   */
-  uint64_t               oldestVirtualChapter;
-  uint64_t               newestVirtualChapter;
+	/*
+	 * ATTENTION!!!
+	 * The meaning of the next two fields has changed.
+	 *
+	 * They now represent the oldest and newest chapters only at load time,
+	 * and when the index is quiescent. At other times, they may lag
+	 * individual zones' views of the index depending upon the progress
+	 * made by the chapter writer.
+	 */
+	uint64_t oldest_virtual_chapter;
+	uint64_t newest_virtual_chapter;
 
-  uint64_t               lastCheckpoint;
-  uint64_t               prevCheckpoint;
-  struct chapter_writer *chapterWriter;
+	uint64_t last_checkpoint;
+	uint64_t prev_checkpoint;
+	struct chapter_writer *chapter_writer;
 
-  // checkpoint state used by indexCheckpoint.c
-  IndexCheckpoint *checkpoint;
-} Index;
+	// checkpoint state used by indexCheckpoint.c
+	struct index_checkpoint *checkpoint;
+};
 
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout       The index layout
- * @param config       The configuration to use
- * @param userParams   The index session parameters.  If NULL, the default
- *                     session parameters will be used.
- * @param zoneCount    The number of zones for this index to use
- * @param loadType     How to create the index:  it can be create only, allow
- *                     loading from files, and allow rebuilding from the volume
- * @param loadContext  The load context to use
- * @param newIndex     A pointer to hold a pointer to the new index
+ * @param layout	The index layout
+ * @param config	The configuration to use
+ * @param user_params	The index session parameters.  If NULL, the default
+ *			session parameters will be used.
+ * @param zone_count	The number of zones for this index to use
+ * @param load_type	How to create the index:  it can be create only, allow
+ *			loading from files, and allow rebuilding from the
+ *			volume
+ * @param load_context	The load context to use
+ * @param new_index	A pointer to hold a pointer to the new index
  *
- * @return         UDS_SUCCESS or an error code
+ * @return	   UDS_SUCCESS or an error code
  **/
-int __must_check makeIndex(struct index_layout *layout,
-			   const struct configuration *config,
-			   const struct uds_parameters *userParams,
-			   unsigned int zoneCount,
-			   LoadType loadType,
-			   IndexLoadContext *loadContext,
-			   Index **newIndex);
+int __must_check make_index(struct index_layout *layout,
+			    const struct configuration *config,
+			    const struct uds_parameters *user_params,
+			    unsigned int zone_count,
+			    LoadType load_type,
+			    IndexLoadContext *load_context,
+			    struct index **new_index);
 
 /**
  * Save an index.
@@ -97,22 +98,22 @@ int __must_check makeIndex(struct index_layout *layout,
  * Before saving an index and while saving an index, the caller must ensure
  * that there are no index requests in progress.
  *
- * Some users follow saveIndex immediately with a freeIndex.  But some tests
- * use index_layout to modify the saved index.  The Index will then have
+ * Some users follow save_index immediately with a free_index.	But some tests
+ * use index_layout to modify the saved index.	The index will then have
  * some cached information that does not reflect these updates.
  *
- * @param index   The index to save
+ * @param index	  The index to save
  *
- * @return        UDS_SUCCESS if successful
+ * @return	  UDS_SUCCESS if successful
  **/
-int __must_check saveIndex(Index *index);
+int __must_check save_index(struct index *index);
 
 /**
  * Clean up the index and its memory.
  *
- * @param index   The index to destroy.
+ * @param index	  The index to destroy.
  **/
-void freeIndex(Index *index);
+void free_index(struct index *index);
 
 /**
  * Perform the index operation specified by the action field of a UDS request.
@@ -140,49 +141,50 @@ void freeIndex(Index *index);
  *
  * For non-API requests, no chunk name search is involved.
  *
- * @param index       The index
+ * @param index	      The index
  * @param request     The originating request
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int __must_check dispatchIndexRequest(Index *index, Request *request);
+int __must_check dispatch_index_request(struct index *index, Request *request);
 
 /**
  * Internal helper to prepare the index for saving.
  *
- * @param index              the index
- * @param checkpoint         whether the save is a checkpoint
- * @param openChapterNumber  the virtual chapter number of the open chapter
+ * @param index		       the index
+ * @param checkpoint	       whether the save is a checkpoint
+ * @param open_chapter_number  the virtual chapter number of the open chapter
  **/
-void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber);
+void begin_save(struct index *index, bool checkpoint,
+		uint64_t open_chapter_number);
 
 /**
  * Replay the volume file to repopulate the master index.
  *
- * @param index         The index
- * @param fromVCN       The virtual chapter to start replaying
+ * @param index		The index
+ * @param from_vcn	The virtual chapter to start replaying
  *
- * @return              UDS_SUCCESS if successful
+ * @return		UDS_SUCCESS if successful
  **/
-int __must_check replayVolume(Index *index, uint64_t fromVCN);
+int __must_check replay_volume(struct index *index, uint64_t from_vcn);
 
 /**
  * Gather statistics from the master index, volume, and cache.
  *
- * @param index     The index
+ * @param index	    The index
  * @param counters  the statistic counters for the index
  **/
-void getIndexStats(Index *index, struct uds_index_stats *counters);
+void get_index_stats(struct index *index, struct uds_index_stats *counters);
 
 /**
  * Set lookup state for this index.  Disabling lookups means assume
  * all records queried are new (intended for debugging uses, e.g.,
  * albfill).
  *
- * @param index     The index
+ * @param index	    The index
  * @param enabled   The new lookup state
  **/
-void setIndexLookupState(Index *index, bool enabled);
+void set_index_lookup_state(struct index *index, bool enabled);
 
 /**
  * Advance the newest virtual chapter. If this will overwrite the oldest
@@ -190,7 +192,7 @@ void setIndexLookupState(Index *index, bool enabled);
  *
  * @param index The index to advance
  **/
-void advanceActiveChapters(Index *index);
+void advance_active_chapters(struct index *index);
 
 /**
  * Triage an index request, deciding whether it requires that a sparse cache
@@ -203,12 +205,13 @@ void advanceActiveChapters(Index *index);
  * conditions are met, the (sparse) virtual chapter number is returned. In all
  * other cases it returns <code>UINT64_MAX</code>.
  *
- * @param index    the index that will process the request
+ * @param index	   the index that will process the request
  * @param request  the index request containing the chunk name to triage
  *
  * @return the sparse chapter number for the sparse cache barrier message, or
- *         <code>UINT64_MAX</code> if the request does not require a barrier
+ *	   <code>UINT64_MAX</code> if the request does not require a barrier
  **/
-uint64_t __must_check triageIndexRequest(Index *index, Request *request);
+uint64_t __must_check triage_index_request(struct index *index,
+					   Request *request);
 
 #endif /* INDEX_H */

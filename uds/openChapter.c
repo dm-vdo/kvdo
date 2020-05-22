@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#11 $
  */
 
 #include "openChapter.h"
@@ -155,7 +155,7 @@ int closeOpenChapter(OpenChapterZone           **chapterZones,
 }
 
 /**********************************************************************/
-int saveOpenChapters(Index *index, struct buffered_writer *writer)
+int saveOpenChapters(struct index *index, struct buffered_writer *writer)
 {
   int result = write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC,
                                         OPEN_CHAPTER_MAGIC_LENGTH);
@@ -171,7 +171,7 @@ int saveOpenChapters(Index *index, struct buffered_writer *writer)
 
   uint32_t totalRecords = 0;
   unsigned int i;
-  for (i = 0; i < index->zoneCount; i++) {
+  for (i = 0; i < index->zone_count; i++) {
     totalRecords += openChapterSize(index->zones[i]->openChapter);
   }
 
@@ -190,7 +190,7 @@ int saveOpenChapters(Index *index, struct buffered_writer *writer)
   unsigned int recordIndex = 1;
   while(recordsAdded < totalRecords) {
     unsigned int i;
-    for (i = 0; i < index->zoneCount; i++) {
+    for (i = 0; i < index->zone_count; i++) {
       if (recordIndex > index->zones[i]->openChapter->size) {
         continue;
       }
@@ -230,7 +230,7 @@ static int writeOpenChapters(IndexComponent *component,
     return result;
   }
 
-  Index *index = indexComponentData(component);
+  struct index *index = indexComponentData(component);
   return saveOpenChapters(index, writer);
 }
 
@@ -263,7 +263,7 @@ static int readVersion(struct buffered_reader *reader, const byte **version)
 }
 
 /**********************************************************************/
-static int loadVersion20(Index *index, struct buffered_reader *reader)
+static int loadVersion20(struct index *index, struct buffered_reader *reader)
 {
   byte numRecordsData[sizeof(uint32_t)];
   int result
@@ -287,9 +287,9 @@ static int loadVersion20(Index *index, struct buffered_reader *reader)
     }
 
     unsigned int zone = 0;
-    if (index->zoneCount > 1) {
+    if (index->zone_count > 1) {
       // A read-only index has no master index, but it also has only one zone.
-      zone = getMasterIndexZone(index->masterIndex, &record.name);
+      zone = getMasterIndexZone(index->master_index, &record.name);
     }
     // Add records until the open chapter zone almost runs out of space.
     // The chapter can't be closed here, so don't add the last record.
@@ -308,7 +308,7 @@ static int loadVersion20(Index *index, struct buffered_reader *reader)
 }
 
 /**********************************************************************/
-int loadOpenChapters(Index *index, struct buffered_reader *reader)
+int loadOpenChapters(struct index *index, struct buffered_reader *reader)
 {
   // Read and check the magic number.
   int result =
@@ -330,7 +330,7 @@ int loadOpenChapters(Index *index, struct buffered_reader *reader)
 /**********************************************************************/
 int readOpenChapters(ReadPortal *portal)
 {
-  Index *index = indexComponentData(portal->component);
+  struct index *index = indexComponentData(portal->component);
 
   struct buffered_reader *reader;
   int result = getBufferedReaderForPortal(portal, 0, &reader);

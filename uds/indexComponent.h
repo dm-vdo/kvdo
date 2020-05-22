@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#5 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -121,7 +121,7 @@ typedef struct indexComponent {
   const IndexComponentInfo  *info;          // IndexComponentInfo specification
   void                      *componentData; // The object to load or save
   void                      *context;       // The context used to load or save
-  struct indexState         *state;         // The index state
+  struct index_state        *state;         // The index state
   unsigned int               numZones;      // Number of zones in write portal
   WriteZone               **writeZones;     // State for writing component
 } IndexComponent;
@@ -139,7 +139,7 @@ typedef struct indexComponent {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makeIndexComponent(struct indexState *state,
+int __must_check makeIndexComponent(struct index_state *state,
 				    const IndexComponentInfo *info,
 				    unsigned int zoneCount,
 				    void *data,

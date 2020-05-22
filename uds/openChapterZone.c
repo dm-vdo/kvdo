@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#5 $
  */
 
 #include "openChapterZone.h"
@@ -53,7 +53,7 @@ static INLINE size_t nextPowerOfTwo(size_t val)
   if (val == 0) {
     return 1;
   }
-  return (1 << computeBits(val - 1));
+  return (1 << compute_bits(val - 1));
 }
 
 /**********************************************************************/
@@ -135,7 +135,7 @@ probeChapterSlots(OpenChapterZone             *openChapter,
                   unsigned int                *recordNumberPtr)
 {
   unsigned int slots     = openChapter->slotCount;
-  unsigned int probe     = nameToHashSlot(name, slots);
+  unsigned int probe     = name_to_hash_slot(name, slots);
   unsigned int firstSlot = 0;
 
   struct uds_chunk_record *record;

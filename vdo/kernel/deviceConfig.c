@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#17 $
  */
 
 #include "deviceConfig.h"
@@ -439,9 +439,13 @@ static int parse_one_key_value_pair(const char *key,
 				    const char *value,
 				    struct device_config *config)
 {
+	if (strcmp(key, "deduplication") == 0) {
+		return parse_bool(value, "on", "off", &config->deduplication);
+	}
+
+	// The remaining arguments must have integral values.
 	unsigned int count;
 	int result = string_to_uint(value, &count);
-
 	if (result != UDS_SUCCESS) {
 		logError(
 			"optional config string error: integer value needed, found \"%s\"",
@@ -600,6 +604,7 @@ int parse_device_config(int argc,
 		.hash_zones = 0,
 	};
 	config->max_discard_blocks = 1;
+	config->deduplication = true;
 
 	struct dm_arg_set arg_set;
 

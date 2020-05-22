@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#5 $
  */
 
 #include "indexZone.h"
@@ -41,14 +41,14 @@ int makeIndexZone(struct index *index, unsigned int zoneNumber)
     return result;
   }
 
-  result = makeOpenChapter(index->volume->geometry, index->zoneCount,
+  result = makeOpenChapter(index->volume->geometry, index->zone_count,
                            &zone->openChapter);
   if (result != UDS_SUCCESS) {
     freeIndexZone(zone);
     return result;
   }
 
-  result = makeOpenChapter(index->volume->geometry, index->zoneCount,
+  result = makeOpenChapter(index->volume->geometry, index->zone_count,
                            &zone->writingChapter);
   if (result != UDS_SUCCESS) {
     freeIndexZone(zone);
@@ -87,8 +87,8 @@ bool isZoneChapterSparse(const IndexZone *zone,
 /**********************************************************************/
 void setActiveChapters(IndexZone *zone)
 {
-  zone->oldestVirtualChapter = zone->index->oldestVirtualChapter;
-  zone->newestVirtualChapter = zone->index->newestVirtualChapter;
+  zone->oldestVirtualChapter = zone->index->oldest_virtual_chapter;
+  zone->newestVirtualChapter = zone->index->newest_virtual_chapter;
 }
 
 /**
@@ -102,7 +102,7 @@ void setActiveChapters(IndexZone *zone)
 static int swapOpenChapter(IndexZone *zone)
 {
   // Wait for any currently writing chapter to complete
-  int result = finish_previous_chapter(zone->index->chapterWriter,
+  int result = finish_previous_chapter(zone->index->chapter_writer,
                                        zone->newestVirtualChapter);
   if (result != UDS_SUCCESS) {
     return result;
@@ -125,7 +125,7 @@ static int swapOpenChapter(IndexZone *zone)
  **/
 static int reapOldestChapter(IndexZone *zone)
 {
-  Index *index = zone->index;
+  struct index *index = zone->index;
   unsigned int chaptersPerVolume = index->volume->geometry->chaptersPerVolume;
   int result
     = ASSERT(((zone->newestVirtualChapter - zone->oldestVirtualChapter)
@@ -138,7 +138,7 @@ static int reapOldestChapter(IndexZone *zone)
     return result;
   }
 
-  setMasterIndexZoneOpenChapter(index->masterIndex, zone->id,
+  setMasterIndexZoneOpenChapter(index->master_index, zone->id,
                                 zone->newestVirtualChapter);
   return UDS_SUCCESS;
 }
@@ -217,7 +217,7 @@ static int announceChapterClosed(Request   *request,
   };
 
   unsigned int i;
-  for (i = 0; i < zone->index->zoneCount; i++) {
+  for (i = 0; i < zone->index->zone_count; i++) {
     if (zone->id == i) {
       continue;
     }
@@ -269,10 +269,10 @@ int openNextChapter(IndexZone *zone, Request *request)
     return result;
   }
 
-  unsigned int finishedZones = start_closing_chapter(zone->index->chapterWriter,
-                                                     zone->id,
-                                                     zone->writingChapter);
-  if ((finishedZones == 1) && (zone->index->zoneCount > 1)) {
+  unsigned int finishedZones
+    = start_closing_chapter(zone->index->chapter_writer, zone->id,
+                            zone->writingChapter);
+  if ((finishedZones == 1) && (zone->index->zone_count > 1)) {
     // This is the first zone of a multi-zone index to close this chapter,
     // so inform the other zones in order to control zone skew.
     result = announceChapterClosed(request, zone, closedChapter);
@@ -290,7 +290,7 @@ int openNextChapter(IndexZone *zone, Request *request)
   }
 
   uint64_t victim = zone->oldestVirtualChapter++;
-  if (finishedZones < zone->index->zoneCount) {
+  if (finishedZones < zone->index->zone_count) {
     // We are not the last zone to close the chapter, so we're done
     return UDS_SUCCESS;
   }

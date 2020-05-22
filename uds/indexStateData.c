@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#7 $
  */
 
 #include "indexStateData.h"
@@ -56,7 +56,8 @@ static const IndexStateVersion INDEX_STATE_VERSION_301 = {
  **/
 static int readIndexStateData(ReadPortal *portal)
 {
-  struct buffer *buffer = getStateIndexStateBuffer(portal->component->state, IO_READ);
+  struct buffer *buffer
+    = get_state_index_state_buffer(portal->component->state, IO_READ);
   int result = rewind_buffer(buffer, uncompacted_amount(buffer));
   if (result != UDS_SUCCESS) {
     return result;
@@ -74,7 +75,7 @@ static int readIndexStateData(ReadPortal *portal)
 
   if (fileVersion.signature != -1 || fileVersion.versionID != 301) {
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
-                                   "Index state version %d,%d is unsupported",
+                                   "index state version %d,%d is unsupported",
                                    fileVersion.signature,
                                    fileVersion.versionID);
   }
@@ -105,28 +106,29 @@ static int readIndexStateData(ReadPortal *portal)
     return UDS_CORRUPT_COMPONENT;
   }
 
-  Index *index = indexComponentData(portal->component);
-  index->newestVirtualChapter = state.newestChapter;
-  index->oldestVirtualChapter = state.oldestChapter;
-  index->lastCheckpoint       = state.lastCheckpoint;
+  struct index *index = indexComponentData(portal->component);
+  index->newest_virtual_chapter = state.newestChapter;
+  index->oldest_virtual_chapter = state.oldestChapter;
+  index->last_checkpoint        = state.lastCheckpoint;
   return UDS_SUCCESS;
 }
 
 /**
  * The index state index component writer.
  *
- * @param component The component whose state is to be saved (an Index)
+ * @param component The component whose state is to be saved (an index)
  * @param writer    The buffered writer.
  * @param zone      The zone to write.
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int
-writeIndexStateData(IndexComponent                 *component,
+writeIndexStateData(IndexComponent         *component,
                     struct buffered_writer *writer  __attribute__((unused)),
                     unsigned int            zone __attribute__((unused)))
 {
-  struct buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
+  struct buffer *buffer
+    = get_state_index_state_buffer(component->state, IO_WRITE);
   int result = reset_buffer_end(buffer, 0);
   if (result != UDS_SUCCESS) {
     return result;
@@ -140,11 +142,11 @@ writeIndexStateData(IndexComponent                 *component,
     return result;
   }
 
-  Index *index = indexComponentData(component);
+  struct index *index = indexComponentData(component);
   IndexStateData301 state = {
-    .newestChapter  = index->newestVirtualChapter,
-    .oldestChapter  = index->oldestVirtualChapter,
-    .lastCheckpoint = index->lastCheckpoint,
+    .newestChapter  = index->newest_virtual_chapter,
+    .oldestChapter  = index->oldest_virtual_chapter,
+    .lastCheckpoint = index->last_checkpoint,
   };
 
   result = put_uint64_le_into_buffer(buffer, state.newestChapter);

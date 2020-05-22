@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#7 $
  */
 
 #include "chapterIndex.h"
@@ -118,9 +118,10 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 	}
 
 	struct delta_index_entry entry;
-	unsigned int address = hashToChapterDeltaAddress(name, geometry);
+	unsigned int address = hash_to_chapter_delta_address(name, geometry);
 	result = get_delta_index_entry(&open_chapter_index->delta_index,
-				       hashToChapterDeltaList(name, geometry),
+				       hash_to_chapter_delta_list(name,
+				       				  geometry),
 				       address,
 				       name->name,
 				       false,
@@ -312,8 +313,9 @@ int search_chapter_index_page(struct delta_index_page *chapter_index_page,
 			      int *record_page_ptr)
 {
 	struct delta_index *delta_index = &chapter_index_page->delta_index;
-	unsigned int address = hashToChapterDeltaAddress(name, geometry);
-	unsigned int delta_list_number = hashToChapterDeltaList(name, geometry);
+	unsigned int address = hash_to_chapter_delta_address(name, geometry);
+	unsigned int delta_list_number =
+		hash_to_chapter_delta_list(name, geometry);
 	unsigned int sub_list_number =
 		delta_list_number - chapter_index_page->lowest_list_number;
 	struct delta_index_entry entry;

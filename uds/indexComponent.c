@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#8 $
  */
 
 #include "indexComponent.h"
@@ -31,7 +31,7 @@
 #include "typeDefs.h"
 
 /*****************************************************************************/
-int makeIndexComponent(IndexState                *state,
+int makeIndexComponent(struct index_state        *state,
                        const IndexComponentInfo  *info,
                        unsigned int               zoneCount,
                        void                      *data,
@@ -137,9 +137,9 @@ int getBufferedReaderForPortal(ReadPortal      *portal,
   }
   IndexComponent *component = portal->component;
   if (component->info->ioStorage && (portal->readers[part] == NULL)) {
-    int result = openStateBufferedReader(component->state,
-                                         component->info->kind, part,
-                                         &portal->readers[part]);
+    int result = open_state_buffered_reader(component->state,
+                                            component->info->kind, part,
+                                            &portal->readers[part]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "%s: cannot make buffered reader "
@@ -158,7 +158,7 @@ int readIndexComponent(IndexComponent *component)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  int readZones = component->state->loadZones;
+  int readZones = component->state->load_zones;
   result = ALLOCATE(readZones,
 		    struct buffered_reader *,
 		    "read zone buffered readers",
@@ -334,9 +334,9 @@ static int openBufferedWriters(IndexComponent *component)
     }
 
     if (component->info->ioStorage) {
-      int result = openStateBufferedWriter(component->state,
-                                           component->info->kind, wz->zone,
-                                           &wz->writer);
+      int result = open_state_buffered_writer(component->state,
+                                              component->info->kind, wz->zone,
+                                              &wz->writer);
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -720,14 +720,14 @@ int discardIndexComponent(IndexComponent *component)
     return result;
   }
 
-  unsigned int oldSaveSlot = component->state->saveSlot;
-  component->state->saveSlot = saveSlot;
+  unsigned int oldSaveSlot = component->state->save_slot;
+  component->state->save_slot = saveSlot;
 
   unsigned int z;
   for (z = 0; z < numZones; ++z) {
     struct buffered_writer *writer;
-    int result = openStateBufferedWriter(component->state,
-                                         component->info->kind, z, &writer);
+    int result = open_state_buffered_writer(component->state,
+                                            component->info->kind, z, &writer);
     if (result != UDS_SUCCESS) {
       break;
     }
@@ -742,6 +742,6 @@ int discardIndexComponent(IndexComponent *component)
     free_buffered_writer(writer);
   }
 
-  component->state->saveSlot = oldSaveSlot;
+  component->state->save_slot = oldSaveSlot;
   return result;
 }

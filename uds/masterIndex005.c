@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#16 $
  */
 #include "masterIndex005.h"
 
@@ -118,7 +118,7 @@ static INLINE unsigned int maxUint(unsigned int a, unsigned int b)
 static INLINE unsigned int extractAddress(const MasterIndex5          *mi5,
                                           const struct uds_chunk_name *name)
 {
-  return extractMasterIndexBytes(name) & mi5->addressMask;
+  return extract_master_index_bytes(name) & mi5->addressMask;
 }
 
 /**
@@ -132,7 +132,7 @@ static INLINE unsigned int extractAddress(const MasterIndex5          *mi5,
 static INLINE unsigned int extractDListNum(const MasterIndex5          *mi5,
                                            const struct uds_chunk_name *name)
 {
-  uint64_t bits = extractMasterIndexBytes(name);
+  uint64_t bits = extract_master_index_bytes(name);
   return (bits >> mi5->addressBits) % mi5->numDeltaLists;
 }
 
@@ -1291,8 +1291,8 @@ static int computeMasterIndexParameters005(const struct configuration *config,
   unsigned int numAddresses = config->masterIndexMeanDelta * DELTA_LIST_SIZE;
   params->numDeltaLists
     = maxUint(recordsPerVolume / DELTA_LIST_SIZE, minDeltaLists);
-  params->addressBits = computeBits(numAddresses - 1);
-  params->chapterBits = computeBits(params->numChapters - 1);
+  params->addressBits = compute_bits(numAddresses - 1);
+  params->chapterBits = compute_bits(params->numChapters - 1);
 
   if ((unsigned int) params->numDeltaLists != params->numDeltaLists) {
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
@@ -1352,9 +1352,9 @@ static int computeMasterIndexParameters005(const struct configuration *config,
   unsigned long addressSpan = params->numDeltaLists << params->addressBits;
   params->meanDelta = addressSpan / entriesInMasterIndex;
   // Project how large we expect a chapter to be
-  params->numBitsPerChapter = getDeltaMemorySize(recordsPerChapter,
-                                                 params->meanDelta,
-                                                 params->chapterBits);
+  params->numBitsPerChapter = get_delta_memory_size(recordsPerChapter,
+                                                    params->meanDelta,
+                                                    params->chapterBits);
   // Project how large we expect the index to be
   size_t numBitsPerIndex = params->numBitsPerChapter * chaptersInMasterIndex;
   size_t expectedIndexSize = numBitsPerIndex / CHAR_BIT;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#9 $
  */
 
 #ifndef DELTAINDEX_H
@@ -427,7 +427,8 @@ get_delta_entry_collision(const struct delta_index_entry *delta_entry,
 static INLINE uint64_t
 get_delta_entry_offset(const struct delta_index_entry *delta_entry)
 {
-	return getDeltaListStart(delta_entry->delta_list) + delta_entry->offset;
+	return get_delta_list_start(delta_entry->delta_list) +
+		delta_entry->offset;
 }
 
 /**

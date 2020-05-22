@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#6 $
  */
 #include "masterIndexOps.h"
 
@@ -127,7 +127,7 @@ static int writeMasterIndex(IndexComponent           *component,
     case IWC_FINISH:
       result = finishSavingMasterIndex(masterIndex, zone);
       if (result == UDS_SUCCESS) {
-        result = writeGuardDeltaList(writer);
+        result = write_guard_delta_list(writer);
       }
       isComplete = true;
       break;
@@ -178,7 +178,7 @@ static int restoreMasterIndexBody(struct buffered_reader **bufferedReaders,
   for (z = 0; z < numReaders; z++) {
     for (;;) {
       struct delta_list_save_info dlsi;
-      result = readSavedDeltaList(&dlsi, dlData, bufferedReaders[z]);
+      result = read_saved_delta_list(&dlsi, dlData, bufferedReaders[z]);
       if (result == UDS_END_OF_FILE) {
         break;
       } else if (result != UDS_SUCCESS) {

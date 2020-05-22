@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#3 $
  */
 
 #include "geometry.h"
@@ -71,16 +71,16 @@ static int initializeGeometry(Geometry    *geometry,
 
   // Initialize values for delta chapter indexes.
   geometry->chapterMeanDelta     = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
-  geometry->chapterPayloadBits   = computeBits(recordPagesPerChapter - 1);
+  geometry->chapterPayloadBits   = compute_bits(recordPagesPerChapter - 1);
   // We want 1 delta list for every 64 records in the chapter.  The "| 077"
   // ensures that the chapterDeltaListBits computation does not underflow.
   geometry->chapterDeltaListBits
-    = computeBits((geometry->recordsPerChapter - 1) | 077) - 6;
+    = compute_bits((geometry->recordsPerChapter - 1) | 077) - 6;
   geometry->deltaListsPerChapter = 1 << geometry->chapterDeltaListBits;
   // We need enough address bits to achieve the desired mean delta.
   geometry->chapterAddressBits
     = (DEFAULT_CHAPTER_MEAN_DELTA_BITS - geometry->chapterDeltaListBits
-       + computeBits(geometry->recordsPerChapter - 1));
+       + compute_bits(geometry->recordsPerChapter - 1));
   // Let the delta index code determine how many pages are needed for the index
   geometry->indexPagesPerChapter
     = get_delta_index_page_count(geometry->recordsPerChapter,

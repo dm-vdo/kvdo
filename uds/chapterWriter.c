@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#9 $
  */
 
 #include "chapterWriter.h"
@@ -33,7 +33,7 @@
 
 struct chapter_writer {
 	/* The index to which we belong */
-	Index *index;
+	struct index *index;
 	/* The thread to do the writing */
 	Thread thread;
 	/* lock protecting the following fields */
@@ -66,7 +66,7 @@ static void close_chapters(void *arg)
 	logDebug("chapter writer starting");
 	lockMutex(&writer->mutex);
 	for (;;) {
-		while (writer->zones_to_write < writer->index->zoneCount) {
+		while (writer->zones_to_write < writer->index->zone_count) {
 			if (writer->stop && (writer->zones_to_write == 0)) {
 				// We've been told to stop, and all of the
 				// zones are in the same open chapter, so we
@@ -86,16 +86,17 @@ static void close_chapters(void *arg)
 		 */
 		unlockMutex(&writer->mutex);
 
-		if (writer->index->hasSavedOpenChapter) {
-			writer->index->hasSavedOpenChapter = false;
+		if (writer->index->has_saved_open_chapter) {
+			writer->index->has_saved_open_chapter = false;
 			/*
 			 * Remove the saved open chapter as that chapter is
 			 * about to be written to the volume.  This matters the
 			 * first time we close the open chapter after loading
 			 * from a clean shutdown, or after doing a clean save.
 			 */
-			IndexComponent *oc = findIndexComponent(
-				writer->index->state, &OPEN_CHAPTER_INFO);
+			IndexComponent *oc =
+				find_index_component(writer->index->state,
+			                             &OPEN_CHAPTER_INFO);
 			int result = discardIndexComponent(oc);
 			if (result == UDS_SUCCESS) {
 				logDebug("Discarding saved open chapter");
@@ -104,11 +105,11 @@ static void close_chapters(void *arg)
 
 		int result =
 			closeOpenChapter(writer->chapters,
-					 writer->index->zoneCount,
+					 writer->index->zone_count,
 					 writer->index->volume,
 					 writer->open_chapter_index,
 					 writer->collated_records,
-					 writer->index->newestVirtualChapter);
+					 writer->index->newest_virtual_chapter);
 
 		if (result == UDS_SUCCESS) {
 			result = processChapterWriterCheckpointSaves(
@@ -119,7 +120,7 @@ static void close_chapters(void *arg)
 		lockMutex(&writer->mutex);
 		// Note that the index is totally finished with the writing
 		// chapter
-		advanceActiveChapters(writer->index);
+		advance_active_chapters(writer->index);
 		writer->result = result;
 		writer->zones_to_write = 0;
 		broadcastCond(&writer->cond);
@@ -127,7 +128,7 @@ static void close_chapters(void *arg)
 }
 
 /**********************************************************************/
-int make_chapter_writer(Index *index,
+int make_chapter_writer(struct index *index,
 			const struct index_version *index_version,
 			struct chapter_writer **writer_ptr)
 {
@@ -136,7 +137,7 @@ int make_chapter_writer(Index *index,
 		 (1 + index->volume->geometry->recordsPerChapter));
 	struct chapter_writer *writer;
 	int result = ALLOCATE_EXTENDED(struct chapter_writer,
-				       index->zoneCount,
+				       index->zone_count,
 				       OpenChapterZone *,
 				       "Chapter Writer",
 				       &writer);
@@ -181,7 +182,7 @@ int make_chapter_writer(Index *index,
 			writer->open_chapter_index);
 	writer->memory_allocated =
 		(sizeof(struct chapter_writer) +
-		 index->zoneCount * sizeof(OpenChapterZone *) +
+		 index->zone_count * sizeof(OpenChapterZone *) +
 		 collated_records_size + open_chapter_index_memory_allocated);
 
 	// We're initialized, so now it's safe to start the writer thread.
@@ -230,7 +231,8 @@ int finish_previous_chapter(struct chapter_writer *writer,
 {
 	int result;
 	lockMutex(&writer->mutex);
-	while (writer->index->newestVirtualChapter < current_chapter_number) {
+	while (writer->index->newest_virtual_chapter <
+	       current_chapter_number) {
 		waitCond(&writer->cond, &writer->mutex);
 	}
 	result = writer->result;

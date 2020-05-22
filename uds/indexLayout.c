@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#20 $
  */
 
 #include "indexLayout.h"
@@ -97,7 +97,7 @@ struct index_save_layout {
 	struct layout_region free_space;
 	struct layout_region *master_index_zones;
 	struct layout_region *open_chapter;
-	IndexSaveType save_type;
+	enum index_save_type save_type;
 	struct index_save_data save_data;
 	struct buffer *index_state_buffer;
 	bool read;
@@ -857,7 +857,7 @@ static void setup_layout(struct layout_region *lr,
 static void populate_index_save_layout(struct index_save_layout *isl,
 				       struct super_block_data *super,
 				       unsigned int num_zones,
-				       IndexSaveType save_type)
+				       enum index_save_type save_type)
 {
 	uint64_t next_block = isl->index_save.start_block;
 
@@ -939,7 +939,7 @@ reconstruct_index_save(struct index_save_layout *isl,
 		      &iter,
 		      1,
 		      RL_KIND_HEADER,
-		      RL_SOLE_INSTANCE);		
+		      RL_SOLE_INSTANCE);
 	expect_layout(true,
 		      &isl->index_page_map,
 		      &iter,
@@ -1988,7 +1988,7 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 			      struct super_block_data *super,
 			      uint64_t volume_nonce,
 			      unsigned int num_zones,
-			      IndexSaveType save_type)
+			      enum index_save_type save_type)
 {
 	int result = UDS_SUCCESS;
 	if (isl->open_chapter && save_type == IS_CHECKPOINT) {
@@ -2059,7 +2059,7 @@ invalidate_old_save(struct index_layout *layout, struct index_save_layout *isl)
 /*****************************************************************************/
 int setup_index_save_slot(struct index_layout *layout,
 			  unsigned int num_zones,
-			  IndexSaveType save_type,
+			  enum index_save_type save_type,
 			  unsigned int *save_slot_ptr)
 {
 	struct sub_index_layout *sil = &layout->index;
@@ -2163,7 +2163,7 @@ make_index_save_region_table(struct index_save_layout *isl,
 }
 
 /*****************************************************************************/
-static unsigned int region_type_for_save_type(IndexSaveType save_type)
+static unsigned int region_type_for_save_type(enum index_save_type save_type)
 {
 	switch (save_type) {
 	case IS_SAVE:

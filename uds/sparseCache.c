@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#10 $
  */
 
 /**
@@ -411,7 +411,7 @@ bool sparseCacheContains(SparseCache  *cache,
 /**********************************************************************/
 int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
 {
-  const Index *index = zone->index;
+  const struct index *index = zone->index;
   SparseCache *cache = index->volume->sparseCache;
 
   // If the chapter is already in the cache, we don't need to do a thing
@@ -440,7 +440,7 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
 
     // First check that the desired chapter is still in the volume. If it's
     // not, the hook fell out of the index and there's nothing to do for it.
-    if (virtualChapter >= index->oldestVirtualChapter) {
+    if (virtualChapter >= index->oldest_virtual_chapter) {
       // Evict the least recently used live chapter, or replace a dead cache
       // entry, all by rotating the the last list entry to the front.
       struct cached_chapter_index *victim

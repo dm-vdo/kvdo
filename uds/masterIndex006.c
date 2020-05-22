@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#12 $
  */
 #include "masterIndex006.h"
 
@@ -75,7 +75,7 @@ static INLINE bool isMasterIndexSample_006(const MasterIndex  *masterIndex,
 {
   const MasterIndex6 *mi6 = const_container_of(masterIndex, MasterIndex6,
                                                common);
-  return (extractSamplingBytes(name) % mi6->sparseSampleRate) == 0;
+  return (extract_sampling_bytes(name) % mi6->sparseSampleRate) == 0;
 }
 
 /***********************************************************************/

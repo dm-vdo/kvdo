@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#5 $
  */
 
 #include "indexRouter.h"
@@ -47,9 +47,9 @@ static void executeZoneRequest(Request *request)
  * @param index           the index with the relevant cache and chapter
  * @param virtualChapter  the virtual chapter number of the chapter to cache
  **/
-static void enqueueBarrierMessages(IndexRouter *router,
-                                   Index       *index,
-                                   uint64_t     virtualChapter)
+static void enqueueBarrierMessages(IndexRouter  *router,
+                                   struct index *index,
+                                   uint64_t      virtualChapter)
 {
   ZoneMessage barrier = {
     .index = index,
@@ -79,10 +79,10 @@ static void enqueueBarrierMessages(IndexRouter *router,
 static void triageRequest(Request *request)
 {
   IndexRouter *router = request->router;
-  Index *index = router->index;
+  struct index *index = router->index;
 
   // Check if the name is a hook in the index pointing at a sparse chapter.
-  uint64_t sparseVirtualChapter = triageIndexRequest(index, request);
+  uint64_t sparseVirtualChapter = triage_index_request(index, request);
   if (sparseVirtualChapter != UINT64_MAX) {
     // Generate and place a barrier request on every zone queue.
     enqueueBarrierMessages(router, index, sparseVirtualChapter);
@@ -156,14 +156,14 @@ int makeIndexRouter(struct index_layout          *layout,
     return result;
   }
 
-  result = makeIndex(layout, config, userParams, router->zoneCount, loadType,
-                     loadContext, &router->index);
+  result = make_index(layout, config, userParams, router->zoneCount, loadType,
+                      loadContext, &router->index);
   if (result != UDS_SUCCESS) {
     freeIndexRouter(router);
     return logErrorWithStringError(result, "failed to create index");
   }
 
-  router->needToSave = (router->index->loadedType != LOAD_LOAD);
+  router->needToSave = (router->index->loaded_type != LOAD_LOAD);
   *routerPtr = router;
   return UDS_SUCCESS;
 }
@@ -174,7 +174,7 @@ int saveIndexRouter(IndexRouter *router)
   if (!router->needToSave) {
     return UDS_SUCCESS;
   }
-  int result = saveIndex(router->index);
+  int result = save_index(router->index);
   router->needToSave = (result != UDS_SUCCESS);
   return result;
 }
@@ -190,7 +190,7 @@ void freeIndexRouter(IndexRouter *router)
   for (i = 0; i < router->zoneCount; i++) {
     requestQueueFinish(router->zoneQueues[i]);
   }
-  freeIndex(router->index);
+  free_index(router->index);
   FREE(router);
 }
 
@@ -215,8 +215,8 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
     return NULL;
   }
 
-  Index *index = router->index;
-  request->zoneNumber = getMasterIndexZone(index->masterIndex,
+  struct index *index = router->index;
+  request->zoneNumber = getMasterIndexZone(index->master_index,
                                            &request->chunkName);
   return getZoneQueue(router, request->zoneNumber);
 }
@@ -242,8 +242,8 @@ void executeIndexRouterRequest(IndexRouter *router, Request *request)
     return;
   }
 
-  Index *index = router->index;
-  int result = dispatchIndexRequest(index, request);
+  struct index *index = router->index;
+  int result = dispatch_index_request(index, request);
   if (result == UDS_QUEUED) {
     // Take the request off the pipeline.
     return;

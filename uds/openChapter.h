@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#7 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -73,7 +73,8 @@ int __must_check closeOpenChapter(OpenChapterZone **chapterZones,
  *
  * @return UDS_SUCCESS on success
  **/
-int __must_check saveOpenChapters(Index *index, struct buffered_writer *writer);
+int __must_check saveOpenChapters(struct index *index,
+				  struct buffered_writer *writer);
 
 /**
  * Read a partially filled chapter from a file.
@@ -83,7 +84,8 @@ int __must_check saveOpenChapters(Index *index, struct buffered_writer *writer);
  *
  * @return UDS_SUCCESS on success
  **/
-int __must_check loadOpenChapters(Index *index, struct buffered_reader *reader);
+int __must_check loadOpenChapters(struct index *index,
+				  struct buffered_reader *reader);
 
 /**
  * Compute the size of the maximum open chapter save image.

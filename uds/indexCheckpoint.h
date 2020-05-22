@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#3 $
  */
 
 #ifndef INDEX_CHECKPOINT_H
@@ -31,14 +31,14 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makeIndexCheckpoint(Index *index);
+int __must_check makeIndexCheckpoint(struct index *index);
 
 /**
  * Free the checkpoint sub-structure of an index.
  *
  * @param checkpoint  the structure to free
  **/
-void freeIndexCheckpoint(IndexCheckpoint *checkpoint);
+void freeIndexCheckpoint(struct index_checkpoint *checkpoint);
 
 /**
  * Get the current checkpointing frequency of an index.
@@ -48,7 +48,7 @@ void freeIndexCheckpoint(IndexCheckpoint *checkpoint);
  * @return the number of chapters between checkpoints
  **/
 unsigned int __must_check
-getIndexCheckpointFrequency(IndexCheckpoint *checkpoint);
+getIndexCheckpointFrequency(struct index_checkpoint *checkpoint);
 
 /**
  * Set checkpointing frequency for the index.
@@ -58,8 +58,8 @@ getIndexCheckpointFrequency(IndexCheckpoint *checkpoint);
  *
  * @return the old checkpointing frequency
  **/
-unsigned int setIndexCheckpointFrequency(IndexCheckpoint *checkpoint,
-                                         unsigned int     frequency);
+unsigned int setIndexCheckpointFrequency(struct index_checkpoint *checkpoint,
+                                         unsigned int             frequency);
 
 /**
  * Gets the number of checkpoints completed during the lifetime of this index
@@ -68,7 +68,7 @@ unsigned int setIndexCheckpointFrequency(IndexCheckpoint *checkpoint,
  *
  * @return            the number of checkpoints completed
  **/
-uint64_t __must_check getCheckpointCount(IndexCheckpoint *checkpoint);
+uint64_t __must_check getCheckpointCount(struct index_checkpoint *checkpoint);
 
 /**
  * If incremental checkpointing is in progress, finish it.
@@ -83,7 +83,7 @@ uint64_t __must_check getCheckpointCount(IndexCheckpoint *checkpoint);
  *              error to call this function if checkpointing is not in
  *              progress, it silently returns success.
  **/
-int __must_check finishCheckpointing(Index *index);
+int __must_check finishCheckpointing(struct index *index);
 
 /**
  * Process one zone's incremental checkpoint operation. Automatically
@@ -100,9 +100,9 @@ int __must_check finishCheckpointing(Index *index);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check processCheckpointing(Index *index,
-				      unsigned int zone,
-				      uint64_t newVirtualChapter);
+int __must_check processCheckpointing(struct index *index,
+				      unsigned int  zone,
+				      uint64_t      newVirtualChapter);
 
 /**
  * Process saves done outside any zone by the chapter writer.
@@ -113,6 +113,6 @@ int __must_check processCheckpointing(Index *index,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check processChapterWriterCheckpointSaves(Index *index);
+int __must_check processChapterWriterCheckpointSaves(struct index *index);
 
 #endif // INDEX_CHECKPOINT_H

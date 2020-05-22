@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#93 $
  */
 
 #include "kernelLayer.h"
@@ -1137,9 +1137,13 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 	layer->stats_added = true;
 
-	// Don't try to load or rebuild the index first (and log scary error
-	// messages) if this is known to be a newly-formatted volume.
-	start_dedupe_index(layer->dedupe_index, was_new(layer->kvdo.vdo));
+	if (layer->device_config->deduplication) {
+		// Don't try to load or rebuild the index first (and log
+		// scary error messages) if this is known to be a
+		// newly-formatted volume.
+		start_dedupe_index(layer->dedupe_index,
+				   was_new(layer->kvdo.vdo));
+	}
 
 	layer->allocations_allowed = false;
 

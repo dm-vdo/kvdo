@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#6 $
  */
 
 #ifndef HASH_UTILS_H
@@ -30,12 +30,12 @@
 
 // How various portions of a hash are apportioned.  Size dependent.
 enum {
-  MASTER_INDEX_BYTES_OFFSET  = 0,  // size 8
-  CHAPTER_INDEX_BYTES_OFFSET = 8,  // size 6
-  SAMPLE_BYTES_OFFSET        = 14, // size 2
-  MASTER_INDEX_BYTES_COUNT   = 8,
-  CHAPTER_INDEX_BYTES_COUNT  = 6,
-  SAMPLE_BYTES_COUNT         = 2,
+	MASTER_INDEX_BYTES_OFFSET  = 0,  // size 8
+	CHAPTER_INDEX_BYTES_OFFSET = 8,  // size 6
+	SAMPLE_BYTES_OFFSET 	   = 14, // size 2
+	MASTER_INDEX_BYTES_COUNT   = 8,
+       	CHAPTER_INDEX_BYTES_COUNT  = 6,
+       	SAMPLE_BYTES_COUNT = 2,
 };
 
 /**
@@ -45,13 +45,14 @@ enum {
  *
  * @return The chapter index bytes
  **/
-static INLINE uint64_t extractChapterIndexBytes(const struct uds_chunk_name *name)
+static INLINE uint64_t
+extract_chapter_index_bytes(const struct uds_chunk_name *name)
 {
-  // Get the high order 16 bits, then the low order 32 bits
-  const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
-  uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
-  bytes |= get_unaligned_be32(chapter_bits + 2);
-  return bytes;
+	// Get the high order 16 bits, then the low order 32 bits
+	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
+	uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
+	bytes |= get_unaligned_be32(chapter_bits + 2);
+	return bytes;
 }
 
 /**
@@ -61,9 +62,10 @@ static INLINE uint64_t extractChapterIndexBytes(const struct uds_chunk_name *nam
  *
  * @return The master index portion of the block name
  **/
-static INLINE uint64_t extractMasterIndexBytes(const struct uds_chunk_name *name)
+static INLINE uint64_t
+extract_master_index_bytes(const struct uds_chunk_name *name)
 {
-  return get_unaligned_be64(&name->name[MASTER_INDEX_BYTES_OFFSET]);
+	return get_unaligned_be64(&name->name[MASTER_INDEX_BYTES_OFFSET]);
 }
 
 /**
@@ -73,9 +75,10 @@ static INLINE uint64_t extractMasterIndexBytes(const struct uds_chunk_name *name
  *
  * @return The sparse sample portion of the block name
  **/
-static INLINE uint32_t extractSamplingBytes(const struct uds_chunk_name *name)
+static INLINE uint32_t
+extract_sampling_bytes(const struct uds_chunk_name *name)
 {
-  return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
+	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**
@@ -87,12 +90,12 @@ static INLINE uint32_t extractSamplingBytes(const struct uds_chunk_name *name)
  * @return The chapter delta list where we expect to find the given blockname
  **/
 static INLINE unsigned int
-hashToChapterDeltaList(const struct uds_chunk_name *name,
-                       const Geometry              *geometry)
+hash_to_chapter_delta_list(const struct uds_chunk_name *name,
+			   const Geometry *geometry)
 {
-  return (unsigned int) ((extractChapterIndexBytes(name)
-                          >> geometry->chapterAddressBits)
-                         & ((1 << geometry->chapterDeltaListBits) - 1));
+	return (unsigned int) ((extract_chapter_index_bytes(name) >>
+				geometry->chapterAddressBits) &
+			       ((1 << geometry->chapterDeltaListBits) - 1));
 }
 
 /**
@@ -104,68 +107,68 @@ hashToChapterDeltaList(const struct uds_chunk_name *name,
  * @return The chapter delta address to use
  **/
 static INLINE unsigned int
-hashToChapterDeltaAddress(const struct uds_chunk_name *name,
-                          const Geometry *geometry)
+hash_to_chapter_delta_address(const struct uds_chunk_name *name,
+			      const Geometry *geometry)
 {
-  return (unsigned int) (extractChapterIndexBytes(name)
-                         & ((1 << geometry->chapterAddressBits) - 1));
+	return (unsigned int) (extract_chapter_index_bytes(name) &
+			       ((1 << geometry->chapterAddressBits) - 1));
 }
 
 /**
  * For a given block name, find the slot in the open chapter hash table
  * where it is expected to reside.
  *
- * @param name      The block name to hash
- * @param slotCount The size of the hash table
+ * @param name        The block name to hash
+ * @param slot_count  The size of the hash table
  *
  * @return the record number in the index page where we expect to find
  #         the given blockname
  **/
-static INLINE unsigned int nameToHashSlot(const struct uds_chunk_name *name,
-                                          unsigned int slotCount)
+static INLINE unsigned int name_to_hash_slot(const struct uds_chunk_name *name,
+					     unsigned int slot_count)
 {
-  return (unsigned int) (extractChapterIndexBytes(name) % slotCount);
+	return (unsigned int) (extract_chapter_index_bytes(name) % slot_count);
 }
 
 /**
  * Convert a chunk name to hex to make it more readable.
  *
- * @param chunkName  The chunk name
- * @param hexData    The resulting hexdata from the given chunk name
- * @param hexDataLen The capacity of hexData
+ * @param chunk_name    The chunk name
+ * @param hex_data      The resulting hexdata from the given chunk name
+ * @param hex_data_len  The capacity of hex_data
  *
  * @return              UDS_SUCCESS,
- *                      or UDS_INVALID_ARGUMENT if hexDataLen
+ *                      or UDS_INVALID_ARGUMENT if hex_data_len
  *                      is too short.
  **/
-int __must_check
-chunkNameToHex(const struct uds_chunk_name *chunkName, char *hexData,
-               size_t hexDataLen);
+int __must_check chunk_name_to_hex(const struct uds_chunk_name *chunk_name,
+				   char *hex_data,
+				   size_t hex_data_len);
 
 /**
  * Convert chunk data to hex to make it more readable.
  *
- * @param chunkData  The chunk data
- * @param hexData    The resulting hexdata from the given chunk data
- * @param hexDataLen The capacity of hexData
+ * @param chunk_data    The chunk data
+ * @param hex_data      The resulting hexdata from the given chunk data
+ * @param hex_data_len  The capacity of hex_data
  *
  * @return              UDS_SUCCESS,
- *                      or UDS_INVALID_ARGUMENT if hexDataLen
+ *                      or UDS_INVALID_ARGUMENT if hex_data_len
  *                      is too short.
  **/
-int __must_check
-chunkDataToHex(const struct uds_chunk_data *chunkData, char *hexData,
-               size_t hexDataLen);
+int __must_check chunk_data_to_hex(const struct uds_chunk_data *chunk_data,
+				   char *hex_data,
+				   size_t hex_data_len);
 
 /**
  * Compute the number of bits required to store a field with the given
  * maximum value.
  *
- * @param maxValue   The maximum value of the field
+ * @param max_value  The maximum value of the field
  *
  * @return           the number of bits required
  **/
-unsigned int __must_check computeBits(unsigned int maxValue);
+unsigned int __must_check compute_bits(unsigned int max_value);
 
 /**
  * FOR TESTING. Set the portion of a block name used by the chapter index.
@@ -173,14 +176,14 @@ unsigned int __must_check computeBits(unsigned int maxValue);
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void setChapterIndexBytes(struct uds_chunk_name *name,
-                                        uint64_t value)
+static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
+					   uint64_t value)
 {
-  // Store the high order bytes, then the low-order bytes
-  put_unaligned_be16((uint16_t)(value >> 32),
-                     &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
-  put_unaligned_be32((uint32_t)value,
-                     &name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
+	// Store the high order bytes, then the low-order bytes
+	put_unaligned_be16((uint16_t)(value >> 32),
+			   &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
+	put_unaligned_be32((uint32_t) value,
+			   &name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
 }
 
 /**
@@ -190,13 +193,13 @@ static INLINE void setChapterIndexBytes(struct uds_chunk_name *name,
  * @param geometry The geometry to use
  * @param value    The value to store
  **/
-static INLINE void setChapterDeltaListBits(struct uds_chunk_name *name,
-                                           const Geometry        *geometry,
-                                           uint64_t               value)
+static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
+					       const Geometry *geometry,
+					       uint64_t value)
 {
-  uint64_t deltaAddress = hashToChapterDeltaAddress(name, geometry);
-  deltaAddress |= value << geometry->chapterAddressBits;
-  setChapterIndexBytes(name, deltaAddress);
+	uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
+	delta_address |= value << geometry->chapterAddressBits;
+	set_chapter_index_bytes(name, delta_address);
 }
 
 /**
@@ -205,10 +208,10 @@ static INLINE void setChapterDeltaListBits(struct uds_chunk_name *name,
  * @param name  The block name
  * @param val   The value to store
  **/
-static INLINE void setMasterIndexBytes(struct uds_chunk_name *name,
-                                       uint64_t val)
+static INLINE void set_master_index_bytes(struct uds_chunk_name *name,
+					  uint64_t val)
 {
-  put_unaligned_be64(val, &name->name[MASTER_INDEX_BYTES_OFFSET]);
+	put_unaligned_be64(val, &name->name[MASTER_INDEX_BYTES_OFFSET]);
 }
 
 /**
@@ -217,10 +220,10 @@ static INLINE void setMasterIndexBytes(struct uds_chunk_name *name,
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void setSamplingBytes(struct uds_chunk_name *name,
-                                    uint32_t value)
+static INLINE void set_sampling_bytes(struct uds_chunk_name *name,
+				      uint32_t value)
 {
-  put_unaligned_be16((uint16_t)value, &name->name[SAMPLE_BYTES_OFFSET]);
+	put_unaligned_be16((uint16_t) value, &name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**
@@ -228,6 +231,6 @@ static INLINE void setSamplingBytes(struct uds_chunk_name *name,
  * function will fail to compile if UDS_CHUNK_NAME_SIZE is not an integer
  * multiple of 8.
  **/
-void hashUtilsCompileTimeAssertions(void);
+void hash_utils_compile_time_assertions(void);
 
 #endif /* HASH_UTILS_H */

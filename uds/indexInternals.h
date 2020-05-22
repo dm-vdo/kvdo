@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.h#6 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -29,29 +29,29 @@
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout      The index layout to use
- * @param config      The configuration to use
- * @param userParams  The index session parameters.  If NULL, the default
- *                    session parameters will be used.
- * @param zoneCount   The number of zones for this index to use
- * @param loadType    How to create the index:  it can be create only, allow
- *                    loading from files, and allow rebuilding from the volume
- * @param newIndex    A pointer to hold a pointer to the new index
+ * @param layout       The index layout to use
+ * @param config       The configuration to use
+ * @param user_params  The index session parameters.  If NULL, the default
+ *                     session parameters will be used.
+ * @param zone_count   The number of zones for this index to use
+ * @param load_type    How to create the index:  it can be create only, allow
+ *                     loading from files, and allow rebuilding from the volume
+ * @param new_index    A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check allocateIndex(struct index_layout *layout,
-			       const struct configuration *config,
-			       const struct uds_parameters *userParams,
-			       unsigned int zoneCount,
-			       LoadType loadType,
-			       Index **newIndex);
+int __must_check allocate_index(struct index_layout *layout,
+				const struct configuration *config,
+				const struct uds_parameters *user_params,
+				unsigned int zone_count,
+				LoadType load_type,
+				struct index **new_index);
 
 /**
  * Clean up the index and its memory.
  *
  * @param index    The index to destroy.
  **/
-void releaseIndex(Index *index);
+void release_index(struct index *index);
 
 #endif /* INDEX_INTERNALS_H */

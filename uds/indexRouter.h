@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#7 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -40,7 +40,7 @@ struct indexRouter {
   IndexRouterCallback  callback;
   unsigned int         zoneCount;
   bool                 needToSave;
-  Index               *index;
+  struct index        *index;
   RequestQueue        *triageQueue;
   RequestQueue        *zoneQueues[];
 };
@@ -123,7 +123,7 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
  **/
 static INLINE void waitForIdleIndexRouter(IndexRouter *router)
 {
-  wait_for_idle_chapter_writer(router->index->chapterWriter);
+  wait_for_idle_chapter_writer(router->index->chapter_writer);
 }
 
 #endif /* INDEX_ROUTER_H */
