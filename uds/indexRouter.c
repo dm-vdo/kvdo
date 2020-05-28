@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#6 $
  */
 
 #include "indexRouter.h"
@@ -99,8 +99,8 @@ static void triageRequest(Request *request)
  *
  * @return  UDS_SUCCESS or error code
  **/
-static int initializeLocalIndexQueues(IndexRouter    *router,
-                                      const Geometry *geometry)
+static int initializeLocalIndexQueues(IndexRouter           *router,
+                                      const struct geometry *geometry)
 {
   unsigned int i;
   for (i = 0; i < router->zoneCount; i++) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#7 $
  */
 
 #ifndef HASH_UTILS_H
@@ -91,7 +91,7 @@ extract_sampling_bytes(const struct uds_chunk_name *name)
  **/
 static INLINE unsigned int
 hash_to_chapter_delta_list(const struct uds_chunk_name *name,
-			   const Geometry *geometry)
+                           const struct geometry       *geometry)
 {
 	return (unsigned int) ((extract_chapter_index_bytes(name) >>
 				geometry->chapterAddressBits) &
@@ -108,7 +108,7 @@ hash_to_chapter_delta_list(const struct uds_chunk_name *name,
  **/
 static INLINE unsigned int
 hash_to_chapter_delta_address(const struct uds_chunk_name *name,
-			      const Geometry *geometry)
+                              const struct geometry *geometry)
 {
 	return (unsigned int) (extract_chapter_index_bytes(name) &
 			       ((1 << geometry->chapterAddressBits) - 1));
@@ -194,8 +194,8 @@ static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
  * @param value    The value to store
  **/
 static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
-					       const Geometry *geometry,
-					       uint64_t value)
+                                               const struct geometry *geometry,
+                                               uint64_t               value)
 {
 	uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
 	delta_address |= value << geometry->chapterAddressBits;

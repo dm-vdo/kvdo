@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.h#2 $
  */
 
 #ifndef INDEX_CONFIG_H
@@ -32,7 +32,7 @@ struct configuration {
   /* Parameters for the volume */
 
   /* The volume layout */
-  Geometry *geometry;
+  struct geometry *geometry;
 
   /* Size of the page cache and sparse chapter index cache, in chapters */
   unsigned int cacheChapters;

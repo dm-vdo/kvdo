@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#4 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -54,7 +54,7 @@ struct index;
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makeSparseCache(const Geometry *geometry,
+int __must_check makeSparseCache(const struct geometry *geometry,
 				 unsigned int capacity,
 				 unsigned int zoneCount,
 				 SparseCache **cachePtr);

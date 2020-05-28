@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#11 $
  */
 
 #include "indexPageMap.h"
@@ -57,13 +57,13 @@ const IndexComponentInfo INDEX_PAGE_MAP_INFO = {
 };
 
 /*****************************************************************************/
-static INLINE size_t numEntries(const Geometry *geometry)
+static INLINE size_t numEntries(const struct geometry *geometry)
 {
   return geometry->chaptersPerVolume * (geometry->indexPagesPerChapter - 1);
 }
 
 /*****************************************************************************/
-int makeIndexPageMap(const Geometry *geometry, IndexPageMap **mapPtr)
+int makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr)
 {
   unsigned int deltaListsPerChapter = geometry->deltaListsPerChapter;
   int result
@@ -118,7 +118,7 @@ int updateIndexPageMap(IndexPageMap   *map,
                        unsigned int    indexPageNumber,
                        unsigned int    deltaListNumber)
 {
-  const Geometry *geometry = map->geometry;
+  const struct geometry *geometry = map->geometry;
   if ((virtualChapterNumber < map->lastUpdate)
       || (virtualChapterNumber > map->lastUpdate + 1)) {
     // if the lastUpdate is 0, this is likely to be normal because we are
@@ -170,7 +170,7 @@ int findIndexPageNumber(const IndexPageMap          *map,
                         unsigned int                 chapterNumber,
                         unsigned int                *indexPageNumberPtr)
 {
-  const Geometry *geometry = map->geometry;
+  const struct geometry *geometry = map->geometry;
   if (chapterNumber >= geometry->chaptersPerVolume) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
     				   "chapter number %u exceeds maximum %u",
@@ -206,7 +206,7 @@ int getListNumberBounds(const IndexPageMap *map,
                         unsigned int        indexPageNumber,
                         IndexPageBounds    *bounds)
 {
-  const Geometry *geometry = map->geometry;
+  const struct geometry *geometry = map->geometry;
   int result = ASSERT((chapterNumber < geometry->chaptersPerVolume),
                       "chapter number is valid");
   if (result != UDS_SUCCESS) {
@@ -231,7 +231,7 @@ int getListNumberBounds(const IndexPageMap *map,
 }
 
 /*****************************************************************************/
-size_t indexPageMapSize(const Geometry *geometry)
+size_t indexPageMapSize(const struct geometry *geometry)
 {
   return sizeof(IndexPageMapEntry) * numEntries(geometry);
 }
@@ -292,7 +292,7 @@ static int writeIndexPageMap(IndexComponent *component,
 }
 
 /*****************************************************************************/
-uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
+uint64_t computeIndexPageMapSaveSize(const struct geometry *geometry)
 {
   return indexPageMapSize(geometry) +
     INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(((IndexPageMap *) 0)->lastUpdate);

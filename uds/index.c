@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#15 $
  */
 
 #include "index.h"
@@ -615,7 +615,7 @@ int dispatch_index_request(struct index *index, Request *request)
 /**********************************************************************/
 static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 {
-	Geometry *geometry = index->volume->geometry;
+	struct geometry *geometry = index->volume->geometry;
 	unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
 	unsigned int expected_list_number = 0;
 	unsigned int index_page_number;
@@ -841,7 +841,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 * Also, go through each index page for each chapter and rebuild the
 	 * index page map.
 	 */
-	const Geometry *geometry = index->volume->geometry;
+	const struct geometry *geometry = index->volume->geometry;
 	uint64_t old_ipm_update = getLastUpdate(index->volume->indexPageMap);
 	uint64_t vcn;
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {

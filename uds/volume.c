@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#16 $
  */
 
 #include "volume.h"
@@ -59,21 +59,22 @@ static unsigned int getReadThreads(const struct uds_parameters *userParams)
 }
 
 /**********************************************************************/
-static INLINE unsigned int mapToPageNumber(Geometry     *geometry,
-                                           unsigned int  physicalPage)
+static INLINE unsigned int mapToPageNumber(struct geometry *geometry,
+                                           unsigned int     physicalPage)
 {
   return ((physicalPage - 1) % geometry->pagesPerChapter);
 }
 
 /**********************************************************************/
-static INLINE unsigned int mapToChapterNumber(Geometry     *geometry,
-                                              unsigned int  physicalPage)
+static INLINE unsigned int mapToChapterNumber(struct geometry *geometry,
+                                              unsigned int     physicalPage)
 {
   return ((physicalPage - 1) / geometry->pagesPerChapter);
 }
 
 /**********************************************************************/
-static INLINE bool isRecordPage(Geometry *geometry, unsigned int physicalPage)
+static INLINE bool isRecordPage(struct geometry *geometry,
+                                unsigned int physicalPage)
 {
   return (((physicalPage - 1) % geometry->pagesPerChapter)
           >= geometry->indexPagesPerChapter);
@@ -86,7 +87,7 @@ static INLINE unsigned int getZoneNumber(Request *request)
 }
 
 /**********************************************************************/
-int mapToPhysicalPage(const Geometry *geometry, int chapter, int page)
+int mapToPhysicalPage(const struct geometry *geometry, int chapter, int page)
 {
   // Page zero is the header page, so the first index page in the
   // first chapter is physical page one.
@@ -169,7 +170,7 @@ static int initChapterIndexPage(const Volume            *volume,
                                 unsigned int             indexPageNumber,
                                 struct delta_index_page *chapterIndexPage)
 {
-  Geometry *geometry = volume->geometry;
+  struct geometry *geometry = volume->geometry;
 
   int result = initialize_chapter_index_page(chapterIndexPage, geometry,
                                              indexPage, volume->nonce);
@@ -393,11 +394,11 @@ static int readPageLocked(Volume        *volume,
 }
 
 /**********************************************************************/
-int getPageLocked(Volume          *volume,
-                  Request         *request,
-                  unsigned int     physicalPage,
-                  CacheProbeType   probeType,
-                  CachedPage     **pagePtr)
+int getPageLocked(Volume              *volume,
+                  Request             *request,
+                  unsigned int         physicalPage,
+                  cache_probe_type_t   probeType,
+                  CachedPage         **pagePtr)
 {
   CachedPage *page = NULL;
   int result = getPageFromCache(volume->pageCache, physicalPage, probeType,
@@ -420,11 +421,11 @@ int getPageLocked(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPageProtected(Volume          *volume,
-                     Request         *request,
-                     unsigned int     physicalPage,
-                     CacheProbeType   probeType,
-                     CachedPage     **pagePtr)
+int getPageProtected(Volume              *volume,
+                     Request             *request,
+                     unsigned int         physicalPage,
+                     cache_probe_type_t   probeType,
+                     CachedPage         **pagePtr)
 {
   CachedPage *page = NULL;
   int result = getPageFromCache(volume->pageCache, physicalPage,
@@ -522,7 +523,7 @@ int getPageProtected(Volume          *volume,
 int getPage(Volume                   *volume,
             unsigned int              chapter,
             unsigned int              pageNumber,
-            CacheProbeType            probeType,
+            cache_probe_type_t        probeType,
             byte                    **dataPtr,
             struct delta_index_page **indexPagePtr)
 {
@@ -617,7 +618,7 @@ int searchCachedRecordPage(Volume                      *volume,
     return UDS_SUCCESS;
   }
 
-  Geometry *geometry = volume->geometry;
+  struct geometry *geometry = volume->geometry;
   int result = ASSERT(((recordPageNumber >= 0)
                        && ((unsigned int) recordPageNumber
                            < geometry->recordPagesPerChapter)),
@@ -664,7 +665,7 @@ int readChapterIndexFromVolume(const Volume            *volume,
                                struct volume_page       volume_pages[],
                                struct delta_index_page  indexPages[])
 {
-  const Geometry *geometry = volume->geometry;
+  const struct geometry *geometry = volume->geometry;
   unsigned int physicalChapter = mapToPhysicalChapter(geometry,
                                                       virtualChapter);
   int physicalPage = mapToPhysicalPage(geometry, physicalChapter, 0);
@@ -789,7 +790,7 @@ int writeIndexPages(Volume                     *volume,
                     struct open_chapter_index  *chapterIndex,
                     byte                      **pages)
 {
-  Geometry *geometry = volume->geometry;
+  struct geometry *geometry = volume->geometry;
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtual_chapter_number);
   unsigned int deltaListNumber = 0;
@@ -865,7 +866,7 @@ int writeRecordPages(Volume                         *volume,
                      const struct uds_chunk_record   records[],
                      byte                          **pages)
 {
-  Geometry *geometry = volume->geometry;
+  struct geometry *geometry = volume->geometry;
   // Skip over the index pages, which come before the record pages
   physicalPage += geometry->indexPagesPerChapter;
   // The record array from the open chapter is 1-based.
@@ -916,7 +917,7 @@ int writeChapter(Volume                        *volume,
                  const struct uds_chunk_record  records[])
 {
   // Determine the position of the virtual chapter in the volume file.
-  Geometry *geometry = volume->geometry;
+  struct geometry *geometry = volume->geometry;
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtual_chapter_number);
   int physicalPage = mapToPhysicalPage(geometry, physicalChapterNumber, 0);
@@ -951,7 +952,7 @@ static int probeChapter(Volume       *volume,
                         unsigned int  chapterNumber,
                         uint64_t     *virtualChapterNumber)
 {
-  const Geometry *geometry = volume->geometry;
+  const struct geometry *geometry = volume->geometry;
   unsigned int expectedListNumber = 0;
   uint64_t lastVCN = UINT64_MAX;
 

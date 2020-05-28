@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#21 $
  */
 
 #include "indexLayout.h"
@@ -148,7 +148,7 @@ struct index_layout {
  **/
 struct save_layout_sizes {
 	struct configuration config; // this is a captive copy
-	Geometry geometry; // this is a captive copy
+	struct geometry geometry; // this is a captive copy
 	unsigned int num_saves; // per sub-index
 	size_t block_size; // in bytes
 	uint64_t volume_blocks; // per sub-index

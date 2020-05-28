@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#11 $
  */
 
 #ifndef VOLUME_H
@@ -61,7 +61,7 @@ typedef enum indexLookupMode {
 
 typedef struct volume {
   /* The layout of the volume */
-  Geometry                       *geometry;
+  struct geometry                *geometry;
   /* The configuration of the volume */
   struct configuration           *config;
   /* The access to the volume's backing store */
@@ -319,7 +319,7 @@ readChapterIndexFromVolume(const Volume *volume,
 int __must_check getPageLocked(Volume *volume,
 			       Request *request,
 			       unsigned int physicalPage,
-			       CacheProbeType probeType,
+			       cache_probe_type_t probeType,
 			       CachedPage **entryPtr);
 
 /**
@@ -350,7 +350,7 @@ int __must_check getPageLocked(Volume *volume,
 int __must_check getPageProtected(Volume *volume,
 				  Request *request,
 				  unsigned int physicalPage,
-				  CacheProbeType probeType,
+				  cache_probe_type_t probeType,
 				  CachedPage **entryPtr);
 
 /**
@@ -382,7 +382,7 @@ int __must_check getPageProtected(Volume *volume,
 int __must_check getPage(Volume *volume,
 			 unsigned int chapter,
 			 unsigned int pageNumber,
-			 CacheProbeType probeType,
+			 cache_probe_type_t probeType,
 			 byte **dataPtr,
 			 struct delta_index_page **indexPagePtr);
 
@@ -410,6 +410,6 @@ findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  * @return the physical page number
  **/
 int __must_check
-mapToPhysicalPage(const Geometry *geometry, int chapter, int page);
+mapToPhysicalPage(const struct geometry *geometry, int chapter, int page);
 
 #endif /* VOLUME_H */

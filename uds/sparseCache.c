@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#11 $
  */
 
 /**
@@ -163,7 +163,7 @@ struct sparseCache {
   unsigned int                zoneCount;
 
   /** the geometry governing the volume */
-  const Geometry             *geometry;
+  const struct geometry      *geometry;
 
   /** the number of search misses in zone zero that will disable searching */
   unsigned int                skipSearchThreshold;
@@ -194,7 +194,7 @@ struct sparseCache {
  **/
 static int __must_check
 initializeSparseCache(SparseCache *cache,
-		      const Geometry *geometry,
+		      const struct geometry *geometry,
 		      unsigned int capacity,
 		      unsigned int zoneCount)
 {
@@ -233,10 +233,10 @@ initializeSparseCache(SparseCache *cache,
 }
 
 /**********************************************************************/
-int makeSparseCache(const Geometry  *geometry,
-                    unsigned int     capacity,
-                    unsigned int     zoneCount,
-                    SparseCache    **cachePtr)
+int makeSparseCache(const struct geometry  *geometry,
+                    unsigned int            capacity,
+                    unsigned int            zoneCount,
+                    SparseCache           **cachePtr)
 {
   unsigned int bytes
     = (sizeof(SparseCache) + (capacity * sizeof(struct cached_chapter_index)));

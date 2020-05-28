@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#12 $
  */
 
 #include "openChapter.h"
@@ -82,12 +82,12 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
     return result;
   }
 
-  const Geometry *geometry     = index->geometry;
-  unsigned int pagesPerChapter = geometry->recordPagesPerChapter;
-  unsigned int recordsPerPage  = geometry->recordsPerPage;
-  int          overflowCount   = 0;
-  unsigned int recordsAdded    = 0;
-  unsigned int zone            = 0;
+  const struct geometry *geometry = index->geometry;
+  unsigned int pagesPerChapter    = geometry->recordPagesPerChapter;
+  unsigned int recordsPerPage     = geometry->recordsPerPage;
+  int          overflowCount      = 0;
+  unsigned int recordsAdded       = 0;
+  unsigned int zone               = 0;
 
   unsigned int page;
   for (page = 0; page < pagesPerChapter; page++) {
@@ -213,7 +213,7 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
 }
 
 /**********************************************************************/
-uint64_t computeSavedOpenChapterSize(Geometry *geometry)
+uint64_t computeSavedOpenChapterSize(struct geometry *geometry)
 {
   return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH +
     sizeof(uint32_t) + geometry->recordsPerChapter

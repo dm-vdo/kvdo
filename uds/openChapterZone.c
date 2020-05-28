@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#6 $
  */
 
 #include "openChapterZone.h"
@@ -57,9 +57,9 @@ static INLINE size_t nextPowerOfTwo(size_t val)
 }
 
 /**********************************************************************/
-int makeOpenChapter(const Geometry   *geometry,
-                    unsigned int      zoneCount,
-                    OpenChapterZone **openChapterPtr)
+int makeOpenChapter(const struct geometry  *geometry,
+                    unsigned int            zoneCount,
+                    OpenChapterZone       **openChapterPtr)
 {
   int result = ASSERT(zoneCount > 0, "zone count must be > 0");
   if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#13 $
  */
 #include "masterIndex006.h"
 
@@ -643,9 +643,9 @@ static void getMasterIndexStats_006(const MasterIndex *masterIndex,
 /***********************************************************************/
 typedef struct {
   struct configuration hookConfig;     // Describe hook part of the index
-  Geometry             hookGeometry;
+  struct geometry      hookGeometry;
   struct configuration nonHookConfig;  // Describe non-hook part of the index
-  Geometry             nonHookGeometry;
+  struct geometry      nonHookGeometry;
 } SplitConfig;
 
 /***********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#8 $
  */
 
 #include "chapterIndex.h"
@@ -32,7 +32,7 @@
 
 /**********************************************************************/
 int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
-			    const Geometry *geometry,
+			    const struct geometry *geometry,
 			    bool chapter_index_header_native_endian,
 			    uint64_t volume_nonce)
 {
@@ -106,7 +106,7 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 				  const struct uds_chunk_name *name,
 				  unsigned int page_number)
 {
-	const Geometry *geometry = open_chapter_index->geometry;
+	const struct geometry *geometry = open_chapter_index->geometry;
 	int result = ASSERT_WITH_ERROR_CODE(page_number <
 						geometry->recordPagesPerChapter,
 					    UDS_INVALID_ARGUMENT,
@@ -149,7 +149,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 				 unsigned int *num_lists)
 {
 	struct delta_index *delta_index = &open_chapter_index->delta_index;
-	const Geometry *geometry = open_chapter_index->geometry;
+	const struct geometry *geometry = open_chapter_index->geometry;
 	unsigned int removals = 0;
 	for (;;) {
 		int result =
@@ -248,7 +248,7 @@ get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_
 
 /**********************************************************************/
 int initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
-				  const Geometry *geometry,
+				  const struct geometry *geometry,
 				  byte *index_page,
 				  uint64_t volume_nonce)
 {
@@ -262,7 +262,7 @@ int initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
 
 /**********************************************************************/
 int validate_chapter_index_page(const struct delta_index_page *chapter_index_page,
-				const Geometry *geometry)
+				const struct geometry *geometry)
 {
 	const struct delta_index *delta_index = &chapter_index_page->delta_index;
 	unsigned int first = chapter_index_page->lowest_list_number;
@@ -308,7 +308,7 @@ int validate_chapter_index_page(const struct delta_index_page *chapter_index_pag
 
 /**********************************************************************/
 int search_chapter_index_page(struct delta_index_page *chapter_index_page,
-			      const Geometry *geometry,
+			      const struct geometry *geometry,
 			      const struct uds_chunk_name *name,
 			      int *record_page_ptr)
 {

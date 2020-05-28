@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#5 $
  */
 
 #include "indexCheckpoint.h"
@@ -34,34 +34,34 @@
  * @note The order of these values is significant,
  *       see indexState.c doIndexStateCheckpointInZone().
  **/
-typedef enum checkpointState {
+enum checkpoint_state {
   NOT_CHECKPOINTING,
   CHECKPOINT_IN_PROGRESS,
   CHECKPOINT_ABORTING
-} CheckpointState;
+};
 
 /**
  * Private structure which tracks checkpointing.
  **/
 struct index_checkpoint {
-  Mutex            mutex;       // covers this group of fields
-  uint64_t         chapter;     // vcn of the starting chapter
-  CheckpointState  state;       // is checkpoint in progress or aborting
-  unsigned int     zonesBusy;   // count of zones not yet done
-  unsigned int     frequency;   // number of chapters between checkpoints
-  uint64_t         checkpoints; // number of checkpoints this session
+  Mutex                 mutex;        // covers this group of fields
+  uint64_t              chapter;      // vcn of the starting chapter
+  enum checkpoint_state state;        // is checkpoint in progress or aborting
+  unsigned int          zonesBusy;    // count of zones not yet done
+  unsigned int          frequency;    // number of chapters between checkpoints
+  uint64_t              checkpoints;  // number of checkpoints this session
 };
 
 /**
  * Enum return value of indexCheckpointTrigger function.
  **/
-typedef enum indexCheckpointTriggerValue {
+enum index_checkpoint_trigger_value {
   ICTV_IDLE,       //< no checkpointing right now
   ICTV_START,      //< start a new checkpoint now
   ICTV_CONTINUE,   //< continue checkpointing if needed
   ICTV_FINISH,     //< finish checkpointing, next time will start new cycle
   ICTV_ABORT       //< immediately abort checkpointing
-} IndexCheckpointTriggerValue;
+};
 
 typedef int CheckpointFunction(struct index *index, unsigned int zone);
 
@@ -139,7 +139,7 @@ uint64_t getCheckpointCount(struct index_checkpoint *checkpoint)
 }
 
 /**********************************************************************/
-static IndexCheckpointTriggerValue
+static enum index_checkpoint_trigger_value
 getCheckpointAction(struct index_checkpoint *checkpoint,
                     uint64_t virtualChapter)
 {
@@ -172,7 +172,7 @@ int processCheckpointing(struct index *index,
   struct index_checkpoint *checkpoint = index->checkpoint;
   lockMutex(&checkpoint->mutex);
 
-  IndexCheckpointTriggerValue ictv
+  enum index_checkpoint_trigger_value ictv
     = getCheckpointAction(checkpoint, newVirtualChapter);
 
   if (ictv == ICTV_START) {

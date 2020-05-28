@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#8 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -95,6 +95,6 @@ int __must_check loadOpenChapters(struct index *index,
  * @return the number of bytes of the largest possible open chapter save
  *         image
  **/
-uint64_t computeSavedOpenChapterSize(Geometry *geometry);
+uint64_t computeSavedOpenChapterSize(struct geometry *geometry);
 
 #endif /* OPENCHAPTER_H */

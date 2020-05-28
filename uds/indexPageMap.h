@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#4 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -51,7 +51,7 @@ typedef struct {
 typedef uint16_t IndexPageMapEntry;
 
 struct indexPageMap {
-  const Geometry         *geometry;
+  const struct geometry  *geometry;
   uint64_t                lastUpdate;
   IndexPageMapEntry      *entries;
 };
@@ -65,7 +65,7 @@ struct indexPageMap {
  * @return             A success or error code.
  **/
 int __must_check
-makeIndexPageMap(const Geometry *geometry, IndexPageMap **mapPtr);
+makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr);
 
 /**
  * Free an index page map.
@@ -142,7 +142,7 @@ int __must_check getListNumberBounds(const IndexPageMap *map,
  *
  * @return The number of bytes required to save the index page map.
  **/
-uint64_t computeIndexPageMapSaveSize(const Geometry *geometry);
+uint64_t computeIndexPageMapSaveSize(const struct geometry *geometry);
 
 /**
  * Escaped for testing....
@@ -152,6 +152,6 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry);
  * @return              The number of bytes required for the page map data,
  *                      exclusive of headers.
  **/
-size_t __must_check indexPageMapSize(const Geometry *geometry);
+size_t __must_check indexPageMapSize(const struct geometry *geometry);
 
 #endif // INDEX_PAGE_MAP_H

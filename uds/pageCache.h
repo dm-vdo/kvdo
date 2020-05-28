@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#7 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -98,27 +98,27 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) {
 } SearchPendingCounter;
 
 typedef struct pageCache {
-  // Geometry governing the volume
-  const Geometry *geometry;
+  // struct geometry governing the volume
+  const struct geometry *geometry;
   // The number of zones
-  unsigned int    zoneCount;
+  unsigned int           zoneCount;
   // The number of index entries
-  unsigned int    numIndexEntries;
+  unsigned int           numIndexEntries;
   // The max number of cached entries
-  uint16_t        numCacheEntries;
+  uint16_t               numCacheEntries;
   // The index used to quickly access page in cache - top bit is a 'queued'
   // flag
-  uint16_t       *index;
+  uint16_t              *index;
   // The cache
-  CachedPage     *cache;
+  CachedPage            *cache;
   // A counter for each zone to keep track of when a search is occurring
   // within that zone.
-  SearchPendingCounter *searchPendingCounters;
+  SearchPendingCounter  *searchPendingCounters;
   // Queued reads, as a circular array, with first and last indexes
-  QueuedRead     *readQueue;
+  QueuedRead            *readQueue;
   // Cache counters for stats.  This is the first field of a PageCache that is
   // not constant after the struct is initialized.
-  struct cache_counters counters;
+  struct cache_counters  counters;
   /**
    * Entries are enqueued at readQueueLast.
    * To 'reserve' entries, we get the entry pointed to by readQueueLastRead
@@ -159,7 +159,7 @@ typedef struct pageCache {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makePageCache(const Geometry *geometry,
+int __must_check makePageCache(const struct geometry *geometry,
 			       unsigned int chaptersInCache,
 			       unsigned int readQueueMaxSize,
 			       unsigned int zoneCount,
@@ -233,8 +233,9 @@ int __must_check assertPageInCache(PageCache *cache, CachedPage *page);
  *
  * @param [in] cache        the page cache
  * @param [in] physicalPage the page number
- * @param [in] probeType    the type of cache access being done (CacheProbeType
- *                          optionally OR'ed with CACHE_PROBE_IGNORE_FAILURE)
+ * @param [in] probeType    the type of cache access being done
+ *                          (cache_probe_type_t optionally OR'ed with
+ *                          CACHE_PROBE_IGNORE_FAILURE)
  * @param [out] pagePtr     the found page
  *
  * @return UDS_SUCCESS or an error code
@@ -282,23 +283,9 @@ bool reserveReadQueueEntry(PageCache     *cache,
  *
  * @param cache      the page cache
  * @param queuePos   queue entry position
- *
- * @return UDS_SUCCESS or an error code
  **/
 void releaseReadQueueEntry(PageCache    *cache,
                            unsigned int  queuePos);
-
-/**
- * Check for the page cache read queue being empty.
- *
- * @param cache  the page cache for which to check the read queue.
- *
- * @return  true if the read queue for cache is empty, false otherwise.
- **/
-static INLINE bool readQueueIsEmpty(PageCache *cache)
-{
-  return (cache->readQueueFirst == cache->readQueueLast);
-}
 
 /**
  * Check for the page cache read queue being full.
@@ -422,20 +409,6 @@ static INLINE unsigned int pageBeingSearched(InvalidateCounter counter)
 static INLINE bool searchPending(InvalidateCounter invalidateCounter)
 {
   return (invalidateCounter & COUNTER_LSB) != 0;
-}
-
-/**
- * Determines whether there is a search occuring for the given zone.
- *
- * @param cache       the page cache
- * @param zoneNumber  the zone number
- *
- * @return true if a search is pending, false otherwise
- **/
-static INLINE bool isSearchPending(PageCache    *cache,
-                                   unsigned int  zoneNumber)
-{
-  return searchPending(getInvalidateCounter(cache, zoneNumber));
 }
 
 /**

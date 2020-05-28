@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#7 $
  */
 #include "masterIndexOps.h"
 
 #include "compiler.h"
 #include "errors.h"
+#include "geometry.h"
 #include "indexComponent.h"
 #include "logger.h"
 #include "masterIndex005.h"
@@ -34,7 +35,7 @@
 /**********************************************************************/
 static INLINE bool usesSparse(const struct configuration *config)
 {
-  return config->geometry->sparseChaptersPerVolume > 0;
+  return isSparse(config->geometry);
 }
 
 /**********************************************************************/

@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#18 $
  */
 #include "masterIndex005.h"
 
 #include "buffer.h"
 #include "compiler.h"
 #include "errors.h"
+#include "geometry.h"
 #include "hashUtils.h"
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -1284,7 +1285,7 @@ static int computeMasterIndexParameters005(const struct configuration *config,
                                  ? minMasterIndexDeltaLists
                                  : MAX_ZONES * MAX_ZONES);
 
-  Geometry *geometry = config->geometry;
+  struct geometry *geometry = config->geometry;
   unsigned long recordsPerChapter = geometry->recordsPerChapter;
   params->numChapters = geometry->chaptersPerVolume;
   unsigned long recordsPerVolume = recordsPerChapter * params->numChapters;
@@ -1306,7 +1307,7 @@ static int computeMasterIndexParameters005(const struct configuration *config,
                                      " address bits",
                                      params->addressBits);
   }
-  if (geometry->sparseChaptersPerVolume > 0) {
+  if (isSparse(geometry)) {
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot initialize dense master index"
                                      " with %u sparse chapters",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#7 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -33,7 +33,7 @@ enum {
 };
 
 struct open_chapter_index {
-	const Geometry *geometry;
+	const struct geometry *geometry;
 	struct delta_index delta_index;
 	uint64_t virtual_chapter_number;
 	bool header_native_endian;
@@ -53,7 +53,7 @@ struct open_chapter_index {
  **/
 int __must_check
 make_open_chapter_index(struct open_chapter_index **open_chapter_index,
-			const Geometry *geometry,
+			const struct geometry *geometry,
 			bool chapter_index_header_native_endian,
 			uint64_t volume_nonce);
 
@@ -146,7 +146,7 @@ get_open_chapter_index_memory_allocated(struct open_chapter_index *open_chapter_
  **/
 int __must_check
 initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
-			      const Geometry *geometry,
+			      const struct geometry *geometry,
 			      byte *index_page,
 			      uint64_t volume_nonce);
 
@@ -165,7 +165,7 @@ initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
  **/
 int __must_check
 validate_chapter_index_page(const struct delta_index_page *chapter_index_page,
-			    const Geometry *geometry);
+			    const struct geometry *geometry);
 
 /**
  * Search a chapter index page for a chunk name, returning the record page
@@ -181,7 +181,7 @@ validate_chapter_index_page(const struct delta_index_page *chapter_index_page,
  **/
 int __must_check
 search_chapter_index_page(struct delta_index_page *chapter_index_page,
-			  const Geometry *geometry,
+			  const struct geometry *geometry,
 			  const struct uds_chunk_name *name,
 			  int *record_page_ptr);
 

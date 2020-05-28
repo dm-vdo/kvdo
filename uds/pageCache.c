@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#8 $
  */
 
 #include "pageCache.h"
@@ -257,7 +257,7 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
 /**********************************************************************/
 static int __must_check
 initializePageCache(PageCache *cache,
-		    const Geometry *geometry,
+		    const struct geometry *geometry,
 		    unsigned int chaptersInCache,
 		    unsigned int readQueueMaxSize,
 		    unsigned int zoneCount)
@@ -319,11 +319,11 @@ initializePageCache(PageCache *cache,
 }
 
 /*********************************************************************/
-int makePageCache(const Geometry  *geometry,
-                  unsigned int     chaptersInCache,
-                  unsigned int     readQueueMaxSize,
-                  unsigned int     zoneCount,
-                  PageCache      **cachePtr)
+int makePageCache(const struct geometry  *geometry,
+                  unsigned int            chaptersInCache,
+                  unsigned int            readQueueMaxSize,
+                  unsigned int            zoneCount,
+                  PageCache             **cachePtr)
 {
   if (chaptersInCache < 1) {
     return logWarningWithStringError(UDS_BAD_STATE,
@@ -471,11 +471,11 @@ int getPageFromCache(PageCache     *cache,
     return result;
   }
 
-  CacheResultKind cacheResult = ((page != NULL)
-                                 ? CACHE_RESULT_HIT
-                                 : ((queueIndex != -1)
-                                    ? CACHE_RESULT_QUEUED
-                                    : CACHE_RESULT_MISS));
+  cache_result_kind_t cacheResult = ((page != NULL)
+                                     ? CACHE_RESULT_HIT
+                                     : ((queueIndex != -1)
+                                        ? CACHE_RESULT_QUEUED
+                                        : CACHE_RESULT_MISS));
   increment_cache_counter(&cache->counters, probeType, cacheResult);
 
   if (pagePtr != NULL) {

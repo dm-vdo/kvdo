@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#4 $
  */
 
 #include "geometry.h"
@@ -30,11 +30,11 @@
 #include "uds.h"
 
 /**********************************************************************/
-static int initializeGeometry(Geometry    *geometry,
-                              size_t       bytesPerPage,
-                              unsigned int recordPagesPerChapter,
-                              unsigned int chaptersPerVolume,
-                              unsigned int sparseChaptersPerVolume)
+static int initializeGeometry(struct geometry *geometry,
+                              size_t           bytesPerPage,
+                              unsigned int     recordPagesPerChapter,
+                              unsigned int     chaptersPerVolume,
+                              unsigned int     sparseChaptersPerVolume)
 {
   int result = ASSERT_WITH_ERROR_CODE(bytesPerPage >= BYTES_PER_RECORD,
                                       UDS_BAD_STATE,
@@ -103,14 +103,14 @@ static int initializeGeometry(Geometry    *geometry,
 }
 
 /**********************************************************************/
-int makeGeometry(size_t       bytesPerPage,
-                 unsigned int recordPagesPerChapter,
-                 unsigned int chaptersPerVolume,
-                 unsigned int sparseChaptersPerVolume,
-                 Geometry   **geometryPtr)
+int makeGeometry(size_t            bytesPerPage,
+                 unsigned int      recordPagesPerChapter,
+                 unsigned int      chaptersPerVolume,
+                 unsigned int      sparseChaptersPerVolume,
+                 struct geometry **geometryPtr)
 {
-  Geometry *geometry;
-  int result = ALLOCATE(1, Geometry, "geometry", &geometry);
+  struct geometry *geometry;
+  int result = ALLOCATE(1, struct geometry, "geometry", &geometry);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -126,7 +126,7 @@ int makeGeometry(size_t       bytesPerPage,
 }
 
 /**********************************************************************/
-int copyGeometry(Geometry *source, Geometry **geometryPtr)
+int copyGeometry(struct geometry *source, struct geometry **geometryPtr)
 {
   return makeGeometry(source->bytesPerPage,
                       source->recordPagesPerChapter,
@@ -136,15 +136,15 @@ int copyGeometry(Geometry *source, Geometry **geometryPtr)
 }
 
 /**********************************************************************/
-void freeGeometry(Geometry *geometry)
+void freeGeometry(struct geometry *geometry)
 {
   FREE(geometry);
 }
 
 /**********************************************************************/
-uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
-                                   uint64_t      newestVirtualChapter,
-                                   unsigned int  physicalChapter)
+uint64_t mapToVirtualChapterNumber(struct geometry *geometry,
+                                   uint64_t         newestVirtualChapter,
+                                   unsigned int     physicalChapter)
 {
   unsigned int newestPhysicalChapter
     = mapToPhysicalChapter(geometry, newestVirtualChapter);
@@ -157,9 +157,9 @@ uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
 }
 
 /**********************************************************************/
-bool hasSparseChapters(const Geometry *geometry,
-                       uint64_t        oldestVirtualChapter,
-                       uint64_t        newestVirtualChapter)
+bool hasSparseChapters(const struct geometry *geometry,
+                       uint64_t               oldestVirtualChapter,
+                       uint64_t               newestVirtualChapter)
 {
   return (isSparse(geometry)
           && ((newestVirtualChapter - oldestVirtualChapter + 1)
@@ -167,10 +167,10 @@ bool hasSparseChapters(const Geometry *geometry,
 }
 
 /**********************************************************************/
-bool isChapterSparse(const Geometry *geometry,
-                     uint64_t        oldestVirtualChapter,
-                     uint64_t        newestVirtualChapter,
-                     uint64_t        virtualChapterNumber)
+bool isChapterSparse(const struct geometry *geometry,
+                     uint64_t               oldestVirtualChapter,
+                     uint64_t               newestVirtualChapter,
+                     uint64_t               virtualChapterNumber)
 {
   return (hasSparseChapters(geometry, oldestVirtualChapter,
                             newestVirtualChapter)
@@ -179,9 +179,9 @@ bool isChapterSparse(const Geometry *geometry,
 }
 
 /**********************************************************************/
-bool areSamePhysicalChapter(const Geometry *geometry,
-                            uint64_t        chapter1,
-                            uint64_t        chapter2)
+bool areSamePhysicalChapter(const struct geometry *geometry,
+                            uint64_t               chapter1,
+                            uint64_t               chapter2)
 {
   return ((chapter1 % geometry->chaptersPerVolume)
           == (chapter2 % geometry->chaptersPerVolume));

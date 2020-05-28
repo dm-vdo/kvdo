@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#8 $
  */
 
 #include "cachedChapterIndex.h"
@@ -25,7 +25,7 @@
 
 /**********************************************************************/
 int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
-				    const Geometry *geometry)
+				    const struct geometry *geometry)
 {
 	chapter->virtual_chapter = UINT64_MAX;
 	chapter->index_pages_count = geometry->indexPagesPerChapter;
@@ -103,7 +103,7 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 
 /**********************************************************************/
 int search_cached_chapter_index(struct cached_chapter_index *chapter,
-				const Geometry *geometry,
+				const struct geometry *geometry,
 				const IndexPageMap *index_page_map,
 				const struct uds_chunk_name *name,
 				int *record_page_ptr)
