@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#9 $
  */
 
 #include "chapterIndex.h"
@@ -48,16 +48,17 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 	// The delta index will rebalance delta lists when memory gets tight,
 	// so give the chapter index one extra page.
 	size_t memory_size =
-		(geometry->indexPagesPerChapter + 1) * geometry->bytesPerPage;
+		(geometry->index_pages_per_chapter + 1) *
+			geometry->bytes_per_page;
 	(*open_chapter_index)->geometry = geometry;
 	(*open_chapter_index)->volume_nonce = volume_nonce;
 	(*open_chapter_index)->header_native_endian =
 		chapter_index_header_native_endian;
 	result = initialize_delta_index(&(*open_chapter_index)->delta_index,
 				        1,
-				        geometry->deltaListsPerChapter,
-				        geometry->chapterMeanDelta,
-				        geometry->chapterPayloadBits,
+				        geometry->delta_lists_per_chapter,
+				        geometry->chapter_mean_delta,
+				        geometry->chapter_payload_bits,
 				        memory_size);
 	if (result != UDS_SUCCESS) {
 		FREE(*open_chapter_index);
@@ -107,12 +108,13 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 				  unsigned int page_number)
 {
 	const struct geometry *geometry = open_chapter_index->geometry;
-	int result = ASSERT_WITH_ERROR_CODE(page_number <
-						geometry->recordPagesPerChapter,
-					    UDS_INVALID_ARGUMENT,
-					    "Page number within chapter (%u) exceeds the maximum value %u",
-					    page_number,
-					    geometry->recordPagesPerChapter);
+	int result =
+		ASSERT_WITH_ERROR_CODE(page_number <
+						geometry->record_pages_per_chapter,
+				       UDS_INVALID_ARGUMENT,
+				       "Page number within chapter (%u) exceeds the maximum value %u",
+				       page_number,
+				       geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -157,7 +159,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 					      open_chapter_index->volume_nonce,
 					      open_chapter_index->header_native_endian,
 					      memory,
-					      geometry->bytesPerPage,
+					      geometry->bytes_per_page,
 					      open_chapter_index->virtual_chapter_number,
 					      first_list,
 					      num_lists);
@@ -165,7 +167,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 			return result;
 		}
 		if ((first_list + *num_lists) ==
-		    geometry->deltaListsPerChapter) {
+		    geometry->delta_lists_per_chapter) {
 			// All lists are packed
 			break;
 		} else if (*num_lists == 0) {
@@ -254,10 +256,10 @@ int initialize_chapter_index_page(struct delta_index_page *chapter_index_page,
 {
 	return initialize_delta_index_page(chapter_index_page,
 					   volume_nonce,
-					   geometry->chapterMeanDelta,
-					   geometry->chapterPayloadBits,
+					   geometry->chapter_mean_delta,
+					   geometry->chapter_payload_bits,
 					   index_page,
-					   geometry->bytesPerPage);
+					   geometry->bytes_per_page);
 }
 
 /**********************************************************************/
@@ -295,7 +297,7 @@ int validate_chapter_index_page(const struct delta_index_page *chapter_index_pag
 			// Also make sure that the record page field contains a
 			// plausible value
 			if (get_delta_entry_value(&entry) >=
-			    geometry->recordPagesPerChapter) {
+			    geometry->record_pages_per_chapter) {
 				// Do not log this as an error.  It happens in
 				// normal operation when we are doing a rebuild
 				// but haven't written the entire volume once.

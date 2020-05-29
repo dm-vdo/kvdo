@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#11 $
  */
 
 #include "chapterWriter.h"
@@ -94,7 +94,7 @@ static void close_chapters(void *arg)
 			 * first time we close the open chapter after loading
 			 * from a clean shutdown, or after doing a clean save.
 			 */
-			IndexComponent *oc =
+			struct index_component *oc =
 				find_index_component(writer->index->state,
 			                             &OPEN_CHAPTER_INFO);
 			int result = discardIndexComponent(oc);
@@ -134,7 +134,7 @@ int make_chapter_writer(struct index *index,
 {
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
-		 (1 + index->volume->geometry->recordsPerChapter));
+		 (1 + index->volume->geometry->records_per_chapter));
 	struct chapter_writer *writer;
 	int result = ALLOCATE_EXTENDED(struct chapter_writer,
 				       index->zone_count,

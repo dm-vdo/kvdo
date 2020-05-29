@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#9 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -27,7 +27,7 @@
 #include "index.h"
 #include "indexComponent.h"
 
-extern const IndexComponentInfo OPEN_CHAPTER_INFO;
+extern const struct index_component_info OPEN_CHAPTER_INFO;
 
 /**
  * OpenChapter handles writing the open chapter records to the volume. It also

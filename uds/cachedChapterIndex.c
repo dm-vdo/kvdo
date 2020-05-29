@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#10 $
  */
 
 #include "cachedChapterIndex.h"
@@ -28,7 +28,7 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 				    const struct geometry *geometry)
 {
 	chapter->virtual_chapter = UINT64_MAX;
-	chapter->index_pages_count = geometry->indexPagesPerChapter;
+	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
 	int result = ALLOCATE(chapter->index_pages_count,
 			      struct delta_index_page,
@@ -104,14 +104,14 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 /**********************************************************************/
 int search_cached_chapter_index(struct cached_chapter_index *chapter,
 				const struct geometry *geometry,
-				const IndexPageMap *index_page_map,
+				const struct index_page_map *index_page_map,
 				const struct uds_chunk_name *name,
 				int *record_page_ptr)
 {
 	// Find the index_page_number in the chapter that would have the chunk
 	// name.
 	unsigned int physical_chapter =
-		mapToPhysicalChapter(geometry, chapter->virtual_chapter);
+		map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	unsigned int index_page_number;
 	int result = findIndexPageNumber(index_page_map, name,
 					 physical_chapter,

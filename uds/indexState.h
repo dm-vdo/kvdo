@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#9 $
  */
 
 #ifndef INDEX_STATE_H
@@ -49,14 +49,15 @@ enum io_access_mode {
  **/
 struct index_state {
 	struct index_layout *layout;
-	unsigned int zone_count;   // number of index zones to use
+	unsigned int zone_count;           // number of index zones to use
 	unsigned int load_zones;
 	unsigned int load_slot;
 	unsigned int save_slot;
-	unsigned int count;        // count of registered entries (<= length)
-	unsigned int length;       // total span of array allocation
-	bool saving;               // incremental save in progress
-	IndexComponent *entries[]; // array of index component entries
+	unsigned int count;                // count of registered entries
+					   // (<= length)
+	unsigned int length;               // total span of array allocation
+	bool saving;                       // incremental save in progress
+	struct index_component *entries[]; // array of index component entries
 };
 
 /**
@@ -92,10 +93,11 @@ void free_index_state(struct index_state **state_ptr);
  *
  * @return          UDS_SUCCESS or an error code.
  **/
-int __must_check add_index_state_component(struct index_state *state,
-					   const IndexComponentInfo *info,
-					   void *data,
-					   void *context);
+int __must_check
+add_index_state_component(struct index_state *state,
+			  const struct index_component_info *info,
+			  void *data,
+			  void *context);
 
 /**
  * Load index state
@@ -170,7 +172,7 @@ perform_index_state_checkpoint_chapter_synchronized_saves(struct index_state *st
 int __must_check
 perform_index_state_checkpoint_in_zone(struct index_state *state,
 				       unsigned int zone,
-				       CompletionStatus *completed);
+				       enum completion_status *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint
@@ -186,7 +188,7 @@ perform_index_state_checkpoint_in_zone(struct index_state *state,
 int __must_check
 finish_index_state_checkpoint_in_zone(struct index_state *state,
 				      unsigned int zone,
-				      CompletionStatus *completed);
+				      enum completion_status *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint once
@@ -211,7 +213,7 @@ int __must_check finish_index_state_checkpoint(struct index_state *state);
  **/
 int abort_index_state_checkpoint_in_zone(struct index_state *state,
 					 unsigned int zone,
-					 CompletionStatus *completed);
+					 enum completion_status *completed);
 
 /**
  * Aborts an index state checkpoint which is proceeding incrementally,
@@ -253,9 +255,9 @@ int discard_last_index_state_save(struct index_state *state);
  *
  * @return      The index component, or NULL if not found
  **/
-IndexComponent *__must_check
+struct index_component *__must_check
 find_index_component(const struct index_state *state,
-		     const IndexComponentInfo *info);
+		     const struct index_component_info *info);
 
 /**
  * Get the index state buffer for a specified mode.
@@ -271,7 +273,7 @@ get_state_index_state_buffer(struct index_state *state,
 
 /**
  * Open a buffered reader for a specified state, kind, and zone.
- * This helper function is used by IndexComponent.
+ * This helper function is used by index_component.
  *
  * @param state       The index state.
  * @param kind        The kind if index save region to open.
@@ -288,7 +290,7 @@ open_state_buffered_reader(struct index_state *state,
 
 /**
  * Open a buffered writer for a specified state, kind, and zone.
- * This helper function is used by IndexComponent.
+ * This helper function is used by index_component.
  *
  * @param state       The index state.
  * @param kind        The kind if index save region to open.

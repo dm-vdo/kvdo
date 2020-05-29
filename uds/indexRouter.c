@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#7 $
  */
 
 #include "indexRouter.h"
@@ -112,7 +112,7 @@ static int initializeLocalIndexQueues(IndexRouter           *router,
   }
 
   // The triage queue is only needed for sparse multi-zone indexes.
-  if ((router->zoneCount > 1) && isSparse(geometry)) {
+  if ((router->zoneCount > 1) && is_sparse(geometry)) {
     int result = makeRequestQueue("triageW", &triageRequest,
                                   &router->triageQueue);
     if (result != UDS_SUCCESS) {

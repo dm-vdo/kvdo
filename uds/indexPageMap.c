@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#14 $
  */
 
 #include "indexPageMap.h"
@@ -34,8 +34,8 @@
 #include "threads.h"
 #include "uds.h"
 
-static int readIndexPageMap(ReadPortal *portal);
-static int writeIndexPageMap(IndexComponent *component,
+static int readIndexPageMap(struct read_portal *portal);
+static int writeIndexPageMap(struct index_component *component,
                              struct buffered_writer *writer,
                              unsigned int    zone);
 
@@ -44,7 +44,7 @@ enum {
   INDEX_PAGE_MAP_MAGIC_LENGTH = sizeof(INDEX_PAGE_MAP_MAGIC) - 1,
 };
 
-const IndexComponentInfo INDEX_PAGE_MAP_INFO = {
+const struct index_component_info INDEX_PAGE_MAP_INFO = {
   .kind        = RL_KIND_INDEX_PAGE_MAP,
   .name        = "index page map",
   .saveOnly    = false,
@@ -59,13 +59,15 @@ const IndexComponentInfo INDEX_PAGE_MAP_INFO = {
 /*****************************************************************************/
 static INLINE size_t numEntries(const struct geometry *geometry)
 {
-  return geometry->chaptersPerVolume * (geometry->indexPagesPerChapter - 1);
+  return geometry->chapters_per_volume
+           * (geometry->index_pages_per_chapter - 1);
 }
 
 /*****************************************************************************/
-int makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr)
+int makeIndexPageMap(const struct geometry  *geometry,
+                     struct index_page_map **mapPtr)
 {
-  unsigned int deltaListsPerChapter = geometry->deltaListsPerChapter;
+  unsigned int deltaListsPerChapter = geometry->delta_lists_per_chapter;
   int result
     = ASSERT_WITH_ERROR_CODE(((deltaListsPerChapter - 1) <= UINT16_MAX),
                              UDS_BAD_STATE,
@@ -75,8 +77,8 @@ int makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr)
     return result;
   }
 
-  IndexPageMap *map;
-  result = ALLOCATE(1, IndexPageMap, "Index Page Map", &map);
+  struct index_page_map *map;
+  result = ALLOCATE(1, struct index_page_map, "Index Page Map", &map);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -84,7 +86,7 @@ int makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr)
   map->geometry = geometry;
 
   result = ALLOCATE(numEntries(geometry),
-                    IndexPageMapEntry,
+                    index_page_map_entry_t,
                     "Index Page Map Entries",
                     &map->entries);
   if (result != UDS_SUCCESS) {
@@ -97,7 +99,7 @@ int makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr)
 }
 
 /*****************************************************************************/
-void freeIndexPageMap(IndexPageMap *map)
+void freeIndexPageMap(struct index_page_map *map)
 {
   if (map != NULL) {
     FREE(map->entries);
@@ -106,17 +108,17 @@ void freeIndexPageMap(IndexPageMap *map)
 }
 
 /*****************************************************************************/
-uint64_t getLastUpdate(const IndexPageMap *map)
+uint64_t getLastUpdate(const struct index_page_map *map)
 {
   return map->lastUpdate;
 }
 
 /*****************************************************************************/
-int updateIndexPageMap(IndexPageMap   *map,
-                       uint64_t        virtualChapterNumber,
-                       unsigned int    chapterNumber,
-                       unsigned int    indexPageNumber,
-                       unsigned int    deltaListNumber)
+int updateIndexPageMap(struct index_page_map *map,
+                       uint64_t               virtualChapterNumber,
+                       unsigned int           chapterNumber,
+                       unsigned int           indexPageNumber,
+                       unsigned int           deltaListNumber)
 {
   const struct geometry *geometry = map->geometry;
   if ((virtualChapterNumber < map->lastUpdate)
@@ -131,56 +133,58 @@ int updateIndexPageMap(IndexPageMap   *map,
   }
   map->lastUpdate = virtualChapterNumber;
 
-  if (chapterNumber >= geometry->chaptersPerVolume) {
+  if (chapterNumber >= geometry->chapters_per_volume) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
     				   "chapter number %u exceeds maximum %u",
     				   chapterNumber,
-    				   geometry->chaptersPerVolume - 1);
+    				   geometry->chapters_per_volume - 1);
   }
-  if (indexPageNumber >= geometry->indexPagesPerChapter) {
+  if (indexPageNumber >= geometry->index_pages_per_chapter) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
     				   "index page number %u exceeds maximum %u",
       				   indexPageNumber,
-      				   geometry->indexPagesPerChapter - 1);
+      				   geometry->index_pages_per_chapter - 1);
   }
-  if (deltaListNumber >= geometry->deltaListsPerChapter) {
+  if (deltaListNumber >= geometry->delta_lists_per_chapter) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
     				   "delta list number %u exceeds maximum %u",
     				   deltaListNumber,
-    				   geometry->deltaListsPerChapter - 1);
+    				   geometry->delta_lists_per_chapter - 1);
   }
 
-  if (indexPageNumber == (geometry->indexPagesPerChapter - 1)) {
+  if (indexPageNumber == (geometry->index_pages_per_chapter - 1)) {
     /*
      * There is no entry for the last index page of a chapter since its entry
-     * would always be geometry->deltaListsPerChapter - 1.
+     * would always be geometry->delta_lists_per_chapter - 1.
      */
     return UDS_SUCCESS;
   }
 
   size_t slot
-    = (chapterNumber * (geometry->indexPagesPerChapter - 1)) + indexPageNumber;
-  map->entries[slot] = (IndexPageMapEntry) deltaListNumber;
+    = (chapterNumber * (geometry->index_pages_per_chapter - 1))
+        + indexPageNumber;
+  map->entries[slot] = (index_page_map_entry_t) deltaListNumber;
   return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
-int findIndexPageNumber(const IndexPageMap          *map,
+int findIndexPageNumber(const struct index_page_map *map,
                         const struct uds_chunk_name *name,
                         unsigned int                 chapterNumber,
                         unsigned int                *indexPageNumberPtr)
 {
   const struct geometry *geometry = map->geometry;
-  if (chapterNumber >= geometry->chaptersPerVolume) {
+  if (chapterNumber >= geometry->chapters_per_volume) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
     				   "chapter number %u exceeds maximum %u",
     				   chapterNumber,
-    				   geometry->chaptersPerVolume - 1);
+    				   geometry->chapters_per_volume - 1);
   }
 
   unsigned int deltaListNumber = hash_to_chapter_delta_list(name, geometry);
-  unsigned int slot = (chapterNumber * (geometry->indexPagesPerChapter - 1));
-  unsigned int limit = slot + (geometry->indexPagesPerChapter - 1);
+  unsigned int slot
+    = (chapterNumber * (geometry->index_pages_per_chapter - 1));
+  unsigned int limit = slot + (geometry->index_pages_per_chapter - 1);
   unsigned int indexPageNumber = 0;
   for (; slot < limit; indexPageNumber++, slot++) {
     if (deltaListNumber <= map->entries[slot]) {
@@ -190,7 +194,7 @@ int findIndexPageNumber(const IndexPageMap          *map,
 
   // This should be a clear post-condition of the loop above, but just in case
   // it's not obvious, the check is cheap.
-  int result = ASSERT((indexPageNumber < geometry->indexPagesPerChapter),
+  int result = ASSERT((indexPageNumber < geometry->index_pages_per_chapter),
                       "index page number too large");
   if (result != UDS_SUCCESS) {
     return result;
@@ -201,30 +205,31 @@ int findIndexPageNumber(const IndexPageMap          *map,
 }
 
 /**********************************************************************/
-int getListNumberBounds(const IndexPageMap *map,
-                        unsigned int        chapterNumber,
-                        unsigned int        indexPageNumber,
-                        IndexPageBounds    *bounds)
+int getListNumberBounds(const struct index_page_map *map,
+                        unsigned int                 chapterNumber,
+                        unsigned int                 indexPageNumber,
+                        struct index_page_bounds    *bounds)
 {
   const struct geometry *geometry = map->geometry;
-  int result = ASSERT((chapterNumber < geometry->chaptersPerVolume),
+  int result = ASSERT((chapterNumber < geometry->chapters_per_volume),
                       "chapter number is valid");
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = ASSERT((indexPageNumber < geometry->indexPagesPerChapter),
+  result = ASSERT((indexPageNumber < geometry->index_pages_per_chapter),
                   "index page number is valid");
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  unsigned int slot = chapterNumber * (geometry->indexPagesPerChapter - 1);
+  unsigned int slot = chapterNumber * (geometry->index_pages_per_chapter - 1);
   bounds->lowestList = ((indexPageNumber == 0)
                         ? 0
                         : map->entries[slot + indexPageNumber - 1] + 1);
-  bounds->highestList = ((indexPageNumber == geometry->indexPagesPerChapter - 1)
-                         ? geometry->deltaListsPerChapter - 1
+  bounds->highestList = ((indexPageNumber
+                            == geometry->index_pages_per_chapter - 1)
+                         ? geometry->delta_lists_per_chapter - 1
                          : map->entries[slot + indexPageNumber]);
 
   return UDS_SUCCESS;
@@ -233,20 +238,20 @@ int getListNumberBounds(const IndexPageMap *map,
 /*****************************************************************************/
 size_t indexPageMapSize(const struct geometry *geometry)
 {
-  return sizeof(IndexPageMapEntry) * numEntries(geometry);
+  return sizeof(index_page_map_entry_t) * numEntries(geometry);
 }
 
 /*****************************************************************************/
-static int writeIndexPageMap(IndexComponent *component,
+static int writeIndexPageMap(struct index_component *component,
                              struct buffered_writer *writer,
-                             unsigned int    zone)
+                             unsigned int            zone)
 {
   int result = ASSERT((zone == 0), "unimplemented zone %d", zone);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  IndexPageMap *map = indexComponentData(component);
+  struct index_page_map *map = indexComponentData(component);
 
   struct buffer *buffer;
   result = make_buffer(INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(map->lastUpdate),
@@ -295,12 +300,13 @@ static int writeIndexPageMap(IndexComponent *component,
 uint64_t computeIndexPageMapSaveSize(const struct geometry *geometry)
 {
   return indexPageMapSize(geometry) +
-    INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(((IndexPageMap *) 0)->lastUpdate);
+    INDEX_PAGE_MAP_MAGIC_LENGTH +
+    sizeof(((struct index_page_map *) 0)->lastUpdate);
 }
 
 /**********************************************************************/
 static int __must_check
-decodeIndexPageMap(struct buffer *buffer, IndexPageMap *map)
+decodeIndexPageMap(struct buffer *buffer, struct index_page_map *map)
 {
   int result = get_uint64_le_from_buffer(buffer, &map->lastUpdate);
   if (result != UDS_SUCCESS) {
@@ -319,9 +325,9 @@ decodeIndexPageMap(struct buffer *buffer, IndexPageMap *map)
 }
 
 /*****************************************************************************/
-static int readIndexPageMap(ReadPortal *portal)
+static int readIndexPageMap(struct read_portal *portal)
 {
-  IndexPageMap *map = indexComponentData(portal->component);
+  struct index_page_map *map = indexComponentData(portal->component);
 
   struct buffered_reader *reader = NULL;
 

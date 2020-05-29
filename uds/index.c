@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#16 $
  */
 
 #include "index.h"
@@ -70,7 +70,7 @@ static int replay_index_from_checkpoint(struct index *index,
 	}
 
 	unsigned int chapters_per_volume =
-		index->volume->geometry->chaptersPerVolume;
+		index->volume->geometry->chapters_per_volume;
 	index->oldest_virtual_chapter = lowest_vcn;
 	index->newest_virtual_chapter = highest_vcn + 1;
 	if (index->newest_virtual_chapter ==
@@ -152,7 +152,7 @@ static int rebuild_index(struct index *index)
 			index->oldest_virtual_chapter = 0;
 	} else {
 		unsigned int num_chapters =
-			index->volume->geometry->chaptersPerVolume;
+			index->volume->geometry->chapters_per_volume;
 		index->newest_virtual_chapter = highest_vcn + 1;
 		index->oldest_virtual_chapter = lowest_vcn;
 		if (index->newest_virtual_chapter ==
@@ -163,7 +163,7 @@ static int rebuild_index(struct index *index)
 	}
 
 	if ((index->newest_virtual_chapter - index->oldest_virtual_chapter) >
-	    index->volume->geometry->chaptersPerVolume) {
+	    index->volume->geometry->chapters_per_volume) {
 		return logFatalWithStringError(UDS_CORRUPT_COMPONENT,
 					       "cannot rebuild index: volume chapter boundaries too large");
 	}
@@ -404,7 +404,7 @@ static int search_index_zone(IndexZone *zone, Request *request)
 		// name is in a cached sparse chapter.
 		if (!isMasterIndexSample(zone->index->master_index,
 					 &request->chunkName) &&
-		    isSparse(zone->index->volume->geometry)) {
+		    is_sparse(zone->index->volume->geometry)) {
 			// Passing UINT64_MAX triggers a search of the entire
 			// sparse cache.
 			result = searchSparseCacheInZone(zone, request,
@@ -539,7 +539,7 @@ static int simulate_index_zone_barrier_message(IndexZone *zone,
 {
 	// Do nothing unless this is a single-zone sparse index.
 	if ((zone->index->zone_count > 1) ||
-	    !isSparse(zone->index->volume->geometry)) {
+	    !is_sparse(zone->index->volume->geometry)) {
 		return UDS_SUCCESS;
 	}
 
@@ -616,11 +616,11 @@ int dispatch_index_request(struct index *index, Request *request)
 static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 {
 	struct geometry *geometry = index->volume->geometry;
-	unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
+	unsigned int chapter = map_to_physical_chapter(geometry, vcn);
 	unsigned int expected_list_number = 0;
 	unsigned int index_page_number;
 	for (index_page_number = 0;
-	     index_page_number < geometry->indexPagesPerChapter;
+	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
 		struct delta_index_page *chapter_index_page;
 		int result = getPage(index->volume,
@@ -852,11 +852,11 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		}
 
 		bool will_be_sparse_chapter =
-			isChapterSparse(geometry, from_vcn, upto_vcn, vcn);
-		unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
+			is_chapter_sparse(geometry, from_vcn, upto_vcn, vcn);
+		unsigned int chapter = map_to_physical_chapter(geometry, vcn);
 		prefetch_volume_pages(&index->volume->volumeStore,
 				      mapToPhysicalPage(geometry, chapter, 0),
-				      geometry->pagesPerChapter);
+				      geometry->pages_per_chapter);
 		setMasterIndexOpenChapter(index->master_index, vcn);
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
@@ -867,9 +867,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		}
 
 		unsigned int j;
-		for (j = 0; j < geometry->recordPagesPerChapter; j++) {
+		for (j = 0; j < geometry->record_pages_per_chapter; j++) {
 			unsigned int record_page_number =
-				geometry->indexPagesPerChapter + j;
+				geometry->index_pages_per_chapter + j;
 			byte *record_page;
 			result = getPage(index->volume, chapter,
 					 record_page_number,
@@ -882,7 +882,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 							record_page_number);
 			}
 			unsigned int k;
-			for (k = 0; k < geometry->recordsPerPage; k++) {
+			for (k = 0; k < geometry->records_per_page; k++) {
 				const byte *name_bytes =
 					record_page + (k * BYTES_PER_RECORD);
 
@@ -953,9 +953,9 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 void advance_active_chapters(struct index *index)
 {
 	index->newest_virtual_chapter++;
-	if (areSamePhysicalChapter(index->volume->geometry,
-				   index->newest_virtual_chapter,
-				   index->oldest_virtual_chapter)) {
+	if (are_same_physical_chapter(index->volume->geometry,
+				      index->newest_virtual_chapter,
+				      index->oldest_virtual_chapter)) {
 		index->oldest_virtual_chapter++;
 	}
 }

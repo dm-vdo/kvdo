@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#14 $
  */
 
 #include "openChapter.h"
@@ -27,12 +27,12 @@
 #include "numeric.h"
 #include "zone.h"
 
-static int readOpenChapters(ReadPortal *portal);
-static int writeOpenChapters(IndexComponent *component,
+static int readOpenChapters(struct read_portal *portal);
+static int writeOpenChapters(struct index_component *component,
                              struct buffered_writer *writer,
-                             unsigned int    zone);
+                             unsigned int            zone);
 
-const IndexComponentInfo OPEN_CHAPTER_INFO = {
+const struct index_component_info OPEN_CHAPTER_INFO = {
   .kind        = RL_KIND_OPEN_CHAPTER,
   .name        = "open chapter",
   .saveOnly    = true,
@@ -83,8 +83,8 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
   }
 
   const struct geometry *geometry = index->geometry;
-  unsigned int pagesPerChapter    = geometry->recordPagesPerChapter;
-  unsigned int recordsPerPage     = geometry->recordsPerPage;
+  unsigned int pagesPerChapter    = geometry->record_pages_per_chapter;
+  unsigned int recordsPerPage     = geometry->records_per_page;
   int          overflowCount      = 0;
   unsigned int recordsAdded       = 0;
   unsigned int zone               = 0;
@@ -216,14 +216,14 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
 uint64_t computeSavedOpenChapterSize(struct geometry *geometry)
 {
   return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH +
-    sizeof(uint32_t) + geometry->recordsPerChapter
+    sizeof(uint32_t) + geometry->records_per_chapter
       * sizeof(struct uds_chunk_record);
 }
 
 /**********************************************************************/
-static int writeOpenChapters(IndexComponent *component,
+static int writeOpenChapters(struct index_component *component,
                              struct buffered_writer *writer,
-                             unsigned int    zone)
+                             unsigned int            zone)
 {
   int result = ASSERT((zone == 0), "open chapter write not zoned");
   if (result != UDS_SUCCESS) {
@@ -328,7 +328,7 @@ int loadOpenChapters(struct index *index, struct buffered_reader *reader)
 }
 
 /**********************************************************************/
-int readOpenChapters(ReadPortal *portal)
+int readOpenChapters(struct read_portal *portal)
 {
   struct index *index = indexComponentData(portal->component);
 

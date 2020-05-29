@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#7 $
  */
 
 #include "recordPage.h"
@@ -53,7 +53,7 @@ int encodeRecordPage(const Volume                  *volume,
                      const struct uds_chunk_record  records[],
                      byte                           recordPage[])
 {
-  unsigned int recordsPerPage = volume->geometry->recordsPerPage;
+  unsigned int recordsPerPage = volume->geometry->records_per_page;
   const struct uds_chunk_record **recordPointers = volume->recordPointers;
 
   // Build an array of record pointers. We'll sort the pointers by the block
@@ -89,7 +89,7 @@ bool searchRecordPage(const byte                   recordPage[],
   // The array of records is sorted by name and stored as a binary tree in
   // heap order, so the root of the tree is the first array element.
   unsigned int node = 0;
-  while (node < geometry->recordsPerPage) {
+  while (node < geometry->records_per_page) {
     const struct uds_chunk_record *record = &records[node];
     int result = memcmp(name, &record->name, UDS_CHUNK_NAME_SIZE);
     if (result == 0) {

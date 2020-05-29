@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#9 $
  */
 #include "masterIndexOps.h"
 
@@ -35,7 +35,7 @@
 /**********************************************************************/
 static INLINE bool usesSparse(const struct configuration *config)
 {
-  return isSparse(config->geometry);
+  return is_sparse(config->geometry);
 }
 
 /**********************************************************************/
@@ -83,7 +83,7 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
 }
 
 /**********************************************************************/
-static int readMasterIndex(ReadPortal *portal)
+static int readMasterIndex(struct read_portal *portal)
 {
   MasterIndex *masterIndex = indexComponentContext(portal->component);
   unsigned int numZones = portal->zones;
@@ -106,11 +106,11 @@ static int readMasterIndex(ReadPortal *portal)
 }
 
 /**********************************************************************/
-static int writeMasterIndex(IndexComponent           *component,
-                            struct buffered_writer   *writer,
-                            unsigned int              zone,
-                            IncrementalWriterCommand  command,
-                            bool                     *completed)
+static int writeMasterIndex(struct index_component          *component,
+                            struct buffered_writer          *writer,
+                            unsigned int                     zone,
+                            enum incremental_writer_command  command,
+                            bool                            *completed)
 {
   MasterIndex *masterIndex = indexComponentContext(component);
   bool isComplete = false;
@@ -149,7 +149,7 @@ static int writeMasterIndex(IndexComponent           *component,
 
 /**********************************************************************/
 
-static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
+static const struct index_component_info MASTER_INDEX_INFO_DATA = {
   .kind        = RL_KIND_MASTER_INDEX,
   .name        = "master index",
   .saveOnly    = false,
@@ -160,7 +160,8 @@ static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
   .saver       = NULL,
   .incremental = writeMasterIndex,
 };
-const IndexComponentInfo *const MASTER_INDEX_INFO = &MASTER_INDEX_INFO_DATA;
+const struct index_component_info *const MASTER_INDEX_INFO
+  = &MASTER_INDEX_INFO_DATA;
 
 /**********************************************************************/
 static int restoreMasterIndexBody(struct buffered_reader **bufferedReaders,

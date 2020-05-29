@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#8 $
  */
 
 #include "indexStateData.h"
@@ -50,11 +50,11 @@ static const IndexStateVersion INDEX_STATE_VERSION_301 = {
 /**
  * The index state index component reader.
  *
- * @param portal the ReadPortal that handles the read of the component
+ * @param portal the read_portal that handles the read of the component
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int readIndexStateData(ReadPortal *portal)
+static int readIndexStateData(struct read_portal *portal)
 {
   struct buffer *buffer
     = get_state_index_state_buffer(portal->component->state, IO_READ);
@@ -123,7 +123,7 @@ static int readIndexStateData(ReadPortal *portal)
  * @return UDS_SUCCESS or an error code
  **/
 static int
-writeIndexStateData(IndexComponent         *component,
+writeIndexStateData(struct index_component *component,
                     struct buffered_writer *writer  __attribute__((unused)),
                     unsigned int            zone __attribute__((unused)))
 {
@@ -174,7 +174,7 @@ writeIndexStateData(IndexComponent         *component,
 
 /*****************************************************************************/
 
-const IndexComponentInfo INDEX_STATE_INFO = {
+const struct index_component_info INDEX_STATE_INFO = {
   .kind        = RL_KIND_INDEX_STATE,
   .name        = "index state",
   .saveOnly    = false,

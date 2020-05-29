@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#22 $
  */
 
 #include "indexLayout.h"
@@ -217,7 +217,7 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 
 	sls->num_saves = 2 + num_checkpoints;
 	sls->block_size = block_size;
-	sls->volume_blocks = sls->geometry.bytesPerVolume / block_size;
+	sls->volume_blocks = sls->geometry.bytes_per_volume / block_size;
 
 	result = computeMasterIndexSaveBlocks(&sls->config, block_size,
 					      &sls->master_index_blocks);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#12 $
  */
 
 /**
@@ -262,8 +262,8 @@ size_t getSparseCacheMemorySize(const SparseCache *cache)
 {
   // Count the delta_index_page as cache memory, but ignore all other overhead.
   size_t pageSize
-    = (sizeof(struct delta_index_page) + cache->geometry->bytesPerPage);
-  size_t chapterSize = (pageSize * cache->geometry->indexPagesPerChapter);
+    = (sizeof(struct delta_index_page) + cache->geometry->bytes_per_page);
+  size_t chapterSize = (pageSize * cache->geometry->index_pages_per_chapter);
   return (cache->capacity * chapterSize);
 }
 

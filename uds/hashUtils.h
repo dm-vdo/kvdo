@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#8 $
  */
 
 #ifndef HASH_UTILS_H
@@ -94,8 +94,8 @@ hash_to_chapter_delta_list(const struct uds_chunk_name *name,
                            const struct geometry       *geometry)
 {
 	return (unsigned int) ((extract_chapter_index_bytes(name) >>
-				geometry->chapterAddressBits) &
-			       ((1 << geometry->chapterDeltaListBits) - 1));
+				geometry->chapter_address_bits) &
+			       ((1 << geometry->chapter_delta_list_bits) - 1));
 }
 
 /**
@@ -111,7 +111,7 @@ hash_to_chapter_delta_address(const struct uds_chunk_name *name,
                               const struct geometry *geometry)
 {
 	return (unsigned int) (extract_chapter_index_bytes(name) &
-			       ((1 << geometry->chapterAddressBits) - 1));
+			       ((1 << geometry->chapter_address_bits) - 1));
 }
 
 /**
@@ -198,7 +198,7 @@ static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
                                                uint64_t               value)
 {
 	uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
-	delta_address |= value << geometry->chapterAddressBits;
+	delta_address |= value << geometry->chapter_address_bits;
 	set_chapter_index_bytes(name, delta_address);
 }
 

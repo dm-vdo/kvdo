@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#6 $
  */
 
 #include "indexZone.h"
@@ -78,10 +78,10 @@ void freeIndexZone(IndexZone *zone)
 bool isZoneChapterSparse(const IndexZone *zone,
                          uint64_t         virtualChapter)
 {
-  return isChapterSparse(zone->index->volume->geometry,
-                         zone->oldestVirtualChapter,
-                         zone->newestVirtualChapter,
-                         virtualChapter);
+  return is_chapter_sparse(zone->index->volume->geometry,
+                           zone->oldestVirtualChapter,
+                           zone->newestVirtualChapter,
+                           virtualChapter);
 }
 
 /**********************************************************************/
@@ -126,7 +126,8 @@ static int swapOpenChapter(IndexZone *zone)
 static int reapOldestChapter(IndexZone *zone)
 {
   struct index *index = zone->index;
-  unsigned int chaptersPerVolume = index->volume->geometry->chaptersPerVolume;
+  unsigned int chaptersPerVolume
+    = index->volume->geometry->chapters_per_volume;
   int result
     = ASSERT(((zone->newestVirtualChapter - zone->oldestVirtualChapter)
               <= chaptersPerVolume),
@@ -283,9 +284,9 @@ int openNextChapter(IndexZone *zone, Request *request)
 
   // If the chapter being opened won't overwrite the oldest chapter, we're
   // done.
-  if (!areSamePhysicalChapter(zone->index->volume->geometry,
-                              zone->newestVirtualChapter,
-                              zone->oldestVirtualChapter)) {
+  if (!are_same_physical_chapter(zone->index->volume->geometry,
+                                 zone->newestVirtualChapter,
+                                 zone->oldestVirtualChapter)) {
     return UDS_SUCCESS;
   }
 
@@ -393,7 +394,7 @@ int searchSparseCacheInZone(IndexZone *zone,
   // XXX map to physical chapter and validate. It would be nice to just pass
   // the virtual in to the slow lane, since it's tracking invalidations.
   unsigned int chapter
-    = mapToPhysicalChapter(volume->geometry, virtualChapter);
+    = map_to_physical_chapter(volume->geometry, virtualChapter);
 
   return searchCachedRecordPage(volume, request, &request->chunkName, chapter,
                                 recordPageNumber, &request->oldMetadata,

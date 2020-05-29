@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#6 $
  */
 
 #include "indexCheckpoint.h"
@@ -300,7 +300,7 @@ static int doCheckpointProcess(struct index *index, unsigned int zone)
 {
   struct index_checkpoint *checkpoint = index->checkpoint;
   unlockMutex(&checkpoint->mutex);
-  CompletionStatus status = CS_NOT_COMPLETED;
+  enum completion_status status = CS_NOT_COMPLETED;
   int result
     = perform_index_state_checkpoint_in_zone(index->state, zone, &status);
   if (result != UDS_SUCCESS) {
@@ -329,7 +329,7 @@ static int doCheckpointProcess(struct index *index, unsigned int zone)
 static int doCheckpointAbort(struct index *index, unsigned int zone)
 {
   struct index_checkpoint *checkpoint = index->checkpoint;
-  CompletionStatus status = CS_NOT_COMPLETED;
+  enum completion_status status = CS_NOT_COMPLETED;
   int result
     = abort_index_state_checkpoint_in_zone(index->state, zone, &status);
   if (result != UDS_SUCCESS) {
@@ -353,7 +353,7 @@ static int doCheckpointAbort(struct index *index, unsigned int zone)
 static int doCheckpointFinish(struct index *index, unsigned int zone)
 {
   struct index_checkpoint *checkpoint = index->checkpoint;
-  CompletionStatus status = CS_NOT_COMPLETED;
+  enum completion_status status = CS_NOT_COMPLETED;
   unlockMutex(&checkpoint->mutex);
   int result
     = finish_index_state_checkpoint_in_zone(index->state, zone, &status);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#9 $
  */
 
 #include "indexComponent.h"
@@ -31,12 +31,12 @@
 #include "typeDefs.h"
 
 /*****************************************************************************/
-int makeIndexComponent(struct index_state        *state,
-                       const IndexComponentInfo  *info,
-                       unsigned int               zoneCount,
-                       void                      *data,
-                       void                      *context,
-                       IndexComponent           **componentPtr)
+int makeIndexComponent(struct index_state                 *state,
+                       const struct index_component_info  *info,
+                       unsigned int                        zoneCount,
+                       void                               *data,
+                       void                               *context,
+                       struct index_component            **componentPtr)
 {
   if ((info == NULL) || (info->name == NULL)) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
@@ -55,8 +55,9 @@ int makeIndexComponent(struct index_state        *state,
                                    info->name);
   }
 
-  IndexComponent *component = NULL;
-  int result = ALLOCATE(1, IndexComponent, "index component", &component);
+  struct index_component *component = NULL;
+  int result
+    = ALLOCATE(1, struct index_component, "index component", &component);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -72,12 +73,12 @@ int makeIndexComponent(struct index_state        *state,
 }
 
 /*****************************************************************************/
-static void freeWriteZones(IndexComponent *component)
+static void freeWriteZones(struct index_component *component)
 {
   if (component->writeZones != NULL) {
     unsigned int z;
     for (z = 0; z < component->numZones; ++z) {
-      WriteZone *wz = component->writeZones[z];
+      struct write_zone *wz = component->writeZones[z];
       if (wz == NULL) {
         continue;
       }
@@ -90,12 +91,12 @@ static void freeWriteZones(IndexComponent *component)
 }
 
 /*****************************************************************************/
-void freeIndexComponent(IndexComponent **componentPtr)
+void freeIndexComponent(struct index_component **componentPtr)
 {
   if (componentPtr == NULL) {
     return;
   }
-  IndexComponent *component = *componentPtr;
+  struct index_component *component = *componentPtr;
   if (component == NULL) {
     return;
   }
@@ -110,7 +111,7 @@ void freeIndexComponent(IndexComponent **componentPtr)
  *
  * @param readPortal     the readzone array
  **/
-static void freeReadPortal(ReadPortal *readPortal)
+static void freeReadPortal(struct read_portal *readPortal)
 {
   if (readPortal == NULL) {
     return;
@@ -126,8 +127,8 @@ static void freeReadPortal(ReadPortal *readPortal)
 }
 
 /*****************************************************************************/
-int getBufferedReaderForPortal(ReadPortal      *portal,
-                               unsigned int     part,
+int getBufferedReaderForPortal(struct read_portal      *portal,
+                               unsigned int             part,
                                struct buffered_reader **readerPtr)
 {
   if (part >= portal->zones) {
@@ -135,7 +136,7 @@ int getBufferedReaderForPortal(ReadPortal      *portal,
                                    "%s: cannot access zone %u of %u",
                                    __func__, part, portal->zones);
   }
-  IndexComponent *component = portal->component;
+  struct index_component *component = portal->component;
   if (component->info->ioStorage && (portal->readers[part] == NULL)) {
     int result = open_state_buffered_reader(component->state,
                                             component->info->kind, part,
@@ -151,10 +152,11 @@ int getBufferedReaderForPortal(ReadPortal      *portal,
 }
 
 /*****************************************************************************/
-int readIndexComponent(IndexComponent *component)
+int readIndexComponent(struct index_component *component)
 {
-  ReadPortal *portal;
-  int result = ALLOCATE(1, ReadPortal, "index component read portal", &portal);
+  struct read_portal *portal;
+  int result
+    = ALLOCATE(1, struct read_portal, "index component read portal", &portal);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -184,9 +186,9 @@ int readIndexComponent(IndexComponent *component)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int resolveWriteZone(const IndexComponent  *component,
-                            unsigned int           zone,
-                            WriteZone            **writeZonePtr)
+static int resolveWriteZone(const struct index_component  *component,
+                            unsigned int                   zone,
+                            struct write_zone            **writeZonePtr)
 {
   int result = ASSERT(writeZonePtr != NULL,
                       "output parameter is null");
@@ -219,9 +221,10 @@ static int resolveWriteZone(const IndexComponent  *component,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
-                                                 struct buffered_writer *writer,
-                                                 unsigned int    zone)
+static int
+indexComponentSaverIncrementalWrapper(struct index_component *component,
+                                      struct buffered_writer *writer,
+                                      unsigned int            zone)
 {
   IncrementalWriter incrFunc  = component->info->incremental;
   bool              completed = false;
@@ -258,9 +261,9 @@ static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int doneWithZone(WriteZone *writeZone)
+static int doneWithZone(struct write_zone *writeZone)
 {
-  const IndexComponent *component = writeZone->component;
+  const struct index_component *component = writeZone->component;
   if (writeZone->writer != NULL) {
     int result = flush_buffered_writer(writeZone->writer);
     if (result != UDS_SUCCESS) {
@@ -274,7 +277,7 @@ static int doneWithZone(WriteZone *writeZone)
 }
 
 /**
- * Construct the array of WriteZone instances for this component.
+ * Construct the array of write_zone instances for this component.
  *
  * @param component    the index component
  *
@@ -283,32 +286,32 @@ static int doneWithZone(WriteZone *writeZone)
  * If this is a multizone component, each zone will be fully defined,
  * otherwise zone 0 stands in for the single state file.
  **/
-static int makeWriteZones(IndexComponent *component)
+static int makeWriteZones(struct index_component *component)
 {
   unsigned int z;
   if (component->writeZones != NULL) {
     // just reinitialize states
     for (z = 0; z < component->numZones; ++z) {
-      WriteZone *wz = component->writeZones[z];
+      struct write_zone *wz = component->writeZones[z];
       wz->phase = IWC_IDLE;
     }
     return UDS_SUCCESS;
   }
 
-  int result = ALLOCATE(component->numZones, WriteZone *,
+  int result = ALLOCATE(component->numZones, struct write_zone *,
                         "index component write zones", &component->writeZones);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   for (z = 0; z < component->numZones; ++z) {
-    result = ALLOCATE(1, WriteZone, "plain write zone",
+    result = ALLOCATE(1, struct write_zone, "plain write zone",
                       &component->writeZones[z]);
     if (result != UDS_SUCCESS) {
       freeWriteZones(component);
       return result;
     }
-    *component->writeZones[z] = (WriteZone) {
+    *component->writeZones[z] = (struct write_zone) {
       .component = component,
       .phase     = IWC_IDLE,
       .zone      = z,
@@ -318,14 +321,14 @@ static int makeWriteZones(IndexComponent *component)
 }
 
 /*****************************************************************************/
-static int openBufferedWriters(IndexComponent *component)
+static int openBufferedWriters(struct index_component *component)
 {
   int result = UDS_SUCCESS;
-  WriteZone **wzp;
+  struct write_zone **wzp;
   for (wzp = component->writeZones;
        wzp < component->writeZones + component->numZones;
        ++wzp) {
-    WriteZone *wz = *wzp;
+    struct write_zone *wz = *wzp;
     wz->phase = IWC_START;
 
     result = ASSERT(wz->writer == NULL, "write zone writer already exists");
@@ -346,7 +349,7 @@ static int openBufferedWriters(IndexComponent *component)
 }
 
 /*****************************************************************************/
-static int startIndexComponentSave(IndexComponent *component)
+static int startIndexComponentSave(struct index_component *component)
 {
   int result = makeWriteZones(component);
   if (result != UDS_SUCCESS) {
@@ -362,13 +365,13 @@ static int startIndexComponentSave(IndexComponent *component)
 }
 
 /*****************************************************************************/
-int startIndexComponentIncrementalSave(IndexComponent *component)
+int startIndexComponentIncrementalSave(struct index_component *component)
 {
   return startIndexComponentSave(component);
 }
 
 /*****************************************************************************/
-int writeIndexComponent(IndexComponent *component)
+int writeIndexComponent(struct index_component *component)
 {
   Saver saver = component->info->saver;
   if ((saver == NULL) && (component->info->incremental != NULL)) {
@@ -382,7 +385,7 @@ int writeIndexComponent(IndexComponent *component)
 
   unsigned int z;
   for (z = 0; z < component->numZones; ++z) {
-    WriteZone *writeZone = component->writeZones[z];
+    struct write_zone *writeZone = component->writeZones[z];
 
     result = (*saver)(component, writeZone->writer, z);
     if (result != UDS_SUCCESS) {
@@ -416,7 +419,7 @@ int writeIndexComponent(IndexComponent *component)
  * @note closing a buffered writer causes its file descriptor to be
  *       passed to doneWithZone
  **/
-static int closeBufferedWriter(WriteZone *writeZone)
+static int closeBufferedWriter(struct write_zone *writeZone)
 {
   if (writeZone->writer == NULL) {
     return UDS_SUCCESS;
@@ -445,11 +448,11 @@ static int closeBufferedWriter(WriteZone *writeZone)
  *       the IWC_START command is issued, and always reports that
  *       the save is complete unless the saver failed.
  **/
-static int wrapSaverAsIncremental(IndexComponent           *component,
-                                  struct buffered_writer   *writer,
-                                  unsigned int              zone,
-                                  IncrementalWriterCommand  command,
-                                  bool                     *completed)
+static int wrapSaverAsIncremental(struct index_component          *component,
+                                  struct buffered_writer          *writer,
+                                  unsigned int                     zone,
+                                  enum incremental_writer_command  command,
+                                  bool                            *completed)
 {
   int result = UDS_SUCCESS;
 
@@ -474,7 +477,8 @@ static int wrapSaverAsIncremental(IndexComponent           *component,
  * @return the correct IncrementalWriter function to use, or
  *         NULL signifying no progress can be made at this time.
  **/
-static IncrementalWriter getIncrementalWriter(IndexComponent *component)
+static IncrementalWriter
+getIncrementalWriter(struct index_component *component)
 {
   IncrementalWriter incrFunc = component->info->incremental;
 
@@ -486,13 +490,13 @@ static IncrementalWriter getIncrementalWriter(IndexComponent *component)
 }
 
 /*****************************************************************************/
-int performIndexComponentZoneSave(IndexComponent   *component,
-                                  unsigned int      zone,
-                                  CompletionStatus *completed)
+int performIndexComponentZoneSave(struct index_component *component,
+                                  unsigned int            zone,
+                                  enum completion_status *completed)
 {
-  CompletionStatus comp = CS_NOT_COMPLETED;
+  enum completion_status comp = CS_NOT_COMPLETED;
 
-  WriteZone *wz = NULL;
+  struct write_zone *wz = NULL;
   int result = resolveWriteZone(component, zone, &wz);
   if (result != UDS_SUCCESS) {
     return result;
@@ -530,9 +534,9 @@ int performIndexComponentZoneSave(IndexComponent   *component,
 }
 
 /*****************************************************************************/
-int performIndexComponentChapterWriterSave(IndexComponent *component)
+int performIndexComponentChapterWriterSave(struct index_component *component)
 {
-  WriteZone *wz = NULL;
+  struct write_zone *wz = NULL;
   int result = resolveWriteZone(component, 0, &wz);
   if (result != UDS_SUCCESS) {
     return result;
@@ -564,17 +568,17 @@ int performIndexComponentChapterWriterSave(IndexComponent *component)
 }
 
 /*****************************************************************************/
-int finishIndexComponentZoneSave(IndexComponent   *component,
-                                 unsigned int      zone,
-                                 CompletionStatus *completed)
+int finishIndexComponentZoneSave(struct index_component *component,
+                                 unsigned int            zone,
+                                 enum completion_status *completed)
 {
-  WriteZone *wz = NULL;
+  struct write_zone *wz = NULL;
   int result = resolveWriteZone(component, zone, &wz);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  CompletionStatus comp;
+  enum completion_status comp;
   switch (wz->phase) {
     case IWC_IDLE:
       comp = CS_COMPLETED_PREVIOUSLY;
@@ -612,11 +616,11 @@ int finishIndexComponentZoneSave(IndexComponent   *component,
 }
 
 /*****************************************************************************/
-int finishIndexComponentIncrementalSave(IndexComponent *component)
+int finishIndexComponentIncrementalSave(struct index_component *component)
 {
   unsigned int zone;
   for (zone = 0; zone < component->numZones; ++zone) {
-    WriteZone *wz = component->writeZones[zone];
+    struct write_zone *wz = component->writeZones[zone];
     IncrementalWriter incrFunc = getIncrementalWriter(component);
     if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
       // Note: this is only safe if no other threads are currently processing
@@ -650,17 +654,17 @@ int finishIndexComponentIncrementalSave(IndexComponent *component)
 }
 
 /*****************************************************************************/
-int abortIndexComponentZoneSave(IndexComponent   *component,
-                                unsigned int      zone,
-                                CompletionStatus *status)
+int abortIndexComponentZoneSave(struct index_component *component,
+                                unsigned int            zone,
+                                enum completion_status *status)
 {
-  WriteZone *wz = NULL;
+  struct write_zone *wz = NULL;
   int result = resolveWriteZone(component, zone, &wz);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  CompletionStatus comp = CS_COMPLETED_PREVIOUSLY;
+  enum completion_status comp = CS_COMPLETED_PREVIOUSLY;
 
   IncrementalWriter incrFunc = getIncrementalWriter(component);
   if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
@@ -679,12 +683,12 @@ int abortIndexComponentZoneSave(IndexComponent   *component,
 }
 
 /*****************************************************************************/
-int abortIndexComponentIncrementalSave(IndexComponent *component)
+int abortIndexComponentIncrementalSave(struct index_component *component)
 {
   int result = UDS_SUCCESS;
   unsigned int zone;
   for (zone = 0; zone < component->numZones; ++zone) {
-    WriteZone *wz = component->writeZones[zone];
+    struct write_zone *wz = component->writeZones[zone];
     IncrementalWriter incrFunc = getIncrementalWriter(component);
     if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
       // Note: this is only safe if no other threads are currently processing
@@ -706,7 +710,7 @@ int abortIndexComponentIncrementalSave(IndexComponent *component)
 }
 
 /*****************************************************************************/
-int discardIndexComponent(IndexComponent *component)
+int discardIndexComponent(struct index_component *component)
 {
   if (!component->info->ioStorage) {
     return UDS_INVALID_ARGUMENT;

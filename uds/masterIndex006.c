@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#15 $
  */
 #include "masterIndex006.h"
 
@@ -653,18 +653,18 @@ static int splitConfiguration006(const struct configuration *config,
                                  SplitConfig *split)
 {
   int result
-    = ASSERT_WITH_ERROR_CODE(config->geometry->sparseChaptersPerVolume != 0,
+    = ASSERT_WITH_ERROR_CODE(config->geometry->sparse_chapters_per_volume != 0,
                              UDS_INVALID_ARGUMENT,
                              "cannot initialize sparse+dense master index"
                              " with no sparse chapters");
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_WITH_ERROR_CODE(config->sparseSampleRate != 0,
+  result = ASSERT_WITH_ERROR_CODE(config->sparse_sample_rate != 0,
                                   UDS_INVALID_ARGUMENT,
                                   "cannot initialize sparse+dense master"
                                   " index with a sparse sample rate of %u",
-                                  config->sparseSampleRate);
+                                  config->sparse_sample_rate);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -677,20 +677,20 @@ static int splitConfiguration006(const struct configuration *config,
   split->nonHookGeometry = *config->geometry;
   split->nonHookConfig.geometry = &split->nonHookGeometry;
 
-  uint64_t sampleRate        = config->sparseSampleRate;
-  uint64_t numChapters       = config->geometry->chaptersPerVolume;
-  uint64_t numSparseChapters = config->geometry->sparseChaptersPerVolume;
+  uint64_t sampleRate        = config->sparse_sample_rate;
+  uint64_t numChapters       = config->geometry->chapters_per_volume;
+  uint64_t numSparseChapters = config->geometry->sparse_chapters_per_volume;
   uint64_t numDenseChapters  = numChapters - numSparseChapters;
-  uint64_t sampleRecords = config->geometry->recordsPerChapter / sampleRate;
+  uint64_t sampleRecords = config->geometry->records_per_chapter / sampleRate;
 
   // Adjust the number of records indexed for each chapter
-  split->hookGeometry.recordsPerChapter     = sampleRecords;
-  split->nonHookGeometry.recordsPerChapter -= sampleRecords;
+  split->hookGeometry.records_per_chapter     = sampleRecords;
+  split->nonHookGeometry.records_per_chapter -= sampleRecords;
 
   // Adjust the number of chapters indexed
-  split->hookGeometry.sparseChaptersPerVolume    = 0;
-  split->nonHookGeometry.sparseChaptersPerVolume = 0;
-  split->nonHookGeometry.chaptersPerVolume       = numDenseChapters;
+  split->hookGeometry.sparse_chapters_per_volume    = 0;
+  split->nonHookGeometry.sparse_chapters_per_volume = 0;
+  split->nonHookGeometry.chapters_per_volume        = numDenseChapters;
   return UDS_SUCCESS;
 }
 
@@ -756,7 +756,7 @@ int makeMasterIndex006(const struct configuration *config,
   mi6->common.startSavingMasterIndex        = startSavingMasterIndex_006;
 
   mi6->numZones         = numZones;
-  mi6->sparseSampleRate = config->sparseSampleRate;
+  mi6->sparseSampleRate = config->sparse_sample_rate;
 
   result = ALLOCATE(numZones, MasterIndexZone, "master index zones",
                     &mi6->masterZones);

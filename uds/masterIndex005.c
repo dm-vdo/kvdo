@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#20 $
  */
 #include "masterIndex005.h"
 
@@ -1286,10 +1286,11 @@ static int computeMasterIndexParameters005(const struct configuration *config,
                                  : MAX_ZONES * MAX_ZONES);
 
   struct geometry *geometry = config->geometry;
-  unsigned long recordsPerChapter = geometry->recordsPerChapter;
-  params->numChapters = geometry->chaptersPerVolume;
+  unsigned long recordsPerChapter = geometry->records_per_chapter;
+  params->numChapters = geometry->chapters_per_volume;
   unsigned long recordsPerVolume = recordsPerChapter * params->numChapters;
-  unsigned int numAddresses = config->masterIndexMeanDelta * DELTA_LIST_SIZE;
+  unsigned int numAddresses
+    = config->master_index_mean_delta * DELTA_LIST_SIZE;
   params->numDeltaLists
     = maxUint(recordsPerVolume / DELTA_LIST_SIZE, minDeltaLists);
   params->addressBits = compute_bits(numAddresses - 1);
@@ -1307,11 +1308,11 @@ static int computeMasterIndexParameters005(const struct configuration *config,
                                      " address bits",
                                      params->addressBits);
   }
-  if (isSparse(geometry)) {
+  if (is_sparse(geometry)) {
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot initialize dense master index"
                                      " with %u sparse chapters",
-                                     geometry->sparseChaptersPerVolume);
+                                     geometry->sparse_chapters_per_volume);
   }
   if (recordsPerChapter == 0) {
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,

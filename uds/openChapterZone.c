@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#7 $
  */
 
 #include "openChapterZone.h"
@@ -65,33 +65,34 @@ int makeOpenChapter(const struct geometry  *geometry,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_WITH_ERROR_CODE(geometry->openChapterLoadRatio > 1,
+  result = ASSERT_WITH_ERROR_CODE(geometry->open_chapter_load_ratio > 1,
                                   UDS_BAD_STATE,
                                   "Open chapter hash table is too small");
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_WITH_ERROR_CODE((geometry->recordsPerChapter
+  result = ASSERT_WITH_ERROR_CODE((geometry->records_per_chapter
                                    <= OPEN_CHAPTER_MAX_RECORD_NUMBER),
                                   UDS_BAD_STATE,
                                   "Too many records (%u) for a single chapter",
-                                  geometry->recordsPerChapter);
+                                  geometry->records_per_chapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  if (geometry->recordsPerChapter < zoneCount) {
+  if (geometry->records_per_chapter < zoneCount) {
     return logUnrecoverable(
       UDS_INVALID_ARGUMENT,
       "zone count: %u is larger than the records per chapter %u",
-      zoneCount, geometry->recordsPerChapter);
+      zoneCount, geometry->records_per_chapter);
   }
-  size_t capacity = geometry->recordsPerChapter / zoneCount;
+  size_t capacity = geometry->records_per_chapter / zoneCount;
 
   // The slot count must be at least one greater than the capacity.
   // Using a power of two slot count guarantees that hash insertion
   // will never fail if the hash table is not full.
-  size_t slotCount = nextPowerOfTwo(capacity * geometry->openChapterLoadRatio);
+  size_t slotCount
+    = nextPowerOfTwo(capacity * geometry->open_chapter_load_ratio);
   OpenChapterZone *openChapter;
   result = ALLOCATE_EXTENDED(OpenChapterZone, slotCount, Slot,
                              "open chapter", &openChapter);

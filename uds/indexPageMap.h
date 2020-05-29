@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.h#6 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -26,17 +26,15 @@
 #include "geometry.h"
 #include "indexComponent.h"
 
-extern const IndexComponentInfo INDEX_PAGE_MAP_INFO;
+extern const struct index_component_info INDEX_PAGE_MAP_INFO;
 
-typedef struct indexPageMap IndexPageMap;
-
-typedef struct {
+struct index_page_bounds {
   unsigned int lowestList;
   unsigned int highestList;
-} IndexPageBounds;
+};
 
 /*
- *  Notes on IndexPageMap
+ *  Notes on struct index_page_map
  *
  *  Each volume maintains an index page map which records how the chapter delta
  *  lists are distributed among the index pages for that chapter.
@@ -48,12 +46,12 @@ typedef struct {
  *  known from the geometry.
  */
 
-typedef uint16_t IndexPageMapEntry;
+typedef uint16_t index_page_map_entry_t;
 
-struct indexPageMap {
+struct index_page_map {
   const struct geometry  *geometry;
   uint64_t                lastUpdate;
-  IndexPageMapEntry      *entries;
+  index_page_map_entry_t      *entries;
 };
 
 /**
@@ -65,14 +63,14 @@ struct indexPageMap {
  * @return             A success or error code.
  **/
 int __must_check
-makeIndexPageMap(const struct geometry *geometry, IndexPageMap **mapPtr);
+makeIndexPageMap(const struct geometry *geometry, struct index_page_map **mapPtr);
 
 /**
  * Free an index page map.
  *
  * @param map  The index page map to destroy.
  **/
-void freeIndexPageMap(IndexPageMap *map);
+void freeIndexPageMap(struct index_page_map *map);
 
 /**
  * Get the virtual chapter number of the last update to the index page map.
@@ -81,7 +79,7 @@ void freeIndexPageMap(IndexPageMap *map);
  *
  * @return the virtual chapter number of the last chapter updated
  **/
-uint64_t getLastUpdate(const IndexPageMap *map);
+uint64_t getLastUpdate(const struct index_page_map *map);
 
 /**
  * Update an index page map entry.
@@ -94,7 +92,7 @@ uint64_t getLastUpdate(const IndexPageMap *map);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check updateIndexPageMap(IndexPageMap *map,
+int __must_check updateIndexPageMap(struct index_page_map *map,
 				    uint64_t virtualChapterNumber,
 				    unsigned int chapterNumber,
 				    unsigned int indexPageNumber,
@@ -113,7 +111,7 @@ int __must_check updateIndexPageMap(IndexPageMap *map,
  * @return UDS_SUCCESS, or UDS_INVALID_ARGUMENT if the chapter number
  *         is out of range
  **/
-int __must_check findIndexPageNumber(const IndexPageMap *map,
+int __must_check findIndexPageNumber(const struct index_page_map *map,
 				     const struct uds_chunk_name *name,
 				     unsigned int chapterNumber,
 				     unsigned int *indexPageNumberPtr);
@@ -130,10 +128,10 @@ int __must_check findIndexPageNumber(const IndexPageMap *map,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getListNumberBounds(const IndexPageMap *map,
+int __must_check getListNumberBounds(const struct index_page_map *map,
 				     unsigned int chapterNumber,
 				     unsigned int indexPageNumber,
-				     IndexPageBounds *bounds);
+				     struct index_page_bounds *bounds);
 
 /**
  * Compute the size of the index page map save image, including all headers.

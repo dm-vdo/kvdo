@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#6 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -29,17 +29,17 @@
 #include "compiler.h"
 #include "regionIdentifiers.h"
 
-typedef enum completionStatus {
+enum completion_status {
   CS_NOT_COMPLETED,             // operation has not completed
   CS_JUST_COMPLETED,            // operation just completed
   CS_COMPLETED_PREVIOUSLY       // operation completed previously
-} CompletionStatus;
+};
 
-typedef struct readPortal {
-  struct indexComponent   *component;
+struct read_portal {
+  struct index_component  *component;
   struct buffered_reader **readers;
   unsigned int             zones;
-} ReadPortal;
+};
 
 /**
  * Prototype for functions which can load an index component from its
@@ -49,7 +49,7 @@ typedef struct readPortal {
  *                        specified component.
  * @return UDS_SUCCESS or an error code
  **/
-typedef int (*Loader)(ReadPortal *portal);
+typedef int (*Loader)(struct read_portal *portal);
 
 /**
  * Prototype for functions which can save an index component.
@@ -60,28 +60,28 @@ typedef int (*Loader)(ReadPortal *portal);
  *
  * @return UDS_SUCCESS or an error code
  **/
-typedef int (*Saver)(struct indexComponent  *component,
+typedef int (*Saver)(struct index_component *component,
                      struct buffered_writer *writer,
                      unsigned int            zone);
 
 /**
  * Command code used by IncrementalWriter function protocol.
  **/
-typedef enum incrementalWriterCommand {
+enum incremental_writer_command {
   IWC_START,    //< start an incremental save
   IWC_CONTINUE, //< continue an incremental save
   IWC_FINISH,   //< force finish of incremental save
   IWC_ABORT,    //< abort incremental save
   IWC_IDLE = -1,//< not a command, used internally to signify not in progress
   IWC_DONE = -2 //< not a command, used internally to signify async completion
-} IncrementalWriterCommand;
+};
 
-typedef struct writeZone {
-  struct indexComponent    *component;
-  IncrementalWriterCommand  phase;
-  struct buffered_writer   *writer;
-  unsigned int              zone;
-} WriteZone;
+struct write_zone {
+  struct index_component          *component;
+  enum incremental_writer_command  phase;
+  struct buffered_writer          *writer;
+  unsigned int                     zone;
+};
 
 /**
  * @param [in]  component       The index component.
@@ -92,17 +92,17 @@ typedef struct writeZone {
  *
  * @return      UDS_SUCCESS or an error code
  **/
-typedef int (*IncrementalWriter)(struct indexComponent    *component,
-                                 struct buffered_writer   *writer,
-                                 unsigned int              zone,
-                                 IncrementalWriterCommand  command,
-                                 bool                     *completed);
+typedef int (*IncrementalWriter)(struct index_component          *component,
+                                 struct buffered_writer          *writer,
+                                 unsigned int                     zone,
+                                 enum incremental_writer_command  command,
+                                 bool                            *completed);
 
 /**
  * The structure describing how to load or save an index component.
  * At least one of saver or incremental must be specified.
  **/
-typedef struct indexComponentInfo {
+struct index_component_info {
   RegionKind         kind;        // Region kind
   const char        *name;        // The name of the component (for logging)
   bool               saveOnly;    // Used for saves but not checkpoints
@@ -112,19 +112,24 @@ typedef struct indexComponentInfo {
   Loader             loader;      // The function load this component
   Saver              saver;       // The function to store this component
   IncrementalWriter  incremental; // The function for incremental writing
-} IndexComponentInfo;
+};
 
 /**
  * The structure representing a savable (and loadable) part of an index.
  **/
-typedef struct indexComponent {
-  const IndexComponentInfo  *info;          // IndexComponentInfo specification
-  void                      *componentData; // The object to load or save
-  void                      *context;       // The context used to load or save
-  struct index_state        *state;         // The index state
-  unsigned int               numZones;      // Number of zones in write portal
-  WriteZone               **writeZones;     // State for writing component
-} IndexComponent;
+struct index_component {
+  const struct index_component_info  *info;           // index_component_info
+                                                      // specification
+  void                               *componentData;  // The object to load or
+                                                      // save
+  void                               *context;        // The context used to
+                                                      // load or save
+  struct index_state                 *state;          // The index state
+  unsigned int                        numZones;       // Number of zones in
+                                                      // write portal
+  struct write_zone                 **writeZones;     // State for writing
+                                                      // component
+};
 
 /**
  * Make an index component
@@ -140,23 +145,23 @@ typedef struct indexComponent {
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check makeIndexComponent(struct index_state *state,
-				    const IndexComponentInfo *info,
+				    const struct index_component_info *info,
 				    unsigned int zoneCount,
 				    void *data,
 				    void *context,
-				    IndexComponent **componentPtr);
+				    struct index_component **componentPtr);
 
 /**
  * Destroy and index component.
  *
  * @param componentPtr  A pointer to the component to be freed.
  **/
-void freeIndexComponent(IndexComponent **componentPtr);
+void freeIndexComponent(struct index_component **componentPtr);
 
 /**
  * Return the index component name for this component.
  **/
-static INLINE const char *indexComponentName(IndexComponent *component)
+static INLINE const char *indexComponentName(struct index_component *component)
 {
   return component->info->name;
 }
@@ -164,7 +169,7 @@ static INLINE const char *indexComponentName(IndexComponent *component)
 /**
  * Return the index component data for this component.
  **/
-static INLINE void *indexComponentData(IndexComponent *component)
+static INLINE void *indexComponentData(struct index_component *component)
 {
   return component->componentData;
 }
@@ -172,7 +177,7 @@ static INLINE void *indexComponentData(IndexComponent *component)
 /**
  * Return the index component context for this component.
  **/
-static INLINE void *indexComponentContext(IndexComponent *component)
+static INLINE void *indexComponentContext(struct index_component *component)
 {
   return component->context;
 }
@@ -184,7 +189,8 @@ static INLINE void *indexComponentContext(IndexComponent *component)
  *
  * @return whether the component may be skipped
  **/
-static INLINE bool skipIndexComponentOnCheckpoint(IndexComponent *component)
+static INLINE bool
+skipIndexComponentOnCheckpoint(struct index_component *component)
 {
   return component->info->saveOnly;
 }
@@ -194,7 +200,7 @@ static INLINE bool skipIndexComponentOnCheckpoint(IndexComponent *component)
  * invoked by the chapter writer thread.
  **/
 static INLINE bool
-deferIndexComponentCheckpointToChapterWriter(IndexComponent *component)
+deferIndexComponentCheckpointToChapterWriter(struct index_component *component)
 {
   return component->info->chapterSync;
 }
@@ -207,7 +213,7 @@ deferIndexComponentCheckpointToChapterWriter(IndexComponent *component)
  * @return whether the component is final (that is, contains shutdown state)
  **/
 static INLINE bool
-missingIndexComponentRequiresReplay(IndexComponent *component)
+missingIndexComponentRequiresReplay(struct index_component *component)
 {
   return component->info->saveOnly;
 }
@@ -220,7 +226,7 @@ missingIndexComponentRequiresReplay(IndexComponent *component)
  * @return UDS_SUCCESS, an error code from reading, or UDS_INVALID_ARGUMENT
  *         if the component is NULL.
  **/
-int __must_check readIndexComponent(IndexComponent *component);
+int __must_check readIndexComponent(struct index_component *component);
 
 /**
  * Write a state file.
@@ -230,7 +236,7 @@ int __must_check readIndexComponent(IndexComponent *component);
  * @return UDS_SUCCESS, an error code from writing, or UDS_INVALID_ARGUMENT
  *         if the component is NULL.
  **/
-int __must_check writeIndexComponent(IndexComponent *component);
+int __must_check writeIndexComponent(struct index_component *component);
 
 /**
  * Start an incremental save for this component (all zones).
@@ -239,7 +245,8 @@ int __must_check writeIndexComponent(IndexComponent *component);
  *
  * @return      UDS_SUCCESS or an error code.
  **/
-int __must_check startIndexComponentIncrementalSave(IndexComponent *component);
+int __must_check
+startIndexComponentIncrementalSave(struct index_component *component);
 
 /**
  * Perform an incremental save for a component in a particular zone.
@@ -254,9 +261,9 @@ int __must_check startIndexComponentIncrementalSave(IndexComponent *component);
  *              save will be performed if this is the first call in zone 0.
  **/
 int __must_check
-performIndexComponentZoneSave(IndexComponent *component,
+performIndexComponentZoneSave(struct index_component *component,
 			      unsigned int zone,
-			      CompletionStatus *completed);
+			      enum completion_status *completed);
 
 /**
  * Perform an incremental save for a non-multizone component synchronized
@@ -265,7 +272,7 @@ performIndexComponentZoneSave(IndexComponent *component,
  * @param component     The index component.
  **/
 int __must_check
-performIndexComponentChapterWriterSave(IndexComponent *component);
+performIndexComponentChapterWriterSave(struct index_component *component);
 
 /**
  * Force the completion of an incremental save currently in progress in
@@ -278,9 +285,9 @@ performIndexComponentChapterWriterSave(IndexComponent *component);
  * @return      UDS_SUCCESS or an error code.
  **/
 int __must_check
-finishIndexComponentZoneSave(IndexComponent *component,
+finishIndexComponentZoneSave(struct index_component *component,
 			     unsigned int zone,
-			     CompletionStatus *completed);
+			     enum completion_status *completed);
 
 /**
  * Force the completion of an incremental save in all zones and complete
@@ -295,7 +302,8 @@ finishIndexComponentZoneSave(IndexComponent *component,
  *              which protects access to the index data structures from the
  *              invoking thread.
  **/
-int __must_check finishIndexComponentIncrementalSave(IndexComponent *component);
+int __must_check
+finishIndexComponentIncrementalSave(struct index_component *component);
 
 /**
  * Abort the incremental save currently in progress in a particular zone.
@@ -311,9 +319,9 @@ int __must_check finishIndexComponentIncrementalSave(IndexComponent *component);
  *              useless unless every zone indicates CS_COMPLETED_PREVIOUSLY.
  **/
 int __must_check
-abortIndexComponentZoneSave(IndexComponent *component,
+abortIndexComponentZoneSave(struct index_component *component,
 			    unsigned int zone,
-			    CompletionStatus *completed);
+			    enum completion_status *completed);
 
 /**
  * Abort an incremental save currently in progress
@@ -327,7 +335,8 @@ abortIndexComponentZoneSave(IndexComponent *component,
  *              which protects access to the index data structures from the
  *              invoking thread.
  **/
-int __must_check abortIndexComponentIncrementalSave(IndexComponent *component);
+int __must_check
+abortIndexComponentIncrementalSave(struct index_component *component);
 
 /**
  * Remove or invalidate component state.
@@ -335,7 +344,7 @@ int __must_check abortIndexComponentIncrementalSave(IndexComponent *component);
  * @param component  The component whose file is to be removed.  If NULL
  *                   no action is taken.
  **/
-int __must_check discardIndexComponent(IndexComponent *component);
+int __must_check discardIndexComponent(struct index_component *component);
 
 /**
  * Get a buffered reader for the specified component part.
@@ -348,7 +357,7 @@ int __must_check discardIndexComponent(IndexComponent *component);
  *
  * @note the reader is managed by the component portal
  **/
-int __must_check getBufferedReaderForPortal(ReadPortal *portal,
+int __must_check getBufferedReaderForPortal(struct read_portal *portal,
 					    unsigned int part,
 					    struct buffered_reader **readerPtr);
 

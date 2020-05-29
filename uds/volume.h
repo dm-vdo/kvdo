@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#13 $
  */
 
 #ifndef VOLUME_H
@@ -77,9 +77,9 @@ typedef struct volume {
   /* The sparse chapter index cache */
   SparseCache                    *sparseCache;
   /* The page cache */
-  PageCache                      *pageCache;
+  struct page_cache              *pageCache;
   /* The index page map maps delta list numbers to index page numbers */
-  IndexPageMap                   *indexPageMap;
+  struct index_page_map          *indexPageMap;
   /* Mutex to sync between read threads and index thread */
   Mutex                           readThreadsMutex;
   /* Condvar to indicate when read threads should start working */
@@ -230,7 +230,7 @@ int __must_check searchCachedRecordPage(Volume *volume,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-forgetChapter(Volume *volume, uint64_t chapter, InvalidationReason reason);
+forgetChapter(Volume *volume, uint64_t chapter, invalidation_reason reason);
 
 /**
  * Write a chapter's worth of index pages to a volume
@@ -320,7 +320,7 @@ int __must_check getPageLocked(Volume *volume,
 			       Request *request,
 			       unsigned int physicalPage,
 			       cache_probe_type_t probeType,
-			       CachedPage **entryPtr);
+			       struct cached_page **entryPtr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -329,10 +329,10 @@ int __must_check getPageLocked(Volume *volume,
  * a callback function is called to inform the caller the read is complete.
  *
  * The caller of this function should not be holding the volume read lock.
- * Instead, the caller must call beingPendingSearch() for the given zone
+ * Instead, the caller must call begin_pending_search() for the given zone
  * the request is being processed in. That state will be maintained or
  * restored when the call returns, at which point the caller should call
- * endPendingSearch().
+ * end_pending_search().
  *
  * As a side-effect, the retrieved page will become the most recent page in
  * the cache.
@@ -351,7 +351,7 @@ int __must_check getPageProtected(Volume *volume,
 				  Request *request,
 				  unsigned int physicalPage,
 				  cache_probe_type_t probeType,
-				  CachedPage **entryPtr);
+				  struct cached_page **entryPtr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
