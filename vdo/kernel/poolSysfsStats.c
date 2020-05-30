@@ -2328,40 +2328,6 @@ static PoolStatsAttribute poolStatsMemoryUsagePeakBytesUsedAttr = {
 };
 
 /**********************************************************************/
-/** Bio structures currently allocated (size not tracked). */
-static ssize_t poolStatsMemoryUsageBiosUsedShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  mutex_lock(&layer->statsMutex);
-  getKernelStats(layer, &layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.biosUsed);
-  mutex_unlock(&layer->statsMutex);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsMemoryUsageBiosUsedAttr = {
-  .attr  = { .name = "memory_usage_bios_used", .mode = 0444, },
-  .show  = poolStatsMemoryUsageBiosUsedShow,
-};
-
-/**********************************************************************/
-/** Maximum number of bios allocated. */
-static ssize_t poolStatsMemoryUsagePeakBioCountShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  mutex_lock(&layer->statsMutex);
-  getKernelStats(layer, &layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.peakBioCount);
-  mutex_unlock(&layer->statsMutex);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsMemoryUsagePeakBioCountAttr = {
-  .attr  = { .name = "memory_usage_peak_bio_count", .mode = 0444, },
-  .show  = poolStatsMemoryUsagePeakBioCountShow,
-};
-
-/**********************************************************************/
 /** Number of chunk names stored in the index */
 static ssize_t poolStatsIndexEntriesIndexedShow(KernelLayer *layer, char *buf)
 {
@@ -2649,8 +2615,6 @@ struct attribute *poolStatsAttrs[] = {
   &poolStatsBiosInProgressFuaAttr.attr,
   &poolStatsMemoryUsageBytesUsedAttr.attr,
   &poolStatsMemoryUsagePeakBytesUsedAttr.attr,
-  &poolStatsMemoryUsageBiosUsedAttr.attr,
-  &poolStatsMemoryUsagePeakBioCountAttr.attr,
   &poolStatsIndexEntriesIndexedAttr.attr,
   &poolStatsIndexPostsFoundAttr.attr,
   &poolStatsIndexPostsNotFoundAttr.attr,

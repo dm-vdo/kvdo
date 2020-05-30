@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#13 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#14 $
  */
 
 #include "deviceConfig.h"
@@ -417,6 +417,11 @@ static int parseOneKeyValuePair(const char   *key,
 				const char   *value,
                                 DeviceConfig *config)
 {
+  if (strcmp(key, "deduplication") == 0) {
+    return parseBool(value, "on", "off", &config->deduplication);
+  }
+
+  // The remaining arguments must have integral values.
   unsigned int count;
   int result = stringToUInt(value, &count);
   if (result != UDS_SUCCESS) {
@@ -568,6 +573,7 @@ int parseDeviceConfig(int                argc,
     .hashZones           = 0,
   };
   config->maxDiscardBlocks = 1;
+  config->deduplication    = true;
 
   struct dm_arg_set argSet;
 

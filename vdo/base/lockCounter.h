@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lockCounter.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lockCounter.h#2 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -156,5 +156,26 @@ void releaseJournalZoneReferenceFromOtherZone(LockCounter *counter,
  * @param counter  The counter to inform
  **/
 void acknowledgeUnlock(LockCounter *counter);
+
+/**
+ * Prevent the lock counter from issuing notifications.
+ *
+ * @param counter  The counter
+ *
+ * @return <code>true</code> if the lock counter was not notifying and hence
+ *         the suspend was efficacious
+ **/
+bool suspendLockCounter(LockCounter *counter)
+  __attribute__((warn_unused_result));
+
+/**
+ * Re-allow notifications from a suspended lock counter.
+ *
+ * @param counter  The counter
+ *
+ * @return <code>true</code> if the lock counter was suspended
+ **/
+bool resumeLockCounter(LockCounter *counter)
+  __attribute__((warn_unused_result));
 
 #endif // LOCK_COUNTER_H

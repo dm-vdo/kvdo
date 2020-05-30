@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#17 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#18 $
  */
 
 #include "slabJournalInternals.h"
@@ -1136,8 +1136,9 @@ void adjustSlabJournalBlockReference(SlabJournal    *journal,
   JournalLock *lock = getLock(journal, sequenceNumber);
   if (adjustment < 0) {
     ASSERT_LOG_ONLY((-adjustment <= lock->count),
-                    "decrement of lock count for slab journal block %" PRIu64
-                    " must not underflow", sequenceNumber);
+                    "adjustment %d of lock count %u for slab journal block %"
+		    PRIu64 " must not underflow", adjustment, lock->count,
+		    sequenceNumber);
   }
 
   lock->count += adjustment;

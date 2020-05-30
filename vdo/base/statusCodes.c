@@ -16,14 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.c#3 $
  */
 
 #include "statusCodes.h"
 
-#include "common.h"
 #include "errors.h"
-#include "logger.h"
 #include "permassert.h"
 #include "threadOnce.h"
 

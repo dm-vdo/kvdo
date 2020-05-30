@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.c#5 $
  */
 
 #include "readOnlyNotifier.h"
@@ -361,6 +361,12 @@ void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode)
 bool isReadOnly(ReadOnlyNotifier *notifier)
 {
   return notifier->threadData[getCallbackThreadID()].isReadOnly;
+}
+
+/**********************************************************************/
+bool isOrWillBeReadOnly(ReadOnlyNotifier *notifier)
+{
+  return (((int) relaxedLoad32(&notifier->readOnlyError)) != VDO_SUCCESS);
 }
 
 /**********************************************************************/

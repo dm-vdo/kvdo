@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#15 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#16 $
  */
 
 #include "udsIndex.h"
@@ -163,7 +163,7 @@ static const char *indexStateToString(UDSIndex *index, IndexState state)
 static void encodeUDSAdvice(UdsRequest *request, DataLocation advice)
 {
   size_t offset = 0;
-  UdsChunkData *encoding = &request->newMetadata;
+  struct udsChunkData *encoding = &request->newMetadata;
   encoding->data[offset++] = UDS_ADVICE_VERSION;
   encoding->data[offset++] = advice.state;
   encodeUInt64LE(encoding->data, &offset, advice.pbn);
@@ -185,7 +185,7 @@ static bool decodeUDSAdvice(const UdsRequest *request, DataLocation *advice)
   }
 
   size_t offset = 0;
-  const UdsChunkData *encoding = &request->oldMetadata;
+  const struct udsChunkData *encoding = &request->oldMetadata;
   byte version = encoding->data[offset++];
   if (version != UDS_ADVICE_VERSION) {
     logError("invalid UDS advice version code %u", version);

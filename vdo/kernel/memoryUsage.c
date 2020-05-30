@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/memoryUsage.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/memoryUsage.c#3 $
  */
 
 #include "memoryUsage.h"
@@ -30,8 +30,6 @@ MemoryUsage getMemoryUsage()
 {
   MemoryUsage memoryUsage;
   getMemoryStats(&memoryUsage.bytesUsed, &memoryUsage.peakBytesUsed);
-  memoryUsage.biosUsed = 0;
-  memoryUsage.peakBioCount = 0;
   return memoryUsage;
 }
 

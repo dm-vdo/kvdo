@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#11 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -57,6 +57,7 @@ typedef struct {
   unsigned int       cacheSize;
   unsigned int       blockMapMaximumAge;
   bool               mdRaid5ModeEnabled;
+  bool               deduplication;
   char              *poolName;
   ThreadCountConfig  threadCounts;
   BlockCount         maxDiscardBlocks;

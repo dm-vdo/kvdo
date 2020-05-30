@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#8 $
  */
 
 #include "forest.h"
@@ -30,7 +30,6 @@
 #include "blockMapTree.h"
 #include "blockMapTreeInternals.h"
 #include "constants.h"
-#include "dataVIO.h"
 #include "dirtyLists.h"
 #include "forest.h"
 #include "numUtils.h"
@@ -39,11 +38,20 @@
 #include "slabJournal.h"
 #include "types.h"
 #include "vdoInternal.h"
+#include "vio.h"
 #include "vioPool.h"
 
 enum {
   BLOCK_MAP_VIO_POOL_SIZE = 64,
 };
+
+typedef struct {
+  TreePage *levels[BLOCK_MAP_TREE_HEIGHT];
+} BlockMapTreeSegment;
+
+typedef struct blockMapTree {
+  BlockMapTreeSegment *segments;
+} BlockMapTree;
 
 struct forest {
   BlockMap      *map;
@@ -81,14 +89,8 @@ struct cursors {
 };
 
 /**********************************************************************/
-BlockMapTree *getTreeFromForest(Forest *forest, RootCount index)
-{
-  return &(forest->trees[index]);
-}
-
-/**********************************************************************/
 TreePage *getTreePageByIndex(Forest       *forest,
-                             BlockMapTree *tree,
+                             RootCount     rootIndex,
                              Height        height,
                              PageNumber    pageIndex)
 {
@@ -96,6 +98,7 @@ TreePage *getTreePageByIndex(Forest       *forest,
   for (size_t segment = 0; segment < forest->segments; segment++) {
     PageNumber border = forest->boundaries[segment].levels[height - 1];
     if (pageIndex < border) {
+      BlockMapTree *tree = &forest->trees[rootIndex];
       return &(tree->segments[segment].levels[height - 1][pageIndex - offset]);
     }
     offset = border;

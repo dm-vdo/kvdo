@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoState.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoState.h#2 $
  */
 
 #ifndef VDO_STATE_H
 #define VDO_STATE_H
-
-#include "common.h"
 
 /**
  * The current operating mode of the VDO. These are persistent on disk

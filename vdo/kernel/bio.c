@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#8 $
  */
 
 #include "bio.h"
@@ -76,11 +76,7 @@ void setBioOperation(BIO *bio, unsigned int operation)
   bio->bi_opf |= operation;
 #else
 
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  unsigned int OPERATION_MASK = WRITE | BIO_DISCARD | (1 << BIO_RW_FLUSH);
-#else
   unsigned int OPERATION_MASK = WRITE | REQ_DISCARD | REQ_FLUSH;
-#endif
 
   // Clear the relevant bits
   bio->bi_rw &= ~OPERATION_MASK;
@@ -92,11 +88,7 @@ void setBioOperation(BIO *bio, unsigned int operation)
 /**********************************************************************/
 void freeBio(BIO *bio, KernelLayer *layer)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
-  bio_free(bio, layer->bioset);
-#else
   bio_put(bio);
-#endif
 }
 
 /**********************************************************************/
@@ -220,20 +212,13 @@ static void setBioSize(BIO *bio, BlockSize bioSize)
  **/
 static void initializeBio(BIO *bio, KernelLayer *layer)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
-  bio->bi_destructor = NULL;
-  bio->bi_flags      = 1 << BIO_UPTODATE;
-  bio->bi_idx        = 0;
-  bio->bi_rw         = 0;
-#else
   // Save off important info so it can be set back later
   unsigned short  vcnt = bio->bi_vcnt;
   void           *pvt  = bio->bi_private;
   bio_reset(bio);     // Memsets large portion of bio. Reset all needed fields.
   bio->bi_private      = pvt;
   bio->bi_vcnt         = vcnt;
-#endif
-  bio->bi_end_io     = completeAsyncBio;
+  bio->bi_end_io       = completeAsyncBio;
   setBioSector(bio, (sector_t) -1);  // Sector will be set later on.
   setBioBlockDevice(bio, getKernelLayerBdev(layer));
 }

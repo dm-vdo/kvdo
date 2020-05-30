@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#26 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#30 $
  */
 
 #include "recoveryJournal.h"
@@ -160,6 +160,7 @@ static inline bool hasBlockWaiters(RecoveryJournal *journal)
 }
 
 /**********************************************************************/
+static void recycleJournalBlocks(RecoveryJournal *block);
 static void recycleJournalBlock(RecoveryJournalBlock *block);
 static void notifyCommitWaiters(RecoveryJournal *journal);
 
@@ -180,6 +181,7 @@ static void checkForDrainComplete(RecoveryJournal *journal)
      * XXX: This would probably be better as a short-circuit in writeBlock().
      */
     notifyCommitWaiters(journal);
+    recycleJournalBlocks(journal);
 
     // Release any DataVIOs waiting to be assigned entries.
     notifyAllWaiters(&journal->decrementWaiters, continueWaiter, &result);
@@ -189,7 +191,8 @@ static void checkForDrainComplete(RecoveryJournal *journal)
   if (!isDraining(&journal->state)
       || journal->reaping || hasBlockWaiters(journal)
       || hasWaiters(&journal->incrementWaiters)
-      || hasWaiters(&journal->decrementWaiters)) {
+      || hasWaiters(&journal->decrementWaiters)
+      || !suspendLockCounter(journal->lockCounter)) {
     return;
   }
 
@@ -377,6 +380,14 @@ static void reapRecoveryJournalCallback(VDOCompletion *completion)
   // The acknowledgement must be done before reaping so that there is no
   // race between acknowledging the notification and unlocks wishing to notify.
   acknowledgeUnlock(journal->lockCounter);
+
+  if (isQuiescing(&journal->state)) {
+    // Don't start reaping when the journal is trying to quiesce. Do check if
+    // this notification is the last thing the drain is waiting on.
+    checkForDrainComplete(journal);
+    return;
+  }
+
   reapRecoveryJournal(journal);
   checkSlabJournalCommitThreshold(journal);
 }
@@ -993,25 +1004,20 @@ static void continueCommittedWaiter(Waiter *waiter, void *context)
 }
 
 /**
- * Notify any VIOs whose entries have now committed, and recycle any
- * journal blocks which have been fully committed.
+ * Notify any VIOs whose entries have now committed.
  *
  * @param journal  The recovery journal to update
  **/
 static void notifyCommitWaiters(RecoveryJournal *journal)
 {
-  RecoveryJournalBlock *lastIterationBlock = NULL;
-  while (!isRingEmpty(&journal->activeTailBlocks)) {
-    RecoveryJournalBlock *block
-      = blockFromRingNode(journal->activeTailBlocks.next);
+  if (isRingEmpty(&journal->activeTailBlocks)) {
+    return;
+  }
 
-    int result = ASSERT(block != lastIterationBlock,
-                        "Journal notification has entered an infinite loop");
-    if (result != VDO_SUCCESS) {
-      enterJournalReadOnlyMode(journal, result);
-      return;
-    }
-    lastIterationBlock = block;
+  for (RingNode *node = journal->activeTailBlocks.next;
+       node != &journal->activeTailBlocks;
+       node = node->next) {
+    RecoveryJournalBlock *block = blockFromRingNode(node);
 
     if (block->committing) {
       return;
@@ -1021,10 +1027,35 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
     if (isReadOnly(journal->readOnlyNotifier)) {
       notifyAllWaiters(&block->entryWaiters, continueCommittedWaiter, journal);
     } else if (isRecoveryBlockDirty(block) || !isRecoveryBlockFull(block)) {
-      // Don't recycle partially-committed or partially-filled blocks.
+      // Stop at partially-committed or partially-filled blocks.
       return;
     }
+  }
+}
 
+/**
+ * Recycle any journal blocks which have been fully committed.
+ *
+ * @param journal  The recovery journal to update
+ **/
+static void recycleJournalBlocks(RecoveryJournal *journal)
+{
+  while (!isRingEmpty(&journal->activeTailBlocks)) {
+    RecoveryJournalBlock *block
+      = blockFromRingNode(journal->activeTailBlocks.next);
+
+    if (block->committing) {
+      // Don't recycle committing blocks.
+       return;
+    }
+
+    if (!isReadOnly(journal->readOnlyNotifier)
+        && (isRecoveryBlockDirty(block)
+            || !isRecoveryBlockFull(block))) {
+      // Don't recycle partially written or partially full
+      // blocks, except in read-only mode.
+      return;
+    }
     recycleJournalBlock(block);
   }
 }
@@ -1067,6 +1098,7 @@ static void completeWrite(VDOCompletion *completion)
     scheduleBlockWrite(journal, block);
   }
 
+  recycleJournalBlocks(journal);
   writeBlocks(journal);
 
   checkForDrainComplete(journal);
@@ -1181,6 +1213,11 @@ static void reapRecoveryJournal(RecoveryJournal *journal)
   if (journal->reaping) {
     // We already have an outstanding reap in progress. We need to wait for it
     // to finish.
+    return;
+  }
+
+  if (isQuiescent(&journal->state)) {
+    // We are supposed to not do IO. Don't botch it by reaping.
     return;
   }
 
@@ -1310,6 +1347,11 @@ void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
 
   if (saved) {
     initializeJournalState(journal);
+  }
+
+  if (resumeLockCounter(journal->lockCounter)) {
+    // We might have missed a notification.
+    reapRecoveryJournal(journal);
   }
 
   completeCompletion(parent);

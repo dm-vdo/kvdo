@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#9 $
  */
 
 /*
@@ -315,7 +315,7 @@ static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 
   case VIO_RELEASE_RECOVERY_LOCKS:
     if ((dataVIO->recoverySequenceNumber > 0)
-        && !isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
+        && !isOrWillBeReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
         && (dataVIOAsCompletion(dataVIO)->result != VDO_READ_ONLY)) {
       logWarning("VDO not read-only when cleaning DataVIO with RJ lock");
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.h#3 $
  */
 
 #ifndef KVIO_H
@@ -40,8 +40,7 @@ struct kvio {
    * A bio pointer used in enqueueBioMap (used via submitBio etc), to
    * pass information -- which bio to submit to the storage device --
    * across a thread switch. This may match another bio pointer in
-   * this structure, or could point somewhere else (e.g., a read cache
-   * entry's buffer).
+   * this structure, or could point somewhere else.
    **/
   BIO               *bioToSubmit;
   /**
@@ -51,14 +50,6 @@ struct kvio {
    * the work queue as separate work items.
    **/
   struct bio_list    biosMerged;
-  /**
-   * An operation to be invoked via enqueueBioMap in the appropriate
-   * worker thread, after suitable reordering.
-   *
-   * The callback is applied to field enqueueable.workItem, so it can
-   * locate the containing KVIO like any other work function.
-   **/
-  KvdoWorkFunction   bioSubmissionCallback;
   /** A slot for an arbitrary bit of data, for use by systemtap. */
   long               debugSlot;
 };

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#15 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#18 $
  */
 
 #ifndef KERNELLAYER_H
@@ -134,11 +134,6 @@ struct kernelLayer {
   KVDOFlush              *spareKVDOFlush;
   spinlock_t              flushLock;
   Jiffies                 flushArrivalTime;
-  /**
-   * Completion used for synchronizing the flush operation issued
-   * during suspend.
-   **/
-  struct completion       flushWait;
   /**
    * Bio submission manager used for sending bios to the storage
    * device.

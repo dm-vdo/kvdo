@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/histogram.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/histogram.c#2 $
  */
 
 #include <linux/kobject.h>
@@ -24,7 +24,6 @@
 #include "memoryAlloc.h"
 #include "typeDefs.h"
 
-#include "common.h"
 #include "histogram.h"
 #include "logger.h"
 #include "numUtils.h"

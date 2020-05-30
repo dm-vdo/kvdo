@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.h#3 $
  */
 
 /*
@@ -108,8 +108,28 @@ void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode);
  * Check whether the VDO is read-only. This method may be called from any
  * thread, as opposed to examining the VDO's state field which is only safe
  * to check from the admin thread.
+ *
+ * @param notifier        The read-only notifier of the VDO
+ *
+ * @return <code>true</code> if the VDO is read-only
  **/
 bool isReadOnly(ReadOnlyNotifier *notifier)
+  __attribute__((warn_unused_result));
+
+/**
+ * Check whether the VDO is or will be read-only (i.e. some thread has started
+ * the process of entering read-only mode, but not all threads have been
+ * notified yet). This method should only be called in cases where the expense
+ * of reading atomic state is not a problem. It was introduced in order to allow
+ * suppresion of spurious error messages resulting from VIO cleanup racing with
+ * read-only notification.
+ *
+ * @param notifier  The read-only notifier of the VDO
+ *
+ * @return <code>true</code> if the VDO has started (and possibly finished)
+ *         the process of entering read-only mode
+ **/
+bool isOrWillBeReadOnly(ReadOnlyNotifier *notifier)
   __attribute__((warn_unused_result));
 
 /**

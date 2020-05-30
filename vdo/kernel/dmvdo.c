@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#34 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#39 $
  */
 
 #include "dmvdo.h"
@@ -48,26 +48,6 @@
 struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
 
 /*
- * We want to support discard requests, but early device mapper versions
- * did not give us any help.  Define HAS_DISCARDS_SUPPORTED if the
- * dm_target contains the discards_supported member.  Note that this is not
- * a trivial determination.
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
-#define HAS_DISCARDS_SUPPORTED 1
-#else
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32) && defined(RHEL_RELEASE_CODE)
-#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,2)
-#define HAS_DISCARDS_SUPPORTED 1
-#else
-#define HAS_DISCARDS_SUPPORTED 0
-#endif /* RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,2) */
-#else
-#define HAS_DISCARDS_SUPPORTED 0
-#endif
-#endif
-
-/*
  * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
  * and the value in max_discard_sectors to split large discards into smaller
  * ones. 4.3 to 4.18 kernels have removed the code in blkdev_issue_discard
@@ -84,19 +64,6 @@ struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
 #define HAS_NO_BLKDEV_SPLIT LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0) \
                             && LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 
-/*
- * We want to support flush requests in async mode, but early device mapper
- * versions got in the way if the underlying device did not also support
- * flush requests.  Define HAS_FLUSH_SUPPORTED if the dm_target contains
- * the flush_supported member.  We support flush in either case, but the
- * flush_supported member makes it trivial (and safer).
- */
-#ifdef RHEL_RELEASE_CODE
-#define HAS_FLUSH_SUPPORTED (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,6))
-#else
-#define HAS_FLUSH_SUPPORTED (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
-#endif
-
 /**********************************************************************/
 
 /**
@@ -111,38 +78,6 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
   return ((DeviceConfig *) ti->private)->layer;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
-/**
- * Begin VDO processing of a bio.  This is called by the device mapper
- * through the "map" function, and has resulted from a call to either
- * submit_bio or generic_make_request.
- *
- * @param ti      The dm_target.  We only need the "private" member to give
- *                us the KernelLayer.
- * @param bio     The bio.
- * @param unused  An additional parameter that we do not use.  This
- *                argument went away in Linux 3.8.
- *
- * @return One of these values:
- *
- *         negative            A negative value is an error code.
- *                             Usually -EIO.
- *
- *         DM_MAPIO_SUBMITTED  VDO will take care of this I/O, either
- *                             processing it completely and calling
- *                             bio_endio, or forwarding it onward by
- *                             calling generic_make_request.
- *
- *         DM_MAPIO_REMAPPED   VDO has modified the bio and the device
- *                             mapper will immediately forward the bio
- *                             onward using generic_make_request.
- *
- *         DM_MAPIO_REQUEUE    We do not use this.  It is used by device
- *                             mapper devices to defer an I/O request
- *                             during suspend/resume processing.
- **/
-static int vdoMapBio(struct dm_target *ti, BIO *bio, union map_info *unused)
-#else
 /**
  * Begin VDO processing of a bio.  This is called by the device mapper
  * through the "map" function, and has resulted from a call to either
@@ -171,7 +106,6 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio, union map_info *unused)
  *                             during suspend/resume processing.
  **/
 static int vdoMapBio(struct dm_target *ti, BIO *bio)
-#endif
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
   return kvdoMapBio(layer, bio);
@@ -224,28 +158,7 @@ static int vdoIterateDevices(struct dm_target           *ti,
   KernelLayer *layer = getKernelLayerForTarget(ti);
   sector_t len = blockToSector(layer, layer->deviceConfig->physicalBlocks);
 
-#if HAS_FLUSH_SUPPORTED
   return fn(ti, layer->deviceConfig->ownedDevice, 0, len, data);
-#else
-  if (!shouldProcessFlush(layer)) {
-    // In sync mode, if the underlying device needs flushes, accept flushes.
-    return fn(ti, layer->dev, 0, len, data);
-  }
-
-  /*
-   * We need to get flush requests in async mode, but the device mapper
-   * will only let us get them if the underlying device gets them.  We
-   * must tell a little white lie.
-   */
-  struct request_queue *q = bdev_get_queue(layer->dev->bdev);
-  unsigned int flush_flags = q->flush_flags;
-  q->flush_flags = REQ_FLUSH | REQ_FUA;
-
-  int result = fn(ti, layer->dev, 0, len, data);
-
-  q->flush_flags = flush_flags;
-  return result;
-#endif /* HAS_FLUSH_SUPPORTED */
 }
 
 /*
@@ -529,11 +442,8 @@ static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
 static void configureTargetCapabilities(struct dm_target *ti,
                                         KernelLayer      *layer)
 {
-#if HAS_DISCARDS_SUPPORTED
   ti->discards_supported = 1;
-#endif
 
-#if HAS_FLUSH_SUPPORTED
   /**
    * This may appear to indicate we don't support flushes in sync mode.
    * However, dm will set up the request queue to accept flushes if any
@@ -541,22 +451,12 @@ static void configureTargetCapabilities(struct dm_target *ti,
    * accepts flushes, we will receive flushes.
    **/
   ti->flush_supported = shouldProcessFlush(layer);
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)
-  ti->num_discard_requests = 1;
-  ti->num_flush_requests = 1;
-#else
   ti->num_discard_bios = 1;
   ti->num_flush_bios = 1;
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)
   // If this value changes, please make sure to update the
   // value for maxDiscardSectors accordingly.
   BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
-#else
-  ti->split_io = VDO_SECTORS_PER_BLOCK;
-#endif
 
 /*
  * Please see comments above where the macro is defined.
@@ -625,6 +525,8 @@ static int vdoInitialize(struct dm_target *ti,
   logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled
                                            ? "on" : "off"));
   logDebug("Write policy           = %s", getConfigWritePolicyString(config));
+  logDebug("Deduplication          = %s", (config->deduplication
+                                           ? "on" : "off"));
 
   // The threadConfig will be copied by the VDO if it's successfully
   // created.

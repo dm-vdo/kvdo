@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/priorityTable.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/priorityTable.h#2 $
  */
 
 #ifndef PRIORITY_TABLE_H
 #define PRIORITY_TABLE_H
 
-#include "common.h"
 #include "ringNode.h"
 
 /**

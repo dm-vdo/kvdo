@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#6 $
  */
 
 #ifndef BIO_H
@@ -123,41 +123,25 @@ static inline void setBioOperationFlagPreflush(BIO *bio)
 /**********************************************************************/
 static inline void setBioOperationFlagSync(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  setBioOperationFlag(bio, 1 << BIO_RW_SYNCIO);
-#else
   setBioOperationFlag(bio, REQ_SYNC);
-#endif
 }
 
 /**********************************************************************/
 static inline void clearBioOperationFlagSync(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  clearBioOperationFlag(bio, 1 << BIO_RW_SYNCIO);
-#else
   clearBioOperationFlag(bio, REQ_SYNC);
-#endif
 }
 
 /**********************************************************************/
 static inline void setBioOperationFlagFua(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  setBioOperationFlag(bio, BIO_FUA);
-#else
   setBioOperationFlag(bio, REQ_FUA);
-#endif
 }
 
 /**********************************************************************/
 static inline void clearBioOperationFlagFua(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  clearBioOperationFlag(bio, BIO_FUA);
-#else
   clearBioOperationFlag(bio, REQ_FUA);
-#endif
 }
 
 /**********************************************************************/
@@ -165,8 +149,6 @@ static inline bool isDiscardBio(BIO *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return (bio != NULL) && bio_rw_flagged(bio, BIO_RW_DISCARD);
 #else
   return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
 #endif
@@ -177,8 +159,6 @@ static inline bool isFlushBio(BIO *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return bio_empty_barrier(bio) || bio_rw_flagged(bio, BIO_RW_FLUSH);
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
@@ -189,8 +169,6 @@ static inline bool isFUABio(BIO *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio->bi_opf & REQ_FUA) != 0;
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return bio_rw_flagged(bio, BIO_RW_FUA);
 #else
   return (bio->bi_rw & REQ_FUA) != 0;
 #endif
@@ -199,21 +177,13 @@ static inline bool isFUABio(BIO *bio)
 /**********************************************************************/
 static inline bool isReadBio(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return !bio_rw_flagged(bio, BIO_RW);
-#else
   return bio_data_dir(bio) == READ;
-#endif
 }
 
 /**********************************************************************/
 static inline bool isWriteBio(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return bio_rw_flagged(bio, BIO_RW);
-#else
   return bio_data_dir(bio) == WRITE;
-#endif
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
@@ -379,5 +349,19 @@ void prepareFlushBIO(BIO                 *bio,
                      void                *context,
                      struct block_device *device,
                      bio_end_io_t        *endIOCallback);
+
+/**
+ * Perform IO with a bio, waiting for completion and returning its result.
+ * The bio must already have its sector, block device, and operation set.
+ *
+ * @param bio  The bio to do IO with
+ *
+ * @return The bio result
+ **/
+static inline int submitBioAndWait(BIO *bio)
+{
+  submit_bio_wait(bio);
+  return getBioResult(bio);
+}
 
 #endif /* BIO_H */

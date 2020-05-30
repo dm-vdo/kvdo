@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#6 $
  */
 
 #include "upgrade.h"

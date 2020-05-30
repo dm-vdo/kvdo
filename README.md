@@ -100,6 +100,9 @@ from the top directory of this tree:
 
         make -C /usr/src/kernels/`uname -r` M=`pwd`
 
+* Patched sources that work with the most recent upstream kernels can be found
+  [here](https://github.com/rhawalsh/kvdo).
+
 ## Communication channels
 
 Community feedback, participation and patches are welcome to the

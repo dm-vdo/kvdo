@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#31 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#36 $
  */
 
 #include "kernelLayer.h"
@@ -41,7 +41,7 @@
 #include "deviceConfig.h"
 #include "deviceRegistry.h"
 #include "instanceNumber.h"
-#include "ioSubmitterInternals.h"
+#include "ioSubmitter.h"
 #include "kvdoFlush.h"
 #include "kvio.h"
 #include "poolSysfs.h"
@@ -434,38 +434,6 @@ static int kvdoAllocateIOBuffer(PhysicalLayer  *layer __attribute__((unused)),
   return ALLOCATE(bytes, char, why, bufferPtr);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-/**
- * Callback for a bio which did a read to populate a cache entry.
- *
- * @param bio    The bio
- */
-static void endSyncRead(BIO *bio)
-#else
-/**
- * Callback for a bio which did a read to populate a cache entry.
- *
- * @param bio     The bio
- * @param result  The result of the read operation
- */
-static void endSyncRead(BIO *bio, int result)
-#endif
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int result = getBioResult(bio);
-#endif
-
-  if (result != 0) {
-    logErrorWithStringError(result, "synchronous read failed");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-    clear_bit(BIO_UPTODATE, &bio->bi_flags);
-#endif
-  }
-
-  struct completion *completion = (struct completion *) bio->bi_private;
-  complete(completion);
-}
-
 /**
  * Implements ExtentReader. Exists only for the geometry block; is unset after
  * it is read.
@@ -482,28 +450,19 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
 
   KernelLayer *kernelLayer = asKernelLayer(layer);
 
-  struct completion bioWait;
-  init_completion(&bioWait);
   BIO *bio;
   int result = createBio(kernelLayer, buffer, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
-  setBioOperationRead(bio);
-  bio->bi_end_io  = endSyncRead;
-  bio->bi_private = &bioWait;
   setBioBlockDevice(bio, getKernelLayerBdev(kernelLayer));
   setBioSector(bio, blockToSector(kernelLayer, startBlock));
-  generic_make_request(bio);
-  wait_for_completion(&bioWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (getBioResult(bio) != 0) {
-#else
-  if (!bio_flagged(bio, BIO_UPTODATE)) {
-#endif
+  setBioOperationRead(bio);
+  result = submitBioAndWait(bio);
+  if (result != 0) {
+    logErrorWithStringError(result, "synchronous read failed");
     result = -EIO;
   }
-
   freeBio(bio, kernelLayer);
 
   if (result != VDO_SUCCESS) {
@@ -1220,9 +1179,11 @@ int startKernelLayer(KernelLayer *layer, char **reason)
   }
   layer->statsAdded = true;
 
-  // Don't try to load or rebuild the index first (and log scary error
-  // messages) if this is known to be a newly-formatted volume.
-  startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+  if (layer->deviceConfig->deduplication) {
+    // Don't try to load or rebuild the index first (and log scary error
+    // messages) if this is known to be a newly-formatted volume.
+    startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+  }
 
   result = vdoCreateProcfsEntry(layer, layer->deviceConfig->poolName,
                                 &layer->procfsPrivate);
