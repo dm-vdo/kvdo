@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#49 $
  */
 
 #include "packerInternals.h"
@@ -49,37 +49,37 @@ static inline void assert_on_packer_thread(struct packer *packer,
 
 /**********************************************************************/
 static inline struct input_bin * __must_check
-input_bin_from_ring_node(RingNode *node)
+input_bin_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct input_bin, ring) == 0);
-	return (struct input_bin *) node;
+	STATIC_ASSERT(offsetof(struct input_bin, list) == 0);
+	return (struct input_bin *) entry;
 }
 
 /**********************************************************************/
 static inline struct output_bin * __must_check
-output_bin_from_ring_node(RingNode *node)
+output_bin_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct output_bin, ring) == 0);
-	return (struct output_bin *) node;
+	STATIC_ASSERT(offsetof(struct output_bin, list) == 0);
+	return (struct output_bin *) entry;
 }
 
 /**********************************************************************/
 struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin)
 {
-	if (bin->ring.next == &packer->input_bins) {
+	if (bin->list.next == &packer->input_bins) {
 		return NULL;
 	} else {
-		return input_bin_from_ring_node(bin->ring.next);
+		return input_bin_from_list_entry(bin->list.next);
 	}
 }
 
 /**********************************************************************/
 struct input_bin *get_fullest_bin(const struct packer *packer)
 {
-	if (isRingEmpty(&packer->input_bins)) {
+	if (list_empty(&packer->input_bins)) {
 		return NULL;
 	} else {
-		return input_bin_from_ring_node(packer->input_bins.next);
+		return input_bin_from_list_entry(packer->input_bins.next);
 	}
 }
 
@@ -97,12 +97,12 @@ static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 	for (active_bin = get_fullest_bin(packer); active_bin != NULL;
 	     active_bin = next_bin(packer, active_bin)) {
 		if (active_bin->free_space > bin->free_space) {
-			pushRingNode(&active_bin->ring, &bin->ring);
+			list_move_tail(&bin->list, &active_bin->list);
 			return;
 		}
 	}
 
-	pushRingNode(&packer->input_bins, &bin->ring);
+	list_move_tail(&bin->list, &packer->input_bins);
 }
 
 /**
@@ -120,8 +120,8 @@ static int __must_check make_input_bin(struct packer *packer)
 	}
 
 	bin->free_space = packer->bin_data_size;
-	initializeRing(&bin->ring);
-	pushRingNode(&packer->input_bins, &bin->ring);
+	INIT_LIST_HEAD(&bin->list);
+	list_add_tail(&bin->list, &packer->input_bins);
 	return VDO_SUCCESS;
 }
 
@@ -177,8 +177,8 @@ make_output_bin(struct packer *packer, PhysicalLayer *layer)
 
 	// Add the bin to the stack even before it's fully initialized so it
 	// will be freed even if we fail to initialize it below.
-	initializeRing(&output->ring);
-	pushRingNode(&packer->output_bins, &output->ring);
+	INIT_LIST_HEAD(&output->list);
+	list_add_tail(&output->list, &packer->output_bins);
 	push_output_bin(packer, output);
 
 	result = ALLOCATE_EXTENDED(struct compressed_block,
@@ -206,7 +206,7 @@ static void free_output_bin(struct output_bin **bin_ptr)
 		return;
 	}
 
-	unspliceRingNode(&bin->ring);
+	list_del_init(&bin->list);
 
 	struct vio *vio = allocating_vio_as_vio(bin->writer);
 	free_vio(&vio);
@@ -234,8 +234,8 @@ int make_packer(PhysicalLayer *layer,
 	packer->size = input_bin_count;
 	packer->max_slots = MAX_COMPRESSION_SLOTS;
 	packer->output_bin_count = output_bin_count;
-	initializeRing(&packer->input_bins);
-	initializeRing(&packer->output_bins);
+	INIT_LIST_HEAD(&packer->input_bins);
+	INIT_LIST_HEAD(&packer->output_bins);
 
 	result = make_allocation_selector(thread_config->physical_zone_count,
 					  packer->thread_id, &packer->selector);
@@ -288,7 +288,7 @@ void free_packer(struct packer **packer_ptr)
 
 	struct input_bin *input;
 	while ((input = get_fullest_bin(packer)) != NULL) {
-		unspliceRingNode(&input->ring);
+		list_del_init(&input->list);
 		FREE(input);
 	}
 
@@ -1051,9 +1051,8 @@ void dump_packer(const struct packer *packer)
 
 	logInfo("  output_bin_count=%zu idle_output_bin_count=%zu",
 		packer->output_bin_count, packer->idle_output_bin_count);
-	const RingNode *head = &packer->output_bins;
-	RingNode *node;
-	for (node = head->next; node != head; node = node->next) {
-		dump_output_bin(output_bin_from_ring_node(node));
+	struct list_head *entry;
+	list_for_each(entry, &packer->output_bins) {
+		dump_output_bin(output_bin_from_list_entry(entry));
 	}
 }

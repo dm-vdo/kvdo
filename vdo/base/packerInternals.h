@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#18 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -29,6 +29,7 @@
 #include "adminState.h"
 #include "compressedBlock.h"
 #include "header.h"
+#include "list.h"
 #include "types.h"
 #include "waitQueue.h"
 
@@ -47,7 +48,7 @@
  **/
 struct input_bin {
 	/** List links for packer.sortedBins */
-	RingNode ring;
+	struct list_head list;
 	/** The number of items in the bin */
 	slot_number_t slots_used;
 	/**
@@ -66,7 +67,7 @@ struct input_bin {
  **/
 struct output_bin {
 	/** List links for packer.output_bins */
-	RingNode ring;
+	struct list_head list;
 	/** The storage for encoding the compressed block representation */
 	struct compressed_block *block;
 	/**
@@ -100,10 +101,10 @@ struct packer {
 	size_t bin_data_size;
 	/** The number of compression slots */
 	size_t max_slots;
-	/** A ring of all input_bins, kept sorted by free_space */
-	RingNode input_bins;
-	/** A ring of all output_bins */
-	RingNode output_bins;
+	/** A list of all input_bins, kept sorted by free_space */
+	struct list_head input_bins;
+	/** A list of all output_bins */
+	struct list_head output_bins;
 	/**
 	 * A bin to hold data_vios which were canceled out of the packer and are
 	 * waiting to rendezvous with the canceling data_vio.
