@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#56 $
  */
 
 #include "slabJournalInternals.h"
@@ -164,7 +164,7 @@ bool is_slab_journal_active(struct slab_journal *journal)
 {
 	return (must_make_entries_to_flush(journal) || is_reaping(journal) ||
 		journal->waiting_to_commit ||
-		!isRingEmpty(&journal->uncommitted_blocks) ||
+		!list_empty(&journal->uncommitted_blocks) ||
 		journal->updating_slab_summary);
 }
 
@@ -267,7 +267,7 @@ int make_slab_journal(struct block_allocator *allocator,
 	}
 
 	initializeRing(&journal->dirty_node);
-	initializeRing(&journal->uncommitted_blocks);
+	INIT_LIST_HEAD(&journal->uncommitted_blocks);
 
 	journal->tail_header.nonce = slab->allocator->nonce;
 	journal->tail_header.metadata_type = VDO_METADATA_SLAB_JOURNAL;
@@ -661,7 +661,7 @@ static void complete_write(struct vdo_completion *completion)
 	struct slab_journal *journal = entry->parent;
 
 	sequence_number_t committed = get_committing_sequence_number(entry);
-	unspliceRingNode(&entry->node);
+	list_del_init(&entry->list_entry);
 	return_vio(journal->slab->allocator, entry);
 
 	if (write_result != VDO_SUCCESS) {
@@ -674,7 +674,7 @@ static void complete_write(struct vdo_completion *completion)
 
 	relaxedAdd64(&journal->events->blocks_written, 1);
 
-	if (isRingEmpty(&journal->uncommitted_blocks)) {
+	if (list_empty(&journal->uncommitted_blocks)) {
 		// If no blocks are outstanding, then the commit point is at the
 		// tail.
 		journal->next_commit = journal->tail;
@@ -702,7 +702,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	struct slab_journal_block_header *header = &journal->tail_header;
 
 	header->head = journal->head;
-	pushRingNode(&journal->uncommitted_blocks, &entry->node);
+	list_move_tail(&entry->list_entry, &journal->uncommitted_blocks);
 	pack_slab_journal_block_header(header, &journal->block->header);
 
 	// Copy the tail block into the vio.

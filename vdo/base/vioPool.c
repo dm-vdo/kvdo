@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#14 $
  */
 
 #include "vioPool.h"
@@ -36,13 +36,13 @@ struct vio_pool {
 	/** The number of objects managed by the pool */
 	size_t size;
 	/** The list of objects which are available */
-	RingNode available;
+	struct list_head available;
 	/** The queue of requestors waiting for objects from the pool */
 	struct wait_queue waiting;
 	/** The number of objects currently in use */
 	size_t busy_count;
 	/** The list of objects which are in use */
-	RingNode busy;
+	struct list_head busy;
 	/** The number of requests when no object was available */
 	uint64_t outage_count;
 	/** The ID of the thread on which this pool may be used */
@@ -66,8 +66,8 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 	}
 
 	pool->thread_id = thread_id;
-	initializeRing(&pool->available);
-	initializeRing(&pool->busy);
+	INIT_LIST_HEAD(&pool->available);
+	INIT_LIST_HEAD(&pool->busy);
 
 	result = ALLOCATE(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
 			  &pool->buffer);
@@ -89,8 +89,8 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		}
 
 		ptr += VDO_BLOCK_SIZE;
-		initializeRing(&entry->node);
-		pushRingNode(&pool->available, &entry->node);
+		INIT_LIST_HEAD(&entry->list_entry);
+		list_add_tail(&entry->list_entry, &pool->available);
 		pool->size++;
 	}
 
@@ -112,12 +112,13 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
 			"VIO pool must not have %zu busy entries when being freed",
 			pool->busy_count);
-	ASSERT_LOG_ONLY(isRingEmpty(&pool->busy),
+	ASSERT_LOG_ONLY(list_empty(&pool->busy),
 			"VIO pool must not have busy entries when being freed");
 
 	struct vio_pool_entry *entry;
-	while ((entry = as_vio_pool_entry(chopRingNode(&pool->available)))
-	       != NULL) {
+	while (!list_empty(&pool->available)) {
+		entry = as_vio_pool_entry(pool->available.next);
+		list_del_init(pool->available.next);
 		free_vio(&entry->vio);
 	}
 
@@ -125,7 +126,7 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	size_t i;
 	for (i = 0; i < pool->size; i++) {
 		struct vio_pool_entry *entry = &pool->entries[i];
-		ASSERT_LOG_ONLY(isRingEmpty(&entry->node),
+		ASSERT_LOG_ONLY(list_empty(&entry->list_entry),
 				"VIO Pool entry still in use:"
 				" VIO is in use for physical block %" PRIu64
 				" for operation %u",
@@ -149,14 +150,14 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 	ASSERT_LOG_ONLY((pool->thread_id == getCallbackThreadID()),
 			"acquire from active vio_pool called from correct thread");
 
-	if (isRingEmpty(&pool->available)) {
+	if (list_empty(&pool->available)) {
 		pool->outage_count++;
 		return enqueue_waiter(&pool->waiting, waiter);
 	}
 
 	pool->busy_count++;
-	RingNode *entry = chopRingNode(&pool->available);
-	pushRingNode(&pool->busy, entry);
+	struct list_head *entry = pool->available.next;
+	list_move_tail(entry, &pool->busy);
 	(*waiter->callback)(waiter, entry);
 	return VDO_SUCCESS;
 }
@@ -172,9 +173,9 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 		return;
 	}
 
-	pushRingNode(&pool->available, &entry->node);
+	list_move_tail(&entry->list_entry, &pool->available);
 	--pool->busy_count;
-}
+ }
 
 /**********************************************************************/
 uint64_t get_vio_pool_outage_count(struct vio_pool *pool)

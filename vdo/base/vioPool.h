@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#9 $
  */
 
 #ifndef VIO_POOL_H
@@ -25,6 +25,7 @@
 #include "permassert.h"
 
 #include "completion.h"
+#include "list.h"
 #include "types.h"
 #include "waitQueue.h"
 
@@ -37,7 +38,7 @@
  * A vio_pool_entry is the pair of vio and buffer whether in use or not.
  **/
 struct vio_pool_entry {
-	RingNode node;
+	struct list_head list_entry;
 	struct vio *vio;
 	void *buffer;
 	void *parent;
@@ -106,18 +107,17 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
 
 /**
- * Convert a RingNode to the vio_pool_entry that contains it.
+ * Convert a list entry to the vio_pool_entry that contains it.
  *
- * @param node  The RingNode to convert
+ * @param entry  The list entry to convert
  *
- * @return The vio_pool_entry wrapping the RingNode
+ * @return The vio_pool_entry wrapping the list entry
  **/
-static inline struct vio_pool_entry *as_vio_pool_entry(RingNode *node)
+static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct vio_pool_entry, node) == 0);
-	return (struct vio_pool_entry *)node;
+	STATIC_ASSERT(offsetof(struct vio_pool_entry, list_entry) == 0);
+	return (struct vio_pool_entry *) entry;
 }
-
 /**
  * Return the outage count of an vio pool.
  *

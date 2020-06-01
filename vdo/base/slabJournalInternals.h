@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#24 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -232,9 +232,10 @@ struct slab_journal {
 	struct slab_summary_zone *summary;
 	/** The statistics shared by all slab journals in our physical zone */
 	struct atomic_slab_journal_statistics *events;
-	/** A ring of the VIO pool entries for outstanding journal block writes
+	/**
+	 * A list of the VIO pool entries for outstanding journal block writes
 	 */
-	RingNode uncommitted_blocks;
+	struct list_head uncommitted_blocks;
 
 	/**
 	 * The current tail block header state. This will be packed into
