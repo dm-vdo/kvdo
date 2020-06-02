@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#36 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -165,17 +165,6 @@ int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
  * @param parent  The completion to notify when the save is complete
  **/
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
-
-/**
- * Re-encode the vdo component after a reconfiguration and save the super
- * block synchronously. This function avoids the need to decode and re-encode
- * the other components by simply copying their previous encoding.
- *
- * @param vdo  The vdo which was reconfigured
- *
- * @return VDO_SUCCESS or an error code
- **/
-int save_reconfigured_vdo(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Decode the vdo master version from the component data buffer in the super

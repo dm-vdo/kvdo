@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#73 $
  */
 
 /*
@@ -357,46 +357,6 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 
 	save_super_block_async(vdo->super_block, get_first_block_offset(vdo),
 			       parent);
-}
-
-/**********************************************************************/
-int save_reconfigured_vdo(struct vdo *vdo)
-{
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	size_t components_size = content_length(buffer);
-
-	byte *components;
-	int result = copy_bytes(buffer, components_size, &components);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = reset_buffer_end(buffer, 0);
-	if (result != VDO_SUCCESS) {
-		FREE(components);
-		return result;
-	}
-
-	result = encode_master_version(buffer);
-	if (result != VDO_SUCCESS) {
-		FREE(components);
-		return result;
-	}
-
-	result = encode_vdo_component(vdo, buffer);
-	if (result != VDO_SUCCESS) {
-		FREE(components);
-		return result;
-	}
-
-	result = put_bytes(buffer, components_size, components);
-	FREE(components);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return save_super_block(vdo->layer, vdo->super_block,
-				get_first_block_offset(vdo));
 }
 
 /**********************************************************************/

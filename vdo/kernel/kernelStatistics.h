@@ -24,83 +24,83 @@
 #include "types.h"
 
 struct bio_stats {
-  /** Number of not REQ_WRITE bios */
-  uint64_t read;
-  /** Number of REQ_WRITE bios */
-  uint64_t write;
-  /** Number of REQ_DISCARD bios */
-  uint64_t discard;
-  /** Number of REQ_FLUSH bios */
-  uint64_t flush;
-  /** Number of REQ_FUA bios */
-  uint64_t fua;
+	/** Number of not REQ_WRITE bios */
+	uint64_t read;
+	/** Number of REQ_WRITE bios */
+	uint64_t write;
+	/** Number of REQ_DISCARD bios */
+	uint64_t discard;
+	/** Number of REQ_FLUSH bios */
+	uint64_t flush;
+	/** Number of REQ_FUA bios */
+	uint64_t fua;
 };
 
 struct memory_usage {
-  /** Tracked bytes currently allocated. */
-  uint64_t bytes_used;
-  /** Maximum tracked bytes allocated. */
-  uint64_t peak_bytes_used;
+	/** Tracked bytes currently allocated. */
+	uint64_t bytes_used;
+	/** Maximum tracked bytes allocated. */
+	uint64_t peak_bytes_used;
 };
 
 /** UDS index statistics */
 struct index_statistics {
-  /** Number of chunk names stored in the index */
-  uint64_t entries_indexed;
-  /** Number of post calls that found an existing entry */
-  uint64_t posts_found;
-  /** Number of post calls that added a new entry */
-  uint64_t posts_not_found;
-  /** Number of query calls that found an existing entry */
-  uint64_t queries_found;
-  /** Number of query calls that added a new entry */
-  uint64_t queries_not_found;
-  /** Number of update calls that found an existing entry */
-  uint64_t updates_found;
-  /** Number of update calls that added a new entry */
-  uint64_t updates_not_found;
-  /** Current number of dedupe queries that are in flight */
-  uint32_t curr_dedupe_queries;
-  /** Maximum number of dedupe queries that have been in flight */
-  uint32_t max_dedupe_queries;
+	/** Number of chunk names stored in the index */
+	uint64_t entries_indexed;
+	/** Number of post calls that found an existing entry */
+	uint64_t posts_found;
+	/** Number of post calls that added a new entry */
+	uint64_t posts_not_found;
+	/** Number of query calls that found an existing entry */
+	uint64_t queries_found;
+	/** Number of query calls that added a new entry */
+	uint64_t queries_not_found;
+	/** Number of update calls that found an existing entry */
+	uint64_t updates_found;
+	/** Number of update calls that added a new entry */
+	uint64_t updates_not_found;
+	/** Current number of dedupe queries that are in flight */
+	uint32_t curr_dedupe_queries;
+	/** Maximum number of dedupe queries that have been in flight */
+	uint32_t max_dedupe_queries;
 };
 
 struct kernel_statistics {
-  uint32_t version;
-  uint32_t release_version;
-  /** The VDO instance */
-  uint32_t instance;
-  /** Current number of active VIOs */
-  uint32_t current_vios_in_progress;
-  /** Maximum number of active VIOs */
-  uint32_t max_vios;
-  /** Number of times the UDS index was too slow in responding */
-  uint64_t dedupe_advice_timeouts;
-  /** Number of flush requests submitted to the storage device */
-  uint64_t flush_out;
-  /** Logical block size */
-  uint64_t logical_block_size;
-  /** Bios submitted into VDO from above */
-  struct bio_stats bios_in;
-  struct bio_stats bios_in_partial;
-  /** Bios submitted onward for user data */
-  struct bio_stats bios_out;
-  /** Bios submitted onward for metadata */
-  struct bio_stats bios_meta;
-  struct bio_stats bios_journal;
-  struct bio_stats bios_page_cache;
-  struct bio_stats bios_out_completed;
-  struct bio_stats bios_meta_completed;
-  struct bio_stats bios_journal_completed;
-  struct bio_stats bios_page_cache_completed;
-  struct bio_stats bios_acknowledged;
-  struct bio_stats bios_acknowledged_partial;
-  /** Current number of bios in progress */
-  struct bio_stats bios_in_progress;
-  /** Memory usage stats. */
-  struct memory_usage memory_usage;
-  /** The statistics for the UDS index */
-  struct index_statistics index;
+	uint32_t version;
+	uint32_t release_version;
+	/** The VDO instance */
+	uint32_t instance;
+	/** Current number of active VIOs */
+	uint32_t current_vios_in_progress;
+	/** Maximum number of active VIOs */
+	uint32_t max_vios;
+	/** Number of times the UDS index was too slow in responding */
+	uint64_t dedupe_advice_timeouts;
+	/** Number of flush requests submitted to the storage device */
+	uint64_t flush_out;
+	/** Logical block size */
+	uint64_t logical_block_size;
+	/** Bios submitted into VDO from above */
+	struct bio_stats bios_in;
+	struct bio_stats bios_in_partial;
+	/** Bios submitted onward for user data */
+	struct bio_stats bios_out;
+	/** Bios submitted onward for metadata */
+	struct bio_stats bios_meta;
+	struct bio_stats bios_journal;
+	struct bio_stats bios_page_cache;
+	struct bio_stats bios_out_completed;
+	struct bio_stats bios_meta_completed;
+	struct bio_stats bios_journal_completed;
+	struct bio_stats bios_page_cache_completed;
+	struct bio_stats bios_acknowledged;
+	struct bio_stats bios_acknowledged_partial;
+	/** Current number of bios in progress */
+	struct bio_stats bios_in_progress;
+	/** Memory usage stats. */
+	struct memory_usage memory_usage;
+	/** The statistics for the UDS index */
+	struct index_statistics index;
 };
 
 #endif /* not KERNEL_STATISTICS_H */

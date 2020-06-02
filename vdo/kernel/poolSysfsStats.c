@@ -65,8 +65,8 @@ static ssize_t pool_stats_data_blocks_used_show(struct kernel_layer *layer, char
 }
 
 static struct pool_stats_attribute pool_stats_data_blocks_used_attr = {
-	.attr  = { .name = "data_blocks_used", .mode = 0444, },
-	.show  = pool_stats_data_blocks_used_show,
+	.attr = { .name = "data_blocks_used", .mode = 0444, },
+	.show = pool_stats_data_blocks_used_show,
 };
 
 /**********************************************************************/
@@ -82,8 +82,8 @@ static ssize_t pool_stats_overhead_blocks_used_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_overhead_blocks_used_attr = {
-	.attr  = { .name = "overhead_blocks_used", .mode = 0444, },
-	.show  = pool_stats_overhead_blocks_used_show,
+	.attr = { .name = "overhead_blocks_used", .mode = 0444, },
+	.show = pool_stats_overhead_blocks_used_show,
 };
 
 /**********************************************************************/
@@ -99,8 +99,8 @@ static ssize_t pool_stats_logical_blocks_used_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_logical_blocks_used_attr = {
-	.attr  = { .name = "logical_blocks_used", .mode = 0444, },
-	.show  = pool_stats_logical_blocks_used_show,
+	.attr = { .name = "logical_blocks_used", .mode = 0444, },
+	.show = pool_stats_logical_blocks_used_show,
 };
 
 /**********************************************************************/
@@ -116,8 +116,8 @@ static ssize_t pool_stats_physical_blocks_show(struct kernel_layer *layer, char 
 }
 
 static struct pool_stats_attribute pool_stats_physical_blocks_attr = {
-	.attr  = { .name = "physical_blocks", .mode = 0444, },
-	.show  = pool_stats_physical_blocks_show,
+	.attr = { .name = "physical_blocks", .mode = 0444, },
+	.show = pool_stats_physical_blocks_show,
 };
 
 /**********************************************************************/
@@ -133,8 +133,8 @@ static ssize_t pool_stats_logical_blocks_show(struct kernel_layer *layer, char *
 }
 
 static struct pool_stats_attribute pool_stats_logical_blocks_attr = {
-	.attr  = { .name = "logical_blocks", .mode = 0444, },
-	.show  = pool_stats_logical_blocks_show,
+	.attr = { .name = "logical_blocks", .mode = 0444, },
+	.show = pool_stats_logical_blocks_show,
 };
 
 /**********************************************************************/
@@ -150,8 +150,8 @@ static ssize_t pool_stats_block_map_cache_size_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_block_map_cache_size_attr = {
-	.attr  = { .name = "block_map_cache_size", .mode = 0444, },
-	.show  = pool_stats_block_map_cache_size_show,
+	.attr = { .name = "block_map_cache_size", .mode = 0444, },
+	.show = pool_stats_block_map_cache_size_show,
 };
 
 /**********************************************************************/
@@ -167,8 +167,8 @@ static ssize_t pool_stats_write_policy_show(struct kernel_layer *layer, char *bu
 }
 
 static struct pool_stats_attribute pool_stats_write_policy_attr = {
-	.attr  = { .name = "write_policy", .mode = 0444, },
-	.show  = pool_stats_write_policy_show,
+	.attr = { .name = "write_policy", .mode = 0444, },
+	.show = pool_stats_write_policy_show,
 };
 
 /**********************************************************************/
@@ -184,8 +184,8 @@ static ssize_t pool_stats_block_size_show(struct kernel_layer *layer, char *buf)
 }
 
 static struct pool_stats_attribute pool_stats_block_size_attr = {
-	.attr  = { .name = "block_size", .mode = 0444, },
-	.show  = pool_stats_block_size_show,
+	.attr = { .name = "block_size", .mode = 0444, },
+	.show = pool_stats_block_size_show,
 };
 
 /**********************************************************************/
@@ -201,8 +201,8 @@ static ssize_t pool_stats_complete_recoveries_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_complete_recoveries_attr = {
-	.attr  = { .name = "complete_recoveries", .mode = 0444, },
-	.show  = pool_stats_complete_recoveries_show,
+	.attr = { .name = "complete_recoveries", .mode = 0444, },
+	.show = pool_stats_complete_recoveries_show,
 };
 
 /**********************************************************************/
@@ -218,8 +218,8 @@ static ssize_t pool_stats_read_only_recoveries_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_read_only_recoveries_attr = {
-	.attr  = { .name = "read_only_recoveries", .mode = 0444, },
-	.show  = pool_stats_read_only_recoveries_show,
+	.attr = { .name = "read_only_recoveries", .mode = 0444, },
+	.show = pool_stats_read_only_recoveries_show,
 };
 
 /**********************************************************************/
@@ -235,8 +235,8 @@ static ssize_t pool_stats_mode_show(struct kernel_layer *layer, char *buf)
 }
 
 static struct pool_stats_attribute pool_stats_mode_attr = {
-	.attr  = { .name = "mode", .mode = 0444, },
-	.show  = pool_stats_mode_show,
+	.attr = { .name = "mode", .mode = 0444, },
+	.show = pool_stats_mode_show,
 };
 
 /**********************************************************************/
@@ -252,8 +252,8 @@ static ssize_t pool_stats_in_recovery_mode_show(struct kernel_layer *layer, char
 }
 
 static struct pool_stats_attribute pool_stats_in_recovery_mode_attr = {
-	.attr  = { .name = "in_recovery_mode", .mode = 0444, },
-	.show  = pool_stats_in_recovery_mode_show,
+	.attr = { .name = "in_recovery_mode", .mode = 0444, },
+	.show = pool_stats_in_recovery_mode_show,
 };
 
 /**********************************************************************/
@@ -269,8 +269,8 @@ static ssize_t pool_stats_recovery_percentage_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_recovery_percentage_attr = {
-	.attr  = { .name = "recovery_percentage", .mode = 0444, },
-	.show  = pool_stats_recovery_percentage_show,
+	.attr = { .name = "recovery_percentage", .mode = 0444, },
+	.show = pool_stats_recovery_percentage_show,
 };
 
 /**********************************************************************/
@@ -286,8 +286,8 @@ static ssize_t pool_stats_packer_compressed_fragments_written_show(struct kernel
 }
 
 static struct pool_stats_attribute pool_stats_packer_compressed_fragments_written_attr = {
-	.attr  = { .name = "packer_compressed_fragments_written", .mode = 0444, },
-	.show  = pool_stats_packer_compressed_fragments_written_show,
+	.attr = { .name = "packer_compressed_fragments_written", .mode = 0444, },
+	.show = pool_stats_packer_compressed_fragments_written_show,
 };
 
 /**********************************************************************/
@@ -303,8 +303,8 @@ static ssize_t pool_stats_packer_compressed_blocks_written_show(struct kernel_la
 }
 
 static struct pool_stats_attribute pool_stats_packer_compressed_blocks_written_attr = {
-	.attr  = { .name = "packer_compressed_blocks_written", .mode = 0444, },
-	.show  = pool_stats_packer_compressed_blocks_written_show,
+	.attr = { .name = "packer_compressed_blocks_written", .mode = 0444, },
+	.show = pool_stats_packer_compressed_blocks_written_show,
 };
 
 /**********************************************************************/
@@ -320,8 +320,8 @@ static ssize_t pool_stats_packer_compressed_fragments_in_packer_show(struct kern
 }
 
 static struct pool_stats_attribute pool_stats_packer_compressed_fragments_in_packer_attr = {
-	.attr  = { .name = "packer_compressed_fragments_in_packer", .mode = 0444, },
-	.show  = pool_stats_packer_compressed_fragments_in_packer_show,
+	.attr = { .name = "packer_compressed_fragments_in_packer", .mode = 0444, },
+	.show = pool_stats_packer_compressed_fragments_in_packer_show,
 };
 
 /**********************************************************************/
@@ -337,8 +337,8 @@ static ssize_t pool_stats_allocator_slab_count_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_allocator_slab_count_attr = {
-	.attr  = { .name = "allocator_slab_count", .mode = 0444, },
-	.show  = pool_stats_allocator_slab_count_show,
+	.attr = { .name = "allocator_slab_count", .mode = 0444, },
+	.show = pool_stats_allocator_slab_count_show,
 };
 
 /**********************************************************************/
@@ -354,8 +354,8 @@ static ssize_t pool_stats_allocator_slabs_opened_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_allocator_slabs_opened_attr = {
-	.attr  = { .name = "allocator_slabs_opened", .mode = 0444, },
-	.show  = pool_stats_allocator_slabs_opened_show,
+	.attr = { .name = "allocator_slabs_opened", .mode = 0444, },
+	.show = pool_stats_allocator_slabs_opened_show,
 };
 
 /**********************************************************************/
@@ -371,8 +371,8 @@ static ssize_t pool_stats_allocator_slabs_reopened_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_allocator_slabs_reopened_attr = {
-	.attr  = { .name = "allocator_slabs_reopened", .mode = 0444, },
-	.show  = pool_stats_allocator_slabs_reopened_show,
+	.attr = { .name = "allocator_slabs_reopened", .mode = 0444, },
+	.show = pool_stats_allocator_slabs_reopened_show,
 };
 
 /**********************************************************************/
@@ -388,8 +388,8 @@ static ssize_t pool_stats_journal_disk_full_show(struct kernel_layer *layer, cha
 }
 
 static struct pool_stats_attribute pool_stats_journal_disk_full_attr = {
-	.attr  = { .name = "journal_disk_full", .mode = 0444, },
-	.show  = pool_stats_journal_disk_full_show,
+	.attr = { .name = "journal_disk_full", .mode = 0444, },
+	.show = pool_stats_journal_disk_full_show,
 };
 
 /**********************************************************************/
@@ -405,8 +405,8 @@ static ssize_t pool_stats_journal_slab_journal_commits_requested_show(struct ker
 }
 
 static struct pool_stats_attribute pool_stats_journal_slab_journal_commits_requested_attr = {
-	.attr  = { .name = "journal_slab_journal_commits_requested", .mode = 0444, },
-	.show  = pool_stats_journal_slab_journal_commits_requested_show,
+	.attr = { .name = "journal_slab_journal_commits_requested", .mode = 0444, },
+	.show = pool_stats_journal_slab_journal_commits_requested_show,
 };
 
 /**********************************************************************/
@@ -422,8 +422,8 @@ static ssize_t pool_stats_journal_entries_started_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_journal_entries_started_attr = {
-	.attr  = { .name = "journal_entries_started", .mode = 0444, },
-	.show  = pool_stats_journal_entries_started_show,
+	.attr = { .name = "journal_entries_started", .mode = 0444, },
+	.show = pool_stats_journal_entries_started_show,
 };
 
 /**********************************************************************/
@@ -439,8 +439,8 @@ static ssize_t pool_stats_journal_entries_written_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_journal_entries_written_attr = {
-	.attr  = { .name = "journal_entries_written", .mode = 0444, },
-	.show  = pool_stats_journal_entries_written_show,
+	.attr = { .name = "journal_entries_written", .mode = 0444, },
+	.show = pool_stats_journal_entries_written_show,
 };
 
 /**********************************************************************/
@@ -456,8 +456,8 @@ static ssize_t pool_stats_journal_entries_committed_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_journal_entries_committed_attr = {
-	.attr  = { .name = "journal_entries_committed", .mode = 0444, },
-	.show  = pool_stats_journal_entries_committed_show,
+	.attr = { .name = "journal_entries_committed", .mode = 0444, },
+	.show = pool_stats_journal_entries_committed_show,
 };
 
 /**********************************************************************/
@@ -473,8 +473,8 @@ static ssize_t pool_stats_journal_blocks_started_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_journal_blocks_started_attr = {
-	.attr  = { .name = "journal_blocks_started", .mode = 0444, },
-	.show  = pool_stats_journal_blocks_started_show,
+	.attr = { .name = "journal_blocks_started", .mode = 0444, },
+	.show = pool_stats_journal_blocks_started_show,
 };
 
 /**********************************************************************/
@@ -490,8 +490,8 @@ static ssize_t pool_stats_journal_blocks_written_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_journal_blocks_written_attr = {
-	.attr  = { .name = "journal_blocks_written", .mode = 0444, },
-	.show  = pool_stats_journal_blocks_written_show,
+	.attr = { .name = "journal_blocks_written", .mode = 0444, },
+	.show = pool_stats_journal_blocks_written_show,
 };
 
 /**********************************************************************/
@@ -507,8 +507,8 @@ static ssize_t pool_stats_journal_blocks_committed_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_journal_blocks_committed_attr = {
-	.attr  = { .name = "journal_blocks_committed", .mode = 0444, },
-	.show  = pool_stats_journal_blocks_committed_show,
+	.attr = { .name = "journal_blocks_committed", .mode = 0444, },
+	.show = pool_stats_journal_blocks_committed_show,
 };
 
 /**********************************************************************/
@@ -524,8 +524,8 @@ static ssize_t pool_stats_slab_journal_disk_full_count_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_slab_journal_disk_full_count_attr = {
-	.attr  = { .name = "slab_journal_disk_full_count", .mode = 0444, },
-	.show  = pool_stats_slab_journal_disk_full_count_show,
+	.attr = { .name = "slab_journal_disk_full_count", .mode = 0444, },
+	.show = pool_stats_slab_journal_disk_full_count_show,
 };
 
 /**********************************************************************/
@@ -541,8 +541,8 @@ static ssize_t pool_stats_slab_journal_flush_count_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_slab_journal_flush_count_attr = {
-	.attr  = { .name = "slab_journal_flush_count", .mode = 0444, },
-	.show  = pool_stats_slab_journal_flush_count_show,
+	.attr = { .name = "slab_journal_flush_count", .mode = 0444, },
+	.show = pool_stats_slab_journal_flush_count_show,
 };
 
 /**********************************************************************/
@@ -558,8 +558,8 @@ static ssize_t pool_stats_slab_journal_blocked_count_show(struct kernel_layer *l
 }
 
 static struct pool_stats_attribute pool_stats_slab_journal_blocked_count_attr = {
-	.attr  = { .name = "slab_journal_blocked_count", .mode = 0444, },
-	.show  = pool_stats_slab_journal_blocked_count_show,
+	.attr = { .name = "slab_journal_blocked_count", .mode = 0444, },
+	.show = pool_stats_slab_journal_blocked_count_show,
 };
 
 /**********************************************************************/
@@ -575,8 +575,8 @@ static ssize_t pool_stats_slab_journal_blocks_written_show(struct kernel_layer *
 }
 
 static struct pool_stats_attribute pool_stats_slab_journal_blocks_written_attr = {
-	.attr  = { .name = "slab_journal_blocks_written", .mode = 0444, },
-	.show  = pool_stats_slab_journal_blocks_written_show,
+	.attr = { .name = "slab_journal_blocks_written", .mode = 0444, },
+	.show = pool_stats_slab_journal_blocks_written_show,
 };
 
 /**********************************************************************/
@@ -592,8 +592,8 @@ static ssize_t pool_stats_slab_journal_tail_busy_count_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_slab_journal_tail_busy_count_attr = {
-	.attr  = { .name = "slab_journal_tail_busy_count", .mode = 0444, },
-	.show  = pool_stats_slab_journal_tail_busy_count_show,
+	.attr = { .name = "slab_journal_tail_busy_count", .mode = 0444, },
+	.show = pool_stats_slab_journal_tail_busy_count_show,
 };
 
 /**********************************************************************/
@@ -609,8 +609,8 @@ static ssize_t pool_stats_slab_summary_blocks_written_show(struct kernel_layer *
 }
 
 static struct pool_stats_attribute pool_stats_slab_summary_blocks_written_attr = {
-	.attr  = { .name = "slab_summary_blocks_written", .mode = 0444, },
-	.show  = pool_stats_slab_summary_blocks_written_show,
+	.attr = { .name = "slab_summary_blocks_written", .mode = 0444, },
+	.show = pool_stats_slab_summary_blocks_written_show,
 };
 
 /**********************************************************************/
@@ -626,8 +626,8 @@ static ssize_t pool_stats_ref_counts_blocks_written_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_ref_counts_blocks_written_attr = {
-	.attr  = { .name = "ref_counts_blocks_written", .mode = 0444, },
-	.show  = pool_stats_ref_counts_blocks_written_show,
+	.attr = { .name = "ref_counts_blocks_written", .mode = 0444, },
+	.show = pool_stats_ref_counts_blocks_written_show,
 };
 
 /**********************************************************************/
@@ -643,8 +643,8 @@ static ssize_t pool_stats_block_map_dirty_pages_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_block_map_dirty_pages_attr = {
-	.attr  = { .name = "block_map_dirty_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_dirty_pages_show,
+	.attr = { .name = "block_map_dirty_pages", .mode = 0444, },
+	.show = pool_stats_block_map_dirty_pages_show,
 };
 
 /**********************************************************************/
@@ -660,8 +660,8 @@ static ssize_t pool_stats_block_map_clean_pages_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_block_map_clean_pages_attr = {
-	.attr  = { .name = "block_map_clean_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_clean_pages_show,
+	.attr = { .name = "block_map_clean_pages", .mode = 0444, },
+	.show = pool_stats_block_map_clean_pages_show,
 };
 
 /**********************************************************************/
@@ -677,8 +677,8 @@ static ssize_t pool_stats_block_map_free_pages_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_block_map_free_pages_attr = {
-	.attr  = { .name = "block_map_free_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_free_pages_show,
+	.attr = { .name = "block_map_free_pages", .mode = 0444, },
+	.show = pool_stats_block_map_free_pages_show,
 };
 
 /**********************************************************************/
@@ -694,8 +694,8 @@ static ssize_t pool_stats_block_map_failed_pages_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_block_map_failed_pages_attr = {
-	.attr  = { .name = "block_map_failed_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_failed_pages_show,
+	.attr = { .name = "block_map_failed_pages", .mode = 0444, },
+	.show = pool_stats_block_map_failed_pages_show,
 };
 
 /**********************************************************************/
@@ -711,8 +711,8 @@ static ssize_t pool_stats_block_map_incoming_pages_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_block_map_incoming_pages_attr = {
-	.attr  = { .name = "block_map_incoming_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_incoming_pages_show,
+	.attr = { .name = "block_map_incoming_pages", .mode = 0444, },
+	.show = pool_stats_block_map_incoming_pages_show,
 };
 
 /**********************************************************************/
@@ -728,8 +728,8 @@ static ssize_t pool_stats_block_map_outgoing_pages_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_block_map_outgoing_pages_attr = {
-	.attr  = { .name = "block_map_outgoing_pages", .mode = 0444, },
-	.show  = pool_stats_block_map_outgoing_pages_show,
+	.attr = { .name = "block_map_outgoing_pages", .mode = 0444, },
+	.show = pool_stats_block_map_outgoing_pages_show,
 };
 
 /**********************************************************************/
@@ -745,8 +745,8 @@ static ssize_t pool_stats_block_map_cache_pressure_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_block_map_cache_pressure_attr = {
-	.attr  = { .name = "block_map_cache_pressure", .mode = 0444, },
-	.show  = pool_stats_block_map_cache_pressure_show,
+	.attr = { .name = "block_map_cache_pressure", .mode = 0444, },
+	.show = pool_stats_block_map_cache_pressure_show,
 };
 
 /**********************************************************************/
@@ -762,8 +762,8 @@ static ssize_t pool_stats_block_map_read_count_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_block_map_read_count_attr = {
-	.attr  = { .name = "block_map_read_count", .mode = 0444, },
-	.show  = pool_stats_block_map_read_count_show,
+	.attr = { .name = "block_map_read_count", .mode = 0444, },
+	.show = pool_stats_block_map_read_count_show,
 };
 
 /**********************************************************************/
@@ -779,8 +779,8 @@ static ssize_t pool_stats_block_map_write_count_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_block_map_write_count_attr = {
-	.attr  = { .name = "block_map_write_count", .mode = 0444, },
-	.show  = pool_stats_block_map_write_count_show,
+	.attr = { .name = "block_map_write_count", .mode = 0444, },
+	.show = pool_stats_block_map_write_count_show,
 };
 
 /**********************************************************************/
@@ -796,8 +796,8 @@ static ssize_t pool_stats_block_map_failed_reads_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_block_map_failed_reads_attr = {
-	.attr  = { .name = "block_map_failed_reads", .mode = 0444, },
-	.show  = pool_stats_block_map_failed_reads_show,
+	.attr = { .name = "block_map_failed_reads", .mode = 0444, },
+	.show = pool_stats_block_map_failed_reads_show,
 };
 
 /**********************************************************************/
@@ -813,8 +813,8 @@ static ssize_t pool_stats_block_map_failed_writes_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_block_map_failed_writes_attr = {
-	.attr  = { .name = "block_map_failed_writes", .mode = 0444, },
-	.show  = pool_stats_block_map_failed_writes_show,
+	.attr = { .name = "block_map_failed_writes", .mode = 0444, },
+	.show = pool_stats_block_map_failed_writes_show,
 };
 
 /**********************************************************************/
@@ -830,8 +830,8 @@ static ssize_t pool_stats_block_map_reclaimed_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_block_map_reclaimed_attr = {
-	.attr  = { .name = "block_map_reclaimed", .mode = 0444, },
-	.show  = pool_stats_block_map_reclaimed_show,
+	.attr = { .name = "block_map_reclaimed", .mode = 0444, },
+	.show = pool_stats_block_map_reclaimed_show,
 };
 
 /**********************************************************************/
@@ -847,8 +847,8 @@ static ssize_t pool_stats_block_map_read_outgoing_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_block_map_read_outgoing_attr = {
-	.attr  = { .name = "block_map_read_outgoing", .mode = 0444, },
-	.show  = pool_stats_block_map_read_outgoing_show,
+	.attr = { .name = "block_map_read_outgoing", .mode = 0444, },
+	.show = pool_stats_block_map_read_outgoing_show,
 };
 
 /**********************************************************************/
@@ -864,8 +864,8 @@ static ssize_t pool_stats_block_map_found_in_cache_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_block_map_found_in_cache_attr = {
-	.attr  = { .name = "block_map_found_in_cache", .mode = 0444, },
-	.show  = pool_stats_block_map_found_in_cache_show,
+	.attr = { .name = "block_map_found_in_cache", .mode = 0444, },
+	.show = pool_stats_block_map_found_in_cache_show,
 };
 
 /**********************************************************************/
@@ -881,8 +881,8 @@ static ssize_t pool_stats_block_map_discard_required_show(struct kernel_layer *l
 }
 
 static struct pool_stats_attribute pool_stats_block_map_discard_required_attr = {
-	.attr  = { .name = "block_map_discard_required", .mode = 0444, },
-	.show  = pool_stats_block_map_discard_required_show,
+	.attr = { .name = "block_map_discard_required", .mode = 0444, },
+	.show = pool_stats_block_map_discard_required_show,
 };
 
 /**********************************************************************/
@@ -898,8 +898,8 @@ static ssize_t pool_stats_block_map_wait_for_page_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_block_map_wait_for_page_attr = {
-	.attr  = { .name = "block_map_wait_for_page", .mode = 0444, },
-	.show  = pool_stats_block_map_wait_for_page_show,
+	.attr = { .name = "block_map_wait_for_page", .mode = 0444, },
+	.show = pool_stats_block_map_wait_for_page_show,
 };
 
 /**********************************************************************/
@@ -915,8 +915,8 @@ static ssize_t pool_stats_block_map_fetch_required_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_block_map_fetch_required_attr = {
-	.attr  = { .name = "block_map_fetch_required", .mode = 0444, },
-	.show  = pool_stats_block_map_fetch_required_show,
+	.attr = { .name = "block_map_fetch_required", .mode = 0444, },
+	.show = pool_stats_block_map_fetch_required_show,
 };
 
 /**********************************************************************/
@@ -932,8 +932,8 @@ static ssize_t pool_stats_block_map_pages_loaded_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_block_map_pages_loaded_attr = {
-	.attr  = { .name = "block_map_pages_loaded", .mode = 0444, },
-	.show  = pool_stats_block_map_pages_loaded_show,
+	.attr = { .name = "block_map_pages_loaded", .mode = 0444, },
+	.show = pool_stats_block_map_pages_loaded_show,
 };
 
 /**********************************************************************/
@@ -949,8 +949,8 @@ static ssize_t pool_stats_block_map_pages_saved_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_block_map_pages_saved_attr = {
-	.attr  = { .name = "block_map_pages_saved", .mode = 0444, },
-	.show  = pool_stats_block_map_pages_saved_show,
+	.attr = { .name = "block_map_pages_saved", .mode = 0444, },
+	.show = pool_stats_block_map_pages_saved_show,
 };
 
 /**********************************************************************/
@@ -966,8 +966,8 @@ static ssize_t pool_stats_block_map_flush_count_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_block_map_flush_count_attr = {
-	.attr  = { .name = "block_map_flush_count", .mode = 0444, },
-	.show  = pool_stats_block_map_flush_count_show,
+	.attr = { .name = "block_map_flush_count", .mode = 0444, },
+	.show = pool_stats_block_map_flush_count_show,
 };
 
 /**********************************************************************/
@@ -983,8 +983,8 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_valid_show(struct kernel_layer
 }
 
 static struct pool_stats_attribute pool_stats_hash_lock_dedupe_advice_valid_attr = {
-	.attr  = { .name = "hash_lock_dedupe_advice_valid", .mode = 0444, },
-	.show  = pool_stats_hash_lock_dedupe_advice_valid_show,
+	.attr = { .name = "hash_lock_dedupe_advice_valid", .mode = 0444, },
+	.show = pool_stats_hash_lock_dedupe_advice_valid_show,
 };
 
 /**********************************************************************/
@@ -1000,8 +1000,8 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_stale_show(struct kernel_layer
 }
 
 static struct pool_stats_attribute pool_stats_hash_lock_dedupe_advice_stale_attr = {
-	.attr  = { .name = "hash_lock_dedupe_advice_stale", .mode = 0444, },
-	.show  = pool_stats_hash_lock_dedupe_advice_stale_show,
+	.attr = { .name = "hash_lock_dedupe_advice_stale", .mode = 0444, },
+	.show = pool_stats_hash_lock_dedupe_advice_stale_show,
 };
 
 /**********************************************************************/
@@ -1017,8 +1017,8 @@ static ssize_t pool_stats_hash_lock_concurrent_data_matches_show(struct kernel_l
 }
 
 static struct pool_stats_attribute pool_stats_hash_lock_concurrent_data_matches_attr = {
-	.attr  = { .name = "hash_lock_concurrent_data_matches", .mode = 0444, },
-	.show  = pool_stats_hash_lock_concurrent_data_matches_show,
+	.attr = { .name = "hash_lock_concurrent_data_matches", .mode = 0444, },
+	.show = pool_stats_hash_lock_concurrent_data_matches_show,
 };
 
 /**********************************************************************/
@@ -1034,8 +1034,8 @@ static ssize_t pool_stats_hash_lock_concurrent_hash_collisions_show(struct kerne
 }
 
 static struct pool_stats_attribute pool_stats_hash_lock_concurrent_hash_collisions_attr = {
-	.attr  = { .name = "hash_lock_concurrent_hash_collisions", .mode = 0444, },
-	.show  = pool_stats_hash_lock_concurrent_hash_collisions_show,
+	.attr = { .name = "hash_lock_concurrent_hash_collisions", .mode = 0444, },
+	.show = pool_stats_hash_lock_concurrent_hash_collisions_show,
 };
 
 /**********************************************************************/
@@ -1051,8 +1051,8 @@ static ssize_t pool_stats_errors_invalid_advice_pbn_count_show(struct kernel_lay
 }
 
 static struct pool_stats_attribute pool_stats_errors_invalid_advice_pbn_count_attr = {
-	.attr  = { .name = "errors_invalid_advice_pbn_count", .mode = 0444, },
-	.show  = pool_stats_errors_invalid_advice_pbn_count_show,
+	.attr = { .name = "errors_invalid_advice_pbn_count", .mode = 0444, },
+	.show = pool_stats_errors_invalid_advice_pbn_count_show,
 };
 
 /**********************************************************************/
@@ -1068,8 +1068,8 @@ static ssize_t pool_stats_errors_no_space_error_count_show(struct kernel_layer *
 }
 
 static struct pool_stats_attribute pool_stats_errors_no_space_error_count_attr = {
-	.attr  = { .name = "errors_no_space_error_count", .mode = 0444, },
-	.show  = pool_stats_errors_no_space_error_count_show,
+	.attr = { .name = "errors_no_space_error_count", .mode = 0444, },
+	.show = pool_stats_errors_no_space_error_count_show,
 };
 
 /**********************************************************************/
@@ -1085,8 +1085,8 @@ static ssize_t pool_stats_errors_read_only_error_count_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_errors_read_only_error_count_attr = {
-	.attr  = { .name = "errors_read_only_error_count", .mode = 0444, },
-	.show  = pool_stats_errors_read_only_error_count_show,
+	.attr = { .name = "errors_read_only_error_count", .mode = 0444, },
+	.show = pool_stats_errors_read_only_error_count_show,
 };
 
 /**********************************************************************/
@@ -1102,8 +1102,8 @@ static ssize_t pool_stats_instance_show(struct kernel_layer *layer, char *buf)
 }
 
 static struct pool_stats_attribute pool_stats_instance_attr = {
-	.attr  = { .name = "instance", .mode = 0444, },
-	.show  = pool_stats_instance_show,
+	.attr = { .name = "instance", .mode = 0444, },
+	.show = pool_stats_instance_show,
 };
 
 /**********************************************************************/
@@ -1119,8 +1119,8 @@ static ssize_t pool_stats_current_vios_in_progress_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_current_vios_in_progress_attr = {
-	.attr  = { .name = "current_vios_in_progress", .mode = 0444, },
-	.show  = pool_stats_current_vios_in_progress_show,
+	.attr = { .name = "current_vios_in_progress", .mode = 0444, },
+	.show = pool_stats_current_vios_in_progress_show,
 };
 
 /**********************************************************************/
@@ -1136,8 +1136,8 @@ static ssize_t pool_stats_max_vios_show(struct kernel_layer *layer, char *buf)
 }
 
 static struct pool_stats_attribute pool_stats_max_vios_attr = {
-	.attr  = { .name = "max_vios", .mode = 0444, },
-	.show  = pool_stats_max_vios_show,
+	.attr = { .name = "max_vios", .mode = 0444, },
+	.show = pool_stats_max_vios_show,
 };
 
 /**********************************************************************/
@@ -1153,8 +1153,8 @@ static ssize_t pool_stats_dedupe_advice_timeouts_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_dedupe_advice_timeouts_attr = {
-	.attr  = { .name = "dedupe_advice_timeouts", .mode = 0444, },
-	.show  = pool_stats_dedupe_advice_timeouts_show,
+	.attr = { .name = "dedupe_advice_timeouts", .mode = 0444, },
+	.show = pool_stats_dedupe_advice_timeouts_show,
 };
 
 /**********************************************************************/
@@ -1170,8 +1170,8 @@ static ssize_t pool_stats_flush_out_show(struct kernel_layer *layer, char *buf)
 }
 
 static struct pool_stats_attribute pool_stats_flush_out_attr = {
-	.attr  = { .name = "flush_out", .mode = 0444, },
-	.show  = pool_stats_flush_out_show,
+	.attr = { .name = "flush_out", .mode = 0444, },
+	.show = pool_stats_flush_out_show,
 };
 
 /**********************************************************************/
@@ -1187,8 +1187,8 @@ static ssize_t pool_stats_logical_block_size_show(struct kernel_layer *layer, ch
 }
 
 static struct pool_stats_attribute pool_stats_logical_block_size_attr = {
-	.attr  = { .name = "logical_block_size", .mode = 0444, },
-	.show  = pool_stats_logical_block_size_show,
+	.attr = { .name = "logical_block_size", .mode = 0444, },
+	.show = pool_stats_logical_block_size_show,
 };
 
 /**********************************************************************/
@@ -1204,8 +1204,8 @@ static ssize_t pool_stats_bios_in_read_show(struct kernel_layer *layer, char *bu
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_read_attr = {
-	.attr  = { .name = "bios_in_read", .mode = 0444, },
-	.show  = pool_stats_bios_in_read_show,
+	.attr = { .name = "bios_in_read", .mode = 0444, },
+	.show = pool_stats_bios_in_read_show,
 };
 
 /**********************************************************************/
@@ -1221,8 +1221,8 @@ static ssize_t pool_stats_bios_in_write_show(struct kernel_layer *layer, char *b
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_write_attr = {
-	.attr  = { .name = "bios_in_write", .mode = 0444, },
-	.show  = pool_stats_bios_in_write_show,
+	.attr = { .name = "bios_in_write", .mode = 0444, },
+	.show = pool_stats_bios_in_write_show,
 };
 
 /**********************************************************************/
@@ -1238,8 +1238,8 @@ static ssize_t pool_stats_bios_in_discard_show(struct kernel_layer *layer, char 
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_discard_attr = {
-	.attr  = { .name = "bios_in_discard", .mode = 0444, },
-	.show  = pool_stats_bios_in_discard_show,
+	.attr = { .name = "bios_in_discard", .mode = 0444, },
+	.show = pool_stats_bios_in_discard_show,
 };
 
 /**********************************************************************/
@@ -1255,8 +1255,8 @@ static ssize_t pool_stats_bios_in_flush_show(struct kernel_layer *layer, char *b
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_flush_attr = {
-	.attr  = { .name = "bios_in_flush", .mode = 0444, },
-	.show  = pool_stats_bios_in_flush_show,
+	.attr = { .name = "bios_in_flush", .mode = 0444, },
+	.show = pool_stats_bios_in_flush_show,
 };
 
 /**********************************************************************/
@@ -1272,8 +1272,8 @@ static ssize_t pool_stats_bios_in_fua_show(struct kernel_layer *layer, char *buf
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_fua_attr = {
-	.attr  = { .name = "bios_in_fua", .mode = 0444, },
-	.show  = pool_stats_bios_in_fua_show,
+	.attr = { .name = "bios_in_fua", .mode = 0444, },
+	.show = pool_stats_bios_in_fua_show,
 };
 
 /**********************************************************************/
@@ -1289,8 +1289,8 @@ static ssize_t pool_stats_bios_in_partial_read_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_partial_read_attr = {
-	.attr  = { .name = "bios_in_partial_read", .mode = 0444, },
-	.show  = pool_stats_bios_in_partial_read_show,
+	.attr = { .name = "bios_in_partial_read", .mode = 0444, },
+	.show = pool_stats_bios_in_partial_read_show,
 };
 
 /**********************************************************************/
@@ -1306,8 +1306,8 @@ static ssize_t pool_stats_bios_in_partial_write_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_partial_write_attr = {
-	.attr  = { .name = "bios_in_partial_write", .mode = 0444, },
-	.show  = pool_stats_bios_in_partial_write_show,
+	.attr = { .name = "bios_in_partial_write", .mode = 0444, },
+	.show = pool_stats_bios_in_partial_write_show,
 };
 
 /**********************************************************************/
@@ -1323,8 +1323,8 @@ static ssize_t pool_stats_bios_in_partial_discard_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_partial_discard_attr = {
-	.attr  = { .name = "bios_in_partial_discard", .mode = 0444, },
-	.show  = pool_stats_bios_in_partial_discard_show,
+	.attr = { .name = "bios_in_partial_discard", .mode = 0444, },
+	.show = pool_stats_bios_in_partial_discard_show,
 };
 
 /**********************************************************************/
@@ -1340,8 +1340,8 @@ static ssize_t pool_stats_bios_in_partial_flush_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_partial_flush_attr = {
-	.attr  = { .name = "bios_in_partial_flush", .mode = 0444, },
-	.show  = pool_stats_bios_in_partial_flush_show,
+	.attr = { .name = "bios_in_partial_flush", .mode = 0444, },
+	.show = pool_stats_bios_in_partial_flush_show,
 };
 
 /**********************************************************************/
@@ -1357,8 +1357,8 @@ static ssize_t pool_stats_bios_in_partial_fua_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_partial_fua_attr = {
-	.attr  = { .name = "bios_in_partial_fua", .mode = 0444, },
-	.show  = pool_stats_bios_in_partial_fua_show,
+	.attr = { .name = "bios_in_partial_fua", .mode = 0444, },
+	.show = pool_stats_bios_in_partial_fua_show,
 };
 
 /**********************************************************************/
@@ -1374,8 +1374,8 @@ static ssize_t pool_stats_bios_out_read_show(struct kernel_layer *layer, char *b
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_read_attr = {
-	.attr  = { .name = "bios_out_read", .mode = 0444, },
-	.show  = pool_stats_bios_out_read_show,
+	.attr = { .name = "bios_out_read", .mode = 0444, },
+	.show = pool_stats_bios_out_read_show,
 };
 
 /**********************************************************************/
@@ -1391,8 +1391,8 @@ static ssize_t pool_stats_bios_out_write_show(struct kernel_layer *layer, char *
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_write_attr = {
-	.attr  = { .name = "bios_out_write", .mode = 0444, },
-	.show  = pool_stats_bios_out_write_show,
+	.attr = { .name = "bios_out_write", .mode = 0444, },
+	.show = pool_stats_bios_out_write_show,
 };
 
 /**********************************************************************/
@@ -1408,8 +1408,8 @@ static ssize_t pool_stats_bios_out_discard_show(struct kernel_layer *layer, char
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_discard_attr = {
-	.attr  = { .name = "bios_out_discard", .mode = 0444, },
-	.show  = pool_stats_bios_out_discard_show,
+	.attr = { .name = "bios_out_discard", .mode = 0444, },
+	.show = pool_stats_bios_out_discard_show,
 };
 
 /**********************************************************************/
@@ -1425,8 +1425,8 @@ static ssize_t pool_stats_bios_out_flush_show(struct kernel_layer *layer, char *
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_flush_attr = {
-	.attr  = { .name = "bios_out_flush", .mode = 0444, },
-	.show  = pool_stats_bios_out_flush_show,
+	.attr = { .name = "bios_out_flush", .mode = 0444, },
+	.show = pool_stats_bios_out_flush_show,
 };
 
 /**********************************************************************/
@@ -1442,8 +1442,8 @@ static ssize_t pool_stats_bios_out_fua_show(struct kernel_layer *layer, char *bu
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_fua_attr = {
-	.attr  = { .name = "bios_out_fua", .mode = 0444, },
-	.show  = pool_stats_bios_out_fua_show,
+	.attr = { .name = "bios_out_fua", .mode = 0444, },
+	.show = pool_stats_bios_out_fua_show,
 };
 
 /**********************************************************************/
@@ -1459,8 +1459,8 @@ static ssize_t pool_stats_bios_meta_read_show(struct kernel_layer *layer, char *
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_read_attr = {
-	.attr  = { .name = "bios_meta_read", .mode = 0444, },
-	.show  = pool_stats_bios_meta_read_show,
+	.attr = { .name = "bios_meta_read", .mode = 0444, },
+	.show = pool_stats_bios_meta_read_show,
 };
 
 /**********************************************************************/
@@ -1476,8 +1476,8 @@ static ssize_t pool_stats_bios_meta_write_show(struct kernel_layer *layer, char 
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_write_attr = {
-	.attr  = { .name = "bios_meta_write", .mode = 0444, },
-	.show  = pool_stats_bios_meta_write_show,
+	.attr = { .name = "bios_meta_write", .mode = 0444, },
+	.show = pool_stats_bios_meta_write_show,
 };
 
 /**********************************************************************/
@@ -1493,8 +1493,8 @@ static ssize_t pool_stats_bios_meta_discard_show(struct kernel_layer *layer, cha
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_discard_attr = {
-	.attr  = { .name = "bios_meta_discard", .mode = 0444, },
-	.show  = pool_stats_bios_meta_discard_show,
+	.attr = { .name = "bios_meta_discard", .mode = 0444, },
+	.show = pool_stats_bios_meta_discard_show,
 };
 
 /**********************************************************************/
@@ -1510,8 +1510,8 @@ static ssize_t pool_stats_bios_meta_flush_show(struct kernel_layer *layer, char 
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_flush_attr = {
-	.attr  = { .name = "bios_meta_flush", .mode = 0444, },
-	.show  = pool_stats_bios_meta_flush_show,
+	.attr = { .name = "bios_meta_flush", .mode = 0444, },
+	.show = pool_stats_bios_meta_flush_show,
 };
 
 /**********************************************************************/
@@ -1527,8 +1527,8 @@ static ssize_t pool_stats_bios_meta_fua_show(struct kernel_layer *layer, char *b
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_fua_attr = {
-	.attr  = { .name = "bios_meta_fua", .mode = 0444, },
-	.show  = pool_stats_bios_meta_fua_show,
+	.attr = { .name = "bios_meta_fua", .mode = 0444, },
+	.show = pool_stats_bios_meta_fua_show,
 };
 
 /**********************************************************************/
@@ -1544,8 +1544,8 @@ static ssize_t pool_stats_bios_journal_read_show(struct kernel_layer *layer, cha
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_read_attr = {
-	.attr  = { .name = "bios_journal_read", .mode = 0444, },
-	.show  = pool_stats_bios_journal_read_show,
+	.attr = { .name = "bios_journal_read", .mode = 0444, },
+	.show = pool_stats_bios_journal_read_show,
 };
 
 /**********************************************************************/
@@ -1561,8 +1561,8 @@ static ssize_t pool_stats_bios_journal_write_show(struct kernel_layer *layer, ch
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_write_attr = {
-	.attr  = { .name = "bios_journal_write", .mode = 0444, },
-	.show  = pool_stats_bios_journal_write_show,
+	.attr = { .name = "bios_journal_write", .mode = 0444, },
+	.show = pool_stats_bios_journal_write_show,
 };
 
 /**********************************************************************/
@@ -1578,8 +1578,8 @@ static ssize_t pool_stats_bios_journal_discard_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_discard_attr = {
-	.attr  = { .name = "bios_journal_discard", .mode = 0444, },
-	.show  = pool_stats_bios_journal_discard_show,
+	.attr = { .name = "bios_journal_discard", .mode = 0444, },
+	.show = pool_stats_bios_journal_discard_show,
 };
 
 /**********************************************************************/
@@ -1595,8 +1595,8 @@ static ssize_t pool_stats_bios_journal_flush_show(struct kernel_layer *layer, ch
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_flush_attr = {
-	.attr  = { .name = "bios_journal_flush", .mode = 0444, },
-	.show  = pool_stats_bios_journal_flush_show,
+	.attr = { .name = "bios_journal_flush", .mode = 0444, },
+	.show = pool_stats_bios_journal_flush_show,
 };
 
 /**********************************************************************/
@@ -1612,8 +1612,8 @@ static ssize_t pool_stats_bios_journal_fua_show(struct kernel_layer *layer, char
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_fua_attr = {
-	.attr  = { .name = "bios_journal_fua", .mode = 0444, },
-	.show  = pool_stats_bios_journal_fua_show,
+	.attr = { .name = "bios_journal_fua", .mode = 0444, },
+	.show = pool_stats_bios_journal_fua_show,
 };
 
 /**********************************************************************/
@@ -1629,8 +1629,8 @@ static ssize_t pool_stats_bios_page_cache_read_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_read_attr = {
-	.attr  = { .name = "bios_page_cache_read", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_read_show,
+	.attr = { .name = "bios_page_cache_read", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_read_show,
 };
 
 /**********************************************************************/
@@ -1646,8 +1646,8 @@ static ssize_t pool_stats_bios_page_cache_write_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_write_attr = {
-	.attr  = { .name = "bios_page_cache_write", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_write_show,
+	.attr = { .name = "bios_page_cache_write", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_write_show,
 };
 
 /**********************************************************************/
@@ -1663,8 +1663,8 @@ static ssize_t pool_stats_bios_page_cache_discard_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_discard_attr = {
-	.attr  = { .name = "bios_page_cache_discard", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_discard_show,
+	.attr = { .name = "bios_page_cache_discard", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_discard_show,
 };
 
 /**********************************************************************/
@@ -1680,8 +1680,8 @@ static ssize_t pool_stats_bios_page_cache_flush_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_flush_attr = {
-	.attr  = { .name = "bios_page_cache_flush", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_flush_show,
+	.attr = { .name = "bios_page_cache_flush", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_flush_show,
 };
 
 /**********************************************************************/
@@ -1697,8 +1697,8 @@ static ssize_t pool_stats_bios_page_cache_fua_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_fua_attr = {
-	.attr  = { .name = "bios_page_cache_fua", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_fua_show,
+	.attr = { .name = "bios_page_cache_fua", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_fua_show,
 };
 
 /**********************************************************************/
@@ -1714,8 +1714,8 @@ static ssize_t pool_stats_bios_out_completed_read_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_completed_read_attr = {
-	.attr  = { .name = "bios_out_completed_read", .mode = 0444, },
-	.show  = pool_stats_bios_out_completed_read_show,
+	.attr = { .name = "bios_out_completed_read", .mode = 0444, },
+	.show = pool_stats_bios_out_completed_read_show,
 };
 
 /**********************************************************************/
@@ -1731,8 +1731,8 @@ static ssize_t pool_stats_bios_out_completed_write_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_completed_write_attr = {
-	.attr  = { .name = "bios_out_completed_write", .mode = 0444, },
-	.show  = pool_stats_bios_out_completed_write_show,
+	.attr = { .name = "bios_out_completed_write", .mode = 0444, },
+	.show = pool_stats_bios_out_completed_write_show,
 };
 
 /**********************************************************************/
@@ -1748,8 +1748,8 @@ static ssize_t pool_stats_bios_out_completed_discard_show(struct kernel_layer *l
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_completed_discard_attr = {
-	.attr  = { .name = "bios_out_completed_discard", .mode = 0444, },
-	.show  = pool_stats_bios_out_completed_discard_show,
+	.attr = { .name = "bios_out_completed_discard", .mode = 0444, },
+	.show = pool_stats_bios_out_completed_discard_show,
 };
 
 /**********************************************************************/
@@ -1765,8 +1765,8 @@ static ssize_t pool_stats_bios_out_completed_flush_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_completed_flush_attr = {
-	.attr  = { .name = "bios_out_completed_flush", .mode = 0444, },
-	.show  = pool_stats_bios_out_completed_flush_show,
+	.attr = { .name = "bios_out_completed_flush", .mode = 0444, },
+	.show = pool_stats_bios_out_completed_flush_show,
 };
 
 /**********************************************************************/
@@ -1782,8 +1782,8 @@ static ssize_t pool_stats_bios_out_completed_fua_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_out_completed_fua_attr = {
-	.attr  = { .name = "bios_out_completed_fua", .mode = 0444, },
-	.show  = pool_stats_bios_out_completed_fua_show,
+	.attr = { .name = "bios_out_completed_fua", .mode = 0444, },
+	.show = pool_stats_bios_out_completed_fua_show,
 };
 
 /**********************************************************************/
@@ -1799,8 +1799,8 @@ static ssize_t pool_stats_bios_meta_completed_read_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_completed_read_attr = {
-	.attr  = { .name = "bios_meta_completed_read", .mode = 0444, },
-	.show  = pool_stats_bios_meta_completed_read_show,
+	.attr = { .name = "bios_meta_completed_read", .mode = 0444, },
+	.show = pool_stats_bios_meta_completed_read_show,
 };
 
 /**********************************************************************/
@@ -1816,8 +1816,8 @@ static ssize_t pool_stats_bios_meta_completed_write_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_completed_write_attr = {
-	.attr  = { .name = "bios_meta_completed_write", .mode = 0444, },
-	.show  = pool_stats_bios_meta_completed_write_show,
+	.attr = { .name = "bios_meta_completed_write", .mode = 0444, },
+	.show = pool_stats_bios_meta_completed_write_show,
 };
 
 /**********************************************************************/
@@ -1833,8 +1833,8 @@ static ssize_t pool_stats_bios_meta_completed_discard_show(struct kernel_layer *
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_completed_discard_attr = {
-	.attr  = { .name = "bios_meta_completed_discard", .mode = 0444, },
-	.show  = pool_stats_bios_meta_completed_discard_show,
+	.attr = { .name = "bios_meta_completed_discard", .mode = 0444, },
+	.show = pool_stats_bios_meta_completed_discard_show,
 };
 
 /**********************************************************************/
@@ -1850,8 +1850,8 @@ static ssize_t pool_stats_bios_meta_completed_flush_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_completed_flush_attr = {
-	.attr  = { .name = "bios_meta_completed_flush", .mode = 0444, },
-	.show  = pool_stats_bios_meta_completed_flush_show,
+	.attr = { .name = "bios_meta_completed_flush", .mode = 0444, },
+	.show = pool_stats_bios_meta_completed_flush_show,
 };
 
 /**********************************************************************/
@@ -1867,8 +1867,8 @@ static ssize_t pool_stats_bios_meta_completed_fua_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_meta_completed_fua_attr = {
-	.attr  = { .name = "bios_meta_completed_fua", .mode = 0444, },
-	.show  = pool_stats_bios_meta_completed_fua_show,
+	.attr = { .name = "bios_meta_completed_fua", .mode = 0444, },
+	.show = pool_stats_bios_meta_completed_fua_show,
 };
 
 /**********************************************************************/
@@ -1884,8 +1884,8 @@ static ssize_t pool_stats_bios_journal_completed_read_show(struct kernel_layer *
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_completed_read_attr = {
-	.attr  = { .name = "bios_journal_completed_read", .mode = 0444, },
-	.show  = pool_stats_bios_journal_completed_read_show,
+	.attr = { .name = "bios_journal_completed_read", .mode = 0444, },
+	.show = pool_stats_bios_journal_completed_read_show,
 };
 
 /**********************************************************************/
@@ -1901,8 +1901,8 @@ static ssize_t pool_stats_bios_journal_completed_write_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_completed_write_attr = {
-	.attr  = { .name = "bios_journal_completed_write", .mode = 0444, },
-	.show  = pool_stats_bios_journal_completed_write_show,
+	.attr = { .name = "bios_journal_completed_write", .mode = 0444, },
+	.show = pool_stats_bios_journal_completed_write_show,
 };
 
 /**********************************************************************/
@@ -1918,8 +1918,8 @@ static ssize_t pool_stats_bios_journal_completed_discard_show(struct kernel_laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_completed_discard_attr = {
-	.attr  = { .name = "bios_journal_completed_discard", .mode = 0444, },
-	.show  = pool_stats_bios_journal_completed_discard_show,
+	.attr = { .name = "bios_journal_completed_discard", .mode = 0444, },
+	.show = pool_stats_bios_journal_completed_discard_show,
 };
 
 /**********************************************************************/
@@ -1935,8 +1935,8 @@ static ssize_t pool_stats_bios_journal_completed_flush_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_completed_flush_attr = {
-	.attr  = { .name = "bios_journal_completed_flush", .mode = 0444, },
-	.show  = pool_stats_bios_journal_completed_flush_show,
+	.attr = { .name = "bios_journal_completed_flush", .mode = 0444, },
+	.show = pool_stats_bios_journal_completed_flush_show,
 };
 
 /**********************************************************************/
@@ -1952,8 +1952,8 @@ static ssize_t pool_stats_bios_journal_completed_fua_show(struct kernel_layer *l
 }
 
 static struct pool_stats_attribute pool_stats_bios_journal_completed_fua_attr = {
-	.attr  = { .name = "bios_journal_completed_fua", .mode = 0444, },
-	.show  = pool_stats_bios_journal_completed_fua_show,
+	.attr = { .name = "bios_journal_completed_fua", .mode = 0444, },
+	.show = pool_stats_bios_journal_completed_fua_show,
 };
 
 /**********************************************************************/
@@ -1969,8 +1969,8 @@ static ssize_t pool_stats_bios_page_cache_completed_read_show(struct kernel_laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_completed_read_attr = {
-	.attr  = { .name = "bios_page_cache_completed_read", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_completed_read_show,
+	.attr = { .name = "bios_page_cache_completed_read", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_completed_read_show,
 };
 
 /**********************************************************************/
@@ -1986,8 +1986,8 @@ static ssize_t pool_stats_bios_page_cache_completed_write_show(struct kernel_lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_completed_write_attr = {
-	.attr  = { .name = "bios_page_cache_completed_write", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_completed_write_show,
+	.attr = { .name = "bios_page_cache_completed_write", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_completed_write_show,
 };
 
 /**********************************************************************/
@@ -2003,8 +2003,8 @@ static ssize_t pool_stats_bios_page_cache_completed_discard_show(struct kernel_l
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_completed_discard_attr = {
-	.attr  = { .name = "bios_page_cache_completed_discard", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_completed_discard_show,
+	.attr = { .name = "bios_page_cache_completed_discard", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_completed_discard_show,
 };
 
 /**********************************************************************/
@@ -2020,8 +2020,8 @@ static ssize_t pool_stats_bios_page_cache_completed_flush_show(struct kernel_lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_completed_flush_attr = {
-	.attr  = { .name = "bios_page_cache_completed_flush", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_completed_flush_show,
+	.attr = { .name = "bios_page_cache_completed_flush", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_completed_flush_show,
 };
 
 /**********************************************************************/
@@ -2037,8 +2037,8 @@ static ssize_t pool_stats_bios_page_cache_completed_fua_show(struct kernel_layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_page_cache_completed_fua_attr = {
-	.attr  = { .name = "bios_page_cache_completed_fua", .mode = 0444, },
-	.show  = pool_stats_bios_page_cache_completed_fua_show,
+	.attr = { .name = "bios_page_cache_completed_fua", .mode = 0444, },
+	.show = pool_stats_bios_page_cache_completed_fua_show,
 };
 
 /**********************************************************************/
@@ -2054,8 +2054,8 @@ static ssize_t pool_stats_bios_acknowledged_read_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_read_attr = {
-	.attr  = { .name = "bios_acknowledged_read", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_read_show,
+	.attr = { .name = "bios_acknowledged_read", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_read_show,
 };
 
 /**********************************************************************/
@@ -2071,8 +2071,8 @@ static ssize_t pool_stats_bios_acknowledged_write_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_write_attr = {
-	.attr  = { .name = "bios_acknowledged_write", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_write_show,
+	.attr = { .name = "bios_acknowledged_write", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_write_show,
 };
 
 /**********************************************************************/
@@ -2088,8 +2088,8 @@ static ssize_t pool_stats_bios_acknowledged_discard_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_discard_attr = {
-	.attr  = { .name = "bios_acknowledged_discard", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_discard_show,
+	.attr = { .name = "bios_acknowledged_discard", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_discard_show,
 };
 
 /**********************************************************************/
@@ -2105,8 +2105,8 @@ static ssize_t pool_stats_bios_acknowledged_flush_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_flush_attr = {
-	.attr  = { .name = "bios_acknowledged_flush", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_flush_show,
+	.attr = { .name = "bios_acknowledged_flush", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_flush_show,
 };
 
 /**********************************************************************/
@@ -2122,8 +2122,8 @@ static ssize_t pool_stats_bios_acknowledged_fua_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_fua_attr = {
-	.attr  = { .name = "bios_acknowledged_fua", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_fua_show,
+	.attr = { .name = "bios_acknowledged_fua", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_fua_show,
 };
 
 /**********************************************************************/
@@ -2139,8 +2139,8 @@ static ssize_t pool_stats_bios_acknowledged_partial_read_show(struct kernel_laye
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_read_attr = {
-	.attr  = { .name = "bios_acknowledged_partial_read", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_partial_read_show,
+	.attr = { .name = "bios_acknowledged_partial_read", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_partial_read_show,
 };
 
 /**********************************************************************/
@@ -2156,8 +2156,8 @@ static ssize_t pool_stats_bios_acknowledged_partial_write_show(struct kernel_lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_write_attr = {
-	.attr  = { .name = "bios_acknowledged_partial_write", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_partial_write_show,
+	.attr = { .name = "bios_acknowledged_partial_write", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_partial_write_show,
 };
 
 /**********************************************************************/
@@ -2173,8 +2173,8 @@ static ssize_t pool_stats_bios_acknowledged_partial_discard_show(struct kernel_l
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_discard_attr = {
-	.attr  = { .name = "bios_acknowledged_partial_discard", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_partial_discard_show,
+	.attr = { .name = "bios_acknowledged_partial_discard", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_partial_discard_show,
 };
 
 /**********************************************************************/
@@ -2190,8 +2190,8 @@ static ssize_t pool_stats_bios_acknowledged_partial_flush_show(struct kernel_lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_flush_attr = {
-	.attr  = { .name = "bios_acknowledged_partial_flush", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_partial_flush_show,
+	.attr = { .name = "bios_acknowledged_partial_flush", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_partial_flush_show,
 };
 
 /**********************************************************************/
@@ -2207,8 +2207,8 @@ static ssize_t pool_stats_bios_acknowledged_partial_fua_show(struct kernel_layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_fua_attr = {
-	.attr  = { .name = "bios_acknowledged_partial_fua", .mode = 0444, },
-	.show  = pool_stats_bios_acknowledged_partial_fua_show,
+	.attr = { .name = "bios_acknowledged_partial_fua", .mode = 0444, },
+	.show = pool_stats_bios_acknowledged_partial_fua_show,
 };
 
 /**********************************************************************/
@@ -2224,8 +2224,8 @@ static ssize_t pool_stats_bios_in_progress_read_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_progress_read_attr = {
-	.attr  = { .name = "bios_in_progress_read", .mode = 0444, },
-	.show  = pool_stats_bios_in_progress_read_show,
+	.attr = { .name = "bios_in_progress_read", .mode = 0444, },
+	.show = pool_stats_bios_in_progress_read_show,
 };
 
 /**********************************************************************/
@@ -2241,8 +2241,8 @@ static ssize_t pool_stats_bios_in_progress_write_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_progress_write_attr = {
-	.attr  = { .name = "bios_in_progress_write", .mode = 0444, },
-	.show  = pool_stats_bios_in_progress_write_show,
+	.attr = { .name = "bios_in_progress_write", .mode = 0444, },
+	.show = pool_stats_bios_in_progress_write_show,
 };
 
 /**********************************************************************/
@@ -2258,8 +2258,8 @@ static ssize_t pool_stats_bios_in_progress_discard_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_progress_discard_attr = {
-	.attr  = { .name = "bios_in_progress_discard", .mode = 0444, },
-	.show  = pool_stats_bios_in_progress_discard_show,
+	.attr = { .name = "bios_in_progress_discard", .mode = 0444, },
+	.show = pool_stats_bios_in_progress_discard_show,
 };
 
 /**********************************************************************/
@@ -2275,8 +2275,8 @@ static ssize_t pool_stats_bios_in_progress_flush_show(struct kernel_layer *layer
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_progress_flush_attr = {
-	.attr  = { .name = "bios_in_progress_flush", .mode = 0444, },
-	.show  = pool_stats_bios_in_progress_flush_show,
+	.attr = { .name = "bios_in_progress_flush", .mode = 0444, },
+	.show = pool_stats_bios_in_progress_flush_show,
 };
 
 /**********************************************************************/
@@ -2292,8 +2292,8 @@ static ssize_t pool_stats_bios_in_progress_fua_show(struct kernel_layer *layer, 
 }
 
 static struct pool_stats_attribute pool_stats_bios_in_progress_fua_attr = {
-	.attr  = { .name = "bios_in_progress_fua", .mode = 0444, },
-	.show  = pool_stats_bios_in_progress_fua_show,
+	.attr = { .name = "bios_in_progress_fua", .mode = 0444, },
+	.show = pool_stats_bios_in_progress_fua_show,
 };
 
 /**********************************************************************/
@@ -2309,8 +2309,8 @@ static ssize_t pool_stats_memory_usage_bytes_used_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_memory_usage_bytes_used_attr = {
-	.attr  = { .name = "memory_usage_bytes_used", .mode = 0444, },
-	.show  = pool_stats_memory_usage_bytes_used_show,
+	.attr = { .name = "memory_usage_bytes_used", .mode = 0444, },
+	.show = pool_stats_memory_usage_bytes_used_show,
 };
 
 /**********************************************************************/
@@ -2326,8 +2326,8 @@ static ssize_t pool_stats_memory_usage_peak_bytes_used_show(struct kernel_layer 
 }
 
 static struct pool_stats_attribute pool_stats_memory_usage_peak_bytes_used_attr = {
-	.attr  = { .name = "memory_usage_peak_bytes_used", .mode = 0444, },
-	.show  = pool_stats_memory_usage_peak_bytes_used_show,
+	.attr = { .name = "memory_usage_peak_bytes_used", .mode = 0444, },
+	.show = pool_stats_memory_usage_peak_bytes_used_show,
 };
 
 /**********************************************************************/
@@ -2343,8 +2343,8 @@ static ssize_t pool_stats_index_entries_indexed_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_index_entries_indexed_attr = {
-	.attr  = { .name = "index_entries_indexed", .mode = 0444, },
-	.show  = pool_stats_index_entries_indexed_show,
+	.attr = { .name = "index_entries_indexed", .mode = 0444, },
+	.show = pool_stats_index_entries_indexed_show,
 };
 
 /**********************************************************************/
@@ -2360,8 +2360,8 @@ static ssize_t pool_stats_index_posts_found_show(struct kernel_layer *layer, cha
 }
 
 static struct pool_stats_attribute pool_stats_index_posts_found_attr = {
-	.attr  = { .name = "index_posts_found", .mode = 0444, },
-	.show  = pool_stats_index_posts_found_show,
+	.attr = { .name = "index_posts_found", .mode = 0444, },
+	.show = pool_stats_index_posts_found_show,
 };
 
 /**********************************************************************/
@@ -2377,8 +2377,8 @@ static ssize_t pool_stats_index_posts_not_found_show(struct kernel_layer *layer,
 }
 
 static struct pool_stats_attribute pool_stats_index_posts_not_found_attr = {
-	.attr  = { .name = "index_posts_not_found", .mode = 0444, },
-	.show  = pool_stats_index_posts_not_found_show,
+	.attr = { .name = "index_posts_not_found", .mode = 0444, },
+	.show = pool_stats_index_posts_not_found_show,
 };
 
 /**********************************************************************/
@@ -2394,8 +2394,8 @@ static ssize_t pool_stats_index_queries_found_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_index_queries_found_attr = {
-	.attr  = { .name = "index_queries_found", .mode = 0444, },
-	.show  = pool_stats_index_queries_found_show,
+	.attr = { .name = "index_queries_found", .mode = 0444, },
+	.show = pool_stats_index_queries_found_show,
 };
 
 /**********************************************************************/
@@ -2411,8 +2411,8 @@ static ssize_t pool_stats_index_queries_not_found_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_index_queries_not_found_attr = {
-	.attr  = { .name = "index_queries_not_found", .mode = 0444, },
-	.show  = pool_stats_index_queries_not_found_show,
+	.attr = { .name = "index_queries_not_found", .mode = 0444, },
+	.show = pool_stats_index_queries_not_found_show,
 };
 
 /**********************************************************************/
@@ -2428,8 +2428,8 @@ static ssize_t pool_stats_index_updates_found_show(struct kernel_layer *layer, c
 }
 
 static struct pool_stats_attribute pool_stats_index_updates_found_attr = {
-	.attr  = { .name = "index_updates_found", .mode = 0444, },
-	.show  = pool_stats_index_updates_found_show,
+	.attr = { .name = "index_updates_found", .mode = 0444, },
+	.show = pool_stats_index_updates_found_show,
 };
 
 /**********************************************************************/
@@ -2445,8 +2445,8 @@ static ssize_t pool_stats_index_updates_not_found_show(struct kernel_layer *laye
 }
 
 static struct pool_stats_attribute pool_stats_index_updates_not_found_attr = {
-	.attr  = { .name = "index_updates_not_found", .mode = 0444, },
-	.show  = pool_stats_index_updates_not_found_show,
+	.attr = { .name = "index_updates_not_found", .mode = 0444, },
+	.show = pool_stats_index_updates_not_found_show,
 };
 
 /**********************************************************************/
@@ -2462,8 +2462,8 @@ static ssize_t pool_stats_index_curr_dedupe_queries_show(struct kernel_layer *la
 }
 
 static struct pool_stats_attribute pool_stats_index_curr_dedupe_queries_attr = {
-	.attr  = { .name = "index_curr_dedupe_queries", .mode = 0444, },
-	.show  = pool_stats_index_curr_dedupe_queries_show,
+	.attr = { .name = "index_curr_dedupe_queries", .mode = 0444, },
+	.show = pool_stats_index_curr_dedupe_queries_show,
 };
 
 /**********************************************************************/
@@ -2479,8 +2479,8 @@ static ssize_t pool_stats_index_max_dedupe_queries_show(struct kernel_layer *lay
 }
 
 static struct pool_stats_attribute pool_stats_index_max_dedupe_queries_attr = {
-	.attr  = { .name = "index_max_dedupe_queries", .mode = 0444, },
-	.show  = pool_stats_index_max_dedupe_queries_show,
+	.attr = { .name = "index_max_dedupe_queries", .mode = 0444, },
+	.show = pool_stats_index_max_dedupe_queries_show,
 };
 
 struct attribute *pool_stats_attrs[] = {
