@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#35 $
  */
 
 #include "slabScrubberInternals.h"
@@ -85,8 +85,8 @@ int make_slab_scrubber(PhysicalLayer *layer,
 	initialize_completion(&scrubber->completion,
 			      SLAB_SCRUBBER_COMPLETION,
 			      layer);
-	initializeRing(&scrubber->high_priority_slabs);
-	initializeRing(&scrubber->slabs);
+	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
+	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;
 	scrubber->admin_state.state = ADMIN_STATE_SUSPENDED;
 	*scrubber_ptr = scrubber;
@@ -129,12 +129,12 @@ void free_slab_scrubber(struct slab_scrubber **scrubber_ptr)
  **/
 static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 {
-	if (!isRingEmpty(&scrubber->high_priority_slabs)) {
-		return slabFromRingNode(scrubber->high_priority_slabs.next);
+	if (!list_empty(&scrubber->high_priority_slabs)) {
+		return slab_from_list_entry(scrubber->high_priority_slabs.next);
 	}
 
-	if (!isRingEmpty(&scrubber->slabs)) {
-		return slabFromRingNode(scrubber->slabs.next);
+	if (!list_empty(&scrubber->slabs)) {
+		return slab_from_list_entry(scrubber->slabs.next);
 	}
 
 	return NULL;
@@ -164,7 +164,7 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 		return;
 	}
 
-	unspliceRingNode(&slab->ringNode);
+	list_del_init(&slab->list_entry);
 	if (!slab->was_queued_for_scrubbing) {
 		relaxedAdd64(&scrubber->slab_count, 1);
 		slab->was_queued_for_scrubbing = true;
@@ -172,11 +172,12 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 
 	if (high_priority) {
 		slab->status = SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
-		pushRingNode(&scrubber->high_priority_slabs, &slab->ringNode);
+		list_add_tail(&slab->list_entry,
+			      &scrubber->high_priority_slabs);
 		return;
 	}
 
-	pushRingNode(&scrubber->slabs, &slab->ringNode);
+	list_add_tail(&slab->list_entry, &scrubber->slabs);
 }
 
 /**
@@ -438,7 +439,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 
 	struct vdo_slab *slab = get_next_slab(scrubber);
 	if ((slab == NULL) || (scrubber->high_priority_only &&
-			       isRingEmpty(&scrubber->high_priority_slabs))) {
+			       list_empty(&scrubber->high_priority_slabs))) {
 		scrubber->high_priority_only = false;
 		finish_scrubbing(scrubber);
 		return;
@@ -448,7 +449,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 		return;
 	}
 
-	unspliceRingNode(&slab->ringNode);
+	list_del_init(&slab->list_entry);
 	scrubber->slab = slab;
 	struct vdo_completion *completion =
 		extent_as_completion(scrubber->extent);
@@ -488,7 +489,7 @@ void scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 			       vdo_action *callback,
 			       vdo_action *error_handler)
 {
-	if (scrub_at_least_one && isRingEmpty(&scrubber->high_priority_slabs)) {
+	if (scrub_at_least_one && list_empty(&scrubber->high_priority_slabs)) {
 		struct vdo_slab *slab = get_next_slab(scrubber);
 		if (slab != NULL) {
 			register_slab_for_scrubbing(scrubber, slab, true);

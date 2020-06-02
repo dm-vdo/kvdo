@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#13 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -27,14 +27,14 @@
 #include "adminState.h"
 #include "atomic.h"
 #include "extent.h"
-#include "ringNode.h"
+#include "list.h"
 
 struct slab_scrubber {
 	struct vdo_completion completion;
 	/** The queue of slabs to scrub first */
-	RingNode high_priority_slabs;
+	struct list_head high_priority_slabs;
 	/** The queue of slabs to scrub once there are no high_priority_slabs */
-	RingNode slabs;
+	struct list_head slabs;
 	/** The queue of VIOs waiting for a slab to be scrubbed */
 	struct wait_queue waiters;
 

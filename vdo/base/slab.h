@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#27 $
  */
 
 #ifndef VDO_SLAB_H
@@ -26,9 +26,9 @@
 
 #include "adminState.h"
 #include "fixedLayout.h"
+#include "list.h"
 #include "journalPoint.h"
 #include "referenceOperation.h"
-#include "ringNode.h"
 #include "types.h"
 
 typedef uint32_t slab_block_number;
@@ -48,8 +48,8 @@ typedef enum {
  * reference counts and slab journal for the slab.
  **/
 struct vdo_slab {
-	/** A RingNode to queue this slab in a block_allocator ring */
-	RingNode ringNode;
+	/** A list entry to queue this slab in a block_allocator list */
+	struct list_head list_entry;
 
 	/** The struct block_allocator that owns this slab */
 	struct block_allocator *allocator;
@@ -98,16 +98,16 @@ int __must_check configure_slab(block_count_t slab_size,
 				struct slab_config *slab_config);
 
 /**
- * Convert a vdo_slab's ringNode back to the vdo_slab.
+ * Convert a vdo_slab's list entry back to the vdo_slab.
  *
- * @param ringNode  The ringNode to convert
+ * @param entry  The list entry to convert
  *
- * @return  The ringNode as a vdo_slab
+ * @return  The list entry as a vdo_slab
  **/
-static inline struct vdo_slab *slabFromRingNode(RingNode *ringNode)
+static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct vdo_slab, ringNode) == 0);
-	return (struct vdo_slab *)ringNode;
+	STATIC_ASSERT(offsetof(struct vdo_slab, list_entry) == 0);
+	return (struct vdo_slab *) entry;
 }
 
 /**
