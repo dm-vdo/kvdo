@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#5 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -49,8 +49,6 @@ int __must_check makeIndexZone(struct index *index, unsigned int zoneNumber);
  * Clean up an index zone.
  *
  * @param zone The index zone to free
- *
- * @return UDS_SUCCESS or an error code.
  **/
 void freeIndexZone(IndexZone *zone);
 

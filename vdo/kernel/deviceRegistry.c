@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#10 $
  */
 
 #include "deviceRegistry.h"
@@ -124,9 +124,9 @@ void remove_layer_from_device_registry(struct kernel_layer *layer)
 /**********************************************************************/
 struct kernel_layer *find_layer_matching(LayerFilter *filter, void *context)
 {
-  read_lock(&registry.lock);
-  struct kernel_layer *layer = filter_layers_locked(filter, context);
+	read_lock(&registry.lock);
+	struct kernel_layer *layer = filter_layers_locked(filter, context);
 
-  read_unlock(&registry.lock);
-  return layer;
+	read_unlock(&registry.lock);
+	return layer;
 }

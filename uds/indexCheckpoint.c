@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#7 $
  */
 
 #include "indexCheckpoint.h"
@@ -63,17 +63,17 @@ enum index_checkpoint_trigger_value {
   ICTV_ABORT       //< immediately abort checkpointing
 };
 
-typedef int CheckpointFunction(struct index *index, unsigned int zone);
+typedef int checkpoint_function_t(struct index *index, unsigned int zone);
 
 //  These functions are called while holding the checkpoint->mutex but are
 //  expected to release it.
 //
-static CheckpointFunction doCheckpointStart;
-static CheckpointFunction doCheckpointProcess;
-static CheckpointFunction doCheckpointFinish;
-static CheckpointFunction doCheckpointAbort;
+static checkpoint_function_t doCheckpointStart;
+static checkpoint_function_t doCheckpointProcess;
+static checkpoint_function_t doCheckpointFinish;
+static checkpoint_function_t doCheckpointAbort;
 
-CheckpointFunction *const checkpointFuncs[] = {
+checkpoint_function_t *const checkpointFuncs[] = {
   NULL,
   doCheckpointStart,
   doCheckpointProcess,
@@ -179,7 +179,7 @@ int processCheckpointing(struct index *index,
     checkpoint->chapter = newVirtualChapter;
   }
 
-  CheckpointFunction *func = checkpointFuncs[ictv];
+  checkpoint_function_t *func = checkpointFuncs[ictv];
   if (func == NULL) {
     // nothing to do in idle state
     unlockMutex(&checkpoint->mutex);

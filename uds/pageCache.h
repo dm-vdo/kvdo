@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#10 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -216,8 +216,6 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
  *
  * @param cache    the page cache
  * @param page_ptr the page to make most recent
- *
- * @return UDS_SUCCESS or an error code
  **/
 void make_page_most_recent(struct page_cache *cache,
 			   struct cached_page *page_ptr);
@@ -349,8 +347,6 @@ int __must_check put_page_in_cache(struct page_cache *cache,
  * @param cache          the page cache
  * @param physical_page  the page number to clear the queued read flag on
  * @param page           the page to cancel processing on
- *
- * @return UDS_SUCCESS or an error code
  **/
 void cancel_page_in_cache(struct page_cache *cache,
 			  unsigned int physical_page,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#9 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -94,8 +94,6 @@ int __must_check saveIndexRouter(IndexRouter *router);
  * Destroy the index router and free its memory.
  *
  * @param router  the index router to destroy (may be NULL)
- *
- * @return UDS_SUCCESS if successful.
  **/
 void freeIndexRouter(IndexRouter *router);
 
