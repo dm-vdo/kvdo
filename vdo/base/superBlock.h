@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#10 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -110,17 +110,6 @@ void load_super_block_async(struct vdo_completion *parent,
  **/
 struct buffer * __must_check
 get_component_buffer(struct vdo_super_block *super_block);
-
-/**
- * Get the release version number that was loaded from the volume when the
- * super_block was decoded.
- *
- * @param super_block  The super block to query
- *
- * @return the release version number that was decoded from the volume
- **/
-release_version_number_t __must_check
-get_loaded_release_version(const struct vdo_super_block *super_block);
 
 /**
  * Get the encoded size of the fixed (non-component data) portion of a super

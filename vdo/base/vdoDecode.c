@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#2 $
  */
 
 #include "vdoDecode.h"
@@ -33,7 +33,29 @@
 /**********************************************************************/
 int start_vdo_decode(struct vdo *vdo, bool validate_config)
 {
-	int result = validate_vdo_version(vdo);
+	// Decode and store the release version number.
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
+	release_version_number_t loaded_release_version;
+	int result = get_uint32_le_from_buffer(buffer,
+					       &loaded_release_version);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	if (vdo->load_config.release_version != loaded_release_version) {
+		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
+					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
+					       vdo->load_config.release_version,
+					       loaded_release_version);
+	}
+
+	result = decode_version_number(buffer, &vdo->load_version);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = validate_version(VDO_MASTER_VERSION_67_0, vdo->load_version,
+				  "master");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#37 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -36,6 +36,8 @@
 #include "uds.h"
 #include "vdoLayout.h"
 #include "vdoState.h"
+
+extern const struct version_number VDO_MASTER_VERSION_67_0;
 
 /**
  * Error counters are atomic since updates can arrive concurrently from
@@ -165,22 +167,6 @@ int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
  * @param parent  The completion to notify when the save is complete
  **/
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
-
-/**
- * Decode the vdo master version from the component data buffer in the super
- * block and store it in the vdo's loadVersion field.
- **/
-int decode_vdo_version(struct vdo *vdo) __attribute__((warn_unused_result));
-
-/**
- * Loads the vdo master version into the vdo and checks that the version
- * can be understood by vdo.
- *
- * @param vdo  The vdo to validate
- *
- * @return VDO_SUCCESS or an error if the loaded version is not supported
- **/
-int validate_vdo_version(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Decode the component data for the vdo itself from the component data buffer

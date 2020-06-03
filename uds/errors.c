@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#3 $
  */
 
 #include "errors.h"
@@ -119,7 +119,7 @@ static const struct error_info errorList[] = {
   { "UDS_UNUSED_CODE_48", "Unused error code 48" },
   { "UDS_UNUSED_CODE_49", "Unused error code 49" },
   { "UDS_SUSPENDED", "Index suspended"},
-  { "UDS_INVALID_OPERATION", "Invalid session operation"},
+  { "UDS_UNUSED_CODE_51", "Unused error code 51" },
   { "UDS_INDEXSESSION_IN_USE", "Index session in use"},
   { "UDS_CALLBACK_REQUIRED", "A callback function is required"},
   { "UDS_INVALID_OPERATION_TYPE", "Invalid type of request operation"},

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#74 $
  */
 
 /*
@@ -59,7 +59,7 @@
  * be upgraded to at all should increment the major version and set the minor
  * version to 0.
  **/
-static const struct version_number VDO_MASTER_VERSION_67_0 = {
+const struct version_number VDO_MASTER_VERSION_67_0 = {
 	.major_version = 67,
 	.minor_version = 0,
 };
@@ -188,11 +188,14 @@ void set_vdo_state(struct vdo *vdo, VDOState state)
 /**********************************************************************/
 size_t get_component_data_size(struct vdo *vdo)
 {
-	return (sizeof(struct version_number) + sizeof(struct version_number) +
+	return (sizeof(release_version_number_t) + // The release version
+		sizeof(struct version_number) +    // The VDO master version
+		sizeof(struct version_number) +    // The VDO component header
 		sizeof(struct vdo_component_41_0) +
 		get_vdo_layout_encoded_size(vdo->layout) +
 		get_recovery_journal_encoded_size() +
-		get_slab_depot_encoded_size() + get_block_map_encoded_size());
+		get_slab_depot_encoded_size() +
+		get_block_map_encoded_size());
 }
 
 /**
@@ -299,6 +302,13 @@ static int encode_vdo(struct vdo *vdo)
 		return result;
 	}
 
+	// Encode the release version
+	result = put_uint32_le_into_buffer(buffer,
+				           vdo->load_config.release_version);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
 	result = encode_master_version(buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -357,34 +367,6 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 
 	save_super_block_async(vdo->super_block, get_first_block_offset(vdo),
 			       parent);
-}
-
-/**********************************************************************/
-int decode_vdo_version(struct vdo *vdo)
-{
-	return decode_version_number(get_component_buffer(vdo->super_block),
-				     &vdo->load_version);
-}
-
-/**********************************************************************/
-int validate_vdo_version(struct vdo *vdo)
-{
-	int result = decode_vdo_version(vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	release_version_number_t loaded_release_version =
-		get_loaded_release_version(vdo->super_block);
-	if (vdo->load_config.release_version != loaded_release_version) {
-		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
-					       vdo->load_config.release_version,
-					       loaded_release_version);
-	}
-
-	return validate_version(VDO_MASTER_VERSION_67_0, vdo->load_version,
-				"master");
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#6 $
  */
 
 #include "indexSession.h"
@@ -283,10 +283,10 @@ int udsResumeIndexSession(struct uds_index_session *session)
   lockMutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
     unlockMutex(&session->requestMutex);
-    return UDS_INVALID_OPERATION;
+    return EBUSY;
   }
 
-/* If not suspended, just succeed */
+  /* If not suspended, just succeed */
   if (!(session->state & IS_FLAG_SUSPENDED)) {
     unlockMutex(&session->requestMutex);
     return UDS_SUCCESS;

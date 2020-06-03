@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#21 $
  */
 
 #include "superBlock.h"
@@ -49,15 +49,12 @@ struct vdo_super_block {
 	struct buffer *block_buffer;
 	/** A 1-block buffer holding the encoded on-disk super block */
 	byte *encoded_super_block;
-	/** The release version number loaded from the volume */
-	release_version_number_t loaded_release_version;
 	/** Whether this super block may not be written */
 	bool unwriteable;
 };
 
 enum {
-	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE
-		+ sizeof(release_version_number_t) + CHECKSUM_SIZE,
+	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE + CHECKSUM_SIZE,
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
@@ -139,8 +136,6 @@ int make_super_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	// For a new super block, use the current release.
-	super_block->loaded_release_version = CURRENT_RELEASE_VERSION_NUMBER;
 	*super_block_ptr = super_block;
 	return VDO_SUCCESS;
 }
@@ -183,13 +178,6 @@ static int __must_check encode_super_block(struct vdo_super_block *super_block)
 	struct header header = SUPER_BLOCK_HEADER_12_0;
 	header.size += component_data_size;
 	result = encode_header(&header, buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	// Encode the loaded release version.
-	result = put_uint32_le_into_buffer(buffer,
-				           super_block->loaded_release_version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -335,14 +323,6 @@ static int __must_check decode_super_block(struct vdo_super_block *super_block)
 		return result;
 	}
 
-	// Decode and store the release version number. It will be checked when
-	// the VDO master version is decoded and validated.
-	result = get_uint32_le_from_buffer(buffer,
-				           &super_block->loaded_release_version);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
 	// The component data is all the rest, except for the checksum.
 	size_t component_data_size =
 		content_length(buffer) - sizeof(crc32_checksum_t);
@@ -446,13 +426,6 @@ void load_super_block_async(struct vdo_completion *parent,
 struct buffer *get_component_buffer(struct vdo_super_block *super_block)
 {
 	return super_block->component_buffer;
-}
-
-/**********************************************************************/
-release_version_number_t
-get_loaded_release_version(const struct vdo_super_block *super_block)
-{
-	return super_block->loaded_release_version;
 }
 
 /**********************************************************************/
