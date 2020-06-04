@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#15 $
  */
 
 #include "indexPageMap.h"
@@ -45,15 +45,15 @@ enum {
 };
 
 const struct index_component_info INDEX_PAGE_MAP_INFO = {
-  .kind        = RL_KIND_INDEX_PAGE_MAP,
-  .name        = "index page map",
-  .saveOnly    = false,
-  .chapterSync = true,
-  .multiZone   = false,
-  .ioStorage   = true,
-  .loader      = readIndexPageMap,
-  .saver       = writeIndexPageMap,
-  .incremental = NULL,
+  .kind         = RL_KIND_INDEX_PAGE_MAP,
+  .name         = "index page map",
+  .save_only    = false,
+  .chapter_sync = true,
+  .multi_zone   = false,
+  .io_storage   = true,
+  .loader       = readIndexPageMap,
+  .saver        = writeIndexPageMap,
+  .incremental  = NULL,
 };
 
 /*****************************************************************************/
@@ -251,7 +251,7 @@ static int writeIndexPageMap(struct index_component *component,
     return result;
   }
 
-  struct index_page_map *map = indexComponentData(component);
+  struct index_page_map *map = index_component_data(component);
 
   struct buffer *buffer;
   result = make_buffer(INDEX_PAGE_MAP_MAGIC_LENGTH + sizeof(map->lastUpdate),
@@ -327,11 +327,11 @@ decodeIndexPageMap(struct buffer *buffer, struct index_page_map *map)
 /*****************************************************************************/
 static int readIndexPageMap(struct read_portal *portal)
 {
-  struct index_page_map *map = indexComponentData(portal->component);
+  struct index_page_map *map = index_component_data(portal->component);
 
   struct buffered_reader *reader = NULL;
 
-  int result = getBufferedReaderForPortal(portal, 0, &reader);
+  int result = get_buffered_reader_for_portal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;
   }

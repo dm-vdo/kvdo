@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#10 $
  */
 #include "masterIndexOps.h"
 
@@ -85,7 +85,7 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
 /**********************************************************************/
 static int readMasterIndex(struct read_portal *portal)
 {
-  MasterIndex *masterIndex = indexComponentContext(portal->component);
+  MasterIndex *masterIndex = index_component_context(portal->component);
   unsigned int numZones = portal->zones;
   if (numZones > MAX_ZONES) {
     return logErrorWithStringError(UDS_BAD_STATE,
@@ -96,7 +96,7 @@ static int readMasterIndex(struct read_portal *portal)
   struct buffered_reader *readers[MAX_ZONES];
   unsigned int z;
   for (z = 0; z < numZones; ++z) {
-    int result = getBufferedReaderForPortal(portal, z, &readers[z]);
+    int result = get_buffered_reader_for_portal(portal, z, &readers[z]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "cannot read component for zone %u", z);
@@ -112,7 +112,7 @@ static int writeMasterIndex(struct index_component          *component,
                             enum incremental_writer_command  command,
                             bool                            *completed)
 {
-  MasterIndex *masterIndex = indexComponentContext(component);
+  MasterIndex *masterIndex = index_component_context(component);
   bool isComplete = false;
 
   int result = UDS_SUCCESS;
@@ -150,15 +150,15 @@ static int writeMasterIndex(struct index_component          *component,
 /**********************************************************************/
 
 static const struct index_component_info MASTER_INDEX_INFO_DATA = {
-  .kind        = RL_KIND_MASTER_INDEX,
-  .name        = "master index",
-  .saveOnly    = false,
-  .chapterSync = false,
-  .multiZone   = true,
-  .ioStorage   = true,
-  .loader      = readMasterIndex,
-  .saver       = NULL,
-  .incremental = writeMasterIndex,
+  .kind         = RL_KIND_MASTER_INDEX,
+  .name         = "master index",
+  .save_only    = false,
+  .chapter_sync = false,
+  .multi_zone   = true,
+  .io_storage   = true,
+  .loader       = readMasterIndex,
+  .saver        = NULL,
+  .incremental  = writeMasterIndex,
 };
 const struct index_component_info *const MASTER_INDEX_INFO
   = &MASTER_INDEX_INFO_DATA;

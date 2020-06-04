@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#15 $
  */
 
 #include "openChapter.h"
@@ -33,15 +33,15 @@ static int writeOpenChapters(struct index_component *component,
                              unsigned int            zone);
 
 const struct index_component_info OPEN_CHAPTER_INFO = {
-  .kind        = RL_KIND_OPEN_CHAPTER,
-  .name        = "open chapter",
-  .saveOnly    = true,
-  .chapterSync = false,
-  .multiZone   = false,
-  .ioStorage   = true,
-  .loader      = readOpenChapters,
-  .saver       = writeOpenChapters,
-  .incremental = NULL,
+  .kind         = RL_KIND_OPEN_CHAPTER,
+  .name         = "open chapter",
+  .save_only    = true,
+  .chapter_sync = false,
+  .multi_zone   = false,
+  .io_storage   = true,
+  .loader       = readOpenChapters,
+  .saver        = writeOpenChapters,
+  .incremental  = NULL,
 };
 
 static const byte OPEN_CHAPTER_MAGIC[]       = "ALBOC";
@@ -230,7 +230,7 @@ static int writeOpenChapters(struct index_component *component,
     return result;
   }
 
-  struct index *index = indexComponentData(component);
+  struct index *index = index_component_data(component);
   return saveOpenChapters(index, writer);
 }
 
@@ -330,10 +330,10 @@ int loadOpenChapters(struct index *index, struct buffered_reader *reader)
 /**********************************************************************/
 int readOpenChapters(struct read_portal *portal)
 {
-  struct index *index = indexComponentData(portal->component);
+  struct index *index = index_component_data(portal->component);
 
   struct buffered_reader *reader;
-  int result = getBufferedReaderForPortal(portal, 0, &reader);
+  int result = get_buffered_reader_for_portal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;
   }

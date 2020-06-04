@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#10 $
  */
 
 #include "indexState.h"
@@ -70,7 +70,7 @@ void free_index_state(struct index_state **state_ptr)
 	if (state != NULL) {
 		unsigned int i;
 		for (i = 0; i < state->count; ++i) {
-			freeIndexComponent(&state->entries[i]);
+			free_index_component(&state->entries[i]);
 		}
 		FREE(state);
 	}
@@ -115,7 +115,7 @@ int add_index_state_component(struct index_state *state,
 			      void *context)
 {
 	struct index_component *component = NULL;
-	int result = makeIndexComponent(
+	int result = make_index_component(
 		state, info, state->zone_count, data, context, &component);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(
@@ -124,7 +124,7 @@ int add_index_state_component(struct index_state *state,
 
 	result = add_component_to_index_state(state, component);
 	if (result != UDS_SUCCESS) {
-		freeIndexComponent(&component);
+		free_index_component(&component);
 		return result;
 	}
 	return UDS_SUCCESS;
@@ -164,15 +164,15 @@ int load_index_state(struct index_state *state, bool *replay_ptr)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		result = readIndexComponent(component);
+		result = read_index_component(component);
 		if (result != UDS_SUCCESS) {
-			if (!missingIndexComponentRequiresReplay(component)) {
+			if (!missing_index_component_requires_replay(component)) {
 				state->load_zones = 0;
 				state->load_slot = UINT_MAX;
 				return logErrorWithStringError(
 					result,
 					"index component %s",
-					indexComponentName(component));
+					index_component_name(component));
 			}
 			replay_required = true;
 		}
@@ -247,7 +247,7 @@ int save_index_state(struct index_state *state)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		result = writeIndexComponent(component);
+		result = write_index_component(component);
 		if (result != UDS_SUCCESS) {
 			cleanup_save(state);
 			return result;
@@ -267,10 +267,10 @@ int write_index_state_checkpoint(struct index_state *state)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component)) {
+		if (skip_index_component_on_checkpoint(component)) {
 			continue;
 		}
-		result = writeIndexComponent(component);
+		result = write_index_component(component);
 		if (result != UDS_SUCCESS) {
 			cleanup_save(state);
 			return result;
@@ -293,10 +293,10 @@ int start_index_state_checkpoint(struct index_state *state)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component)) {
+		if (skip_index_component_on_checkpoint(component)) {
 			continue;
 		}
-		result = startIndexComponentIncrementalSave(component);
+		result = start_index_component_incremental_save(component);
 		if (result != UDS_SUCCESS) {
 			abort_index_state_checkpoint(state);
 			return result;
@@ -317,11 +317,11 @@ int perform_index_state_checkpoint_chapter_synchronized_saves(
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component) ||
-		    !deferIndexComponentCheckpointToChapterWriter(component)) {
+		if (skip_index_component_on_checkpoint(component) ||
+		    !defer_index_component_checkpoint_to_chapter_writer(component)) {
 			continue;
 		}
-		int result = performIndexComponentChapterWriterSave(component);
+		int result = perform_index_component_chapter_writer_save(component);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -360,10 +360,10 @@ static int do_index_state_checkpoint_in_zone(
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component)) {
+		if (skip_index_component_on_checkpoint(component)) {
 			continue;
 		}
-		if (zone > 0 && !component->info->multiZone) {
+		if (zone > 0 && !component->info->multi_zone) {
 			continue;
 		}
 		enum completion_status component_status = CS_NOT_COMPLETED;
@@ -389,7 +389,7 @@ int perform_index_state_checkpoint_in_zone(struct index_state *state,
 					   enum completion_status *completed)
 {
 	return do_index_state_checkpoint_in_zone(state, zone,
-						 &performIndexComponentZoneSave,
+						 &perform_index_component_zone_save,
 						 completed);
 }
 
@@ -399,7 +399,7 @@ int finish_index_state_checkpoint_in_zone(struct index_state *state,
 					  enum completion_status *completed)
 {
 	return do_index_state_checkpoint_in_zone(state, zone,
-						 &finishIndexComponentZoneSave,
+						 &finish_index_component_zone_save,
 						 completed);
 }
 
@@ -409,7 +409,7 @@ int abort_index_state_checkpoint_in_zone(struct index_state *state,
 					 enum completion_status *completed)
 {
 	return do_index_state_checkpoint_in_zone(state, zone,
-						 &abortIndexComponentZoneSave,
+						 &abort_index_component_zone_save,
 						 completed);
 }
 
@@ -423,10 +423,11 @@ int finish_index_state_checkpoint(struct index_state *state)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component)) {
+		if (skip_index_component_on_checkpoint(component)) {
 			continue;
 		}
-		int result = finishIndexComponentIncrementalSave(component);
+		int result =
+			finish_index_component_incremental_save(component);
 		if (result != UDS_SUCCESS) {
 			abort_index_state_checkpoint(state);
 			return result;
@@ -455,10 +456,10 @@ int abort_index_state_checkpoint(struct index_state *state)
 	unsigned int i;
 	for (i = 0; i < state->count; ++i) {
 		struct index_component *component = state->entries[i];
-		if (skipIndexComponentOnCheckpoint(component)) {
+		if (skip_index_component_on_checkpoint(component)) {
 			continue;
 		}
-		int tmp = abortIndexComponentIncrementalSave(component);
+		int tmp = abort_index_component_incremental_save(component);
 		if (result == UDS_SUCCESS) {
 			result = tmp;
 		}

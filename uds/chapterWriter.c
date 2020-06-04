@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#13 $
  */
 
 #include "chapterWriter.h"
@@ -97,7 +97,7 @@ static void close_chapters(void *arg)
 			struct index_component *oc =
 				find_index_component(writer->index->state,
 			                             &OPEN_CHAPTER_INFO);
-			int result = discardIndexComponent(oc);
+			int result = discard_index_component(oc);
 			if (result == UDS_SUCCESS) {
 				logDebug("Discarding saved open chapter");
 			}

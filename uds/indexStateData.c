@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#9 $
  */
 
 #include "indexStateData.h"
@@ -106,7 +106,7 @@ static int readIndexStateData(struct read_portal *portal)
     return UDS_CORRUPT_COMPONENT;
   }
 
-  struct index *index = indexComponentData(portal->component);
+  struct index *index = index_component_data(portal->component);
   index->newest_virtual_chapter = state.newestChapter;
   index->oldest_virtual_chapter = state.oldestChapter;
   index->last_checkpoint        = state.lastCheckpoint;
@@ -142,7 +142,7 @@ writeIndexStateData(struct index_component *component,
     return result;
   }
 
-  struct index *index = indexComponentData(component);
+  struct index *index = index_component_data(component);
   IndexStateData301 state = {
     .newestChapter  = index->newest_virtual_chapter,
     .oldestChapter  = index->oldest_virtual_chapter,
@@ -175,13 +175,13 @@ writeIndexStateData(struct index_component *component,
 /*****************************************************************************/
 
 const struct index_component_info INDEX_STATE_INFO = {
-  .kind        = RL_KIND_INDEX_STATE,
-  .name        = "index state",
-  .saveOnly    = false,
-  .chapterSync = true,
-  .multiZone   = false,
-  .ioStorage   = false,
-  .loader      = readIndexStateData,
-  .saver       = writeIndexStateData,
-  .incremental = NULL,
+  .kind         = RL_KIND_INDEX_STATE,
+  .name         = "index state",
+  .save_only    = false,
+  .chapter_sync = true,
+  .multi_zone   = false,
+  .io_storage   = false,
+  .loader       = readIndexStateData,
+  .saver        = writeIndexStateData,
+  .incremental  = NULL,
 };
