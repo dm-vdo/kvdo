@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#12 $
  */
 
 #include "chapterWriter.h"
@@ -112,8 +112,7 @@ static void close_chapters(void *arg)
 					 writer->index->newest_virtual_chapter);
 
 		if (result == UDS_SUCCESS) {
-			result = processChapterWriterCheckpointSaves(
-				writer->index);
+			result = process_chapter_writer_checkpoint_saves(writer->index);
 		}
 
 

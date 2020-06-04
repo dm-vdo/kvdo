@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#7 $
  */
 
 #include "indexSession.h"
@@ -474,8 +474,8 @@ int udsSaveIndex(struct uds_index_session *indexSession)
 int udsSetCheckpointFrequency(struct uds_index_session *indexSession,
                               unsigned int              frequency)
 {
-  setIndexCheckpointFrequency(indexSession->router->index->checkpoint,
-                              frequency);
+  set_index_checkpoint_frequency(indexSession->router->index->checkpoint,
+                                 frequency);
   return UDS_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#7 $
  */
 
 #include "indexZone.h"
@@ -263,9 +263,9 @@ int openNextChapter(IndexZone *zone, Request *request)
   // begin, continue, or finish the checkpoint processing
   // moved above start_closing_chapter because some of the
   // checkpoint processing now done by the chapter writer thread
-  result = processCheckpointing(zone->index,
-                                zone->id,
-                                zone->newestVirtualChapter);
+  result = process_checkpointing(zone->index,
+                                 zone->id,
+                                 zone->newestVirtualChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }

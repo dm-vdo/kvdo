@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#17 $
  */
 
 #include "index.h"
@@ -307,7 +307,7 @@ void free_index(struct index *index)
 int save_index(struct index *index)
 {
 	wait_for_idle_chapter_writer(index->chapter_writer);
-	int result = finishCheckpointing(index);
+	int result = finish_checkpointing(index);
 	if (result != UDS_SUCCESS) {
 		logInfo("save index failed");
 		return result;
@@ -946,7 +946,7 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 		(dense_stats.collisionCount + sparse_stats.collisionCount);
 	counters->entriesDiscarded =
 		(dense_stats.discardCount + sparse_stats.discardCount);
-	counters->checkpoints = getCheckpointCount(index->checkpoint);
+	counters->checkpoints = get_checkpoint_count(index->checkpoint);
 }
 
 /**********************************************************************/
