@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#13 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -123,7 +123,7 @@ void get_index_layout(struct index_layout *layout,
  *
  * @param layout      The index layout
  * @param slot        The save slot
- * @param kind        The kind if index save region to open.
+ * @param kind        The kind of index save region to open.
  * @param zone        The zone number for the region.
  * @param reader_ptr  Where to store the buffered reader.
  *
@@ -141,7 +141,7 @@ open_index_buffered_reader(struct index_layout *layout,
  *
  * @param layout      The index layout
  * @param slot        The save slot
- * @param kind        The kind if index save region to open.
+ * @param kind        The kind of index save region to open.
  * @param zone        The zone number for the region.
  * @param writer_ptr  Where to store the buffered writer.
  *

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#10 $
  */
 
 #ifndef INDEX_STATE_H
@@ -276,7 +276,7 @@ get_state_index_state_buffer(struct index_state *state,
  * This helper function is used by index_component.
  *
  * @param state       The index state.
- * @param kind        The kind if index save region to open.
+ * @param kind        The kind of index save region to open.
  * @param zone        The zone number for the region.
  * @param reader_ptr  Where to store the buffered reader.
  *
@@ -293,7 +293,7 @@ open_state_buffered_reader(struct index_state *state,
  * This helper function is used by index_component.
  *
  * @param state       The index state.
- * @param kind        The kind if index save region to open.
+ * @param kind        The kind of index save region to open.
  * @param zone        The zone number for the region.
  * @param writer_ptr  Where to store the buffered writer.
  *
