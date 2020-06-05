@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#13 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -32,8 +32,8 @@ struct tree_page {
 	/** struct waiter for a VIO to write out this page */
 	struct waiter waiter;
 
-	/** Dirty list node */
-	RingNode node;
+	/** Dirty list entry */
+	struct list_head entry;
 
 	/**
 	 * If this is a dirty tree page, the tree zone flush generation in which

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#35 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -86,7 +86,7 @@ allocate_cache_components(struct vdo_page_cache *cache)
  **/
 static int initialize_info(struct vdo_page_cache *cache)
 {
-	initializeRing(&cache->free_list);
+	INIT_LIST_HEAD(&cache->free_list);
 	struct page_info *info;
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     ++info) {
@@ -110,9 +110,9 @@ static int initialize_info(struct vdo_page_cache *cache)
 				cache->zone->thread_id;
 		}
 
-		initializeRing(&info->list_node);
-		pushRingNode(&cache->free_list, &info->list_node);
-		initializeRing(&info->lru_node);
+		INIT_LIST_HEAD(&info->list_entry);
+		list_add_tail(&info->list_entry, &cache->free_list);
+		INIT_LIST_HEAD(&info->lru_entry);
 	}
 
 	relaxedStore64(&cache->stats.counts.free_pages, cache->page_count);
@@ -120,7 +120,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 }
 
 /**********************************************************************/
-static void write_dirty_pages_callback(RingNode *node, void *context);
+static void write_dirty_pages_callback(struct list_head *entry, void *context);
 
 /**********************************************************************/
 int make_vdo_page_cache(PhysicalLayer *layer,
@@ -172,8 +172,8 @@ int make_vdo_page_cache(PhysicalLayer *layer,
 	}
 
 	// initialize empty circular queues
-	initializeRing(&cache->lru_list);
-	initializeRing(&cache->outgoing_list);
+	INIT_LIST_HEAD(&cache->lru_list);
+	INIT_LIST_HEAD(&cache->outgoing_list);
 
 	*cache_ptr = cache;
 	return VDO_SUCCESS;
@@ -330,8 +330,8 @@ static void update_lru(struct page_info *info)
 {
 	struct vdo_page_cache *cache = info->cache;
 
-	if (cache->lru_list.prev != &info->lru_node) {
-		pushRingNode(&cache->lru_list, &info->lru_node);
+	if (cache->lru_list.prev != &info->lru_entry) {
+		list_move_tail(&info->lru_entry, &cache->lru_list);
 	}
 }
 
@@ -355,18 +355,18 @@ static void set_info_state(struct page_info *info, page_state new_state)
 	switch (info->state) {
 	case PS_FREE:
 	case PS_FAILED:
-		pushRingNode(&info->cache->free_list, &info->list_node);
+		list_move_tail(&info->list_entry, &info->cache->free_list);
 		return;
 
 	case PS_OUTGOING:
-		pushRingNode(&info->cache->outgoing_list, &info->list_node);
+		list_move_tail(&info->list_entry, &info->cache->outgoing_list);
 		return;
 
 	case PS_DIRTY:
 		return;
 
 	default:
-		unspliceRingNode(&info->list_node);
+		list_del_init(&info->list_entry);
 	}
 }
 
@@ -421,7 +421,7 @@ static int reset_page_info(struct page_info *info)
 
 	result = set_info_pbn(info, NO_PAGE);
 	set_info_state(info, PS_FREE);
-	unspliceRingNode(&info->lru_node);
+	list_del_init(&info->lru_entry);
 	return result;
 }
 
@@ -438,8 +438,9 @@ find_free_page(struct vdo_page_cache *cache)
 	if (cache->free_list.next == &cache->free_list) {
 		return NULL;
 	}
-	struct page_info *info = page_info_from_list_node(cache->free_list.next);
-	unspliceRingNode(&info->list_node);
+	struct page_info *info =
+		page_info_from_list_entry(cache->free_list.next);
+	list_del_init(&info->list_entry);
 	return info;
 }
 
@@ -472,10 +473,9 @@ struct page_info *vpc_find_page(struct vdo_page_cache *cache,
 __attribute__((warn_unused_result)) static struct page_info *
 select_lru_page(struct vdo_page_cache *cache)
 {
-	page_info_node *lru;
-	for (lru = cache->lru_list.next; lru != &cache->lru_list;
-	     lru = lru->next) {
-		struct page_info *info = page_info_from_lru_node(lru);
+	struct list_head *lru;
+	list_for_each(lru, &cache->lru_list) {
+		struct page_info *info = page_info_from_lru_entry(lru);
 		if ((info->busy == 0) && !is_in_flight(info)) {
 			return info;
 		}
@@ -866,7 +866,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	assert_io_allowed(cache);
 
 	struct page_info *info =
-		page_info_from_list_node(cache->outgoing_list.next);
+		page_info_from_list_entry(cache->outgoing_list.next);
 	cache->pages_in_flush = cache->pages_to_flush;
 	cache->pages_to_flush = 0;
 	relaxedAdd64(&cache->stats.flush_count, 1);
@@ -908,10 +908,13 @@ static void schedule_page_save(struct page_info *info)
 }
 
 /**********************************************************************/
-static void write_dirty_pages_callback(RingNode *expired, void *context)
+static void write_dirty_pages_callback(struct list_head *expired,
+				       void *context)
 {
-	while (!isRingEmpty(expired)) {
-		schedule_page_save(page_info_from_list_node(chopRingNode(expired)));
+	while (!list_empty(expired)) {
+		struct list_head *entry = expired->next;
+		list_del_init(entry);
+		schedule_page_save(page_info_from_list_entry(entry));
 	}
 
 	save_pages((struct vdo_page_cache *) context);
@@ -1179,8 +1182,9 @@ static void write_pages(struct vdo_completion *flush_completion)
 	page_count_t pages_in_flush = cache->pages_in_flush;
 	cache->pages_in_flush = 0;
 	while (pages_in_flush-- > 0) {
-		struct page_info *info =
-			page_info_from_list_node(chopRingNode(&cache->outgoing_list));
+		struct list_head *entry = cache->outgoing_list.next;
+		list_del_init(entry);
+		struct page_info *info = page_info_from_list_entry(entry);
 		if (is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
@@ -1342,7 +1346,7 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
 	struct page_info *info = vdo_page_comp->info;
 	set_info_state(info, PS_DIRTY);
 	add_to_dirty_lists(info->cache->dirty_lists,
-			   &info->list_node,
+			   (struct list_head *)&info->list_entry,
 			   old_dirty_period,
 			   new_dirty_period);
 }

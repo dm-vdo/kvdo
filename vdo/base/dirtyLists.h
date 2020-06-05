@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#7 $
  */
 
 #ifndef DIRTY_LISTS_H
 #define DIRTY_LISTS_H
 
-#include "ringNode.h"
+#include "list.h"
 #include "types.h"
 
 /**
@@ -42,7 +42,7 @@ struct dirty_lists;
  * @param expired  The list of expired elements
  * @param context  The context for the callback
  **/
-typedef void dirty_callback(RingNode *expired, void *context);
+typedef void dirty_callback(struct list_head *expired, void *context);
 
 /**
  * Construct a new set of dirty lists.
@@ -80,13 +80,14 @@ void set_current_period(struct dirty_lists *dirty_lists,
  * Add an element to the dirty lists.
  *
  * @param dirty_lists  The dirty_lists structure receiving the element
- * @param node         The RingNode of the element to add
+ * @param entry        The list entry of the element to add
  * @param old_period   The period in which the element was previous dirtied,
  *                     or 0 if it was not dirty
  * @param new_period   The period in which the element has now been dirtied,
  *                     or 0 if it does not hold a lock
  **/
-void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
+void add_to_dirty_lists(struct dirty_lists *dirty_lists,
+			struct list_head *entry,
 			sequence_number_t old_period,
 			sequence_number_t new_period);
 

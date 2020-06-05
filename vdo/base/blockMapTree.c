@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#68 $
  */
 
 #include "blockMapTree.h"
@@ -69,19 +69,21 @@ struct write_if_not_dirtied_context {
 const physical_block_number_t INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
 /**
- * Convert a RingNode to a tree_page.
+ * Convert a list entry to a tree_page.
  *
- * @param ring_node The RingNode to convert
+ * @param entry   The list entry to convert
  *
- * @return The tree_page which owns the RingNode
+ * @return The tree_page which owns the list entry
  **/
-static inline struct tree_page *tree_page_from_ring_node(RingNode *ring_node)
+static inline struct tree_page *
+tree_page_from_list_entry(struct list_head *entry)
 {
-	return container_of(ring_node, struct tree_page, node);
+	return container_of(entry, struct tree_page, entry);
 }
 
 /**********************************************************************/
-static void write_dirty_pages_callback(RingNode *expired, void *context);
+static void write_dirty_pages_callback(struct list_head *expired,
+				       void *context);
 
 /**
  * Make vios for reading, writing, and allocating the arboreal block map.
@@ -566,14 +568,15 @@ static void write_page(struct tree_page *tree_page,
  * @param expired  The pages to write
  * @param context  The zone
  **/
-static void write_dirty_pages_callback(RingNode *expired, void *context)
+static void write_dirty_pages_callback(struct list_head *expired, void *context)
 {
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) context;
 	uint8_t generation = zone->generation;
-	while (!isRingEmpty(expired)) {
-		struct tree_page *page =
-			tree_page_from_ring_node(chopRingNode(expired));
+	while (!list_empty(expired)) {
+		struct list_head *entry = expired->next;
+		list_del_init(entry);
+		struct tree_page *page = tree_page_from_list_entry(entry);
 
 		int result = ASSERT(!is_waiting(&page->waiter),
 				    "Newly expired page not already waiting to write");
@@ -1035,10 +1038,10 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	} else {
 		// Put the page on a dirty list
 		if (old_lock == 0) {
-			initializeRing(&tree_page->node);
+			INIT_LIST_HEAD(&tree_page->entry);
 		}
 		add_to_dirty_lists(zone->dirty_lists,
-				   &tree_page->node,
+				   &tree_page->entry,
 				   old_lock,
 				   tree_page->recovery_lock);
 	}

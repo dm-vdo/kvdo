@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#7 $
  */
 
 #include "dirtyLists.h"
@@ -41,9 +41,9 @@ struct dirty_lists {
 	/** The offset in the array of lists of the oldest period */
 	block_count_t offset;
 	/** The list of elements which are being expired */
-	RingNode expired;
+	struct list_head expired;
 	/** The lists of dirty elements */
-	RingNode lists[];
+	struct list_head lists[];
 };
 
 /**********************************************************************/
@@ -52,7 +52,8 @@ int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 {
 	struct dirty_lists *dirty_lists;
 	int result = ALLOCATE_EXTENDED(struct dirty_lists, maximum_age,
-				       RingNode, __func__, &dirty_lists);
+				       struct list_head, __func__,
+				       &dirty_lists);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -61,10 +62,10 @@ int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 	dirty_lists->callback = callback;
 	dirty_lists->context = context;
 
-	initializeRing(&dirty_lists->expired);
+	INIT_LIST_HEAD(&dirty_lists->expired);
 	block_count_t i;
 	for (i = 0; i < maximum_age; i++) {
-		initializeRing(&dirty_lists->lists[i]);
+		INIT_LIST_HEAD(&dirty_lists->lists[i]);
 	}
 
 	*dirty_lists_ptr = dirty_lists;
@@ -101,10 +102,11 @@ void set_current_period(struct dirty_lists *dirty_lists,
 static void expire_oldest_list(struct dirty_lists *dirty_lists)
 {
 	dirty_lists->oldest_period++;
-	RingNode *ring = &(dirty_lists->lists[dirty_lists->offset++]);
-	if (!isRingEmpty(ring)) {
-		spliceRingChainBefore(ring->next, ring->prev,
-				      &dirty_lists->expired);
+	struct list_head *dirty_list =
+		&(dirty_lists->lists[dirty_lists->offset++]);
+	if (!list_empty(dirty_list)) {
+		list_splice_tail(dirty_list, &dirty_lists->expired);
+		INIT_LIST_HEAD(dirty_list);
 	}
 
 	if (dirty_lists->offset == dirty_lists->maximum_age) {
@@ -137,17 +139,18 @@ static void update_period(struct dirty_lists *dirty_lists,
  **/
 static void write_expired_elements(struct dirty_lists *dirty_lists)
 {
-	if (isRingEmpty(&dirty_lists->expired)) {
+	if (list_empty(&dirty_lists->expired)) {
 		return;
 	}
 
 	dirty_lists->callback(&dirty_lists->expired, dirty_lists->context);
-	ASSERT_LOG_ONLY(isRingEmpty(&dirty_lists->expired),
+	ASSERT_LOG_ONLY(list_empty(&dirty_lists->expired),
 			"no expired elements remain");
 }
 
 /**********************************************************************/
-void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
+void add_to_dirty_lists(struct dirty_lists *dirty_lists,
+			struct list_head *entry,
 			sequence_number_t old_period,
 			sequence_number_t new_period)
 {
@@ -157,13 +160,12 @@ void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
 	}
 
 	if (new_period < dirty_lists->oldest_period) {
-		pushRingNode(&dirty_lists->expired, node);
+		list_move_tail(entry, &dirty_lists->expired);
 	} else {
 		update_period(dirty_lists, new_period);
-		pushRingNode(
-			&dirty_lists->lists[new_period %
-					    dirty_lists->maximum_age],
-			node);
+		list_move_tail(entry,
+			       &dirty_lists->lists[new_period %
+						   dirty_lists->maximum_age]);
 	}
 
 	write_expired_elements(dirty_lists);

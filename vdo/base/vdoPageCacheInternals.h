@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#19 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -29,8 +29,8 @@
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
+#include "list.h"
 #include "physicalLayer.h"
-#include "ringNode.h"
 
 enum {
 	MAX_PAGE_CONTEXT_SIZE = 8,
@@ -38,10 +38,6 @@ enum {
 
 static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
-/**
- * A page_info_node is a ring node.
- **/
-typedef RingNode page_info_node;
 
 /**
  * The VDO Page Cache abstraction.
@@ -69,13 +65,13 @@ struct vdo_page_cache {
 	/** map of page number to info */
 	struct int_map *page_map;
 	/** master LRU list (all infos) */
-	page_info_node lru_list;
+	struct list_head lru_list;
 	/** dirty pages by period */
 	struct dirty_lists *dirty_lists;
 	/** free page list (oldest first) */
-	page_info_node free_list;
+	struct list_head free_list;
 	/** outgoing page list */
-	page_info_node outgoing_list;
+	struct list_head outgoing_list;
 	/** number of read I/O operations pending */
 	page_count_t outstanding_reads;
 	/** number of write I/O operations pending */
@@ -152,10 +148,10 @@ struct page_info {
 	page_state state;
 	/** queue of completions awaiting this item */
 	struct wait_queue waiting;
-	/** state linked list node */
-	page_info_node list_node;
-	/** LRU node */
-	page_info_node lru_node;
+	/** state linked list entry */
+	struct list_head list_entry;
+	/** LRU entry */
+	struct list_head lru_entry;
 	/** Space for per-page client data */
 	byte context[MAX_PAGE_CONTEXT_SIZE];
 };
@@ -163,21 +159,23 @@ struct page_info {
 // PAGE INFO LIST OPERATIONS
 
 /**********************************************************************/
-static inline struct page_info *page_info_from_list_node(page_info_node *node)
+static inline struct page_info *
+page_info_from_list_entry(struct list_head *entry)
 {
-	if (node == NULL) {
+	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(node, struct page_info, list_node);
+	return container_of(entry, struct page_info, list_entry);
 }
 
 /**********************************************************************/
-static inline struct page_info *page_info_from_lru_node(page_info_node *node)
+static inline struct page_info *
+page_info_from_lru_entry(struct list_head *entry)
 {
-	if (node == NULL) {
+	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(node, struct page_info, lru_node);
+	return container_of(entry, struct page_info, lru_entry);
 }
 
 // PAGE INFO STATE ACCESSOR FUNCTIONS
