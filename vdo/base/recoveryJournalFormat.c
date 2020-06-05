@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#2 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -95,24 +95,36 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 
 	size_t initial_length = content_length(buffer);
 
-	result = get_uint64_le_from_buffer(buffer, &state->journal_start);
+	sequence_number_t journal_start;
+	result = get_uint64_le_from_buffer(buffer, &journal_start);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer,
-					   &state->logical_blocks_used);
+	block_count_t logical_blocks_used;
+	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer,
-					   &state->block_map_data_blocks);
+	block_count_t block_map_data_blocks;
+	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
-		      "decoded recovery journal component size must match header size");
+	result = ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
+			"decoded recovery journal component size must match header size");
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	*state = (struct recovery_journal_state_7_0) {
+		.journal_start = journal_start,
+		.logical_blocks_used = logical_blocks_used,
+		.block_map_data_blocks = block_map_data_blocks,
+	};
+
+	return VDO_SUCCESS;
 }

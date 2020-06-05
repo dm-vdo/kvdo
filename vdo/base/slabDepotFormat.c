@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#2 $
  */
 
 #include "slabDepotFormat.h"
@@ -199,27 +199,44 @@ int decode_slab_depot_state_2_0(struct buffer *buffer,
 	}
 
 	size_t initial_length = content_length(buffer);
-	result = decode_slab_config(buffer, &state->slab_config);
+
+	struct slab_config slab_config;
+	result = decode_slab_config(buffer, &slab_config);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &state->first_block);
+	physical_block_number_t first_block;
+	result = get_uint64_le_from_buffer(buffer, &first_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &state->last_block);
+	physical_block_number_t last_block;
+	result = get_uint64_le_from_buffer(buffer, &last_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_byte(buffer, &state->zone_count);
+	zone_count_t zone_count;
+	result = get_byte(buffer, &zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == decoded_size,
-		      "decoded slab depot component size must match header size");
+	result = ASSERT(SLAB_DEPOT_HEADER_2_0.size == decoded_size,
+			"decoded slab depot component size must match header size");
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	*state = (struct slab_depot_state_2_0) {
+		.slab_config = slab_config,
+		.first_block = first_block,
+		.last_block = last_block,
+		.zone_count = zone_count,
+	};
+
+	return VDO_SUCCESS;
 }

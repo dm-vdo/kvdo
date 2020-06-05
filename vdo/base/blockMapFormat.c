@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#2 $
  */
 
 #include "blockMapFormat.h"
@@ -61,12 +61,14 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 	}
 
 	size_t initial_length = content_length(buffer);
-	result = get_uint64_le_from_buffer(buffer, &state->flat_page_origin);
+
+	physical_block_number_t flat_page_origin;
+	result = get_uint64_le_from_buffer(buffer, &flat_page_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(state->flat_page_origin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
+	result = ASSERT(flat_page_origin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			"Flat page origin must be %u (recorded as %llu)",
 			BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			state->flat_page_origin);
@@ -74,31 +76,46 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &state->flat_page_count);
+	block_count_t flat_page_count;
+	result = get_uint64_le_from_buffer(buffer, &flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(state->flat_page_count == 0,
+	result = ASSERT(flat_page_count == 0,
 			"Flat page count must be 0 (recorded as %llu)",
 			state->flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &state->root_origin);
+	physical_block_number_t root_origin;
+	result = get_uint64_le_from_buffer(buffer, &root_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &state->root_count);
+	block_count_t root_count;
+	result = get_uint64_le_from_buffer(buffer, &root_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(BLOCK_MAP_HEADER_2_0.size == decoded_size,
-		      "decoded block map component size must match header size");
+	result = ASSERT(BLOCK_MAP_HEADER_2_0.size == decoded_size,
+			"decoded block map component size must match header size");
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	*state = (struct block_map_state_2_0) {
+		.flat_page_origin = flat_page_origin,
+		.flat_page_count = flat_page_count,
+		.root_origin = root_origin,
+		.root_count = root_count,
+	};
+
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
