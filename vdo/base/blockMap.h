@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#26 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -24,6 +24,7 @@
 
 #include "adminState.h"
 #include "blockMapEntry.h"
+#include "blockMapFormat.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "statistics.h"
@@ -104,17 +105,17 @@ void grow_block_map(struct block_map *map, struct vdo_completion *parent);
 void abandon_block_map_growth(struct block_map *map);
 
 /**
- * Decode the state of a block map saved in a buffer, without creating page
- * caches.
+ * Make a block map and configure it with the state read from the super block.
+ * The caches are not constructed at this time.
  *
- * @param [in]  buffer          A buffer containing the super block state
+ * @param [in]  state           The block map state from the super block
  * @param [in]  logical_blocks  The number of logical blocks for the VDO
  * @param [in]  thread_config   The thread configuration of the VDO
  * @param [out] map_ptr         The pointer to hold the new block map
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check decode_block_map(struct buffer *buffer,
+int __must_check decode_block_map(struct block_map_state_2_0 state,
 				  block_count_t logical_blocks,
 				  const struct thread_config *thread_config,
 				  struct block_map **map_ptr);
@@ -150,22 +151,14 @@ make_block_map_caches(struct block_map *map,
 void free_block_map(struct block_map **map_ptr);
 
 /**
- * Get the size of the encoded state of a block map.
+ * Record the state of a block map for encoding in a super block.
  *
- * @return The encoded size of the map's state
+ * @param map  The block map to encode
+ *
+ * @return The state of the block map
  **/
-size_t __must_check get_block_map_encoded_size(void);
-
-/**
- * Encode the state of a block map into a buffer.
- *
- * @param map     The block map to encode
- * @param buffer  The buffer to encode into
- *
- * @return UDS_SUCCESS or an error
- **/
-int __must_check
-encode_block_map(const struct block_map *map, struct buffer *buffer);
+struct block_map_state_2_0 __must_check
+record_block_map(const struct block_map *map);
 
 /**
  * Obtain any necessary state from the recovery journal that is needed for

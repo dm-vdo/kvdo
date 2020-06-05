@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#38 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -34,10 +34,9 @@
 #include "readOnlyNotifier.h"
 #include "types.h"
 #include "uds.h"
+#include "vdoComponent.h"
 #include "vdoLayout.h"
 #include "vdoState.h"
-
-extern const struct version_number VDO_MASTER_VERSION_67_0;
 
 /**
  * Error counters are atomic since updates can arrive concurrently from
@@ -140,16 +139,6 @@ VDOState get_vdo_state(const struct vdo *vdo)
 void set_vdo_state(struct vdo *vdo, VDOState state);
 
 /**
- * Get the component data size of a vdo.
- *
- * @param vdo  The vdo whose component data size is desired
- *
- * @return the component data size of the vdo
- **/
-size_t get_component_data_size(struct vdo *vdo)
-	__attribute__((warn_unused_result));
-
-/**
  * Encode the vdo and save the super block synchronously.
  *
  * @param vdo  The vdo whose state is being saved
@@ -169,29 +158,13 @@ int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
 
 /**
- * Decode the component data for the vdo itself from the component data buffer
- * in the super block.
+ * Play back the vdo component from the super block into a vdo object.
  *
- * @param vdo  The vdo to decode
- *
- * @return VDO_SUCCESS or an error
+ * @param vdo            The vdo
+ * @param vdo_component  The component to play back into the vdo
  **/
-int decode_vdo_component(struct vdo *vdo) __attribute__((warn_unused_result));
-
-/**
- * Validate constraints on a VDO config.
- *
- * @param config           The VDO config
- * @param block_count      The block count of the VDO
- * @param require_logical  Set to <code>true</code> if the number logical blocks
- *                         must be configured (otherwise, it may be zero)
- *
- * @return a success or error code
- **/
-int validate_vdo_config(const struct vdo_config *config,
-			block_count_t block_count,
-			bool require_logical)
-	__attribute__((warn_unused_result));
+void playback_vdo_component(struct vdo *vdo,
+			    struct vdo_component_41_0 vdo_component);
 
 /**
  * Enable a vdo to enter read-only mode on errors.

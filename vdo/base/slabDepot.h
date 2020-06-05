@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#36 $
  */
 
 #ifndef SLAB_DEPOT_H
 #define SLAB_DEPOT_H
-
-#include "buffer.h"
 
 #include "adminState.h"
 #include "atomic.h"
@@ -102,27 +100,19 @@ int __must_check make_slab_depot(block_count_t block_count,
 void free_slab_depot(struct slab_depot **depot_ptr);
 
 /**
- * Get the size of the encoded state of a slab depot.
- *
- * @return The encoded size of the depot's state
- **/
-size_t __must_check get_slab_depot_encoded_size(void);
-
-/**
- * Encode the state of a slab depot into a buffer.
+ * Record the state of a slab depot for encoding into the super block.
  *
  * @param depot   The depot to encode
- * @param buffer  The buffer to encode into
  *
- * @return UDS_SUCCESS or an error
+ * @return The depot state
  **/
-int __must_check
-encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer);
+struct slab_depot_state_2_0 __must_check
+record_slab_depot(const struct slab_depot *depot);
 
 /**
- * Decode the state of a slab depot saved in a buffer.
+ * Make a slab depot and configure it with the state read from the super block.
  *
- * @param [in]  buffer              The buffer containing the saved state
+ * @param [in]  state               The slab depot state from the super block
  * @param [in]  thread_config       The thread config of the VDO
  * @param [in]  nonce               The nonce of the VDO
  * @param [in]  layer               The physical layer below this depot
@@ -135,7 +125,7 @@ encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer);
  * @return A success or error code
  **/
 int __must_check
-decode_slab_depot(struct buffer *buffer,
+decode_slab_depot(struct slab_depot_state_2_0 state,
 		  const struct thread_config *thread_config,
 		  nonce_t nonce,
 		  PhysicalLayer *layer,

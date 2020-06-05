@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#75 $
  */
 
 /*
@@ -26,7 +26,6 @@
 
 #include "vdoInternal.h"
 
-#include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -47,44 +46,10 @@
 #include "statistics.h"
 #include "statusCodes.h"
 #include "threadConfig.h"
+#include "vdoComponentStates.h"
 #include "vdoLayout.h"
 #include "vioWrite.h"
 #include "volumeGeometry.h"
-
-/**
- * The master version of the on-disk format of a VDO. This should be
- * incremented any time the on-disk representation of any VDO structure
- * changes. Changes which require only online upgrade steps should increment
- * the minor version. Changes which require an offline upgrade or which can not
- * be upgraded to at all should increment the major version and set the minor
- * version to 0.
- **/
-const struct version_number VDO_MASTER_VERSION_67_0 = {
-	.major_version = 67,
-	.minor_version = 0,
-};
-
-/**
- * The current version for the data encoded in the super block. This must
- * be changed any time there is a change to encoding of the component data
- * of any VDO component.
- **/
-static const struct version_number VDO_COMPONENT_DATA_41_0 = {
-	.major_version = 41,
-	.minor_version = 0,
-};
-
-/**
- * This is the structure that captures the vdo fields saved as a SuperBlock
- * component.
- **/
-struct vdo_component_41_0 {
-	VDOState state;
-	uint64_t complete_recoveries;
-	uint64_t read_only_recoveries;
-	struct vdo_config config;
-	nonce_t nonce;
-} __attribute__((packed));
 
 /**********************************************************************/
 int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
@@ -185,169 +150,46 @@ void set_vdo_state(struct vdo *vdo, VDOState state)
 	atomicStore32(&vdo->state, state);
 }
 
-/**********************************************************************/
-size_t get_component_data_size(struct vdo *vdo)
+/**
+ * Record the vdo component state for writing in the super block.
+ *
+ * @param vdo  The vdo to encode
+ *
+ * @return The state of the vdo
+ **/
+static struct vdo_component_41_0 __must_check
+record_vdo_component(struct vdo *vdo)
 {
-	return (sizeof(release_version_number_t) + // The release version
-		sizeof(struct version_number) +    // The VDO master version
-		sizeof(struct version_number) +    // The VDO component header
-		sizeof(struct vdo_component_41_0) +
-		get_vdo_layout_encoded_size(vdo->layout) +
-		get_recovery_journal_encoded_size() +
-		get_slab_depot_encoded_size() +
-		get_block_map_encoded_size());
+	return (struct vdo_component_41_0) {
+		.state = get_vdo_state(vdo),
+		.complete_recoveries = vdo->complete_recoveries,
+		.read_only_recoveries = vdo->read_only_recoveries,
+		.config = vdo->config,
+		.nonce = vdo->nonce,
+	};
 }
 
 /**
- * Encode the vdo master version.
- *
- * @param buffer  The buffer in which to encode the version
- *
- * @return VDO_SUCCESS or an error
+ * Record the state of the VDO for encoding in the super block.
  **/
-__attribute__((warn_unused_result)) static int
-encode_master_version(struct buffer *buffer)
+static struct vdo_component_states record_vdo(struct vdo *vdo)
 {
-	return encode_version_number(VDO_MASTER_VERSION_67_0, buffer);
-}
-
-/**
- * Encode a vdo_config structure into a buffer.
- *
- * @param config  The config structure to encode
- * @param buffer  A buffer positioned at the start of the encoding
- *
- * @return VDO_SUCCESS or an error
- **/
-__attribute__((warn_unused_result)) static int
-encode_vdo_config(const struct vdo_config *config, struct buffer *buffer)
-{
-	int result = put_uint64_le_into_buffer(buffer, config->logical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->physical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->slab_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->recovery_journal_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
-}
-
-/**
- * Encode the component data for the vdo itself.
- *
- * @param vdo     The vdo to encode
- * @param buffer  The buffer in which to encode the vdo
- *
- * @return VDO_SUCCESS or an error
- **/
-__attribute__((warn_unused_result)) static int
-encode_vdo_component(const struct vdo *vdo, struct buffer *buffer)
-{
-	int result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	size_t initial_length = content_length(buffer);
-
-	result = put_uint32_le_into_buffer(buffer, get_vdo_state(vdo));
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, vdo->complete_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, vdo->read_only_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_vdo_config(&vdo->config, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, vdo->nonce);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	size_t encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(encoded_size == sizeof(struct vdo_component_41_0),
-		      "encoded VDO component size must match structure size");
-}
-
-/**********************************************************************/
-static int encode_vdo(struct vdo *vdo)
-{
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	int result = reset_buffer_end(buffer, 0);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// Encode the release version
-	result = put_uint32_le_into_buffer(buffer,
-				           vdo->load_config.release_version);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = encode_master_version(buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_vdo_component(vdo, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_vdo_layout(vdo->layout, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_recovery_journal(vdo->recovery_journal, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_slab_depot(vdo->depot, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_block_map(vdo->block_map, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	ASSERT_LOG_ONLY((content_length(buffer) == get_component_data_size(vdo)),
-			"All super block component data was encoded");
-	return VDO_SUCCESS;
+	return (struct vdo_component_states) {
+		.release_version = vdo->load_config.release_version,
+		.master_version = vdo->load_version,
+		.vdo = record_vdo_component(vdo),
+		.block_map = record_block_map(vdo->block_map),
+		.recovery_journal = record_recovery_journal(vdo->recovery_journal),
+		.slab_depot = record_slab_depot(vdo->depot),
+		.layout = get_layout(vdo->layout),
+	};
 }
 
 /**********************************************************************/
 int save_vdo_components(struct vdo *vdo)
 {
-	int result = encode_vdo(vdo);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
+	int result = encode_component_states(buffer, record_vdo(vdo));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -359,7 +201,8 @@ int save_vdo_components(struct vdo *vdo)
 /**********************************************************************/
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 {
-	int result = encode_vdo(vdo);
+	struct buffer *buffer = get_component_buffer(vdo->super_block);
+	int result = encode_component_states(buffer, record_vdo(vdo));
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
@@ -369,244 +212,15 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 			       parent);
 }
 
-/**
- * Decode a vdo_config structure from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param config  The config structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result)) static int
-decode_vdo_config(struct buffer *buffer, struct vdo_config *config)
+void playback_vdo_component(struct vdo *vdo,
+			    struct vdo_component_41_0 vdo_component)
 {
-	block_count_t logical_blocks;
-	int result = get_uint64_le_from_buffer(buffer, &logical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	block_count_t physical_blocks;
-	result = get_uint64_le_from_buffer(buffer, &physical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	block_count_t slab_size;
-	result = get_uint64_le_from_buffer(buffer, &slab_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	block_count_t recovery_journal_size;
-	result = get_uint64_le_from_buffer(buffer, &recovery_journal_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	block_count_t slab_journal_blocks;
-	result = get_uint64_le_from_buffer(buffer, &slab_journal_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*config = (struct vdo_config) {
-		.logical_blocks = logical_blocks,
-		.physical_blocks = physical_blocks,
-		.slab_size = slab_size,
-		.recovery_journal_size = recovery_journal_size,
-		.slab_journal_blocks = slab_journal_blocks,
-	};
-	return VDO_SUCCESS;
-}
-
-/**
- * Decode the version 41.0 component state for the vdo itself from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return VDO_SUCCESS or an error
- **/
-__attribute__((warn_unused_result)) static int
-decode_vdo_component_41_0(struct buffer *buffer,
-			  struct vdo_component_41_0 *state)
-{
-	size_t initial_length = content_length(buffer);
-
-	VDOState vdo_state;
-	int result = get_uint32_le_from_buffer(buffer, &vdo_state);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	uint64_t complete_recoveries;
-	result = get_uint64_le_from_buffer(buffer, &complete_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	uint64_t read_only_recoveries;
-	result = get_uint64_le_from_buffer(buffer, &read_only_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct vdo_config config;
-	result = decode_vdo_config(buffer, &config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	nonce_t nonce;
-	result = get_uint64_le_from_buffer(buffer, &nonce);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*state = (struct vdo_component_41_0) {
-		.state = vdo_state,
-		.complete_recoveries = complete_recoveries,
-		.read_only_recoveries = read_only_recoveries,
-		.config = config,
-		.nonce = nonce,
-	};
-
-	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(decoded_size == sizeof(struct vdo_component_41_0),
-		      "decoded VDO component size must match structure size");
-}
-
-/**********************************************************************/
-int decode_vdo_component(struct vdo *vdo)
-{
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
-
-	struct version_number version;
-	int result = decode_version_number(buffer, &version);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = validate_version(version, VDO_COMPONENT_DATA_41_0,
-				  "VDO component data");
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct vdo_component_41_0 component;
-	result = decode_vdo_component_41_0(buffer, &component);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// Copy the decoded component into the vdo structure.
-	set_vdo_state(vdo, component.state);
-	vdo->load_state = component.state;
-	vdo->complete_recoveries = component.complete_recoveries;
-	vdo->read_only_recoveries = component.read_only_recoveries;
-	vdo->config = component.config;
-	vdo->nonce = component.nonce;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int validate_vdo_config(const struct vdo_config *config,
-			block_count_t block_count,
-			bool require_logical)
-{
-	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(is_power_of_two(config->slab_size),
-			"slab size must be a power of two");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->slab_size <= (1 << MAX_SLAB_BITS),
-			"slab size must be less than or equal to 2^%d",
-			MAX_SLAB_BITS);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result =
-		ASSERT(config->slab_journal_blocks >= MINIMUM_SLAB_JOURNAL_BLOCKS,
-		       "slab journal size meets minimum size");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->slab_journal_blocks <= config->slab_size,
-			"slab journal size is within expected bound");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	struct slab_config slab_config;
-	result = configure_slab(config->slab_size, config->slab_journal_blocks,
-				&slab_config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT((slab_config.data_blocks >= 1),
-			"slab must be able to hold at least one block");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->physical_blocks > 0,
-			"physical blocks unspecified");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->physical_blocks <= MAXIMUM_PHYSICAL_BLOCKS,
-			"physical block count %llu exceeds maximum %llu",
-			config->physical_blocks,
-			MAXIMUM_PHYSICAL_BLOCKS);
-	if (result != UDS_SUCCESS) {
-		return VDO_OUT_OF_RANGE;
-	}
-
-	// This can't check equality because FileLayer et al can only known
-	// about the storage size, which may not match the super block size.
-	if (block_count < config->physical_blocks) {
-		logError("A physical size of %llu blocks was specified, but that is smaller than the %llu blocks configured in the vdo super block",
-			 block_count,
-			 config->physical_blocks);
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	result = ASSERT(!require_logical || (config->logical_blocks > 0),
-			"logical blocks unspecified");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->logical_blocks <= MAXIMUM_LOGICAL_BLOCKS,
-			"logical blocks too large");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(config->recovery_journal_size > 0,
-			"recovery journal size unspecified");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(is_power_of_two(config->recovery_journal_size),
-			"recovery journal size must be a power of two");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	return result;
+	set_vdo_state(vdo, vdo_component.state);
+	vdo->load_state = vdo_component.state;
+	vdo->complete_recoveries = vdo_component.complete_recoveries;
+	vdo->read_only_recoveries = vdo_component.read_only_recoveries;
+	vdo->config = vdo_component.config;
+	vdo->nonce = vdo_component.nonce;
 }
 
 /**

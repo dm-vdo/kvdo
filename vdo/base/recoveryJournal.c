@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#66 $
  */
 
 #include "recoveryJournal.h"
 #include "recoveryJournalInternals.h"
 
-#include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -34,28 +33,10 @@
 #include "numUtils.h"
 #include "packedRecoveryJournalBlock.h"
 #include "recoveryJournalBlock.h"
+#include "recoveryJournalFormat.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
 #include "waitQueue.h"
-
-struct recovery_journal_state_7_0 {
-	/** Sequence number to start the journal */
-	sequence_number_t journal_start;
-	/** Number of logical blocks used by VDO */
-	block_count_t logical_blocks_used;
-	/** Number of block map pages allocated */
-	block_count_t block_map_data_blocks;
-} __attribute__((packed));
-
-static const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
-	.id = RECOVERY_JOURNAL,
-	.version =
-		{
-			.major_version = 7,
-			.minor_version = 0,
-		},
-	.size = sizeof(struct recovery_journal_state_7_0),
-};
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
 
@@ -266,7 +247,7 @@ get_current_journal_sequence_number(struct recovery_journal *journal)
  * @return the head of the journal
  **/
 static inline sequence_number_t
-get_recovery_journal_head(struct recovery_journal *journal)
+get_recovery_journal_head(const struct recovery_journal *journal)
 {
 	return min_sequence_number(journal->block_map_head,
 				   journal->slab_journal_head);
@@ -616,115 +597,50 @@ void open_recovery_journal(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-size_t get_recovery_journal_encoded_size(void)
+struct recovery_journal_state_7_0
+record_recovery_journal(const struct recovery_journal *journal)
 {
-	return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
-}
+	struct recovery_journal_state_7_0 state = {
+		.logical_blocks_used = journal->logical_blocks_used,
+		.block_map_data_blocks = journal->block_map_data_blocks,
+	};
 
-/**********************************************************************/
-int encode_recovery_journal(struct recovery_journal *journal,
-			    struct buffer *buffer)
-{
-	sequence_number_t journal_start;
 	if (is_saved(&journal->state)) {
 		// If the journal is saved, we should start one past the active
 		// block (since the active block is not guaranteed to be empty).
-		journal_start = journal->tail;
+		state.journal_start = journal->tail;
 	} else {
 		// When we're merely suspended or have gone read-only, we must
 		// record the first block that might have entries that need to
 		// be applied.
-		journal_start = get_recovery_journal_head(journal);
+		state.journal_start = get_recovery_journal_head(journal);
 	}
 
-	int result = encode_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t initial_length = content_length(buffer);
-
-	result = put_uint64_le_into_buffer(buffer, journal_start);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, journal->logical_blocks_used);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, journal->block_map_data_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
-		      "encoded recovery journal component size must match header size");
-}
-
-/**
- * Decode recovery journal component state version 7.0 from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int
-decode_recovery_journal_state_7_0(struct buffer *buffer,
-				  struct recovery_journal_state_7_0 *state)
-{
-	size_t initial_length = content_length(buffer);
-
-	sequence_number_t journal_start;
-	int result = get_uint64_le_from_buffer(buffer, &journal_start);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	block_count_t logical_blocks_used;
-	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	block_count_t block_map_data_blocks;
-	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	*state = (struct recovery_journal_state_7_0) {
-		.journal_start = journal_start,
-		.logical_blocks_used = logical_blocks_used,
-		.block_map_data_blocks = block_map_data_blocks,
-	};
-
-	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
-		      "decoded slab depot component size must match header size");
+	return state;
 }
 
 /**********************************************************************/
-int decode_recovery_journal(struct recovery_journal *journal,
-			    struct buffer *buffer)
+int decode_recovery_journal(struct recovery_journal_state_7_0 state,
+			    nonce_t nonce,
+			    PhysicalLayer *layer,
+			    struct partition *partition,
+			    uint64_t recovery_count,
+			    block_count_t journal_size,
+			    block_count_t tail_buffer_size,
+			    struct read_only_notifier *read_only_notifier,
+			    const struct thread_config *thread_config,
+			    struct recovery_journal **journal_ptr)
 {
-	struct header header;
-	int result = decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = validate_header(&RECOVERY_JOURNAL_HEADER_7_0, &header, true,
-				 __func__);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct recovery_journal_state_7_0 state;
-	result = decode_recovery_journal_state_7_0(buffer, &state);
+	struct recovery_journal *journal;
+	int result = make_recovery_journal(nonce,
+					   layer,
+					   partition,
+					   recovery_count,
+					   journal_size,
+					   tail_buffer_size,
+					   read_only_notifier,
+					   thread_config,
+					   &journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -738,6 +654,8 @@ int decode_recovery_journal(struct recovery_journal *journal,
 	// XXX: this is a hack until we make initial resume of a VDO a real
 	// resume
 	journal->state.state = ADMIN_STATE_SUSPENDED;
+
+	*journal_ptr = journal;
 	return VDO_SUCCESS;
 }
 

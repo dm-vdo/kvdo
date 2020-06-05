@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#67 $
  */
 
 #include "slabDepot.h"
@@ -33,6 +33,7 @@
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
+#include "slabDepotFormat.h"
 #include "slabDepotInternals.h"
 #include "slabJournal.h"
 #include "slabIterator.h"
@@ -40,22 +41,6 @@
 #include "threadConfig.h"
 #include "types.h"
 #include "vdoState.h"
-
-struct slab_depot_state_2_0 {
-	struct slab_config slab_config;
-	physical_block_number_t first_block;
-	physical_block_number_t last_block;
-	zone_count_t zone_count;
-} __attribute__((packed));
-
-static const struct header SLAB_DEPOT_HEADER_2_0 = {
-	.id = SLAB_DEPOT,
-	.version = {
-		.major_version = 2,
-		.minor_version = 0,
-	},
-	.size = sizeof(struct slab_depot_state_2_0),
-};
 
 /**
  * Compute the number of slabs a depot with given parameters would have.
@@ -335,7 +320,7 @@ static int allocate_components(struct slab_depot *depot,
  * @return A success or error code
  **/
 static int __must_check
-allocate_depot(const struct slab_depot_state_2_0 *state,
+allocate_depot(struct slab_depot_state_2_0 state,
 	       const struct thread_config *thread_config,
 	       nonce_t nonce,
 	       block_count_t vio_pool_size,
@@ -348,7 +333,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 {
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
-	block_count_t slab_size = state->slab_config.slab_blocks;
+	block_count_t slab_size = state.slab_config.slab_blocks;
 	if (!is_power_of_two(slab_size)) {
 		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
 					       "slab size must be a power of two");
@@ -365,12 +350,12 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 		return result;
 	}
 
-	depot->old_zone_count = state->zone_count;
+	depot->old_zone_count = state.zone_count;
 	depot->zone_count = thread_config->physical_zone_count;
-	depot->slab_config = state->slab_config;
+	depot->slab_config = state.slab_config;
 	depot->read_only_notifier = read_only_notifier;
-	depot->first_block = state->first_block;
-	depot->last_block = state->last_block;
+	depot->first_block = state.first_block;
+	depot->last_block = state.last_block;
 	depot->slab_size_shift = slab_size_shift;
 	depot->journal = recovery_journal;
 	depot->vdo_state = vdo_state;
@@ -472,7 +457,7 @@ int make_slab_depot(block_count_t block_count,
 	}
 
 	struct slab_depot *depot = NULL;
-	result = allocate_depot(&state,
+	result = allocate_depot(state,
 				thread_config,
 				nonce,
 				vio_pool_size,
@@ -520,140 +505,8 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 }
 
 /**********************************************************************/
-size_t get_slab_depot_encoded_size(void)
+struct slab_depot_state_2_0 record_slab_depot(const struct slab_depot *depot)
 {
-	return ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0);
-}
-
-/**
- * Decode a slab config from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param config  The config structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int decode_slab_config(struct buffer *buffer,
-			      struct slab_config *config)
-{
-	block_count_t count;
-	int result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->slab_blocks = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->data_blocks = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->reference_count_blocks = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->slab_journal_blocks = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->slab_journal_flushing_threshold = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->slab_journal_blocking_threshold = count;
-
-	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	config->slab_journal_scrubbing_threshold = count;
-
-	return UDS_SUCCESS;
-}
-
-/**
- * Encode a slab config into a buffer.
- *
- * @param config  The config structure to encode
- * @param buffer  A buffer positioned at the start of the encoding
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int encode_slab_config(const struct slab_config *config,
-			      struct buffer *buffer)
-{
-	int result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->data_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->reference_count_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer,
-				           config->slab_journal_flushing_threshold);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer,
-				           config->slab_journal_blocking_threshold);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	return put_uint64_le_into_buffer(buffer,
-				         config->slab_journal_scrubbing_threshold);
-}
-
-/**********************************************************************/
-int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
-{
-	int result = encode_header(&SLAB_DEPOT_HEADER_2_0, buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t initial_length = content_length(buffer);
-
-	result = encode_slab_config(&depot->slab_config, buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, depot->first_block);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, depot->last_block);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
 	/*
 	 * If this depot is currently using 0 zones, it must have been
 	 * synchronously loaded by a tool and is now being saved. We
@@ -665,60 +518,19 @@ int encode_slab_depot(const struct slab_depot *depot, struct buffer *buffer)
 	if (depot->zone_count == 0) {
 		zones_to_record = depot->old_zone_count;
 	}
-	result = put_byte(buffer, zones_to_record);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
 
-	size_t encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == encoded_size,
-		      "encoded block map component size must match header size");
-}
+	struct slab_depot_state_2_0 state = {
+		.slab_config = depot->slab_config,
+		.first_block = depot->first_block,
+		.last_block = depot->last_block,
+		.zone_count = zones_to_record,
+	};
 
-/**
- * Decode slab depot component state version 2.0 from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int decode_slab_depot_state_2_0(struct buffer *buffer,
-				       struct slab_depot_state_2_0 *state)
-{
-	size_t initial_length = content_length(buffer);
-
-	int result = decode_slab_config(buffer, &state->slab_config);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	physical_block_number_t first_block;
-	result = get_uint64_le_from_buffer(buffer, &first_block);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	state->first_block = first_block;
-
-	physical_block_number_t last_block;
-	result = get_uint64_le_from_buffer(buffer, &last_block);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	state->last_block = last_block;
-
-	result = get_byte(buffer, &state->zone_count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == decoded_size,
-		      "decoded slab depot component size must match header size");
+	return state;
 }
 
 /**********************************************************************/
-int decode_slab_depot(struct buffer *buffer,
+int decode_slab_depot(struct slab_depot_state_2_0 state,
 		      const struct thread_config *thread_config,
 		      nonce_t nonce,
 		      PhysicalLayer *layer,
@@ -728,25 +540,7 @@ int decode_slab_depot(struct buffer *buffer,
 		      Atomic32 *vdo_state,
 		      struct slab_depot **depot_ptr)
 {
-	struct header header;
-	int result = decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = validate_header(&SLAB_DEPOT_HEADER_2_0, &header, true,
-				 __func__);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct slab_depot_state_2_0 state;
-	result = decode_slab_depot_state_2_0(buffer, &state);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	return allocate_depot(&state,
+	return allocate_depot(state,
 			      thread_config,
 			      nonce,
 			      VIO_POOL_SIZE,

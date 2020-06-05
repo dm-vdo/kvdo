@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#48 $
  */
 
 #include "vdoLoad.h"
@@ -289,7 +289,8 @@ int perform_vdo_load(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 decode_vdo(struct vdo *vdo, bool validate_config)
 {
-	int result = start_vdo_decode(vdo, validate_config);
+	struct vdo_component_states states;
+	int result = start_vdo_decode(vdo, validate_config, &states);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -308,13 +309,12 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = decode_vdo_layout(get_component_buffer(vdo->super_block),
-				   &vdo->layout);
+	result = decode_vdo_layout(states.layout, &vdo->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = finish_vdo_decode(vdo);
+	result = finish_vdo_decode(vdo, &states);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

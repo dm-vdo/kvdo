@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#3 $
  */
 
 #include "vdoDecode.h"
@@ -28,42 +28,26 @@
 #include "recoveryJournal.h"
 #include "slabDepot.h"
 #include "types.h"
+#include "vdoComponentStates.h"
 #include "vdoInternal.h"
 
 /**********************************************************************/
-int start_vdo_decode(struct vdo *vdo, bool validate_config)
+int start_vdo_decode(struct vdo *vdo,
+		     bool validate_config,
+		     struct vdo_component_states *states)
 {
 	// Decode and store the release version number.
 	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	release_version_number_t loaded_release_version;
-	int result = get_uint32_le_from_buffer(buffer,
-					       &loaded_release_version);
+	int result = decode_component_states(buffer,
+					     vdo->load_config.release_version,
+					     states);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	if (vdo->load_config.release_version != loaded_release_version) {
-		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
-					       vdo->load_config.release_version,
-					       loaded_release_version);
-	}
-
-	result = decode_version_number(buffer, &vdo->load_version);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = validate_version(VDO_MASTER_VERSION_67_0, vdo->load_version,
-				  "master");
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_vdo_component(vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
+	vdo->load_version = states->master_version;
+	playback_vdo_component(vdo, states->vdo);
 
 	if (!validate_config) {
 		return VDO_SUCCESS;
@@ -81,31 +65,27 @@ int start_vdo_decode(struct vdo *vdo, bool validate_config)
 }
 
 /**********************************************************************/
-int __must_check finish_vdo_decode(struct vdo *vdo)
+int __must_check finish_vdo_decode(struct vdo *vdo,
+				   struct vdo_component_states *states)
 {
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	int result =
-		make_recovery_journal(vdo->nonce,
-				      vdo->layer,
-				      get_vdo_partition(vdo->layout,
-							RECOVERY_JOURNAL_PARTITION),
-				      vdo->complete_recoveries,
-				      vdo->config.recovery_journal_size,
-				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-				      vdo->read_only_notifier,
-				      thread_config,
-				      &vdo->recovery_journal);
+		decode_recovery_journal(states->recovery_journal,
+					vdo->nonce,
+					vdo->layer,
+					get_vdo_partition(vdo->layout,
+							  RECOVERY_JOURNAL_PARTITION),
+					vdo->complete_recoveries,
+					vdo->config.recovery_journal_size,
+					RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
+					vdo->read_only_notifier,
+					thread_config,
+					&vdo->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_recovery_journal(vdo->recovery_journal, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_slab_depot(buffer,
+	result = decode_slab_depot(states->slab_depot,
 				   thread_config,
 				   vdo->nonce,
 				   vdo->layer,
@@ -119,15 +99,8 @@ int __must_check finish_vdo_decode(struct vdo *vdo)
 		return result;
 	}
 
-	result = decode_block_map(buffer,
-				  vdo->config.logical_blocks,
-				  thread_config,
-				  &vdo->block_map);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	ASSERT_LOG_ONLY((content_length(buffer) == 0),
-			"All decoded component data was used");
-	return VDO_SUCCESS;
+	return decode_block_map(states->block_map,
+				vdo->config.logical_blocks,
+				thread_config,
+				&vdo->block_map);
 }

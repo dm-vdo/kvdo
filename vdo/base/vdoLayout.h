@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#10 $
  */
 
 /**
@@ -58,14 +58,14 @@ int make_vdo_layout(block_count_t physical_blocks,
 	__attribute__((warn_unused_result));
 
 /**
- * Decode a vdo_layout from a buffer.
+ * Make a vdo_layout from the fixed_layout decoded from the super block.
  *
- * @param [in]  buffer          The buffer from which to decode
+ * @param [in]  layout          The fixed_layout from the super block
  * @param [out] vdo_layout_ptr  A pointer to hold the vdo_layout
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_layout(struct buffer *buffer,
+int decode_vdo_layout(struct fixed_layout *layout,
 		      struct vdo_layout **vdo_layout_ptr)
 	__attribute__((warn_unused_result));
 
@@ -168,25 +168,13 @@ void copy_partition(struct vdo_layout *layout,
 		    struct vdo_completion *parent);
 
 /**
- * Get the size of an encoded vdo_layout.
+ * Get the current fixed layout of the vdo.
  *
- * @param vdo_layout  The vdo_layout
+ * @param vdo_layout  The layout
  *
- * @return The encoded size of the vdo_layout
+ * @return The layout's current fixed layout
  **/
-size_t get_vdo_layout_encoded_size(const struct vdo_layout *vdo_layout)
-	__attribute__((warn_unused_result));
-
-/**
- * Encode a vdo_layout into a buffer.
- *
- * @param vdo_layout  The vdo_layout to encode
- * @param buffer     The buffer to encode into
- *
- * @return UDS_SUCCESS or an error
- **/
-int encode_vdo_layout(const struct vdo_layout *vdo_layout,
-		      struct buffer *buffer)
-	__attribute__((warn_unused_result));
+struct fixed_layout * __must_check
+get_layout(const struct vdo_layout *vdo_layout);
 
 #endif // VDO_LAYOUT_H

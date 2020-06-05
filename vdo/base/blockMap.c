@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#68 $
  */
 
 #include "blockMap.h"
@@ -27,6 +27,7 @@
 
 #include "actionManager.h"
 #include "adminState.h"
+#include "blockMapFormat.h"
 #include "blockMapInternals.h"
 #include "blockMapPage.h"
 #include "blockMapTree.h"
@@ -39,22 +40,6 @@
 #include "types.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
-
-struct block_map_state_2_0 {
-	physical_block_number_t flat_page_origin;
-	block_count_t flat_page_count;
-	physical_block_number_t root_origin;
-	block_count_t root_count;
-} __attribute__((packed));
-
-static const struct header BLOCK_MAP_HEADER_2_0 = {
-	.id = BLOCK_MAP,
-	.version = {
-		.major_version = 2,
-		.minor_version = 0,
-	},
-	.size = sizeof(struct block_map_state_2_0),
-};
 
 /**
  * State associated which each block map page while it is in the VDO page
@@ -175,99 +160,17 @@ int make_block_map(block_count_t logical_blocks,
 	return VDO_SUCCESS;
 }
 
-/**
- * Decode block map component state version 2.0 from a buffer.
- *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int decode_block_map_state_2_0(struct buffer *buffer,
-				      struct block_map_state_2_0 *state)
-{
-	size_t initial_length = content_length(buffer);
-
-	physical_block_number_t flat_page_origin;
-	int result = get_uint64_le_from_buffer(buffer, &flat_page_origin);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	block_count_t flat_page_count;
-	result = get_uint64_le_from_buffer(buffer, &flat_page_count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	physical_block_number_t root_origin;
-	result = get_uint64_le_from_buffer(buffer, &root_origin);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	block_count_t root_count;
-	result = get_uint64_le_from_buffer(buffer, &root_count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	*state = (struct block_map_state_2_0) {
-		.flat_page_origin = flat_page_origin,
-		.flat_page_count = flat_page_count,
-		.root_origin = root_origin,
-		.root_count = root_count,
-	};
-
-	size_t decoded_size = initial_length - content_length(buffer);
-	return ASSERT(BLOCK_MAP_HEADER_2_0.size == decoded_size,
-		      "decoded block map component size must match header size");
-}
-
 /**********************************************************************/
-int decode_block_map(struct buffer *buffer,
+int decode_block_map(struct block_map_state_2_0 state,
 		     block_count_t logical_blocks,
 		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
 {
-	struct header header;
-	int result = decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result =
-		validate_header(&BLOCK_MAP_HEADER_2_0, &header, true, __func__);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct block_map_state_2_0 state;
-	result = decode_block_map_state_2_0(buffer, &state);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = ASSERT(state.flat_page_origin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
-			"Flat page origin must be %u (recorded as %llu)",
-			BLOCK_MAP_FLAT_PAGE_ORIGIN,
-			state.flat_page_origin);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	struct block_map *map;
-	result = make_block_map(logical_blocks,
-				thread_config,
-				state.root_origin,
-				state.root_count,
-				&map);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*map_ptr = map;
-	return VDO_SUCCESS;
+	return make_block_map(logical_blocks,
+			      thread_config,
+			      state.root_origin,
+			      state.root_count,
+			      map_ptr);
 }
 
 /**
@@ -450,45 +353,18 @@ void free_block_map(struct block_map **map_ptr)
 }
 
 /**********************************************************************/
-size_t get_block_map_encoded_size(void)
+struct block_map_state_2_0 record_block_map(const struct block_map *map)
 {
-	return ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
-}
+	struct block_map_state_2_0 state = {
+		.flat_page_origin = BLOCK_MAP_FLAT_PAGE_ORIGIN,
+		// This is the flat page count, which has turned out to always
+		// be 0.
+		.flat_page_count = 0,
+		.root_origin = map->root_origin,
+		.root_count = map->root_count,
+	};
 
-/**********************************************************************/
-int encode_block_map(const struct block_map *map, struct buffer *buffer)
-{
-	int result = encode_header(&BLOCK_MAP_HEADER_2_0, buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t initial_length = content_length(buffer);
-
-	result = put_uint64_le_into_buffer(buffer, BLOCK_MAP_FLAT_PAGE_ORIGIN);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	// This is the flat page count, which has turned out to always be 0.
-	result = put_uint64_le_into_buffer(buffer, 0);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, map->root_origin);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, map->root_count);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	size_t encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(BLOCK_MAP_HEADER_2_0.size == encoded_size,
-		      "encoded block map component size must match header size");
+	return state;
 }
 
 /**********************************************************************/

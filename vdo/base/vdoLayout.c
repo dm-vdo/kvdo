@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#13 $
  */
 
 #include "vdoLayout.h"
@@ -167,34 +167,30 @@ int make_vdo_layout(block_count_t physical_blocks,
 }
 
 /**********************************************************************/
-int decode_vdo_layout(struct buffer *buffer,
+int decode_vdo_layout(struct fixed_layout *layout,
 		      struct vdo_layout **vdo_layout_ptr)
 {
-	struct vdo_layout *vdo_layout;
-	int result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_fixed_layout(buffer, &vdo_layout->layout);
-	if (result != VDO_SUCCESS) {
-		free_vdo_layout(&vdo_layout);
-		return result;
-	}
-
 	// Check that all the expected partitions exist
 	struct partition *partition;
 	uint8_t i;
+	int result;
 	for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
-		result = get_partition(vdo_layout->layout,
-				       REQUIRED_PARTITIONS[i], &partition);
+		result = get_partition(layout, REQUIRED_PARTITIONS[i],
+				       &partition);
 		if (result != VDO_SUCCESS) {
-			free_vdo_layout(&vdo_layout);
 			return logErrorWithStringError(result,
 						       "VDO layout is missing required partition %u",
 						       REQUIRED_PARTITIONS[i]);
 		}
 	}
+
+	struct vdo_layout *vdo_layout;
+	result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	vdo_layout->layout = layout;
 
 	// XXX Assert this is the same as where we loaded the super block.
 	vdo_layout->starting_offset =
@@ -431,14 +427,7 @@ void copy_partition(struct vdo_layout *layout,
 }
 
 /**********************************************************************/
-size_t get_vdo_layout_encoded_size(const struct vdo_layout *vdo_layout)
+struct fixed_layout *get_layout(const struct vdo_layout *vdo_layout)
 {
-	return get_fixed_layout_encoded_size(vdo_layout->layout);
-}
-
-/**********************************************************************/
-int encode_vdo_layout(const struct vdo_layout *vdo_layout,
-		      struct buffer *buffer)
-{
-	return encode_fixed_layout(vdo_layout->layout, buffer);
+	return vdo_layout->layout;
 }
