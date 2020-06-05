@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#8 $
  */
 
 #include "indexRouter.h"
@@ -136,7 +136,7 @@ int makeIndexRouter(struct index_layout          *layout,
                     const struct uds_parameters  *userParams,
                     LoadType                      loadType,
                     IndexLoadContext             *loadContext,
-                    IndexRouterCallback           callback,
+                    index_router_callback_t       callback,
                     IndexRouter                 **routerPtr)
 {
   unsigned int zoneCount = getZoneCount(userParams);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.c#4 $
  */
 
 #include "bits.h"
@@ -45,7 +45,7 @@ static INLINE uint64_t get_big_field(const byte *memory,
 {
 	const void *addr = memory + offset / CHAR_BIT;
 	return (get_unaligned_le64(addr) >> (offset % CHAR_BIT)) &
-		((1UL << size) - 1);
+	       ((1UL << size) - 1);
 }
 
 /**
@@ -87,17 +87,17 @@ void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 	uint16_t mask = ~((uint16_t) 0xFF << shift);
 	while (--size >= 0) {
 		uint16_t data = (get_unaligned_le16(addr) & mask) |
-			(*source++ << shift);
+				(*source++ << shift);
 		put_unaligned_le16(data, addr++);
 	}
 }
 
 /***********************************************************************/
 void move_bits(const byte *s_memory,
-	      uint64_t source,
-	      byte *d_memory,
-	      uint64_t destination,
-	      int size)
+	       uint64_t source,
+	       byte *d_memory,
+	       uint64_t destination,
+	       int size)
 {
 	enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
 	if (size > MAX_BIG_FIELD_BITS) {
@@ -109,7 +109,8 @@ void move_bits(const byte *s_memory,
 			int count =
 				MAX_BIG_FIELD_BITS -
 				(destination + MAX_BIG_FIELD_BITS) % UINT32_BIT;
-			uint64_t field = get_big_field(s_memory, source, count);
+			uint64_t field =
+				get_big_field(s_memory, source, count);
 			set_big_field(field, d_memory, destination, count);
 			source += count;
 			destination += count;
@@ -122,7 +123,8 @@ void move_bits(const byte *s_memory,
 			byte *dest = d_memory + destination / CHAR_BIT;
 			while (size > MAX_BIG_FIELD_BITS) {
 				put_unaligned_le32(get_unaligned_le64(src) >>
-						   offset, dest);
+							   offset,
+						   dest);
 				src += sizeof(uint32_t);
 				dest += sizeof(uint32_t);
 				source += UINT32_BIT;
@@ -137,10 +139,9 @@ void move_bits(const byte *s_memory,
 			int count = (destination + size) % UINT32_BIT;
 			if (count > 0) {
 				size -= count;
-				uint64_t field =
-					get_big_field(s_memory,
-						      source + size,
-						      count);
+				uint64_t field = get_big_field(s_memory,
+							       source + size,
+							       count);
 				set_big_field(field,
 					      d_memory,
 					      destination + size,
@@ -151,13 +152,15 @@ void move_bits(const byte *s_memory,
 			int offset = (source + size) % UINT32_BIT;
 			const byte *src =
 				s_memory + (source + size - offset) / CHAR_BIT;
-			byte *dest = d_memory + (destination + size) / CHAR_BIT;
+			byte *dest =
+				d_memory + (destination + size) / CHAR_BIT;
 			while (size > MAX_BIG_FIELD_BITS) {
 				src -= sizeof(uint32_t);
 				dest -= sizeof(uint32_t);
 				size -= UINT32_BIT;
 				put_unaligned_le32(get_unaligned_le64(src) >>
-						   offset, dest);
+							   offset,
+						   dest);
 			}
 		}
 	}
@@ -171,10 +174,10 @@ void move_bits(const byte *s_memory,
 
 /***********************************************************************/
 bool same_bits(const byte *mem1,
-	      uint64_t offset1,
-	      const byte *mem2,
-	      uint64_t offset2,
-	      int size)
+	       uint64_t offset1,
+	       const byte *mem2,
+	       uint64_t offset2,
+	       int size)
 {
 	while (size >= MAX_FIELD_BITS) {
 		unsigned int field1 = get_field(mem1, offset1, MAX_FIELD_BITS);

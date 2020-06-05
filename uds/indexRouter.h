@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#10 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -34,15 +34,15 @@
  *
  * @param request     request object.
  **/
-typedef void (*IndexRouterCallback)(Request *request);
+typedef void (*index_router_callback_t)(Request *request);
 
 struct indexRouter {
-  IndexRouterCallback  callback;
-  unsigned int         zoneCount;
-  bool                 needToSave;
-  struct index        *index;
-  RequestQueue        *triageQueue;
-  RequestQueue        *zoneQueues[];
+  index_router_callback_t  callback;
+  unsigned int             zoneCount;
+  bool                     needToSave;
+  struct index            *index;
+  RequestQueue            *triageQueue;
+  RequestQueue            *zoneQueues[];
 };
 
 /**
@@ -64,7 +64,7 @@ int __must_check makeIndexRouter(struct index_layout *layout,
 				 const struct uds_parameters *userParams,
 				 LoadType loadType,
 				 IndexLoadContext *loadContext,
-				 IndexRouterCallback callback,
+				 index_router_callback_t callback,
 				 IndexRouter **routerPtr);
 
 /**

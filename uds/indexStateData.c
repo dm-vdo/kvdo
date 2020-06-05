@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#10 $
  */
 
 #include "indexStateData.h"
@@ -28,21 +28,21 @@
 #include "uds.h"
 
 /* The index state version header */
-typedef struct {
+struct index_state_version {
   int32_t signature;
   int32_t versionID;
-} IndexStateVersion;
+};
 
 /* The version 301 index state */
-typedef struct {
+struct index_state_data301 {
   uint64_t newestChapter;
   uint64_t oldestChapter;
   uint64_t lastCheckpoint;
   uint32_t unused;
   uint32_t padding;
-} IndexStateData301;
+};
 
-static const IndexStateVersion INDEX_STATE_VERSION_301 = {
+static const struct index_state_version INDEX_STATE_VERSION_301 = {
   .signature = -1,
   .versionID = 301,
 };
@@ -63,7 +63,7 @@ static int readIndexStateData(struct read_portal *portal)
     return result;
   }
 
-  IndexStateVersion fileVersion;
+  struct index_state_version fileVersion;
   result = get_int32_le_from_buffer(buffer, &fileVersion.signature);
   if (result != UDS_SUCCESS) {
     return result;
@@ -80,7 +80,7 @@ static int readIndexStateData(struct read_portal *portal)
                                    fileVersion.versionID);
   }
 
-  IndexStateData301 state;
+  struct index_state_data301 state;
   result = get_uint64_le_from_buffer(buffer, &state.newestChapter);
   if (result != UDS_SUCCESS) {
     return result;
@@ -143,7 +143,7 @@ writeIndexStateData(struct index_component *component,
   }
 
   struct index *index = index_component_data(component);
-  IndexStateData301 state = {
+  struct index_state_data301 state = {
     .newestChapter  = index->newest_virtual_chapter,
     .oldestChapter  = index->oldest_virtual_chapter,
     .lastCheckpoint = index->last_checkpoint,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.h#5 $
  */
 
 #ifndef BITS_H
@@ -74,7 +74,7 @@ get_field(const byte *memory, uint64_t offset, int size)
 {
 	const void *addr = memory + offset / CHAR_BIT;
 	return (get_unaligned_le32(addr) >> (offset % CHAR_BIT)) &
-		((1 << size) - 1);
+	       ((1 << size) - 1);
 }
 
 /**
@@ -157,7 +157,10 @@ static INLINE void set_zero(byte *memory, uint64_t offset, int size)
  * @param destination  Where to store the bytes
  * @param size         The number of bytes
  **/
-void get_bytes(const byte *memory, uint64_t offset, byte *destination, int size);
+void get_bytes(const byte *memory,
+	       uint64_t offset,
+	       byte *destination,
+	       int size);
 
 /**
  * Store a byte stream into a bit stream, writing a whole number of bytes
