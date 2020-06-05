@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#2 $
  */
 
 #include "logger.h"
@@ -105,7 +105,7 @@ void logEmbeddedMessage(int         priority,
 {
   va_list ap;
   va_start(ap, fmt2);
-  logMessagePack(priority, prefix, fmt1, args1, fmt2, ap);
+  log_message_pack(priority, prefix, fmt1, args1, fmt2, ap);
   va_end(ap);
 }
 
@@ -137,7 +137,7 @@ static void vLogMessageHelper(int         priority,
 {
   va_list dummy;
   va_start(dummy, args);
-  logMessagePack(priority, NULL, format, args, NULL, dummy);
+  log_message_pack(priority, NULL, format, args, NULL, dummy);
   va_end(dummy);
 }
 #pragma GCC diagnostic pop

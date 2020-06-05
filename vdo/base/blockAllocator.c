@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#75 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -1047,7 +1047,7 @@ void dump_block_allocator(const struct block_allocator *allocator)
 		// being overrun.
 		if (pause_counter++ == 31) {
 			pause_counter = 0;
-			pauseForLogger();
+			pause_for_logger();
 		}
 	}
 

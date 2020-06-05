@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#3 $
  */
 
 #ifndef LOGGER_H
@@ -156,12 +156,12 @@ void logEmbeddedMessage(int         priority,
  * @param fmt2          format of message second part, may be NULL
  * @param args2         arguments for message second part
  **/
-void logMessagePack(int         priority,
-                    const char *prefix,
-                    const char *fmt1,
-                    va_list     args1,
-                    const char *fmt2,
-                    va_list     args2)
+void log_message_pack(int         priority,
+                      const char *prefix,
+                      const char *fmt1,
+                      va_list     args1,
+                      const char *fmt2,
+                      va_list     args2)
   __attribute__((format(printf, 3, 0)));
 
 /**
@@ -169,7 +169,7 @@ void logMessagePack(int         priority,
  *
  * @param  priority The priority at which to log the backtrace
  **/
-void logBacktrace(int priority);
+void log_backtrace(int priority);
 
 /**
  * Log a message with an error from an error code.
@@ -276,7 +276,7 @@ void logMessage(int priority, const char *format, ...)
  * quickly issuing a lot of log output in the Linux kernel, as when dumping a
  * large number of data structures.
  **/
-void pauseForLogger(void);
+void pause_for_logger(void);
 
 
 #endif /* LOGGER_H */

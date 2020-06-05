@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#2 $
  */
 
 #include <linux/delay.h>
@@ -27,7 +27,7 @@
 #include "logger.h"
 
 /**********************************************************************/
-static const char *priorityToLogLevel(int priority)
+static const char *priority_to_log_level(int priority)
 {
   switch (priority) {
     case LOG_EMERG:
@@ -50,7 +50,7 @@ static const char *priorityToLogLevel(int priority)
 }
 
 /**********************************************************************/
-static const char *getCurrentInterruptType(void)
+static const char *get_current_interrupt_type(void)
 {
   if (in_nmi()) {
     return "NMI";
@@ -65,12 +65,12 @@ static const char *getCurrentInterruptType(void)
 }
 
 /**********************************************************************/
-void logMessagePack(int         priority,
-                    const char *prefix,
-                    const char *fmt1,
-                    va_list     args1,
-                    const char *fmt2,
-                    va_list     args2)
+void log_message_pack(int         priority,
+                      const char *prefix,
+                      const char *fmt1,
+                      va_list     args1,
+                      const char *fmt2,
+                      va_list     args2)
 {
   if (priority > getLogLevel()) {
     return;
@@ -121,11 +121,12 @@ void logMessagePack(int         priority,
    * XXX need the equivalent of VDO's deviceInstance here
    */
   if (in_interrupt()) {
-    printk("%s%s[%s]: %s%pV%pV\n", priorityToLogLevel(priority),
-	   THIS_MODULE->name, getCurrentInterruptType(), prefix, &vaf1, &vaf2);
+    printk("%s%s[%s]: %s%pV%pV\n", priority_to_log_level(priority),
+           THIS_MODULE->name, get_current_interrupt_type(),
+           prefix, &vaf1, &vaf2);
   } else {
-    printk("%s%s: %s: %s%pV%pV\n", priorityToLogLevel(priority),
-	   THIS_MODULE->name, current->comm, prefix, &vaf1, &vaf2);
+    printk("%s%s: %s: %s%pV%pV\n", priority_to_log_level(priority),
+           THIS_MODULE->name, current->comm, prefix, &vaf1, &vaf2);
   }
 
   va_end(args1Copy);
@@ -133,7 +134,7 @@ void logMessagePack(int         priority,
 }
 
 /**********************************************************************/
-void logBacktrace(int priority)
+void log_backtrace(int priority)
 {
   if (priority > getLogLevel()) {
     return;
@@ -143,7 +144,7 @@ void logBacktrace(int priority)
 }
 
 /**********************************************************************/
-void pauseForLogger(void)
+void pause_for_logger(void)
 {
   // Hopefully, a few milliseconds of sleep will be large enough
   // for the kernel log buffer to be flushed.
