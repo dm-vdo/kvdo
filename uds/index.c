@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#18 $
  */
 
 #include "index.h"
@@ -645,11 +645,11 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 						       chapter,
 						       index_page_number);
 		}
-		result = updateIndexPageMap(index->volume->indexPageMap,
-					    vcn,
-					    chapter,
-					    index_page_number,
-					    highest_delta_list);
+		result = update_index_page_map(index->volume->indexPageMap,
+					       vcn,
+					       chapter,
+					       index_page_number,
+					       highest_delta_list);
 		if (result != UDS_SUCCESS) {
 			return logErrorWithStringError(result,
 						       "failed to update chapter %u index page %u",
@@ -842,7 +842,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 * index page map.
 	 */
 	const struct geometry *geometry = index->volume->geometry;
-	uint64_t old_ipm_update = getLastUpdate(index->volume->indexPageMap);
+	uint64_t old_ipm_update = get_last_update(index->volume->indexPageMap);
 	uint64_t vcn;
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {
 		if (check_for_suspend(index)) {
@@ -915,7 +915,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	// We also need to reap the chapter being replaced by the open chapter
 	setMasterIndexOpenChapter(index->master_index, upto_vcn);
 
-	uint64_t new_ipm_update = getLastUpdate(index->volume->indexPageMap);
+	uint64_t new_ipm_update = get_last_update(index->volume->indexPageMap);
 
 	if (new_ipm_update != old_ipm_update) {
 		logInfo("replay changed index page map update from %llu to %llu",

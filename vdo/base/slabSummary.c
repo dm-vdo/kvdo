@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#39 $
  */
 
 #include "slabSummary.h"
@@ -140,7 +140,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	slab_summary_block->vio->completion.callbackThreadID = thread_id;
+	slab_summary_block->vio->completion.callback_thread_id = thread_id;
 	slab_summary_block->zone = summary_zone;
 	slab_summary_block->entries = entries;
 	slab_summary_block->index = index;
@@ -566,7 +566,7 @@ void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 	for (i = 0; i < slab_count; i++) {
 		statuses[i] = (struct slab_status){
 			.slabNumber = i,
-			.isClean = !summary_zone->entries[i].is_dirty,
+			.is_clean = !summary_zone->entries[i].is_dirty,
 			.emptiness = summary_zone->entries[i].fullness_hint};
 	}
 }

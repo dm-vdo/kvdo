@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#11 $
  */
 
 #include "cachedChapterIndex.h"
@@ -113,9 +113,9 @@ int search_cached_chapter_index(struct cached_chapter_index *chapter,
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	unsigned int index_page_number;
-	int result = findIndexPageNumber(index_page_map, name,
-					 physical_chapter,
-					 &index_page_number);
+	int result = find_index_page_number(index_page_map, name,
+					    physical_chapter,
+					    &index_page_number);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

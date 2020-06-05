@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#53 $
  */
 
 /*
@@ -561,7 +561,8 @@ void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
 void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 		  void *stats_function, unsigned int action)
 {
-	thread_id_t thread_id = vio_as_completion(kvio->vio)->callbackThreadID;
+	thread_id_t thread_id =
+		vio_as_completion(kvio->vio)->callback_thread_id;
 
 	BUG_ON(thread_id >= kvio->layer->kvdo.initialized_thread_count);
 	launch_kvio(kvio,
@@ -582,7 +583,7 @@ static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
 void kvdo_enqueue(struct vdo_completion *completion)
 {
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
-	thread_id_t thread_id = completion->callbackThreadID;
+	thread_id_t thread_id = completion->callback_thread_id;
 
 	if (ASSERT(thread_id < layer->kvdo.initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",

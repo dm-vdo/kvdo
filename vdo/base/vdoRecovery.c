@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#62 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -614,7 +614,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 	prepare_completion(completion,
 			   add_synthesized_entries,
 			   handle_add_slab_journal_entry_error,
-			   completion->callbackThreadID,
+			   completion->callback_thread_id,
 			   &recovery->completion);
 	struct wait_queue *missing_decrefs =
 		&recovery->missing_decrefs[recovery->allocator->zone_number];
@@ -728,7 +728,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 	prepare_completion(completion,
 			   add_slab_journal_entries,
 			   handle_add_slab_journal_entry_error,
-			   completion->callbackThreadID,
+			   completion->callback_thread_id,
 			   &recovery->completion);
 	struct recovery_point *recovery_point;
 	for (recovery_point = &recovery->next_recovery_point;
@@ -1362,7 +1362,7 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 	prepare_completion(&recovery->completion,
 			   finish_recovery,
 			   abort_recovery,
-			   parent->callbackThreadID,
+			   parent->callback_thread_id,
 			   parent);
 	prepare_sub_task(recovery,
 			 prepare_to_apply_journal_entries,

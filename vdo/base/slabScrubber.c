@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#36 $
  */
 
 #include "slabScrubberInternals.h"
@@ -392,7 +392,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	prepare_completion(completion,
 			   slab_scrubbed,
 			   handle_scrubber_error,
-			   completion->callbackThreadID,
+			   completion->callback_thread_id,
 			   scrubber);
 	start_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
@@ -416,7 +416,7 @@ static void start_scrubbing(struct vdo_completion *completion)
 	prepare_completion(&scrubber->extent->completion,
 			   apply_journal_entries,
 			   handle_scrubber_error,
-			   completion->callbackThreadID,
+			   completion->callback_thread_id,
 			   completion->parent);
 	read_metadata_extent(scrubber->extent, slab->journal_origin);
 }
@@ -456,7 +456,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	prepare_completion(completion,
 			   start_scrubbing,
 			   handle_scrubber_error,
-			   scrubber->completion.callbackThreadID,
+			   scrubber->completion.callback_thread_id,
 			   scrubber);
 	start_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#74 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -511,7 +511,7 @@ void release_block_reference(struct block_allocator *allocator,
 
 /**
  * This is a HeapComparator function that orders slab_status
- * atructures using the 'isClean' field as the primary key and the
+ * structures using the 'is_clean' field as the primary key and the
  * 'emptiness' field as the secondary key.
  *
  * Slabs need to be pushed onto the rings in the same order they are
@@ -532,8 +532,8 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	const struct slab_status *info1 = (const struct slab_status *) item1;
 	const struct slab_status *info2 = (const struct slab_status *) item2;
 
-	if (info1->isClean != info2->isClean) {
-		return (info1->isClean ? 1 : -1);
+	if (info1->is_clean != info2->is_clean) {
+		return (info1->is_clean ? 1 : -1);
 	}
 	if (info1->emptiness != info2->emptiness) {
 		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
@@ -732,13 +732,13 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 		if ((depot->load_type == REBUILD_LOAD) ||
 		    (!must_load_ref_counts(allocator->summary,
 					   slab->slab_number) &&
-		     current_slab_status.isClean)) {
+		     current_slab_status.is_clean)) {
 			queue_slab(slab);
 			continue;
 		}
 
 		mark_slab_unrecovered(slab);
-		bool high_priority = ((current_slab_status.isClean &&
+		bool high_priority = ((current_slab_status.is_clean &&
 				      (depot->load_type == NORMAL_LOAD)) ||
 				     requires_scrubbing(slab->journal));
 		register_slab_for_scrubbing(allocator->slab_scrubber,

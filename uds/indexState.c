@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#11 $
  */
 
 #include "indexState.h"
@@ -115,8 +115,8 @@ int add_index_state_component(struct index_state *state,
 			      void *context)
 {
 	struct index_component *component = NULL;
-	int result = make_index_component(
-		state, info, state->zone_count, data, context, &component);
+	int result = make_index_component(state, info, state->zone_count, data,
+					  context, &component);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(
 			result, "cannot make region index component");
@@ -154,8 +154,9 @@ static const char *index_save_type_name(enum index_save_type save_type)
 /*****************************************************************************/
 int load_index_state(struct index_state *state, bool *replay_ptr)
 {
-	int result = find_latest_index_save_slot(
-		state->layout, &state->load_zones, &state->load_slot);
+	int result = find_latest_index_save_slot(state->layout,
+						 &state->load_zones,
+						 &state->load_slot);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -307,8 +308,7 @@ int start_index_state_checkpoint(struct index_state *state)
 }
 
 /*****************************************************************************/
-int perform_index_state_checkpoint_chapter_synchronized_saves(
-	struct index_state *state)
+int perform_index_state_checkpoint_chapter_synchronized_saves(struct index_state *state)
 {
 	if (!state->saving) {
 		return UDS_SUCCESS;
@@ -321,7 +321,8 @@ int perform_index_state_checkpoint_chapter_synchronized_saves(
 		    !defer_index_component_checkpoint_to_chapter_writer(component)) {
 			continue;
 		}
-		int result = perform_index_component_chapter_writer_save(component);
+		int result =
+			perform_index_component_chapter_writer_save(component);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -341,12 +342,13 @@ int perform_index_state_checkpoint_chapter_synchronized_saves(
  *  @return UDS_SUCCESS or an error code
  *
  **/
-static int do_index_state_checkpoint_in_zone(
-	struct index_state *state,
-	unsigned int zone,
-	int (*comp_func)(struct index_component *, unsigned int,
-			 enum completion_status *),
-	enum completion_status *completed)
+static int
+do_index_state_checkpoint_in_zone(struct index_state *state,
+				  unsigned int zone,
+				  int (*comp_func)(struct index_component *,
+				  		   unsigned int,
+			 			   enum completion_status *),
+				  enum completion_status *completed)
 {
 	if (!state->saving) {
 		if (completed != NULL) {

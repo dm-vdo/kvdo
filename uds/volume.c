@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#21 $
  */
 
 #include "volume.h"
@@ -189,26 +189,26 @@ static int initChapterIndexPage(const Volume            *volume,
   }
 
   struct index_page_bounds bounds;
-  result = getListNumberBounds(volume->indexPageMap, chapter,
-                               indexPageNumber, &bounds);
+  result = get_list_number_bounds(volume->indexPageMap, chapter,
+                                  indexPageNumber, &bounds);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   uint64_t     ciVirtual = chapterIndexPage->virtual_chapter_number;
   unsigned int ciChapter = map_to_physical_chapter(geometry, ciVirtual);
-  if ((chapter == ciChapter)
-      && (bounds.lowestList == chapterIndexPage->lowest_list_number)
-      && (bounds.highestList == chapterIndexPage->highest_list_number)) {
+  if ((chapter == ciChapter) &&
+      (bounds.lowest_list == chapterIndexPage->lowest_list_number) &&
+      (bounds.highest_list == chapterIndexPage->highest_list_number)) {
     return UDS_SUCCESS;
   }
 
   logWarning("Index page map updated to %llu",
-             getLastUpdate(volume->indexPageMap));
+             get_last_update(volume->indexPageMap));
   logWarning("Page map expects that chapter %u page %u has range %u to %u, "
              "but chapter index page has chapter %" PRIu64
              " with range %u to %u",
-             chapter, indexPageNumber, bounds.lowestList, bounds.highestList,
+             chapter, indexPageNumber, bounds.lowest_list, bounds.highest_list,
              ciVirtual, chapterIndexPage->lowest_list_number,
              chapterIndexPage->highest_list_number);
   return ASSERT_WITH_ERROR_CODE(false,
@@ -709,8 +709,8 @@ int searchVolumePageCache(Volume                      *volume,
   unsigned int physicalChapter
     = map_to_physical_chapter(volume->geometry, virtualChapter);
   unsigned int indexPageNumber;
-  int result = findIndexPageNumber(volume->indexPageMap, name, physicalChapter,
-                                   &indexPageNumber);
+  int result = find_index_page_number(volume->indexPageMap, name,
+  				      physicalChapter, &indexPageNumber);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -846,10 +846,11 @@ int writeIndexPages(Volume                     *volume,
     } else {
       deltaListNumber += listsPacked;
     }
-    result = updateIndexPageMap(volume->indexPageMap,
-                                chapterIndex->virtual_chapter_number,
-                                physicalChapterNumber,
-                                indexPageNumber, deltaListNumber - 1);
+    result = update_index_page_map(volume->indexPageMap,
+    				   chapterIndex->virtual_chapter_number,
+    				   physicalChapterNumber,
+    				   indexPageNumber,
+    				   deltaListNumber - 1);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "failed to update index page map");
@@ -1283,7 +1284,7 @@ static int __must_check allocateVolume(const struct configuration *config,
     freeVolume(volume);
     return result;
   }
-  result = makeIndexPageMap(volume->geometry, &volume->indexPageMap);
+  result = make_index_page_map(volume->geometry, &volume->indexPageMap);
   if (result != UDS_SUCCESS) {
     freeVolume(volume);
     return result;
@@ -1385,7 +1386,7 @@ void freeVolume(Volume *volume)
   destroyCond(&volume->readThreadsCond);
   destroyCond(&volume->readThreadsReadDoneCond);
   destroyMutex(&volume->readThreadsMutex);
-  freeIndexPageMap(volume->indexPageMap);
+  free_index_page_map(volume->indexPageMap);
   free_radix_sorter(volume->radixSorter);
   FREE(volume->geometry);
   FREE(volume->recordPointers);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#15 $
  */
 
 #include "vioPool.h"
@@ -167,7 +167,7 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
 	ASSERT_LOG_ONLY((pool->thread_id == getCallbackThreadID()),
 			"vio pool entry returned on same thread as it was acquired");
-	entry->vio->completion.errorHandler = NULL;
+	entry->vio->completion.error_handler = NULL;
 	if (has_waiters(&pool->waiting)) {
 		notify_next_waiter(&pool->waiting, NULL, entry);
 		return;

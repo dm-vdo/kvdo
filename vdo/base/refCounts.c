@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#44 $
  */
 
 #include "refCounts.h"
@@ -1268,7 +1268,7 @@ static void write_reference_block(struct waiter *block_waiter,
 	// journal entries which cover this reference update are stable
 	// (VDO-2331).
 	relaxedAdd64(&block->ref_counts->statistics->blocks_written, 1);
-	entry->vio->completion.callbackThreadID =
+	entry->vio->completion.callback_thread_id =
 		block->ref_counts->slab->allocator->thread_id;
 	launch_write_metadata_vio_with_flush(entry->vio,
 					     pbn,
@@ -1453,7 +1453,7 @@ static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 	physical_block_number_t pbn = (block->ref_counts->origin + block_offset);
 	entry->parent = block;
 
-	entry->vio->completion.callbackThreadID =
+	entry->vio->completion.callback_thread_id =
 		block->ref_counts->slab->allocator->thread_id;
 	launch_read_metadata_vio(entry->vio, pbn, finish_reference_block_load,
 				 handle_io_error);

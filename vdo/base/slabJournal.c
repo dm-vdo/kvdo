@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#57 $
  */
 
 #include "slabJournalInternals.h"
@@ -237,7 +237,7 @@ int make_slab_journal(struct block_allocator *allocator,
 	journal->size = slab_config->slab_journal_blocks;
 	journal->flushing_threshold =
 		slab_config->slab_journal_flushing_threshold;
-	journal->blockingThreshold =
+	journal->blocking_threshold =
 		slab_config->slab_journal_blocking_threshold;
 	journal->scrubbing_threshold = slab_config->slab_journal_scrubbing_threshold;
 	journal->entries_per_block = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
@@ -251,8 +251,8 @@ int make_slab_journal(struct block_allocator *allocator,
 	journal->flushing_deadline = journal->flushing_threshold;
 	// Set there to be some time between the deadline and the blocking
 	// threshold, so that hopefully all are done before blocking.
-	if ((journal->blockingThreshold - journal->flushing_threshold) > 5) {
-		journal->flushing_deadline = journal->blockingThreshold - 5;
+	if ((journal->blocking_threshold - journal->flushing_threshold) > 5) {
+		journal->flushing_deadline = journal->blocking_threshold - 5;
 	}
 
 	journal->slab_summary_waiter.callback = release_journal_locks;
@@ -433,7 +433,8 @@ static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 	struct vio *vio = entry->vio;
 
 	entry->parent = journal;
-	vio->completion.callbackThreadID = journal->slab->allocator->thread_id;
+	vio->completion.callback_thread_id =
+		journal->slab->allocator->thread_id;
 	launch_flush(vio, complete_reaping, handle_flush_error);
 }
 
@@ -724,7 +725,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 		get_block_number(journal, header->sequence_number);
 
 	entry->parent = journal;
-	entry->vio->completion.callbackThreadID =
+	entry->vio->completion.callback_thread_id =
 		journal->slab->allocator->thread_id;
 	/*
 	 * This block won't be read in recovery until the slab summary is
@@ -942,7 +943,7 @@ static bool requires_flushing(const struct slab_journal *journal)
 static bool requires_reaping(const struct slab_journal *journal)
 {
 	block_count_t journal_length = (journal->tail - journal->head);
-	return (journal_length >= journal->blockingThreshold);
+	return (journal_length >= journal->blocking_threshold);
 }
 
 /**********************************************************************/
@@ -1106,7 +1107,7 @@ static void add_entries(struct slab_journal *journal)
 				 * journal size, the new block cannot possibly
 				 * have locks already.
 				 */
-				ASSERT_LOG_ONLY((journal->blockingThreshold >=
+				ASSERT_LOG_ONLY((journal->blocking_threshold >=
 						 journal->size),
 						"New block can have locks already iff blocking threshold is at the end of the journal");
 
@@ -1331,7 +1332,7 @@ static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 	TailBlockOffset tail_block =
 		((last_commit_point == 0) ? (TailBlockOffset)(journal->size - 1) :
 		 (last_commit_point - 1));
-	entry->vio->completion.callbackThreadID = slab->allocator->thread_id;
+	entry->vio->completion.callback_thread_id = slab->allocator->thread_id;
 	launch_read_metadata_vio(entry->vio,
 				 slab->journal_origin + tail_block,
 				 set_decoded_state,

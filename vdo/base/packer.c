@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#50 $
  */
 
 #include "packerInternals.h"
@@ -404,11 +404,11 @@ switch_to_packer_thread(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 	thread_id_t thread_id = vio->vdo->packer->thread_id;
-	if (completion->callbackThreadID == thread_id) {
+	if (completion->callback_thread_id == thread_id) {
 		return true;
 	}
 
-	completion->callbackThreadID = thread_id;
+	completion->callback_thread_id = thread_id;
 	invoke_callback(completion);
 	return false;
 }

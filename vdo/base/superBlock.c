@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#22 $
  */
 
 #include "superBlock.h"
@@ -273,7 +273,8 @@ void save_super_block_async(struct vdo_super_block *super_block,
 	}
 
 	super_block->parent = parent;
-	super_block->vio->completion.callbackThreadID = parent->callbackThreadID;
+	super_block->vio->completion.callback_thread_id =
+		parent->callback_thread_id;
 	launch_write_metadata_vio_with_flush(super_block->vio,
 					     super_block_offset,
 					     finish_super_block_parent,
@@ -415,7 +416,8 @@ void load_super_block_async(struct vdo_completion *parent,
 	*super_block_ptr = super_block;
 
 	super_block->parent = parent;
-	super_block->vio->completion.callbackThreadID = parent->callbackThreadID;
+	super_block->vio->completion.callback_thread_id =
+		parent->callback_thread_id;
 	launch_read_metadata_vio(super_block->vio,
 				 super_block_offset,
 				 finish_reading_super_block,

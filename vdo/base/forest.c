@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#35 $
  */
 
 #include "forest.h"
@@ -511,7 +511,7 @@ static void launch_cursor(struct waiter *waiter, void *context)
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
-	vio_as_completion(cursor->vio_pool_entry->vio)->callbackThreadID =
+	vio_as_completion(cursor->vio_pool_entry->vio)->callback_thread_id =
 		cursor->parent->zone->map_zone->thread_id;
 	traverse(cursor);
 }

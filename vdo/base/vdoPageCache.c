@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#34 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -106,7 +106,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 			}
 
 			// The thread ID should never change.
-			info->vio->completion.callbackThreadID =
+			info->vio->completion.callback_thread_id =
 				cache->zone->thread_id;
 		}
 
@@ -1186,7 +1186,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 				&info->vio->completion;
 			reset_completion(completion);
 			completion->callback = page_is_written_out;
-			completion->errorHandler = handle_page_write_error;
+			completion->error_handler = handle_page_write_error;
 			finish_completion(completion, VDO_READ_ONLY);
 			continue;
 		}

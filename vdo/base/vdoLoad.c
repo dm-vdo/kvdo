@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#47 $
  */
 
 #include "vdoLoad.h"
@@ -398,7 +398,7 @@ static void load_vdo_components(struct vdo_completion *completion)
 	prepare_completion(completion,
 			   finish_parent_callback,
 			   abort_load,
-			   completion->callbackThreadID,
+			   completion->callback_thread_id,
 			   completion->parent);
 	finish_completion(completion, decode_vdo(vdo, true));
 }

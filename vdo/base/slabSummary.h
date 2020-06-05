@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#20 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -62,7 +62,7 @@ typedef uint8_t TailBlockOffset;
  **/
 struct slab_status {
 	slab_count_t slabNumber;
-	bool isClean;
+	bool is_clean;
 	uint8_t emptiness;
 };
 

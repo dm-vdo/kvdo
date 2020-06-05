@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#23 $
  */
 
 #include "indexLayout.h"
@@ -226,10 +226,12 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 					       "cannot compute index save size");
 	}
 
-	sls->page_map_blocks = block_count(computeIndexPageMapSaveSize(&sls->geometry),
-					   block_size);
-	sls->open_chapter_blocks = block_count(computeSavedOpenChapterSize(&sls->geometry),
-					       block_size);
+	sls->page_map_blocks =
+		block_count(compute_index_page_map_save_size(&sls->geometry),
+			    block_size);
+	sls->open_chapter_blocks =
+		block_count(computeSavedOpenChapterSize(&sls->geometry),
+			    block_size);
 	sls->save_blocks =
 		1 + (sls->master_index_blocks + sls->page_map_blocks +
 		     sls->open_chapter_blocks);

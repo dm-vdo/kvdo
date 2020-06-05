@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#65 $
  */
 
 #include "recoveryJournal.h"
@@ -510,7 +510,7 @@ int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 			return result;
 		}
 
-		journal->flush_vio->completion.callbackThreadID =
+		journal->flush_vio->completion.callback_thread_id =
 			journal->thread_id;
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#22 $
  */
 
 #include "vio.h"
@@ -61,7 +61,7 @@ void vio_done_callback(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 	completion->callback = vio->callback;
-	completion->errorHandler = vio->error_handler;
+	completion->error_handler = vio->error_handler;
 	complete_completion(completion);
 }
 
@@ -138,7 +138,7 @@ void launch_metadata_vio(struct vio *vio,
 	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
 	completion->callback = vio_done_callback;
-	completion->errorHandler = handle_metadata_io_error;
+	completion->error_handler = handle_metadata_io_error;
 
 	submitMetadataVIO(vio);
 }
@@ -151,7 +151,7 @@ void launch_metadata_vio(struct vio *vio,
 static void handle_flush_error(struct vdo_completion *completion)
 {
 	logErrorWithStringError(completion->result, "Error flushing layer");
-	completion->errorHandler = as_vio(completion)->error_handler;
+	completion->error_handler = as_vio(completion)->error_handler;
 	complete_completion(completion);
 }
 
@@ -166,7 +166,7 @@ void launch_flush(struct vio *vio,
 	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
 	completion->callback = callback;
-	completion->errorHandler = handle_flush_error;
+	completion->error_handler = handle_flush_error;
 	vio->error_handler = error_handler;
 	vio->operation = VIO_FLUSH_BEFORE;
 	vio->physical = ZERO_BLOCK;

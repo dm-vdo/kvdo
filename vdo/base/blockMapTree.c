@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#67 $
  */
 
 #include "blockMapTree.h"
@@ -539,7 +539,7 @@ static void write_page(struct tree_page *tree_page,
 	memcpy(entry->buffer, tree_page->page_buffer, VDO_BLOCK_SIZE);
 
 	struct vdo_completion *completion = vio_as_completion(entry->vio);
-	completion->callbackThreadID = zone->map_zone->thread_id;
+	completion->callback_thread_id = zone->map_zone->thread_id;
 
 	tree_page->writing = true;
 	tree_page->writing_generation = tree_page->generation;
@@ -853,7 +853,7 @@ static void load_page(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 
 	entry->parent = data_vio;
-	entry->vio->completion.callbackThreadID =
+	entry->vio->completion.callback_thread_id =
 		get_block_map_for_zone(data_vio->logical.zone)->thread_id;
 
 	struct tree_lock *lock = &data_vio->tree_lock;

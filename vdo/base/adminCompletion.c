@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#18 $
  */
 
 #include "adminCompletion.h"
@@ -92,7 +92,7 @@ struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
 	reset_completion(completion);
-	completion->callbackThreadID =
+	completion->callback_thread_id =
 		admin_completion->get_thread_id(admin_completion);
 	return completion;
 }
@@ -119,7 +119,7 @@ void prepare_admin_sub_task(struct vdo *vdo,
 	prepare_admin_sub_task_on_thread(vdo,
 					 callback,
 					 error_handler,
-					 admin_completion->completion.callbackThreadID);
+					 admin_completion->completion.callback_thread_id);
 }
 
 /**

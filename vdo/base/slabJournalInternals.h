@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#25 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -252,9 +252,10 @@ struct slab_journal {
 	/** The number of blocks at which all reference blocks should be writing
 	 */
 	block_count_t flushing_deadline;
-	/** The number of blocks at which to wait for reference blocks to write
+	/**
+	 * The number of blocks at which to wait for reference blocks to write
 	 */
-	block_count_t blockingThreshold;
+	block_count_t blocking_threshold;
 	/**
 	 * The number of blocks at which to scrub the slab before coming online
 	 */
