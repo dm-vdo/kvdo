@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#9 $
  */
 
 #include "priorityTable.h"
@@ -40,7 +40,7 @@ struct bucket {
 	/**
 	 * The head of a queue of table entries, all having the same priority
 	 */
-	RingNode queue;
+	struct list_head queue;
 	/** The priority of all the entries in this bucket */
 	unsigned int priority;
 };
@@ -64,11 +64,11 @@ struct priority_table {
 /**
  * Convert a queue head to to the bucket that contains it.
  *
- * @param head  The bucket queue ring head pointer to convert
+ * @param head  The bucket queue list head pointer to convert
  *
  * @return the enclosing bucket
  **/
-static inline struct bucket *as_bucket(RingNode *head)
+static inline struct bucket *as_bucket(struct list_head *head)
 {
 	STATIC_ASSERT(offsetof(struct bucket, queue) == 0);
 	return (struct bucket *) head;
@@ -93,7 +93,7 @@ int make_priority_table(unsigned int max_priority,
 	for (priority = 0; priority <= max_priority; priority++) {
 		struct bucket *bucket = &table->buckets[priority];
 		bucket->priority = priority;
-		initializeRing(&bucket->queue);
+		INIT_LIST_HEAD(&bucket->queue);
 	}
 
 	table->max_priority = max_priority;
@@ -125,19 +125,19 @@ void reset_priority_table(struct priority_table *table)
 	table->search_vector = 0;
 	unsigned int priority;
 	for (priority = 0; priority <= table->max_priority; priority++) {
-		unspliceRingNode(&table->buckets[priority].queue);
+		list_del_init(&table->buckets[priority].queue);
 	}
 }
 
 /**********************************************************************/
 void priority_table_enqueue(struct priority_table *table, unsigned int priority,
-			    RingNode *entry)
+			    struct list_head *entry)
 {
 	ASSERT_LOG_ONLY((priority <= table->max_priority),
 			"entry priority must be valid for the table");
 
 	// Append the entry to the queue in the specified bucket.
-	pushRingNode(&table->buckets[priority].queue, entry);
+	list_move_tail(entry, &table->buckets[priority].queue);
 
 	// Flag the bucket in the search vector since it must be non-empty.
 	table->search_vector |= (1ULL << priority);
@@ -151,7 +151,7 @@ static inline void mark_bucket_empty(struct priority_table *table,
 }
 
 /**********************************************************************/
-RingNode *priority_table_dequeue(struct priority_table *table)
+struct list_head *priority_table_dequeue(struct priority_table *table)
 {
 	// Find the highest priority non-empty bucket by finding the
 	// highest-order non-zero bit in the search vector.
@@ -164,10 +164,11 @@ RingNode *priority_table_dequeue(struct priority_table *table)
 
 	// Dequeue the first entry in the bucket.
 	struct bucket *bucket = &table->buckets[top_priority];
-	RingNode *entry = unspliceRingNode(bucket->queue.next);
+	struct list_head *entry = (bucket->queue.next);
+	list_del_init(entry);
 
 	// Clear the bit in the search vector if the bucket has been emptied.
-	if (isRingEmpty(&bucket->queue)) {
+	if (list_empty(&bucket->queue)) {
 		mark_bucket_empty(table, bucket);
 	}
 
@@ -175,24 +176,25 @@ RingNode *priority_table_dequeue(struct priority_table *table)
 }
 
 /**********************************************************************/
-void priority_table_remove(struct priority_table *table, RingNode *entry)
+void priority_table_remove(struct priority_table *table,
+			   struct list_head *entry)
 {
-	// We can't guard against calls where the entry is on a ring for a
+	// We can't guard against calls where the entry is on a list for a
 	// different table, but it's easy to deal with an entry not in any table
-	// or ring.
-	if (isRingEmpty(entry)) {
+	// or list.
+	if (list_empty(entry)) {
 		return;
 	}
 
-	// Remove the entry from the bucket ring, remembering a pointer to
+	// Remove the entry from the bucket list, remembering a pointer to
 	// another entry in the ring.
-	RingNode *next_node = entry->next;
-	unspliceRingNode(entry);
+	struct list_head *next_entry = entry->next;
+	list_del_init(entry);
 
-	// If the rest of the ring is now empty, the next node must be the ring
+	// If the rest of the list is now empty, the next node must be the list
 	// head in the bucket and we can use it to update the search vector.
-	if (isRingEmpty(next_node)) {
-		mark_bucket_empty(table, as_bucket(next_node));
+	if (list_empty(next_entry)) {
+		mark_bucket_empty(table, as_bucket(next_entry));
 	}
 }
 

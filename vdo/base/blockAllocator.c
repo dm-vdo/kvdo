@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#77 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -113,7 +113,7 @@ static void prioritize_slab(struct vdo_slab *slab)
 	slab->priority = calculate_slab_priority(slab);
 	priority_table_enqueue(slab->allocator->prioritized_slabs,
 			       slab->priority,
-			       (RingNode *) &slab->list_entry);
+			       &slab->list_entry);
 }
 
 /**********************************************************************/
@@ -420,7 +420,7 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	// Reprioritize the slab to reflect the new free block count by removing
 	// it from the table and re-enqueuing it with the new priority.
 	priority_table_remove(allocator->prioritized_slabs,
-			      (RingNode *) &slab->list_entry);
+			      &slab->list_entry);
 	prioritize_slab(slab);
 }
 
@@ -990,7 +990,7 @@ void allocate_from_allocator_last_slab(struct block_allocator *allocator)
 	struct vdo_slab *last_slab =
 		allocator->depot->slabs[allocator->last_slab];
 	priority_table_remove(allocator->prioritized_slabs,
-			      (RingNode *) &last_slab->list_entry);
+			      &last_slab->list_entry);
 	allocator->open_slab = last_slab;
 }
 

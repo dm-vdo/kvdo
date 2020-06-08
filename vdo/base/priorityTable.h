@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#7 $
  */
 
 #ifndef PRIORITY_TABLE_H
 #define PRIORITY_TABLE_H
 
-#include "ringNode.h"
+#include "list.h"
 
 /**
  * A priority_table is a simple implementation of a priority queue for entries
@@ -34,8 +34,8 @@
  * have O(1) complexity.
  *
  * The links for the table entries must be embedded in the entries themselves.
- * RingNode is used to link entries in the table and no wrapper type is
- * declared, so an existing RingNode link in an object can also be used to
+ * Lists are used to link entries in the table and no wrapper type is
+ * declared, so an existing list entry in an object can also be used to
  * queue it in a priority_table, assuming the field is not used for anything
  * else while so queued.
  *
@@ -73,11 +73,11 @@ void free_priority_table(struct priority_table **table_ptr);
  *
  * @param table     The table in which to store the entry
  * @param priority  The priority of the entry
- * @param entry     The RingNode embedded in the entry to store in the table
+ * @param entry     The list_head embedded in the entry to store in the table
  *                  (the caller must have initialized it)
  **/
 void priority_table_enqueue(struct priority_table *table, unsigned int priority,
-			    RingNode *entry);
+			    struct list_head *entry);
 
 /**
  * Reset a priority table, leaving it in the same empty state as when newly
@@ -97,7 +97,8 @@ void reset_priority_table(struct priority_table *table);
  *
  * @return the dequeued entry, or NULL if the table is currently empty
  **/
-RingNode * __must_check priority_table_dequeue(struct priority_table *table);
+struct list_head * __must_check
+priority_table_dequeue(struct priority_table *table);
 
 /**
  * Remove a specified entry from its priority table.
@@ -105,7 +106,8 @@ RingNode * __must_check priority_table_dequeue(struct priority_table *table);
  * @param table   The table from which to remove the entry
  * @param entry   The entry to remove from the table
  **/
-void priority_table_remove(struct priority_table *table, RingNode *entry);
+void priority_table_remove(struct priority_table *table,
+			   struct list_head *entry);
 
 /**
  * Return whether the priority table is empty.
