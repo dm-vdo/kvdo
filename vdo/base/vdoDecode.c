@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#4 $
  */
 
 #include "vdoDecode.h"
@@ -54,6 +54,7 @@ int start_vdo_decode(struct vdo *vdo,
 	}
 
 	if (vdo->load_config.nonce != vdo->nonce) {
+		destroy_component_states(states);
 		return logErrorWithStringError(VDO_BAD_NONCE,
 					       "Geometry nonce %llu does not match superblock nonce %llu",
 					       vdo->load_config.nonce,
@@ -61,7 +62,13 @@ int start_vdo_decode(struct vdo *vdo,
 	}
 
 	block_count_t block_count = vdo->layer->getBlockCount(vdo->layer);
-	return validate_vdo_config(&vdo->config, block_count, true);
+	result = validate_vdo_config(&vdo->config, block_count, true);
+	if (result != VDO_SUCCESS) {
+		destroy_component_states(states);
+		return result;
+	}
+
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
