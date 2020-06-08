@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#56 $
  */
 
 #include "dmvdo.h"
@@ -611,7 +611,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	// Now that we have read the geometry, we can finish setting up the
 	// vdo_load_config.
-	setLoadConfigFromGeometry(&layer->geometry, &load_config);
+	set_load_config_from_geometry(&layer->geometry, &load_config);
 
 	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *
 				  load_config.thread_config->logical_zone_count)) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#14 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -190,8 +190,9 @@ int compute_index_blocks(struct index_config *index_config,
  * @param geometry     The geometry to use
  * @param load_config  The load config to set
  **/
-static inline void setLoadConfigFromGeometry(struct volume_geometry *geometry,
-					     struct vdo_load_config *load_config)
+static inline void
+set_load_config_from_geometry(struct volume_geometry *geometry,
+			      struct vdo_load_config *load_config)
 {
 	load_config->first_block_offset = get_data_region_offset(*geometry);
 	load_config->release_version = geometry->release_version;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#40 $
  */
 
 #include "slabSummary.h"
@@ -152,7 +152,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
  *
  * @param summary      The summary to which the new zone will belong
  * @param layer        The layer
- * @param zoneNumber   The zone this is
+ * @param zone_number  The zone this is
  * @param thread_id    The ID of the thread for this zone
  * @param entries      The buffer to hold the entries in this zone
  *
@@ -160,21 +160,21 @@ initialize_slab_summary_block(PhysicalLayer *layer,
  **/
 static int make_slab_summary_zone(struct slab_summary *summary,
 				  PhysicalLayer *layer,
-				  zone_count_t zoneNumber,
+				  zone_count_t zone_number,
 				  thread_id_t thread_id,
 				  struct slab_summary_entry *entries)
 {
 	int result = ALLOCATE_EXTENDED(struct slab_summary_zone,
 				       summary->blocks_per_zone,
 				       struct slab_summary_block, __func__,
-				       &summary->zones[zoneNumber]);
+				       &summary->zones[zone_number]);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	struct slab_summary_zone *summary_zone = summary->zones[zoneNumber];
+	struct slab_summary_zone *summary_zone = summary->zones[zone_number];
 	summary_zone->summary = summary;
-	summary_zone->zone_number = zoneNumber;
+	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
 
 	if (layer->createMetadataVIO == NULL) {
@@ -423,8 +423,8 @@ static void launch_write(struct slab_summary_block *block)
 	// reference updates covered by this summary update are stable
 	// (VDO-2332).
 	physical_block_number_t pbn =
-		(summary->origin + (summary->blocks_per_zone * zone->zone_number)
-		 + block->index);
+		(summary->origin + (summary->blocks_per_zone *
+				    zone->zone_number) + block->index);
 	launch_write_metadata_vio_with_flush(block->vio, pbn, finish_update,
 					     handle_write_error, true, false);
 }
@@ -565,7 +565,7 @@ void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 	slab_count_t i;
 	for (i = 0; i < slab_count; i++) {
 		statuses[i] = (struct slab_status){
-			.slabNumber = i,
+			.slab_number = i,
 			.is_clean = !summary_zone->entries[i].is_dirty,
 			.emptiness = summary_zone->entries[i].fullness_hint};
 	}

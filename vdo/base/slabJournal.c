@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#58 $
  */
 
 #include "slabJournalInternals.h"
@@ -243,7 +243,7 @@ int make_slab_journal(struct block_allocator *allocator,
 	journal->entries_per_block = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
 	journal->full_entries_per_block = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;
-	journal->recoveryJournal = recovery_journal;
+	journal->recovery_journal = recovery_journal;
 	journal->summary = get_slab_summary_zone(allocator);
 	journal->tail = 1;
 	journal->head = 1;
@@ -555,10 +555,10 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 	for (i = journal->summarized - 1; i >= first; i--) {
 		// Release the lock the summarized block held on the recovery
 		// journal. (During replay, recovery_start will always be 0.)
-		if (journal->recoveryJournal != NULL) {
+		if (journal->recovery_journal != NULL) {
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
-			release_recovery_journal_block_reference(journal->recoveryJournal,
+			release_recovery_journal_block_reference(journal->recovery_journal,
 								 get_lock(journal, i)->recovery_start,
 								 ZONE_TYPE_PHYSICAL,
 								 zone_number);
@@ -977,10 +977,10 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		 */
 		get_lock(journal, header->sequence_number)->recovery_start =
  			recovery_block;
-		if (journal->recoveryJournal != NULL) {
+		if (journal->recovery_journal != NULL) {
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
-			acquire_recovery_journal_block_reference(journal->recoveryJournal,
+			acquire_recovery_journal_block_reference(journal->recovery_journal,
 								 recovery_block,
 								 ZONE_TYPE_PHYSICAL,
 								 zone_number);
@@ -1374,10 +1374,10 @@ void decode_slab_journal(struct slab_journal *journal)
 /**********************************************************************/
 void dump_slab_journal(const struct slab_journal *journal)
 {
-	logInfo("  slab journal: entryWaiters=%zu waitingToCommit=%s"
-		" updatingSlabSummary=%s head=%llu unreapable=%" PRIu64
-		" tail=%llu nextCommit=%llu summarized=%" PRIu64
-		" lastSummarized=%llu recoveryJournalLock=%" PRIu64
+	logInfo("  slab journal: entry_waiters=%zu waiting_to_commit=%s"
+		" updating_slab_summary=%s head=%llu unreapable=%" PRIu64
+		" tail=%llu next_commit=%llu summarized=%" PRIu64
+		" last_summarized=%llu recovery_lock=%" PRIu64
 		" dirty=%s",
 		count_waiters(&journal->entry_waiters),
 		boolToString(journal->waiting_to_commit),

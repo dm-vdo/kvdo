@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#13 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -94,7 +94,7 @@ typedef bool action_scheduler(void *context);
  * @param context      The action context
  * @param zone_number  The number of the zone for which the thread ID is desired
  **/
-typedef thread_id_t zone_thread_getter(void *context, zone_count_t zoneNumber);
+typedef thread_id_t zone_thread_getter(void *context, zone_count_t zone_number);
 
 /**
  * Make an action manager.

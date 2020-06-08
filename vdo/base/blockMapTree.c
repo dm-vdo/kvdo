@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#69 $
  */
 
 #include "blockMapTree.h"
@@ -176,7 +176,7 @@ get_tree_page(const struct block_map_tree_zone *zone,
 {
 	return get_tree_page_by_index(zone->map_zone->block_map->forest,
 				      lock->root_index, lock->height,
-				      lock->tree_slots[lock->height].pageIndex);
+				      lock->tree_slots[lock->height].page_index);
 }
 
 /**********************************************************************/
@@ -758,7 +758,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 					mapping.pbn, mapping.state,
-					lock->tree_slots[lock->height - 1].pageIndex,
+					lock->tree_slots[lock->height - 1].page_index,
 					lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;
@@ -886,7 +886,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	key.descriptor = (struct page_descriptor) {
 		.root_index = lock->root_index,
 		.height = height,
-		.page_index = tree_slot.pageIndex,
+		.page_index = tree_slot.page_index,
 		.slot = tree_slot.block_map_slot.slot,
 	};
 	lock->key = key.key;
@@ -1216,10 +1216,10 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 
 	struct tree_lock *lock = &data_vio->tree_lock;
 	page_number_t page_index =
-		(lock->tree_slots[0].pageIndex /
+		(lock->tree_slots[0].page_index /
 		 zone->map_zone->block_map->root_count);
 	struct block_map_tree_slot tree_slot = {
-		.pageIndex = page_index / BLOCK_MAP_ENTRIES_PER_PAGE,
+		.page_index = page_index / BLOCK_MAP_ENTRIES_PER_PAGE,
 		.block_map_slot = {
 			.pbn = 0,
 			.slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE,
@@ -1239,9 +1239,9 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 
 		// Calculate the index and slot for the next level.
 		tree_slot.block_map_slot.slot =
-			tree_slot.pageIndex % BLOCK_MAP_ENTRIES_PER_PAGE;
-		tree_slot.pageIndex =
-			tree_slot.pageIndex / BLOCK_MAP_ENTRIES_PER_PAGE;
+			tree_slot.page_index % BLOCK_MAP_ENTRIES_PER_PAGE;
+		tree_slot.page_index =
+			tree_slot.page_index / BLOCK_MAP_ENTRIES_PER_PAGE;
 	}
 
 	// The page at this height has been allocated and loaded.
@@ -1252,7 +1252,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 					mapping.pbn, mapping.state,
-					lock->tree_slots[lock->height - 1].pageIndex,
+					lock->tree_slots[lock->height - 1].page_index,
 					lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;

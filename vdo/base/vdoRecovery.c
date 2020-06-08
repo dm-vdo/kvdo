@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#63 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -824,9 +824,9 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 
 	decref->slab_journal =
 		get_slab_journal((struct slab_depot *) context, mapping.pbn);
-	zone_count_t zoneNumber =
+	zone_count_t zone_number =
 		decref->slab_journal->slab->allocator->zone_number;
-	enqueue_missing_decref(&decref->recovery->missing_decrefs[zoneNumber],
+	enqueue_missing_decref(&decref->recovery->missing_decrefs[zone_number],
 			     decref);
 }
 

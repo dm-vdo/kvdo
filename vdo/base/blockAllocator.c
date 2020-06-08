@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#76 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -538,7 +538,7 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	if (info1->emptiness != info2->emptiness) {
 		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
 	}
-	return ((info1->slabNumber < info2->slabNumber) ? 1 : -1);
+	return ((info1->slab_number < info2->slab_number) ? 1 : -1);
 }
 
 /**
@@ -724,7 +724,7 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 	struct slab_status current_slab_status;
 	while (pop_max_heap_element(&heap, &current_slab_status)) {
 		struct vdo_slab *slab =
-			depot->slabs[current_slab_status.slabNumber];
+			depot->slabs[current_slab_status.slab_number];
 		if (slab->allocator != allocator) {
 			continue;
 		}

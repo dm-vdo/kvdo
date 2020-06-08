@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#30 $
  */
 
 #include "blockMapRecovery.h"
@@ -224,9 +224,9 @@ make_recovery_completion(struct vdo *vdo,
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-	const struct thread_config *threadConfig = get_thread_config(vdo);
-	recovery->admin_thread = get_admin_thread(threadConfig);
-	recovery->logical_thread_id = get_logical_zone_thread(threadConfig, 0);
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	recovery->admin_thread = get_admin_thread(thread_config);
+	recovery->logical_thread_id = get_logical_zone_thread(thread_config, 0);
 
 	// Organize the journal entries into a binary heap so we can iterate
 	// over them in sorted order incrementally, avoiding an expensive sort
@@ -300,10 +300,10 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 		 */
 		size_t i;
 		for (i = 0; i < recovery->page_count; i++) {
-			struct vdo_page_completion *pageCompletion =
+			struct vdo_page_completion *page_completion =
 				&recovery->page_completions[i];
 			if (recovery->page_completions[i].ready) {
-				release_vdo_page_completion(&pageCompletion->completion);
+				release_vdo_page_completion(&page_completion->completion);
 			}
 		}
 		complete_completion(&recovery->completion);

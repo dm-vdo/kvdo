@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#14 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -104,7 +104,7 @@ union packed_journal_header {
 		block_count_t block_map_data_blocks;
 		uint8_t check_byte;
 		uint8_t recovery_count;
-	} littleEndian;
+	} little_endian;
 #endif
 } __attribute__((packed));
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#68 $
  */
 
 #include "slabDepot.h"
@@ -266,11 +266,11 @@ static int allocate_components(struct slab_depot *depot,
 	// Allocate the block allocators.
 	zone_count_t zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		thread_id_t threadID =
+		thread_id_t thread_id =
 			get_physical_zone_thread(thread_config, zone);
 		result = make_block_allocator(depot,
 					      zone,
-					      threadID,
+					      thread_id,
 					      nonce,
 					      vio_pool_size,
 					      layer,
