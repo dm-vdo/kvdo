@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#8 $
  */
 
 #include "indexSession.h"
@@ -346,7 +346,7 @@ static void waitForNoRequestsInProgress(struct uds_index_session *indexSession)
 int saveAndFreeIndex(struct uds_index_session *indexSession)
 {
   int result = UDS_SUCCESS;
-  IndexRouter *router = indexSession->router;
+  struct index_router *router = indexSession->router;
   if (router != NULL) {
     lockMutex(&indexSession->requestMutex);
     bool suspended = (indexSession->state & IS_FLAG_SUSPENDED);

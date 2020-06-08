@@ -16,18 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/opaqueTypes.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/opaqueTypes.h#2 $
  */
 
 #ifndef OPAQUE_TYPES_H
 #define OPAQUE_TYPES_H
 
 /*
- * This file contains typedefs of structures internal to the UDS library
- * for which many users of those structures do need to know the details
+ * This file contains structure declarations internal to the UDS library
+ * for which many users of those structures do not need to know the details
  * of the structures themselves.
  */
-typedef struct indexRouter     IndexRouter;
+struct index_router;
 typedef struct internalRequest Request;
 typedef struct requestQueue    RequestQueue;
 

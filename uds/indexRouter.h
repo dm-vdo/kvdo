@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#11 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -36,7 +36,7 @@
  **/
 typedef void (*index_router_callback_t)(Request *request);
 
-struct indexRouter {
+struct index_router {
   index_router_callback_t  callback;
   unsigned int             zoneCount;
   bool                     needToSave;
@@ -46,7 +46,7 @@ struct indexRouter {
 };
 
 /**
- * Construct and initialize an IndexRouter instance.
+ * Construct and initialize an index_router instance.
  *
  * @param layout       the index_layout that describes the stored index
  * @param config       the configuration to use
@@ -65,7 +65,7 @@ int __must_check makeIndexRouter(struct index_layout *layout,
 				 LoadType loadType,
 				 IndexLoadContext *loadContext,
 				 index_router_callback_t callback,
-				 IndexRouter **routerPtr);
+				 struct index_router **routerPtr);
 
 /**
  * Executes the index operation for a UDS request and calls the callback upon
@@ -74,7 +74,7 @@ int __must_check makeIndexRouter(struct index_layout *layout,
  * @param router      The index router.
  * @param request     A pointer to the Request to process.
  **/
-void executeIndexRouterRequest(IndexRouter *router, Request *request);
+void executeIndexRouterRequest(struct index_router *router, Request *request);
 
 /**
  * Save the index router state to persistent storage.
@@ -88,14 +88,14 @@ void executeIndexRouterRequest(IndexRouter *router, Request *request);
  *
  * @return UDS_SUCCESS if successful.
  **/
-int __must_check saveIndexRouter(IndexRouter *router);
+int __must_check saveIndexRouter(struct index_router *router);
 
 /**
  * Destroy the index router and free its memory.
  *
  * @param router  the index router to destroy (may be NULL)
  **/
-void freeIndexRouter(IndexRouter *router);
+void freeIndexRouter(struct index_router *router);
 
 /**
  * Select and return the request queue responsible for executing the next
@@ -109,9 +109,9 @@ void freeIndexRouter(IndexRouter *router);
  * @return the next index stage queue (the local triage queue, local zone
  *         queue, or remote RPC send queue)
  **/
-RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
-                                     Request      *request,
-                                     RequestStage  nextStage);
+RequestQueue *selectIndexRouterQueue(struct index_router *router,
+                                     Request             *request,
+                                     RequestStage         nextStage);
 
 /**
  * Wait for the index router to finish all operations that access a local
@@ -119,7 +119,7 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
  *
  * @param router    The index router.
  **/
-static INLINE void waitForIdleIndexRouter(IndexRouter *router)
+static INLINE void waitForIdleIndexRouter(struct index_router *router)
 {
   wait_for_idle_chapter_writer(router->index->chapter_writer);
 }

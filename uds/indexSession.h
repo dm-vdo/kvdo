@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#4 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -109,7 +109,7 @@ typedef struct indexLoadContext {
  **/
 struct uds_index_session {
   unsigned int              state;   // Covered by requestMutex.
-  IndexRouter              *router;
+  struct index_router      *router;
   RequestQueue             *callbackQueue;
   struct uds_configuration  userConfig;
   IndexLoadContext          loadContext;

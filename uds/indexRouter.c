@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#9 $
  */
 
 #include "indexRouter.h"
@@ -47,9 +47,9 @@ static void executeZoneRequest(Request *request)
  * @param index           the index with the relevant cache and chapter
  * @param virtualChapter  the virtual chapter number of the chapter to cache
  **/
-static void enqueueBarrierMessages(IndexRouter  *router,
-                                   struct index *index,
-                                   uint64_t      virtualChapter)
+static void enqueueBarrierMessages(struct index_router *router,
+                                   struct index        *index,
+                                   uint64_t             virtualChapter)
 {
   ZoneMessage barrier = {
     .index = index,
@@ -78,7 +78,7 @@ static void enqueueBarrierMessages(IndexRouter  *router,
  **/
 static void triageRequest(Request *request)
 {
-  IndexRouter *router = request->router;
+  struct index_router *router = request->router;
   struct index *index = router->index;
 
   // Check if the name is a hook in the index pointing at a sparse chapter.
@@ -99,7 +99,7 @@ static void triageRequest(Request *request)
  *
  * @return  UDS_SUCCESS or error code
  **/
-static int initializeLocalIndexQueues(IndexRouter           *router,
+static int initializeLocalIndexQueues(struct index_router   *router,
                                       const struct geometry *geometry)
 {
   unsigned int i;
@@ -124,8 +124,8 @@ static int initializeLocalIndexQueues(IndexRouter           *router,
 }
 
 /**********************************************************************/
-static INLINE RequestQueue *getZoneQueue(IndexRouter  *router,
-                                         unsigned int  zoneNumber)
+static INLINE RequestQueue *getZoneQueue(struct index_router *router,
+                                         unsigned int         zoneNumber)
 {
   return router->zoneQueues[zoneNumber];
 }
@@ -137,12 +137,12 @@ int makeIndexRouter(struct index_layout          *layout,
                     LoadType                      loadType,
                     IndexLoadContext             *loadContext,
                     index_router_callback_t       callback,
-                    IndexRouter                 **routerPtr)
+                    struct index_router         **routerPtr)
 {
   unsigned int zoneCount = getZoneCount(userParams);
-  IndexRouter *router;
-  int result = ALLOCATE_EXTENDED(IndexRouter, zoneCount, RequestQueue *,
-                                 "index router", &router);
+  struct index_router *router;
+  int result = ALLOCATE_EXTENDED(struct index_router, zoneCount,
+                                 RequestQueue *, "index router", &router);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -169,7 +169,7 @@ int makeIndexRouter(struct index_layout          *layout,
 }
 
 /**********************************************************************/
-int saveIndexRouter(IndexRouter *router)
+int saveIndexRouter(struct index_router *router)
 {
   if (!router->needToSave) {
     return UDS_SUCCESS;
@@ -180,7 +180,7 @@ int saveIndexRouter(IndexRouter *router)
 }
 
 /**********************************************************************/
-void freeIndexRouter(IndexRouter *router)
+void freeIndexRouter(struct index_router *router)
 {
   if (router == NULL) {
     return;
@@ -195,9 +195,9 @@ void freeIndexRouter(IndexRouter *router)
 }
 
 /**********************************************************************/
-RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
-                                     Request      *request,
-                                     RequestStage  nextStage)
+RequestQueue *selectIndexRouterQueue(struct index_router *router,
+                                     Request             *request,
+                                     RequestStage         nextStage)
 {
   if (request->isControlMessage) {
     return getZoneQueue(router, request->zoneNumber);
@@ -222,7 +222,7 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
 }
 
 /**********************************************************************/
-void executeIndexRouterRequest(IndexRouter *router, Request *request)
+void executeIndexRouterRequest(struct index_router *router, Request *request)
 {
   if (request->isControlMessage) {
     int result = dispatchIndexZoneControlRequest(request);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#8 $
  */
 
 #ifndef REQUEST_H
@@ -141,8 +141,8 @@ struct internalRequest {
    * The remainder of this structure is private to the UDS implementation.
    */
   struct funnel_queue_entry requestQueueLink; // for lock-free request queue
-  Request          *nextRequest;
-  IndexRouter      *router;
+  Request             *nextRequest;
+  struct index_router *router;
 
   // Data for control message requests
   ZoneMessage zoneMessage;
@@ -175,7 +175,7 @@ int __must_check
 launchZoneControlMessage(RequestAction action,
 			 ZoneMessage message,
 			 unsigned int zone,
-			 IndexRouter *router);
+			 struct index_router *router);
 
 /**
  * Free an index request.
