@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#61 $
  */
 
 #ifndef TYPES_H
@@ -445,8 +445,8 @@ typedef void compressed_writer(struct allocating_vio *allocating_vio);
 /**
  * An asynchronous data operation.
  *
- * @param dataVIO  The data_vio on which to operate
+ * @param data_vio  The data_vio on which to operate
  **/
-typedef void async_data_operation(struct data_vio *dataVIO);
+typedef void async_data_operation(struct data_vio *data_vio);
 
 #endif // TYPES_H

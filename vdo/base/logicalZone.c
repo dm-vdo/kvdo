@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#36 $
  */
 
 #include "logicalZone.h"
@@ -367,17 +367,17 @@ sequence_number_t get_oldest_locked_generation(const struct logical_zone *zone)
 }
 
 /**********************************************************************/
-int acquire_flush_generation_lock(struct data_vio *dataVIO)
+int acquire_flush_generation_lock(struct data_vio *data_vio)
 {
-	struct logical_zone *zone = dataVIO->logical.zone;
+	struct logical_zone *zone = data_vio->logical.zone;
 	assert_on_zone_thread(zone, __func__);
 	if (!is_normal(&zone->state)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	dataVIO->flush_generation = zone->flush_generation;
-	pushRingNode(&zone->write_vios, &dataVIO->writeNode);
-	dataVIO->has_flush_generation_lock = true;
+	data_vio->flush_generation = zone->flush_generation;
+	pushRingNode(&zone->write_vios, &data_vio->writeNode);
+	data_vio->has_flush_generation_lock = true;
 	zone->ios_in_flush_generation++;
 	return VDO_SUCCESS;
 }
