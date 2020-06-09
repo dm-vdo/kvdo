@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#7 $
  */
 
 #include "uds.h"
@@ -216,9 +216,9 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
   // Zero the stats for the new index.
   memset(&indexSession->stats, 0, sizeof(indexSession->stats));
 
-  result = makeIndexRouter(layout, indexConfig, userParams, loadType,
-                           &indexSession->loadContext, enterCallbackStage,
-                           &indexSession->router);
+  result = make_index_router(layout, indexConfig, userParams, loadType,
+                             &indexSession->loadContext, enterCallbackStage,
+                             &indexSession->router);
   free_configuration(indexConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to make router");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#24 $
  */
 
 #include "indexLayout.h"
@@ -652,8 +652,7 @@ load_super_block(struct index_layout *layout,
 					       super_data.block_size,
 					       block_size);
 	}
-	initializeIndexVersion(&layout->version,
-			       super_data.version);
+	initialize_index_version(&layout->version, super_data.version);
 
 	result = allocate_single_file_parts(layout, &super_data);
 	if (result != UDS_SUCCESS) {
@@ -1328,7 +1327,7 @@ init_single_file_layout(struct index_layout *layout,
 				  sls->open_chapter_blocks,
 				  sls->page_map_blocks,
 				  &layout->super);
-	initializeIndexVersion(&layout->version, SUPER_VERSION_CURRENT);
+	initialize_index_version(&layout->version, SUPER_VERSION_CURRENT);
 
 	int result = allocate_single_file_parts(layout, &layout->super);
 	if (result != UDS_SUCCESS) {

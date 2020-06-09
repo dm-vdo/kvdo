@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#25 $
  */
 
 #include "hashZone.h"
@@ -30,8 +30,8 @@
 #include "dataVIO.h"
 #include "hashLock.h"
 #include "hashLockInternals.h"
+#include "list.h"
 #include "pointerMap.h"
-#include "ringNode.h"
 #include "statistics.h"
 #include "threadConfig.h"
 #include "types.h"
@@ -51,8 +51,8 @@ struct hash_zone {
 	/** Mapping from chunkName fields to HashLocks */
 	struct pointer_map *hash_lock_map;
 
-	/** Ring containing all unused HashLocks */
-	RingNode lock_pool;
+	/** List containing all unused HashLocks */
+	struct list_head lock_pool;
 
 	/**
 	 * Statistics shared by all hash locks in this zone. Only modified on
@@ -88,10 +88,10 @@ static uint32_t hash_key(const void *key)
 }
 
 /**********************************************************************/
-static inline struct hash_lock *as_hash_lock(RingNode *pool_node)
+static inline struct hash_lock *as_hash_lock(struct list_head *entry)
 {
 	STATIC_ASSERT(offsetof(struct hash_lock, pool_node) == 0);
-	return (struct hash_lock *) pool_node;
+	return (struct hash_lock *) entry;
 }
 
 /**********************************************************************/
@@ -114,7 +114,7 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	zone->zone_number = zone_number;
 	zone->thread_id = get_hash_zone_thread(get_thread_config(vdo),
 					       zone_number);
-	initializeRing(&zone->lock_pool);
+	INIT_LIST_HEAD(&zone->lock_pool);
 
 	result = ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
 			  "hash_lock array", &zone->lock_array);
@@ -127,7 +127,7 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		struct hash_lock *lock = &zone->lock_array[i];
 		initialize_hash_lock(lock);
-		pushRingNode(&zone->lock_pool, &lock->pool_node);
+		list_add_tail(&lock->pool_node, &zone->lock_pool);
 	}
 
 	*zone_ptr = zone;
@@ -191,7 +191,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 
 	memset(lock, 0, sizeof(*lock));
 	initialize_hash_lock(lock);
-	pushRingNode(&zone->lock_pool, &lock->pool_node);
+	list_add_tail(&lock->pool_node, &zone->lock_pool);
 }
 
 /**********************************************************************/
@@ -202,12 +202,14 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 {
 	// Borrow and prepare a lock from the pool so we don't have to do two
 	// pointer_map accesses in the common case of no lock contention.
-	struct hash_lock *new_lock = as_hash_lock(popRingNode(&zone->lock_pool));
-	int result = ASSERT(new_lock != NULL,
+	int result = ASSERT(!list_empty(&zone->lock_pool),
 			    "never need to wait for a free hash lock");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+	struct list_head *entry = zone->lock_pool.prev;
+	list_del_init(entry);
+	struct hash_lock *new_lock = as_hash_lock(entry);
 
 	// Fill in the hash of the new lock so we can map it, since we have to
 	// use the hash as the map key.
@@ -270,9 +272,9 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
 	ASSERT_LOG_ONLY((lock->state == HASH_LOCK_DESTROYING),
 			"returned hash lock must not be in use with state %s",
 			get_hash_lock_state_name(lock->state));
-	ASSERT_LOG_ONLY(isRingEmpty(&lock->pool_node),
+	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
 			"hash lock returned to zone must not be in a pool ring");
-	ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicate_ring),
+	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
 			"hash lock returned to zone must not reference DataVIOs");
 
 	return_hash_lock_to_pool(zone, &lock);
@@ -286,7 +288,7 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
  **/
 static void dump_hash_lock(const struct hash_lock *lock)
 {
-	if (!isRingEmpty(&lock->pool_node)) {
+	if (!list_empty(&lock->pool_node)) {
 		// This lock is on the free list.
 		return;
 	}

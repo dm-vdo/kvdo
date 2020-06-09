@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#33 $
  */
 
 /**
@@ -111,10 +111,10 @@
 #include "constants.h"
 #include "dataVIO.h"
 #include "hashZone.h"
+#include "list.h"
 #include "packer.h"
 #include "pbnLock.h"
 #include "physicalZone.h"
-#include "ringNode.h"
 #include "slab.h"
 #include "slabDepot.h"
 #include "trace.h"
@@ -223,16 +223,16 @@ static void set_duplicate_lock(struct hash_lock *hash_lock,
 }
 
 /**
- * Convert a pointer to the hash_lockNode field in a data_vio to the enclosing
- * data_vio.
+ * Convert a pointer to the hash_lock_entry field in a data_vio to the
+ * enclosing data_vio.
  *
- * @param lock_node The RingNode to convert
+ * @param entry The list entry to convert
  *
- * @return A pointer to the data_vio containing the RingNode
+ * @return A pointer to the data_vio containing the list entry
  **/
-static inline struct data_vio *data_vio_from_lock_node(RingNode *lock_node)
+static inline struct data_vio *data_vio_from_lock_entry(struct list_head *entry)
 {
-	return container_of(lock_node, struct data_vio, hash_lock_node);
+	return container_of(entry, struct data_vio, hash_lock_entry);
 }
 
 /**
@@ -279,7 +279,7 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 			data_vio->hash_zone != NULL,
 			"must have a hash zone when halding a hash lock");
 		ASSERT_LOG_ONLY(
-			!isRingEmpty(&data_vio->hash_lock_node),
+			!list_empty(&data_vio->hash_lock_entry),
 			"must be on a hash lock ring when holding a hash lock");
 		ASSERT_LOG_ONLY(old_lock->reference_count > 0,
 				"hash lock reference must be counted");
@@ -293,7 +293,7 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 					get_hash_lock_state_name(old_lock->state));
 		}
 
-		unspliceRingNode(&data_vio->hash_lock_node);
+		list_del_init(&data_vio->hash_lock_entry);
 		old_lock->reference_count -= 1;
 
 		data_vio->hash_lock = NULL;
@@ -303,8 +303,8 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 		// Keep all data_vios sharing the lock on a ring since they can
 		// complete in any order and we'll always need a pointer to one
 		// to compare data.
-		pushRingNode(&new_lock->duplicate_ring,
-			     &data_vio->hash_lock_node);
+		list_move_tail(&data_vio->hash_lock_entry,
+			       &new_lock->duplicate_ring);
 		new_lock->reference_count += 1;
 
 		// XXX Not needed for VDOSTORY-190, but useful for checking
@@ -1554,12 +1554,12 @@ void continue_hash_lock_on_error(struct data_vio *data_vio)
 static bool is_hash_collision(struct hash_lock *lock,
 			      struct data_vio *candidate)
 {
-	if (isRingEmpty(&lock->duplicate_ring)) {
+	if (list_empty(&lock->duplicate_ring)) {
 		return false;
 	}
 
 	struct data_vio *lock_holder =
-		data_vio_from_lock_node(lock->duplicate_ring.next);
+		data_vio_from_lock_entry(lock->duplicate_ring.next);
 	bool collides = !compareDataVIOs(lock_holder, candidate);
 
 	if (collides) {
@@ -1580,7 +1580,7 @@ assert_hash_lock_preconditions(const struct data_vio *data_vio)
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	result = ASSERT(isRingEmpty(&data_vio->hash_lock_node),
+	result = ASSERT(list_empty(&data_vio->hash_lock_entry),
 			"must not already be a member of a hash lock ring");
 	if (result != VDO_SUCCESS) {
 		return result;

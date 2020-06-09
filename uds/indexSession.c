@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#9 $
  */
 
 #include "indexSession.h"
@@ -352,12 +352,12 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
     bool suspended = (indexSession->state & IS_FLAG_SUSPENDED);
     unlockMutex(&indexSession->requestMutex);
     if (!suspended) {
-      result = saveIndexRouter(router);
+      result = save_index_router(router);
       if (result != UDS_SUCCESS) {
-        logWarningWithStringError(result, "ignoring error from saveIndexRouter");
+        logWarningWithStringError(result, "ignoring error from save_index_router");
       }
     }
-    freeIndexRouter(router);
+    free_index_router(router);
     indexSession->router = NULL;
 
     // Reset all index state that happens to be in the index session, so it
@@ -458,7 +458,7 @@ int udsFlushIndexSession(struct uds_index_session *indexSession)
 {
   waitForNoRequestsInProgress(indexSession);
   // Wait until any open chapter writes are complete
-  waitForIdleIndexRouter(indexSession->router);
+  wait_for_idle_index_router(indexSession->router);
   return UDS_SUCCESS;
 }
 
@@ -466,8 +466,8 @@ int udsFlushIndexSession(struct uds_index_session *indexSession)
 int udsSaveIndex(struct uds_index_session *indexSession)
 {
   waitForNoRequestsInProgress(indexSession);
-  // saveIndexRouter waits for open chapter writes to complete
-  return saveIndexRouter(indexSession->router);
+  // save_index_router waits for open chapter writes to complete
+  return save_index_router(indexSession->router);
 }
 
 /**********************************************************************/

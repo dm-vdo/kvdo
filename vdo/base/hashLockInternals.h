@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#12 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
 #define HASH_LOCK_INTERNALS_H
 
 #include "completion.h"
-#include "ringNode.h"
+#include "list.h"
 #include "types.h"
 #include "uds.h"
 #include "waitQueue.h"
@@ -59,19 +59,20 @@ typedef enum {
 
 struct hash_lock {
 	/**
-	 * When the lock is unused, this RingNode allows the lock to be pooled
+	 * When the lock is unused, this list entry allows the lock to be
+	 * pooled
 	 */
-	RingNode pool_node;
+	struct list_head pool_node;
 
 	/** The block hash covered by this lock */
 	struct uds_chunk_name hash;
 
 	/**
-	 * A ring containing the DataVIOs sharing this lock, all having the same
-	 * chunk name and data block contents, linked by their hashLockNode
-	 * fields.
+	 * A list containing the data VIOs sharing this lock, all having the
+	 * same chunk name and data block contents, linked by their
+	 * hash_lock_node fields.
 	 **/
-	RingNode duplicate_ring;
+	struct list_head duplicate_ring;
 
 	/** The number of DataVIOs sharing this lock instance */
 	vio_count_t reference_count;
@@ -126,8 +127,8 @@ struct hash_lock {
  **/
 static inline void initialize_hash_lock(struct hash_lock *lock)
 {
-	initializeRing(&lock->pool_node);
-	initializeRing(&lock->duplicate_ring);
+	INIT_LIST_HEAD(&lock->pool_node);
+	INIT_LIST_HEAD(&lock->duplicate_ring);
 	initialize_wait_queue(&lock->waiters);
 }
 

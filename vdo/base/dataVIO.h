@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#46 $
  */
 
 #ifndef DATA_VIO_H
@@ -30,6 +30,7 @@
 #include "blockMappingState.h"
 #include "constants.h"
 #include "hashZone.h"
+#include "list.h"
 #include "journalPoint.h"
 #include "logicalZone.h"
 #include "referenceOperation.h"
@@ -212,10 +213,10 @@ struct data_vio {
 	struct hash_lock *hash_lock;
 
 	/*
-	 * All data_vios sharing a hash lock are kept in a ring linking these
-	 * nodes
+	 * All data_vios sharing a hash lock are kept in a list linking these
+	 * list entries
 	 */
-	RingNode hash_lock_node;
+	struct list_head hash_lock_entry;
 
 	/*
 	* The block number in the partition of the albireo deduplication advice

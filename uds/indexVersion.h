@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.h#2 $
  */
 
 #ifndef INDEX_VERSION_H
@@ -25,23 +25,23 @@
 #include "typeDefs.h"
 
 struct index_version {
-  bool chapterIndexHeaderNativeEndian;
+	bool chapter_index_header_native_endian;
 };
 
 enum {
-  SUPER_VERSION_MINIMUM = 1,
-  SUPER_VERSION_MAXIMUM = 3,
-  SUPER_VERSION_CURRENT = 3,
+	SUPER_VERSION_MINIMUM = 1,
+	SUPER_VERSION_MAXIMUM = 3,
+	SUPER_VERSION_CURRENT = 3,
 };
 
 /**
  * Initialize the version parameters that we normally learn when loading the
  * index but need to use during index operation.
  *
- * @param version       The version parameters
- * @param superVersion  The SuperBlock version number
+ * @param version        The version parameters
+ * @param super_version  The SuperBlock version number
  **/
-void initializeIndexVersion(struct index_version *version,
-                            uint32_t              superVersion);
+void initialize_index_version(struct index_version *version,
+			      uint32_t super_version);
 
 #endif // INDEX_VERSION_H

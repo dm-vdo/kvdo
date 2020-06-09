@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#4 $
  */
 
 #include "request.h"
@@ -102,7 +102,7 @@ static RequestQueue *getNextStageQueue(Request      *request,
 
   // Local and remote index routers handle the rest of the pipeline
   // differently, so delegate the choice of queue to the router.
-  return selectIndexRouterQueue(request->router, request, nextStage);
+  return select_index_router_queue(request->router, request, nextStage);
 }
 
 /**********************************************************************/

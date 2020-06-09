@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#14 $
  */
 
 #include "chapterWriter.h"
@@ -169,7 +169,7 @@ int make_chapter_writer(struct index *index,
 	result = make_open_chapter_index(
 		&writer->open_chapter_index,
 		index->volume->geometry,
-		index_version->chapterIndexHeaderNativeEndian,
+		index_version->chapter_index_header_native_endian,
 		index->volume->nonce);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
