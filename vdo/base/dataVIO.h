@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#47 $
  */
 
 #ifndef DATA_VIO_H
@@ -235,8 +235,8 @@ struct data_vio {
 	 */
 	struct journal_point recovery_journal_point;
 
-	/* The RingNode of vios in user initiated write requests */
-	RingNode writeNode;
+	/* The list of vios in user initiated write requests */
+	struct list_head write_entry;
 
 	/*
 	 * A flag indicating that a data write vio has a flush generation lock

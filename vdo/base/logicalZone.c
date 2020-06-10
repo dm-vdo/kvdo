@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#37 $
  */
 
 #include "logicalZone.h"
@@ -65,7 +65,7 @@ struct logical_zone {
 	/** Whether a notification is in progress */
 	bool notifying;
 	/** The queue of active data write VIOs */
-	RingNode write_vios;
+	struct list_head write_vios;
 	/** The administrative state of the zone */
 	struct admin_state state;
 	/** The selector for determining which physical zone to allocate from */
@@ -137,7 +137,7 @@ static int initialize_zone(struct logical_zones *zones,
 	zone->thread_id = get_logical_zone_thread(get_thread_config(vdo),
 					       	  zone_number);
 	zone->block_map_zone = get_block_map_zone(vdo->block_map, zone_number);
-	initializeRing(&zone->write_vios);
+	INIT_LIST_HEAD(&zone->write_vios);
 	atomicStore64(&zone->oldest_locked_generation, 0);
 
 	return make_allocation_selector(get_thread_config(vdo)->physical_zone_count,
@@ -220,7 +220,7 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
 static void check_for_drain_complete(struct logical_zone *zone)
 {
 	if (!is_draining(&zone->state) || zone->notifying
-	    || !isRingEmpty(&zone->write_vios)) {
+	    || !list_empty(&zone->write_vios)) {
 		return;
 	}
 
@@ -306,15 +306,16 @@ struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
 }
 
 /**
- * Convert a RingNode to a data_vio.
+ * Convert a list entry to a data_vio.
  *
- * @param ring_node The RingNode to convert
+ * @param entry The entry to convert
  *
- * @return The data_vio which owns the RingNode
+ * @return The data_vio which owns the list entry
  **/
-static inline struct data_vio *data_vio_from_ring_node(RingNode *ring_node)
+static inline struct data_vio *
+data_vio_from_list_entry(struct list_head *entry)
 {
-	return container_of(ring_node, struct data_vio, writeNode);
+	return container_of(entry, struct data_vio, write_entry);
 }
 
 /**
@@ -328,11 +329,11 @@ static inline struct data_vio *data_vio_from_ring_node(RingNode *ring_node)
 static bool update_oldest_active_generation(struct logical_zone *zone)
 {
 	sequence_number_t current_oldest = zone->oldest_active_generation;
-	if (isRingEmpty(&zone->write_vios)) {
+	if (list_empty(&zone->write_vios)) {
 		zone->oldest_active_generation = zone->flush_generation;
 	} else {
 		zone->oldest_active_generation =
-			data_vio_from_ring_node(zone->write_vios.next)->flush_generation;
+			data_vio_from_list_entry(zone->write_vios.next)->flush_generation;
 	}
 
 	if (zone->oldest_active_generation == current_oldest) {
@@ -376,7 +377,7 @@ int acquire_flush_generation_lock(struct data_vio *data_vio)
 	}
 
 	data_vio->flush_generation = zone->flush_generation;
-	pushRingNode(&zone->write_vios, &data_vio->writeNode);
+	list_move_tail(&data_vio->write_entry, &zone->write_vios);
 	data_vio->has_flush_generation_lock = true;
 	zone->ios_in_flush_generation++;
 	return VDO_SUCCESS;
@@ -427,7 +428,7 @@ void release_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 	assert_on_zone_thread(zone, __func__);
-	if (isRingEmpty(&data_vio->writeNode)) {
+	if (list_empty(&data_vio->write_entry)) {
 		// This VIO never got a lock, either because it is a read, or
 		// because we are in read-only mode.
 		ASSERT_LOG_ONLY(!data_vio->has_flush_generation_lock,
@@ -435,7 +436,7 @@ void release_flush_generation_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	unspliceRingNode(&data_vio->writeNode);
+	list_del_init(&data_vio->write_entry);
 	data_vio->has_flush_generation_lock = false;
 	ASSERT_LOG_ONLY(zone->oldest_active_generation
 				<= data_vio->flush_generation,

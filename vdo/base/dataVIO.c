@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#35 $
  */
 
 #include "dataVIO.h"
@@ -100,7 +100,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
 	initialize_lbn_lock(data_vio, lbn);
 	INIT_LIST_HEAD(&data_vio->hash_lock_entry);
-	initializeRing(&data_vio->writeNode);
+	INIT_LIST_HEAD(&data_vio->write_entry);
 
 	reset_allocation(data_vio_as_allocating_vio(data_vio));
 
