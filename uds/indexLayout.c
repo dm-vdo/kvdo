@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#25 $
  */
 
 #include "indexLayout.h"
@@ -791,7 +791,7 @@ static bool expect_layout(bool expect,
 			  struct layout_region *lr,
 			  struct region_iterator *iter,
 			  uint64_t num_blocks,
-			  RegionKind kind,
+			  enum region_kind kind,
 			  unsigned int instance)
 {
 	if (iter->result != UDS_SUCCESS) {
@@ -2410,7 +2410,7 @@ struct buffer *get_index_state_buffer(struct index_layout *layout,
 static int find_layout_region(struct index_layout *layout,
 			      unsigned int slot,
 			      const char *operation,
-			      RegionKind kind,
+			      enum region_kind kind,
 			      unsigned int zone,
 			      struct layout_region **lr_ptr)
 {
@@ -2463,7 +2463,7 @@ static int find_layout_region(struct index_layout *layout,
 /*****************************************************************************/
 int open_index_buffered_reader(struct index_layout *layout,
 			       unsigned int slot,
-			       RegionKind kind,
+			       enum region_kind kind,
 			       unsigned int zone,
 			       struct buffered_reader **reader_ptr)
 {
@@ -2478,7 +2478,7 @@ int open_index_buffered_reader(struct index_layout *layout,
 /*****************************************************************************/
 int open_index_buffered_writer(struct index_layout *layout,
 			       unsigned int slot,
-			       RegionKind kind,
+			       enum region_kind kind,
 			       unsigned int zone,
 			       struct buffered_writer **writer_ptr)
 {

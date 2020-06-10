@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#9 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -103,7 +103,7 @@ typedef int (*incremental_writer_t)(struct index_component *component,
  * At least one of saver or incremental must be specified.
  **/
 struct index_component_info {
-	RegionKind kind;                  // Region kind
+	enum region_kind kind;            // Region kind
 	const char *name;                 // The name of the component
 					  // (for logging)
 	bool save_only;                   // Used for saves but not checkpoints

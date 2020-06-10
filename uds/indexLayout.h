@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#14 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -132,7 +132,7 @@ void get_index_layout(struct index_layout *layout,
 int __must_check
 open_index_buffered_reader(struct index_layout *layout,
 			   unsigned int slot,
-			   RegionKind kind,
+			   enum region_kind kind,
 			   unsigned int zone,
 			   struct buffered_reader **reader_ptr);
 
@@ -150,7 +150,7 @@ open_index_buffered_reader(struct index_layout *layout,
 int __must_check
 open_index_buffered_writer(struct index_layout *layout,
 			   unsigned int slot,
-			   RegionKind kind,
+			   enum region_kind kind,
 			   unsigned int zone,
 			   struct buffered_writer **writer_ptr);
 

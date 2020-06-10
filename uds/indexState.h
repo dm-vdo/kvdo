@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#11 $
  */
 
 #ifndef INDEX_STATE_H
@@ -284,7 +284,7 @@ get_state_index_state_buffer(struct index_state *state,
  **/
 int __must_check
 open_state_buffered_reader(struct index_state *state,
-			   RegionKind kind,
+			   enum region_kind kind,
 			   unsigned int zone,
 			   struct buffered_reader **reader_ptr);
 
@@ -301,7 +301,7 @@ open_state_buffered_reader(struct index_state *state,
  **/
 int __must_check
 open_state_buffered_writer(struct index_state *state,
-			   RegionKind kind,
+			   enum region_kind kind,
 			   unsigned int zone,
 			   struct buffered_writer **writer_ptr);
 
