@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#21 $
  */
 #include "masterIndex005.h"
 
@@ -55,33 +55,35 @@
  * flushInvalidEntries() for an example of this technique.
  */
 
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) masterIndexZone {
+struct master_index_zone {
   uint64_t virtualChapterLow;      // The lowest virtual chapter indexed
   uint64_t virtualChapterHigh;     // The highest virtual chapter indexed
   long     numEarlyFlushes;        // The number of early flushes
-} MasterIndexZone;
+} __attribute__((aligned(CACHE_LINE_BYTES)));
 
-typedef struct {
-  MasterIndex common;              // Common master index methods
-  struct delta_index deltaIndex;   // The delta index
-  uint64_t *flushChapters;         // The first chapter to be flushed
-  MasterIndexZone *masterZones;    // The Zones
-  uint64_t     volumeNonce;        // The volume nonce
-  uint64_t     chapterZoneBits;    // Expected size of a chapter (per zone)
-  uint64_t     maxZoneBits;        // Maximum size index (per zone)
-  unsigned int addressBits;        // Number of bits in address mask
-  unsigned int addressMask;        // Mask to get address within delta list
-  unsigned int chapterBits;        // Number of bits in chapter number
-  unsigned int chapterMask;        // Largest storable chapter number
-  unsigned int numChapters;        // Number of chapters used
-  unsigned int numDeltaLists;      // The number of delta lists
-  unsigned int numZones;           // The number of zones
-} MasterIndex5;
+struct master_index5 {
+  MasterIndex common;                     // Common master index methods
+  struct delta_index deltaIndex;          // The delta index
+  uint64_t *flushChapters;                // The first chapter to be flushed
+  struct master_index_zone *masterZones;  // The Zones
+  uint64_t     volumeNonce;               // The volume nonce
+  uint64_t     chapterZoneBits;           // Expected size of a chapter
+                                          // (per zone)
+  uint64_t     maxZoneBits;               // Maximum size index (per zone)
+  unsigned int addressBits;               // Number of bits in address mask
+  unsigned int addressMask;               // Mask to get address within delta
+                                          // list
+  unsigned int chapterBits;               // Number of bits in chapter number
+  unsigned int chapterMask;               // Largest storable chapter number
+  unsigned int numChapters;               // Number of chapters used
+  unsigned int numDeltaLists;             // The number of delta lists
+  unsigned int numZones;                  // The number of zones
+};
 
-typedef struct chapterRange {
+struct chapter_range {
   unsigned int chapterStart;    // The first chapter
   unsigned int chapterCount;    // The number of chapters
-} ChapterRange;
+};
 
 // Constants for the magic byte of a MasterIndexRecord
 static const byte masterIndexRecordMagic = 0xAA;
@@ -116,7 +118,7 @@ static INLINE unsigned int maxUint(unsigned int a, unsigned int b)
  *
  * @return the address
  **/
-static INLINE unsigned int extractAddress(const MasterIndex5          *mi5,
+static INLINE unsigned int extractAddress(const struct master_index5  *mi5,
                                           const struct uds_chunk_name *name)
 {
   return extract_master_index_bytes(name) & mi5->addressMask;
@@ -130,7 +132,7 @@ static INLINE unsigned int extractAddress(const MasterIndex5          *mi5,
  *
  * @return the delta list number
  **/
-static INLINE unsigned int extractDListNum(const MasterIndex5          *mi5,
+static INLINE unsigned int extractDListNum(const struct master_index5  *mi5,
                                            const struct uds_chunk_name *name)
 {
   uint64_t bits = extract_master_index_bytes(name);
@@ -144,10 +146,12 @@ static INLINE unsigned int extractDListNum(const MasterIndex5          *mi5,
  *
  * @return the master index zone
  **/
-static INLINE const MasterIndexZone *getMasterZone(const MasterIndexRecord *record)
+static INLINE const struct master_index_zone *
+getMasterZone(const MasterIndexRecord *record)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
   return &mi5->masterZones[record->zoneNumber];
 }
 
@@ -162,9 +166,10 @@ static INLINE const MasterIndexZone *getMasterZone(const MasterIndexRecord *reco
 static INLINE uint64_t convertIndexToVirtual(const MasterIndexRecord *record,
                                              unsigned int indexChapter)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
-  const MasterIndexZone *masterZone = getMasterZone(record);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
+  const struct master_index_zone *masterZone = getMasterZone(record);
   unsigned int rollingChapter
     = ((indexChapter - masterZone->virtualChapterLow) & mi5->chapterMask);
   return masterZone->virtualChapterLow + rollingChapter;
@@ -178,8 +183,8 @@ static INLINE uint64_t convertIndexToVirtual(const MasterIndexRecord *record,
  *
  * @return the index chapter number
  **/
-static INLINE unsigned int convertVirtualToIndex(const MasterIndex5 *mi5,
-                                                 uint64_t virtualChapter)
+static INLINE unsigned int
+convertVirtualToIndex(const struct master_index5 *mi5, uint64_t virtualChapter)
 {
   return virtualChapter & mi5->chapterMask;
 }
@@ -195,7 +200,7 @@ static INLINE unsigned int convertVirtualToIndex(const MasterIndex5 *mi5,
 static INLINE bool isVirtualChapterIndexed(const MasterIndexRecord *record,
                                            uint64_t virtualChapter)
 {
-  const MasterIndexZone *masterZone = getMasterZone(record);
+  const struct master_index_zone *masterZone = getMasterZone(record);
   return ((virtualChapter >= masterZone->virtualChapterLow)
           && (virtualChapter <= masterZone->virtualChapterHigh));
 }
@@ -213,11 +218,12 @@ static INLINE bool isVirtualChapterIndexed(const MasterIndexRecord *record,
  * @return UDS_SUCCESS or an error code
  **/
 static INLINE int flushInvalidEntries(MasterIndexRecord *record,
-                                      ChapterRange *flushRange,
+                                      struct chapter_range *flushRange,
                                       unsigned int *nextChapterToInvalidate)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
   int result = next_delta_index_entry(&record->deltaEntry);
   if (result != UDS_SUCCESS) {
     return result;
@@ -251,13 +257,14 @@ static INLINE int flushInvalidEntries(MasterIndexRecord *record,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int getMasterIndexEntry(MasterIndexRecord *record,
-                               unsigned int       listNumber,
-                               unsigned int       key,
-                               ChapterRange      *flushRange)
+static int getMasterIndexEntry(MasterIndexRecord    *record,
+                               unsigned int          listNumber,
+                               unsigned int          key,
+                               struct chapter_range *flushRange)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
   unsigned int nextChapterToInvalidate = mi5->chapterMask;
 
   int result = start_delta_index_search(&mi5->deltaIndex, listNumber, 0,
@@ -326,7 +333,8 @@ static int getMasterIndexEntry(MasterIndexRecord *record,
 static void freeMasterIndex_005(MasterIndex *masterIndex)
 {
   if (masterIndex != NULL) {
-    MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+    struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                             common);
     FREE(mi5->flushChapters);
     mi5->flushChapters = NULL;
     FREE(mi5->masterZones);
@@ -362,7 +370,8 @@ struct mi005_data {
  **/
 static void setMasterIndexTag_005(MasterIndex *masterIndex, byte tag)
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   set_delta_index_tag(&mi5->deltaIndex, tag);
 }
 
@@ -413,9 +422,10 @@ static int startSavingMasterIndex_005(const MasterIndex      *masterIndex,
                                       unsigned int            zoneNumber,
                                       struct buffered_writer *bufferedWriter)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
-  MasterIndexZone *masterZone = &mi5->masterZones[zoneNumber];
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
+  struct master_index_zone *masterZone = &mi5->masterZones[zoneNumber];
   unsigned int firstList = get_delta_index_zone_first_list(&mi5->deltaIndex,
                                                            zoneNumber);
   unsigned int numLists = get_delta_index_zone_num_lists(&mi5->deltaIndex,
@@ -484,8 +494,9 @@ static int startSavingMasterIndex_005(const MasterIndex      *masterIndex,
 static bool isSavingMasterIndexDone_005(const MasterIndex *masterIndex,
                                         unsigned int zoneNumber)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   return is_saving_delta_index_done(&mi5->deltaIndex, zoneNumber);
 }
 
@@ -503,8 +514,9 @@ static bool isSavingMasterIndexDone_005(const MasterIndex *masterIndex,
 static int finishSavingMasterIndex_005(const MasterIndex *masterIndex,
                                        unsigned int zoneNumber)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   return finish_saving_delta_index(&mi5->deltaIndex, zoneNumber);
 }
 
@@ -521,8 +533,9 @@ static int finishSavingMasterIndex_005(const MasterIndex *masterIndex,
 static int abortSavingMasterIndex_005(const MasterIndex *masterIndex,
                                       unsigned int zoneNumber)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   return abort_saving_delta_index(&mi5->deltaIndex, zoneNumber);
 }
 
@@ -583,7 +596,8 @@ startRestoringMasterIndex_005(MasterIndex             *masterIndex,
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "cannot restore to null master index");
   }
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   empty_delta_index(&mi5->deltaIndex);
 
   uint64_t virtualChapterLow = 0;
@@ -669,7 +683,7 @@ startRestoringMasterIndex_005(MasterIndex             *masterIndex,
 
   unsigned int z;
   for (z = 0; z < mi5->numZones; z++) {
-    memset(&mi5->masterZones[z], 0, sizeof(MasterIndexZone));
+    memset(&mi5->masterZones[z], 0, sizeof(struct master_index_zone));
     mi5->masterZones[z].virtualChapterLow  = virtualChapterLow;
     mi5->masterZones[z].virtualChapterHigh = virtualChapterHigh;
   }
@@ -693,8 +707,9 @@ startRestoringMasterIndex_005(MasterIndex             *masterIndex,
  **/
 static bool isRestoringMasterIndexDone_005(const MasterIndex *masterIndex)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   return is_restoring_delta_index_done(&mi5->deltaIndex);
 }
 
@@ -713,7 +728,8 @@ restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
                                   const struct delta_list_save_info *dlsi,
                                   const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   return restore_delta_list_to_delta_index(&mi5->deltaIndex, dlsi, data);
 }
 
@@ -725,14 +741,15 @@ restoreDeltaListToMasterIndex_005(MasterIndex *masterIndex,
  **/
 static void abortRestoringMasterIndex_005(MasterIndex *masterIndex)
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   abort_restoring_delta_index(&mi5->deltaIndex);
 }
 
 /***********************************************************************/
-static void removeNewestChapters(MasterIndex5 *mi5,
-                                 unsigned int zoneNumber,
-                                 uint64_t virtualChapter)
+static void removeNewestChapters(struct master_index5 *mi5,
+                                 unsigned int          zoneNumber,
+                                 uint64_t              virtualChapter)
 {
   // Get the range of delta lists belonging to this zone
   unsigned int firstList = get_delta_index_zone_first_list(&mi5->deltaIndex,
@@ -755,8 +772,8 @@ static void removeNewestChapters(MasterIndex5 *mi5,
     }
   } else {
     // Underflow will prevent the fast path.  Do it the slow and painful way.
-    MasterIndexZone *masterZone = &mi5->masterZones[zoneNumber];
-    ChapterRange range;
+    struct master_index_zone *masterZone = &mi5->masterZones[zoneNumber];
+    struct chapter_range range;
     range.chapterStart = convertVirtualToIndex(mi5, virtualChapter);
     range.chapterCount = (mi5->chapterMask + 1
                           - (virtualChapter - masterZone->virtualChapterLow));
@@ -770,7 +787,7 @@ static void removeNewestChapters(MasterIndex5 *mi5,
     };
     unsigned int i;
     for (i = firstList; i <= lastList; i++) {
-      ChapterRange tempRange = range;
+      struct chapter_range tempRange = range;
       getMasterIndexEntry(&record, i, 0, &tempRange);
     }
   }
@@ -790,8 +807,9 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
                                               unsigned int zoneNumber,
                                               uint64_t virtualChapter)
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  MasterIndexZone *masterZone = &mi5->masterZones[zoneNumber];
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
+  struct master_index_zone *masterZone = &mi5->masterZones[zoneNumber];
   // Take care here to avoid underflow of an unsigned value.  Note that
   // this is the smallest valid virtual low.  We may or may not actually
   // use this value.
@@ -873,12 +891,13 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
 static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
                                           uint64_t virtualChapter)
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   unsigned int z;
   for (z = 0; z < mi5->numZones; z++) {
     // In normal operation, we advance forward one chapter at a time.
     // Log all abnormal changes.
-    MasterIndexZone *masterZone = &mi5->masterZones[z];
+    struct master_index_zone *masterZone = &mi5->masterZones[z];
     bool logMove = virtualChapter != masterZone->virtualChapterHigh + 1;
     if (logMove) {
       logDebug("masterZone %u: The range of indexed chapters is moving from [%"
@@ -911,8 +930,9 @@ static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
 static unsigned int getMasterIndexZone_005(const MasterIndex *masterIndex,
                                            const struct uds_chunk_name *name)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   unsigned int deltaListNumber = extractDListNum(mi5, name);
   return get_delta_index_zone(&mi5->deltaIndex, deltaListNumber);
 }
@@ -956,8 +976,9 @@ static int lookupMasterIndexSampledName_005(const MasterIndex *masterIndex,
                                             const struct uds_chunk_name *name,
                                             MasterIndexTriage *triage)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   unsigned int address = extractAddress(mi5, name);
   unsigned int deltaListNumber = extractDListNum(mi5, name);
   struct delta_index_entry deltaEntry;
@@ -968,7 +989,8 @@ static int lookupMasterIndexSampledName_005(const MasterIndex *masterIndex,
   }
   triage->inSampledChapter = !deltaEntry.at_end && (deltaEntry.key == address);
   if (triage->inSampledChapter) {
-    const MasterIndexZone *masterZone = &mi5->masterZones[triage->zone];
+    const struct master_index_zone *masterZone
+      = &mi5->masterZones[triage->zone];
     unsigned int indexChapter = get_delta_entry_value(&deltaEntry);
     unsigned int rollingChapter = ((indexChapter
                                     - masterZone->virtualChapterLow)
@@ -1012,7 +1034,8 @@ static int getMasterIndexRecord_005(MasterIndex *masterIndex,
                                     const struct uds_chunk_name *name,
                                     MasterIndexRecord *record)
 {
-  MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
+  struct master_index5 *mi5 = container_of(masterIndex, struct master_index5,
+                                           common);
   unsigned int address = extractAddress(mi5, name);
   unsigned int deltaListNumber = extractDListNum(mi5, name);
   uint64_t flushChapter = mi5->flushChapters[deltaListNumber];
@@ -1022,11 +1045,11 @@ static int getMasterIndexRecord_005(MasterIndex *masterIndex,
   record->name        = name;
   record->zoneNumber
     = get_delta_index_zone(&mi5->deltaIndex, deltaListNumber);
-  const MasterIndexZone *masterZone = getMasterZone(record);
+  const struct master_index_zone *masterZone = getMasterZone(record);
 
   int result;
   if (flushChapter < masterZone->virtualChapterLow) {
-    ChapterRange range;
+    struct chapter_range range;
     uint64_t flushCount = masterZone->virtualChapterLow - flushChapter;
     range.chapterStart = convertVirtualToIndex(mi5, flushChapter);
     range.chapterCount = (flushCount > mi5->chapterMask
@@ -1066,14 +1089,15 @@ static int getMasterIndexRecord_005(MasterIndex *masterIndex,
  **/
 int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
   if (record->magic != masterIndexRecordMagic) {
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "bad magic number in master index record");
   }
   if (!isVirtualChapterIndexed(record, virtualChapter)) {
-    const MasterIndexZone *masterZone = getMasterZone(record);
+    const struct master_index_zone *masterZone = getMasterZone(record);
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot put record into chapter number %"
                                      PRIu64 " that is out of the valid range %"
@@ -1154,14 +1178,15 @@ int removeMasterIndexRecord(MasterIndexRecord *record)
 int setMasterIndexRecordChapter(MasterIndexRecord *record,
                                 uint64_t virtualChapter)
 {
-  const MasterIndex5 *mi5 = container_of(record->masterIndex, MasterIndex5,
-                                         common);
+  const struct master_index5 *mi5 = container_of(record->masterIndex,
+                                                 struct master_index5,
+                                                 common);
   int result = validateRecord(record);
   if (result != UDS_SUCCESS) {
     return result;
   }
   if (!isVirtualChapterIndexed(record, virtualChapter)) {
-    const MasterIndexZone *masterZone = getMasterZone(record);
+    const struct master_index_zone *masterZone = getMasterZone(record);
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot set chapter number %" PRIu64
                                      " that is out of the valid range %" PRIu64
@@ -1195,8 +1220,9 @@ int setMasterIndexRecordChapter(MasterIndexRecord *record,
  **/
 static size_t getMasterIndexMemoryUsed_005(const MasterIndex *masterIndex)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   uint64_t bits = get_delta_index_dlist_bits_used(&mi5->deltaIndex);
   return (bits + CHAR_BIT - 1) / CHAR_BIT;
 }
@@ -1215,14 +1241,16 @@ static void getMasterIndexStats_005(const MasterIndex *masterIndex,
                                     MasterIndexStats *dense,
                                     MasterIndexStats *sparse)
 {
-  const MasterIndex5 *mi5 = const_container_of(masterIndex, MasterIndex5,
-                                               common);
+  const struct master_index5 *mi5 = const_container_of(masterIndex,
+                                                       struct master_index5,
+                                                       common);
   struct delta_index_stats dis;
   get_delta_index_stats(&mi5->deltaIndex, &dis);
   dense->memoryAllocated = (dis.memory_allocated
-                            + sizeof(MasterIndex5)
+                            + sizeof(struct master_index5)
                             + mi5->numDeltaLists * sizeof(uint64_t)
-                            + mi5->numZones * sizeof(MasterIndexZone));
+                            + mi5->numZones
+                                * sizeof(struct master_index_zone));
   dense->rebalanceTime   = dis.rebalance_time;
   dense->rebalanceCount  = dis.rebalance_count;
   dense->recordCount     = dis.record_count;
@@ -1256,7 +1284,7 @@ static bool isMasterIndexSample_005(const MasterIndex  *masterIndex
 }
 
 /***********************************************************************/
-typedef struct {
+struct parameters005 {
   unsigned int addressBits;    // Number of bits in address mask
   unsigned int chapterBits;    // Number of bits in chapter number
   unsigned int meanDelta;      // The mean delta
@@ -1265,11 +1293,11 @@ typedef struct {
   size_t numBitsPerChapter;    // The number of bits per chapter
   size_t memorySize;           // The number of bytes of delta list memory
   size_t targetFreeSize;       // The number of free bytes we desire
-} Parameters005;
+};
 
 /***********************************************************************/
 static int computeMasterIndexParameters005(const struct configuration *config,
-                                           Parameters005 *params)
+                                           struct parameters005 *params)
 {
   enum { DELTA_LIST_SIZE = 256 };
   /*
@@ -1376,7 +1404,7 @@ static int computeMasterIndexParameters005(const struct configuration *config,
 int computeMasterIndexSaveBytes005(const struct configuration *config,
                                    size_t *numBytes)
 {
-  Parameters005 params = { .addressBits = 0 };
+  struct parameters005 params = { .addressBits = 0 };
   int result = computeMasterIndexParameters005(config, &params);
   if (result != UDS_SUCCESS) {
     return result;
@@ -1395,14 +1423,14 @@ int makeMasterIndex005(const struct configuration *config,
                        unsigned int numZones, uint64_t volumeNonce,
                        MasterIndex  **masterIndex)
 {
-  Parameters005 params = { .addressBits = 0 };
+  struct parameters005 params = { .addressBits = 0 };
   int result = computeMasterIndexParameters005(config, &params);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  MasterIndex5 *mi5;
-  result = ALLOCATE(1, MasterIndex5, "master index", &mi5);
+  struct master_index5 *mi5;
+  result = ALLOCATE(1, struct master_index5, "master index", &mi5);
   if (result != UDS_SUCCESS) {
     *masterIndex = NULL;
     return result;
@@ -1457,7 +1485,7 @@ int makeMasterIndex005(const struct configuration *config,
   // Initialize the virtual chapter ranges to start at zero.  This depends
   // upon allocate returning zeroed memory.
   if (result == UDS_SUCCESS) {
-    result = ALLOCATE(numZones, MasterIndexZone, "master index zones",
+    result = ALLOCATE(numZones, struct master_index_zone, "master index zones",
                       &mi5->masterZones);
   }
 
