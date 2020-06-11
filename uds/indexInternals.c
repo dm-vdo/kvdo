@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#11 $
  */
 
 #include "indexInternals.h"
@@ -42,7 +42,7 @@ int allocate_index(struct index_layout *layout,
 		   const struct configuration *config,
 		   const struct uds_parameters *user_params,
 		   unsigned int zone_count,
-		   LoadType load_type,
+		   enum load_type load_type,
 		   struct index **new_index)
 {
 	unsigned int checkpoint_frequency =
@@ -72,7 +72,7 @@ int allocate_index(struct index_layout *layout,
 	get_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;
 
-	result = ALLOCATE(index->zone_count, IndexZone *, "zones",
+	result = ALLOCATE(index->zone_count, struct index_zone *, "zones",
 			  &index->zones);
 	if (result != UDS_SUCCESS) {
 		free_index(index);

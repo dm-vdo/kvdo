@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#20 $
  */
 
 #include "index.h"
@@ -193,7 +193,7 @@ int make_index(struct index_layout *layout,
 	       const struct configuration *config,
 	       const struct uds_parameters *user_params,
 	       unsigned int zone_count,
-	       LoadType load_type,
+	       enum load_type load_type,
 	       IndexLoadContext *load_context,
 	       struct index **new_index)
 {
@@ -334,7 +334,8 @@ int save_index(struct index *index)
  *
  * @return The zone for the request
  **/
-static IndexZone *get_request_zone(struct index *index, Request *request)
+static struct index_zone *get_request_zone(struct index *index,
+					   Request *request)
 {
 	return index->zones[request->zoneNumber];
 }
@@ -347,7 +348,7 @@ static IndexZone *get_request_zone(struct index *index, Request *request)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int search_index_zone(IndexZone *zone, Request *request)
+static int search_index_zone(struct index_zone *zone, Request *request)
 {
 	MasterIndexRecord record;
 	int result = getMasterIndexRecord(zone->index->master_index,
@@ -460,7 +461,7 @@ static int search_index_zone(IndexZone *zone, Request *request)
 }
 
 /**********************************************************************/
-static int remove_from_index_zone(IndexZone *zone, Request *request)
+static int remove_from_index_zone(struct index_zone *zone, Request *request)
 {
 	MasterIndexRecord record;
 	int result = getMasterIndexRecord(zone->index->master_index,
@@ -534,7 +535,7 @@ static int remove_from_index_zone(IndexZone *zone, Request *request)
  *
  * @return UDS_SUCCESS always
  **/
-static int simulate_index_zone_barrier_message(IndexZone *zone,
+static int simulate_index_zone_barrier_message(struct index_zone *zone,
 					       Request *request)
 {
 	// Do nothing unless this is a single-zone sparse index.
@@ -565,7 +566,8 @@ static int simulate_index_zone_barrier_message(IndexZone *zone,
 }
 
 /**********************************************************************/
-static int dispatch_index_zone_request(IndexZone *zone, Request *request)
+static int dispatch_index_zone_request(struct index_zone *zone,
+				       Request *request)
 {
 	if (!request->requeued) {
 		// Single-zone sparse indexes don't have a triage queue to
@@ -971,7 +973,7 @@ uint64_t triage_index_request(struct index *index, Request *request)
 		return UINT64_MAX;
 	}
 
-	IndexZone *zone = get_request_zone(index, request);
+	struct index_zone *zone = get_request_zone(index, request);
 	if (!isZoneChapterSparse(zone, triage.virtualChapter)) {
 		return UINT64_MAX;
 	}

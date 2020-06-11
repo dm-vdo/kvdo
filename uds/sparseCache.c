@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#13 $
  */
 
 /**
@@ -299,7 +299,7 @@ static void scoreChapterMiss(SparseCache *cache)
  * @param cache      the cache to update
  * @param chapter    the cache entry about to be replaced
  **/
-static void scoreEviction(IndexZone                   *zone,
+static void scoreEviction(struct index_zone           *zone,
                           SparseCache                 *cache,
                           struct cached_chapter_index *chapter)
 {
@@ -409,7 +409,7 @@ bool sparseCacheContains(SparseCache  *cache,
 }
 
 /**********************************************************************/
-int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
+int updateSparseCache(struct index_zone *zone, uint64_t virtualChapter)
 {
   const struct index *index = zone->index;
   SparseCache *cache = index->volume->sparseCache;
@@ -471,7 +471,7 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
 
 
 /**********************************************************************/
-int searchSparseCache(IndexZone                   *zone,
+int searchSparseCache(struct index_zone           *zone,
                       const struct uds_chunk_name *name,
                       uint64_t                    *virtualChapterPtr,
                       int                         *recordPagePtr)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#38 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -29,7 +29,6 @@
 #include "dirtyLists.h"
 #include "header.h"
 #include "intMap.h"
-#include "ringNode.h"
 #include "types.h"
 #include "vdoPageCache.h"
 #include "vioPool.h"

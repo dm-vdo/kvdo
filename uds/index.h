@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#11 $
  */
 
 #ifndef INDEX_H
@@ -39,14 +39,14 @@ struct index_checkpoint;
 struct index {
 	bool existed;
 	bool has_saved_open_chapter;
-	LoadType loaded_type;
+	enum load_type loaded_type;
 	IndexLoadContext *load_context;
 	struct index_layout *layout;
 	struct index_state *state;
 	MasterIndex *master_index;
 	Volume *volume;
 	unsigned int zone_count;
-	IndexZone **zones;
+	struct index_zone **zones;
 
 	/*
 	 * ATTENTION!!!
@@ -88,7 +88,7 @@ int __must_check make_index(struct index_layout *layout,
 			    const struct configuration *config,
 			    const struct uds_parameters *user_params,
 			    unsigned int zone_count,
-			    LoadType load_type,
+			    enum load_type load_type,
 			    IndexLoadContext *load_context,
 			    struct index **new_index);
 

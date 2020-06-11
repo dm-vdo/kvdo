@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#10 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -143,7 +143,7 @@ static INLINE void set_skip_search(struct cached_chapter_index *chapter,
  * @return <code>true</code> if the provided chapter index should be skipped
  **/
 static INLINE bool
-should_skip_chapter_index(const IndexZone *zone,
+should_skip_chapter_index(const struct index_zone *zone,
 		          const struct cached_chapter_index *chapter,
 		          uint64_t virtual_chapter)
 {

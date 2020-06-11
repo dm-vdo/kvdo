@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#9 $
  */
 
 #include "indexZone.h"
@@ -35,8 +35,8 @@
 /**********************************************************************/
 int makeIndexZone(struct index *index, unsigned int zoneNumber)
 {
-  IndexZone *zone;
-  int result = ALLOCATE(1, IndexZone, "index zone", &zone);
+  struct index_zone *zone;
+  int result = ALLOCATE(1, struct index_zone, "index zone", &zone);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -63,7 +63,7 @@ int makeIndexZone(struct index *index, unsigned int zoneNumber)
 }
 
 /**********************************************************************/
-void freeIndexZone(IndexZone *zone)
+void freeIndexZone(struct index_zone *zone)
 {
   if (zone == NULL) {
     return;
@@ -75,8 +75,8 @@ void freeIndexZone(IndexZone *zone)
 }
 
 /**********************************************************************/
-bool isZoneChapterSparse(const IndexZone *zone,
-                         uint64_t         virtualChapter)
+bool isZoneChapterSparse(const struct index_zone *zone,
+                         uint64_t                 virtualChapter)
 {
   return is_chapter_sparse(zone->index->volume->geometry,
                            zone->oldestVirtualChapter,
@@ -85,7 +85,7 @@ bool isZoneChapterSparse(const IndexZone *zone,
 }
 
 /**********************************************************************/
-void setActiveChapters(IndexZone *zone)
+void setActiveChapters(struct index_zone *zone)
 {
   zone->oldestVirtualChapter = zone->index->oldest_virtual_chapter;
   zone->newestVirtualChapter = zone->index->newest_virtual_chapter;
@@ -99,7 +99,7 @@ void setActiveChapters(IndexZone *zone)
  *
  * @return UDS_SUCCESS or a return code
  **/
-static int swapOpenChapter(IndexZone *zone)
+static int swapOpenChapter(struct index_zone *zone)
 {
   // Wait for any currently writing chapter to complete
   int result = finish_previous_chapter(zone->index->chapter_writer,
@@ -123,7 +123,7 @@ static int swapOpenChapter(IndexZone *zone)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int reapOldestChapter(IndexZone *zone)
+static int reapOldestChapter(struct index_zone *zone)
 {
   struct index *index = zone->index;
   unsigned int chaptersPerVolume
@@ -145,7 +145,7 @@ static int reapOldestChapter(IndexZone *zone)
 }
 
 /**********************************************************************/
-int executeSparseCacheBarrierMessage(IndexZone          *zone,
+int executeSparseCacheBarrierMessage(struct index_zone  *zone,
                                      BarrierMessageData *barrier)
 {
   /*
@@ -166,7 +166,7 @@ int executeSparseCacheBarrierMessage(IndexZone          *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int handleChapterClosed(IndexZone                *zone,
+static int handleChapterClosed(struct index_zone        *zone,
                                ChapterClosedMessageData *chapterClosed)
 {
   if (zone->newestVirtualChapter == chapterClosed->virtualChapter) {
@@ -180,7 +180,7 @@ static int handleChapterClosed(IndexZone                *zone,
 int dispatchIndexZoneControlRequest(Request *request)
 {
   ZoneMessage *message = &request->zoneMessage;
-  IndexZone *zone = message->index->zones[request->zoneNumber];
+  struct index_zone *zone = message->index->zones[request->zoneNumber];
 
   switch (request->action) {
   case REQUEST_SPARSE_CACHE_BARRIER:
@@ -204,9 +204,9 @@ int dispatchIndexZoneControlRequest(Request *request)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int announceChapterClosed(Request   *request,
-                                 IndexZone *zone,
-                                 uint64_t   closedChapter)
+static int announceChapterClosed(Request           *request,
+                                 struct index_zone *zone,
+                                 uint64_t           closedChapter)
 {
   struct index_router *router = ((request != NULL) ? request->router : NULL);
 
@@ -241,7 +241,7 @@ static int announceChapterClosed(Request   *request,
 }
 
 /**********************************************************************/
-int openNextChapter(IndexZone *zone, Request *request)
+int openNextChapter(struct index_zone *zone, Request *request)
 {
   logDebug("closing chapter %llu of zone %d after %u entries (%u short)",
            zone->newestVirtualChapter, zone->id, zone->openChapter->size,
@@ -307,8 +307,8 @@ int openNextChapter(IndexZone *zone, Request *request)
 }
 
 /**********************************************************************/
-IndexRegion computeIndexRegion(const IndexZone *zone,
-                               uint64_t         virtualChapter)
+IndexRegion computeIndexRegion(const struct index_zone *zone,
+                               uint64_t                 virtualChapter)
 {
   if (virtualChapter == zone->newestVirtualChapter) {
     return LOC_IN_OPEN_CHAPTER;
@@ -318,10 +318,10 @@ IndexRegion computeIndexRegion(const IndexZone *zone,
 }
 
 /**********************************************************************/
-int getRecordFromZone(IndexZone *zone,
-                      Request   *request,
-                      bool      *found,
-                      uint64_t   virtualChapter)
+int getRecordFromZone(struct index_zone *zone,
+                      Request           *request,
+                      bool              *found,
+                      uint64_t           virtualChapter)
 {
   if (virtualChapter == zone->newestVirtualChapter) {
     searchOpenChapter(zone->openChapter, &request->chunkName,
@@ -359,7 +359,7 @@ int getRecordFromZone(IndexZone *zone,
 }
 
 /**********************************************************************/
-int putRecordInZone(IndexZone                   *zone,
+int putRecordInZone(struct index_zone           *zone,
                     Request                     *request,
                     const struct uds_chunk_data *metadata)
 {
@@ -378,10 +378,10 @@ int putRecordInZone(IndexZone                   *zone,
 }
 
 /**************************************************************************/
-int searchSparseCacheInZone(IndexZone *zone,
-                            Request   *request,
-                            uint64_t   virtualChapter,
-                            bool      *found)
+int searchSparseCacheInZone(struct index_zone *zone,
+                            Request           *request,
+                            uint64_t           virtualChapter,
+                            bool              *found)
 {
   int recordPageNumber;
   int result = searchSparseCache(zone, &request->chunkName, &virtualChapter,

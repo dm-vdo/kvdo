@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#6 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -26,14 +26,14 @@
 #include "openChapterZone.h"
 #include "request.h"
 
-typedef struct {
+struct index_zone {
   struct index    *index;
   OpenChapterZone *openChapter;
   OpenChapterZone *writingChapter;
   uint64_t         oldestVirtualChapter;
   uint64_t         newestVirtualChapter;
   unsigned int     id;
-} IndexZone;
+};
 
 /**
  * Allocate an index zone.
@@ -50,7 +50,7 @@ int __must_check makeIndexZone(struct index *index, unsigned int zoneNumber);
  *
  * @param zone The index zone to free
  **/
-void freeIndexZone(IndexZone *zone);
+void freeIndexZone(struct index_zone *zone);
 
 /**
  * Check whether a chapter is sparse or dense based on the current state of
@@ -62,7 +62,7 @@ void freeIndexZone(IndexZone *zone);
  * @return true if the chapter is in the sparse part of the volume
  **/
 bool __must_check
-isZoneChapterSparse(const IndexZone *zone, uint64_t virtualChapter);
+isZoneChapterSparse(const struct index_zone *zone, uint64_t virtualChapter);
 
 /**
  * Set the active chapter numbers for a zone based on its index. The active
@@ -71,7 +71,7 @@ isZoneChapterSparse(const IndexZone *zone, uint64_t virtualChapter);
  *
  * @param zone          The zone to set
  **/
-void setActiveChapters(IndexZone *zone);
+void setActiveChapters(struct index_zone *zone);
 
 /**
  * Dispatch a control request to an index zone.
@@ -93,8 +93,8 @@ int __must_check dispatchIndexZoneControlRequest(Request *request);
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int __must_check
-executeSparseCacheBarrierMessage(IndexZone *zone, BarrierMessageData *barrier);
+int __must_check executeSparseCacheBarrierMessage(struct index_zone  *zone,
+                                                  BarrierMessageData *barrier);
 
 /**
  * Open the next chapter.
@@ -105,7 +105,7 @@ executeSparseCacheBarrierMessage(IndexZone *zone, BarrierMessageData *barrier);
  *
  * @return UDS_SUCCESS if successful.
  **/
-int __must_check openNextChapter(IndexZone *zone, Request *request);
+int __must_check openNextChapter(struct index_zone *zone, Request *request);
 
 /**
  * Determine the IndexRegion in which a block was found.
@@ -115,8 +115,8 @@ int __must_check openNextChapter(IndexZone *zone, Request *request);
  *
  * @return the IndexRegion of the chapter in which the block was found
  **/
-IndexRegion computeIndexRegion(const IndexZone *zone,
-                               uint64_t         virtualChapter);
+IndexRegion computeIndexRegion(const struct index_zone *zone,
+                               uint64_t                 virtualChapter);
 
 /**
  * Get a record from either the volume or the open chapter in a zone.
@@ -129,7 +129,7 @@ IndexRegion computeIndexRegion(const IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getRecordFromZone(IndexZone *zone,
+int __must_check getRecordFromZone(struct index_zone *zone,
 				   Request *request,
 				   bool *found,
 				   uint64_t virtualChapter);
@@ -144,7 +144,7 @@ int __must_check getRecordFromZone(IndexZone *zone,
  *
  * @return UDS_SUCCESS or an error
  **/
-int __must_check putRecordInZone(IndexZone *zone,
+int __must_check putRecordInZone(struct index_zone *zone,
 				 Request *request,
 				 const struct uds_chunk_data *metadata);
 
@@ -162,7 +162,7 @@ int __must_check putRecordInZone(IndexZone *zone,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-searchSparseCacheInZone(IndexZone *zone,
+searchSparseCacheInZone(struct index_zone *zone,
 			Request *request,
 			uint64_t virtualChapter,
 			bool *found);

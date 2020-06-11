@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#13 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -62,7 +62,7 @@ struct index_router {
 int __must_check make_index_router(struct index_layout *layout,
 				   const struct configuration *config,
 				   const struct uds_parameters *user_params,
-				   LoadType load_type,
+				   enum load_type load_type,
 				   IndexLoadContext *load_context,
 				   index_router_callback_t callback,
 				   struct index_router **router_ptr);

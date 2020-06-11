@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#9 $
  */
 
 #include "uds.h"
@@ -197,7 +197,7 @@ static
 int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
                                      struct index_layout         *layout,
                                      const struct uds_parameters *userParams,
-                                     LoadType                     loadType)
+                                     enum load_type               loadType)
 {
   int result = ((loadType == LOAD_CREATE)
                 ? write_index_config(layout, &indexSession->userConfig)
@@ -233,7 +233,7 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
 static int initializeIndexSession(struct uds_index_session    *indexSession,
                                   const char                  *name,
                                   const struct uds_parameters *userParams,
-                                  LoadType                     loadType)
+                                  enum load_type               loadType)
 {
   struct index_layout *layout;
   int result = make_index_layout(name, loadType == LOAD_CREATE,
@@ -273,14 +273,14 @@ int udsOpenIndex(UdsOpenIndexType             openType,
   session->userConfig = *userConfig;
 
   // Map the external openType to the internal loadType
-  LoadType loadType =   openType == UDS_CREATE     ? LOAD_CREATE
-                      : openType == UDS_NO_REBUILD ? LOAD_LOAD
-                      :                              LOAD_REBUILD;
-  logNotice("%s: %s", getLoadType(loadType), name);
+  enum load_type loadType =   openType == UDS_CREATE     ? LOAD_CREATE
+                            : openType == UDS_NO_REBUILD ? LOAD_LOAD
+                            :                              LOAD_REBUILD;
+  logNotice("%s: %s", get_load_type(loadType), name);
 
   result = initializeIndexSession(session, name, userParams, loadType);
   if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
+    logErrorWithStringError(result, "Failed %s", get_load_type(loadType));
     saveAndFreeIndex(session);
   }
 

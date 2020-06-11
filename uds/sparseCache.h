@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#5 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -101,7 +101,8 @@ bool sparseCacheContains(SparseCache  *cache,
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int __must_check updateSparseCache(IndexZone *zone, uint64_t virtualChapter);
+int __must_check updateSparseCache(struct index_zone *zone,
+                                   uint64_t virtualChapter);
 
 
 /**
@@ -123,7 +124,7 @@ int __must_check updateSparseCache(IndexZone *zone, uint64_t virtualChapter);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check searchSparseCache(IndexZone *zone,
+int __must_check searchSparseCache(struct index_zone *zone,
 				   const struct uds_chunk_name *name,
 				   uint64_t *virtualChapterPtr,
 				   int *recordPagePtr);
