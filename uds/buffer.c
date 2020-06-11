@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#4 $
  */
 
 #include "buffer.h"
@@ -137,8 +137,8 @@ int grow_buffer(struct buffer *buffer, size_t length)
 	}
 
 	byte *data;
-	int result = reallocateMemory(buffer->data, buffer->length, length,
-				      "buffer data", &data);
+	int result = reallocate_memory(buffer->data, buffer->length, length,
+				       "buffer data", &data);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

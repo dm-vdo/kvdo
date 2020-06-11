@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -207,7 +207,7 @@ static INLINE bool useKmalloc(size_t size)
 }
 
 /*****************************************************************************/
-int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
+int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
   if (ptr == NULL) {
     return UDS_INVALID_ARGUMENT;
@@ -315,8 +315,8 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
 }
 
 /*****************************************************************************/
-void *allocateMemoryNowait(size_t      size,
-                           const char *what __attribute__((unused)))
+void *allocate_memory_nowait(size_t      size,
+			     const char *what __attribute__((unused)))
 {
   void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
   if (p != NULL) {
@@ -326,7 +326,7 @@ void *allocateMemoryNowait(size_t      size,
 }
 
 /*****************************************************************************/
-void freeMemory(void *ptr)
+void free_memory(void *ptr)
 {
   if (ptr != NULL) {
     if (is_vmalloc_addr(ptr)) {
@@ -340,11 +340,11 @@ void freeMemory(void *ptr)
 }
 
 /*****************************************************************************/
-int reallocateMemory(void       *ptr,
-                     size_t      oldSize,
-                     size_t      size,
-                     const char *what,
-                     void       *newPtr)
+int reallocate_memory(void       *ptr,
+		      size_t      oldSize,
+		      size_t      size,
+		      const char *what,
+		      void       *newPtr)
 {
   // Handle special case of zero sized result
   if (size == 0) {
@@ -369,7 +369,7 @@ int reallocateMemory(void       *ptr,
 }
 
 /*****************************************************************************/
-void memoryInit(void)
+void memory_init(void)
 {
 
   spin_lock_init(&memoryStats.lock);
@@ -378,7 +378,7 @@ void memoryInit(void)
 
 
 /*****************************************************************************/
-void memoryExit(void)
+void memory_exit(void)
 {
 
   ASSERT_LOG_ONLY(memoryStats.kmallocBytes == 0,
@@ -394,7 +394,7 @@ void memoryExit(void)
 }
 
 /**********************************************************************/
-void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
+void get_memory_stats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
 {
   unsigned long flags;
   spin_lock_irqsave(&memoryStats.lock, flags);
@@ -404,7 +404,7 @@ void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
 }
 
 /**********************************************************************/
-void reportMemoryUsage()
+void report_memory_usage()
 {
   unsigned long flags;
   spin_lock_irqsave(&memoryStats.lock, flags);

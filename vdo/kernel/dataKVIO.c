@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#63 $
  */
 
 #include "dataKVIO.h"
@@ -1085,8 +1085,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 
 	if (WRITE_PROTECT_FREE_POOL) {
 		STATIC_ASSERT(sizeof(struct data_kvio) <= WP_DATA_KVIO_SIZE);
-		result = allocateMemory(WP_DATA_KVIO_SIZE, 0, __func__,
-					&data_kvio);
+		result = allocate_memory(WP_DATA_KVIO_SIZE, 0, __func__,
+					 &data_kvio);
 		if (result == VDO_SUCCESS) {
 			BUG_ON((((size_t) data_kvio) & (PAGE_SIZE - 1)) != 0);
 		}
@@ -1100,8 +1100,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	}
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
-	result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio data",
-				&data_kvio->data_block);
+	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio data",
+				 &data_kvio->data_block);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
 		return logErrorWithStringError(result,
@@ -1117,8 +1117,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 					       "data_kvio data bio allocation failure");
 	}
 
-	result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
-				&data_kvio->read_block.buffer);
+	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
+				 &data_kvio->read_block.buffer);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
 		return logErrorWithStringError(result,
@@ -1135,8 +1135,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 
 	data_kvio->read_block.bio->bi_private = &data_kvio->kvio;
 
-	result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio scratch",
-				&data_kvio->scratch_block);
+	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio scratch",
+				 &data_kvio->scratch_block);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
 		return logErrorWithStringError(result,

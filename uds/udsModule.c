@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#33 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#34 $
  */
 
 #include <linux/module.h>
@@ -36,7 +36,7 @@
 /**********************************************************************/
 static int __init dedupeInit(void)
 {
-  memoryInit();
+  memory_init();
   logInfo("loaded version %s", UDS_VERSION);
   init_sysfs();
   return 0;
@@ -46,7 +46,7 @@ static int __init dedupeInit(void)
 static void __exit dedupeExit(void)
 {
   put_sysfs();
-  memoryExit();
+  memory_exit();
   logInfo("unloaded version %s", UDS_VERSION);
 }
 
@@ -82,8 +82,8 @@ EXPORT_SYMBOL_GPL(udsStringError);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
-EXPORT_SYMBOL_GPL(allocateMemory);
-EXPORT_SYMBOL_GPL(allocateMemoryNowait);
+EXPORT_SYMBOL_GPL(allocate_memory);
+EXPORT_SYMBOL_GPL(allocate_memory_nowait);
 EXPORT_SYMBOL_GPL(assertionFailed);
 EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
 EXPORT_SYMBOL_GPL(available_space);
@@ -99,14 +99,14 @@ EXPORT_SYMBOL_GPL(equal_buffers);
 EXPORT_SYMBOL_GPL(fixedSprintf);
 EXPORT_SYMBOL_GPL(free_buffer);
 EXPORT_SYMBOL_GPL(free_funnel_queue);
-EXPORT_SYMBOL_GPL(freeMemory);
+EXPORT_SYMBOL_GPL(free_memory);
 EXPORT_SYMBOL_GPL(funnel_queue_poll);
 EXPORT_SYMBOL_GPL(get_boolean);
 EXPORT_SYMBOL_GPL(get_buffer_contents);
 EXPORT_SYMBOL_GPL(get_byte);
 EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
 EXPORT_SYMBOL_GPL(getLogLevel);
-EXPORT_SYMBOL_GPL(getMemoryStats);
+EXPORT_SYMBOL_GPL(get_memory_stats);
 EXPORT_SYMBOL_GPL(get_uint16_be_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_les_from_buffer);
@@ -147,10 +147,10 @@ EXPORT_SYMBOL_GPL(put_uint64_bes_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
 EXPORT_SYMBOL_GPL(priorityToString);
-EXPORT_SYMBOL_GPL(reallocateMemory);
+EXPORT_SYMBOL_GPL(reallocate_memory);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(registerErrorBlock);
-EXPORT_SYMBOL_GPL(reportMemoryUsage);
+EXPORT_SYMBOL_GPL(report_memory_usage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
 EXPORT_SYMBOL_GPL(setLogLevel);

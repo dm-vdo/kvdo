@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#36 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -68,8 +68,8 @@ allocate_cache_components(struct vdo_page_cache *cache)
 	}
 
 	uint64_t size = cache->page_count * (uint64_t) VDO_BLOCK_SIZE;
-	result = allocateMemory(size, VDO_BLOCK_SIZE, "cache pages",
-				&cache->pages);
+	result = allocate_memory(size, VDO_BLOCK_SIZE, "cache pages",
+				 &cache->pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
