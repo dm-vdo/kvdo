@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#70 $
  */
 
 #include "blockMapTree.h"
@@ -78,7 +78,7 @@ const physical_block_number_t INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 static inline struct tree_page *
 tree_page_from_list_entry(struct list_head *entry)
 {
-	return container_of(entry, struct tree_page, entry);
+	return list_entry(entry, struct tree_page, entry);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#60 $
  */
 
 #include "slabJournalInternals.h"
@@ -69,7 +69,7 @@ struct slab_journal *slab_journal_from_dirty_entry(struct list_head *entry)
 	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(entry, struct slab_journal, dirty_entry);
+	return list_entry(entry, struct slab_journal, dirty_entry);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#20 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -165,7 +165,7 @@ page_info_from_list_entry(struct list_head *entry)
 	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(entry, struct page_info, list_entry);
+	return list_entry(entry, struct page_info, list_entry);
 }
 
 /**********************************************************************/
@@ -175,7 +175,7 @@ page_info_from_lru_entry(struct list_head *entry)
 	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(entry, struct page_info, lru_entry);
+	return list_entry(entry, struct page_info, lru_entry);
 }
 
 // PAGE INFO STATE ACCESSOR FUNCTIONS

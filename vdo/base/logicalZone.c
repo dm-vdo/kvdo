@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#38 $
  */
 
 #include "logicalZone.h"
@@ -315,7 +315,7 @@ struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
 static inline struct data_vio *
 data_vio_from_list_entry(struct list_head *entry)
 {
-	return container_of(entry, struct data_vio, write_entry);
+	return list_entry(entry, struct data_vio, write_entry);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#34 $
  */
 
 /**
@@ -232,7 +232,7 @@ static void set_duplicate_lock(struct hash_lock *hash_lock,
  **/
 static inline struct data_vio *data_vio_from_lock_entry(struct list_head *entry)
 {
-	return container_of(entry, struct data_vio, hash_lock_entry);
+	return list_entry(entry, struct data_vio, hash_lock_entry);
 }
 
 /**
