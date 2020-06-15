@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#79 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -471,7 +471,7 @@ int allocate_block(struct block_allocator *allocator,
 	// Remove the highest priority slab from the priority table and make it
 	// the open slab.
 	allocator->open_slab =
-		slab_from_list_entry((struct list_head *)(priority_table_dequeue(allocator->prioritized_slabs)));
+		slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
 
 	if (is_slab_journal_blank(allocator->open_slab->journal)) {
 		relaxedAdd64(&allocator->statistics.slabs_opened, 1);
