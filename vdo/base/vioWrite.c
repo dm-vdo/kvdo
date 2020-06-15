@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#37 $
  */
 
 /*
@@ -63,7 +63,7 @@
  *     hashData()
  *     resolve_hash_zone()
  *     acquire_hash_lock()
- *     attemptDedupe() (query albireo)
+ *     attemptDedupe() (query UDS)
  *     if (is_duplicate) {
  *       verifyAdvice() (read verify)
  *       if (is_duplicate and canAddReference) {
@@ -125,7 +125,7 @@
  *       hashData()
  *       resolve_hash_zone()
  *       acquire_hash_lock()
- *       attemptDedupe() (query albireo)
+ *       attemptDedupe() (query UDS)
  *       if (is_duplicate) {
  *         verifyAdvice() (read verify)
  *         if (is_duplicate and canAddReference) {
@@ -414,7 +414,7 @@ static bool abort_on_error(int result,
 /**
  * Return a data_vio that finished writing, compressing, or deduplicating to
  * its hash lock so it can share the result with any DataVIOs waiting in the
- * hash lock, or update albireo, or simply release its share of the lock. This
+ * hash lock, or update UDS, or simply release its share of the lock. This
  * continuation is registered in update_block_map_for_write(),
  * update_block_map_for_dedupe(), and abortDeduplication(), and must be called in
  * the hash zone of the data_vio.

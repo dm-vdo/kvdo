@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#30 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -259,7 +259,7 @@ typedef bool data_vio_comparator(struct data_vio *first,
 typedef async_data_operation data_compressor;
 
 /**
- * Update albireo.
+ * Update UDS.
  *
  * @param dataVIO  The data_vio which needs to change the entry for its data
  **/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#49 $
  */
 
 #ifndef DATA_VIO_H
@@ -218,7 +218,7 @@ struct data_vio {
 	struct list_head hash_lock_entry;
 
 	/*
-	* The block number in the partition of the albireo deduplication advice
+	 * The block number in the partition of the UDS deduplication advice
 	 */
 	struct zoned_pbn duplicate;
 
@@ -406,12 +406,12 @@ static inline bool is_trim_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Get the location that should passed Albireo as the new advice for where to
- * find the data written by this data_vio.
+ * Get the location that should be passed to UDS as the new advice for
+ * where to find the data written by this data_vio.
  *
- * @param data_vio  The write data_vio that is ready to update Albireo
+ * @param data_vio  The write data_vio that is ready to update UDS
  *
- * @return a data_location containing the advice to store in Albireo
+ * @return a data_location containing the advice to store in UDS
  **/
 static inline struct data_location
 get_data_vio_new_advice(const struct data_vio *data_vio)
@@ -957,11 +957,11 @@ launch_packer_callback(struct data_vio *data_vio,
 }
 
 /**
- * Check whether the advice received from Albireo is a valid data location,
+ * Check whether the advice received from UDS is a valid data location,
  * and if it is, accept it as the location of a potential duplicate of the
  * data_vio.
  *
- * @param data_vio The data_vio that queried Albireo
+ * @param data_vio The data_vio that queried UDS
  * @param advice   A potential location of the data, or NULL for no advice
  **/
 void receive_dedupe_advice(struct data_vio *data_vio,

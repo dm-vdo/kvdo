@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#19 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -105,7 +105,7 @@ int message_dedupe_index(struct dedupe_index *index, const char *name);
  * Look up the chunkname of the data_kvio and identify duplicated chunks.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupe_context.chunkName is the chunk name.
+ *                   dedupe_context.chunk_name is the chunk name.
  *                   The advice to offer to the index will be obtained
  *                   via get_dedupe_advice(). The advice found in the index
  *                   (or NULL if none) will be returned via
@@ -115,10 +115,10 @@ int message_dedupe_index(struct dedupe_index *index, const char *name);
 void post_dedupe_advice(struct data_kvio *data_kvio);
 
 /**
- * Look up the chunkname of the data_kvio and identify duplicated chunks.
+ * Look up the chunk_name of the data_kvio and identify duplicated chunks.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupe_context.chunkName is the chunk name.
+ *                   dedupe_context.chunk_name is the chunk name.
  *                   The advice found in the index (or NULL if none) will
  *                   be returned via set_dedupe_advice().
  *                   dedupe_context.status is set to the return status code of
@@ -167,11 +167,11 @@ void resume_dedupe_index(struct dedupe_index *index);
 void finish_dedupe_index(struct dedupe_index *index);
 
 /**
- * Look up the chunkname of the data_kvio and associate the new PBN with the
+ * Look up the chunk_name of the data_kvio and associate the new PBN with the
  * name.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupe_context.chunkName is the chunk name.
+ *                   dedupe_context.chunk_name is the chunk name.
  *                   The advice to offer to the index will be obtained via
  *                   get_dedupe_advice(). dedupe_context.status is set to the
  *                   return status code of any asynchronous index processing.
@@ -179,16 +179,16 @@ void finish_dedupe_index(struct dedupe_index *index);
 void update_dedupe_advice(struct data_kvio *data_kvio);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
-// fast path and skipping Albireo.
+// fast path and skipping UDS.
 extern unsigned int albireo_timeout_interval;
 
 // Minimum time interval (in milliseconds) between timer invocations to
-// check for requests waiting for Albireo that should now time out.
+// check for requests waiting for UDS that should now time out.
 extern unsigned int min_albireo_timer_interval;
 
 /**
  * Set the interval from submission until switching to fast path and
- * skipping Albireo.
+ * skipping UDS.
  *
  * @param value  The number of milliseconds
  **/
@@ -196,7 +196,7 @@ void set_albireo_timeout_interval(unsigned int value);
 
 /**
  * Set the minimum time interval between timer invocations to check for
- * requests waiting for Albireo that should now time out.
+ * requests waiting for UDS that should now time out.
  *
  * @param value  The number of milliseconds
  **/

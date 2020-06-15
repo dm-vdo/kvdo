@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#26 $
  */
 
 #include "hashZone.h"
@@ -48,10 +48,10 @@ struct hash_zone {
 	/** The thread ID for this zone */
 	thread_id_t thread_id;
 
-	/** Mapping from chunkName fields to HashLocks */
+	/** Mapping from chunk_name fields to hash_locks */
 	struct pointer_map *hash_lock_map;
 
-	/** List containing all unused HashLocks */
+	/** List containing all unused hash_locks */
 	struct list_head lock_pool;
 
 	/**
@@ -60,7 +60,7 @@ struct hash_zone {
 	 **/
 	struct hash_lock_statistics statistics;
 
-	/** Array of all HashLocks */
+	/** Array of all hash_locks */
 	struct hash_lock *lock_array;
 };
 

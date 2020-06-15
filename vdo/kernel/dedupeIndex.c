@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#50 $
  */
 
 #include "dedupeIndex.h"
@@ -110,8 +110,8 @@ struct dedupe_index {
 
 /*****************************************************************************/
 
-// Version 1:  user space albireo index (limited to 32 bytes)
-// Version 2:  kernel space albireo index (limited to 16 bytes)
+// Version 1:  user space UDS index (limited to 32 bytes)
+// Version 2:  kernel space UDS index (limited to 16 bytes)
 enum { UDS_ADVICE_VERSION = 2,
        // version byte + state byte + 64-bit little-endian PBN
        UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
