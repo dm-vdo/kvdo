@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#59 $
  */
 
 #include "slabJournalInternals.h"
@@ -64,12 +64,12 @@ slab_journal_from_flush_waiter(struct waiter *waiter)
 }
 
 /**********************************************************************/
-struct slab_journal *slab_journal_from_dirty_node(RingNode *node)
+struct slab_journal *slab_journal_from_dirty_entry(struct list_head *entry)
 {
-	if (node == NULL) {
+	if (entry == NULL) {
 		return NULL;
 	}
-	return container_of(node, struct slab_journal, dirty_node);
+	return container_of(entry, struct slab_journal, dirty_entry);
 }
 
 /**
@@ -266,7 +266,7 @@ int make_slab_journal(struct block_allocator *allocator,
 		return result;
 	}
 
-	initializeRing(&journal->dirty_node);
+	INIT_LIST_HEAD(&journal->dirty_entry);
 	INIT_LIST_HEAD(&journal->uncommitted_blocks);
 
 	journal->tail_header.nonce = slab->allocator->nonce;
@@ -316,26 +316,25 @@ static void mark_slab_journal_dirty(struct slab_journal *journal,
 			"slab journal was clean");
 
 	journal->recovery_lock = lock;
-	RingNode *dirty_ring = &journal->slab->allocator->dirty_slab_journals;
-	RingNode *node = dirty_ring->prev;
-	while (node != dirty_ring) {
+	struct list_head *dirty_list =
+		&journal->slab->allocator->dirty_slab_journals;
+	struct list_head *entry;
+	list_for_each_prev(entry, dirty_list) {
 		struct slab_journal *dirty_journal =
-			slab_journal_from_dirty_node(node);
+			slab_journal_from_dirty_entry(entry);
 		if (dirty_journal->recovery_lock <= journal->recovery_lock) {
 			break;
 		}
-
-		node = node->prev;
 	}
 
-	pushRingNode(node->next, &journal->dirty_node);
+	list_move_tail(&journal->dirty_entry, entry->next);
 }
 
 /**********************************************************************/
 static void mark_slab_journal_clean(struct slab_journal *journal)
 {
 	journal->recovery_lock = 0;
-	unspliceRingNode(&journal->dirty_node);
+	list_del_init(&journal->dirty_entry);
 }
 
 /**

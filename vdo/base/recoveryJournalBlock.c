@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#33 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -29,7 +29,6 @@
 #include "packedRecoveryJournalBlock.h"
 #include "recoveryJournalEntry.h"
 #include "recoveryJournalInternals.h"
-#include "ringNode.h"
 #include "vio.h"
 #include "waitQueue.h"
 
@@ -68,7 +67,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	}
 
 	block->vio->completion.callback_thread_id = journal->thread_id;
-	initializeRing(&block->ring_node);
+	INIT_LIST_HEAD(&block->list_entry);
 	block->journal = journal;
 
 	*block_ptr = block;

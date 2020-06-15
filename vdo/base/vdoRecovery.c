@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#64 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -297,7 +297,7 @@ int make_recovery_completion(struct vdo *vdo,
 	struct recovery_completion *recovery;
 	int result = ALLOCATE_EXTENDED(struct recovery_completion,
 				       thread_config->physical_zone_count,
-				       RingNode,
+				       struct list_head,
 				       __func__,
 				       &recovery);
 	if (result != VDO_SUCCESS) {

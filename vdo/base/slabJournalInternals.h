@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#27 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -261,8 +261,11 @@ struct slab_journal {
 	 */
 	block_count_t scrubbing_threshold;
 
-	/** This node is for BlockAllocator to keep a queue of dirty journals */
-	RingNode dirty_node;
+	/**
+	 * This list entry is for BlockAllocator to keep a queue of dirty
+	 * journals
+	 */
+	struct list_head dirty_entry;
 
 	/** The lock for the oldest unreaped block of the journal */
 	struct journal_lock *reap_lock;

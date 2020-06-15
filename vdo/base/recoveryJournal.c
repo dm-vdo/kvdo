@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#67 $
  */
 
 #include "recoveryJournal.h"
@@ -81,7 +81,12 @@ const char *get_journal_operation_name(journal_operation operation)
 static struct recovery_journal_block *
 pop_free_list(struct recovery_journal *journal)
 {
-	return block_from_ring_node(popRingNode(&journal->free_tail_blocks));
+	if (list_empty(&journal->free_tail_blocks)) {
+		return NULL;
+	}
+	struct list_head *entry = journal->free_tail_blocks.prev;
+	list_del_init(entry);
+	return block_from_list_entry(entry);
 }
 
 /**
@@ -94,7 +99,12 @@ pop_free_list(struct recovery_journal *journal)
 static struct recovery_journal_block *
 pop_active_list(struct recovery_journal *journal)
 {
-	return block_from_ring_node(popRingNode(&journal->active_tail_blocks));
+	if (list_empty(&journal->active_tail_blocks)) {
+		return NULL;
+	}
+	struct list_head *entry = journal->active_tail_blocks.prev;
+	list_del_init(entry);
+	return block_from_list_entry(entry);
 }
 
 /**
@@ -135,12 +145,12 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 {
 	// Either the first active tail block (if it exists) has waiters,
 	// or no active tail block has waiters.
-	if (isRingEmpty(&journal->active_tail_blocks)) {
+	if (list_empty(&journal->active_tail_blocks)) {
 		return false;
 	}
 
 	struct recovery_journal_block *block =
-		block_from_ring_node(journal->active_tail_blocks.next);
+		block_from_list_entry(journal->active_tail_blocks.next);
 	return (has_waiters(&block->entry_waiters)
 		|| has_waiters(&block->commit_waiters));
 }
@@ -192,7 +202,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 			recycle_journal_block(journal->active_block);
 		}
 
-		ASSERT_LOG_ONLY(isRingEmpty(&journal->active_tail_blocks),
+		ASSERT_LOG_ONLY(list_empty(&journal->active_tail_blocks),
 				"all blocks in a journal being saved must be inactive");
 	}
 
@@ -419,8 +429,8 @@ int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 		return result;
 	}
 
-	initializeRing(&journal->free_tail_blocks);
-	initializeRing(&journal->active_tail_blocks);
+	INIT_LIST_HEAD(&journal->free_tail_blocks);
+	INIT_LIST_HEAD(&journal->active_tail_blocks);
 	initialize_wait_queue(&journal->pending_writes);
 
 	journal->thread_id = get_journal_zone_thread(thread_config);
@@ -450,8 +460,9 @@ int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 				return result;
 			}
 
-			pushRingNode(&journal->free_tail_blocks,
-				     &block->ring_node);
+			list_move_tail(&block->list_entry,
+				       &journal->free_tail_blocks);
+				
 		}
 
 		result = make_lock_counter(layer, journal,
@@ -515,10 +526,10 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 	// state
 	//      which requires opening before use.
 	if (!is_quiescent(&journal->state)) {
-		ASSERT_LOG_ONLY(isRingEmpty(&journal->active_tail_blocks),
+		ASSERT_LOG_ONLY(list_empty(&journal->active_tail_blocks),
 				"journal being freed has no active tail blocks");
 	} else if (!is_saved(&journal->state)
-		   && !isRingEmpty(&journal->active_tail_blocks)) {
+		   && !list_empty(&journal->active_tail_blocks)) {
 		logWarning("journal being freed has uncommited entries");
 	}
 
@@ -673,8 +684,8 @@ static bool advance_tail(struct recovery_journal *journal)
 		return false;
 	}
 
-	pushRingNode(&journal->active_tail_blocks,
-		     &journal->active_block->ring_node);
+	list_move_tail(&journal->active_block->list_entry,
+		       &journal->active_tail_blocks);
 	initialize_recovery_block(journal->active_block);
 	set_journal_tail(journal, journal->tail + 1);
 	advance_block_map_era(journal->block_map, journal->tail);
@@ -917,7 +928,7 @@ static void assign_entries(struct recovery_journal *journal)
 static void recycle_journal_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
-	pushRingNode(&journal->free_tail_blocks, &block->ring_node);
+	list_move_tail(&block->list_entry, &journal->free_tail_blocks);
 
 	// Release any unused entry locks.
 	block_count_t i;
@@ -968,16 +979,14 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
  **/
 static void notify_commit_waiters(struct recovery_journal *journal)
 {
-	if (isRingEmpty(&journal->active_tail_blocks)) {
+	if (list_empty(&journal->active_tail_blocks)) {
 		return;
 	}
 
-	RingNode *node;
-	for (node = journal->active_tail_blocks.next;
-	     node != &journal->active_tail_blocks;
-	     node = node->next) {
+	struct list_head *entry;
+	list_for_each(entry, &journal->active_tail_blocks) {
 		struct recovery_journal_block *block
-			= block_from_ring_node(node);
+			= block_from_list_entry(entry);
 
 		if (block->committing) {
 			return;
@@ -1006,9 +1015,9 @@ static void notify_commit_waiters(struct recovery_journal *journal)
  **/
 static void recycle_journal_blocks(struct recovery_journal *journal)
 {
-	while (!isRingEmpty(&journal->active_tail_blocks)) {
+	while (!list_empty(&journal->active_tail_blocks)) {
 		struct recovery_journal_block *block
-		  = block_from_ring_node(journal->active_tail_blocks.next);
+		  = block_from_list_entry(journal->active_tail_blocks.next);
 
 		if (block->committing) {
 			// Don't recycle committing blocks.
@@ -1053,7 +1062,7 @@ static void complete_write(struct vdo_completion *completion)
 	}
 
 	struct recovery_journal_block *last_active_block =
-		block_from_ring_node(journal->active_tail_blocks.next);
+		block_from_list_entry(journal->active_tail_blocks.next);
 	ASSERT_LOG_ONLY((block->sequence_number >=
 			 last_active_block->sequence_number),
 			"completed journal write is still active");
@@ -1376,9 +1385,9 @@ void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 		stats.blocks.committed);
 
 	logInfo("  active blocks:");
-	const RingNode *head = &journal->active_tail_blocks;
-	RingNode *node;
-	for (node = head->next; node != head; node = node->next) {
-		dump_recovery_block(block_from_ring_node(node));
+	const struct list_head *head = &journal->active_tail_blocks;
+	struct list_head *entry;
+	list_for_each(entry, head) {
+		dump_recovery_block(block_from_list_entry(entry));
 	}
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#18 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -26,13 +26,12 @@
 
 #include "packedRecoveryJournalBlock.h"
 #include "recoveryJournalInternals.h"
-#include "ringNode.h"
 #include "types.h"
 #include "waitQueue.h"
 
 struct recovery_journal_block {
 	/** The doubly linked pointers for the free or active lists */
-	RingNode ring_node;
+	struct list_head list_entry;
 	/** The waiter for the pending full block list */
 	struct waiter write_waiter;
 	/** The journal to which this block belongs */
@@ -70,17 +69,17 @@ struct recovery_journal_block {
 };
 
 /**
- * Return the block associated with a ring node.
+ * Return the block associated with a list entry.
  *
- * @param node The ring node to recast as a block
+ * @param entry    The list entry to recast as a block
  *
  * @return The block
  **/
 static inline struct recovery_journal_block *
-block_from_ring_node(RingNode *node)
+block_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct recovery_journal_block, ring_node) == 0);
-	return (struct recovery_journal_block *) node;
+	STATIC_ASSERT(offsetof(struct recovery_journal_block, list_entry) == 0);
+	return (struct recovery_journal_block *) entry;
 }
 
 /**

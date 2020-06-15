@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#25 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -27,9 +27,9 @@
 #include "adminState.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
+#include "list.h"
 #include "lockCounter.h"
 #include "recoveryJournal.h"
-#include "ringNode.h"
 #include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
@@ -87,9 +87,9 @@ struct recovery_journal {
 	/** The number of entries which fit in a single block */
 	JournalEntryCount entries_per_block;
 	/** Unused in-memory journal blocks */
-	RingNode free_tail_blocks;
+	struct list_head free_tail_blocks;
 	/** In-memory journal blocks with records */
-	RingNode active_tail_blocks;
+	struct list_head active_tail_blocks;
 	/** A pointer to the active block (the one we are adding entries to now)
 	 */
 	struct recovery_journal_block *active_block;

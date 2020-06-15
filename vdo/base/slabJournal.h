@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#21 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -24,7 +24,7 @@
 
 #include "completion.h"
 #include "journalPoint.h"
-#include "ringNode.h"
+#include "list.h"
 #include "types.h"
 
 /**
@@ -46,13 +46,14 @@ size_t __must_check get_slab_journal_entries_per_block(void);
 
 /**
  * Obtain a pointer to a slab_journal structure from a pointer to the
- * dirtyRingNode field within it.
+ * dirty list entry field within it.
  *
- * @param node  The RingNode to convert
+ * @param entry  The list entry to convert
  *
- * @return The RingNode as a slab_journal
+ * @return The entry as a slab_journal
  **/
-struct slab_journal * __must_check slab_journal_from_dirty_node(RingNode *node);
+struct slab_journal * __must_check
+slab_journal_from_dirty_entry(struct list_head *entry);
 
 /**
  * Create a slab journal.
@@ -87,12 +88,12 @@ void free_slab_journal(struct slab_journal **journal_ptr);
 bool __must_check is_slab_journal_blank(const struct slab_journal *journal);
 
 /**
- * Check whether the slab journal is on the block allocator's ring of dirty
+ * Check whether the slab journal is on the block allocator's list of dirty
  * journals.
  *
  * @param journal  The journal to query
  *
- * @return <code>true</code> if the journal has been added to the dirty ring
+ * @return <code>true</code> if the journal has been added to the dirty list
  **/
 bool __must_check is_slab_journal_dirty(const struct slab_journal *journal);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#78 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -290,7 +290,7 @@ int make_block_allocator(struct slab_depot *depot,
 	allocator->thread_id = thread_id;
 	allocator->nonce = nonce;
 	allocator->read_only_notifier = read_only_notifier;
-	initializeRing(&allocator->dirty_slab_journals);
+	INIT_LIST_HEAD(&allocator->dirty_slab_journals);
 
 	result = allocate_components(allocator, layer, vio_pool_size);
 	if (result != VDO_SUCCESS) {
@@ -926,9 +926,9 @@ void release_tail_block_locks(void *context,
 {
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
-	RingNode *ring = &allocator->dirty_slab_journals;
-	while (!isRingEmpty(ring)) {
-		if (!release_recovery_journal_lock(slab_journal_from_dirty_node(ring->next),
+	struct list_head *list = &allocator->dirty_slab_journals;
+	while (!list_empty(list)) {
+		if (!release_recovery_journal_lock(slab_journal_from_dirty_entry(list->next),
 						   allocator->depot->active_release_request)) {
 			break;
 		}

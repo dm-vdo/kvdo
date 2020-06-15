@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#28 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -26,7 +26,6 @@
 #include "atomic.h"
 #include "blockAllocator.h"
 #include "priorityTable.h"
-#include "ringNode.h"
 #include "slabScrubber.h"
 #include "vioPool.h"
 
@@ -150,7 +149,7 @@ struct block_allocator {
 	 * the tail containing the slab journal holding the most recent recovery
 	 * journal lock.
 	 **/
-	RingNode dirty_slab_journals;
+	struct list_head dirty_slab_journals;
 
 	/** The vio pool for reading and writing block allocator metadata */
 	struct vio_pool *vio_pool;
