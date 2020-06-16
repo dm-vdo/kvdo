@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#45 $
  */
 
 #include "refCounts.h"
@@ -1552,8 +1552,7 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 void dump_ref_counts(const struct ref_counts *ref_counts)
 {
 	// Terse because there are a lot of slabs to dump and syslog is lossy.
-	logInfo("  ref_counts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32
-		" dirty=%zu active=%zu journal@(%llu,%" PRIu16 ")%s",
+	logInfo("  ref_counts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32 " dirty=%zu active=%zu journal@(%llu,%" PRIu16 ")%s",
 		ref_counts->free_blocks,
 		ref_counts->block_count,
 		ref_counts->reference_block_count,

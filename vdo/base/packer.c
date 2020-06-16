@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#51 $
  */
 
 #include "packerInternals.h"
@@ -839,8 +839,7 @@ void attempt_packing(struct data_vio *data_vio)
 	struct vio_compression_state state = get_compression_state(data_vio);
 	int result =
 		ASSERT((state.status == VIO_COMPRESSING),
-		       "attempt to pack data_vio not ready for packing, state: "
-		       "%u",
+		       "attempt to pack data_vio not ready for packing, state: %u",
 		       state.status);
 	if (result != VDO_SUCCESS) {
 		return;

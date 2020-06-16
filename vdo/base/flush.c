@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#27 $
  */
 
 #include "flush.h"
@@ -247,8 +247,7 @@ void complete_flushes(struct flusher *flusher)
 
 		ASSERT_LOG_ONLY((flush->flush_generation
 				 == flusher->first_unacknowledged_generation),
-				"acknowledged next expected flush, %" PRIu64
-				", was: %llu",
+				"acknowledged next expected flush, %llu, was: %llu",
 				flusher->first_unacknowledged_generation,
 				flush->flush_generation);
 		dequeue_next_waiter(&flusher->pending_flushes);
@@ -261,8 +260,7 @@ void complete_flushes(struct flusher *flusher)
 void dump_flusher(const struct flusher *flusher)
 {
 	logInfo("struct flusher");
-	logInfo("  flush_generation=%" PRIu64
-		" first_unacknowledged_generation=%llu",
+	logInfo("  flush_generation=%llu first_unacknowledged_generation=%llu",
 		flusher->flush_generation,
 		flusher->first_unacknowledged_generation);
 	logInfo("  notifiers queue is %s; pending_flushes queue is %s",

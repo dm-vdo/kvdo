@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#30 $
  */
 
 #include "vdoResize.h"
@@ -232,8 +232,7 @@ int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 	}
 
 	if (new_physical_blocks == current_physical_blocks) {
-		logWarning("Requested physical block count %" PRIu64
-			   " not greater than %llu",
+		logWarning("Requested physical block count %llu not greater than %llu",
 			   new_physical_blocks,
 			   current_physical_blocks);
 		finish_vdo_layout_growth(vdo->layout);

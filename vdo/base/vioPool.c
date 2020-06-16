@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#16 $
  */
 
 #include "vioPool.h"
@@ -127,9 +127,7 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	for (i = 0; i < pool->size; i++) {
 		struct vio_pool_entry *entry = &pool->entries[i];
 		ASSERT_LOG_ONLY(list_empty(&entry->list_entry),
-				"VIO Pool entry still in use:"
-				" VIO is in use for physical block %" PRIu64
-				" for operation %u",
+				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
 				entry->vio->physical, entry->vio->operation);
 	}
 

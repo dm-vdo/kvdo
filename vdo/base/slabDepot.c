@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#70 $
  */
 
 #include "slabDepot.h"
@@ -395,9 +395,7 @@ static int configure_state(block_count_t block_count,
 			   struct slab_depot_state_2_0 *state)
 {
 	block_count_t slab_size = slab_config.slab_blocks;
-	logDebug("slabDepot configure_state(block_count=%" PRIu64
-		 ", first_block=%llu, slab_size=%" PRIu64
-		 ", zone_count=%u)",
+	logDebug("slabDepot configure_state(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
 		 block_count,
 		 first_block,
 		 slab_size,
@@ -424,8 +422,7 @@ static int configure_state(block_count_t block_count,
 		.zone_count = zone_count,
 	};
 
-	logDebug("slab_depot last_block=%llu, total_data_blocks=%" PRIu64
-		 ", slab_count=%zu, left_over=%llu",
+	logDebug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
 		 last_block,
 		 total_data_blocks,
 		 slab_count,
@@ -1041,9 +1038,7 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
 void dump_slab_depot(const struct slab_depot *depot)
 {
 	logInfo("vdo slab depot");
-	logInfo("  zone_count=%u old_zone_count=%u slabCount=%" PRIu32
-		" active_release_request=%" PRIu64
-		" new_release_request=%llu",
+	logInfo("  zone_count=%u old_zone_count=%u slabCount=%" PRIu32 " active_release_request=%llu new_release_request=%llu",
 		(unsigned int) depot->zone_count,
 		(unsigned int) depot->old_zone_count,
 		depot->slab_count,

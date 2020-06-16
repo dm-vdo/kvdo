@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#61 $
  */
 
 #include "slabJournalInternals.h"
@@ -632,8 +632,7 @@ void reopen_slab_journal(struct slab_journal *journal)
 	sequence_number_t block;
 	for (block = 1; block <= journal->size; block++) {
 		ASSERT_LOG_ONLY((get_lock(journal, block)->count == 0),
-				"Scrubbed journal's block %" PRIu64
-				" is not locked",
+				"Scrubbed journal's block %llu is not locked",
 				block);
 	}
 
@@ -840,9 +839,7 @@ static void add_entry(struct slab_journal *journal,
 	int result =
 		ASSERT(before_journal_point(&journal->tail_header.recovery_point,
 					    recovery_point),
-		       "recovery journal point is monotonically increasing, "
-		       "recovery point: %llu.%u, "
-		       "block recovery point: %llu.%u",
+		       "recovery journal point is monotonically increasing, recovery point: %llu.%u, block recovery point: %llu.%u",
 		       recovery_point->sequence_number,
 		       recovery_point->entry_count,
 		       journal->tail_header.recovery_point.sequence_number,
@@ -1373,11 +1370,7 @@ void decode_slab_journal(struct slab_journal *journal)
 /**********************************************************************/
 void dump_slab_journal(const struct slab_journal *journal)
 {
-	logInfo("  slab journal: entry_waiters=%zu waiting_to_commit=%s"
-		" updating_slab_summary=%s head=%llu unreapable=%" PRIu64
-		" tail=%llu next_commit=%llu summarized=%" PRIu64
-		" last_summarized=%llu recovery_lock=%" PRIu64
-		" dirty=%s",
+	logInfo("  slab journal: entry_waiters=%zu waiting_to_commit=%s" " updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
 		count_waiters(&journal->entry_waiters),
 		boolToString(journal->waiting_to_commit),
 		boolToString(journal->updating_slab_summary),

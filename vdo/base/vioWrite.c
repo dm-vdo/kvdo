@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#38 $
  */
 
 /*
@@ -681,8 +681,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 	}
 
 	set_new_mapped_zone_callback(data_vio, increment_for_compression,
-				     THIS_LOCATION("$F($dup);js=map/$dup;"
-						   "cb=incCompress($dup)"));
+				     THIS_LOCATION("$F($dup);js=map/$dup;cb=incCompress($dup)"));
 	data_vio->last_async_operation = JOURNAL_MAPPING_FOR_COMPRESSION;
 	journal_increment(data_vio, get_duplicate_lock(data_vio));
 }
@@ -780,8 +779,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 	}
 
 	set_new_mapped_zone_callback(data_vio, increment_for_dedupe,
-				     THIS_LOCATION("$F($dup);js=map/$dup;"
-						   "cb=incDedupe($dup)"));
+				     THIS_LOCATION("$F($dup);js=map/$dup;cb=incDedupe($dup)"));
 	data_vio->last_async_operation = JOURNAL_MAPPING_FOR_DEDUPE;
 	journal_increment(data_vio, get_duplicate_lock(data_vio));
 }

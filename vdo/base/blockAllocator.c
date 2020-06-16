@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#80 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -367,8 +367,7 @@ void queue_slab(struct vdo_slab *slab)
 	int result =
 		ASSERT((free_blocks <=
 			allocator->depot->slab_config.data_blocks),
-		       "rebuilt slab %u must have a valid free block count"
-		       " (has %llu, expected maximum %llu)",
+		       "rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
 		       slab->slab_number,
 		       free_blocks,
 		       allocator->depot->slab_config.data_blocks);
@@ -502,8 +501,7 @@ void release_block_reference(struct block_allocator *allocator,
 	int result = modify_slab_reference_count(slab, NULL, operation);
 	if (result != VDO_SUCCESS) {
 		logErrorWithStringError(result,
-					"Failed to release reference to %s "
-					"physical block %llu",
+					"Failed to release reference to %s physical block %llu",
 					why,
 					pbn);
 	}

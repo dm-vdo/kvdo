@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#34 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -265,8 +265,7 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 				      pbn_ptr);
 	if (result != VDO_SUCCESS) {
 		logErrorWithStringError(result,
-					"Error translating recovery journal block "
-					"number %llu",
+					"Error translating recovery journal block number %llu",
 					block->block_number);
 	}
 	return result;
@@ -351,8 +350,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 /**********************************************************************/
 void dump_recovery_block(const struct recovery_journal_block *block)
 {
-	logInfo("    sequence number %llu; entries %" PRIu16
-		"; %s; %zu entry waiters; %zu commit waiters",
+	logInfo("    sequence number %llu; entries %" PRIu16 "; %s; %zu entry waiters; %zu commit waiters",
 		block->sequence_number, block->entry_count,
 		(block->committing ? "committing" : "waiting"),
 		count_waiters(&block->entry_waiters),
