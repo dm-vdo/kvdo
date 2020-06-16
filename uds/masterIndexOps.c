@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#13 $
  */
 #include "masterIndexOps.h"
 
@@ -60,7 +60,7 @@ int makeMasterIndex(const struct configuration  *config, unsigned int numZones,
                     uint64_t volumeNonce, struct master_index **masterIndex)
 {
   if (usesSparse(config)) {
-    return makeMasterIndex006(config, numZones, volumeNonce, masterIndex);
+    return make_master_index006(config, numZones, volumeNonce, masterIndex);
   } else {
     return make_master_index005(config, numZones, volumeNonce, masterIndex);
   }
@@ -72,7 +72,7 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
 {
   size_t numBytes;
   int result = (usesSparse(config)
-                ? computeMasterIndexSaveBytes006(config, &numBytes)
+                ? compute_master_index_save_bytes006(config, &numBytes)
                 : compute_master_index_save_bytes005(config, &numBytes));
   if (result != UDS_SUCCESS) {
     return result;

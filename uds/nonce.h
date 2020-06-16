@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.h#2 $
  */
 
 #ifndef NONCE_H
@@ -33,7 +33,7 @@
  *
  * @return the amount of the buffer that has been filled with unique data
  **/
-size_t createUniqueNonceData(byte *buffer, size_t length);
+size_t create_unique_nonce_data(byte *buffer, size_t length);
 
 /**
  * Generate a master nonce, using the specified data.
@@ -43,7 +43,7 @@ size_t createUniqueNonceData(byte *buffer, size_t length);
  *
  * @return a number which will be fairly unique
  **/
-uint64_t generateMasterNonce(const void *data, size_t len);
+uint64_t generate_master_nonce(const void *data, size_t len);
 
 /**
  * Deterministically generate a secondary nonce based on an existing
@@ -57,8 +57,7 @@ uint64_t generateMasterNonce(const void *data, size_t len);
  * @return a number which will be fairly unique and depend solely on
  *      the nonce and the data.
  **/
-uint64_t generateSecondaryNonce(uint64_t    nonce,
-                                const void *data,
-                                size_t      len);
+uint64_t
+generate_secondary_nonce(uint64_t nonce, const void *data, size_t len);
 
 #endif // NONCE_H

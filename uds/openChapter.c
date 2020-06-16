@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#17 $
  */
 
 #include "openChapter.h"
@@ -53,7 +53,7 @@ enum {
 };
 
 /**********************************************************************/
-static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
+static int fillDeltaChapterIndex(struct open_chapter_zone **chapterZones,
                                  unsigned int                zoneCount,
                                  struct open_chapter_index  *index,
                                  struct uds_chunk_record    *collatedRecords)
@@ -61,7 +61,7 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
   // Find a record to replace any deleted records, and fill the chapter if
   // it was closed early. The last record in any filled zone is guaranteed
   // to not have been deleted in this chapter, so use one of those.
-  OpenChapterZone *fillChapterZone = NULL;
+  struct open_chapter_zone *fillChapterZone = NULL;
   struct uds_chunk_record  *fillRecord = NULL;
   unsigned int z;
   for (z = 0; z < zoneCount; ++z) {
@@ -131,7 +131,7 @@ static int fillDeltaChapterIndex(OpenChapterZone           **chapterZones,
 }
 
 /**********************************************************************/
-int closeOpenChapter(OpenChapterZone           **chapterZones,
+int closeOpenChapter(struct open_chapter_zone  **chapterZones,
                      unsigned int                zoneCount,
                      Volume                     *volume,
                      struct open_chapter_index  *chapterIndex,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#15 $
  */
 
 #include "chapterWriter.h"
@@ -53,7 +53,7 @@ struct chapter_writer {
 	/* Collated records used by closeOpenChapter() */
 	struct uds_chunk_record *collated_records;
 	/* The chapters to write (one per zone) */
-	OpenChapterZone *chapters[];
+	struct open_chapter_zone *chapters[];
 };
 
 /**
@@ -137,7 +137,7 @@ int make_chapter_writer(struct index *index,
 	struct chapter_writer *writer;
 	int result = ALLOCATE_EXTENDED(struct chapter_writer,
 				       index->zone_count,
-				       OpenChapterZone *,
+				       struct open_chapter_zone *,
 				       "Chapter Writer",
 				       &writer);
 	if (result != UDS_SUCCESS) {
@@ -181,7 +181,7 @@ int make_chapter_writer(struct index *index,
 			writer->open_chapter_index);
 	writer->memory_allocated =
 		(sizeof(struct chapter_writer) +
-		 index->zone_count * sizeof(OpenChapterZone *) +
+		 index->zone_count * sizeof(struct open_chapter_zone *) +
 		 collated_records_size + open_chapter_index_memory_allocated);
 
 	// We're initialized, so now it's safe to start the writer thread.
@@ -213,7 +213,7 @@ void free_chapter_writer(struct chapter_writer *writer)
 /**********************************************************************/
 unsigned int start_closing_chapter(struct chapter_writer *writer,
 				   unsigned int zone_number,
-				   OpenChapterZone *chapter)
+				   struct open_chapter_zone *chapter)
 {
 	lockMutex(&writer->mutex);
 	unsigned int finished_zones = ++writer->zones_to_write;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#13 $
  */
 
 #include "workQueueStats.h"
@@ -142,8 +142,7 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 	}
 	unsigned long runtime_ms = runtime_ns / 1000;
 
-	logInfo("workQ %" PRIptr " (%s) thread cpu usage %lu.%06lus, %" PRIu64
-		" tasks, %lu.%03luus/task",
+	logInfo("workQ %" PRIptr " (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
 		queue, queue->common.name, runtime_ms / 1000000,
 		runtime_ms % 1000000, total_processed, ns_per_work_item / 1000,
 		ns_per_work_item % 1000);

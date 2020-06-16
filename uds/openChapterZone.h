@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#7 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -27,7 +27,7 @@
 #include "typeDefs.h"
 
 /**
- * OpenChapterZone is the mutable, in-memory representation of one zone's
+ * open_chapter_zone is the mutable, in-memory representation of one zone's
  * section of an Albireo index chapter.
  *
  * <p>In addition to providing the same access to records as an on-disk
@@ -61,27 +61,27 @@ enum {
   OPEN_CHAPTER_MAX_RECORD_NUMBER = (1 << OPEN_CHAPTER_RECORD_NUMBER_BITS) - 1
 };
 
-typedef struct {
+struct open_chapter_zone_slot {
   /** If non-zero, the record number addressed by this hash slot */
   unsigned int recordNumber : OPEN_CHAPTER_RECORD_NUMBER_BITS;
   /** If true, the record at the index of this hash slot was deleted */
   bool         recordDeleted : 1;
-} __attribute__((packed)) Slot;
+} __attribute__((packed));
 
-typedef struct openChapterZone {
+struct open_chapter_zone {
   /** Maximum number of records that can be stored */
-  unsigned int             capacity;
+  unsigned int                   capacity;
   /** Number of records stored */
-  unsigned int             size;
+  unsigned int                   size;
   /** Number of deleted records */
-  unsigned int             deleted;
+  unsigned int                   deleted;
   /** Record data, stored as (name, metadata), 1-based */
-  struct uds_chunk_record *records;
+  struct uds_chunk_record       *records;
   /** The number of slots in the chapter zone hash table. */
-  unsigned int             slotCount;
+  unsigned int                   slotCount;
   /** Hash table, referencing virtual record numbers */
-  Slot                     slots[];
-} OpenChapterZone;
+  struct open_chapter_zone_slot  slots[];
+};
 
 /**
  * Allocate an open chapter zone.
@@ -94,7 +94,7 @@ typedef struct openChapterZone {
  **/
 int __must_check makeOpenChapter(const struct geometry *geometry,
 				 unsigned int zoneCount,
-				 OpenChapterZone **openChapterPtr);
+				 struct open_chapter_zone **openChapterPtr);
 
 /**
  * Return the number of records in the open chapter zone that have not been
@@ -102,14 +102,15 @@ int __must_check makeOpenChapter(const struct geometry *geometry,
  *
  * @return the number of non-deleted records
  **/
-size_t __must_check openChapterSize(const OpenChapterZone *openChapter);
+size_t __must_check
+openChapterSize(const struct open_chapter_zone *openChapter);
 
 /**
  * Open a chapter by marking it empty.
  *
  * @param openChapter The chapter to open
  **/
-void resetOpenChapter(OpenChapterZone *openChapter);
+void resetOpenChapter(struct open_chapter_zone *openChapter);
 
 /**
  * Search the open chapter for a chunk name.
@@ -121,7 +122,7 @@ void resetOpenChapter(OpenChapterZone *openChapter);
  * @param found       A pointer which will be set to true if the chunk
  *                    name was found
  **/
-void searchOpenChapter(OpenChapterZone *openChapter,
+void searchOpenChapter(struct open_chapter_zone *openChapter,
                        const struct uds_chunk_name *name,
                        struct uds_chunk_data *metadata,
                        bool *found);
@@ -137,7 +138,7 @@ void searchOpenChapter(OpenChapterZone *openChapter,
  *
  * @return            UDS_SUCCESS or an error code
  **/
-int __must_check putOpenChapter(OpenChapterZone *openChapter,
+int __must_check putOpenChapter(struct open_chapter_zone *openChapter,
 				const struct uds_chunk_name *name,
 				const struct uds_chunk_data *metadata,
 				unsigned int *remaining);
@@ -150,7 +151,7 @@ int __must_check putOpenChapter(OpenChapterZone *openChapter,
  * @param removed     Pointer to bool set to <code>true</code> if the
  *                    record was found
  **/
-void removeFromOpenChapter(OpenChapterZone             *openChapter,
+void removeFromOpenChapter(struct open_chapter_zone    *openChapter,
                            const struct uds_chunk_name *name,
                            bool                        *removed);
 
@@ -159,6 +160,6 @@ void removeFromOpenChapter(OpenChapterZone             *openChapter,
  *
  * @param openChapter the chapter to destroy
  **/
-void freeOpenChapter(OpenChapterZone *openChapter);
+void freeOpenChapter(struct open_chapter_zone *openChapter);
 
 #endif /* OPEN_CHAPTER_ZONE_H */

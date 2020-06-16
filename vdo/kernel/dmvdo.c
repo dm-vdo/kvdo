@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#58 $
  */
 
 #include "dmvdo.h"
@@ -242,8 +242,7 @@ static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_st
 	}
 
 	if (logical_count > MAXIMUM_LOGICAL_BLOCKS) {
-		logWarning("Logical block count \"%" PRIu64
-			   "\" exceeds the maximum (%llu)",
+		logWarning("Logical block count \"%llu\" exceeds the maximum (%llu)",
 			   logical_count, MAXIMUM_LOGICAL_BLOCKS);
 		return -EINVAL;
 	}

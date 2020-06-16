@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#29 $
  */
 
 #include "workQueue.h"
@@ -159,9 +159,7 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 			struct kvdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"item %" PRIptr " (fn %" PRIptr "/%" PRIptr
-			") to enqueue (%" PRIptr
-			") is not already queued (%" PRIptr ")",
+			"item %" PRIptr " (fn %" PRIptr "/%" PRIptr ") to enqueue (%" PRIptr ") is not already queued (%" PRIptr ")",
 			item, item->work, item->stats_function, queue,
 			item->my_queue);
 	if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
@@ -420,8 +418,7 @@ static void process_work_item(struct simple_work_queue *queue,
 			      struct kvdo_work_item *item)
 {
 	if (ASSERT(item->my_queue == &queue->common,
-		   "item %" PRIptr " from queue %" PRIptr
-		   " marked as being in this queue (%" PRIptr ")",
+		   "item %" PRIptr " from queue %" PRIptr " marked as being in this queue (%" PRIptr ")",
 		   item, queue, item->my_queue) == UDS_SUCCESS) {
 		update_stats_for_dequeue(&queue->stats, item);
 		item->my_queue = NULL;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#4 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -62,9 +62,10 @@ void free_chapter_writer(struct chapter_writer *writer);
  *
  * @return The number of zones which have submitted the current chapter
  **/
-unsigned int __must_check start_closing_chapter(struct chapter_writer *writer,
-						unsigned int zone_number,
-						OpenChapterZone *chapter);
+unsigned int __must_check
+start_closing_chapter(struct chapter_writer *writer,
+		      unsigned int zone_number,
+		      struct open_chapter_zone *chapter);
 
 /**
  * Wait for the chapter writer thread to finish closing the chapter previous

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#3 $
  */
 
 #include "nonce.h"
@@ -28,56 +28,54 @@
 #include "timeUtils.h"
 
 /*****************************************************************************/
-static uint64_t hashStuff(uint64_t start, const void *data, size_t len)
+static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 {
-  uint32_t seed = start ^ (start >> 27);
-  byte hashBuffer[16];
-  MurmurHash3_x64_128(data, len, seed, hashBuffer);
-  return get_unaligned_le64(hashBuffer + 4);
+	uint32_t seed = start ^ (start >> 27);
+	byte hash_buffer[16];
+	MurmurHash3_x64_128(data, len, seed, hash_buffer);
+	return get_unaligned_le64(hash_buffer + 4);
 }
 
 /*****************************************************************************/
 static void *memput(void *buf, void *end, const void *data, size_t len)
 {
-  byte *bp = buf;
-  byte *be = end;
+	byte *bp = buf;
+	byte *be = end;
 
-  size_t chunk = minSizeT(len, be - bp);
-  memcpy(bp, data, chunk);
-  return bp + chunk;
+	size_t chunk = minSizeT(len, be - bp);
+	memcpy(bp, data, chunk);
+	return bp + chunk;
 }
 
 /*****************************************************************************/
-size_t createUniqueNonceData(byte *buffer, size_t length)
+size_t create_unique_nonce_data(byte *buffer, size_t length)
 {
-  AbsTime now = currentTime(CLOCK_REALTIME);
+	AbsTime now = currentTime(CLOCK_REALTIME);
 
-  byte *be = buffer + length;
-  byte *bp = memput(buffer, be, &now, sizeof(now));
+	byte *be = buffer + length;
+	byte *bp = memput(buffer, be, &now, sizeof(now));
 
-  uint32_t rand = randomInRange(1, (1<<30) - 1);
+	uint32_t rand = randomInRange(1, (1 << 30) - 1);
 
-  bp = memput(bp, be, &rand, sizeof(rand));
+	bp = memput(bp, be, &rand, sizeof(rand));
 
-  while (bp < be) {
-    size_t n = minSizeT(be - bp, bp - buffer);
-    memcpy(bp, buffer, n);
-    bp += n;
-  }
+	while (bp < be) {
+		size_t n = minSizeT(be - bp, bp - buffer);
+		memcpy(bp, buffer, n);
+		bp += n;
+	}
 
-  return bp - buffer;
+	return bp - buffer;
 }
 
 /*****************************************************************************/
-uint64_t generateMasterNonce(const void *data, size_t len)
+uint64_t generate_master_nonce(const void *data, size_t len)
 {
-  return hashStuff(0xa1b1e0fc, data, len);
+	return hash_stuff(0xa1b1e0fc, data, len);
 }
 
 /*****************************************************************************/
-uint64_t generateSecondaryNonce(uint64_t    nonce,
-                                const void *data,
-                                size_t      len)
+uint64_t generate_secondary_nonce(uint64_t nonce, const void *data, size_t len)
 {
-  return hashStuff(nonce + 1, data, len);
+	return hash_stuff(nonce + 1, data, len);
 }

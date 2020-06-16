@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#26 $
  */
 
 #include "indexLayout.h"
@@ -592,8 +592,8 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					       super->num_indexes);
 	}
 
-	if (generateMasterNonce(super->nonce_info, sizeof(super->nonce_info)) !=
-	    super->nonce) {
+	if (generate_master_nonce(super->nonce_info,
+				  sizeof(super->nonce_info)) != super->nonce) {
 		return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
 					       "inconsistent superblock nonce");
 	}
@@ -1173,10 +1173,10 @@ static void generate_super_block_data(size_t block_size,
 	memcpy(super->magic_label,
 	       SINGLE_FILE_MAGIC_1,
 	       SINGLE_FILE_MAGIC_1_LENGTH);
-	createUniqueNonceData(super->nonce_info, sizeof(super->nonce_info));
+	create_unique_nonce_data(super->nonce_info, sizeof(super->nonce_info));
 
-	super->nonce = generateMasterNonce(super->nonce_info,
-					   sizeof(super->nonce_info));
+	super->nonce = generate_master_nonce(super->nonce_info,
+					     sizeof(super->nonce_info));
 	super->version = SUPER_VERSION_CURRENT;
 	super->block_size = block_size;
 	super->num_indexes = 1;
@@ -1246,10 +1246,10 @@ static void define_sub_index_nonce(struct sub_index_layout *sil,
 	encodeUInt64LE(buffer, &offset, sil->sub_index.start_block);
 	encodeUInt16LE(buffer, &offset, index_id);
 	sil->nonce =
-		generateSecondaryNonce(master_nonce, buffer, sizeof(buffer));
+		generate_secondary_nonce(master_nonce, buffer, sizeof(buffer));
 	if (sil->nonce == 0) {
-		sil->nonce = generateSecondaryNonce(~master_nonce + 1, buffer,
-						    sizeof(buffer));
+		sil->nonce = generate_secondary_nonce(~master_nonce + 1,
+						      buffer, sizeof(buffer));
 	}
 }
 
@@ -1898,7 +1898,7 @@ static uint64_t generate_index_save_nonce(uint64_t volume_nonce,
 			"%zu bytes encoded of %zu expected",
 			offset,
 			sizeof(nonce_data));
-	return generateSecondaryNonce(volume_nonce, buffer, sizeof(buffer));
+	return generate_secondary_nonce(volume_nonce, buffer, sizeof(buffer));
 }
 
 /*****************************************************************************/

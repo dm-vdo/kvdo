@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#11 $
  */
 
 #include "indexZone.h"
@@ -111,7 +111,7 @@ static int swap_open_chapter(struct index_zone *zone)
 	}
 
 	// Swap the writing and open chapters
-	OpenChapterZone *temp_chapter = zone->open_chapter;
+	struct open_chapter_zone *temp_chapter = zone->open_chapter;
 	zone->open_chapter = zone->writing_chapter;
 	zone->writing_chapter = temp_chapter;
 	return UDS_SUCCESS;

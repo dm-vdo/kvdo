@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#64 $
  */
 
 #include "dataKVIO.h"
@@ -671,8 +671,7 @@ static void kvdo_compress_work(struct kvdo_work_item *item)
 void compressDataVIO(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("compressDataVIO;"
-						"io=compress;cb=compress"));
+			          THIS_LOCATION("compressDataVIO;io=compress;cb=compress"));
 
 	/*
 	 * If the orignal bio was a discard, but we got this far because the
@@ -1181,8 +1180,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct data_vio *data_vio = waiter_as_data_vio(first);
 
-	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %" PRIu64
-		" lbn %llu d-pbn %llu lastOp %s",
+	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
 		wait_on, data_vio, get_data_vio_allocation(data_vio),
 		data_vio->logical.lbn, data_vio->duplicate.pbn,
 		get_operation_name(data_vio));
@@ -1192,8 +1190,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		logInfo("     ... and : VIO %" PRIptr " pbn %" PRIu64
-			" lbn %llu d-pbn %llu lastOp %s",
+		logInfo("     ... and : VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
 			data_vio, get_data_vio_allocation(data_vio),
 			data_vio->logical.lbn, data_vio->duplicate.pbn,
 			get_operation_name(data_vio));

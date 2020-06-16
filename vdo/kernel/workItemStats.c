@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#7 $
  */
 
 #include "workItemStats.h"
@@ -285,9 +285,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 			current_offset +=
 				snprintf(buffer + current_offset,
 					 length - current_offset,
-					 "%-36ps %d %10llu %10" PRIu64
-					 " %10llu %10" PRIu64
-					 " %10llu\n",
+					 "%-36ps %d %10llu %10llu %10llu %10llu %10llu\n",
 					 function_ids->functions[i],
 					 function_ids->priorities[i],
 					 enqueued,
@@ -298,8 +296,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 		} else {
 			current_offset += snprintf(buffer + current_offset,
 						   length - current_offset,
-						   "%-36ps %d %10" PRIu64
-						   " %10llu\n",
+						   "%-36ps %d %10llu %10llu\n",
 						   function_ids->functions[i],
 						   function_ids->priorities[i],
 						   enqueued,
@@ -316,8 +313,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 		if (enqueued > 0) {
 			current_offset += snprintf(buffer + current_offset,
 						   length - current_offset,
-						   "%-36s %d %10" PRIu64
-						   " %10llu\n",
+						   "%-36s %d %10llu %10llu\n",
 						   "OTHER",
 						   0,
 						   enqueued,
@@ -379,10 +375,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 						    &min,
 						    &mean,
 						    &max);
-			logInfo("  priority %d: %u pending %"
-				 PRIu64 " enqueued %llu processed"
-				" %s times %"
-				 PRIu64 "/%llu/%lluns",
+			logInfo("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
 				function_ids->priorities[i],
 				pending,
 				enqueued,
@@ -392,9 +385,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 				mean,
 				max);
 		} else {
-			logInfo("  priority %d: %u pending %"
-				 PRIu64 " enqueued %llu processed"
-				" %s",
+			logInfo("  priority %d: %u pending %llu enqueued %llu processed %s",
 				function_ids->priorities[i],
 				pending,
 				enqueued,
@@ -409,8 +400,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 		if (enqueued > 0) {
 			total_enqueued += enqueued;
 			total_processed += processed;
-			logInfo("  ... others: %llu enqueued %" PRIu64
-				" processed",
+			logInfo("  ... others: %llu enqueued %llu processed",
 				enqueued,
 				processed);
 		}

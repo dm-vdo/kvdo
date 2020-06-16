@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#8 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -28,8 +28,8 @@
 
 struct index_zone {
 	struct index *index;
-	OpenChapterZone *open_chapter;
-	OpenChapterZone *writing_chapter;
+	struct open_chapter_zone *open_chapter;
+	struct open_chapter_zone *writing_chapter;
 	uint64_t oldest_virtual_chapter;
 	uint64_t newest_virtual_chapter;
 	unsigned int id;

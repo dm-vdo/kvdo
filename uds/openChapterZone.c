@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#8 $
  */
 
 #include "openChapterZone.h"
@@ -28,7 +28,7 @@
 #include "permassert.h"
 
 /**********************************************************************/
-static INLINE size_t recordsSize(const OpenChapterZone *openChapter)
+static INLINE size_t recordsSize(const struct open_chapter_zone *openChapter)
 {
   return (sizeof(struct uds_chunk_record) * (1 + openChapter->capacity));
 }
@@ -36,7 +36,7 @@ static INLINE size_t recordsSize(const OpenChapterZone *openChapter)
 /**********************************************************************/
 static INLINE size_t slotsSize(size_t slotCount)
 {
-  return (sizeof(Slot) * slotCount);
+  return (sizeof(struct open_chapter_zone_slot) * slotCount);
 }
 
 /**
@@ -57,9 +57,9 @@ static INLINE size_t nextPowerOfTwo(size_t val)
 }
 
 /**********************************************************************/
-int makeOpenChapter(const struct geometry  *geometry,
-                    unsigned int            zoneCount,
-                    OpenChapterZone       **openChapterPtr)
+int makeOpenChapter(const struct geometry     *geometry,
+                    unsigned int               zoneCount,
+                    struct open_chapter_zone **openChapterPtr)
 {
   int result = ASSERT(zoneCount > 0, "zone count must be > 0");
   if (result != UDS_SUCCESS) {
@@ -93,8 +93,9 @@ int makeOpenChapter(const struct geometry  *geometry,
   // will never fail if the hash table is not full.
   size_t slotCount
     = nextPowerOfTwo(capacity * geometry->open_chapter_load_ratio);
-  OpenChapterZone *openChapter;
-  result = ALLOCATE_EXTENDED(OpenChapterZone, slotCount, Slot,
+  struct open_chapter_zone *openChapter;
+  result = ALLOCATE_EXTENDED(struct open_chapter_zone, slotCount,
+                             struct open_chapter_zone_slot,
                              "open chapter", &openChapter);
   if (result != UDS_SUCCESS) {
     return result;
@@ -113,13 +114,13 @@ int makeOpenChapter(const struct geometry  *geometry,
 }
 
 /**********************************************************************/
-size_t openChapterSize(const OpenChapterZone *openChapter)
+size_t openChapterSize(const struct open_chapter_zone *openChapter)
 {
   return openChapter->size - openChapter->deleted;
 }
 
 /**********************************************************************/
-void resetOpenChapter(OpenChapterZone *openChapter)
+void resetOpenChapter(struct open_chapter_zone *openChapter)
 {
   openChapter->size    = 0;
   openChapter->deleted = 0;
@@ -130,7 +131,7 @@ void resetOpenChapter(OpenChapterZone *openChapter)
 
 /**********************************************************************/
 static struct uds_chunk_record *
-probeChapterSlots(OpenChapterZone             *openChapter,
+probeChapterSlots(struct open_chapter_zone    *openChapter,
                   const struct uds_chunk_name *name,
                   unsigned int                *slotPtr,
                   unsigned int                *recordNumberPtr)
@@ -184,7 +185,7 @@ probeChapterSlots(OpenChapterZone             *openChapter,
 }
 
 /**********************************************************************/
-void searchOpenChapter(OpenChapterZone              *openChapter,
+void searchOpenChapter(struct open_chapter_zone     *openChapter,
                        const struct uds_chunk_name  *name,
                        struct uds_chunk_data        *metadata,
                        bool                         *found)
@@ -203,7 +204,7 @@ void searchOpenChapter(OpenChapterZone              *openChapter,
 }
 
 /**********************************************************************/
-int putOpenChapter(OpenChapterZone             *openChapter,
+int putOpenChapter(struct open_chapter_zone    *openChapter,
                    const struct uds_chunk_name *name,
                    const struct uds_chunk_data *metadata,
                    unsigned int                *remaining)
@@ -233,7 +234,7 @@ int putOpenChapter(OpenChapterZone             *openChapter,
 }
 
 /**********************************************************************/
-void removeFromOpenChapter(OpenChapterZone             *openChapter,
+void removeFromOpenChapter(struct open_chapter_zone    *openChapter,
                            const struct uds_chunk_name *name,
                            bool                        *removed)
 {
@@ -254,7 +255,7 @@ void removeFromOpenChapter(OpenChapterZone             *openChapter,
 }
 
 /**********************************************************************/
-void freeOpenChapter(OpenChapterZone *openChapter)
+void freeOpenChapter(struct open_chapter_zone *openChapter)
 {
   if (openChapter != NULL) {
     FREE(openChapter->records);
