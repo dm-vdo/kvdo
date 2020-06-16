@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#12 $
  */
 
 #include "indexInternals.h"
@@ -104,7 +104,7 @@ int allocate_index(struct index_layout *layout,
 
 	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
-		result = makeIndexZone(index, i);
+		result = make_index_zone(index, i);
 		if (result != UDS_SUCCESS) {
 			free_index(index);
 			return logErrorWithStringError(result,
@@ -134,7 +134,7 @@ void release_index(struct index *index)
 	if (index->zones != NULL) {
 		unsigned int i;
 		for (i = 0; i < index->zone_count; i++) {
-			freeIndexZone(index->zones[i]);
+			free_index_zone(index->zones[i]);
 		}
 		FREE(index->zones);
 	}

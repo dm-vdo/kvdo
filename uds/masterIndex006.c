@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#18 $
  */
 #include "masterIndex006.h"
 
@@ -54,11 +54,11 @@ struct master_index_zone {
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 struct master_index6 {
-  MasterIndex               common;           // Common master index methods
+  struct master_index       common;           // Common master index methods
   unsigned int              sparseSampleRate; // The sparse sample rate
   unsigned int              numZones;         // The number of zones
-  MasterIndex              *miNonHook;        // The non-hook index
-  MasterIndex              *miHook;           // The hook index == sample index
+  struct master_index      *miNonHook;        // The non-hook index
+  struct master_index      *miHook;           // The hook index == sample index
   struct master_index_zone *masterZones;      // The zones
 };
 
@@ -70,8 +70,9 @@ struct master_index6 {
  *
  * @return whether to use as sample
  **/
-static INLINE bool isMasterIndexSample_006(const MasterIndex  *masterIndex,
-                                           const struct uds_chunk_name *name)
+static INLINE bool
+isMasterIndexSample_006(const struct master_index *masterIndex,
+                        const struct uds_chunk_name *name)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -88,8 +89,9 @@ static INLINE bool isMasterIndexSample_006(const MasterIndex  *masterIndex,
  *
  * @return the subindex
  **/
-static INLINE MasterIndex *getSubIndex(const MasterIndex *masterIndex,
-                                       const struct uds_chunk_name *name)
+static INLINE struct master_index *
+getSubIndex(const struct master_index *masterIndex,
+            const struct uds_chunk_name *name)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -105,7 +107,7 @@ static INLINE MasterIndex *getSubIndex(const MasterIndex *masterIndex,
  *
  * @param masterIndex The master index to terminate
  **/
-static void freeMasterIndex_006(MasterIndex *masterIndex)
+static void freeMasterIndex_006(struct master_index *masterIndex)
 {
   if (masterIndex != NULL) {
     struct master_index6 *mi6 = container_of(masterIndex,
@@ -152,7 +154,7 @@ struct mi006_data {
  * @param masterIndex  The master index
  * @param tag          The tag value
  **/
-static void setMasterIndexTag_006(MasterIndex *masterIndex
+static void setMasterIndexTag_006(struct master_index *masterIndex
                                   __attribute__((unused)),
                                   byte tag __attribute__((unused)))
 {
@@ -185,9 +187,10 @@ encodeMasterIndexHeader(struct buffer *buffer, struct mi006_data *header)
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static int startSavingMasterIndex_006(const MasterIndex      *masterIndex,
-                                      unsigned int            zoneNumber,
-                                      struct buffered_writer *bufferedWriter)
+static int
+startSavingMasterIndex_006(const struct master_index *masterIndex,
+                           unsigned int               zoneNumber,
+                           struct buffered_writer    *bufferedWriter)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -237,7 +240,7 @@ static int startSavingMasterIndex_006(const MasterIndex      *masterIndex,
  *
  * @return true if all the data are written
  **/
-static bool isSavingMasterIndexDone_006(const MasterIndex *masterIndex,
+static bool isSavingMasterIndexDone_006(const struct master_index *masterIndex,
                                         unsigned int zoneNumber)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
@@ -258,7 +261,7 @@ static bool isSavingMasterIndexDone_006(const MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static int finishSavingMasterIndex_006(const MasterIndex *masterIndex,
+static int finishSavingMasterIndex_006(const struct master_index *masterIndex,
                                        unsigned int zoneNumber)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
@@ -281,7 +284,7 @@ static int finishSavingMasterIndex_006(const MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static int abortSavingMasterIndex_006(const MasterIndex *masterIndex,
+static int abortSavingMasterIndex_006(const struct master_index *masterIndex,
                                       unsigned int zoneNumber)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
@@ -328,7 +331,7 @@ decodeMasterIndexHeader(struct buffer *buffer, struct mi006_data *header)
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
 static int
-startRestoringMasterIndex_006(MasterIndex             *masterIndex,
+startRestoringMasterIndex_006(struct master_index     *masterIndex,
                               struct buffered_reader **bufferedReaders,
                               int                      numReaders)
 {
@@ -401,7 +404,8 @@ startRestoringMasterIndex_006(MasterIndex             *masterIndex,
  *
  * @return true if all the data are read
  **/
-static bool isRestoringMasterIndexDone_006(const MasterIndex *masterIndex)
+static bool
+isRestoringMasterIndexDone_006(const struct master_index *masterIndex)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -421,7 +425,7 @@ static bool isRestoringMasterIndexDone_006(const MasterIndex *masterIndex)
  * @return error code or UDS_SUCCESS
  **/
 static int
-restoreDeltaListToMasterIndex_006(MasterIndex *masterIndex,
+restoreDeltaListToMasterIndex_006(struct master_index *masterIndex,
                                   const struct delta_list_save_info *dlsi,
                                   const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
@@ -441,7 +445,7 @@ restoreDeltaListToMasterIndex_006(MasterIndex *masterIndex,
  *
  * @param masterIndex  The master index
  **/
-static void abortRestoringMasterIndex_006(MasterIndex *masterIndex)
+static void abortRestoringMasterIndex_006(struct master_index *masterIndex)
 {
   struct master_index6 *mi6 = container_of(masterIndex,
                                            struct master_index6,
@@ -460,7 +464,7 @@ static void abortRestoringMasterIndex_006(MasterIndex *masterIndex)
  * @param zoneNumber      The zone number
  * @param virtualChapter  The new open chapter number
  **/
-static void setMasterIndexZoneOpenChapter_006(MasterIndex *masterIndex,
+static void setMasterIndexZoneOpenChapter_006(struct master_index *masterIndex,
                                               unsigned int zoneNumber,
                                               uint64_t virtualChapter)
 {
@@ -485,7 +489,7 @@ static void setMasterIndexZoneOpenChapter_006(MasterIndex *masterIndex,
  * @param masterIndex     The master index
  * @param virtualChapter  The new open chapter number
  **/
-static void setMasterIndexOpenChapter_006(MasterIndex *masterIndex,
+static void setMasterIndexOpenChapter_006(struct master_index *masterIndex,
                                           uint64_t virtualChapter)
 {
   struct master_index6 *mi6 = container_of(masterIndex,
@@ -506,8 +510,9 @@ static void setMasterIndexOpenChapter_006(MasterIndex *masterIndex,
  *
  * @return the zone that the chunk name belongs to
  **/
-static unsigned int getMasterIndexZone_006(const MasterIndex *masterIndex,
-                                           const struct uds_chunk_name *name)
+static unsigned int
+getMasterIndexZone_006(const struct master_index *masterIndex,
+                       const struct uds_chunk_name *name)
 {
   return getMasterIndexZone(getSubIndex(masterIndex, name), name);
 }
@@ -523,9 +528,9 @@ static unsigned int getMasterIndexZone_006(const MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int lookupMasterIndexName_006(const MasterIndex *masterIndex,
+static int lookupMasterIndexName_006(const struct master_index *masterIndex,
                                      const struct uds_chunk_name *name,
-                                     MasterIndexTriage *triage)
+                                     struct master_index_triage *triage)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -557,12 +562,13 @@ static int lookupMasterIndexName_006(const MasterIndex *masterIndex,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int lookupMasterIndexSampledName_006(const MasterIndex *masterIndex
-                                            __attribute__((unused)),
-                                            const struct uds_chunk_name *name
-                                            __attribute__((unused)),
-                                            MasterIndexTriage *triage
-                                            __attribute__((unused)))
+static int
+lookupMasterIndexSampledName_006(const struct master_index *masterIndex
+                                     __attribute__((unused)),
+                                 const struct uds_chunk_name *name
+                                     __attribute__((unused)),
+                                  struct master_index_triage *triage
+                                      __attribute__((unused)))
 {
   return ASSERT_WITH_ERROR_CODE(false, UDS_BAD_STATE,
                                 "%s should not be called", __func__);
@@ -577,12 +583,12 @@ static int lookupMasterIndexSampledName_006(const MasterIndex *masterIndex
  * examined to determine the state of the record:
  *
  * If isFound is false, then we did not find an entry for the block
- * name.  Information is saved in the MasterIndexRecord so that
+ * name.  Information is saved in the master_index_record so that
  * putMasterIndexRecord() will insert an entry for that block name at
  * the proper place.
  *
  * If isFound is true, then we did find an entry for the block name.
- * Information is saved in the MasterIndexRecord so that the "chapter"
+ * Information is saved in the master_index_record so that the "chapter"
  * and "isCollision" fields reflect the entry found.
  * Calls to removeMasterIndexRecord() will remove the entry, calls to
  * setMasterIndexRecordChapter() can modify the entry, and calls to
@@ -595,9 +601,9 @@ static int lookupMasterIndexSampledName_006(const MasterIndex *masterIndex
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int getMasterIndexRecord_006(MasterIndex *masterIndex,
+static int getMasterIndexRecord_006(struct master_index *masterIndex,
                                     const struct uds_chunk_name *name,
-                                    MasterIndexRecord *record)
+                                    struct master_index_record *record)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -615,7 +621,7 @@ static int getMasterIndexRecord_006(MasterIndex *masterIndex,
     lockMutex(mutex);
     result = getMasterIndexRecord(mi6->miHook, name, record);
     unlockMutex(mutex);
-    // Remember the mutex so that other operations on the MasterIndexRecord
+    // Remember the mutex so that other operations on the master_index_record
     // can use it
     record->mutex = mutex;
   } else {
@@ -632,7 +638,8 @@ static int getMasterIndexRecord_006(MasterIndex *masterIndex,
  *
  * @return The number of bytes in use
  **/
-static size_t getMasterIndexMemoryUsed_006(const MasterIndex *masterIndex)
+static size_t
+getMasterIndexMemoryUsed_006(const struct master_index *masterIndex)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
@@ -651,14 +658,14 @@ static size_t getMasterIndexMemoryUsed_006(const MasterIndex *masterIndex)
  * @param dense       Stats for the dense portion of the index
  * @param sparse      Stats for the sparse portion of the index
  **/
-static void getMasterIndexStats_006(const MasterIndex *masterIndex,
-                                    MasterIndexStats *dense,
-                                    MasterIndexStats *sparse)
+static void getMasterIndexStats_006(const struct master_index *masterIndex,
+                                    struct master_index_stats *dense,
+                                    struct master_index_stats *sparse)
 {
   const struct master_index6 *mi6 = const_container_of(masterIndex,
                                                        struct master_index6,
                                                        common);
-  MasterIndexStats dummyStats;
+  struct master_index_stats dummyStats;
   getMasterIndexStats(mi6->miNonHook, dense,  &dummyStats);
   getMasterIndexStats(mi6->miHook,    sparse, &dummyStats);
 }
@@ -727,11 +734,12 @@ int computeMasterIndexSaveBytes006(const struct configuration *config,
     return result;
   }
   size_t hookBytes, nonHookBytes;
-  result = computeMasterIndexSaveBytes005(&split.hookConfig, &hookBytes);
+  result = compute_master_index_save_bytes005(&split.hookConfig, &hookBytes);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = computeMasterIndexSaveBytes005(&split.nonHookConfig, &nonHookBytes);
+  result
+    = compute_master_index_save_bytes005(&split.nonHookConfig, &nonHookBytes);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -744,7 +752,7 @@ int computeMasterIndexSaveBytes006(const struct configuration *config,
 /***********************************************************************/
 int makeMasterIndex006(const struct configuration *config,
                        unsigned int numZones, uint64_t volumeNonce,
-                       MasterIndex **masterIndex)
+                       struct master_index **masterIndex)
 {
   struct split_config split;
   int result = splitConfiguration006(config, &split);
@@ -794,8 +802,8 @@ int makeMasterIndex006(const struct configuration *config,
     return result;
   }
 
-  result = makeMasterIndex005(&split.nonHookConfig, numZones, volumeNonce,
-                              &mi6->miNonHook);
+  result = make_master_index005(&split.nonHookConfig, numZones, volumeNonce,
+                                &mi6->miNonHook);
   if (result != UDS_SUCCESS) {
     freeMasterIndex_006(&mi6->common);
     return logErrorWithStringError(result,
@@ -803,8 +811,8 @@ int makeMasterIndex006(const struct configuration *config,
   }
   setMasterIndexTag(mi6->miNonHook, 'd');
 
-  result = makeMasterIndex005(&split.hookConfig, numZones, volumeNonce,
-                              &mi6->miHook);
+  result = make_master_index005(&split.hookConfig, numZones, volumeNonce,
+                                &mi6->miHook);
   if (result != UDS_SUCCESS) {
     freeMasterIndex_006(&mi6->common);
     return logErrorWithStringError(result,

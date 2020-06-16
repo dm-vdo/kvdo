@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#11 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -150,7 +150,7 @@ should_skip_chapter_index(const struct index_zone *zone,
 	// Don't search unused entries (contents undefined) or invalid entries
 	// (the chapter is no longer the zone's view of the volume).
 	if ((chapter->virtual_chapter == UINT64_MAX) ||
-	    (chapter->virtual_chapter < zone->oldestVirtualChapter)) {
+	    (chapter->virtual_chapter < zone->oldest_virtual_chapter)) {
 		return true;
 	}
 

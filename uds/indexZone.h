@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#7 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -27,42 +27,43 @@
 #include "request.h"
 
 struct index_zone {
-  struct index    *index;
-  OpenChapterZone *openChapter;
-  OpenChapterZone *writingChapter;
-  uint64_t         oldestVirtualChapter;
-  uint64_t         newestVirtualChapter;
-  unsigned int     id;
+	struct index *index;
+	OpenChapterZone *open_chapter;
+	OpenChapterZone *writing_chapter;
+	uint64_t oldest_virtual_chapter;
+	uint64_t newest_virtual_chapter;
+	unsigned int id;
 };
 
 /**
  * Allocate an index zone.
  *
- * @param index      The index receiving the zone
- * @param zoneNumber The number of the zone to allocate
+ * @param index        The index receiving the zone
+ * @param zone_number  The number of the zone to allocate
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check makeIndexZone(struct index *index, unsigned int zoneNumber);
+int __must_check make_index_zone(struct index *index,
+				 unsigned int zone_number);
 
 /**
  * Clean up an index zone.
  *
  * @param zone The index zone to free
  **/
-void freeIndexZone(struct index_zone *zone);
+void free_index_zone(struct index_zone *zone);
 
 /**
  * Check whether a chapter is sparse or dense based on the current state of
  * the index zone.
  *
- * @param zone            The index zone to check against
- * @param virtualChapter  The virtual chapter number of the chapter to check
+ * @param zone             The index zone to check against
+ * @param virtual_chapter  The virtual chapter number of the chapter to check
  *
  * @return true if the chapter is in the sparse part of the volume
  **/
-bool __must_check
-isZoneChapterSparse(const struct index_zone *zone, uint64_t virtualChapter);
+bool __must_check is_zone_chapter_sparse(const struct index_zone *zone,
+					 uint64_t virtual_chapter);
 
 /**
  * Set the active chapter numbers for a zone based on its index. The active
@@ -71,7 +72,7 @@ isZoneChapterSparse(const struct index_zone *zone, uint64_t virtualChapter);
  *
  * @param zone          The zone to set
  **/
-void setActiveChapters(struct index_zone *zone);
+void set_active_chapters(struct index_zone *zone);
 
 /**
  * Dispatch a control request to an index zone.
@@ -80,7 +81,7 @@ void setActiveChapters(struct index_zone *zone);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check dispatchIndexZoneControlRequest(Request *request);
+int __must_check dispatch_index_zone_control_request(Request *request);
 
 /**
  * Execute a sparse chapter index cache barrier control request on the zone
@@ -93,8 +94,9 @@ int __must_check dispatchIndexZoneControlRequest(Request *request);
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int __must_check executeSparseCacheBarrierMessage(struct index_zone  *zone,
-                                                  BarrierMessageData *barrier);
+int __must_check
+execute_sparse_cache_barrier_message(struct index_zone *zone,
+				     BarrierMessageData *barrier);
 
 /**
  * Open the next chapter.
@@ -105,34 +107,34 @@ int __must_check executeSparseCacheBarrierMessage(struct index_zone  *zone,
  *
  * @return UDS_SUCCESS if successful.
  **/
-int __must_check openNextChapter(struct index_zone *zone, Request *request);
+int __must_check open_next_chapter(struct index_zone *zone, Request *request);
 
 /**
  * Determine the IndexRegion in which a block was found.
  *
- * @param zone               The zone that was searched
- * @param virtualChapter     The virtual chapter number
+ * @param zone                The zone that was searched
+ * @param virtual_chapter     The virtual chapter number
  *
  * @return the IndexRegion of the chapter in which the block was found
  **/
-IndexRegion computeIndexRegion(const struct index_zone *zone,
-                               uint64_t                 virtualChapter);
+IndexRegion compute_index_region(const struct index_zone *zone,
+				 uint64_t virtual_chapter);
 
 /**
  * Get a record from either the volume or the open chapter in a zone.
  *
- * @param zone           The index zone to query
- * @param request        The request originating the query
- * @param found          A pointer to a bool which will be set to
- *                       <code>true</code> if the record was found.
- * @param virtualChapter The chapter in which to search
+ * @param zone             The index zone to query
+ * @param request          The request originating the query
+ * @param found            A pointer to a bool which will be set to
+ *                         <code>true</code> if the record was found.
+ * @param virtual_chapter  The chapter in which to search
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getRecordFromZone(struct index_zone *zone,
-				   Request *request,
-				   bool *found,
-				   uint64_t virtualChapter);
+int __must_check get_record_from_zone(struct index_zone *zone,
+				      Request *request,
+				      bool *found,
+				      uint64_t virtual_chapter);
 
 /**
  * Put a record in the open chapter. If this fills the chapter, the chapter
@@ -144,27 +146,26 @@ int __must_check getRecordFromZone(struct index_zone *zone,
  *
  * @return UDS_SUCCESS or an error
  **/
-int __must_check putRecordInZone(struct index_zone *zone,
-				 Request *request,
-				 const struct uds_chunk_data *metadata);
+int __must_check put_record_in_zone(struct index_zone *zone,
+				    Request *request,
+				    const struct uds_chunk_data *metadata);
 
 /**
  * Search the cached sparse chapter index, either for a cached sparse hook, or
  * as the last chance for finding the record named by a request.
  *
- * @param [in]  zone            the index zone
- * @param [in]  request         the request originating the search
- * @param [in]  virtualChapter  if UINT64_MAX, search the entire cache;
- *                              otherwise search this chapter, if cached
- * @param [out] found           A pointer to a bool which will be set to
- *                              <code>true</code> if the record was found
+ * @param [in]  zone             the index zone
+ * @param [in]  request          the request originating the search
+ * @param [in]  virtual_chapter  if UINT64_MAX, search the entire cache;
+ *                               otherwise search this chapter, if cached
+ * @param [out] found            A pointer to a bool which will be set to
+ *                               <code>true</code> if the record was found
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-searchSparseCacheInZone(struct index_zone *zone,
-			Request *request,
-			uint64_t virtualChapter,
-			bool *found);
+int __must_check search_sparse_cache_in_zone(struct index_zone *zone,
+					     Request *request,
+					     uint64_t virtual_chapter,
+					     bool *found);
 
 #endif /* INDEX_ZONE_H */

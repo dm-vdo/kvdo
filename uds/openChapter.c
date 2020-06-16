@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#16 $
  */
 
 #include "openChapter.h"
@@ -172,7 +172,7 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
   uint32_t totalRecords = 0;
   unsigned int i;
   for (i = 0; i < index->zone_count; i++) {
-    totalRecords += openChapterSize(index->zones[i]->openChapter);
+    totalRecords += openChapterSize(index->zones[i]->open_chapter);
   }
 
   // Store the record count in little-endian order.
@@ -191,14 +191,14 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
   while(recordsAdded < totalRecords) {
     unsigned int i;
     for (i = 0; i < index->zone_count; i++) {
-      if (recordIndex > index->zones[i]->openChapter->size) {
+      if (recordIndex > index->zones[i]->open_chapter->size) {
         continue;
       }
-      if (index->zones[i]->openChapter->slots[recordIndex].recordDeleted) {
+      if (index->zones[i]->open_chapter->slots[recordIndex].recordDeleted) {
         continue;
       }
       struct uds_chunk_record *record
-        = &index->zones[i]->openChapter->records[recordIndex];
+        = &index->zones[i]->open_chapter->records[recordIndex];
       result = write_to_buffered_writer(writer, record,
                                         sizeof(struct uds_chunk_record));
       if (result != UDS_SUCCESS) {
@@ -295,7 +295,7 @@ static int loadVersion20(struct index *index, struct buffered_reader *reader)
     // The chapter can't be closed here, so don't add the last record.
     if (!fullFlags[zone]) {
       unsigned int remaining;
-      result = putOpenChapter(index->zones[zone]->openChapter,
+      result = putOpenChapter(index->zones[zone]->open_chapter,
                               &record.name, &record.data, &remaining);
       fullFlags[zone] = (remaining <= 1);
       if (result != UDS_SUCCESS) {

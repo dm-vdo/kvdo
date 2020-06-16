@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#12 $
  */
 
 #include "indexRouter.h"
@@ -239,7 +239,7 @@ void execute_index_router_request(struct index_router *router,
 				  Request *request)
 {
 	if (request->isControlMessage) {
-		int result = dispatchIndexZoneControlRequest(request);
+		int result = dispatch_index_zone_control_request(request);
 		if (result != UDS_SUCCESS) {
 			logErrorWithStringError(result,
 						"error executing control message: %d",

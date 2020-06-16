@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#12 $
  */
 #include "masterIndexOps.h"
 
@@ -39,10 +39,10 @@ static INLINE bool usesSparse(const struct configuration *config)
 }
 
 /**********************************************************************/
-void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
-                                 MasterIndexStats *stats)
+void getMasterIndexCombinedStats(const struct master_index *masterIndex,
+                                 struct master_index_stats *stats)
 {
-  MasterIndexStats dense, sparse;
+  struct master_index_stats dense, sparse;
   getMasterIndexStats(masterIndex, &dense, &sparse);
   stats->memoryAllocated = dense.memoryAllocated + sparse.memoryAllocated;
   stats->rebalanceTime   = dense.rebalanceTime   + sparse.rebalanceTime;
@@ -57,12 +57,12 @@ void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
 
 /**********************************************************************/
 int makeMasterIndex(const struct configuration  *config, unsigned int numZones,
-                    uint64_t volumeNonce, MasterIndex **masterIndex)
+                    uint64_t volumeNonce, struct master_index **masterIndex)
 {
   if (usesSparse(config)) {
     return makeMasterIndex006(config, numZones, volumeNonce, masterIndex);
   } else {
-    return makeMasterIndex005(config, numZones, volumeNonce, masterIndex);
+    return make_master_index005(config, numZones, volumeNonce, masterIndex);
   }
 }
 
@@ -73,7 +73,7 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
   size_t numBytes;
   int result = (usesSparse(config)
                 ? computeMasterIndexSaveBytes006(config, &numBytes)
-                : computeMasterIndexSaveBytes005(config, &numBytes));
+                : compute_master_index_save_bytes005(config, &numBytes));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -85,7 +85,8 @@ int computeMasterIndexSaveBlocks(const struct configuration *config,
 /**********************************************************************/
 static int readMasterIndex(struct read_portal *portal)
 {
-  MasterIndex *masterIndex = index_component_context(portal->component);
+  struct master_index *masterIndex
+    = index_component_context(portal->component);
   unsigned int numZones = portal->zones;
   if (numZones > MAX_ZONES) {
     return logErrorWithStringError(UDS_BAD_STATE,
@@ -112,7 +113,7 @@ static int writeMasterIndex(struct index_component          *component,
                             enum incremental_writer_command  command,
                             bool                            *completed)
 {
-  MasterIndex *masterIndex = index_component_context(component);
+  struct master_index *masterIndex = index_component_context(component);
   bool isComplete = false;
 
   int result = UDS_SUCCESS;
@@ -165,8 +166,8 @@ const struct index_component_info *const MASTER_INDEX_INFO
 
 /**********************************************************************/
 static int restoreMasterIndexBody(struct buffered_reader **bufferedReaders,
-                                  unsigned int     numReaders,
-                                  MasterIndex     *masterIndex,
+                                  unsigned int numReaders,
+                                  struct master_index *masterIndex,
                                   byte dlData[DELTA_LIST_MAX_BYTE_COUNT])
 {
   // Start by reading the "header" section of the stream
@@ -205,7 +206,7 @@ static int restoreMasterIndexBody(struct buffered_reader **bufferedReaders,
 /**********************************************************************/
 int restoreMasterIndex(struct buffered_reader **bufferedReaders,
                        unsigned int             numReaders,
-                       MasterIndex             *masterIndex)
+                       struct master_index     *masterIndex)
 {
   byte *dlData;
   int result = ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dlData);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#23 $
  */
 
 #include "index.h"
@@ -120,7 +120,7 @@ static int load_index(struct index *index, bool allow_replay)
 
 	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
-		setActiveChapters(index->zones[i]);
+		set_active_chapters(index->zones[i]);
 	}
 
 	index->loaded_type = replay_required ? LOAD_REPLAY : LOAD_LOAD;
@@ -181,7 +181,7 @@ static int rebuild_index(struct index *index)
 
 	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
-		setActiveChapters(index->zones[i]);
+		set_active_chapters(index->zones[i]);
 	}
 
 	index->loaded_type = LOAD_REBUILD;
@@ -350,7 +350,7 @@ static struct index_zone *get_request_zone(struct index *index,
  **/
 static int search_index_zone(struct index_zone *zone, Request *request)
 {
-	MasterIndexRecord record;
+	struct master_index_record record;
 	int result = getMasterIndexRecord(zone->index->master_index,
 					  &request->chunkName, &record);
 	if (result != UDS_SUCCESS) {
@@ -359,15 +359,15 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 
 	bool found = false;
 	if (record.isFound) {
-		result = getRecordFromZone(zone, request, &found,
-					   record.virtualChapter);
+		result = get_record_from_zone(zone, request, &found,
+					      record.virtualChapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 		if (found) {
 			request->location =
-				computeIndexRegion(zone,
-						   record.virtualChapter);
+				compute_index_region(zone,
+						     record.virtualChapter);
 		}
 	}
 
@@ -379,7 +379,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	 */
 	bool overflow_record =
 		(record.isFound && record.isCollision && !found);
-	uint64_t chapter = zone->newestVirtualChapter;
+	uint64_t chapter = zone->newest_virtual_chapter;
 	if (found || overflow_record) {
 		if ((request->action == REQUEST_QUERY) &&
 		    (!request->update || overflow_record)) {
@@ -394,7 +394,8 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			 * for the block. If the record had been deleted or
 			 * dropped from the chapter index, it will be back.
 			 */
-			result = setMasterIndexRecordChapter(&record, chapter);
+			result = set_master_index_record_chapter(&record,
+								 chapter);
 		} else if (request->action != REQUEST_UPDATE) {
 			/* The record is already in the open chapter, so we're
 			 * done */
@@ -408,8 +409,9 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		    is_sparse(zone->index->volume->geometry)) {
 			// Passing UINT64_MAX triggers a search of the entire
 			// sparse cache.
-			result = searchSparseCacheInZone(zone, request,
-							 UINT64_MAX, &found);
+			result = search_sparse_cache_in_zone(zone, request,
+							     UINT64_MAX,
+							     &found);
 			if (result != UDS_SUCCESS) {
 				return result;
 			}
@@ -432,7 +434,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		 * chapter. This needs to be done both for new records, and for
 		 * records from cached sparse chapters.
 		 */
-		result = putMasterIndexRecord(&record, chapter);
+		result = put_master_index_record(&record, chapter);
 	}
 
 	if (result == UDS_OVERFLOW) {
@@ -457,13 +459,13 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		// (for LRU).
 		metadata = &request->oldMetadata;
 	}
-	return putRecordInZone(zone, request, metadata);
+	return put_record_in_zone(zone, request, metadata);
 }
 
 /**********************************************************************/
 static int remove_from_index_zone(struct index_zone *zone, Request *request)
 {
-	MasterIndexRecord record;
+	struct master_index_record record;
 	int result = getMasterIndexRecord(zone->index->master_index,
 					  &request->chunkName, &record);
 	if (result != UDS_SUCCESS) {
@@ -480,8 +482,8 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 		// Non-collision records are hints, so resolve the name in the
 		// chapter.
 		bool found;
-		int result = getRecordFromZone(zone, request, &found,
-					       record.virtualChapter);
+		int result = get_record_from_zone(zone, request, &found,
+						  record.virtualChapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -493,14 +495,14 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 		}
 	}
 
-	request->location = computeIndexRegion(zone, record.virtualChapter);
+	request->location = compute_index_region(zone, record.virtualChapter);
 
 	/*
 	 * Delete the master index entry for the named record only. Note that a
 	 * later search might later return stale advice if there is a colliding
 	 * name in the same chapter, but it's a very rare case (1 in 2^21).
 	 */
-	result = removeMasterIndexRecord(&record);
+	result = remove_master_index_record(&record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -509,7 +511,7 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 	// deleted to avoid trouble if the record is added again later.
 	if (request->location == LOC_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
-		removeFromOpenChapter(zone->openChapter, &request->chunkName,
+		removeFromOpenChapter(zone->open_chapter, &request->chunkName,
 				      &hash_exists);
 		result = ASSERT(hash_exists,
 				"removing record not found in open chapter");
@@ -562,7 +564,7 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	 */
 	BarrierMessageData barrier =
 		{ .virtualChapter = sparse_virtual_chapter };
-	return executeSparseCacheBarrierMessage(zone, &barrier);
+	return execute_sparse_cache_barrier_message(zone, &barrier);
 }
 
 /**********************************************************************/
@@ -688,7 +690,7 @@ static int replay_record(struct index *index,
 		return UDS_SUCCESS;
 	}
 
-	MasterIndexRecord record;
+	struct master_index_record record;
 	int result = getMasterIndexRecord(index->master_index, name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -743,7 +745,8 @@ static int replay_record(struct index *index,
 		 * block. If the record had been deleted or dropped from the
 		 * chapter index, it will be back.
 		 */
-		result = setMasterIndexRecordChapter(&record, virtual_chapter);
+		result = set_master_index_record_chapter(&record,
+							 virtual_chapter);
 	} else {
 		/*
 		 * Add a new entry to the master index referencing the open
@@ -752,7 +755,7 @@ static int replay_record(struct index *index,
 		 * exist in the index but does on disk, since for a sparse
 		 * record, we would want to un-sparsify if it did exist.
 		 */
-		result = putMasterIndexRecord(&record, virtual_chapter);
+		result = put_master_index_record(&record, virtual_chapter);
 	}
 
 	if ((result == UDS_DUPLICATE_NAME) || (result == UDS_OVERFLOW)) {
@@ -935,7 +938,7 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 		get_chapter_writer_memory_allocated(index->chapter_writer);
 	// We're accessing the master index while not on a zone thread, but
 	// that's safe to do when acquiring statistics.
-	MasterIndexStats dense_stats, sparse_stats;
+	struct master_index_stats dense_stats, sparse_stats;
 	getMasterIndexStats(index->master_index, &dense_stats, &sparse_stats);
 
 	counters->entriesIndexed =
@@ -965,7 +968,7 @@ void advance_active_chapters(struct index *index)
 /**********************************************************************/
 uint64_t triage_index_request(struct index *index, Request *request)
 {
-	MasterIndexTriage triage;
+	struct master_index_triage triage;
 	lookupMasterIndexName(index->master_index, &request->chunkName,
 			      &triage);
 	if (!triage.inSampledChapter) {
@@ -974,7 +977,7 @@ uint64_t triage_index_request(struct index *index, Request *request)
 	}
 
 	struct index_zone *zone = get_request_zone(index, request);
-	if (!isZoneChapterSparse(zone, triage.virtualChapter)) {
+	if (!is_zone_chapter_sparse(zone, triage.virtualChapter)) {
 		return UINT64_MAX;
 	}
 

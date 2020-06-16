@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threads.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threads.h#6 $
  */
 
 #ifndef THREADS_H
@@ -27,6 +27,7 @@
 #include "timeUtils.h"
 #include "uds-error.h"
 
+#include <linux/delay.h>
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
@@ -277,6 +278,16 @@ static INLINE void acquireSemaphore(Semaphore *semaphore)
   // Do not use down(semaphore).  Instead use down_interruptible so that we do
   // not get 120 second stall messages in kern.log.
   while (down_interruptible(semaphore) != 0) {
+    /*
+     * If we're called from a user-mode process (e.g., "dmsetup remove") while
+     * waiting for an operation that may take a while (e.g., UDS index save),
+     * and a signal is sent (SIGINT, SIGUSR2), then down_interruptible will not
+     * block. If that happens, sleep briefly to avoid keeping the CPU locked up
+     * in this loop. We could just call cond_resched, but then we'd still keep
+     * consuming CPU time slices and swamp other threads trying to do
+     * computational work. [VDO-4980]
+     */
+    msleep(1);
   }
 }
 

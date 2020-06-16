@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#14 $
  */
 
 /**
@@ -306,7 +306,7 @@ static void scoreEviction(struct index_zone           *zone,
   if (chapter->virtual_chapter == UINT64_MAX) {
     return;
   }
-  if (chapter->virtual_chapter < zone->oldestVirtualChapter) {
+  if (chapter->virtual_chapter < zone->oldest_virtual_chapter) {
     cache->counters.invalidations += 1;
   } else {
     cache->counters.evictions += 1;
@@ -436,7 +436,8 @@ int updateSparseCache(struct index_zone *zone, uint64_t virtualChapter)
   if (zone->id == ZONE_ZERO) {
     // Purge invalid chapters from the LRU search list.
     SearchList *zoneZeroList = cache->searchLists[ZONE_ZERO];
-    purgeSearchList(zoneZeroList, cache->chapters, zone->oldestVirtualChapter);
+    purgeSearchList(zoneZeroList, cache->chapters,
+                    zone->oldest_virtual_chapter);
 
     // First check that the desired chapter is still in the volume. If it's
     // not, the hook fell out of the index and there's nothing to do for it.

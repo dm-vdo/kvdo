@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#12 $
  */
 
 #ifndef INDEX_H
@@ -43,7 +43,7 @@ struct index {
 	IndexLoadContext *load_context;
 	struct index_layout *layout;
 	struct index_state *state;
-	MasterIndex *master_index;
+	struct master_index *master_index;
 	Volume *volume;
 	unsigned int zone_count;
 	struct index_zone **zones;
