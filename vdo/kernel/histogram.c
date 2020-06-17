@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#11 $
  */
 
 #include <linux/kobject.h>
@@ -303,7 +303,7 @@ static ssize_t histogram_show_count(struct histogram *h, char *buf)
 {
 	int64_t count = atomic64_read(&h->count);
 
-	return sprintf(buf, "%" PRId64 "\n", count);
+	return sprintf(buf, "%lld\n", count);
 }
 
 /***********************************************************************/
@@ -412,7 +412,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 		}
 		length += snprintf(buffer + length,
 				   buffer_size - length,
-				   " : %12llu%.*s\n",
+				   " : %12llx%.*s\n",
 				   value,
 				   bar_length,
 				   bar);
@@ -423,7 +423,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 
 	length += snprintf(buffer + length,
 			   buffer_size - length,
-			   "total %llu\n",
+			   "total %llx\n",
 			   total);
 	return minSizeT(buffer_size - 1, length);
 }
@@ -502,7 +502,7 @@ static ssize_t histogram_show_unacceptable(struct histogram *h, char *buf)
 {
 	int64_t count = atomic64_read(&h->unacceptable);
 
-	return sprintf(buf, "%" PRId64 "\n", count);
+	return sprintf(buf, "%lld\n", count);
 }
 
 /***********************************************************************/

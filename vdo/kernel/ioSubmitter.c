@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#39 $
  */
 
 #include "ioSubmitter.h"
@@ -201,7 +201,7 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 	unsigned int computed_queue_number =
 		bio_queue_number_for_pbn(submitter, pbn);
 	ASSERT_LOG_ONLY(this_queue->queue_number == computed_queue_number,
-			"running in correct bio queue (%u vs %u) for PBN %llu",
+			"running in correct bio queue (%u vs %u) for PBN %llx",
 			this_queue->queue_number,
 			computed_queue_number,
 			pbn);

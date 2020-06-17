@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#17 $
  */
 
 #include "dump.h"
@@ -95,7 +95,7 @@ static void do_dump(struct kernel_layer *layer,
 				      &maximum);
 	int64_t outstanding = atomic64_read(&layer->bios_submitted) -
 			      atomic64_read(&layer->bios_completed);
-	logInfo("%" PRIu32 " device requests outstanding (max %" PRIu32 "), %" PRId64 " bio requests outstanding, poolName '%s'",
+	logInfo("%x device requests outstanding (max %x), %lld bio requests outstanding, poolName '%s'",
 		active,
 		maximum,
 		outstanding,

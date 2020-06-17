@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#51 $
  */
 
 #include "dedupeIndex.h"
@@ -362,7 +362,7 @@ static void report_events(struct periodic_event_reporter *reporter,
 
 	if (difference != 0) {
 		if (!ratelimit || __ratelimit(&reporter->ratelimiter)) {
-			logDebug("UDS index timeout on %llu requests",
+			logDebug("UDS index timeout on %llx requests",
 				 difference);
 			reporter->last_reported_value = new_value;
 		} else {
@@ -965,7 +965,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
 	result = allocSprintf("index name", &index->index_name,
-			      "dev=%s offset=4096 size=%llu",
+			      "dev=%s offset=4096 size=%llx",
 			      layer->device_config->parent_device_name,
 			      get_index_region_size(layer->geometry) *
 				      VDO_BLOCK_SIZE);

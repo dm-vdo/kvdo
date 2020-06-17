@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#65 $
  */
 
 #include "dataKVIO.h"
@@ -1180,7 +1180,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct data_vio *data_vio = waiter_as_data_vio(first);
 
-	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
+	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %llx lbn %llx d-pbn %llx lastOp %s",
 		wait_on, data_vio, get_data_vio_allocation(data_vio),
 		data_vio->logical.lbn, data_vio->duplicate.pbn,
 		get_operation_name(data_vio));
@@ -1190,7 +1190,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		logInfo("     ... and : VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		logInfo("     ... and : VIO %" PRIptr " pbn %llx lbn %llx d-pbn %llx lastOp %s",
 			data_vio, get_data_vio_allocation(data_vio),
 			data_vio->logical.lbn, data_vio->duplicate.pbn,
 			get_operation_name(data_vio));
@@ -1275,17 +1275,17 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
-			 "P%llu L%llu D%llu",
+			 "P%llx L%llx D%llx",
 			 get_data_vio_allocation(data_vio), data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
 	} else if (has_allocation(data_vio)) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
-			 "P%llu L%llu",
+			 "P%llx L%llx",
 			 get_data_vio_allocation(data_vio), data_vio->logical.lbn);
 	} else {
 		snprintf(vio_block_number_dump_buffer,
-			 sizeof(vio_block_number_dump_buffer), "L%llu",
+			 sizeof(vio_block_number_dump_buffer), "L%llx",
 			 data_vio->logical.lbn);
 	}
 
@@ -1294,7 +1294,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 		"";
 	if (data_vio->flush_generation != 0) {
 		snprintf(vio_flush_generation_buffer,
-			 sizeof(vio_flush_generation_buffer), " FG%llu",
+			 sizeof(vio_flush_generation_buffer), " FG%llx",
 			 data_vio->flush_generation);
 	}
 

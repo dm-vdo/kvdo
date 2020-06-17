@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#59 $
  */
 
 #include "dmvdo.h"
@@ -192,7 +192,7 @@ static void vdo_status(struct dm_target *ti,
 		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
 		struct vdo_statistics *stats = &layer->vdo_stats_storage;
 
-		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
+		DMEMIT("/dev/%s %s %s %s %s %llx %llx",
 		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
@@ -242,7 +242,7 @@ static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_st
 	}
 
 	if (logical_count > MAXIMUM_LOGICAL_BLOCKS) {
-		logWarning("Logical block count \"%llu\" exceeds the maximum (%llu)",
+		logWarning("Logical block count \"%llx\" exceeds the maximum (%llx)",
 			   logical_count, MAXIMUM_LOGICAL_BLOCKS);
 		return -EINVAL;
 	}
@@ -563,11 +563,11 @@ static int vdo_initialize(struct dm_target *ti,
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
-	logDebug("Logical block size     = %llu",
+	logDebug("Logical block size     = %llx",
 		 (uint64_t) config->logical_block_size);
-	logDebug("Logical blocks         = %llu", logical_blocks);
-	logDebug("Physical block size    = %llu", (uint64_t) block_size);
-	logDebug("Physical blocks        = %llu", config->physical_blocks);
+	logDebug("Logical blocks         = %llx", logical_blocks);
+	logDebug("Physical block size    = %llx", (uint64_t) block_size);
+	logDebug("Physical blocks        = %llx", config->physical_blocks);
 	logDebug("Block map cache blocks = %u", config->cache_size);
 	logDebug("Block map maximum age  = %u", config->block_map_maximum_age);
 	logDebug("MD RAID5 mode          = %s",
