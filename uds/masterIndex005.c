@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#25 $
  */
 #include "masterIndex005.h"
 
@@ -96,19 +96,6 @@ static const byte bad_magic = 0;
  * tests really want to run with a single delta list.
  */
 unsigned int min_master_index_delta_lists;
-
-/**
- * Maximum of two unsigned ints
- *
- * @param a  One unsigned int
- * @param b  Another unsigned int
- *
- * @return the bigger one
- **/
-static INLINE unsigned int max_uint(unsigned int a, unsigned int b)
-{
-	return a > b ? a : b;
-}
 
 /**
  * Extract the address from a block name.

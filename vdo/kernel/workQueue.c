@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#30 $
  */
 
 #include "workQueue.h"
@@ -481,7 +481,8 @@ static void process_work_item(struct simple_work_queue *queue,
 static void service_work_queue(struct simple_work_queue *queue)
 {
 	TimeoutJiffies timeout_interval =
-		maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
+		max_long(2,
+			 usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 
 	run_start_hook(queue);
 

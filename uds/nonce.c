@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#5 $
  */
 
 #include "nonce.h"
@@ -42,7 +42,7 @@ static void *memput(void *buf, void *end, const void *data, size_t len)
 	byte *bp = buf;
 	byte *be = end;
 
-	size_t chunk = minSizeT(len, be - bp);
+	size_t chunk = min_size_t(len, be - bp);
 	memcpy(bp, data, chunk);
 	return bp + chunk;
 }
@@ -60,7 +60,7 @@ size_t create_unique_nonce_data(byte *buffer, size_t length)
 	bp = memput(bp, be, &rand, sizeof(rand));
 
 	while (bp < be) {
-		size_t n = minSizeT(be - bp, bp - buffer);
+		size_t n = min_size_t(be - bp, bp - buffer);
 		memcpy(bp, buffer, n);
 		bp += n;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#14 $
  */
 
 #include <linux/kobject.h>
@@ -425,7 +425,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 			   buffer_size - length,
 			   "total %llu\n",
 			   total);
-	return minSizeT(buffer_size - 1, length);
+	return min_size_t(buffer_size - 1, length);
 }
 
 /***********************************************************************/

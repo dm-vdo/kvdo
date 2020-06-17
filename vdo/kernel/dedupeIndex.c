@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#54 $
  */
 
 #include "dedupeIndex.h"
@@ -177,7 +177,7 @@ static void encode_uds_advice(struct uds_request *request,
 
 	encoding->data[offset++] = UDS_ADVICE_VERSION;
 	encoding->data[offset++] = advice.state;
-	encodeUInt64LE(encoding->data, &offset, advice.pbn);
+	encode_uint64_le(encoding->data, &offset, advice.pbn);
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 }
 
@@ -206,7 +206,7 @@ static bool decode_uds_advice(const struct uds_request *request,
 	}
 
 	advice->state = encoding->data[offset++];
-	decodeUInt64LE(encoding->data, &offset, &advice->pbn);
+	decode_uint64_le(encoding->data, &offset, &advice->pbn);
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 	return true;
 }
@@ -221,8 +221,8 @@ static bool decode_uds_advice(const struct uds_request *request,
  **/
 static Jiffies get_albireo_timeout(Jiffies start_jiffies)
 {
-	return maxULong(start_jiffies + albireo_timeout_jiffies,
-			jiffies + min_albireo_timer_jiffies);
+	return max_ulong(start_jiffies + albireo_timeout_jiffies,
+			 jiffies + min_albireo_timer_jiffies);
 }
 
 /*****************************************************************************/

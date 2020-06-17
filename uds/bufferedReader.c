@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#6 $
  */
 
 #include "bufferedReader.h"
@@ -50,8 +50,8 @@ static void read_ahead(struct buffered_reader *br, sector_t block_number)
 {
 	if (block_number < br->br_limit) {
 		enum { MAX_READ_AHEAD = 4 };
-		size_t read_ahead =
-			minSizeT(MAX_READ_AHEAD, br->br_limit - block_number);
+		size_t read_ahead = min_size_t(MAX_READ_AHEAD,
+					       br->br_limit - block_number);
 		dm_bufio_prefetch(br->br_client, block_number, read_ahead);
 	}
 }
@@ -156,7 +156,7 @@ int read_from_buffered_reader(struct buffered_reader *br,
 		}
 
 		size_t avail = bytes_remaining_in_read_buffer(br);
-		size_t chunk = minSizeT(length, avail);
+		size_t chunk = min_size_t(length, avail);
 		memcpy(dp, br->br_pointer, chunk);
 		length -= chunk;
 		dp += chunk;
@@ -194,7 +194,7 @@ int verify_buffered_data(struct buffered_reader *br,
 		}
 
 		size_t avail = bytes_remaining_in_read_buffer(br);
-		size_t chunk = minSizeT(length, avail);
+		size_t chunk = min_size_t(length, avail);
 		if (memcmp(vp, br->br_pointer, chunk) != 0) {
 			position_reader(
 				br, starting_block_number, starting_offset);

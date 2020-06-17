@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#28 $
  */
 
 #include "indexLayout.h"
@@ -1243,8 +1243,8 @@ static void define_sub_index_nonce(struct sub_index_layout *sil,
 	};
 	byte buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
 	size_t offset = 0;
-	encodeUInt64LE(buffer, &offset, sil->sub_index.start_block);
-	encodeUInt16LE(buffer, &offset, index_id);
+	encode_uint64_le(buffer, &offset, sil->sub_index.start_block);
+	encode_uint16_le(buffer, &offset, index_id);
 	sil->nonce =
 		generate_secondary_nonce(master_nonce, buffer, sizeof(buffer));
 	if (sil->nonce == 0) {
@@ -1889,11 +1889,11 @@ static uint64_t generate_index_save_nonce(uint64_t volume_nonce,
 
 	byte buffer[sizeof(nonce_data)];
 	size_t offset = 0;
-	encodeUInt64LE(buffer, &offset, nonce_data.data.timestamp);
-	encodeUInt64LE(buffer, &offset, nonce_data.data.nonce);
-	encodeUInt32LE(buffer, &offset, nonce_data.data.version);
-	encodeUInt32LE(buffer, &offset, 0U); // padding
-	encodeUInt64LE(buffer, &offset, nonce_data.offset);
+	encode_uint64_le(buffer, &offset, nonce_data.data.timestamp);
+	encode_uint64_le(buffer, &offset, nonce_data.data.nonce);
+	encode_uint32_le(buffer, &offset, nonce_data.data.version);
+	encode_uint32_le(buffer, &offset, 0U); // padding
+	encode_uint64_le(buffer, &offset, nonce_data.offset);
 	ASSERT_LOG_ONLY(offset == sizeof(nonce_data),
 			"%zu bytes encoded of %zu expected",
 			offset,

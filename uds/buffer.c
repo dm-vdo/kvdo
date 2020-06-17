@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#5 $
  */
 
 #include "buffer.h"
@@ -360,7 +360,7 @@ int get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeUInt16BE(buffer->data, &buffer->start, ui);
+	decode_uint16_be(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
@@ -371,7 +371,7 @@ int put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeUInt16BE(buffer->data, &buffer->end, ui);
+	encode_uint16_be(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
@@ -382,7 +382,7 @@ int get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeUInt32BE(buffer->data, &buffer->start, ui);
+	decode_uint32_be(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
@@ -393,7 +393,7 @@ int put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeUInt32BE(buffer->data, &buffer->end, ui);
+	encode_uint32_be(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
@@ -407,7 +407,7 @@ int get_uint32_bes_from_buffer(struct buffer *buffer, size_t count,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		decodeUInt32BE(buffer->data, &buffer->start, ui + i);
+		decode_uint32_be(buffer->data, &buffer->start, ui + i);
 	}
 	return UDS_SUCCESS;
 }
@@ -423,7 +423,7 @@ int put_uint32_bes_into_buffer(struct buffer *buffer,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		encodeUInt32BE(buffer->data, &buffer->end, ui[i]);
+		encode_uint32_be(buffer->data, &buffer->end, ui[i]);
 	}
 	return UDS_SUCCESS;
 }
@@ -438,7 +438,7 @@ int get_uint64_bes_from_buffer(struct buffer *buffer, size_t count,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		decodeUInt64BE(buffer->data, &buffer->start, ui + i);
+		decode_uint64_be(buffer->data, &buffer->start, ui + i);
 	}
 	return UDS_SUCCESS;
 }
@@ -454,7 +454,7 @@ int put_uint64_bes_into_buffer(struct buffer *buffer,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		encodeUInt64BE(buffer->data, &buffer->end, ui[i]);
+		encode_uint64_be(buffer->data, &buffer->end, ui[i]);
 	}
 	return UDS_SUCCESS;
 }
@@ -466,7 +466,7 @@ int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeUInt16LE(buffer->data, &buffer->start, ui);
+	decode_uint16_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
@@ -477,7 +477,7 @@ int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeUInt16LE(buffer->data, &buffer->end, ui);
+	encode_uint16_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
@@ -491,7 +491,7 @@ int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		decodeUInt16LE(buffer->data, &buffer->start, ui + i);
+		decode_uint16_le(buffer->data, &buffer->start, ui + i);
 	}
 	return UDS_SUCCESS;
 }
@@ -507,7 +507,7 @@ int put_uint16_les_into_buffer(struct buffer *buffer,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
+		encode_uint16_le(buffer->data, &buffer->end, ui[i]);
 	}
 	return UDS_SUCCESS;
 }
@@ -519,7 +519,7 @@ int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeInt32LE(buffer->data, &buffer->start, i);
+	decode_int32_le(buffer->data, &buffer->start, i);
 	return UDS_SUCCESS;
 }
 
@@ -530,7 +530,7 @@ int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeUInt32LE(buffer->data, &buffer->start, ui);
+	decode_uint32_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
@@ -541,7 +541,7 @@ int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeUInt32LE(buffer->data, &buffer->end, ui);
+	encode_uint32_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
@@ -552,7 +552,7 @@ int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeInt64LE(buffer->data, &buffer->end, i);
+	encode_int64_le(buffer->data, &buffer->end, i);
 	return UDS_SUCCESS;
 }
 
@@ -563,7 +563,7 @@ int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	decodeUInt64LE(buffer->data, &buffer->start, ui);
+	decode_uint64_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
@@ -574,7 +574,7 @@ int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
 		return UDS_BUFFER_ERROR;
 	}
 
-	encodeUInt64LE(buffer->data, &buffer->end, ui);
+	encode_uint64_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
@@ -588,7 +588,7 @@ int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		decodeUInt64LE(buffer->data, &buffer->start, ui + i);
+		decode_uint64_le(buffer->data, &buffer->start, ui + i);
 	}
 	return UDS_SUCCESS;
 }
@@ -604,7 +604,7 @@ int put_uint64_les_into_buffer(struct buffer *buffer,
 
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		encodeUInt64LE(buffer->data, &buffer->end, ui[i]);
+		encode_uint64_le(buffer->data, &buffer->end, ui[i]);
 	}
 	return UDS_SUCCESS;
 }
