@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#22 $
  */
 
 #include "volume.h"
@@ -98,7 +98,7 @@ int mapToPhysicalPage(const struct geometry *geometry, int chapter, int page)
 static void waitForReadQueueNotFull(Volume *volume, Request *request)
 {
   unsigned int zoneNumber = getZoneNumber(request);
-  invalidate_counter invalidateCounter
+  invalidate_counter_t invalidateCounter
     = get_invalidate_counter(volume->pageCache, zoneNumber);
 
   if (search_pending(invalidateCounter)) {
@@ -727,9 +727,9 @@ int searchVolumePageCache(Volume                      *volume,
 }
 
 /**********************************************************************/
-int forgetChapter(Volume              *volume,
-                  uint64_t             virtualChapter,
-                  invalidation_reason  reason)
+int forgetChapter(Volume                   *volume,
+                  uint64_t                  virtualChapter,
+                  enum invalidation_reason  reason)
 {
   logDebug("forgetting chapter %llu", virtualChapter);
   unsigned int physicalChapter

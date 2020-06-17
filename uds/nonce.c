@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#4 $
  */
 
 #include "nonce.h"
@@ -55,7 +55,7 @@ size_t create_unique_nonce_data(byte *buffer, size_t length)
 	byte *be = buffer + length;
 	byte *bp = memput(buffer, be, &now, sizeof(now));
 
-	uint32_t rand = randomInRange(1, (1 << 30) - 1);
+	uint32_t rand = random_in_range(1, (1 << 30) - 1);
 
 	bp = memput(bp, be, &rand, sizeof(rand));
 

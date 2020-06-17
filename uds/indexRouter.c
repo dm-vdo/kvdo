@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#13 $
  */
 
 #include "indexRouter.h"
@@ -229,8 +229,8 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 	}
 
 	struct index *index = router->index;
-	request->zoneNumber =
-		getMasterIndexZone(index->master_index, &request->chunkName);
+	request->zoneNumber = get_master_index_zone(index->master_index,
+						    &request->chunkName);
 	return get_zone_queue(router, request->zoneNumber);
 }
 

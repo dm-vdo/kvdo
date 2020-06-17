@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/random.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/random.h#2 $
  */
 
 #ifndef RANDOM_H
@@ -35,13 +35,13 @@
  *
  * @return unsigned integer in the interval [lo,hi]
  **/
-unsigned int randomInRange(unsigned int lo, unsigned int hi);
+unsigned int random_in_range(unsigned int lo, unsigned int hi);
 
 /**
  * Special function wrapper required for compile-time assertions. This
  * function will fail to compile if RAND_MAX is not of the form 2^n - 1.
  **/
-void randomCompileTimeAssertions(void);
+void random_compile_time_assertions(void);
 
 /**
  * Fill bytes with random data.
@@ -49,9 +49,9 @@ void randomCompileTimeAssertions(void);
  * @param ptr   where to store bytes
  * @param len   number of bytes to write
  **/
-static INLINE void fillRandomly(void *ptr, size_t len)
+static INLINE void fill_randomly(void *ptr, size_t len)
 {
-  prandom_bytes(ptr, len);
+	prandom_bytes(ptr, len);
 }
 
 #define RAND_MAX 2147483647
@@ -63,9 +63,9 @@ static INLINE void fillRandomly(void *ptr, size_t len)
  **/
 static INLINE long random(void)
 {
-  long value;
-  fillRandomly(&value, sizeof(value));
-  return value & RAND_MAX;
+	long value;
+	fill_randomly(&value, sizeof(value));
+	return value & RAND_MAX;
 }
 
 #endif /* RANDOM_H */

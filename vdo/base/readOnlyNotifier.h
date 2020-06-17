@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#9 $
  */
 
 /*
@@ -109,8 +109,27 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code);
  * Check whether the VDO is read-only. This method may be called from any
  * thread, as opposed to examining the VDO's state field which is only safe
  * to check from the admin thread.
+ *
+ * @param notifier        The read-only notifier of the VDO
+ *
+ * @return <code>true</code> if the VDO is read-only
  **/
 bool __must_check is_read_only(struct read_only_notifier *notifier);
+
+/**
+ * Check whether the VDO is or will be read-only (i.e. some thread has started
+ * the process of entering read-only mode, but not all threads have been
+ * notified yet). This method should only be called in cases where the expense
+ * of reading atomic state is not a problem. It was introduced in order to allow
+ * suppresion of spurious error messages resulting from VIO cleanup racing with
+ * read-only notification.
+ *
+ * @param notifier  The read-only notifier of the VDO
+ *
+ * @return <code>true</code> if the VDO has started (and possibly finished)
+ *         the process of entering read-only mode
+ **/
+bool __must_check is_or_will_be_read_only(struct read_only_notifier *notifier);
 
 /**
  * Register a listener to be notified when the VDO goes read-only.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#26 $
  */
 
 #include "index.h"
@@ -168,7 +168,7 @@ static int rebuild_index(struct index *index)
 					       "cannot rebuild index: volume chapter boundaries too large");
 	}
 
-	setMasterIndexOpenChapter(index->master_index, 0);
+	set_master_index_open_chapter(index->master_index, 0);
 	if (is_empty) {
 		index->loaded_type = LOAD_EMPTY;
 		return UDS_SUCCESS;
@@ -208,8 +208,8 @@ int make_index(struct index_layout *layout,
 	index->load_context = load_context;
 
 	uint64_t nonce = get_volume_nonce(layout);
-	result = makeMasterIndex(config, zone_count, nonce,
-				 &index->master_index);
+	result = make_master_index(config, zone_count, nonce,
+				   &index->master_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return logErrorWithStringError(result,
@@ -298,7 +298,7 @@ void free_index(struct index *index)
 	free_chapter_writer(index->chapter_writer);
 
 	if (index->master_index != NULL) {
-		freeMasterIndex(index->master_index);
+		free_master_index(index->master_index);
 	}
 	release_index(index);
 }
@@ -351,23 +351,23 @@ static struct index_zone *get_request_zone(struct index *index,
 static int search_index_zone(struct index_zone *zone, Request *request)
 {
 	struct master_index_record record;
-	int result = getMasterIndexRecord(zone->index->master_index,
-					  &request->chunkName, &record);
+	int result = get_master_index_record(zone->index->master_index,
+					     &request->chunkName, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	bool found = false;
-	if (record.isFound) {
+	if (record.is_found) {
 		result = get_record_from_zone(zone, request, &found,
-					      record.virtualChapter);
+					      record.virtual_chapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 		if (found) {
 			request->location =
 				compute_index_region(zone,
-						     record.virtualChapter);
+						     record.virtual_chapter);
 		}
 	}
 
@@ -378,7 +378,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	 * we won't *find it in the volume. This case needs special handling.
 	 */
 	bool overflow_record =
-		(record.isFound && record.isCollision && !found);
+		(record.is_found && record.is_collision && !found);
 	uint64_t chapter = zone->newest_virtual_chapter;
 	if (found || overflow_record) {
 		if ((request->action == REQUEST_QUERY) &&
@@ -388,7 +388,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			return UDS_SUCCESS;
 		}
 
-		if (record.virtualChapter != chapter) {
+		if (record.virtual_chapter != chapter) {
 			/*
 			 * Update the master index to reference the new chapter
 			 * for the block. If the record had been deleted or
@@ -404,8 +404,8 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	} else {
 		// The record wasn't in the master index, so check whether the
 		// name is in a cached sparse chapter.
-		if (!isMasterIndexSample(zone->index->master_index,
-					 &request->chunkName) &&
+		if (!is_master_index_sample(zone->index->master_index,
+					    &request->chunkName) &&
 		    is_sparse(zone->index->volume->geometry)) {
 			// Passing UINT64_MAX triggers a search of the entire
 			// sparse cache.
@@ -466,24 +466,24 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 static int remove_from_index_zone(struct index_zone *zone, Request *request)
 {
 	struct master_index_record record;
-	int result = getMasterIndexRecord(zone->index->master_index,
-					  &request->chunkName, &record);
+	int result = get_master_index_record(zone->index->master_index,
+					    &request->chunkName, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	if (!record.isFound) {
+	if (!record.is_found) {
 		// The name does not exist in master index, so there is nothing
 		// to remove.
 		return UDS_SUCCESS;
 	}
 
-	if (!record.isCollision) {
+	if (!record.is_collision) {
 		// Non-collision records are hints, so resolve the name in the
 		// chapter.
 		bool found;
 		int result = get_record_from_zone(zone, request, &found,
-						  record.virtualChapter);
+						  record.virtual_chapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -495,7 +495,7 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 		}
 	}
 
-	request->location = compute_index_region(zone, record.virtualChapter);
+	request->location = compute_index_region(zone, record.virtual_chapter);
 
 	/*
 	 * Delete the master index entry for the named record only. Note that a
@@ -511,8 +511,9 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 	// deleted to avoid trouble if the record is added again later.
 	if (request->location == LOC_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
-		removeFromOpenChapter(zone->open_chapter, &request->chunkName,
-				      &hash_exists);
+		remove_from_open_chapter(zone->open_chapter,
+					 &request->chunkName,
+					 &hash_exists);
 		result = ASSERT(hash_exists,
 				"removing record not found in open chapter");
 		if (result != UDS_SUCCESS) {
@@ -684,28 +685,29 @@ static int replay_record(struct index *index,
 			 bool will_be_sparse_chapter)
 {
 	if (will_be_sparse_chapter &&
-	    !isMasterIndexSample(index->master_index, name)) {
+	    !is_master_index_sample(index->master_index, name)) {
 		// This entry will be in a sparse chapter after the rebuild
 		// completes, and it is not a sample, so just skip over it.
 		return UDS_SUCCESS;
 	}
 
 	struct master_index_record record;
-	int result = getMasterIndexRecord(index->master_index, name, &record);
+	int result =
+		get_master_index_record(index->master_index, name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	bool update_record;
-	if (record.isFound) {
-		if (record.isCollision) {
-			if (record.virtualChapter == virtual_chapter) {
+	if (record.is_found) {
+		if (record.is_collision) {
+			if (record.virtual_chapter == virtual_chapter) {
 				/* The record is already correct, so we don't
 				 * need to do anything */
 				return UDS_SUCCESS;
 			}
 			update_record = true;
-		} else if (record.virtualChapter == virtual_chapter) {
+		} else if (record.virtual_chapter == virtual_chapter) {
 			/*
 			 * There is a master index entry pointing to the
 			 * current chapter, but we don't know if it is for the
@@ -729,7 +731,7 @@ static int replay_record(struct index *index,
 			 */
 			result = searchVolumePageCache(index->volume,
 						       NULL, name,
-						       record.virtualChapter,
+						       record.virtual_chapter,
 						       NULL, &update_record);
 			if (result != UDS_SUCCESS) {
 				return result;
@@ -823,8 +825,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	logInfo("Replaying volume from chapter %llu through chapter %llu",
 		from_vcn,
 		upto_vcn);
-	setMasterIndexOpenChapter(index->master_index, upto_vcn);
-	setMasterIndexOpenChapter(index->master_index, from_vcn);
+	set_master_index_open_chapter(index->master_index, upto_vcn);
+	set_master_index_open_chapter(index->master_index, from_vcn);
 
 	/*
 	 * At least two cases to deal with here!
@@ -862,7 +864,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		prefetch_volume_pages(&index->volume->volumeStore,
 				      mapToPhysicalPage(geometry, chapter, 0),
 				      geometry->pages_per_chapter);
-		setMasterIndexOpenChapter(index->master_index, vcn);
+		set_master_index_open_chapter(index->master_index, vcn);
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
 			index->volume->lookupMode = old_lookup_mode;
@@ -918,7 +920,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	index->volume->lookupMode = old_lookup_mode;
 
 	// We also need to reap the chapter being replaced by the open chapter
-	setMasterIndexOpenChapter(index->master_index, upto_vcn);
+	set_master_index_open_chapter(index->master_index, upto_vcn);
 
 	uint64_t new_ipm_update = get_last_update(index->volume->indexPageMap);
 
@@ -939,18 +941,19 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 	// We're accessing the master index while not on a zone thread, but
 	// that's safe to do when acquiring statistics.
 	struct master_index_stats dense_stats, sparse_stats;
-	getMasterIndexStats(index->master_index, &dense_stats, &sparse_stats);
+	get_master_index_stats(index->master_index, &dense_stats,
+			       &sparse_stats);
 
 	counters->entriesIndexed =
-		(dense_stats.recordCount + sparse_stats.recordCount);
+		(dense_stats.record_count + sparse_stats.record_count);
 	counters->memoryUsed =
-		((uint64_t) dense_stats.memoryAllocated +
-		 (uint64_t) sparse_stats.memoryAllocated +
+		((uint64_t) dense_stats.memory_allocated +
+		 (uint64_t) sparse_stats.memory_allocated +
 		 (uint64_t) getCacheSize(index->volume) + cw_allocated);
 	counters->collisions =
-		(dense_stats.collisionCount + sparse_stats.collisionCount);
+		(dense_stats.collision_count + sparse_stats.collision_count);
 	counters->entriesDiscarded =
-		(dense_stats.discardCount + sparse_stats.discardCount);
+		(dense_stats.discard_count + sparse_stats.discard_count);
 	counters->checkpoints = get_checkpoint_count(index->checkpoint);
 }
 
@@ -969,15 +972,15 @@ void advance_active_chapters(struct index *index)
 uint64_t triage_index_request(struct index *index, Request *request)
 {
 	struct master_index_triage triage;
-	lookupMasterIndexName(index->master_index, &request->chunkName,
-			      &triage);
-	if (!triage.inSampledChapter) {
+	lookup_master_index_name(index->master_index, &request->chunkName,
+				 &triage);
+	if (!triage.in_sampled_chapter) {
 		// Not indexed or not a hook.
 		return UINT64_MAX;
 	}
 
 	struct index_zone *zone = get_request_zone(index, request);
-	if (!is_zone_chapter_sparse(zone, triage.virtualChapter)) {
+	if (!is_zone_chapter_sparse(zone, triage.virtual_chapter)) {
 		return UINT64_MAX;
 	}
 
@@ -986,5 +989,5 @@ uint64_t triage_index_request(struct index *index, Request *request)
 	// same.
 
 	// Return the sparse chapter number to trigger the barrier messages.
-	return triage.virtualChapter;
+	return triage.virtual_chapter;
 }

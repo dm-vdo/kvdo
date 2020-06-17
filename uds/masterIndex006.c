@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#20 $
  */
 #include "masterIndex006.h"
 
@@ -120,11 +120,11 @@ static void free_master_index_006(struct master_index *master_index)
 			mi6->master_zones = NULL;
 		}
 		if (mi6->mi_non_hook != NULL) {
-			freeMasterIndex(mi6->mi_non_hook);
+			free_master_index(mi6->mi_non_hook);
 			mi6->mi_non_hook = NULL;
 		}
 		if (mi6->mi_hook != NULL) {
-			freeMasterIndex(mi6->mi_hook);
+			free_master_index(mi6->mi_hook);
 			mi6->mi_hook = NULL;
 		}
 		FREE(master_index);
@@ -218,14 +218,14 @@ start_saving_master_index_006(const struct master_index *master_index,
 		return result;
 	}
 
-	result = startSavingMasterIndex(mi6->mi_non_hook, zone_number,
-					buffered_writer);
+	result = start_saving_master_index(mi6->mi_non_hook, zone_number,
+					   buffered_writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = startSavingMasterIndex(mi6->mi_hook, zone_number,
-					buffered_writer);
+	result = start_saving_master_index(mi6->mi_hook, zone_number,
+					   buffered_writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -236,7 +236,7 @@ start_saving_master_index_006(const struct master_index *master_index,
 /**
  * Have all the data been written while saving a master index to an output
  * stream?  If the answer is yes, it is still necessary to call
- * finishSavingMasterIndex(), which will return quickly.
+ * finish_saving_master_index(), which will return quickly.
  *
  * @param master_index  The master index
  * @param zone_number   The number of the zone to save
@@ -249,8 +249,8 @@ is_saving_master_index_done_006(const struct master_index *master_index,
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	return (isSavingMasterIndexDone(mi6->mi_non_hook, zone_number) &&
-		isSavingMasterIndexDone(mi6->mi_hook, zone_number));
+	return (is_saving_master_index_done(mi6->mi_non_hook, zone_number) &&
+		is_saving_master_index_done(mi6->mi_hook, zone_number));
 }
 
 /***********************************************************************/
@@ -270,9 +270,9 @@ finish_saving_master_index_006(const struct master_index *master_index,
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	int result = finishSavingMasterIndex(mi6->mi_non_hook, zone_number);
+	int result = finish_saving_master_index(mi6->mi_non_hook, zone_number);
 	if (result == UDS_SUCCESS) {
-		result = finishSavingMasterIndex(mi6->mi_hook, zone_number);
+		result = finish_saving_master_index(mi6->mi_hook, zone_number);
 	}
 	return result;
 }
@@ -293,8 +293,8 @@ abort_saving_master_index_006(const struct master_index *master_index,
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	int result = abortSavingMasterIndex(mi6->mi_non_hook, zone_number);
-	int result2 = abortSavingMasterIndex(mi6->mi_hook, zone_number);
+	int result = abort_saving_master_index(mi6->mi_non_hook, zone_number);
+	int result2 = abort_saving_master_index(mi6->mi_hook, zone_number);
 	if (result == UDS_SUCCESS) {
 		result = result2;
 	}
@@ -392,13 +392,14 @@ start_restoring_master_index_006(struct master_index *master_index,
 		}
 	}
 
-	result = startRestoringMasterIndex(mi6->mi_non_hook, buffered_readers,
-					   num_readers);
+	result = start_restoring_master_index(mi6->mi_non_hook,
+					      buffered_readers,
+					      num_readers);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	return startRestoringMasterIndex(mi6->mi_hook, buffered_readers,
-					 num_readers);
+	return start_restoring_master_index(mi6->mi_hook, buffered_readers,
+					    num_readers);
 }
 
 /***********************************************************************/
@@ -415,8 +416,8 @@ is_restoring_master_index_done_006(const struct master_index *master_index)
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	return (isRestoringMasterIndexDone(mi6->mi_non_hook) &&
-		isRestoringMasterIndexDone(mi6->mi_hook));
+	return (is_restoring_master_index_done(mi6->mi_non_hook) &&
+		is_restoring_master_index_done(mi6->mi_hook));
 }
 
 /***********************************************************************/
@@ -436,10 +437,13 @@ restore_delta_list_to_master_index_006(struct master_index *master_index,
 {
 	struct master_index6 *mi6 =
 		container_of(master_index, struct master_index6, common);
-	int result =
-		restoreDeltaListToMasterIndex(mi6->mi_non_hook, dlsi, data);
+	int result = restore_delta_list_to_master_index(mi6->mi_non_hook,
+							dlsi,
+							data);
 	if (result != UDS_SUCCESS) {
-		result = restoreDeltaListToMasterIndex(mi6->mi_hook, dlsi, data);
+		result = restore_delta_list_to_master_index(mi6->mi_hook,
+							    dlsi,
+							    data);
 	}
 	return result;
 }
@@ -454,8 +458,8 @@ static void abort_restoring_master_index_006(struct master_index *master_index)
 {
 	struct master_index6 *mi6 =
 		container_of(master_index, struct master_index6, common);
-	abortRestoringMasterIndex(mi6->mi_non_hook);
-	abortRestoringMasterIndex(mi6->mi_hook);
+	abort_restoring_master_index(mi6->mi_non_hook);
+	abort_restoring_master_index(mi6->mi_hook);
 }
 
 /***********************************************************************/
@@ -475,15 +479,15 @@ set_master_index_zone_open_chapter_006(struct master_index *master_index,
 {
 	struct master_index6 *mi6 =
 		container_of(master_index, struct master_index6, common);
-	setMasterIndexZoneOpenChapter(mi6->mi_non_hook, zone_number,
-				      virtual_chapter);
+	set_master_index_zone_open_chapter(mi6->mi_non_hook, zone_number,
+					   virtual_chapter);
 
 	// We need to prevent a lookup_master_index_name() happening while we
 	// are changing the open chapter number
 	Mutex *mutex = &mi6->master_zones[zone_number].hook_mutex;
 	lockMutex(mutex);
-	setMasterIndexZoneOpenChapter(mi6->mi_hook, zone_number,
-				      virtual_chapter);
+	set_master_index_zone_open_chapter(mi6->mi_hook, zone_number,
+					   virtual_chapter);
 	unlockMutex(mutex);
 }
 
@@ -521,7 +525,7 @@ static unsigned int
 get_master_index_zone_006(const struct master_index *master_index,
 			  const struct uds_chunk_name *name)
 {
-	return getMasterIndexZone(get_sub_index(master_index, name), name);
+	return get_master_index_zone(get_sub_index(master_index, name), name);
 }
 
 /***********************************************************************/
@@ -542,15 +546,15 @@ lookup_master_index_name_006(const struct master_index *master_index,
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	triage->isSample = is_master_index_sample_006(master_index, name);
-	triage->inSampledChapter = false;
+	triage->is_sample = is_master_index_sample_006(master_index, name);
+	triage->in_sampled_chapter = false;
 	triage->zone = get_master_index_zone_006(master_index, name);
 	int result = UDS_SUCCESS;
-	if (triage->isSample) {
+	if (triage->is_sample) {
 		Mutex *mutex = &mi6->master_zones[triage->zone].hook_mutex;
 		lockMutex(mutex);
-		result = lookupMasterIndexSampledName(mi6->mi_hook, name,
-						      triage);
+		result = lookup_master_index_sampled_name(mi6->mi_hook, name,
+							  triage);
 		unlockMutex(mutex);
 	}
 	return result;
@@ -564,8 +568,8 @@ lookup_master_index_name_006(const struct master_index *master_index,
  * @param master_index  The master index
  * @param name          The chunk name
  * @param triage        Information about the chunk name.  The zone and
- *                      isSample fields are already filled in.  Set
- *                      inSampledChapter and virtualChapter if the chunk
+ *                      is_sample fields are already filled in.  Set
+ *                      in_sampled_chapter and virtual_chapter if the chunk
  *                      name is found in the index.
  *
  * @return UDS_SUCCESS or an error code
@@ -623,16 +627,17 @@ static int get_master_index_record_006(struct master_index *master_index,
 		 * because of lazy LRU flushing of the master index,
 		 * get_master_index_record() is not a read-only operation.
 		 */
-		unsigned int zone = getMasterIndexZone(mi6->mi_hook, name);
+		unsigned int zone = get_master_index_zone(mi6->mi_hook, name);
 		Mutex *mutex = &mi6->master_zones[zone].hook_mutex;
 		lockMutex(mutex);
-		result = getMasterIndexRecord(mi6->mi_hook, name, record);
+		result = get_master_index_record(mi6->mi_hook, name, record);
 		unlockMutex(mutex);
 		// Remember the mutex so that other operations on the
 		// master_index_record can use it
 		record->mutex = mutex;
 	} else {
-		result = getMasterIndexRecord(mi6->mi_non_hook, name, record);
+		result = get_master_index_record(mi6->mi_non_hook, name,
+						 record);
 	}
 	return result;
 }
@@ -650,8 +655,8 @@ get_master_index_memory_used_006(const struct master_index *master_index)
 {
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
-	return (getMasterIndexMemoryUsed(mi6->mi_non_hook) +
-		getMasterIndexMemoryUsed(mi6->mi_hook));
+	return (get_master_index_memory_used(mi6->mi_non_hook) +
+		get_master_index_memory_used(mi6->mi_hook));
 }
 
 /***********************************************************************/
@@ -671,8 +676,8 @@ static void get_master_index_stats_006(const struct master_index *master_index,
 	const struct master_index6 *mi6 =
 		const_container_of(master_index, struct master_index6, common);
 	struct master_index_stats dummy_stats;
-	getMasterIndexStats(mi6->mi_non_hook, dense, &dummy_stats);
-	getMasterIndexStats(mi6->mi_hook, sparse, &dummy_stats);
+	get_master_index_stats(mi6->mi_non_hook, dense, &dummy_stats);
+	get_master_index_stats(mi6->mi_hook, sparse, &dummy_stats);
 }
 
 /***********************************************************************/
@@ -773,33 +778,35 @@ int make_master_index006(const struct configuration *config,
 		return result;
 	}
 
-	mi6->common.abortRestoringMasterIndex =
+	mi6->common.abort_restoring_master_index =
 		abort_restoring_master_index_006;
-	mi6->common.abortSavingMasterIndex = abort_saving_master_index_006;
-	mi6->common.finishSavingMasterIndex = finish_saving_master_index_006;
-	mi6->common.freeMasterIndex = free_master_index_006;
-	mi6->common.getMasterIndexMemoryUsed =
+	mi6->common.abort_saving_master_index = abort_saving_master_index_006;
+	mi6->common.finish_saving_master_index =
+		finish_saving_master_index_006;
+	mi6->common.free_master_index = free_master_index_006;
+	mi6->common.get_master_index_memory_used =
 		get_master_index_memory_used_006;
-	mi6->common.getMasterIndexRecord = get_master_index_record_006;
-	mi6->common.getMasterIndexStats = get_master_index_stats_006;
-	mi6->common.getMasterIndexZone = get_master_index_zone_006;
-	mi6->common.isMasterIndexSample = is_master_index_sample_006;
-	mi6->common.isRestoringMasterIndexDone =
+	mi6->common.get_master_index_record = get_master_index_record_006;
+	mi6->common.get_master_index_stats = get_master_index_stats_006;
+	mi6->common.get_master_index_zone = get_master_index_zone_006;
+	mi6->common.is_master_index_sample = is_master_index_sample_006;
+	mi6->common.is_restoring_master_index_done =
 		is_restoring_master_index_done_006;
-	mi6->common.isSavingMasterIndexDone = is_saving_master_index_done_006;
-	mi6->common.lookupMasterIndexName = lookup_master_index_name_006;
-	mi6->common.lookupMasterIndexSampledName =
+	mi6->common.is_saving_master_index_done =
+		is_saving_master_index_done_006;
+	mi6->common.lookup_master_index_name = lookup_master_index_name_006;
+	mi6->common.lookup_master_index_sampled_name =
 		lookup_master_index_sampled_name_006;
-	mi6->common.restoreDeltaListToMasterIndex =
+	mi6->common.restore_delta_list_to_master_index =
 		restore_delta_list_to_master_index_006;
-	mi6->common.setMasterIndexOpenChapter =
+	mi6->common.set_master_index_open_chapter =
 		set_master_index_open_chapter_006;
-	mi6->common.setMasterIndexTag = set_master_index_tag_006;
-	mi6->common.setMasterIndexZoneOpenChapter =
+	mi6->common.set_master_index_tag = set_master_index_tag_006;
+	mi6->common.set_master_index_zone_open_chapter =
 		set_master_index_zone_open_chapter_006;
-	mi6->common.startRestoringMasterIndex =
+	mi6->common.start_restoring_master_index =
 		start_restoring_master_index_006;
-	mi6->common.startSavingMasterIndex = start_saving_master_index_006;
+	mi6->common.start_saving_master_index = start_saving_master_index_006;
 
 	mi6->num_zones = num_zones;
 	mi6->sparse_sample_rate = config->sparse_sample_rate;
@@ -829,7 +836,7 @@ int make_master_index006(const struct configuration *config,
 		return logErrorWithStringError(result,
 					       "Error creating non hook master index");
 	}
-	setMasterIndexTag(mi6->mi_non_hook, 'd');
+	set_master_index_tag(mi6->mi_non_hook, 'd');
 
 	result = make_master_index005(&split.hook_config, num_zones,
 				      volume_nonce, &mi6->mi_hook);
@@ -838,7 +845,7 @@ int make_master_index006(const struct configuration *config,
 		return logErrorWithStringError(result,
 					       "Error creating hook master index");
 	}
-	setMasterIndexTag(mi6->mi_hook, 's');
+	set_master_index_tag(mi6->mi_hook, 's');
 
 	*master_index = &mi6->common;
 	return UDS_SUCCESS;

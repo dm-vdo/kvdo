@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/random.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/random.c#2 $
  */
 
 #include "random.h"
@@ -24,14 +24,14 @@
 #include "permassert.h"
 
 /*****************************************************************************/
-unsigned int randomInRange(unsigned int lo, unsigned int hi)
+unsigned int random_in_range(unsigned int lo, unsigned int hi)
 {
-  return lo + random() % (hi - lo + 1);
+	return lo + random() % (hi - lo + 1);
 }
 
 /*****************************************************************************/
-void randomCompileTimeAssertions(void)
+void random_compile_time_assertions(void)
 {
-  STATIC_ASSERT((((uint64_t) RAND_MAX + 1) & RAND_MAX) == 0);
+	STATIC_ASSERT((((uint64_t) RAND_MAX + 1) & RAND_MAX) == 0);
 }
 

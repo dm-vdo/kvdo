@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#14 $
  */
 
 #include "indexZone.h"
@@ -41,17 +41,17 @@ int make_index_zone(struct index *index, unsigned int zone_number)
 		return result;
 	}
 
-	result = makeOpenChapter(index->volume->geometry,
-				 index->zone_count,
-				 &zone->open_chapter);
+	result = make_open_chapter(index->volume->geometry,
+				   index->zone_count,
+				   &zone->open_chapter);
 	if (result != UDS_SUCCESS) {
 		free_index_zone(zone);
 		return result;
 	}
 
-	result = makeOpenChapter(index->volume->geometry,
-				 index->zone_count,
-				 &zone->writing_chapter);
+	result = make_open_chapter(index->volume->geometry,
+				   index->zone_count,
+				   &zone->writing_chapter);
 	if (result != UDS_SUCCESS) {
 		free_index_zone(zone);
 		return result;
@@ -71,8 +71,8 @@ void free_index_zone(struct index_zone *zone)
 		return;
 	}
 
-	freeOpenChapter(zone->open_chapter);
-	freeOpenChapter(zone->writing_chapter);
+	free_open_chapter(zone->open_chapter);
+	free_open_chapter(zone->writing_chapter);
 	FREE(zone);
 }
 
@@ -141,8 +141,8 @@ static int reap_oldest_chapter(struct index_zone *zone)
 		return result;
 	}
 
-	setMasterIndexZoneOpenChapter(index->master_index, zone->id,
-				      zone->newest_virtual_chapter);
+	set_master_index_zone_open_chapter(index->master_index, zone->id,
+					   zone->newest_virtual_chapter);
 	return UDS_SUCCESS;
 }
 
@@ -267,7 +267,7 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 		return logUnrecoverable(result, "reap_oldest_chapter failed");
 	}
 
-	resetOpenChapter(zone->open_chapter);
+	reset_open_chapter(zone->open_chapter);
 
 	// begin, continue, or finish the checkpoint processing
 	// moved above start_closing_chapter because some of the
@@ -334,10 +334,10 @@ int get_record_from_zone(struct index_zone *zone,
 			 uint64_t virtual_chapter)
 {
 	if (virtual_chapter == zone->newest_virtual_chapter) {
-		searchOpenChapter(zone->open_chapter,
-				  &request->chunkName,
-				  &request->oldMetadata,
-				  found);
+		search_open_chapter(zone->open_chapter,
+				    &request->chunkName,
+				    &request->oldMetadata,
+				    found);
 		return UDS_SUCCESS;
 	}
 
@@ -346,10 +346,10 @@ int get_record_from_zone(struct index_zone *zone,
 	    (zone->writing_chapter->size > 0)) {
 		// Only search the writing chapter if it is full, else look on
 		// disk.
-		searchOpenChapter(zone->writing_chapter,
-				  &request->chunkName,
-				  &request->oldMetadata,
-				  found);
+		search_open_chapter(zone->writing_chapter,
+				    &request->chunkName,
+				    &request->oldMetadata,
+				    found);
 		return UDS_SUCCESS;
 	}
 
@@ -386,8 +386,8 @@ int put_record_in_zone(struct index_zone *zone,
 		       const struct uds_chunk_data *metadata)
 {
 	unsigned int remaining;
-	int result = putOpenChapter(zone->open_chapter, &request->chunkName,
-				    metadata, &remaining);
+	int result = put_open_chapter(zone->open_chapter, &request->chunkName,
+				      metadata, &remaining);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

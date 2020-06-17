@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#24 $
  */
 #include "masterIndex005.h"
 
@@ -149,10 +149,10 @@ static INLINE unsigned int extract_dlist_num(const struct master_index5 *mi5,
 static INLINE const struct master_index_zone *
 get_master_zone(const struct master_index_record *record)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
-	return &mi5->master_zones[record->zoneNumber];
+	return &mi5->master_zones[record->zone_number];
 }
 
 /**
@@ -167,7 +167,7 @@ static INLINE uint64_t
 convert_index_to_virtual(const struct master_index_record *record,
 			 unsigned int index_chapter)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
 	const struct master_index_zone *master_zone = get_master_zone(record);
@@ -226,16 +226,16 @@ flush_invalid_entries(struct master_index_record *record,
 		      struct chapter_range *flush_range,
 		      unsigned int *next_chapter_to_invalidate)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
-	int result = next_delta_index_entry(&record->deltaEntry);
+	int result = next_delta_index_entry(&record->delta_entry);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	while (!record->deltaEntry.at_end) {
+	while (!record->delta_entry.at_end) {
 		unsigned int index_chapter =
-			get_delta_entry_value(&record->deltaEntry);
+			get_delta_entry_value(&record->delta_entry);
 		unsigned int relative_chapter =
 			((index_chapter - flush_range->chapter_start) &
 			 mi5->chapter_mask);
@@ -245,7 +245,7 @@ flush_invalid_entries(struct master_index_record *record,
 			}
 			break;
 		}
-		result = remove_delta_index_entry(&record->deltaEntry);
+		result = remove_delta_index_entry(&record->delta_entry);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -269,13 +269,13 @@ static int get_master_index_entry(struct master_index_record *record,
 				  unsigned int key,
 				  struct chapter_range *flush_range)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
 	unsigned int next_chapter_to_invalidate = mi5->chapter_mask;
 
 	int result = start_delta_index_search(&mi5->delta_index, list_number,
-					      0, false, &record->deltaEntry);
+					      0, false, &record->delta_entry);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -285,17 +285,18 @@ static int get_master_index_entry(struct master_index_record *record,
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-	} while (!record->deltaEntry.at_end && (key > record->deltaEntry.key));
+	} while (!record->delta_entry.at_end &&
+			(key > record->delta_entry.key));
 
-	result = remember_delta_index_offset(&record->deltaEntry);
+	result = remember_delta_index_offset(&record->delta_entry);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// We probably found the record we want, but we need to keep going
 	struct master_index_record other_record = *record;
-	if (!other_record.deltaEntry.at_end &&
-	    (key == other_record.deltaEntry.key)) {
+	if (!other_record.delta_entry.at_end &&
+	    (key == other_record.delta_entry.key)) {
 		for (;;) {
 			result = flush_invalid_entries(&other_record,
 						       flush_range,
@@ -303,12 +304,12 @@ static int get_master_index_entry(struct master_index_record *record,
 			if (result != UDS_SUCCESS) {
 				return result;
 			}
-			if (other_record.deltaEntry.at_end ||
-			    !other_record.deltaEntry.is_collision) {
+			if (other_record.delta_entry.at_end ||
+			    !other_record.delta_entry.is_collision) {
 				break;
 			}
 			byte collision_name[UDS_CHUNK_NAME_SIZE];
-			result = get_delta_entry_collision(&other_record.deltaEntry,
+			result = get_delta_entry_collision(&other_record.delta_entry,
 							   collision_name);
 			if (result != UDS_SUCCESS) {
 				return result;
@@ -323,7 +324,7 @@ static int get_master_index_entry(struct master_index_record *record,
 			}
 		}
 	}
-	while (!other_record.deltaEntry.at_end) {
+	while (!other_record.delta_entry.at_end) {
 		result = flush_invalid_entries(&other_record,
 					       flush_range,
 					       &next_chapter_to_invalidate);
@@ -818,9 +819,9 @@ static void remove_newest_chapters(struct master_index5 *mi5,
 		struct master_index_record record =
 			(struct master_index_record){
 				.magic = master_index_record_magic,
-				.masterIndex = &mi5->common,
+				.master_index = &mi5->common,
 				.name = &name,
-				.zoneNumber = zone_number,
+				.zone_number = zone_number,
 			};
 		unsigned int i;
 		for (i = first_list; i <= last_list; i++) {
@@ -1012,8 +1013,8 @@ lookup_master_index_name_005(const struct master_index *master_index,
 			     const struct uds_chunk_name *name,
 			     struct master_index_triage *triage)
 {
-	triage->isSample = false;
-	triage->inSampledChapter = false;
+	triage->is_sample = false;
+	triage->in_sampled_chapter = false;
 	triage->zone = get_master_index_zone_005(master_index, name);
 	return UDS_SUCCESS;
 }
@@ -1051,9 +1052,9 @@ lookup_master_index_sampled_name_005(const struct master_index *master_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	triage->inSampledChapter =
+	triage->in_sampled_chapter =
 		!delta_entry.at_end && (delta_entry.key == address);
-	if (triage->inSampledChapter) {
+	if (triage->in_sampled_chapter) {
 		const struct master_index_zone *master_zone =
 			&mi5->master_zones[triage->zone];
 		unsigned int index_chapter =
@@ -1061,11 +1062,11 @@ lookup_master_index_sampled_name_005(const struct master_index *master_index,
 		unsigned int rolling_chapter =
 			((index_chapter - master_zone->virtual_chapter_low) &
 			 mi5->chapter_mask);
-		triage->virtualChapter =
+		triage->virtual_chapter =
 			master_zone->virtual_chapter_low + rolling_chapter;
-		if (triage->virtualChapter >
+		if (triage->virtual_chapter >
 		    master_zone->virtual_chapter_high) {
-			triage->inSampledChapter = false;
+			triage->in_sampled_chapter = false;
 		}
 	}
 	return UDS_SUCCESS;
@@ -1108,10 +1109,10 @@ static int get_master_index_record_005(struct master_index *master_index,
 	unsigned int delta_list_number = extract_dlist_num(mi5, name);
 	uint64_t flush_chapter = mi5->flush_chapters[delta_list_number];
 	record->magic = master_index_record_magic;
-	record->masterIndex = master_index;
+	record->master_index = master_index;
 	record->mutex = NULL;
 	record->name = name;
-	record->zoneNumber =
+	record->zone_number =
 		get_delta_index_zone(&mi5->delta_index, delta_list_number);
 	const struct master_index_zone *master_zone = get_master_zone(record);
 
@@ -1139,20 +1140,20 @@ static int get_master_index_record_005(struct master_index *master_index,
 					       address,
 					       name->name,
 					       false,
-					       &record->deltaEntry);
+					       &record->delta_entry);
 	}
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	record->isFound = (!record->deltaEntry.at_end &&
-			   (record->deltaEntry.key == address));
-	if (record->isFound) {
+	record->is_found = (!record->delta_entry.at_end &&
+			   (record->delta_entry.key == address));
+	if (record->is_found) {
 		unsigned int index_chapter =
-			get_delta_entry_value(&record->deltaEntry);
-		record->virtualChapter =
+			get_delta_entry_value(&record->delta_entry);
+		record->virtual_chapter =
 			convert_index_to_virtual(record, index_chapter);
 	}
-	record->isCollision = record->deltaEntry.is_collision;
+	record->is_collision = record->delta_entry.is_collision;
 	return UDS_SUCCESS;
 }
 
@@ -1160,7 +1161,7 @@ static int get_master_index_record_005(struct master_index *master_index,
 /**
  * Create a new record associated with a block name.
  *
- * @param record           The master index record found by getRecord()
+ * @param record           The master index record found by get_record()
  * @param virtual_chapter  The chapter number where block info is found
  *
  * @return UDS_SUCCESS or an error code
@@ -1168,7 +1169,7 @@ static int get_master_index_record_005(struct master_index *master_index,
 int put_master_index_record(struct master_index_record *record,
 			    uint64_t virtual_chapter)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
 	if (record->magic != master_index_record_magic) {
@@ -1188,24 +1189,24 @@ int put_master_index_record(struct master_index_record *record,
 	if (unlikely(record->mutex != NULL)) {
 		lockMutex(record->mutex);
 	}
-	int result = put_delta_index_entry(&record->deltaEntry,
+	int result = put_delta_index_entry(&record->delta_entry,
 					   address,
 					   convert_virtual_to_index(mi5, virtual_chapter),
-					   record->isFound ? record->name->name : NULL);
+					   record->is_found ? record->name->name : NULL);
 	if (unlikely(record->mutex != NULL)) {
 		unlockMutex(record->mutex);
 	}
 	switch (result) {
 	case UDS_SUCCESS:
-		record->virtualChapter = virtual_chapter;
-		record->isCollision = record->deltaEntry.is_collision;
-		record->isFound = true;
+		record->virtual_chapter = virtual_chapter;
+		record->is_collision = record->delta_entry.is_collision;
+		record->is_found = true;
 		break;
 	case UDS_OVERFLOW:
 		logRatelimit(logWarningWithStringError,
 			     UDS_OVERFLOW,
 			     "Master index entry dropped due to overflow condition");
-		log_delta_index_entry(&record->deltaEntry);
+		log_delta_index_entry(&record->delta_entry);
 		break;
 	default:
 		break;
@@ -1220,7 +1221,7 @@ static INLINE int validate_record(struct master_index_record *record)
 		return logWarningWithStringError(UDS_BAD_STATE,
 						 "bad magic number in master index record");
 	}
-	if (!record->isFound) {
+	if (!record->is_found) {
 		return logWarningWithStringError(UDS_BAD_STATE,
 						 "illegal operation on new record");
 	}
@@ -1231,7 +1232,7 @@ static INLINE int validate_record(struct master_index_record *record)
 /**
  * Remove an existing record.
  *
- * @param record      The master index record found by getRecord()
+ * @param record      The master index record found by get_record()
  *
  * @return UDS_SUCCESS or an error code
  **/
@@ -1246,7 +1247,7 @@ int remove_master_index_record(struct master_index_record *record)
 	if (unlikely(record->mutex != NULL)) {
 		lockMutex(record->mutex);
 	}
-	result = remove_delta_index_entry(&record->deltaEntry);
+	result = remove_delta_index_entry(&record->delta_entry);
 	if (unlikely(record->mutex != NULL)) {
 		unlockMutex(record->mutex);
 	}
@@ -1257,7 +1258,7 @@ int remove_master_index_record(struct master_index_record *record)
 int set_master_index_record_chapter(struct master_index_record *record,
 				    uint64_t virtual_chapter)
 {
-	const struct master_index5 *mi5 = container_of(record->masterIndex,
+	const struct master_index5 *mi5 = container_of(record->master_index,
 						       struct master_index5,
 						       common);
 	int result = validate_record(record);
@@ -1276,7 +1277,7 @@ int set_master_index_record_chapter(struct master_index_record *record,
 	if (unlikely(record->mutex != NULL)) {
 		lockMutex(record->mutex);
 	}
-	result = set_delta_entry_value(&record->deltaEntry,
+	result = set_delta_entry_value(&record->delta_entry,
 				       convert_virtual_to_index(mi5,
 				       				virtual_chapter));
 	if (unlikely(record->mutex != NULL)) {
@@ -1285,7 +1286,7 @@ int set_master_index_record_chapter(struct master_index_record *record,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	record->virtualChapter = virtual_chapter;
+	record->virtual_chapter = virtual_chapter;
 	return UDS_SUCCESS;
 }
 
@@ -1324,21 +1325,21 @@ static void get_master_index_stats_005(const struct master_index *master_index,
 		const_container_of(master_index, struct master_index5, common);
 	struct delta_index_stats dis;
 	get_delta_index_stats(&mi5->delta_index, &dis);
-	dense->memoryAllocated =
+	dense->memory_allocated =
 		(dis.memory_allocated + sizeof(struct master_index5) +
 		 mi5->num_delta_lists * sizeof(uint64_t) +
 		 mi5->num_zones * sizeof(struct master_index_zone));
-	dense->rebalanceTime = dis.rebalance_time;
-	dense->rebalanceCount = dis.rebalance_count;
-	dense->recordCount = dis.record_count;
-	dense->collisionCount = dis.collision_count;
-	dense->discardCount = dis.discard_count;
-	dense->overflowCount = dis.overflow_count;
-	dense->numLists = dis.num_lists;
-	dense->earlyFlushes = 0;
+	dense->rebalance_time = dis.rebalance_time;
+	dense->rebalance_count = dis.rebalance_count;
+	dense->record_count = dis.record_count;
+	dense->collision_count = dis.collision_count;
+	dense->discard_count = dis.discard_count;
+	dense->overflow_count = dis.overflow_count;
+	dense->num_lists = dis.num_lists;
+	dense->early_flushes = 0;
 	unsigned int z;
 	for (z = 0; z < mi5->num_zones; z++) {
-		dense->earlyFlushes += mi5->master_zones[z].num_early_flushes;
+		dense->early_flushes += mi5->master_zones[z].num_early_flushes;
 	}
 	memset(sparse, 0, sizeof(struct master_index_stats));
 }
@@ -1518,33 +1519,35 @@ int make_master_index005(const struct configuration *config,
 		return result;
 	}
 
-	mi5->common.abortRestoringMasterIndex =
+	mi5->common.abort_restoring_master_index =
 		abort_restoring_master_index_005;
-	mi5->common.abortSavingMasterIndex = abort_saving_master_index_005;
-	mi5->common.finishSavingMasterIndex = finish_saving_master_index_005;
-	mi5->common.freeMasterIndex = free_master_index_005;
-	mi5->common.getMasterIndexMemoryUsed =
+	mi5->common.abort_saving_master_index = abort_saving_master_index_005;
+	mi5->common.finish_saving_master_index =
+		finish_saving_master_index_005;
+	mi5->common.free_master_index = free_master_index_005;
+	mi5->common.get_master_index_memory_used =
 		get_master_index_memory_used_005;
-	mi5->common.getMasterIndexRecord = get_master_index_record_005;
-	mi5->common.getMasterIndexStats = get_master_index_stats_005;
-	mi5->common.getMasterIndexZone = get_master_index_zone_005;
-	mi5->common.isMasterIndexSample = is_master_index_sample_005;
-	mi5->common.isRestoringMasterIndexDone =
+	mi5->common.get_master_index_record = get_master_index_record_005;
+	mi5->common.get_master_index_stats = get_master_index_stats_005;
+	mi5->common.get_master_index_zone = get_master_index_zone_005;
+	mi5->common.is_master_index_sample = is_master_index_sample_005;
+	mi5->common.is_restoring_master_index_done =
 		is_restoring_master_index_done_005;
-	mi5->common.isSavingMasterIndexDone = is_saving_master_index_done_005;
-	mi5->common.lookupMasterIndexName = lookup_master_index_name_005;
-	mi5->common.lookupMasterIndexSampledName =
+	mi5->common.is_saving_master_index_done =
+		is_saving_master_index_done_005;
+	mi5->common.lookup_master_index_name = lookup_master_index_name_005;
+	mi5->common.lookup_master_index_sampled_name =
 		lookup_master_index_sampled_name_005;
-	mi5->common.restoreDeltaListToMasterIndex =
+	mi5->common.restore_delta_list_to_master_index =
 		restore_delta_list_to_master_index_005;
-	mi5->common.setMasterIndexOpenChapter =
+	mi5->common.set_master_index_open_chapter =
 		set_master_index_open_chapter_005;
-	mi5->common.setMasterIndexTag = set_master_index_tag_005;
-	mi5->common.setMasterIndexZoneOpenChapter =
+	mi5->common.set_master_index_tag = set_master_index_tag_005;
+	mi5->common.set_master_index_zone_open_chapter =
 		set_master_index_zone_open_chapter_005;
-	mi5->common.startRestoringMasterIndex =
+	mi5->common.start_restoring_master_index =
 		start_restoring_master_index_005;
-	mi5->common.startSavingMasterIndex = start_saving_master_index_005;
+	mi5->common.start_saving_master_index = start_saving_master_index_005;
 
 	mi5->address_bits = params.address_bits;
 	mi5->address_mask = (1u << params.address_bits) - 1;

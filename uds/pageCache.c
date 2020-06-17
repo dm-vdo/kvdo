@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#11 $
  */
 
 #include "pageCache.h"
@@ -151,7 +151,7 @@ static void wait_for_pending_searches(struct page_cache *cache,
 	 */
 	smp_mb();
 
-	invalidate_counter initial_counters[MAX_ZONES];
+	invalidate_counter_t initial_counters[MAX_ZONES];
 	unsigned int i;
 	for (i = 0; i < cache->zone_count; i++) {
 		initial_counters[i] = get_invalidate_counter(cache, i);
@@ -179,9 +179,10 @@ static void wait_for_pending_searches(struct page_cache *cache,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int __must_check invalidate_page_in_cache(struct page_cache *cache,
-						 struct cached_page *page,
-						 invalidation_reason reason)
+static int __must_check
+invalidate_page_in_cache(struct page_cache *cache,
+			 struct cached_page *page,
+			 enum invalidation_reason reason)
 {
 	// We hold the readThreadsMutex.
 	if (page == NULL) {
@@ -221,7 +222,7 @@ static int __must_check invalidate_page_in_cache(struct page_cache *cache,
 int find_invalidate_and_make_least_recent(struct page_cache *cache,
 					  unsigned int physical_page,
 					  struct queued_read *read_queue,
-					  invalidation_reason reason,
+					  enum invalidation_reason reason,
 					  bool must_find)
 {
 	// We hold the readThreadsMutex.
@@ -404,7 +405,7 @@ void free_page_cache(struct page_cache *cache)
 int invalidate_page_cache_for_chapter(struct page_cache *cache,
 				      unsigned int chapter,
 				      unsigned int pages_per_chapter,
-				      invalidation_reason reason)
+				      enum invalidation_reason reason)
 {
 	// We hold the readThreadsMutex.
 	if ((cache == NULL) || (cache->cache == NULL)) {

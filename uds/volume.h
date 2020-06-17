@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#14 $
  */
 
 #ifndef VOLUME_H
@@ -229,8 +229,8 @@ int __must_check searchCachedRecordPage(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-forgetChapter(Volume *volume, uint64_t chapter, invalidation_reason reason);
+int __must_check forgetChapter(Volume *volume, uint64_t chapter,
+			       enum invalidation_reason reason);
 
 /**
  * Write a chapter's worth of index pages to a volume

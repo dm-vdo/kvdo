@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#11 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -69,26 +69,26 @@ struct queued_read {
 };
 
 // Reason for invalidating a cache entry, used for gathering statistics
-typedef enum {
+enum invalidation_reason {
 	INVALIDATION_EVICT, // cache is full, goodbye
 	INVALIDATION_EXPIRE, // your chapter is being overwritten
 	INVALIDATION_ERROR, // error happened; don't try to use data
 	INVALIDATION_INIT_SHUTDOWN
-} invalidation_reason;
+};
 
 /*
  * Value stored atomically in a search_pending_counter.  The low order
  * 32 bits is the physical page number of the cached page being read.
  * The high order 32 bits is a sequence number.
  *
- * An invalidate_counter is only written by its zone thread by calling
+ * An invalidate counter is only written by its zone thread by calling
  * the begin_pending_search or end_pending_search methods.
  *
- * Any other thread that is accessing an invalidate_counter is reading
+ * Any other thread that is accessing an invalidate counter is reading
  * the value in the wait_for_pending_searches method.
  */
-typedef int64_t invalidate_counter;
-// Fields of invalidate_counter.
+typedef int64_t invalidate_counter_t;
+// Fields of invalidate_counter_t.
 // These must be 64 bit, so an enum cannot be not used.
 #define PAGE_FIELD ((long) UINT_MAX) // The page number field
 #define COUNTER_LSB (PAGE_FIELD + 1L) // The LSB of the counter field
@@ -190,7 +190,7 @@ int __must_check
 invalidate_page_cache_for_chapter(struct page_cache *cache,
 				  unsigned int chapter,
 				  unsigned int pages_per_chapter,
-				  invalidation_reason reason);
+				  enum invalidation_reason reason);
 
 /**
  * Find a page, invalidate it, and make its memory the least recent.  This
@@ -208,7 +208,7 @@ invalidate_page_cache_for_chapter(struct page_cache *cache,
 int find_invalidate_and_make_least_recent(struct page_cache *cache,
 					  unsigned int physical_page,
 					  struct queued_read *read_queue,
-					  invalidation_reason reason,
+					  enum invalidation_reason reason,
 					  bool must_find);
 
 /**
@@ -363,29 +363,29 @@ size_t __must_check get_page_cache_size(struct page_cache *cache);
 
 
 /**
- * Read the invalidate_counter for the given zone.
+ * Read the invalidate counter for the given zone.
  *
  * @param cache        the page cache
  * @param zone_number  the zone number
  *
- * @return the invalidate_counter value
+ * @return the invalidate counter value
  **/
-static INLINE invalidate_counter
+static INLINE invalidate_counter_t
 get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
 	return atomic64_read(&cache->search_pending_counters[zone_number].atomic_value);
 }
 
 /**
- * Write the invalidate_counter for the given zone.
+ * Write the invalidate counter for the given zone.
  *
  * @param cache               the page cache
  * @param zone_number         the zone number
- * @param invalidate_counter  the invalidate_counter value to write
+ * @param invalidate_counter  the invalidate counter value to write
  **/
 static INLINE void set_invalidate_counter(struct page_cache *cache,
 					  unsigned int zone_number,
-					  invalidate_counter invalidate_counter)
+					  invalidate_counter_t invalidate_counter)
 {
 	atomic64_set(&cache->search_pending_counters[zone_number].atomic_value,
 		     invalidate_counter);
@@ -395,11 +395,11 @@ static INLINE void set_invalidate_counter(struct page_cache *cache,
  * Return the physical page number of the page being searched.  The return
  * value is only valid if search_pending indicates that a search is in progress.
  *
- * @param counter  the invalidate_counter value to check
+ * @param counter  the invalidate counter value to check
  *
  * @return the page that the zone is searching
  **/
-static INLINE unsigned int page_being_searched(invalidate_counter counter)
+static INLINE unsigned int page_being_searched(invalidate_counter_t counter)
 {
 	return counter & PAGE_FIELD;
 }
@@ -407,11 +407,11 @@ static INLINE unsigned int page_being_searched(invalidate_counter counter)
 /**
  * Determines whether a given value indicates that a search is occuring.
  *
- * @param invalidate_counter  the invalidate_counter value to check
+ * @param invalidate_counter  the invalidate counter value to check
  *
  * @return true if a search is pending, false otherwise
  **/
-static INLINE bool search_pending(invalidate_counter invalidate_counter)
+static INLINE bool search_pending(invalidate_counter_t invalidate_counter)
 {
 	return (invalidate_counter & COUNTER_LSB) != 0;
 }
@@ -430,7 +430,7 @@ static INLINE void begin_pending_search(struct page_cache *cache,
 					unsigned int physical_page,
 					unsigned int zone_number)
 {
-	invalidate_counter invalidate_counter =
+	invalidate_counter_t invalidate_counter =
 		get_invalidate_counter(cache, zone_number);
 	invalidate_counter &= ~PAGE_FIELD;
 	invalidate_counter |= physical_page;
@@ -466,7 +466,7 @@ static INLINE void end_pending_search(struct page_cache *cache,
 	// counter.
 	smp_mb();
 
-	invalidate_counter invalidate_counter =
+	invalidate_counter_t invalidate_counter =
 		get_invalidate_counter(cache, zone_number);
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
 			"Search is pending for zone %u",

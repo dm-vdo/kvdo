@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#20 $
  */
 
 #include "openChapter.h"
@@ -76,8 +76,9 @@ static int fillDeltaChapterIndex(struct open_chapter_zone **chapterZones,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT(!fillChapterZone->slots[fillChapterZone->size].recordDeleted,
-                  "chapter fill record not deleted");
+  result
+    = ASSERT(!fillChapterZone->slots[fillChapterZone->size].record_deleted,
+             "chapter fill record not deleted");
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -102,7 +103,7 @@ static int fillDeltaChapterIndex(struct open_chapter_zone **chapterZones,
       // If the zone has been exhausted, or the record was deleted,
       // add the fill record to the chapter.
       if (recordNumber > chapterZones[zone]->size
-          || chapterZones[zone]->slots[recordNumber].recordDeleted) {
+          || chapterZones[zone]->slots[recordNumber].record_deleted) {
         collatedRecords[1 + recordsAdded] = *fillRecord;
         continue;
       }
@@ -172,7 +173,7 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
   uint32_t totalRecords = 0;
   unsigned int i;
   for (i = 0; i < index->zone_count; i++) {
-    totalRecords += openChapterSize(index->zones[i]->open_chapter);
+    totalRecords += open_chapter_size(index->zones[i]->open_chapter);
   }
 
   // Store the record count in little-endian order.
@@ -194,7 +195,7 @@ int saveOpenChapters(struct index *index, struct buffered_writer *writer)
       if (recordIndex > index->zones[i]->open_chapter->size) {
         continue;
       }
-      if (index->zones[i]->open_chapter->slots[recordIndex].recordDeleted) {
+      if (index->zones[i]->open_chapter->slots[recordIndex].record_deleted) {
         continue;
       }
       struct uds_chunk_record *record
@@ -289,14 +290,14 @@ static int loadVersion20(struct index *index, struct buffered_reader *reader)
     unsigned int zone = 0;
     if (index->zone_count > 1) {
       // A read-only index has no master index, but it also has only one zone.
-      zone = getMasterIndexZone(index->master_index, &record.name);
+      zone = get_master_index_zone(index->master_index, &record.name);
     }
     // Add records until the open chapter zone almost runs out of space.
     // The chapter can't be closed here, so don't add the last record.
     if (!fullFlags[zone]) {
       unsigned int remaining;
-      result = putOpenChapter(index->zones[zone]->open_chapter,
-                              &record.name, &record.data, &remaining);
+      result = put_open_chapter(index->zones[zone]->open_chapter,
+                                &record.name, &record.data, &remaining);
       fullFlags[zone] = (remaining <= 1);
       if (result != UDS_SUCCESS) {
         return result;
