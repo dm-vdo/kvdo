@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#11 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -156,5 +156,24 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
  * @param counter  The counter to inform
  **/
 void acknowledge_unlock(struct lock_counter *counter);
+
+/**
+ * Prevent the lock counter from issuing notifications.
+ *
+ * @param counter  The counter
+ *
+ * @return <code>true</code> if the lock counter was not notifying and hence
+ *         the suspend was efficacious
+ **/
+bool __must_check suspend_lock_counter(struct lock_counter *counter);
+
+/**
+ * Re-allow notifications from a suspended lock counter.
+ *
+ * @param counter  The counter
+ *
+ * @return <code>true</code> if the lock counter was suspended
+ **/
+bool __must_check resume_lock_counter(struct lock_counter *counter);
 
 #endif // LOCK_COUNTER_H

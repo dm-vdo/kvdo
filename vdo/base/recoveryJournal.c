@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#69 $
  */
 
 #include "recoveryJournal.h"
@@ -190,7 +190,8 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 	if (!is_draining(&journal->state) || journal->reaping
 	    || has_block_waiters(journal)
 	    || has_waiters(&journal->increment_waiters)
-	    || has_waiters(&journal->decrement_waiters)) {
+	    || has_waiters(&journal->decrement_waiters)
+	    || !suspend_lock_counter(journal->lock_counter)) {
 		return;
 	}
 
@@ -387,10 +388,23 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 {
 	struct recovery_journal *journal =
 		(struct recovery_journal *)completion->parent;
-	// The acknowledgement must be done before reaping so that there is no
-	// race between acknowledging the notification and unlocks wishing to
-	// notify.
+	/*
+	 * The acknowledgement must be done before reaping so that there is no
+	 * race between acknowledging the notification and unlocks wishing to
+	 * notify.
+	 */
 	acknowledge_unlock(journal->lock_counter);
+
+	if (is_quiescing(&journal->state)) {
+		/*
+		 * Don't start reaping when the journal is trying to quiesce.
+		 * Do check if this notification is the last thing the is
+		 * waiting on.
+		 */
+		check_for_drain_complete(journal);
+		return;
+	}
+
 	reap_recovery_journal(journal);
 	check_slab_journal_commit_threshold(journal);
 }
@@ -1335,6 +1349,11 @@ void resume_recovery_journal(struct recovery_journal *journal,
 
 	if (saved) {
 		initialize_journal_state(journal);
+	}
+
+	if (resume_lock_counter(journal->lock_counter)) {
+		// We might have missed a notification.
+		reap_recovery_journal(journal);
 	}
 
 	complete_completion(parent);

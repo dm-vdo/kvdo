@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#13 $
  */
 
 #include "lockCounter.h"
@@ -39,6 +39,12 @@
  * Lock sets are laid out with the set for recovery journal first, followed by
  * the logical zones, and then the physical zones.
  **/
+enum lock_counter_state {
+	LOCK_COUNTER_STATE_NOT_NOTIFYING = 0,
+	LOCK_COUNTER_STATE_NOTIFYING,
+	LOCK_COUNTER_STATE_SUSPENDED,
+};
+
 struct lock_counter {
 	/** The completion for notifying the owner of a lock release */
 	struct vdo_completion completion;
@@ -49,7 +55,7 @@ struct lock_counter {
 	/** The number of locks */
 	block_count_t locks;
 	/** Whether the lock release notification is in flight */
-	AtomicBool notifying;
+	Atomic32 state;
 	/** The number of logical zones which hold each lock */
 	Atomic32 *logical_zone_counts;
 	/** The number of physical zones which hold each lock */
@@ -312,10 +318,12 @@ static uint16_t release_reference(struct lock_counter *counter,
  **/
 static void attempt_notification(struct lock_counter *counter)
 {
-	if (compareAndSwapBool(&counter->notifying, false, true)) {
-		reset_completion(&counter->completion);
-		invoke_callback(&counter->completion);
-	}
+  if (compareAndSwap32(&counter->state,
+                       LOCK_COUNTER_STATE_NOT_NOTIFYING,
+                       LOCK_COUNTER_STATE_NOTIFYING)) {
+	  reset_completion(&counter->completion);
+	  invoke_callback(&counter->completion);
+  }
 }
 
 /**********************************************************************/
@@ -361,5 +369,24 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 /**********************************************************************/
 void acknowledge_unlock(struct lock_counter *counter)
 {
-	atomicStoreBool(&counter->notifying, false);
+	atomicStore32(&counter->state, LOCK_COUNTER_STATE_NOT_NOTIFYING);
+}
+
+/**********************************************************************/
+bool suspend_lock_counter(struct lock_counter *counter)
+{
+	assert_on_journal_thread(counter, __func__);
+	return ((atomicLoad32(&counter->state) == LOCK_COUNTER_STATE_SUSPENDED)
+		|| compareAndSwap32(&counter->state,
+				    LOCK_COUNTER_STATE_NOT_NOTIFYING,
+				    LOCK_COUNTER_STATE_SUSPENDED));
+}
+
+/**********************************************************************/
+bool resume_lock_counter(struct lock_counter *counter)
+{
+	assert_on_journal_thread(counter, __func__);
+	return compareAndSwap32(&counter->state,
+                          LOCK_COUNTER_STATE_SUSPENDED,
+                          LOCK_COUNTER_STATE_NOT_NOTIFYING);
 }
