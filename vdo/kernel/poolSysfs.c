@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#10 $
  */
 
 #include "poolSysfs.h"
@@ -83,13 +83,13 @@ static ssize_t pool_compressing_show(struct kernel_layer *layer, char *buf)
 /**********************************************************************/
 static ssize_t pool_discards_active_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->discard_limiter.active);
+	return sprintf(buf, "%" PRIu32 "\n", layer->discard_limiter.active);
 }
 
 /**********************************************************************/
 static ssize_t pool_discards_limit_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->discard_limiter.limit);
+	return sprintf(buf, "%" PRIu32 "\n", layer->discard_limiter.limit);
 }
 
 /**********************************************************************/
@@ -109,7 +109,7 @@ static ssize_t pool_discards_limit_store(struct kernel_layer *layer,
 /**********************************************************************/
 static ssize_t pool_discards_maximum_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->discard_limiter.maximum);
+	return sprintf(buf, "%" PRIu32 "\n", layer->discard_limiter.maximum);
 }
 
 /**********************************************************************/
@@ -121,19 +121,19 @@ static ssize_t pool_instance_show(struct kernel_layer *layer, char *buf)
 /**********************************************************************/
 static ssize_t pool_requests_active_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->request_limiter.active);
+	return sprintf(buf, "%" PRIu32 "\n", layer->request_limiter.active);
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_limit_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->request_limiter.limit);
+	return sprintf(buf, "%" PRIu32 "\n", layer->request_limiter.limit);
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_maximum_show(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%x\n", layer->request_limiter.maximum);
+	return sprintf(buf, "%" PRIu32 "\n", layer->request_limiter.maximum);
 }
 
 /**********************************************************************/

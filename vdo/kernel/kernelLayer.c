@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#95 $
  */
 
 #include "kernelLayer.h"
@@ -1252,7 +1252,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 int prepare_to_resize_physical(struct kernel_layer *layer,
 			       block_count_t physical_count)
 {
-	logInfo("Preparing to resize physical to %llx", physical_count);
+	logInfo("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	int result =
@@ -1296,7 +1296,7 @@ int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 int prepare_to_resize_logical(struct kernel_layer *layer,
 			      block_count_t logical_count)
 {
-	logInfo("Preparing to resize logical to %llx", logical_count);
+	logInfo("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	int result = kvdo_prepare_to_grow_logical(&layer->kvdo, logical_count);
@@ -1313,7 +1313,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 /***********************************************************************/
 int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 {
-	logInfo("Resizing logical to %llx", logical_count);
+	logInfo("Resizing logical to %llu", logical_count);
 	/*
 	 * We must not mark the layer as allowing allocations when it is
 	 * suspended lest an allocation attempt block on writing IO to the
@@ -1326,7 +1326,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 		return result;
 	}
 
-	logInfo("Logical blocks now %llx", logical_count);
+	logInfo("Logical blocks now %llu", logical_count);
 	return VDO_SUCCESS;
 }
 
