@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#23 $
  */
 
 #include "volumeGeometry.h"
@@ -438,7 +438,7 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 }
 
 /************************************************************************/
-int compute_index_blocks(struct index_config *index_config,
+int compute_index_blocks(const struct index_config *index_config,
 			 block_count_t *index_blocks_ptr)
 {
 	struct uds_configuration *uds_configuration = NULL;
@@ -471,7 +471,7 @@ int compute_index_blocks(struct index_config *index_config,
 /**********************************************************************/
 int initialize_volume_geometry(nonce_t nonce,
 			       UUID uuid,
-			       struct index_config *index_config,
+			       const struct index_config *index_config,
 			       struct volume_geometry *geometry)
 {
 	block_count_t index_size = 0;
@@ -565,7 +565,7 @@ int write_volume_geometry(PhysicalLayer *layer,
 }
 
 /************************************************************************/
-int index_config_to_uds_configuration(struct index_config *index_config,
+int index_config_to_uds_configuration(const struct index_config *index_config,
 				      struct uds_configuration **uds_config_ptr)
 {
 	struct uds_configuration *uds_configuration;
@@ -582,7 +582,7 @@ int index_config_to_uds_configuration(struct index_config *index_config,
 }
 
 /************************************************************************/
-void index_config_to_uds_parameters(struct index_config *index_config,
+void index_config_to_uds_parameters(const struct index_config *index_config,
 				    struct uds_parameters *user_params)
 {
 	user_params->checkpoint_frequency = index_config->checkpoint_frequency;
