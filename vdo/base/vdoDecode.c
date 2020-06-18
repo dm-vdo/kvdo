@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#5 $
  */
 
 #include "vdoDecode.h"
@@ -36,6 +36,9 @@ int start_vdo_decode(struct vdo *vdo,
 		     bool validate_config,
 		     struct vdo_component_states *states)
 {
+	// Zero out the component states before we start.
+	memset(states, 0, sizeof(struct vdo_component_states));
+
 	// Decode and store the release version number.
 	struct buffer *buffer = get_component_buffer(vdo->super_block);
 	int result = decode_component_states(buffer,
