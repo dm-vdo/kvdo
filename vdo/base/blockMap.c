@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#71 $
  */
 
 #include "blockMap.h"
@@ -255,7 +255,9 @@ static void advance_block_map_zone_era(void *context,
 }
 
 /**
- * Schedule an era advance if necessary.
+ * Schedule an era advance if necessary. This method should not be called
+ * directly. Rather, call schedule_default_action() on the block map's action
+ * manager.
  *
  * <p>Implements ActionScheduler.
  **/
@@ -432,7 +434,7 @@ void advance_block_map_era(struct block_map *map,
 	}
 
 	map->pending_era_point = recovery_block_number;
-	schedule_era_advance(map);
+	schedule_default_action(map->action_manager);
 }
 
 /**********************************************************************/

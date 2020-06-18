@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#14 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -149,6 +149,16 @@ get_current_manager_operation(struct action_manager *manager);
  *         NULL if there is no context or no current action
  **/
 void * __must_check get_current_action_context(struct action_manager *manager);
+
+/**
+ * Attempt to schedule the default action. If the manager is not operating
+ * normally, the action will not be scheduled.
+ *
+ * @param manager  The action manager
+ *
+ * @return <code>true</code> if an action was scheduled.
+ **/
+bool schedule_default_action(struct action_manager *manager);
 
 /**
  * Schedule an action to be applied to all zones. The action will be launched

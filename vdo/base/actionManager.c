@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#23 $
  */
 
 #include "actionManager.h"
@@ -302,14 +302,7 @@ static void launch_current_action(struct action_manager *manager)
 	action->preamble(manager->context, &manager->completion);
 }
 
-/**
- * Attempt to schedule a next action.
- *
- * @param manager  The action manager
- *
- * @return <code>true</code> if an action was scheduled.
- **/
-static bool schedule_default_action(struct action_manager *manager)
+bool schedule_default_action(struct action_manager *manager)
 {
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.

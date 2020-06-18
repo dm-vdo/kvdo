@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#71 $
  */
 
 #include "slabDepot.h"
@@ -183,7 +183,9 @@ static void prepare_for_tail_block_commit(void *context,
 }
 
 /**
- * Schedule a tail block commit if necessary.
+ * Schedule a tail block commit if necessary. This method should not be called
+ * directly. Rather, call schedule_default_action() on the depot's action
+ * manager.
  *
  * <p>Implements ActionScheduler,
  **/
@@ -864,7 +866,7 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 	}
 
 	depot->new_release_request = recovery_block_number;
-	schedule_tail_block_commit(depot);
+	schedule_default_action(depot->action_manager);
 }
 
 /**********************************************************************/
