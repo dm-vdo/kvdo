@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.h#6 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -151,6 +151,16 @@ AdminStateCode getCurrentManagerOperation(ActionManager *manager)
  **/
 void *getCurrentActionContext(ActionManager *manager)
   __attribute__((warn_unused_result));
+
+/**
+ * Attempt to schedule the default action. If the manager is not operating
+ * normally, the action will not be scheduled.
+ *
+ * @param manager  The action manager
+ *
+ * @return <code>true</code> if an action was scheduled.
+ **/
+bool scheduleDefaultAction(ActionManager *manager);
 
 /**
  * Schedule an action to be applied to all zones. The action will be launched

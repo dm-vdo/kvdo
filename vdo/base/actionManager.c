@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#9 $
  */
 
 #include "actionManager.h"
@@ -32,7 +32,7 @@ typedef struct action Action;
 struct action {
   /** Whether this structure is in use */
   bool              inUse;
-  /** The admin operation associated with this action */
+ /** The admin operation associated with this action */
   AdminStateCode    operation;
   /**
    * The method to run on the initiator thread before the action is applied to
@@ -296,14 +296,8 @@ static void launchCurrentAction(ActionManager *manager)
   action->preamble(manager->context, &manager->completion);
 }
 
-/**
- * Attempt to schedule a next action.
- *
- * @param manager  The action manager
- *
- * @return <code>true</code> if an action was scheduled.
- **/
-static bool scheduleDefaultAction(ActionManager *manager)
+/**********************************************************************/
+bool scheduleDefaultAction(ActionManager *manager)
 {
   // Don't schedule a default action if we are operating or not in normal
   // operation.

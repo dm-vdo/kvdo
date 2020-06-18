@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#22 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#23 $
  */
 
 #include "slabDepot.h"
@@ -182,7 +182,9 @@ static void prepareForTailBlockCommit(void *context, VDOCompletion *parent)
 }
 
 /**
- * Schedule a tail block commit if necessary.
+ * Schedule a tail block commit if necessary. This method should not be called
+ * directly. Rather, call scheduleDefaultAction() on the depot's action
+ * manager.
  *
  * <p>Implements ActionScheduler,
  **/
@@ -985,7 +987,7 @@ void commitOldestSlabJournalTailBlocks(SlabDepot      *depot,
   }
 
   depot->newReleaseRequest = recoveryBlockNumber;
-  scheduleTailBlockCommit(depot);
+  scheduleDefaultAction(depot->actionManager);
 }
 
 /**********************************************************************/

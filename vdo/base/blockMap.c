@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#23 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#24 $
  */
 
 #include "blockMap.h"
@@ -341,7 +341,9 @@ static void advanceBlockMapZoneEra(void          *context,
 }
 
 /**
- * Schedule an era advance if necessary.
+ * Schedule an era advance if necessary. This method should not be called
+ * directly. Rather, call scheduleDefaultAction() on the block map's action
+ * manager.
  *
  * <p>Implements ActionScheduler.
  **/
@@ -534,7 +536,7 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
   }
 
   map->pendingEraPoint = recoveryBlockNumber;
-  scheduleEraAdvance(map);
+  scheduleDefaultAction(map->actionManager);
 }
 
 /**********************************************************************/
