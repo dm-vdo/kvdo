@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#14 $
  */
 
 #include "indexRouter.h"
@@ -51,11 +51,11 @@ static void enqueue_barrier_messages(struct index_router *router,
 				     struct index *index,
 				     uint64_t virtual_chapter)
 {
-	ZoneMessage barrier = { .index = index,
-				.data = { .barrier = {
-						  .virtualChapter =
-							  virtual_chapter,
-					  } } };
+	struct zone_message barrier =
+		{ .index = index,
+		  .data = { .barrier = {
+					 .virtualChapter = virtual_chapter,
+			  } } };
 	unsigned int zone;
 	for (zone = 0; zone < router->zone_count; zone++) {
 		int result =
@@ -208,7 +208,7 @@ void free_index_router(struct index_router *router)
 /**********************************************************************/
 RequestQueue *select_index_router_queue(struct index_router *router,
 					Request *request,
-					RequestStage next_stage)
+					enum request_stage next_stage)
 {
 	if (request->isControlMessage) {
 		return get_zone_queue(router, request->zoneNumber);

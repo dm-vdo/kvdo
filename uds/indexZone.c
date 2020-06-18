@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#15 $
  */
 
 #include "indexZone.h"
@@ -148,7 +148,7 @@ static int reap_oldest_chapter(struct index_zone *zone)
 
 /**********************************************************************/
 int execute_sparse_cache_barrier_message(struct index_zone *zone,
-					 BarrierMessageData *barrier)
+					 struct barrier_message_data *barrier)
 {
 	/*
 	 * Check if the chapter index for the virtual chapter is already in the
@@ -168,8 +168,9 @@ int execute_sparse_cache_barrier_message(struct index_zone *zone,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int handle_chapter_closed(struct index_zone *zone,
-				 ChapterClosedMessageData *chapter_closed)
+static int
+handle_chapter_closed(struct index_zone *zone,
+		      struct chapter_closed_message_data *chapter_closed)
 {
 	if (zone->newest_virtual_chapter == chapter_closed->virtualChapter) {
 		return open_next_chapter(zone, NULL);
@@ -181,7 +182,7 @@ static int handle_chapter_closed(struct index_zone *zone,
 /**********************************************************************/
 int dispatch_index_zone_control_request(Request *request)
 {
-	ZoneMessage *message = &request->zoneMessage;
+	struct zone_message *message = &request->zoneMessage;
 	struct index_zone *zone = message->index->zones[request->zoneNumber];
 
 	switch (request->action) {
@@ -215,7 +216,7 @@ static int announce_chapter_closed(Request *request,
 	struct index_router *router =
 		((request != NULL) ? request->router : NULL);
 
-	ZoneMessage zone_message = {
+	struct zone_message zone_message = {
 		.index = zone->index,
 		.data = { .chapterClosed = { .virtualChapter =
 						     closed_chapter } }
@@ -317,8 +318,8 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 }
 
 /**********************************************************************/
-IndexRegion compute_index_region(const struct index_zone *zone,
-				 uint64_t virtual_chapter)
+enum index_region compute_index_region(const struct index_zone *zone,
+				       uint64_t virtual_chapter)
 {
 	if (virtual_chapter == zone->newest_virtual_chapter) {
 		return LOC_IN_OPEN_CHAPTER;

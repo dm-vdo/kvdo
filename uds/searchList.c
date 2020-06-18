@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#4 $
  */
 
 #include "searchList.h"
@@ -26,8 +26,8 @@
 #include "memoryAlloc.h"
 
 /**********************************************************************/
-int makeSearchList(unsigned int   capacity,
-                   SearchList   **listPtr)
+int makeSearchList(unsigned int         capacity,
+                   struct search_list **listPtr)
 {
   if (capacity == 0) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
@@ -40,8 +40,9 @@ int makeSearchList(unsigned int   capacity,
 
   // We need three temporary entry arrays for purgeSearchList(). Allocate them
   // contiguously with the main array.
-  unsigned int bytes = (sizeof(SearchList) + (4 * capacity * sizeof(uint8_t)));
-  SearchList *list;
+  unsigned int bytes
+    = (sizeof(struct search_list) + (4 * capacity * sizeof(uint8_t)));
+  struct search_list *list;
   int result = allocateCacheAligned(bytes, "search list", &list);
   if (result != UDS_SUCCESS) {
     return result;
@@ -62,14 +63,14 @@ int makeSearchList(unsigned int   capacity,
 }
 
 /**********************************************************************/
-void freeSearchList(SearchList **listPtr)
+void freeSearchList(struct search_list **listPtr)
 {
   FREE(*listPtr);
   *listPtr = NULL;
 }
 
 /**********************************************************************/
-void purgeSearchList(SearchList                        *searchList,
+void purgeSearchList(struct search_list                *searchList,
                      const struct cached_chapter_index  chapters[],
                      uint64_t                           oldestVirtualChapter)
 {

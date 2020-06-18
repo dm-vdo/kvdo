@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#5 $
  */
 
 #include "request.h"
@@ -52,7 +52,7 @@ int udsStartChunkOperation(struct uds_request *udsRequest)
   }
 
   request->found            = false;
-  request->action           = (RequestAction) request->type;
+  request->action           = (enum request_action) request->type;
   request->isControlMessage = false;
   request->unbatched        = false;
   request->router           = request->session->router;
@@ -62,8 +62,8 @@ int udsStartChunkOperation(struct uds_request *udsRequest)
 }
 
 /**********************************************************************/
-int launchZoneControlMessage(RequestAction        action,
-                             ZoneMessage          message,
+int launchZoneControlMessage(enum request_action  action,
+                             struct zone_message  message,
                              unsigned int         zone,
                              struct index_router *router)
 {
@@ -93,8 +93,8 @@ void freeRequest(Request *request)
 }
 
 /**********************************************************************/
-static RequestQueue *getNextStageQueue(Request      *request,
-                                       RequestStage  nextStage)
+static RequestQueue *getNextStageQueue(Request            *request,
+                                       enum request_stage  nextStage)
 {
   if (nextStage == STAGE_CALLBACK) {
     return request->session->callbackQueue;
@@ -115,7 +115,7 @@ static void handleRequestErrors(Request *request)
 }
 
 /**********************************************************************/
-void enqueueRequest(Request *request, RequestStage nextStage)
+void enqueueRequest(Request *request, enum request_stage nextStage)
 {
   RequestQueue *nextQueue = getNextStageQueue(request, nextStage);
   if (nextQueue == NULL) {
@@ -130,7 +130,7 @@ void enqueueRequest(Request *request, RequestStage nextStage)
  * This function pointer allows unit test code to intercept the slow-lane
  * requeuing of a request.
  */
-static RequestRestarter requestRestarter = NULL;
+static request_restarter_t requestRestarter = NULL;
 
 /**********************************************************************/
 void restartRequest(Request *request)
@@ -144,7 +144,7 @@ void restartRequest(Request *request)
 }
 
 /**********************************************************************/
-void setRequestRestarter(RequestRestarter restarter)
+void setRequestRestarter(request_restarter_t restarter)
 {
   requestRestarter = restarter;
 }

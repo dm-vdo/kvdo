@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#16 $
  */
 
 #include "chapterWriter.h"
@@ -48,9 +48,9 @@ struct chapter_writer {
 	size_t memory_allocated;
 	/* The number of zones which have submitted a chapter for writing */
 	unsigned int zones_to_write;
-	/* Open chapter index used by closeOpenChapter() */
+	/* Open chapter index used by close_open_chapter() */
 	struct open_chapter_index *open_chapter_index;
-	/* Collated records used by closeOpenChapter() */
+	/* Collated records used by close_open_chapter() */
 	struct uds_chunk_record *collated_records;
 	/* The chapters to write (one per zone) */
 	struct open_chapter_zone *chapters[];
@@ -104,12 +104,12 @@ static void close_chapters(void *arg)
 		}
 
 		int result =
-			closeOpenChapter(writer->chapters,
-					 writer->index->zone_count,
-					 writer->index->volume,
-					 writer->open_chapter_index,
-					 writer->collated_records,
-					 writer->index->newest_virtual_chapter);
+			close_open_chapter(writer->chapters,
+					   writer->index->zone_count,
+					   writer->index->volume,
+					   writer->open_chapter_index,
+					   writer->collated_records,
+					   writer->index->newest_virtual_chapter);
 
 		if (result == UDS_SUCCESS) {
 			result = process_chapter_writer_checkpoint_saves(writer->index);

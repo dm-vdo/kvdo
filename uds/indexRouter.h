@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#14 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -112,7 +112,7 @@ void free_index_router(struct index_router *router);
  **/
 RequestQueue *select_index_router_queue(struct index_router *router,
 					Request *request,
-					RequestStage next_stage);
+					enum request_stage next_stage);
 
 /**
  * Wait for the index router to finish all operations that access a local

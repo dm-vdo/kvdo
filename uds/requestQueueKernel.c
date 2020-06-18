@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#4 $
  */
 
 #include "requestQueue.h"
@@ -82,21 +82,21 @@ enum {
 
 struct requestQueue {
   /* Wait queue for synchronizing producers and consumer */
-  struct wait_queue_head  wqhead;
+  struct wait_queue_head     wqhead;
   /* function to process 1 request */
-  RequestQueueProcessor  *processOne;
+  request_queue_processor_t *processOne;
   /* new incoming requests */
-  struct funnel_queue    *mainQueue;
+  struct funnel_queue       *mainQueue;
   /* old requests to retry first */
-  struct funnel_queue    *retryQueue;
+  struct funnel_queue       *retryQueue;
   /* thread id of the worker thread */
-  Thread                  thread;
+  Thread                     thread;
   /* true if the worker was started */
-  bool                    started;
+  bool                       started;
   /* when true, requests can be enqueued */
-  bool                    alive;
+  bool                       alive;
   /* A flag set when the worker is waiting without a timeout */
-  atomic_t                dormant;
+  atomic_t                   dormant;
 };
 
 /*****************************************************************************/
@@ -121,7 +121,7 @@ static INLINE Request *pollQueues(RequestQueue *queue)
   if (entry != NULL) {
     return container_of(entry, Request, requestQueueLink);
   }
-  
+
   // No entry found.
   return NULL;
 }
@@ -247,9 +247,9 @@ static void requestQueueWorker(void *arg)
 }
 
 /**********************************************************************/
-int makeRequestQueue(const char             *queueName,
-                     RequestQueueProcessor  *processOne,
-                     RequestQueue          **queuePtr)
+int makeRequestQueue(const char                 *queueName,
+                     request_queue_processor_t  *processOne,
+                     RequestQueue              **queuePtr)
 {
   RequestQueue *queue;
   int result = ALLOCATE(1, RequestQueue, __func__, &queue);

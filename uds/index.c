@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#27 $
  */
 
 #include "index.h"
@@ -563,7 +563,7 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	 * preceding this request, which we simulate by directly invoking the
 	 * execution hook for an equivalent message.
 	 */
-	BarrierMessageData barrier =
+	struct barrier_message_data barrier =
 		{ .virtualChapter = sparse_virtual_chapter };
 	return execute_sparse_cache_barrier_message(zone, &barrier);
 }

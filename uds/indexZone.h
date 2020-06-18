@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#9 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -96,7 +96,7 @@ int __must_check dispatch_index_zone_control_request(Request *request);
  **/
 int __must_check
 execute_sparse_cache_barrier_message(struct index_zone *zone,
-				     BarrierMessageData *barrier);
+				     struct barrier_message_data *barrier);
 
 /**
  * Open the next chapter.
@@ -110,15 +110,15 @@ execute_sparse_cache_barrier_message(struct index_zone *zone,
 int __must_check open_next_chapter(struct index_zone *zone, Request *request);
 
 /**
- * Determine the IndexRegion in which a block was found.
+ * Determine the index region in which a block was found.
  *
  * @param zone                The zone that was searched
  * @param virtual_chapter     The virtual chapter number
  *
- * @return the IndexRegion of the chapter in which the block was found
+ * @return the index region of the chapter in which the block was found
  **/
-IndexRegion compute_index_region(const struct index_zone *zone,
-				 uint64_t virtual_chapter);
+enum index_region compute_index_region(const struct index_zone *zone,
+				       uint64_t virtual_chapter);
 
 /**
  * Get a record from either the volume or the open chapter in a zone.

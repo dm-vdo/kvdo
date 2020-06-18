@@ -7,6 +7,7 @@ The Red Hat VDO Team:
     Sweet Tea Dorminy <sweettea@redhat.com>
     *Thomas Jaskiewicz <tom@jaskiewicz.us>
     Bruce Johnston <bjohnsto@redhat.com>
+    Susan McGhee <slegendr@redhat.com>
     Ken Raeburn <raeburn@redhat.com>
     Michael Sclafani <sclafani@redhat.com>
     Matthew Sakai <msakai@redhat.com>

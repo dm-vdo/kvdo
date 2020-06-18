@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#15 $
  */
 
 #ifndef VOLUME_H
@@ -75,7 +75,7 @@ typedef struct volume {
   /* For sorting record pages */
   struct radix_sorter            *radixSorter;
   /* The sparse chapter index cache */
-  SparseCache                    *sparseCache;
+  struct sparse_cache            *sparseCache;
   /* The page cache */
   struct page_cache              *pageCache;
   /* The index page map maps delta list numbers to index page numbers */

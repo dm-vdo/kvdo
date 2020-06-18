@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#6 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -28,7 +28,7 @@
 #include "typeDefs.h"
 
 /**
- * SparseCache is the cache of entire chapter indexes from sparse chapters
+ * sparse_cache is the cache of entire chapter indexes from sparse chapters
  * used for searching for chunks after all other search paths have failed. It
  * contains only complete chapter indexes; record pages from sparse chapters
  * and single index pages used for resolving hooks are kept in the volume page
@@ -39,7 +39,7 @@
  * participation of all zone threads via the careful use of barrier messages
  * sent to all the index zones by the triage queue worker thread.
  **/
-typedef struct sparseCache SparseCache;
+struct sparse_cache;
 
 // Bare declaration to avoid include dependency loops.
 struct index;
@@ -57,21 +57,21 @@ struct index;
 int __must_check makeSparseCache(const struct geometry *geometry,
 				 unsigned int capacity,
 				 unsigned int zoneCount,
-				 SparseCache **cachePtr);
+				 struct sparse_cache **cachePtr);
 
 /**
  * Destroy and free a sparse chapter index cache.
  *
  * @param cache  the cache to free
  **/
-void freeSparseCache(SparseCache *cache);
+void freeSparseCache(struct sparse_cache *cache);
 
 /**
  * Get the number of bytes of memory used by a sparse chapter cache.
  *
  * @param cache  the cache to measure
  **/
-size_t getSparseCacheMemorySize(const SparseCache *cache);
+size_t getSparseCacheMemorySize(const struct sparse_cache *cache);
 
 
 /**
@@ -84,9 +84,9 @@ size_t getSparseCacheMemorySize(const SparseCache *cache);
  *
  * @return <code>true</code> iff the sparse chapter index is cached
  **/
-bool sparseCacheContains(SparseCache  *cache,
-                         uint64_t      virtualChapter,
-                         unsigned int  zoneNumber);
+bool sparseCacheContains(struct sparse_cache *cache,
+                         uint64_t             virtualChapter,
+                         unsigned int         zoneNumber);
 
 /**
  * Update the sparse cache to contain a chapter index.

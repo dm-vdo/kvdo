@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#4 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -28,7 +28,7 @@
 #include "typeDefs.h"
 
 /**
- * A SearchList represents the permutations of the sparse chapter index cache
+ * A search_list represents the permutations of the sparse chapter index cache
  * entry array. Those permutations express an ordering on the chapter indexes,
  * from most recently accessed to least recently accessed, which is the order
  * in which the indexes should be searched and the reverse order in which they
@@ -44,7 +44,7 @@
  * cache boundary to avoid false sharing of memory cache lines between zone
  * threads.
  **/
-typedef struct searchList {
+struct search_list {
   /** The number of cached chapter indexes and search list entries */
   uint8_t capacity;
 
@@ -53,23 +53,23 @@ typedef struct searchList {
 
   /** The chapter array indexes representing the chapter search order */
   uint8_t entries[];
-} SearchList;
+};
 
 /**
- * SearchListIterator captures the fields needed to iterate over the live
+ * search_list_iterator captures the fields needed to iterate over the live
  * entries in a search list and return the struct cached_chapter_index pointers
  * that the search code actually wants to deal with.
  **/
-typedef struct {
+struct search_list_iterator {
   /** The search list defining the chapter search iteration order */
-  SearchList         *list;
+  struct search_list *list;
 
   /** The index of the next entry to return from the search list */
   unsigned int        nextEntry;
 
   /** The cached chapters that are referenced by the search list */
   struct cached_chapter_index *chapters;
-} SearchListIterator;
+};
 
 /**
  * Allocate and initialize a new chapter cache search list with the same
@@ -81,14 +81,15 @@ typedef struct {
  * @param [in]  capacity  the number of entries in the search list
  * @param [out] listPtr   a pointer in which to return the new search list
  **/
-int __must_check makeSearchList(unsigned int capacity, SearchList **listPtr);
+int __must_check makeSearchList(unsigned int capacity,
+                                struct search_list **listPtr);
 
 /**
  * Free a search list and null out the reference to it.
  *
  * @param listPtr the reference to the search list to free
  **/
-void freeSearchList(SearchList **listPtr);
+void freeSearchList(struct search_list **listPtr);
 
 /**
  * Copy the contents of one search list to another.
@@ -96,8 +97,8 @@ void freeSearchList(SearchList **listPtr);
  * @param source  the list to copy
  * @param target  the list to replace
  **/
-static INLINE void copySearchList(const SearchList *source,
-                                  SearchList       *target)
+static INLINE void copySearchList(const struct search_list *source,
+                                  struct search_list       *target)
 {
   *target = *source;
   memcpy(target->entries, source->entries, source->capacity);
@@ -111,10 +112,11 @@ static INLINE void copySearchList(const SearchList *source,
  *
  * @return an iterator positioned at the start of the search list
  **/
-static INLINE SearchListIterator
-iterateSearchList(SearchList *list, struct cached_chapter_index chapters[])
+static INLINE struct search_list_iterator
+iterateSearchList(struct search_list *list,
+                  struct cached_chapter_index chapters[])
 {
-  SearchListIterator iterator = {
+  struct search_list_iterator iterator = {
     .list      = list,
     .nextEntry = 0,
     .chapters  = chapters,
@@ -129,7 +131,7 @@ iterateSearchList(SearchList *list, struct cached_chapter_index chapters[])
  *
  * @return <code>true</code> if getNextChapter() may be called
  **/
-static INLINE bool hasNextChapter(const SearchListIterator *iterator)
+static INLINE bool hasNextChapter(const struct search_list_iterator *iterator)
 {
   return (iterator->nextEntry < iterator->list->firstDeadEntry);
 }
@@ -144,7 +146,7 @@ static INLINE bool hasNextChapter(const SearchListIterator *iterator)
  * @return a pointer to the next live chapter index in the search list order
  **/
 static INLINE struct cached_chapter_index *
-getNextChapter(SearchListIterator *iterator)
+getNextChapter(struct search_list_iterator *iterator)
 {
   return &iterator->chapters[iterator->list->entries[iterator->nextEntry++]];
 }
@@ -166,8 +168,8 @@ getNextChapter(SearchListIterator *iterator)
  * @return the array index of the chapter cache entry that is now at the front
  *         of the search list
  **/
-static INLINE uint8_t rotateSearchList(SearchList *searchList,
-                                       uint8_t     prefixLength)
+static INLINE uint8_t rotateSearchList(struct search_list *searchList,
+                                       uint8_t             prefixLength)
 {
   // Grab the value of the last entry in the list prefix.
   uint8_t mostRecent = searchList->entries[prefixLength - 1];
@@ -208,7 +210,7 @@ static INLINE uint8_t rotateSearchList(SearchList *searchList,
  * @param chapters              the chapter index cache entries
  * @param oldestVirtualChapter  the oldest virtual chapter
  **/
-void purgeSearchList(SearchList                        *searchList,
+void purgeSearchList(struct search_list                *searchList,
                      const struct cached_chapter_index  chapters[],
                      uint64_t                           oldestVirtualChapter);
 

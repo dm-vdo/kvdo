@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.h#6 $
  */
 
 #ifndef RECORDPAGE_H
@@ -29,30 +29,30 @@
  * Generate the on-disk encoding of a record page from the list of records
  * in the open chapter representation.
  *
- * @param volume     The volume
- * @param records    The records to be encoded
- * @param recordPage The record page
+ * @param volume       The volume
+ * @param records      The records to be encoded
+ * @param record_page  The record page
  *
  * @return UDS_SUCCESS or an error code
  **/
-int encodeRecordPage(const Volume                  *volume,
-                     const struct uds_chunk_record  records[],
-                     byte                           recordPage[]);
+int encode_record_page(const Volume *volume,
+		       const struct uds_chunk_record records[],
+		       byte record_page[]);
 
 /**
  * Find the metadata for a given block name in this page.
  *
- * @param recordPage The record page
- * @param name       The block name to look for
- * @param geometry   The geometry of the volume
- * @param metadata   an array in which to place the metadata of the
- *                   record, if one was found
+ * @param record_page  The record page
+ * @param name         The block name to look for
+ * @param geometry     The geometry of the volume
+ * @param metadata     an array in which to place the metadata of the
+ *                     record, if one was found
  *
  * @return <code>true</code> if the record was found
  **/
-bool searchRecordPage(const byte                   recordPage[],
-                      const struct uds_chunk_name *name,
-                      const struct geometry       *geometry,
-                      struct uds_chunk_data       *metadata);
+bool search_record_page(const byte record_page[],
+			const struct uds_chunk_name *name,
+			const struct geometry *geometry,
+			struct uds_chunk_data *metadata);
 
 #endif /* RECORDPAGE_H */

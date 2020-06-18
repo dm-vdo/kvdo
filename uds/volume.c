@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#23 $
  */
 
 #include "volume.h"
@@ -317,7 +317,7 @@ static void readThreadFunction(void *arg)
        * again.
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
-        if (searchRecordPage(get_page_data(&page->cp_page_data),
+        if (search_record_page(get_page_data(&page->cp_page_data),
                              &request->chunkName, volume->geometry,
                              &request->oldMetadata)) {
           request->slLocation = LOC_IN_DENSE;
@@ -657,7 +657,7 @@ int searchCachedRecordPage(Volume                      *volume,
     return result;
   }
 
-  if (searchRecordPage(get_page_data(&recordPage->cp_page_data), name, geometry,
+  if (search_record_page(get_page_data(&recordPage->cp_page_data), name, geometry,
                        duplicate)) {
     *found = true;
   }
@@ -894,7 +894,7 @@ int writeRecordPages(Volume                         *volume,
 
     // Sort the next page of records and copy them to the record page as a
     // binary tree stored in heap order.
-    result = encodeRecordPage(volume, nextRecord,
+    result = encode_record_page(volume, nextRecord,
                               get_page_data(&volume->scratchPage));
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,

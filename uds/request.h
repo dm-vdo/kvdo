@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#9 $
  */
 
 #ifndef REQUEST_H
@@ -32,10 +32,10 @@
 #include "util/funnelQueue.h"
 
 /**
- * RequestAction values indicate what action, command, or query is to be
+ * enum request_action values indicate what action, command, or query is to be
  * performed when processing a Request instance.
  **/
-typedef enum {
+enum request_action {
   // Map the API's UdsCallbackType values directly to a corresponding action.
   REQUEST_INDEX  = UDS_POST,
   REQUEST_UPDATE = UDS_UPDATE,
@@ -52,12 +52,12 @@ typedef enum {
   // request used by an indexZone to signal the other zones that it
   // has closed the current open chapter.
   REQUEST_ANNOUNCE_CHAPTER_CLOSED,
-} RequestAction;
+};
 
 /**
  * The block's rough location in the index, if any.
  **/
-typedef enum {
+enum index_region {
   /* the block doesn't exist or the location isn't available */
   LOC_UNAVAILABLE,
   /* if the block was found in the open chapter */
@@ -66,51 +66,51 @@ typedef enum {
   LOC_IN_DENSE,
   /* if the block was found in the sparse part of the index */
   LOC_IN_SPARSE
-} IndexRegion;
+};
 
 /**
  * Abstract request pipeline stages, which can also be viewed as stages in the
  * life-cycle of a request.
  **/
-typedef enum {
+enum request_stage {
   STAGE_TRIAGE,
   STAGE_INDEX,
   STAGE_CALLBACK,
-} RequestStage;
+};
 
 /**
  * Control message fields for the barrier messages used to coordinate the
  * addition of a chapter to the sparse chapter index cache.
  **/
-typedef struct barrierMessageData {
+struct barrier_message_data {
   /** virtual chapter number of the chapter index to add to the sparse cache */
   uint64_t      virtualChapter;
-} BarrierMessageData;
+};
 
 /**
  * Control message fields for the chapter closed messages used to inform
  * lagging zones of the first zone to close a given open chapter.
  **/
-typedef struct chapterClosedMessageData {
+struct chapter_closed_message_data {
   /** virtual chapter number of the chapter which was closed */
   uint64_t      virtualChapter;
-} ChapterClosedMessageData;
+};
 
 /**
- * Union of the all the zone control message fields. The RequestAction field
+ * Union of the all the zone control message fields. The  request_action field
  * (or launch function argument) selects which of the members is valid.
  **/
-typedef union zoneMessageData {
-  BarrierMessageData barrier;             // for REQUEST_SPARSE_CACHE_BARRIER
-  ChapterClosedMessageData chapterClosed; // for REQUEST_ANNOUNCE_CHAPTER_CLOSED
-} ZoneMessageData;
+union zone_message_data {
+  struct barrier_message_data barrier;              // for REQUEST_SPARSE_CACHE_BARRIER
+  struct chapter_closed_message_data chapterClosed; // for REQUEST_ANNOUNCE_CHAPTER_CLOSED
+};
 
-typedef struct zoneMessage {
+struct zone_message {
   /** the index to which the message is directed */
   struct index *index;
   /** the message specific data */
-  ZoneMessageData data;
-} ZoneMessage;
+  union zone_message_data data;
+};
 
 /**
  * Request context for queuing throughout the uds pipeline
@@ -122,7 +122,7 @@ typedef struct zoneMessage {
  *     this structure as the true "struct uds_request" and do a lot of
  *     renaming.
  **/
-struct internalRequest {
+struct internal_request {
   /*
    * The first part of this structure must be exactly parallel to the
    * UdsRequest structure, which is part of the public UDS API.
@@ -145,20 +145,21 @@ struct internalRequest {
   struct index_router *router;
 
   // Data for control message requests
-  ZoneMessage zoneMessage;
-  bool        isControlMessage;
+  struct zone_message zoneMessage;
+  bool                isControlMessage;
 
-  bool          unbatched;      // if true, must wake worker when enqueued
-  bool          requeued;
-  RequestAction action;         // the action for the index to perform
-  unsigned int  zoneNumber;     // the zone for this request to use
-  IndexRegion   location;       // if and where the block was found
+  bool                unbatched;        // if true, must wake worker when
+                                        // enqueued
+  bool                requeued;
+  enum request_action action;           // the action for the index to perform
+  unsigned int        zoneNumber;       // the zone for this request to use
+  enum index_region   location;         // if and where the block was found
 
-  bool        slLocationKnown;  // slow lane has determined a location
-  IndexRegion slLocation;       // location determined by slowlane
+  bool                slLocationKnown;  // slow lane has determined a location
+  enum index_region   slLocation;       // location determined by slowlane
 };
 
-typedef void (*RequestRestarter)(Request *);
+typedef void (*request_restarter_t)(Request *);
 
 /**
  * Make an asynchronous control message for an index zone and enqueue it for
@@ -172,8 +173,8 @@ typedef void (*RequestRestarter)(Request *);
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-launchZoneControlMessage(RequestAction action,
-			 ZoneMessage message,
+launchZoneControlMessage(enum request_action action,
+			 struct zone_message message,
 			 unsigned int zone,
 			 struct index_router *router);
 
@@ -192,7 +193,7 @@ void freeRequest(Request *request);
  * @param request       The request to enqueue
  * @param nextStage     The next stage of the pipeline to process the request
  **/
-void enqueueRequest(Request *request, RequestStage nextStage);
+void enqueueRequest(Request *request, enum request_stage nextStage);
 
 /**
  * A method to restart delayed requests.
@@ -208,7 +209,7 @@ void restartRequest(Request *request);
  *
  * @param restarter   The function to call to restart requests.
  **/
-void setRequestRestarter(RequestRestarter restarter);
+void setRequestRestarter(request_restarter_t restarter);
 
 /**
  * Enter the callback stage of processing for a request, notifying the waiting
