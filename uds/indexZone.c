@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#16 $
  */
 
 #include "indexZone.h"
@@ -155,7 +155,7 @@ int execute_sparse_cache_barrier_message(struct index_zone *zone,
 	 * cache, and if it's not, rendezvous with the other zone threads to
 	 * add the chapter index to the sparse index cache.
 	 */
-	return updateSparseCache(zone, barrier->virtualChapter);
+	return updateSparseCache(zone, barrier->virtual_chapter);
 }
 
 /**
@@ -172,7 +172,7 @@ static int
 handle_chapter_closed(struct index_zone *zone,
 		      struct chapter_closed_message_data *chapter_closed)
 {
-	if (zone->newest_virtual_chapter == chapter_closed->virtualChapter) {
+	if (zone->newest_virtual_chapter == chapter_closed->virtual_chapter) {
 		return open_next_chapter(zone, NULL);
 	}
 
@@ -182,8 +182,8 @@ handle_chapter_closed(struct index_zone *zone,
 /**********************************************************************/
 int dispatch_index_zone_control_request(Request *request)
 {
-	struct zone_message *message = &request->zoneMessage;
-	struct index_zone *zone = message->index->zones[request->zoneNumber];
+	struct zone_message *message = &request->zone_message;
+	struct index_zone *zone = message->index->zones[request->zone_number];
 
 	switch (request->action) {
 	case REQUEST_SPARSE_CACHE_BARRIER:
@@ -191,7 +191,7 @@ int dispatch_index_zone_control_request(Request *request)
 
 	case REQUEST_ANNOUNCE_CHAPTER_CLOSED:
 		return handle_chapter_closed(zone,
-					     &message->data.chapterClosed);
+					     &message->data.chapter_closed);
 
 	default:
 		return ASSERT_FALSE("valid control message type: %d",
@@ -218,7 +218,7 @@ static int announce_chapter_closed(Request *request,
 
 	struct zone_message zone_message = {
 		.index = zone->index,
-		.data = { .chapterClosed = { .virtualChapter =
+		.data = { .chapter_closed = { .virtual_chapter =
 						     closed_chapter } }
 	};
 
@@ -229,15 +229,15 @@ static int announce_chapter_closed(Request *request,
 		}
 		int result;
 		if (router != NULL) {
-			result = launchZoneControlMessage(REQUEST_ANNOUNCE_CHAPTER_CLOSED,
-							  zone_message,
-							  i,
-							  router);
+			result = launch_zone_control_message(REQUEST_ANNOUNCE_CHAPTER_CLOSED,
+							     zone_message,
+							     i,
+							     router);
 		} else {
 			// We're in a test which doesn't have zone queues, so
 			// we can just call the message function directly.
 			result = handle_chapter_closed(zone->index->zones[i],
-						       &zone_message.data.chapterClosed);
+						       &zone_message.data.chapter_closed);
 		}
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -336,8 +336,8 @@ int get_record_from_zone(struct index_zone *zone,
 {
 	if (virtual_chapter == zone->newest_virtual_chapter) {
 		search_open_chapter(zone->open_chapter,
-				    &request->chunkName,
-				    &request->oldMetadata,
+				    &request->chunk_name,
+				    &request->old_metadata,
 				    found);
 		return UDS_SUCCESS;
 	}
@@ -348,16 +348,16 @@ int get_record_from_zone(struct index_zone *zone,
 		// Only search the writing chapter if it is full, else look on
 		// disk.
 		search_open_chapter(zone->writing_chapter,
-				    &request->chunkName,
-				    &request->oldMetadata,
+				    &request->chunk_name,
+				    &request->old_metadata,
 				    found);
 		return UDS_SUCCESS;
 	}
 
 	// The slow lane thread has determined the location previously. We
 	// don't need to search again. Just return the location.
-	if (request->slLocationKnown) {
-		*found = request->slLocation != LOC_UNAVAILABLE;
+	if (request->sl_location_known) {
+		*found = request->sl_location != LOC_UNAVAILABLE;
 		return UDS_SUCCESS;
 	}
 
@@ -365,7 +365,7 @@ int get_record_from_zone(struct index_zone *zone,
 	if (is_zone_chapter_sparse(zone, virtual_chapter) &&
 	    sparseCacheContains(volume->sparseCache,
 				virtual_chapter,
-				request->zoneNumber)) {
+				request->zone_number)) {
 		// The named chunk, if it exists, is in a sparse chapter that
 		// is cached, so just run the chunk through the sparse chapter
 		// cache search.
@@ -375,9 +375,9 @@ int get_record_from_zone(struct index_zone *zone,
 
 	return searchVolumePageCache(volume,
 				     request,
-				     &request->chunkName,
+				     &request->chunk_name,
 				     virtual_chapter,
-				     &request->oldMetadata,
+				     &request->old_metadata,
 				     found);
 }
 
@@ -387,7 +387,7 @@ int put_record_in_zone(struct index_zone *zone,
 		       const struct uds_chunk_data *metadata)
 {
 	unsigned int remaining;
-	int result = put_open_chapter(zone->open_chapter, &request->chunkName,
+	int result = put_open_chapter(zone->open_chapter, &request->chunk_name,
 				      metadata, &remaining);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -408,7 +408,7 @@ int search_sparse_cache_in_zone(struct index_zone *zone,
 {
 	int record_page_number;
 	int result = searchSparseCache(zone,
-				       &request->chunkName,
+				       &request->chunk_name,
 				       &virtual_chapter,
 				       &record_page_number);
 	if ((result != UDS_SUCCESS) || (virtual_chapter == UINT64_MAX)) {
@@ -424,9 +424,9 @@ int search_sparse_cache_in_zone(struct index_zone *zone,
 
 	return searchCachedRecordPage(volume,
 				      request,
-				      &request->chunkName,
+				      &request->chunk_name,
 				      chapter,
 				      record_page_number,
-				      &request->oldMetadata,
+				      &request->old_metadata,
 				      found);
 }

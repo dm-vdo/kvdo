@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#55 $
  */
 
 #include "dedupeIndex.h"
@@ -339,7 +339,7 @@ static void start_index_operation(struct kvdo_work_item *item)
 	spin_unlock_bh(&index->pending_lock);
 
 	struct uds_request *uds_request = &dedupe_context->uds_request;
-	int status = udsStartChunkOperation(uds_request);
+	int status = uds_start_chunk_operation(uds_request);
 
 	if (status != UDS_SUCCESS) {
 		uds_request->status = status;

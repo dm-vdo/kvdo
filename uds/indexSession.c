@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#10 $
  */
 
 #include "indexSession.h"
@@ -55,7 +55,7 @@ static void handleCallbacks(Request *request)
   if (request->status == UDS_SUCCESS) {
     // Measure the turnaround time of this request and include that time,
     // along with the rest of the request, in the context's StatCounters.
-    updateRequestContextStats(request);
+    update_request_context_stats(request);
   }
 
   if (request->callback != NULL) {
@@ -72,7 +72,7 @@ static void handleCallbacks(Request *request)
 
   // Should not get here, because this is either a control message or it has a
   // callback method.
-  freeRequest(request);
+  free_request(request);
 }
 
 /**********************************************************************/

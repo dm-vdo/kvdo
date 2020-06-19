@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#5 $
  */
 
 #include "requestQueue.h"
@@ -113,13 +113,13 @@ static INLINE Request *pollQueues(RequestQueue *queue)
   // The retry queue has higher priority.
   struct funnel_queue_entry *entry = funnel_queue_poll(queue->retryQueue);
   if (entry != NULL) {
-    return container_of(entry, Request, requestQueueLink);
+    return container_of(entry, Request, request_queue_link);
   }
 
   // The main queue has lower priority.
   entry = funnel_queue_poll(queue->mainQueue);
   if (entry != NULL) {
-    return container_of(entry, Request, requestQueueLink);
+    return container_of(entry, Request, request_queue_link);
   }
 
   // No entry found.
@@ -300,7 +300,7 @@ void requestQueueEnqueue(RequestQueue *queue, Request *request)
 {
   bool unbatched = request->unbatched;
   funnel_queue_put(request->requeued ? queue->retryQueue : queue->mainQueue,
-                   &request->requestQueueLink);
+                   &request->request_queue_link);
 
   /*
    * We must wake the worker thread when it is dormant (waiting with no

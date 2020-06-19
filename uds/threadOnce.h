@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#2 $
  */
 
 #ifndef THREAD_ONCE_H
@@ -26,7 +26,7 @@
 
 #define ONCE_STATE_INITIALIZER ATOMIC_INIT(0)
 
-typedef atomic_t OnceState;
+typedef atomic_t once_state_t;
 
 /**
  * Thread safe once only initialization.
@@ -41,8 +41,8 @@ typedef atomic_t OnceState;
  * @note Generally the following declaration of onceState is performed in
  *       at file scope:
  *
- *       static OnceState onceState = ONCE_STATE_INITIALIZER;
+ *       static once_state_t onceState = ONCE_STATE_INITIALIZER;
  **/
-int performOnce(OnceState *onceState, void (*initFunction) (void));
+int performOnce(once_state_t *onceState, void (*initFunction) (void));
 
 #endif /* THREAD_ONCE_H */

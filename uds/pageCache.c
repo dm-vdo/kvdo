@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#12 $
  */
 
 #include "pageCache.h"
@@ -562,11 +562,11 @@ int enqueue_read(struct page_cache *cache,
 		return result;
 	}
 
-	request->nextRequest = NULL;
+	request->next_request = NULL;
 	if (cache->read_queue[read_queue_pos].request_list.first == NULL) {
 		cache->read_queue[read_queue_pos].request_list.first = request;
 	} else {
-		cache->read_queue[read_queue_pos].request_list.last->nextRequest = request;
+		cache->read_queue[read_queue_pos].request_list.last->next_request = request;
 	}
 	cache->read_queue[read_queue_pos].request_list.last = request;
 	return UDS_QUEUED;

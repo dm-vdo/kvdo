@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#28 $
  */
 
 #include "index.h"
@@ -337,7 +337,7 @@ int save_index(struct index *index)
 static struct index_zone *get_request_zone(struct index *index,
 					   Request *request)
 {
-	return index->zones[request->zoneNumber];
+	return index->zones[request->zone_number];
 }
 
 /**
@@ -352,7 +352,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 {
 	struct master_index_record record;
 	int result = get_master_index_record(zone->index->master_index,
-					     &request->chunkName, &record);
+					     &request->chunk_name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -405,7 +405,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		// The record wasn't in the master index, so check whether the
 		// name is in a cached sparse chapter.
 		if (!is_master_index_sample(zone->index->master_index,
-					    &request->chunkName) &&
+					    &request->chunk_name) &&
 		    is_sparse(zone->index->volume->geometry)) {
 			// Passing UINT64_MAX triggers a search of the entire
 			// sparse cache.
@@ -453,11 +453,11 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	struct uds_chunk_data *metadata;
 	if (!found || (request->action == REQUEST_UPDATE)) {
 		// This is a new record or we're updating an existing record.
-		metadata = &request->newMetadata;
+		metadata = &request->new_metadata;
 	} else {
 		// This is a duplicate, so move the record to the open chapter
 		// (for LRU).
-		metadata = &request->oldMetadata;
+		metadata = &request->old_metadata;
 	}
 	return put_record_in_zone(zone, request, metadata);
 }
@@ -467,7 +467,7 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 {
 	struct master_index_record record;
 	int result = get_master_index_record(zone->index->master_index,
-					    &request->chunkName, &record);
+					     &request->chunk_name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -512,7 +512,7 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 	if (request->location == LOC_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
 		remove_from_open_chapter(zone->open_chapter,
-					 &request->chunkName,
+					 &request->chunk_name,
 					 &hash_exists);
 		result = ASSERT(hash_exists,
 				"removing record not found in open chapter");
@@ -564,7 +564,7 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	 * execution hook for an equivalent message.
 	 */
 	struct barrier_message_data barrier =
-		{ .virtualChapter = sparse_virtual_chapter };
+		{ .virtual_chapter = sparse_virtual_chapter };
 	return execute_sparse_cache_barrier_message(zone, &barrier);
 }
 
@@ -972,7 +972,7 @@ void advance_active_chapters(struct index *index)
 uint64_t triage_index_request(struct index *index, Request *request)
 {
 	struct master_index_triage triage;
-	lookup_master_index_name(index->master_index, &request->chunkName,
+	lookup_master_index_name(index->master_index, &request->chunk_name,
 				 &triage);
 	if (!triage.in_sampled_chapter) {
 		// Not indexed or not a hook.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#41 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#42 $
  */
 
 #include <linux/module.h>
@@ -79,7 +79,7 @@ EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
 EXPORT_SYMBOL_GPL(udsGetIndexStats);
 EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
 EXPORT_SYMBOL_GPL(udsStringError);
-EXPORT_SYMBOL_GPL(udsStartChunkOperation);
+EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocate_memory);

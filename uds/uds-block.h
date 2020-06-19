@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#5 $
  */
 
 /**
@@ -61,7 +61,7 @@ struct uds_request;
 
 /**
  * Callback function invoked to inform the Application Software that an
- * operation started by #udsStartChunkOperation has completed.
+ * operation started by #uds_start_chunk_operation has completed.
  *
  * @param [in] request  The operation that finished.  When the callback
  *                      function is called, this uds_request structure can be
@@ -70,9 +70,9 @@ struct uds_request;
 typedef void uds_chunk_callback_t(struct uds_request *request);
 
 /**
- * Request structure passed to #udsStartChunkOperation to begin an operation,
- * and returned to the Application Software when the callback function is
- * invoked.
+ * Request structure passed to #uds_start_chunk_operation to begin an
+ * operation, and returned to the Application Software when the callback
+ * function is invoked.
  **/
 struct uds_request {
   /*
@@ -175,7 +175,7 @@ struct uds_request {
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsStartChunkOperation(struct uds_request *request);
+int uds_start_chunk_operation(struct uds_request *request);
 /** @} */
 
 #endif /* UDS_BLOCK_H */

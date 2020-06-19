@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#2 $
  */
 
 #include "errors.h"
@@ -29,7 +29,7 @@ enum {
 };
 
 /*****************************************************************************/
-int performOnce(OnceState *once, void (*function)(void))
+int performOnce(once_state_t *once, void (*function)(void))
 {
   for (;;) {
     switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {

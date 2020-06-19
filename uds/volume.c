@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#24 $
  */
 
 #include "volume.h"
@@ -83,7 +83,7 @@ static INLINE bool isRecordPage(struct geometry *geometry,
 /**********************************************************************/
 static INLINE unsigned int getZoneNumber(Request *request)
 {
-  return (request == NULL) ? 0 : request->zoneNumber;
+  return (request == NULL) ? 0 : request->zone_number;
 }
 
 /**********************************************************************/
@@ -304,7 +304,7 @@ static void readThreadFunction(void *arg)
 
     while (requestList != NULL) {
       Request *request = requestList;
-      requestList = request->nextRequest;
+      requestList = request->next_request;
 
       /*
        * If we've read in a record page, we're going to do an immediate search,
@@ -318,18 +318,18 @@ static void readThreadFunction(void *arg)
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
         if (search_record_page(get_page_data(&page->cp_page_data),
-                             &request->chunkName, volume->geometry,
-                             &request->oldMetadata)) {
-          request->slLocation = LOC_IN_DENSE;
+                               &request->chunk_name, volume->geometry,
+                               &request->old_metadata)) {
+          request->sl_location = LOC_IN_DENSE;
         } else {
-          request->slLocation = LOC_UNAVAILABLE;
+          request->sl_location = LOC_UNAVAILABLE;
         }
-        request->slLocationKnown = true;
+        request->sl_location_known = true;
       }
 
       // reflect any read failures in the request status
       request->status = result;
-      restartRequest(request);
+      restart_request(request);
     }
 
     release_read_queue_entry(volume->pageCache, queuePos);
@@ -586,7 +586,7 @@ static int searchCachedIndexPage(Volume                      *volume,
 
   struct cached_page *page = NULL;
   int result = getPageProtected(volume, request, physicalPage,
-                                cacheProbeType(request, true), &page);
+                                cache_probe_type(request, true), &page);
   if (result != UDS_SUCCESS) {
     end_pending_search(volume->pageCache, zoneNumber);
     return result;
@@ -651,7 +651,7 @@ int searchCachedRecordPage(Volume                      *volume,
 
   struct cached_page *recordPage;
   result = getPageProtected(volume, request, physicalPage,
-                            cacheProbeType(request, false), &recordPage);
+                            cache_probe_type(request, false), &recordPage);
   if (result != UDS_SUCCESS) {
     end_pending_search(volume->pageCache, zoneNumber);
     return result;

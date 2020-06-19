@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#15 $
  */
 
 #include "indexRouter.h"
@@ -54,13 +54,13 @@ static void enqueue_barrier_messages(struct index_router *router,
 	struct zone_message barrier =
 		{ .index = index,
 		  .data = { .barrier = {
-					 .virtualChapter = virtual_chapter,
+					 .virtual_chapter = virtual_chapter,
 			  } } };
 	unsigned int zone;
 	for (zone = 0; zone < router->zone_count; zone++) {
 		int result =
-			launchZoneControlMessage(REQUEST_SPARSE_CACHE_BARRIER,
-						 barrier, zone, router);
+			launch_zone_control_message(REQUEST_SPARSE_CACHE_BARRIER,
+						    barrier, zone, router);
 		ASSERT_LOG_ONLY((result == UDS_SUCCESS),
 				"barrier message allocation");
 	}
@@ -89,7 +89,7 @@ static void triage_request(Request *request)
 					 sparse_virtual_chapter);
 	}
 
-	enqueueRequest(request, STAGE_INDEX);
+	enqueue_request(request, STAGE_INDEX);
 }
 
 /**
@@ -210,8 +210,8 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 					Request *request,
 					enum request_stage next_stage)
 {
-	if (request->isControlMessage) {
-		return get_zone_queue(router, request->zoneNumber);
+	if (request->is_control_message) {
+		return get_zone_queue(router, request->zone_number);
 	}
 
 	if (next_stage == STAGE_TRIAGE) {
@@ -229,16 +229,16 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 	}
 
 	struct index *index = router->index;
-	request->zoneNumber = get_master_index_zone(index->master_index,
-						    &request->chunkName);
-	return get_zone_queue(router, request->zoneNumber);
+	request->zone_number = get_master_index_zone(index->master_index,
+						     &request->chunk_name);
+	return get_zone_queue(router, request->zone_number);
 }
 
 /**********************************************************************/
 void execute_index_router_request(struct index_router *router,
 				  Request *request)
 {
-	if (request->isControlMessage) {
+	if (request->is_control_message) {
 		int result = dispatch_index_zone_control_request(request);
 		if (result != UDS_SUCCESS) {
 			logErrorWithStringError(result,
@@ -246,7 +246,7 @@ void execute_index_router_request(struct index_router *router,
 						request->action);
 		}
 		request->status = result;
-		enterCallbackStage(request);
+		enter_callback_stage(request);
 		return;
 	}
 
