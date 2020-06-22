@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#46 $
  */
 
 #include "refCounts.h"
@@ -406,7 +406,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 		// Single or shared
 		if (*counter_ptr >= MAXIMUM_REFERENCE_COUNT) {
 			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Incrementing a block already having 254 references (slab %u, offset %" PRIu32 ")",
+						       "Incrementing a block already having 254 references (slab %u, offset %u)",
 						       ref_counts->slab->slab_number,
 						       slab_block_number);
 		}
@@ -450,7 +450,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 	switch (old_status) {
 	case RS_FREE:
 		return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-					       "Decrementing free block at offset %" PRIu32 " in slab %u",
+					       "Decrementing free block at offset %u in slab %u",
 					       slab_block_number,
 					       ref_counts->slab->slab_number);
 
@@ -516,7 +516,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 	case RS_FREE:
 		if (normal_operation) {
 			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Incrementing unallocated block map block (slab %u, offset %" PRIu32 ")",
+						       "Incrementing unallocated block map block (slab %u, offset %u)",
 						       ref_counts->slab->slab_number,
 						       slab_block_number);
 		}
@@ -530,7 +530,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 	case RS_PROVISIONAL:
 		if (!normal_operation) {
 			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Block map block had provisional reference during replay (slab %u, offset %" PRIu32 ")",
+						       "Block map block had provisional reference during replay (slab %u, offset %u)",
 						       ref_counts->slab->slab_number,
 						       slab_block_number);
 		}
@@ -544,7 +544,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 
 	default:
 		return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-					       "Incrementing a block map block which is already referenced %u times (slab %u, offset %" PRIu32 ")",
+					       "Incrementing a block map block which is already referenced %u times (slab %u, offset %u)",
 					       *counter_ptr,
 					       ref_counts->slab->slab_number,
 					       slab_block_number);
@@ -1402,7 +1402,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		    !are_equivalent_journal_points(&block->commit_points[0],
 						   &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
-			logWarning("Torn write detected in sector %u of reference block %zu of slab %" PRIu16,
+			logWarning("Torn write detected in sector %u of reference block %zu of slab %u",
 				   i,
 				   block_index,
 				   block->ref_counts->slab->slab_number);
@@ -1552,7 +1552,7 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 void dump_ref_counts(const struct ref_counts *ref_counts)
 {
 	// Terse because there are a lot of slabs to dump and syslog is lossy.
-	logInfo("  ref_counts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32 " dirty=%zu active=%zu journal@(%llu,%" PRIu16 ")%s",
+	logInfo("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
 		ref_counts->free_blocks,
 		ref_counts->block_count,
 		ref_counts->reference_block_count,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#70 $
  */
 
 #include "recoveryJournal.h"
@@ -971,7 +971,7 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	struct recovery_journal *journal = (struct recovery_journal *)context;
 	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
 					     &data_vio->recovery_journal_point),
-			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %" PRIu16 "), but commit waiter point is (%llu, %" PRIu16 ")",
+			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
 			journal->commit_point.sequence_number,
 			journal->commit_point.entry_count,
 			data_vio->recovery_journal_point.sequence_number,

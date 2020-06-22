@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#2 $
  */
 
 #include "vdoComponentStates.h"
@@ -105,7 +105,7 @@ int decode_component_states(struct buffer *buffer,
 
 	if (states->release_version != expected_release_version) {
 		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
+					       "Geometry release version %u does not match super block release version %u",
 					       expected_release_version,
 					       states->release_version);
 	}
