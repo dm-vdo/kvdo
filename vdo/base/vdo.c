@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#77 $
  */
 
 /*
@@ -151,45 +151,25 @@ void set_vdo_state(struct vdo *vdo, VDOState state)
 }
 
 /**
- * Record the vdo component state for writing in the super block.
- *
- * @param vdo  The vdo to encode
- *
- * @return The state of the vdo
- **/
-static struct vdo_component_41_0 __must_check
-record_vdo_component(struct vdo *vdo)
-{
-	return (struct vdo_component_41_0) {
-		.state = get_vdo_state(vdo),
-		.complete_recoveries = vdo->complete_recoveries,
-		.read_only_recoveries = vdo->read_only_recoveries,
-		.config = vdo->config,
-		.nonce = vdo->nonce,
-	};
-}
-
-/**
  * Record the state of the VDO for encoding in the super block.
  **/
-static struct vdo_component_states record_vdo(struct vdo *vdo)
+static void record_vdo(struct vdo *vdo)
 {
-	return (struct vdo_component_states) {
-		.release_version = vdo->load_config.release_version,
-		.master_version = vdo->load_version,
-		.vdo = record_vdo_component(vdo),
-		.block_map = record_block_map(vdo->block_map),
-		.recovery_journal = record_recovery_journal(vdo->recovery_journal),
-		.slab_depot = record_slab_depot(vdo->depot),
-		.layout = get_layout(vdo->layout),
-	};
+	vdo->states.release_version = vdo->load_config.release_version;
+	vdo->states.vdo.state = get_vdo_state(vdo);
+	vdo->states.block_map = record_block_map(vdo->block_map);
+	vdo->states.recovery_journal =
+		record_recovery_journal(vdo->recovery_journal);
+	vdo->states.slab_depot = record_slab_depot(vdo->depot);
+	vdo->states.layout = get_layout(vdo->layout);
 }
 
 /**********************************************************************/
 int save_vdo_components(struct vdo *vdo)
 {
 	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	int result = encode_component_states(buffer, record_vdo(vdo));
+	record_vdo(vdo);
+	int result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -202,7 +182,8 @@ int save_vdo_components(struct vdo *vdo)
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	int result = encode_component_states(buffer, record_vdo(vdo));
+	record_vdo(vdo);
+	int result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
@@ -210,17 +191,6 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 
 	save_super_block_async(vdo->super_block, get_first_block_offset(vdo),
 			       parent);
-}
-
-void playback_vdo_component(struct vdo *vdo,
-			    struct vdo_component_41_0 vdo_component)
-{
-	set_vdo_state(vdo, vdo_component.state);
-	vdo->load_state = vdo_component.state;
-	vdo->complete_recoveries = vdo_component.complete_recoveries;
-	vdo->read_only_recoveries = vdo_component.read_only_recoveries;
-	vdo->config = vdo_component.config;
-	vdo->nonce = vdo_component.nonce;
 }
 
 /**
@@ -439,11 +409,11 @@ void get_vdo_statistics(const struct vdo *vdo,
 	// usually OK.
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
-	stats->logical_blocks = vdo->config.logical_blocks;
-	stats->physical_blocks = vdo->config.physical_blocks;
+	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
+	stats->physical_blocks = vdo->states.vdo.config.physical_blocks;
 	stats->block_size = VDO_BLOCK_SIZE;
-	stats->complete_recoveries = vdo->complete_recoveries;
-	stats->read_only_recoveries = vdo->read_only_recoveries;
+	stats->complete_recoveries = vdo->states.vdo.complete_recoveries;
+	stats->read_only_recoveries = vdo->states.vdo.read_only_recoveries;
 	stats->block_map_cache_size = get_block_map_cache_size(vdo);
 	snprintf(stats->write_policy,
 		 sizeof(stats->write_policy),
@@ -496,7 +466,8 @@ block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 	// XXX config.physical_blocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on admin thread so we're usually
 	// OK.
-	return (vdo->config.physical_blocks - get_depot_data_blocks(vdo->depot) +
+	return (vdo->states.vdo.config.physical_blocks -
+		get_depot_data_blocks(vdo->depot) +
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 

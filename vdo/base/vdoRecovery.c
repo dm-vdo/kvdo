@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#65 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -370,7 +370,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion);
 	struct vdo *vdo = recovery->vdo;
-	uint64_t recovery_count = ++vdo->complete_recoveries;
+	uint64_t recovery_count = ++vdo->states.vdo.complete_recoveries;
 	initialize_recovery_journal_post_recovery(vdo->recovery_journal,
 						  recovery_count,
 						  recovery->highest_tail);

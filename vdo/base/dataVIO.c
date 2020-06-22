@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#36 $
  */
 
 #include "dataVIO.h"
@@ -239,8 +239,8 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_logical_zone(data_vio);
 
-	if (data_vio->logical.lbn >=
-	    get_vdo_from_data_vio(data_vio)->config.logical_blocks) {
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
 		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
 		return;
 	}

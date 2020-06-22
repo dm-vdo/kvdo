@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#3 $
  */
 
 #include "vdoComponentStates.h"
@@ -168,50 +168,50 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 
 /**********************************************************************/
 int encode_component_states(struct buffer *buffer,
-			    struct vdo_component_states states)
+			    const struct vdo_component_states *states)
 {
 	int result = reset_buffer_end(buffer, 0);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = put_uint32_le_into_buffer(buffer, states.release_version);
+	result = put_uint32_le_into_buffer(buffer, states->release_version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = encode_version_number(states.master_version, buffer);
+	result = encode_version_number(states->master_version, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_vdo_component(states.vdo, buffer);
+	result = encode_vdo_component(states->vdo, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_fixed_layout(states.layout, buffer);
+	result = encode_fixed_layout(states->layout, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_recovery_journal_state_7_0(states.recovery_journal,
+	result = encode_recovery_journal_state_7_0(states->recovery_journal,
 						   buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_slab_depot_state_2_0(states.slab_depot, buffer);
+	result = encode_slab_depot_state_2_0(states->slab_depot, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_block_map_state_2_0(states.block_map, buffer);
+	result = encode_block_map_state_2_0(states->block_map, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	size_t expected_size = get_component_data_size(states.layout);
+	size_t expected_size = get_component_data_size(states->layout);
 	ASSERT_LOG_ONLY((content_length(buffer) == expected_size),
 			"All super block component data was encoded");
 	return VDO_SUCCESS;

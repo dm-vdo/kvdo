@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#2 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -112,6 +112,6 @@ encode_vdo(struct buffer *buffer, struct vdo_component_states *states);
  * @param states  The states to encode
  **/
 int encode_component_states(struct buffer *buffer,
-			    struct vdo_component_states states);
+			    const struct vdo_component_states *states);
 
 #endif /* VDO_COMPONENT_STATES_H */

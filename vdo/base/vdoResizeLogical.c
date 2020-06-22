@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#24 $
  */
 
 #include "vdoResizeLogical.h"
@@ -80,7 +80,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 						ADMIN_STATE_SUSPENDED_OPERATION,
 						&admin_completion->completion,
 						NULL)) {
-			vdo->config.logical_blocks =
+			vdo->states.vdo.config.logical_blocks =
 				get_new_entry_count(get_block_map(vdo));
 			save_vdo_components_async(vdo,
 						  reset_admin_sub_task(completion));
@@ -122,7 +122,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 		// our in memory config back to the old size.
 		struct vdo *vdo = admin_completion->vdo;
 		struct block_map *map = get_block_map(vdo);
-		vdo->config.logical_blocks =
+		vdo->states.vdo.config.logical_blocks =
 			get_number_of_block_map_entries(map);
 		abandon_block_map_growth(map);
 	}
@@ -148,18 +148,17 @@ int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 /**********************************************************************/
 int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
-	if (new_logical_blocks < vdo->config.logical_blocks) {
-		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
-					       "Can't shrink VDO logical size from its current value of %llu",
-					       vdo->config.logical_blocks);
+	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;
+	if (new_logical_blocks > logical_blocks) {
+		return prepare_to_grow_block_map(get_block_map(vdo),
+						 new_logical_blocks);
 	}
 
-	if (new_logical_blocks == vdo->config.logical_blocks) {
-		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
-					       "Can't grow VDO logical size to its current value of %llu",
-					       vdo->config.logical_blocks);
-	}
-
-	return prepare_to_grow_block_map(get_block_map(vdo),
-					 new_logical_blocks);
+	const char *message = ((new_logical_blocks < logical_blocks)
+			       ? "Can't shrink VDO logical size from its current value of "
+			       : "Can't grow VDO logical size to its current value of ");
+	return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
+				       "%s%llu",
+				       message,
+				       logical_blocks);
 }

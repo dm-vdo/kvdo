@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#39 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -35,6 +35,7 @@
 #include "types.h"
 #include "uds.h"
 #include "vdoComponent.h"
+#include "vdoComponentStates.h"
 #include "vdoLayout.h"
 #include "vdoState.h"
 
@@ -50,20 +51,14 @@ struct atomic_error_statistics {
 };
 
 struct vdo {
-	/* The state of this vdo */
+	/* The atomic version of the state of this vdo */
 	Atomic32 state;
+	/* The full state of all components */
+	struct vdo_component_states states;
 	/* The read-only notifier */
 	struct read_only_notifier *read_only_notifier;
-	/* The number of times this vdo has recovered from a dirty state */
-	uint64_t complete_recoveries;
-	/* The number of times this vdo has recovered from a read-only state */
-	uint64_t read_only_recoveries;
-	/* The format-time configuration of this vdo */
-	struct vdo_config config;
 	/* The load-time configuration of this vdo */
 	struct vdo_load_config load_config;
-	/* The nonce for this vdo */
-	nonce_t nonce;
 
 	/* The super block */
 	struct vdo_super_block *super_block;
@@ -91,8 +86,6 @@ struct vdo {
 	/* The handler for flush requests */
 	struct flusher *flusher;
 
-	/* The master version of the vdo when loaded (for upgrading) */
-	struct version_number load_version;
 	/* The state the vdo was in when loaded (primarily for unit tests) */
 	VDOState load_state;
 	/* Whether VIO tracing is enabled */
@@ -156,15 +149,6 @@ int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
  * @param parent  The completion to notify when the save is complete
  **/
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
-
-/**
- * Play back the vdo component from the super block into a vdo object.
- *
- * @param vdo            The vdo
- * @param vdo_component  The component to play back into the vdo
- **/
-void playback_vdo_component(struct vdo *vdo,
-			    struct vdo_component_41_0 vdo_component);
 
 /**
  * Enable a vdo to enter read-only mode on errors.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#26 $
  */
 
 #include "recoveryUtils.h"
@@ -30,6 +30,8 @@
 #include "recoveryJournalEntry.h"
 #include "recoveryJournalInternals.h"
 #include "slabDepot.h"
+#include "vdoComponent.h"
+#include "vdoComponentStates.h"
 #include "vdoInternal.h"
 
 /**
@@ -149,7 +151,7 @@ bool find_head_and_tail(struct recovery_journal *journal,
 int validate_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)
 {
-	if ((entry->slot.pbn >= vdo->config.physical_blocks) ||
+	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||
  	    (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE) ||
  	    !is_valid_location(&entry->mapping) ||
  	    !is_physical_data_block(vdo->depot, entry->mapping.pbn)) {

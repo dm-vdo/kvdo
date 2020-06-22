@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#50 $
  */
 
 #include "vdoLoad.h"
@@ -289,15 +289,15 @@ int perform_vdo_load(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 decode_vdo(struct vdo *vdo, bool validate_config)
 {
-	struct vdo_component_states states;
-	int result = start_vdo_decode(vdo, validate_config, &states);
+	int result = start_vdo_decode(vdo, validate_config);
 	if (result != VDO_SUCCESS) {
+		destroy_component_states(&vdo->states);
 		return result;
 	}
 
-	result = decode_vdo_layout(states.layout, &vdo->layout);
+	result = decode_vdo_layout(vdo->states.layout, &vdo->layout);
 	if (result != VDO_SUCCESS) {
-		destroy_component_states(&states);
+		destroy_component_states(&vdo->states);
 		return result;
 	}
 
@@ -315,7 +315,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = finish_vdo_decode(vdo, &states);
+	result = finish_vdo_decode(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -327,7 +327,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 
 	block_count_t maximum_age = get_configured_block_map_maximum_age(vdo);
 	block_count_t journal_length =
-		get_recovery_journal_length(vdo->config.recovery_journal_size);
+		get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -335,7 +335,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 				       vdo->layer,
 				       vdo->read_only_notifier,
 				       vdo->recovery_journal,
-				       vdo->nonce,
+				       vdo->states.vdo.nonce,
 				       get_configured_cache_size(vdo),
 				       maximum_age);
 	if (result != VDO_SUCCESS) {

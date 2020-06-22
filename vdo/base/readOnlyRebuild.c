@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#37 $
  */
 
 #include "readOnlyRebuild.h"
@@ -33,6 +33,8 @@
 #include "recoveryUtils.h"
 #include "referenceCountRebuild.h"
 #include "slabDepot.h"
+#include "vdoComponent.h"
+#include "vdoComponentStates.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
 
@@ -157,8 +159,9 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
-	initialize_recovery_journal_post_rebuild(rebuild->vdo->recovery_journal,
-						 rebuild->vdo->complete_recoveries,
+	struct vdo *vdo = rebuild->vdo;
+	initialize_recovery_journal_post_rebuild(vdo->recovery_journal,
+						 vdo->states.vdo.complete_recoveries,
 						 rebuild->tail,
 						 rebuild->logical_blocks_used,
 						 rebuild->block_map_data_blocks);
@@ -210,7 +213,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	assert_on_admin_thread(vdo, __func__);
 	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
 		// A "rebuild" for upgrade should not increment this count.
-		vdo->complete_recoveries++;
+		vdo->states.vdo.complete_recoveries++;
 	}
 
 	logInfo("Saving rebuilt state");
@@ -442,7 +445,7 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 		logWarning("Rebuilding reference counts for upgrade");
 	} else {
 		logWarning("Rebuilding reference counts to clear read-only mode");
-		vdo->read_only_recoveries++;
+		vdo->states.vdo.read_only_recoveries++;
 	}
 
 	struct read_only_rebuild_completion *rebuild;
