@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#15 $
  */
 #include "deltaIndex.h"
 
@@ -1829,14 +1829,14 @@ unsigned int get_delta_index_page_count(unsigned int num_entries,
 /**********************************************************************/
 void log_delta_index_entry(struct delta_index_entry *delta_entry)
 {
-	logRatelimit(logInfo,
-		     "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
-		     delta_entry->list_number,
-		     delta_entry->key,
-		     delta_entry->offset,
-		     delta_entry->at_end ? " end" : "",
-		     delta_entry->is_collision ? " collision" : "",
-		     get_delta_list_size(delta_entry->delta_list),
-		     delta_entry->list_overflow ? " overflow" : "");
+	log_ratelimit(logInfo,
+		      "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
+		      delta_entry->list_number,
+		      delta_entry->key,
+		      delta_entry->offset,
+		      delta_entry->at_end ? " end" : "",
+		      delta_entry->is_collision ? " collision" : "",
+		      get_delta_list_size(delta_entry->delta_list),
+		      delta_entry->list_overflow ? " overflow" : "");
 	delta_entry->list_overflow = false;
 }

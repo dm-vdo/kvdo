@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#9 $
  */
 
 #include "sysfs.h"
@@ -61,7 +61,7 @@ static ssize_t vdo_log_level_show(struct kvdo_module_globals *kvdo_globals,
 				  struct attribute *attr,
 				  char *buf)
 {
-	return sprintf(buf, "%s\n", priorityToString(getLogLevel()));
+	return sprintf(buf, "%s\n", priority_to_string(get_log_level()));
 }
 
 /**********************************************************************/
@@ -80,7 +80,7 @@ static ssize_t vdo_log_level_store(struct kvdo_module_globals *kvdo_globals,
 	if (internal_buf[n - 1] == '\n') {
 		internal_buf[n - 1] = '\000';
 	}
-	setLogLevel(stringToPriority(internal_buf));
+	set_log_level(string_to_priority(internal_buf));
 	return n;
 }
 

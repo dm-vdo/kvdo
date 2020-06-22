@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#5 $
  */
 
 #ifndef LOGGER_H
@@ -44,16 +44,16 @@
 /*
  * Apply a rate limiter to a log method call.
  *
- * @param logFunc  A method that does logging, which is not invoked if we are
- *                 running in the kernel and the ratelimiter detects that we
- *                 are calling it frequently.
+ * @param log_fn  A method that does logging, which is not invoked if we are
+ *                running in the kernel and the ratelimiter detects that we
+ *                are calling it frequently.
  */
-#define logRatelimit(logFunc, ...)                                 \
+#define log_ratelimit(log_fn, ...)                                 \
   do {                                                             \
     static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL, \
                                   DEFAULT_RATELIMIT_BURST);        \
     if (__ratelimit(&_rs)) {                                       \
-      logFunc(__VA_ARGS__);                                        \
+      log_fn(__VA_ARGS__);                                         \
     }                                                              \
   } while (0)
 
@@ -69,14 +69,14 @@
  *
  * @return  the current logging priority level.
  **/
-int getLogLevel(void);
+int get_log_level(void);
 
 /**
  * Set the current logging level.
  *
- * @param newLogLevel  the new value for the logging priority level.
+ * @param new_log_level  the new value for the logging priority level.
  **/
-void setLogLevel(int newLogLevel);
+void set_log_level(int new_log_level);
 
 /**
  * Return the integer logging priority represented by a name.
@@ -85,14 +85,14 @@ void setLogLevel(int newLogLevel);
  *
  * @return the integer priority named by string, or LOG_INFO if not recognized.
  **/
-int stringToPriority(const char *string);
+int string_to_priority(const char *string);
 
 /**
  * Return the printable name of a logging priority.
  *
  * @return the priority name
  **/
-const char *priorityToString(int priority);
+const char *priority_to_string(int priority);
 
 /**
  * Log a debug message.
@@ -134,16 +134,16 @@ void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
  *
  * @param priority      the priority at which to log the message
  * @param prefix        optional string prefix to message, may be NULL
- * @param fmt1          format of message first part, may be NULL
- * @param args1         arguments for message first part
+ * @param fmt1          format of message first part (required)
+ * @param args1         arguments for message first part (required)
  * @param fmt2          format of message second part
  **/
-void logEmbeddedMessage(int         priority,
-                        const char *prefix,
-                        const char *fmt1,
-                        va_list     args1,
-                        const char *fmt2,
-                        ...)
+void log_embedded_message(int         priority,
+                          const char *prefix,
+                          const char *fmt1,
+                          va_list     args1,
+                          const char *fmt2,
+                          ...)
   __attribute__((format(printf, 3, 0), format(printf, 5, 6)));
 
 /**
@@ -151,9 +151,9 @@ void logEmbeddedMessage(int         priority,
  *
  * @param priority      the priority at which to log the message
  * @param prefix        optional string prefix to message, may be NULL
- * @param fmt1          format of message first part, may be NULL
+ * @param fmt1          format of message first part (required)
  * @param args1         arguments for message first part
- * @param fmt2          format of message second part, may be NULL
+ * @param fmt2          format of message second part (required)
  * @param args2         arguments for message second part
  **/
 void log_message_pack(int         priority,
@@ -162,7 +162,7 @@ void log_message_pack(int         priority,
                       va_list     args1,
                       const char *fmt2,
                       va_list     args2)
-  __attribute__((format(printf, 3, 0)));
+  __attribute__((format(printf, 3, 0), format(printf, 5, 0)));
 
 /**
  * Log a stack backtrace.
@@ -257,7 +257,7 @@ void logFatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * @param  format   The format of the message (a printf style format)
  * @param  args     The variadic argument list of format parameters.
  **/
-void vLogMessage(int priority, const char *format, va_list args)
+void v_log_message(int priority, const char *format, va_list args)
   __attribute__((format(printf, 2, 0)));
 
 /**
@@ -266,7 +266,7 @@ void vLogMessage(int priority, const char *format, va_list args)
  * @param  priority The syslog priority value for the message.
  * @param  format   The format of the message (a printf style format)
  **/
-void logMessage(int priority, const char *format, ...)
+void log_message(int priority, const char *format, ...)
   __attribute__((format(printf, 2, 3)));
 
 /**

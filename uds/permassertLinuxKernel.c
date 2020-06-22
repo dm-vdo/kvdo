@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/permassertLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/permassertLinuxKernel.c#3 $
  */
 
 #include "logger.h"
@@ -31,8 +31,8 @@ void handleAssertionFailure(const char *expressionString,
                             const char *format,
                             va_list     args)
 {
-  logEmbeddedMessage(LOG_ERR, "assertion \"", format, args,
-                     "\" (%s) failed at %s:%d",
-                     expressionString, fileName, lineNumber);
+  log_embedded_message(LOG_ERR, "assertion \"", format, args,
+                       "\" (%s) failed at %s:%d",
+                       expressionString, fileName, lineNumber);
   log_backtrace(LOG_ERR);
 }

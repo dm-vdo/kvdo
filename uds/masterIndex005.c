@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#26 $
  */
 #include "masterIndex005.h"
 
@@ -887,11 +887,11 @@ set_master_index_zone_open_chapter_005(struct master_index *master_index,
 				1 + (used_bits - mi5->max_zone_bits) /
 					    mi5->chapter_zone_bits;
 			if (expire_count == 1) {
-				logRatelimit(logInfo,
-					     "masterZone %u:  At chapter %llu, expiring chapter %llu early",
-					     zone_number,
-					     virtual_chapter,
-					     master_zone->virtual_chapter_low);
+				log_ratelimit(logInfo,
+					      "masterZone %u:  At chapter %llu, expiring chapter %llu early",
+					      zone_number,
+					      virtual_chapter,
+					      master_zone->virtual_chapter_low);
 				master_zone->num_early_flushes++;
 				master_zone->virtual_chapter_low++;
 			} else {
@@ -913,12 +913,12 @@ set_master_index_zone_open_chapter_005(struct master_index *master_index,
 						master_zone
 							->virtual_chapter_high;
 				}
-				logRatelimit(logInfo,
-					     "masterZone %u:  At chapter %llu, expiring chapters %llu to %llu early",
-					     zone_number,
-					     virtual_chapter,
-					     first_expired,
-					     master_zone->virtual_chapter_low - 1);
+				log_ratelimit(logInfo,
+					      "masterZone %u:  At chapter %llu, expiring chapters %llu to %llu early",
+					      zone_number,
+					      virtual_chapter,
+					      first_expired,
+					      master_zone->virtual_chapter_low - 1);
 			}
 		}
 	}
@@ -1190,9 +1190,9 @@ int put_master_index_record(struct master_index_record *record,
 		record->is_found = true;
 		break;
 	case UDS_OVERFLOW:
-		logRatelimit(logWarningWithStringError,
-			     UDS_OVERFLOW,
-			     "Master index entry dropped due to overflow condition");
+		log_ratelimit(logWarningWithStringError,
+			      UDS_OVERFLOW,
+			      "Master index entry dropped due to overflow condition");
 		log_delta_index_entry(&record->delta_entry);
 		break;
 	default:

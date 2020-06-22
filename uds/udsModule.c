@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#42 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#43 $
  */
 
 #include <linux/module.h>
@@ -105,7 +105,7 @@ EXPORT_SYMBOL_GPL(get_boolean);
 EXPORT_SYMBOL_GPL(get_buffer_contents);
 EXPORT_SYMBOL_GPL(get_byte);
 EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
-EXPORT_SYMBOL_GPL(getLogLevel);
+EXPORT_SYMBOL_GPL(get_log_level);
 EXPORT_SYMBOL_GPL(get_memory_stats);
 EXPORT_SYMBOL_GPL(get_uint16_be_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
@@ -146,21 +146,21 @@ EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_bes_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
-EXPORT_SYMBOL_GPL(priorityToString);
+EXPORT_SYMBOL_GPL(priority_to_string);
 EXPORT_SYMBOL_GPL(reallocate_memory);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(registerErrorBlock);
 EXPORT_SYMBOL_GPL(report_memory_usage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
-EXPORT_SYMBOL_GPL(setLogLevel);
+EXPORT_SYMBOL_GPL(set_log_level);
 EXPORT_SYMBOL_GPL(skip_forward);
 EXPORT_SYMBOL_GPL(stringError);
 EXPORT_SYMBOL_GPL(stringErrorName);
-EXPORT_SYMBOL_GPL(stringToPriority);
+EXPORT_SYMBOL_GPL(string_to_priority);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
-EXPORT_SYMBOL_GPL(vLogMessage);
+EXPORT_SYMBOL_GPL(v_log_message);
 EXPORT_SYMBOL_GPL(vLogWithStringError);
 EXPORT_SYMBOL_GPL(wrap_buffer);
 EXPORT_SYMBOL_GPL(zero_bytes);

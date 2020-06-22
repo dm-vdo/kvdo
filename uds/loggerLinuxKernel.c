@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#5 $
  */
 
 #include <linux/delay.h>
@@ -72,39 +72,27 @@ void log_message_pack(int priority,
 		      const char *fmt2,
 		      va_list args2)
 {
-	if (priority > getLogLevel()) {
+	va_list args1_copy, args2_copy;
+	struct va_format vaf1, vaf2;
+
+	if (priority > get_log_level()) {
 		return;
 	}
 
 	/*
-	 * The kernel's printk has some magic for indirection to a secondary
-	 * va_list. It wants us to supply a pointer to the va_list.
-	 *
-	 * However, va_list varies across platforms and can be an array
-	 * type, which makes passing it around as an argument kind of
-	 * tricky, due to the automatic conversion to a pointer. This makes
-	 * taking the address of the argument a dicey thing; if we use "&a"
-	 * it works fine for non-array types, but for array types we get the
-	 * address of a pointer. Functions like va_copy and sprintf don't
-	 * care as they get "va_list" values passed and are written to do
-	 * the right thing, but printk explicitly wants the address of the
-	 * va_list.
-	 *
-	 * So, we copy the va_list values to ensure that "&" consistently
-	 * works the way we want.
+	 * It is implementation dependent whether va_list is defined as an
+	 * array type that decays to a pointer when passed as an
+	 * argument. Copy args1 and args2 with va_copy so that vaf1 and
+	 * vaf2 get proper va_list pointers irrespective of how va_list is
+	 * defined.
 	 */
-	va_list args1_copy;
 	va_copy(args1_copy, args1);
-	va_list args2_copy;
+	vaf1.fmt = fmt1;
+	vaf1.va = &args1_copy;
+
 	va_copy(args2_copy, args2);
-	struct va_format vaf1 = {
-		.fmt = (fmt1 != NULL) ? fmt1 : "",
-		.va = &args1_copy,
-	};
-	struct va_format vaf2 = {
-		.fmt = (fmt2 != NULL) ? fmt2 : "",
-		.va = &args2_copy,
-	};
+	vaf2.fmt = fmt2;
+	vaf2.va = &args2_copy;
 
 	if (prefix == NULL) {
 		prefix = "";
@@ -145,10 +133,10 @@ void log_message_pack(int priority,
 /**********************************************************************/
 void log_backtrace(int priority)
 {
-	if (priority > getLogLevel()) {
+	if (priority > get_log_level()) {
 		return;
 	}
-	logMessage(priority, "[backtrace]");
+	log_message(priority, "%s", "[backtrace]");
 	dump_stack();
 }
 
