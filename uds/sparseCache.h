@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#7 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -47,46 +47,46 @@ struct index;
 /**
  * Allocate and initialize a sparse chapter index cache.
  *
- * @param [in]  geometry   the geometry governing the volume
- * @param [in]  capacity   the number of chapters the cache will hold
- * @param [in]  zoneCount  the number of zone threads using the cache
- * @param [out] cachePtr   a pointer in which to return the new cache
+ * @param [in]  geometry    the geometry governing the volume
+ * @param [in]  capacity    the number of chapters the cache will hold
+ * @param [in]  zone_count  the number of zone threads using the cache
+ * @param [out] cache_ptr   a pointer in which to return the new cache
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makeSparseCache(const struct geometry *geometry,
-				 unsigned int capacity,
-				 unsigned int zoneCount,
-				 struct sparse_cache **cachePtr);
+int __must_check make_sparse_cache(const struct geometry *geometry,
+				   unsigned int capacity,
+				   unsigned int zone_count,
+				   struct sparse_cache **cache_ptr);
 
 /**
  * Destroy and free a sparse chapter index cache.
  *
  * @param cache  the cache to free
  **/
-void freeSparseCache(struct sparse_cache *cache);
+void free_sparse_cache(struct sparse_cache *cache);
 
 /**
  * Get the number of bytes of memory used by a sparse chapter cache.
  *
  * @param cache  the cache to measure
  **/
-size_t getSparseCacheMemorySize(const struct sparse_cache *cache);
+size_t get_sparse_cache_memory_size(const struct sparse_cache *cache);
 
 
 /**
  * Check whether a sparse chapter index is present in the chapter cache. This
  * is only intended for use by the zone threads.
  *
- * @param cache           the cache to search for the virtual chapter
- * @param virtualChapter  the virtual chapter number of the chapter index
- * @param zoneNumber      the zone number of the calling thread
+ * @param cache            the cache to search for the virtual chapter
+ * @param virtual_chapter  the virtual chapter number of the chapter index
+ * @param zone_number      the zone number of the calling thread
  *
  * @return <code>true</code> iff the sparse chapter index is cached
  **/
-bool sparseCacheContains(struct sparse_cache *cache,
-                         uint64_t             virtualChapter,
-                         unsigned int         zoneNumber);
+bool sparse_cache_contains(struct sparse_cache *cache,
+			   uint64_t virtual_chapter,
+			   unsigned int zone_number);
 
 /**
  * Update the sparse cache to contain a chapter index.
@@ -95,38 +95,41 @@ bool sparseCacheContains(struct sparse_cache *cache,
  * numbers to correctly enter the thread barriers used to synchronize the
  * cache updates.
  *
- * @param zone            the index zone
- * @param virtualChapter  the virtual chapter number of the chapter index
+ * @param zone             the index zone
+ * @param virtual_chapter  the virtual chapter number of the chapter index
  *
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int __must_check updateSparseCache(struct index_zone *zone,
-                                   uint64_t virtualChapter);
+int __must_check update_sparse_cache(struct index_zone *zone,
+				     uint64_t virtual_chapter);
 
 
 /**
  * Search the cached sparse chapter indexes for a chunk name, returning a
  * virtual chapter number and record page number that may contain the name.
  *
- * @param [in]     zone               the zone containing the volume, sparse
- *                                    chapter index cache and the index page
- *                                    number map
- * @param [in]     name               the chunk name to search for
- * @param [in,out] virtualChapterPtr  If <code>UINT64_MAX</code> on input,
- *                                    search all cached chapters, else search
- *                                    the specified virtual chapter, if cached.
- *                                    On output, if a match was found, set to
- *                                    the virtual chapter number of the match,
- *                                    otherwise set to UINT64_MAX on a miss.
- * @param [out]    recordPagePtr      the record page number of a match, else
- *                                    NO_CHAPTER_INDEX_ENTRY if nothing matched
+ * @param [in]     zone                 the zone containing the volume, sparse
+ *                                      chapter index cache and the index page
+ *                                      number map
+ * @param [in]     name                 the chunk name to search for
+ * @param [in,out] virtual_chapter_ptr  If <code>UINT64_MAX</code> on input,
+ *                                      search all cached chapters, else search
+ *                                      the specified virtual chapter, if
+ *                                      cached.
+ *                                      On output, if a match was found, set to
+ *                                      the virtual chapter number of the
+ *                                      match, otherwise set to UINT64_MAX on
+ *                                      a miss.
+ * @param [out]    record_page_ptr      the record page number of a match, else
+ *                                      NO_CHAPTER_INDEX_ENTRY if nothing
+ *                                      matched
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check searchSparseCache(struct index_zone *zone,
-				   const struct uds_chunk_name *name,
-				   uint64_t *virtualChapterPtr,
-				   int *recordPagePtr);
+int __must_check search_sparse_cache(struct index_zone *zone,
+				     const struct uds_chunk_name *name,
+				     uint64_t *virtual_chapter_ptr,
+				     int *record_page_ptr);
 
 #endif /* SPARSE_CACHE_H */

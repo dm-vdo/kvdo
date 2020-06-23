@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#5 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -34,7 +34,7 @@
  * in which the indexes should be searched and the reverse order in which they
  * should be evicted from the cache (LRU cache replacement policy).
  *
- * Cache entries that are dead (virtualChapter == UINT64_MAX) are kept as a
+ * Cache entries that are dead (virtual_chapter == UINT64_MAX) are kept as a
  * suffix of the list, avoiding the need to even iterate over them to search,
  * and ensuring that dead entries are replaced before any live entries are
  * evicted.
@@ -45,14 +45,14 @@
  * threads.
  **/
 struct search_list {
-  /** The number of cached chapter indexes and search list entries */
-  uint8_t capacity;
+	/** The number of cached chapter indexes and search list entries */
+	uint8_t capacity;
 
-  /** The index in the entries array of the first dead cache entry */
-  uint8_t firstDeadEntry;
+	/** The index in the entries array of the first dead cache entry */
+	uint8_t first_dead_entry;
 
-  /** The chapter array indexes representing the chapter search order */
-  uint8_t entries[];
+	/** The chapter array indexes representing the chapter search order */
+	uint8_t entries[];
 };
 
 /**
@@ -61,35 +61,35 @@ struct search_list {
  * that the search code actually wants to deal with.
  **/
 struct search_list_iterator {
-  /** The search list defining the chapter search iteration order */
-  struct search_list *list;
+	/** The search list defining the chapter search iteration order */
+	struct search_list *list;
 
-  /** The index of the next entry to return from the search list */
-  unsigned int        nextEntry;
+	/** The index of the next entry to return from the search list */
+	unsigned int next_entry;
 
-  /** The cached chapters that are referenced by the search list */
-  struct cached_chapter_index *chapters;
+	/** The cached chapters that are referenced by the search list */
+	struct cached_chapter_index *chapters;
 };
 
 /**
  * Allocate and initialize a new chapter cache search list with the same
  * capacity as the cache. The index of each entry in the cache will appear
  * exactly once in the array. All the chapters in the cache are assumed to be
- * initially dead, so firstDeadEntry will be zero and no chapters will be
+ * initially dead, so first_dead_entry will be zero and no chapters will be
  * returned when the search list is iterated.
  *
  * @param [in]  capacity  the number of entries in the search list
- * @param [out] listPtr   a pointer in which to return the new search list
+ * @param [out] list_ptr  a pointer in which to return the new search list
  **/
-int __must_check makeSearchList(unsigned int capacity,
-                                struct search_list **listPtr);
+int __must_check make_search_list(unsigned int capacity,
+				  struct search_list **list_ptr);
 
 /**
  * Free a search list and null out the reference to it.
  *
- * @param listPtr the reference to the search list to free
+ * @param list_ptr the reference to the search list to free
  **/
-void freeSearchList(struct search_list **listPtr);
+void free_search_list(struct search_list **list_ptr);
 
 /**
  * Copy the contents of one search list to another.
@@ -97,31 +97,31 @@ void freeSearchList(struct search_list **listPtr);
  * @param source  the list to copy
  * @param target  the list to replace
  **/
-static INLINE void copySearchList(const struct search_list *source,
-                                  struct search_list       *target)
+static INLINE void copy_search_list(const struct search_list *source,
+				    struct search_list *target)
 {
-  *target = *source;
-  memcpy(target->entries, source->entries, source->capacity);
+	*target = *source;
+	memcpy(target->entries, source->entries, source->capacity);
 }
 
 /**
  * Prepare to iterate over the live cache entries a search list.
  *
  * @param list      the list defining the live chapters and the search order
- * @param chapters  the chapter index entries to return from getNextChapter()
+ * @param chapters  the chapter index entries to return from get_next_chapter()
  *
  * @return an iterator positioned at the start of the search list
  **/
 static INLINE struct search_list_iterator
-iterateSearchList(struct search_list *list,
-                  struct cached_chapter_index chapters[])
+iterate_search_list(struct search_list *list,
+		    struct cached_chapter_index chapters[])
 {
-  struct search_list_iterator iterator = {
-    .list      = list,
-    .nextEntry = 0,
-    .chapters  = chapters,
-  };
-  return iterator;
+	struct search_list_iterator iterator = {
+		.list = list,
+		.next_entry = 0,
+		.chapters = chapters,
+	};
+	return iterator;
 }
 
 /**
@@ -129,16 +129,17 @@ iterateSearchList(struct search_list *list,
  *
  * @param iterator  the search list iterator
  *
- * @return <code>true</code> if getNextChapter() may be called
+ * @return <code>true</code> if get_next_chapter() may be called
  **/
-static INLINE bool hasNextChapter(const struct search_list_iterator *iterator)
+static INLINE bool
+has_next_chapter(const struct search_list_iterator *iterator)
 {
-  return (iterator->nextEntry < iterator->list->firstDeadEntry);
+	return (iterator->next_entry < iterator->list->first_dead_entry);
 }
 
 /**
  * Return a pointer to the next live chapter in the search list iteration and
- * advance the iterator. This must only be called when hasNextChapter()
+ * advance the iterator. This must only be called when has_next_chapter()
  * returns <code>true</code>.
  *
  * @param iterator  the search list iterator
@@ -146,9 +147,10 @@ static INLINE bool hasNextChapter(const struct search_list_iterator *iterator)
  * @return a pointer to the next live chapter index in the search list order
  **/
 static INLINE struct cached_chapter_index *
-getNextChapter(struct search_list_iterator *iterator)
+get_next_chapter(struct search_list_iterator *iterator)
 {
-  return &iterator->chapters[iterator->list->entries[iterator->nextEntry++]];
+	return &iterator->chapters[iterator->list
+					   ->entries[iterator->next_entry++]];
 }
 
 /**
@@ -162,56 +164,57 @@ getNextChapter(struct search_list_iterator *iterator)
  * The search list after the call will be <code>[ 3 0 1 2 4 ]</code> and the
  * function will return <code>3</code>.
  *
- * @param searchList    the chapter index search list to rotate
- * @param prefixLength  the length of the prefix of the list to rotate
+ * @param search_list    the chapter index search list to rotate
+ * @param prefix_length  the length of the prefix of the list to rotate
  *
  * @return the array index of the chapter cache entry that is now at the front
  *         of the search list
  **/
-static INLINE uint8_t rotateSearchList(struct search_list *searchList,
-                                       uint8_t             prefixLength)
+static INLINE uint8_t rotate_search_list(struct search_list *search_list,
+					 uint8_t prefix_length)
 {
-  // Grab the value of the last entry in the list prefix.
-  uint8_t mostRecent = searchList->entries[prefixLength - 1];
+	// Grab the value of the last entry in the list prefix.
+	uint8_t most_recent = search_list->entries[prefix_length - 1];
 
-  if (prefixLength > 1) {
-    // Push the first N-1 entries down by one entry, overwriting the entry
-    // we just grabbed.
-    memmove(&searchList->entries[1],
-            &searchList->entries[0],
-            prefixLength - 1);
+	if (prefix_length > 1) {
+		// Push the first N-1 entries down by one entry, overwriting
+		// the entry we just grabbed.
+		memmove(&search_list->entries[1],
+			&search_list->entries[0],
+			prefix_length - 1);
 
-    // We now have a hole at the front of the list in which we can place the
-    // rotated entry.
-    searchList->entries[0] = mostRecent;
-  }
+		// We now have a hole at the front of the list in which we can
+		// place the rotated entry.
+		search_list->entries[0] = most_recent;
+	}
 
-  // This function is also used to move a dead chapter to the front of the
-  // list, in which case the suffix of dead chapters was pushed down too.
-  if (searchList->firstDeadEntry < prefixLength) {
-    searchList->firstDeadEntry += 1;
-  }
+	// This function is also used to move a dead chapter to the front of
+	// the list, in which case the suffix of dead chapters was pushed down
+	// too.
+	if (search_list->first_dead_entry < prefix_length) {
+		search_list->first_dead_entry += 1;
+	}
 
-  return mostRecent;
+	return most_recent;
 }
 
 /**
  * Purge invalid cache entries, marking them as dead and moving them to the
- * end of the search list, then push any chapters that have skipSearch set
+ * end of the search list, then push any chapters that have skip_search set
  * down so they follow all the remaining live, valid chapters in the search
  * list. This effectively sorts the search list into three regions--active,
  * skippable, and dead--while maintaining the LRU ordering that already
  * existed (a stable sort).
  *
  * This operation must only be called during the critical section in
- * updateSparseCache() since it effectively changes cache membership.
+ * update_sparse_cache() since it effectively changes cache membership.
  *
- * @param searchList            the chapter index search list to purge
- * @param chapters              the chapter index cache entries
- * @param oldestVirtualChapter  the oldest virtual chapter
+ * @param search_list             the chapter index search list to purge
+ * @param chapters                the chapter index cache entries
+ * @param oldest_virtual_chapter  the oldest virtual chapter
  **/
-void purgeSearchList(struct search_list                *searchList,
-                     const struct cached_chapter_index  chapters[],
-                     uint64_t                           oldestVirtualChapter);
+void purge_search_list(struct search_list *search_list,
+		       const struct cached_chapter_index chapters[],
+		       uint64_t oldest_virtual_chapter);
 
 #endif /* SEARCH_LIST_H */

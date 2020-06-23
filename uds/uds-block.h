@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#6 $
  */
 
 /**
@@ -40,19 +40,6 @@ enum {
 struct uds_chunk_data {
   unsigned char data[UDS_MAX_BLOCK_DATA_SIZE];
 };
-
-/**
- * Represents a block address on disk.
- *
- * #uds_block_address_t objects allow the Application Software and UDS
- * to refer to specific disk blocks.  It might be, for instance, the
- * logical block address divided by the block size.
- *
- * These objects are stored persistently in the index and are also cached.
- * Therefore, make every effort to ensure that these objects are as small as
- * possible.
- **/
-typedef void *uds_block_address_t;
 
 /** @{ */
 /** @name Deduplication */

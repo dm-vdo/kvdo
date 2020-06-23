@@ -16,34 +16,34 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#3 $
  */
 
 #include "errors.h"
 #include "threads.h"
 
 enum {
-  ONCE_NOT_DONE    = 0,
-  ONCE_IN_PROGRESS = 1,
-  ONCE_COMPLETE    = 2,
+	ONCE_NOT_DONE = 0,
+	ONCE_IN_PROGRESS = 1,
+	ONCE_COMPLETE = 2,
 };
 
 /*****************************************************************************/
-int performOnce(once_state_t *once, void (*function)(void))
+int perform_once(once_state_t *once, void (*function)(void))
 {
-  for (;;) {
-    switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
-    case ONCE_NOT_DONE:
-      function();
-      atomic_set_release(once, ONCE_COMPLETE);
-      return UDS_SUCCESS;
-    case ONCE_IN_PROGRESS:
-      yieldScheduler();
-      break;
-    case ONCE_COMPLETE:
-      return UDS_SUCCESS;
-    default:
-      return UDS_BAD_STATE;
-    }
-  }
+	for (;;) {
+		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
+		case ONCE_NOT_DONE:
+			function();
+			atomic_set_release(once, ONCE_COMPLETE);
+			return UDS_SUCCESS;
+		case ONCE_IN_PROGRESS:
+			yieldScheduler();
+			break;
+		case ONCE_COMPLETE:
+			return UDS_SUCCESS;
+		default:
+			return UDS_BAD_STATE;
+		}
+	}
 }

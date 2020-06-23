@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#6 $
  */
 
 #ifndef NUMERIC_H
@@ -102,32 +102,6 @@ static INLINE unsigned long __must_check max_ulong(unsigned long a,
  * @return The lesser of a and b
  **/
 static INLINE size_t __must_check min_size_t(size_t a, size_t b)
-{
-	return ((a < b) ? a : b);
-}
-
-/**
- * Find the maximum of two size_ts.
- *
- * @param a The first size_t
- * @param b The second size_t
- *
- * @return The greater of a and b
- **/
-static INLINE size_t __must_check max_size_t(size_t a, size_t b)
-{
-	return ((a > b) ? a : b);
-}
-
-/**
- * Find the minimum of two uint64_ts.
- *
- * @param a The first uint64_t
- * @param b The second uint64_t
- *
- * @return The lesser of a and b
- **/
-static INLINE uint64_t __must_check max_uint64(uint64_t a, uint64_t b)
 {
 	return ((a < b) ? a : b);
 }

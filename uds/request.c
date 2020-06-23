@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#8 $
  */
 
 #include "request.h"
@@ -85,14 +85,6 @@ int launch_zone_control_message(enum request_action action,
 }
 
 /**********************************************************************/
-void free_request(Request *request)
-{
-	if (request != NULL) {
-		FREE(request);
-	}
-}
-
-/**********************************************************************/
 static RequestQueue *get_next_stage_queue(Request *request,
 					  enum request_stage next_stage)
 {
@@ -106,24 +98,14 @@ static RequestQueue *get_next_stage_queue(Request *request,
 }
 
 /**********************************************************************/
-static void handle_request_errors(Request *request)
-{
-	// XXX Use the router's callback function to hand back the error
-	// and clean up the request? (Possible thread issues doing that.)
-
-	free_request(request);
-}
-
-/**********************************************************************/
 void enqueue_request(Request *request, enum request_stage next_stage)
 {
 	RequestQueue *next_queue = get_next_stage_queue(request, next_stage);
 	if (next_queue == NULL) {
-		handle_request_errors(request);
 		return;
 	}
 
-	requestQueueEnqueue(next_queue, request);
+	request_queue_enqueue(next_queue, request);
 }
 
 /*
@@ -255,6 +237,6 @@ void enter_callback_stage(Request *request)
 		 * callback thread. The message has been completely processed,
 		 * so just free it.
 		 */
-		free_request(request);
+		FREE(request);
 	}
 }

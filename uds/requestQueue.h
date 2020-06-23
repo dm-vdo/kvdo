@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#5 $
  */
 
 #ifndef REQUEST_QUEUE_H
@@ -33,15 +33,15 @@ typedef void request_queue_processor_t(Request *);
  * Allocate a new request processing queue and start a worker thread to
  * consume and service requests in the queue.
  *
- * @param queueName   the name of the queue and the worker thread
- * @param processOne  the function the worker will invoke on each request
- * @param queuePtr    a pointer to receive the new queue
+ * @param queue_name   the name of the queue and the worker thread
+ * @param process_one  the function the worker will invoke on each request
+ * @param queue_ptr    a pointer to receive the new queue
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check makeRequestQueue(const char *queueName,
-				  request_queue_processor_t *processOne,
-				  RequestQueue **queuePtr);
+int __must_check make_request_queue(const char *queue_name,
+				    request_queue_processor_t *process_one,
+				    RequestQueue **queue_ptr);
 
 /**
  * Add a request to the end of the queue for processing by the worker thread.
@@ -51,13 +51,13 @@ int __must_check makeRequestQueue(const char *queueName,
  * @param queue    the request queue that should process the request
  * @param request  the request to be processed on the queue's worker thread
  **/
-void requestQueueEnqueue(RequestQueue *queue, Request *request);
+void request_queue_enqueue(RequestQueue *queue, Request *request);
 
 /**
  * Shut down the request queue worker thread, then destroy and free the queue.
  *
  * @param queue  the queue to shut down and free
  **/
-void requestQueueFinish(RequestQueue *queue);
+void request_queue_finish(RequestQueue *queue);
 
 #endif /* REQUEST_QUEUE_H */

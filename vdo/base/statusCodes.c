@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#8 $
  */
 
 #include "statusCodes.h"
@@ -100,6 +100,6 @@ static void do_status_code_registration(void)
 /**********************************************************************/
 int register_status_codes(void)
 {
-	performOnce(&vdo_status_codes_registered, do_status_code_registration);
+	perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
 }

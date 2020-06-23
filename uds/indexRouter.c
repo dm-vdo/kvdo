@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#16 $
  */
 
 #include "indexRouter.h"
@@ -105,9 +105,9 @@ static int initialize_local_index_queues(struct index_router *router,
 {
 	unsigned int i;
 	for (i = 0; i < router->zone_count; i++) {
-		int result = makeRequestQueue("indexW",
-					      &execute_zone_request,
-					      &router->zone_queues[i]);
+		int result = make_request_queue("indexW",
+						&execute_zone_request,
+						&router->zone_queues[i]);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -115,8 +115,8 @@ static int initialize_local_index_queues(struct index_router *router,
 
 	// The triage queue is only needed for sparse multi-zone indexes.
 	if ((router->zone_count > 1) && is_sparse(geometry)) {
-		int result = makeRequestQueue("triageW", &triage_request,
-					      &router->triage_queue);
+		int result = make_request_queue("triageW", &triage_request,
+						&router->triage_queue);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -196,10 +196,10 @@ void free_index_router(struct index_router *router)
 	if (router == NULL) {
 		return;
 	}
-	requestQueueFinish(router->triage_queue);
+	request_queue_finish(router->triage_queue);
 	unsigned int i;
 	for (i = 0; i < router->zone_count; i++) {
-		requestQueueFinish(router->zone_queues[i]);
+		request_queue_finish(router->zone_queues[i]);
 	}
 	free_index(router->index);
 	FREE(router);

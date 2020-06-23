@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#17 $
  */
 
 #include "indexZone.h"
@@ -155,7 +155,7 @@ int execute_sparse_cache_barrier_message(struct index_zone *zone,
 	 * cache, and if it's not, rendezvous with the other zone threads to
 	 * add the chapter index to the sparse index cache.
 	 */
-	return updateSparseCache(zone, barrier->virtual_chapter);
+	return update_sparse_cache(zone, barrier->virtual_chapter);
 }
 
 /**
@@ -363,9 +363,9 @@ int get_record_from_zone(struct index_zone *zone,
 
 	Volume *volume = zone->index->volume;
 	if (is_zone_chapter_sparse(zone, virtual_chapter) &&
-	    sparseCacheContains(volume->sparseCache,
-				virtual_chapter,
-				request->zone_number)) {
+	    sparse_cache_contains(volume->sparseCache,
+				  virtual_chapter,
+				  request->zone_number)) {
 		// The named chunk, if it exists, is in a sparse chapter that
 		// is cached, so just run the chunk through the sparse chapter
 		// cache search.
@@ -407,10 +407,10 @@ int search_sparse_cache_in_zone(struct index_zone *zone,
 				bool *found)
 {
 	int record_page_number;
-	int result = searchSparseCache(zone,
-				       &request->chunk_name,
-				       &virtual_chapter,
-				       &record_page_number);
+	int result = search_sparse_cache(zone,
+					 &request->chunk_name,
+					 &virtual_chapter,
+					 &record_page_number);
 	if ((result != UDS_SUCCESS) || (virtual_chapter == UINT64_MAX)) {
 		return result;
 	}

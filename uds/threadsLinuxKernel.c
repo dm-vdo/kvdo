@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#4 $
  */
 
 #include <linux/completion.h>
@@ -51,7 +51,7 @@ static int threadStarter(void *arg)
 {
   KernelThread *kt = arg;
   kt->threadTask = current;
-  performOnce(&kernelThreadOnce, kernelThreadInit);
+  perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
   hlist_add_head(&kt->threadLinks, &kernelThreadList);
   mutex_unlock(&kernelThreadMutex);
@@ -127,7 +127,7 @@ void applyToThreads(void applyFunc(void *, struct task_struct *),
                     void *argument)
 {
   KernelThread *kt;
-  performOnce(&kernelThreadOnce, kernelThreadInit);
+  perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
   hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
     applyFunc(argument, kt->threadTask);
@@ -140,7 +140,7 @@ void exitThread(void)
 {
   KernelThread *kt;
   struct completion *completion = NULL;
-  performOnce(&kernelThreadOnce, kernelThreadInit);
+  perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
   hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
     if (kt->threadTask == current) {

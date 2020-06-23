@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#25 $
  */
 
 #include "volume.h"
@@ -950,7 +950,7 @@ size_t getCacheSize(Volume *volume)
 {
   size_t size = get_page_cache_size(volume->pageCache);
   if (is_sparse(volume->geometry)) {
-    size += getSparseCacheMemorySize(volume->sparseCache);
+    size += get_sparse_cache_memory_size(volume->sparseCache);
   }
   return size;
 }
@@ -1271,7 +1271,7 @@ static int __must_check allocateVolume(const struct configuration *config,
   }
 
   if (is_sparse(volume->geometry)) {
-    result = makeSparseCache(volume->geometry, config->cache_chapters,
+    result = make_sparse_cache(volume->geometry, config->cache_chapters,
                              zoneCount, &volume->sparseCache);
     if (result != UDS_SUCCESS) {
       freeVolume(volume);
@@ -1380,7 +1380,7 @@ void freeVolume(Volume *volume)
   // Must close the volume store AFTER freeing the scratch page and the caches
   destroy_volume_page(&volume->scratchPage);
   free_page_cache(volume->pageCache);
-  freeSparseCache(volume->sparseCache);
+  free_sparse_cache(volume->sparseCache);
   close_volume_store(&volume->volumeStore);
 
   destroyCond(&volume->readThreadsCond);

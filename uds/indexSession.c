@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#12 $
  */
 
 #include "indexSession.h"
@@ -67,12 +67,7 @@ static void handleCallbacks(Request *request)
     // We do this release after the callback because of the contract of the
     // udsFlushIndexSession method.
     releaseIndexSession(indexSession);
-    return;
   }
-
-  // Should not get here, because this is either a control message or it has a
-  // callback method.
-  free_request(request);
 }
 
 /**********************************************************************/
@@ -197,8 +192,8 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
     return result;
   }
 
-  result = makeRequestQueue("callbackW", &handleCallbacks,
-                            &session->callbackQueue);
+  result = make_request_queue("callbackW", &handleCallbacks,
+                              &session->callbackQueue);
   if (result != UDS_SUCCESS) {
     destroyCond(&session->loadContext.cond);
     destroyMutex(&session->loadContext.mutex);
@@ -442,7 +437,7 @@ int udsDestroyIndexSession(struct uds_index_session *indexSession)
 
   waitForNoRequestsInProgress(indexSession);
   int result = saveAndFreeIndex(indexSession);
-  requestQueueFinish(indexSession->callbackQueue);
+  request_queue_finish(indexSession->callbackQueue);
   indexSession->callbackQueue = NULL;
   destroyCond(&indexSession->loadContext.cond);
   destroyMutex(&indexSession->loadContext.mutex);
