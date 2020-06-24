@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#27 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -25,6 +25,7 @@
 #include "adminState.h"
 #include "blockMapEntry.h"
 #include "blockMapFormat.h"
+#include "blockMapPage.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "statistics.h"
@@ -233,6 +234,24 @@ get_number_of_block_map_entries(const struct block_map *map);
  **/
 void advance_block_map_era(struct block_map *map,
 			   sequence_number_t recovery_block_number);
+
+
+/**
+ * Update an entry on a block map page.
+ *
+ * @param [in]     page           The page to update
+ * @param [in]     data_vio       The data_vio making the update
+ * @param [in]     pbn            The new PBN for the entry
+ * @param [in]     mapping_state  The new mapping state for the entry
+ * @param [in,out] recovery_lock  A reference to the current recovery sequence
+ *                                number lock held by the page. Will be updated
+ *                                if the lock changes to protect the new entry
+ **/
+void update_block_map_page(struct block_map_page *page,
+			   struct data_vio *data_vio,
+			   physical_block_number_t pbn,
+			   BlockMappingState mapping_state,
+			   sequence_number_t *recovery_lock);
 
 /**
  * Get the block number of the physical block containing the data for the

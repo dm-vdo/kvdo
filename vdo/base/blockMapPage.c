@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#22 $
  */
 
 #include "blockMapPage.h"
@@ -84,48 +84,4 @@ block_map_page_validity validate_block_map_page(struct block_map_page *page,
 	}
 
 	return BLOCK_MAP_PAGE_VALID;
-}
-
-/**********************************************************************/
-void update_block_map_page(struct block_map_page *page,
-			   struct data_vio *data_vio,
-			   physical_block_number_t pbn,
-			   BlockMappingState mapping_state,
-			   sequence_number_t *recovery_lock)
-{
-	// Encode the new mapping.
-	struct tree_lock *tree_lock = &data_vio->tree_lock;
-	slot_number_t slot =
-		tree_lock->tree_slots[tree_lock->height].block_map_slot.slot;
-	page->entries[slot] = pack_pbn(pbn, mapping_state);
-
-	// Adjust references (locks) on the recovery journal blocks.
-	struct block_map_zone *zone =
-		get_block_map_for_zone(data_vio->logical.zone);
-	struct block_map *block_map = zone->block_map;
-	struct recovery_journal *journal = block_map->journal;
-	sequence_number_t old_locked = *recovery_lock;
-	sequence_number_t new_locked = data_vio->recovery_sequence_number;
-
-	if ((old_locked == 0) || (old_locked > new_locked)) {
-		// Acquire a lock on the newly referenced journal block.
-		acquire_recovery_journal_block_reference(journal,
-							 new_locked,
-							 ZONE_TYPE_LOGICAL,
-							 zone->zone_number);
-
-		// If the block originally held a newer lock, release it.
-		if (old_locked > 0) {
-			release_recovery_journal_block_reference(journal,
-								 old_locked,
-								 ZONE_TYPE_LOGICAL,
-								 zone->zone_number);
-		}
-
-		*recovery_lock = new_locked;
-	}
-
-	// Release the transferred lock from the data_vio.
-	release_per_entry_lock_from_other_zone(journal, new_locked);
-	data_vio->recovery_sequence_number = 0;
 }
