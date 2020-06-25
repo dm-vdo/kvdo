@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#11 $
  */
 
 #include "uds.h"
@@ -249,7 +249,7 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
 }
 
 /**********************************************************************/
-int udsOpenIndex(UdsOpenIndexType             openType,
+int udsOpenIndex(enum uds_open_index_type     openType,
                  const char                  *name,
                  const struct uds_parameters *userParams,
                  struct uds_configuration    *userConfig,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#12 $
  */
 
 #ifndef REQUEST_H
@@ -36,7 +36,7 @@
  * performed when processing a Request instance.
  **/
 enum request_action {
-	// Map the API's UdsCallbackType values directly to a corresponding
+	// Map the API's uds_callback_type values directly to a corresponding
 	// action.
 	REQUEST_INDEX = UDS_POST,
 	REQUEST_UPDATE = UDS_UPDATE,
@@ -137,7 +137,7 @@ struct internal_request {
 	struct uds_chunk_data new_metadata; // metadata from request
 	uds_chunk_callback_t *callback;     // callback method when complete
 	struct uds_index_session *session;  // The public index session
-	UdsCallbackType type;               // the type of request
+	enum uds_callback_type type;        // the type of request
 	int status;                         // success/error code for request
 	bool found;                         // True if the block found in index
 	bool update;                        // move record to newest chapter

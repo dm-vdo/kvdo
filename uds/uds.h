@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#5 $
  */
 
 /**
@@ -42,7 +42,7 @@
 /**
  * Valid request types as described in callbacks.
  **/
-typedef enum {
+enum uds_callback_type {
   /**
    * Callback type for operations that post mappings to the UDS
    * index.  When the chunk-hash being added already exists, the
@@ -70,12 +70,12 @@ typedef enum {
    * is updated unless it's the no-update call.
    **/
   UDS_QUERY
-} UdsCallbackType;
+};
 
 /**
  * Valid types for opening an index.
  **/
-typedef enum {
+enum uds_open_index_type {
   /**
    * Load an existing index.  If the index was not saved cleanly, try to
    * recover and rebuild the index.
@@ -91,7 +91,7 @@ typedef enum {
    * Load an existing index, but only if it was cleanly saved.
    **/
   UDS_NO_REBUILD = 2,
-} UdsOpenIndexType;
+};
 
 /** General UDS constants. */
 enum {
@@ -393,7 +393,7 @@ const char *udsGetVersion(void);
  * @return          Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsOpenIndex(UdsOpenIndexType             openType,
+int udsOpenIndex(enum uds_open_index_type     openType,
                  const char                  *name,
                  const struct uds_parameters *params,
                  struct uds_configuration    *conf,

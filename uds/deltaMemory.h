@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#8 $
  */
 
 #ifndef DELTAMEMORY_H
@@ -64,7 +64,7 @@ struct delta_memory {
 						  // an index
 	size_t size;                              // The size of delta list
 						  // memory
-	RelTime rebalance_time;                   // The time spent rebalancing
+	rel_time_t rebalance_time;                // The time spent rebalancing
 	int rebalance_count;                      // Number of memory
 						  // rebalances
 	unsigned short value_bits;                // The number of bits of

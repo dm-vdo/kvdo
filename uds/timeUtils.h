@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#4 $
  */
 
 #ifndef TIME_UTILS_H
@@ -31,11 +31,11 @@
 // Some constants that are defined in kernel headers.
 
 // Absolute time.
-typedef int64_t AbsTime;
+typedef int64_t abs_time_t;
 
 // Relative time, the length of a time interval, or the difference between
 // two times.  A signed 64-bit number of nanoseconds.
-typedef int64_t RelTime;
+typedef int64_t rel_time_t;
 
 /**
  * Return the current time according to the specified clock type.
@@ -46,7 +46,7 @@ typedef int64_t RelTime;
  *
  * @note the precision of the clock is system specific
  **/
-static INLINE AbsTime currentTime(clockid_t clock)
+static INLINE abs_time_t currentTime(clockid_t clock)
 {
   // clock is always a constant, so gcc reduces this to a single call
   return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
@@ -61,7 +61,7 @@ static INLINE AbsTime currentTime(clockid_t clock)
  *
  * @return the relative time between the two timestamps
  **/
-static INLINE RelTime timeDifference(AbsTime a, AbsTime b)
+static INLINE rel_time_t timeDifference(abs_time_t a, abs_time_t b)
 {
   return a - b;
 }
@@ -69,109 +69,109 @@ static INLINE RelTime timeDifference(AbsTime a, AbsTime b)
 
 
 /**
- * Convert an AbsTime value to milliseconds
+ * Convert an abs_time_t value to milliseconds
  *
  * @param abstime  The absolute time
  *
  * @return the equivalent number of milliseconds since the epoch
  **/
-static INLINE int64_t absTimeToMilliseconds(AbsTime abstime)
+static INLINE int64_t absTimeToMilliseconds(abs_time_t abstime)
 {
   return abstime / NSEC_PER_MSEC;
 }
 
 /**
- * Convert seconds to a RelTime value
+ * Convert seconds to a rel_time_t value
  *
  * @param seconds  A number of seconds
  *
- * @return the equivalent number of seconds as a RelTime
+ * @return the equivalent number of seconds as a rel_time_t
  **/
-static INLINE RelTime secondsToRelTime(int64_t seconds)
+static INLINE rel_time_t secondsToRelTime(int64_t seconds)
 {
-  return (RelTime) seconds * (1000 * 1000 * 1000);
+  return (rel_time_t) seconds * (1000 * 1000 * 1000);
 }
 
 /**
- * Convert milliseconds to a RelTime value
+ * Convert milliseconds to a rel_time_t value
  *
  * @param milliseconds  A number of milliseconds
  *
- * @return the equivalent number of milliseconds as a RelTime
+ * @return the equivalent number of milliseconds as a rel_time_t
  **/
-static INLINE RelTime millisecondsToRelTime(int64_t milliseconds)
+static INLINE rel_time_t millisecondsToRelTime(int64_t milliseconds)
 {
-  return (RelTime) milliseconds * (1000 * 1000);
+  return (rel_time_t) milliseconds * (1000 * 1000);
 }
 
 /**
- * Convert microseconds to a RelTime value
+ * Convert microseconds to a rel_time_t value
  *
  * @param microseconds  A number of microseconds
  *
- * @return the equivalent number of microseconds as a RelTime
+ * @return the equivalent number of microseconds as a rel_time_t
  **/
-static INLINE RelTime microsecondsToRelTime(int64_t microseconds)
+static INLINE rel_time_t microsecondsToRelTime(int64_t microseconds)
 {
-  return (RelTime) microseconds * 1000;
+  return (rel_time_t) microseconds * 1000;
 }
 
 /**
- * Convert nanoseconds to a RelTime value
+ * Convert nanoseconds to a rel_time_t value
  *
  * @param nanoseconds  A number of nanoseconds
  *
- * @return the equivalent number of nanoseconds as a RelTime
+ * @return the equivalent number of nanoseconds as a rel_time_t
  **/
-static INLINE RelTime nanosecondsToRelTime(int64_t nanoseconds)
+static INLINE rel_time_t nanosecondsToRelTime(int64_t nanoseconds)
 {
-  return (RelTime) nanoseconds;
+  return (rel_time_t) nanoseconds;
 }
 
 /**
- * Convert a RelTime value to milliseconds
+ * Convert a rel_time_t value to milliseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of milliseconds
  **/
-static INLINE int64_t relTimeToSeconds(RelTime reltime)
+static INLINE int64_t relTimeToSeconds(rel_time_t reltime)
 {
   return reltime / (1000 * 1000 * 1000);
 }
 
 /**
- * Convert a RelTime value to milliseconds
+ * Convert a rel_time_t value to milliseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of milliseconds
  **/
-static INLINE int64_t relTimeToMilliseconds(RelTime reltime)
+static INLINE int64_t relTimeToMilliseconds(rel_time_t reltime)
 {
   return reltime / (1000 * 1000);
 }
 
 /**
- * Convert a RelTime value to microseconds
+ * Convert a rel_time_t value to microseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of microseconds
  **/
-static INLINE int64_t relTimeToMicroseconds(RelTime reltime)
+static INLINE int64_t relTimeToMicroseconds(rel_time_t reltime)
 {
   return reltime / 1000;
 }
 
 /**
- * Convert a RelTime value to nanoseconds
+ * Convert a rel_time_t value to nanoseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of nanoseconds
  **/
-static INLINE int64_t relTimeToNanoseconds(RelTime reltime)
+static INLINE int64_t relTimeToNanoseconds(rel_time_t reltime)
 {
   return reltime;
 }
@@ -187,25 +187,25 @@ static INLINE int64_t relTimeToNanoseconds(RelTime reltime)
 uint64_t __must_check nowUsec(void);
 
 /**
- * Convert from an AbsTime to seconds truncating
+ * Convert from an abs_time_t to seconds truncating
  *
- * @param time  an AbsTime time
+ * @param time  an abs_time_t time
  *
  * @return a 64 bit signed number of seconds
  **/
-static INLINE int64_t absTimeToSeconds(AbsTime time)
+static INLINE int64_t absTimeToSeconds(abs_time_t time)
 {
   return time / NSEC_PER_SEC;
 }
 
 /**
- * Convert from seconds to an AbsTime,
+ * Convert from seconds to an abs_time_t,
  *
  * @param time  a 64 bit signed number of seconds
  *
- * @return an AbsTime time
+ * @return an abs_time_t time
  **/
-static INLINE AbsTime fromSeconds(int64_t time)
+static INLINE abs_time_t fromSeconds(int64_t time)
 {
   return time * NSEC_PER_SEC;
 }

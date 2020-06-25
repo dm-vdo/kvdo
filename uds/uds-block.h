@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-block.h#7 $
  */
 
 /**
@@ -99,7 +99,7 @@ struct uds_request {
    * Set before starting an operation.
    * Unchanged at time of callback.
    */
-  UdsCallbackType type;
+  enum uds_callback_type type;
   /*
    * The operation status, which is either #UDS_SUCCESS or an error code.
    * Set before the callback.

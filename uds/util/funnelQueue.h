@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#4 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -68,8 +68,8 @@
  * The queue link structure that must be embedded in client entries.
  **/
 struct funnel_queue_entry {
-  // The next (newer) entry in the queue.
-  struct funnel_queue_entry * volatile next;
+	// The next (newer) entry in the queue.
+	struct funnel_queue_entry *volatile next;
 };
 
 /**
@@ -78,15 +78,18 @@ struct funnel_queue_entry {
  * so funnel_queue_put() can be in-lined.
  **/
 struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
-  // The producers' end of the queue--an atomically exchanged pointer that
-  // will never be NULL.
-  struct funnel_queue_entry * volatile newest;
+	// The producers' end of the queue--an atomically exchanged pointer
+	// that will never be NULL.
+	struct funnel_queue_entry *volatile newest;
 
-  // The consumer's end of the queue. Owned by the consumer and never NULL.
-  struct funnel_queue_entry *oldest __attribute__((aligned(CACHE_LINE_BYTES)));
+	// The consumer's end of the queue. Owned by the consumer and never
+	// NULL.
+	struct funnel_queue_entry *oldest
+		__attribute__((aligned(CACHE_LINE_BYTES)));
 
-  // A re-usable dummy entry used to provide the non-NULL invariants above.
-  struct funnel_queue_entry stub;
+	// A re-usable dummy entry used to provide the non-NULL invariants
+	// above.
+	struct funnel_queue_entry stub;
 };
 
 /**
@@ -122,31 +125,34 @@ void free_funnel_queue(struct funnel_queue *queue);
  * @param entry  the entry to be added to the queue
  **/
 static INLINE void funnel_queue_put(struct funnel_queue *queue,
-                                    struct funnel_queue_entry *entry)
+				    struct funnel_queue_entry *entry)
 {
-  /*
-   * Barrier requirements: All stores relating to the entry ("next" pointer,
-   * containing data structure fields) must happen before the previous->next
-   * store making it visible to the consumer. Also, the entry's "next" field
-   * initialization to NULL must happen before any other producer threads can
-   * see the entry (the xchg) and try to update the "next" field.
-   *
-   * xchg implements a full barrier.
-   */
-  entry->next = NULL;
-  /*
-   * The xchg macro in the PPC kernel calls a function that takes a void*
-   * argument, triggering a warning about dropping the volatile qualifier.
-   */
+	/*
+	 * Barrier requirements: All stores relating to the entry ("next"
+	 * pointer, containing data structure fields) must happen before the
+	 * previous->next store making it visible to the consumer. Also, the
+	 * entry's "next" field initialization to NULL must happen before any
+	 * other producer threads can see the entry (the xchg) and try to
+	 * update the "next" field.
+	 *
+	 * xchg implements a full barrier.
+	 */
+	entry->next = NULL;
+	/*
+	 * The xchg macro in the PPC kernel calls a function that takes a void*
+	 * argument, triggering a warning about dropping the volatile
+	 * qualifier.
+	 */
 #pragma GCC diagnostic push
 #if __GNUC__ >= 5
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
 #endif
-  struct funnel_queue_entry *previous = xchg(&queue->newest, entry);
+	struct funnel_queue_entry *previous = xchg(&queue->newest, entry);
 #pragma GCC diagnostic pop
-  // Pre-empts between these two statements hide the rest of the queue from
-  // the consumer, preventing consumption until the following assignment runs.
-  previous->next = entry;
+	// Pre-empts between these two statements hide the rest of the queue
+	// from the consumer, preventing consumption until the following
+	// assignment runs.
+	previous->next = entry;
 }
 
 /**
@@ -157,7 +163,7 @@ static INLINE void funnel_queue_put(struct funnel_queue *queue,
  *
  * @return the oldest entry in the queue, or NULL if the queue is empty.
  **/
-struct funnel_queue_entry * __must_check
+struct funnel_queue_entry *__must_check
 funnel_queue_poll(struct funnel_queue *queue);
 
 /**
