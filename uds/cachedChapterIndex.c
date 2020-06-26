@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#12 $
  */
 
 #include "cachedChapterIndex.h"
@@ -73,7 +73,7 @@ void destroy_cached_chapter_index(struct cached_chapter_index *chapter)
 /**********************************************************************/
 int cache_chapter_index(struct cached_chapter_index *chapter,
 			uint64_t virtual_chapter,
-			const Volume *volume)
+			const struct volume *volume)
 {
 	// Mark the cached chapter as unused in case the update fails midway.
 	chapter->virtual_chapter = UINT64_MAX;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#57 $
  */
 
 #include "dedupeIndex.h"
@@ -29,7 +29,7 @@
 #include "murmur/MurmurHash3.h"
 #include "numeric.h"
 #include "stringUtils.h"
-#include "uds-block.h"
+#include "uds.h"
 
 /*****************************************************************************/
 

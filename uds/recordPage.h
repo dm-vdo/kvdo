@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.h#7 $
  */
 
 #ifndef RECORDPAGE_H
@@ -35,7 +35,7 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int encode_record_page(const Volume *volume,
+int encode_record_page(const struct volume *volume,
 		       const struct uds_chunk_record records[],
 		       byte record_page[]);
 

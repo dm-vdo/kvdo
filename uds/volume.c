@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#26 $
  */
 
 #include "volume.h"
@@ -95,7 +95,7 @@ int mapToPhysicalPage(const struct geometry *geometry, int chapter, int page)
 }
 
 /**********************************************************************/
-static void waitForReadQueueNotFull(Volume *volume, Request *request)
+static void waitForReadQueueNotFull(struct volume *volume, Request *request)
 {
   unsigned int zoneNumber = getZoneNumber(request);
   invalidate_counter_t invalidateCounter
@@ -122,7 +122,7 @@ static void waitForReadQueueNotFull(Volume *volume, Request *request)
 }
 
 /**********************************************************************/
-int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
+int enqueuePageRead(struct volume *volume, Request *request, int physicalPage)
 {
   // Don't allow new requests if we are shutting down, but make sure
   // to process any requests that are still in the pipeline.
@@ -150,7 +150,7 @@ int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
 }
 
 /**********************************************************************/
-static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
+static INLINE void waitToReserveReadQueueEntry(struct volume *volume,
                                                unsigned int  *queuePos,
                                                Request      **requestList,
                                                unsigned int  *physicalPage,
@@ -168,7 +168,7 @@ static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
 }
 
 /**********************************************************************/
-static int initChapterIndexPage(const Volume            *volume,
+static int initChapterIndexPage(const struct volume     *volume,
                                 byte                    *indexPage,
                                 unsigned int             chapter,
                                 unsigned int             indexPageNumber,
@@ -217,9 +217,9 @@ static int initChapterIndexPage(const Volume            *volume,
 }
 
 /**********************************************************************/
-static int initializeIndexPage(const Volume       *volume,
-                               unsigned int        physicalPage,
-                               struct cached_page *page)
+static int initializeIndexPage(const struct volume *volume,
+                               unsigned int         physicalPage,
+                               struct cached_page  *page)
 {
   unsigned int chapter = mapToChapterNumber(volume->geometry, physicalPage);
   unsigned int indexPageNumber = mapToPageNumber(volume->geometry,
@@ -233,11 +233,11 @@ static int initializeIndexPage(const Volume       *volume,
 /**********************************************************************/
 static void readThreadFunction(void *arg)
 {
-  Volume       *volume  = arg;
-  unsigned int  queuePos;
-  Request      *requestList;
-  unsigned int  physicalPage;
-  bool          invalid = false;
+  struct volume *volume  = arg;
+  unsigned int   queuePos;
+  Request       *requestList;
+  unsigned int   physicalPage;
+  bool           invalid = false;
 
   logDebug("reader starting");
   lockMutex(&volume->readThreadsMutex);
@@ -342,7 +342,7 @@ static void readThreadFunction(void *arg)
 }
 
 /**********************************************************************/
-static int readPageLocked(Volume              *volume,
+static int readPageLocked(struct volume       *volume,
                           Request             *request,
                           unsigned int         physicalPage,
                           bool                 syncRead,
@@ -398,7 +398,7 @@ static int readPageLocked(Volume              *volume,
 }
 
 /**********************************************************************/
-int getPageLocked(Volume                 *volume,
+int getPageLocked(struct volume          *volume,
                   Request                *request,
                   unsigned int            physicalPage,
                   cache_probe_type_t      probeType,
@@ -425,7 +425,7 @@ int getPageLocked(Volume                 *volume,
 }
 
 /**********************************************************************/
-int getPageProtected(Volume              *volume,
+int getPageProtected(struct volume       *volume,
                      Request             *request,
                      unsigned int         physicalPage,
                      cache_probe_type_t   probeType,
@@ -524,7 +524,7 @@ int getPageProtected(Volume              *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume                   *volume,
+int getPage(struct volume            *volume,
             unsigned int              chapter,
             unsigned int              pageNumber,
             cache_probe_type_t        probeType,
@@ -564,7 +564,7 @@ int getPage(Volume                   *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int searchCachedIndexPage(Volume                      *volume,
+static int searchCachedIndexPage(struct volume               *volume,
                                  Request                     *request,
                                  const struct uds_chunk_name *name,
                                  unsigned int                 chapter,
@@ -608,7 +608,7 @@ static int searchCachedIndexPage(Volume                      *volume,
 }
 
 /**********************************************************************/
-int searchCachedRecordPage(Volume                      *volume,
+int searchCachedRecordPage(struct volume               *volume,
                            Request                     *request,
                            const struct uds_chunk_name *name,
                            unsigned int                 chapter,
@@ -666,7 +666,7 @@ int searchCachedRecordPage(Volume                      *volume,
 }
 
 /**********************************************************************/
-int readChapterIndexFromVolume(const Volume            *volume,
+int readChapterIndexFromVolume(const struct volume     *volume,
                                uint64_t                 virtualChapter,
                                struct volume_page       volume_pages[],
                                struct delta_index_page  indexPages[])
@@ -699,7 +699,7 @@ int readChapterIndexFromVolume(const Volume            *volume,
 }
 
 /**********************************************************************/
-int searchVolumePageCache(Volume                      *volume,
+int searchVolumePageCache(struct volume               *volume,
                           Request                     *request,
                           const struct uds_chunk_name *name,
                           uint64_t                     virtualChapter,
@@ -727,7 +727,7 @@ int searchVolumePageCache(Volume                      *volume,
 }
 
 /**********************************************************************/
-int forgetChapter(Volume                   *volume,
+int forgetChapter(struct volume            *volume,
                   uint64_t                  virtualChapter,
                   enum invalidation_reason  reason)
 {
@@ -753,7 +753,7 @@ int forgetChapter(Volume                   *volume,
  * @param indexPageNumber  the chapter page number of the index page
  * @param scratchPage      the index page data
  **/
-static int donateIndexPageLocked(Volume             *volume,
+static int donateIndexPageLocked(struct volume      *volume,
                                  unsigned int        physicalChapter,
                                  unsigned int        indexPageNumber,
                                  struct volume_page *scratchPage)
@@ -791,7 +791,7 @@ static int donateIndexPageLocked(Volume             *volume,
 }
 
 /**********************************************************************/
-int writeIndexPages(Volume                     *volume,
+int writeIndexPages(struct volume              *volume,
                     int                         physicalPage,
                     struct open_chapter_index  *chapterIndex,
                     byte                      **pages)
@@ -869,7 +869,7 @@ int writeIndexPages(Volume                     *volume,
 }
 
 /**********************************************************************/
-int writeRecordPages(Volume                         *volume,
+int writeRecordPages(struct volume                  *volume,
                      int                             physicalPage,
                      const struct uds_chunk_record   records[],
                      byte                          **pages)
@@ -920,7 +920,7 @@ int writeRecordPages(Volume                         *volume,
 }
 
 /**********************************************************************/
-int writeChapter(Volume                        *volume,
+int writeChapter(struct volume                 *volume,
                  struct open_chapter_index     *chapterIndex,
                  const struct uds_chunk_record  records[])
 {
@@ -946,7 +946,7 @@ int writeChapter(Volume                        *volume,
 }
 
 /**********************************************************************/
-size_t getCacheSize(Volume *volume)
+size_t getCacheSize(struct volume *volume)
 {
   size_t size = get_page_cache_size(volume->pageCache);
   if (is_sparse(volume->geometry)) {
@@ -956,9 +956,9 @@ size_t getCacheSize(Volume *volume)
 }
 
 /**********************************************************************/
-static int probeChapter(Volume       *volume,
-                        unsigned int  chapterNumber,
-                        uint64_t     *virtualChapterNumber)
+static int probeChapter(struct volume *volume,
+                        unsigned int   chapterNumber,
+                        uint64_t      *virtualChapterNumber)
 {
   const struct geometry *geometry = volume->geometry;
   unsigned int expectedListNumber = 0;
@@ -1019,7 +1019,7 @@ static int probeWrapper(void         *aux,
                         unsigned int  chapterNumber,
                         uint64_t     *virtualChapterNumber)
 {
-  Volume *volume = aux;
+  struct volume *volume = aux;
   int result = probeChapter(volume, chapterNumber, virtualChapterNumber);
   if ((result == UDS_CORRUPT_COMPONENT) || (result == UDS_CORRUPT_DATA)) {
     *virtualChapterNumber = UINT64_MAX;
@@ -1029,9 +1029,9 @@ static int probeWrapper(void         *aux,
 }
 
 /**********************************************************************/
-static int findRealEndOfVolume(Volume       *volume,
-                               unsigned int  limit,
-                               unsigned int *limitPtr)
+static int findRealEndOfVolume(struct volume *volume,
+                               unsigned int   limit,
+                               unsigned int  *limitPtr)
 {
   /*
    * Start checking from the end of the volume. As long as we hit corrupt
@@ -1068,10 +1068,10 @@ static int findRealEndOfVolume(Volume       *volume,
 }
 
 /**********************************************************************/
-int findVolumeChapterBoundaries(Volume   *volume,
-                                uint64_t *lowestVCN,
-                                uint64_t *highestVCN,
-                                bool     *isEmpty)
+int findVolumeChapterBoundaries(struct volume *volume,
+                                uint64_t      *lowestVCN,
+                                uint64_t      *highestVCN,
+                                bool          *isEmpty)
 {
   unsigned int chapterLimit = volume->geometry->chapters_per_volume;
 
@@ -1216,10 +1216,10 @@ static int __must_check allocateVolume(const struct configuration *config,
                                        struct index_layout *layout,
                                        unsigned int readQueueMaxSize,
                                        unsigned int zoneCount,
-                                       Volume **newVolume)
+                                       struct volume **newVolume)
 {
-  Volume *volume;
-  int result = ALLOCATE(1, Volume, "volume", &volume);
+  struct volume *volume;
+  int result = ALLOCATE(1, struct volume, "volume", &volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1300,7 +1300,7 @@ int makeVolume(const struct configuration   *config,
                const struct uds_parameters  *userParams,
                unsigned int                  readQueueMaxSize,
                unsigned int                  zoneCount,
-               Volume                      **newVolume)
+               struct volume               **newVolume)
 {
   unsigned int volumeReadThreads = getReadThreads(userParams);
 
@@ -1309,7 +1309,7 @@ int makeVolume(const struct configuration   *config,
     return UDS_INVALID_ARGUMENT;
   }
 
-  Volume *volume = NULL;
+  struct volume *volume = NULL;
   int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
                               &volume);
   if (result != UDS_SUCCESS) {
@@ -1356,7 +1356,7 @@ int makeVolume(const struct configuration   *config,
 }
 
 /**********************************************************************/
-void freeVolume(Volume *volume)
+void freeVolume(struct volume *volume)
 {
   if (volume == NULL) {
     return;

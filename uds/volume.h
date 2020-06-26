@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#16 $
  */
 
 #ifndef VOLUME_H
@@ -35,13 +35,13 @@
 #include "util/radixSort.h"
 #include "volumeStore.h"
 
-typedef enum {
+enum reader_state {
   READER_STATE_RUN   = 1,
   READER_STATE_EXIT  = 2,
   READER_STATE_STOP  = 4
-} ReaderState;
+};
 
-typedef enum indexLookupMode {
+enum index_lookup_mode {
   /* Always do lookups in all chapters normally.  */
   LOOKUP_NORMAL,
   /*
@@ -57,9 +57,9 @@ typedef enum indexLookupMode {
    * This cannot be set externally.
    */
   LOOKUP_FOR_REBUILD
-} IndexLookupMode;
+};
 
-typedef struct volume {
+struct volume {
   /* The layout of the volume */
   struct geometry                *geometry;
   /* The configuration of the volume */
@@ -91,12 +91,12 @@ typedef struct volume {
   /* Number of threads busy with reads */
   unsigned int                    busyReaderThreads;
   /* The state of the reader threads */
-  ReaderState                     readerState;
+  enum reader_state               readerState;
   /* The lookup mode for the index */
-  IndexLookupMode                 lookupMode;
+  enum index_lookup_mode          lookupMode;
   /* Number of read threads to use (run-time parameter) */
   unsigned int                    numReadThreads;
-} Volume;
+};
 
 /**
  * Create a volume.
@@ -116,14 +116,14 @@ int __must_check makeVolume(const struct configuration *config,
 			    const struct uds_parameters *userParams,
 			    unsigned int readQueueMaxSize,
 			    unsigned int zoneCount,
-			    Volume **newVolume);
+			    struct volume **newVolume);
 
 /**
  * Clean up a volume and its memory.
  *
  * @param volume  The volume to destroy.
  **/
-void freeVolume(Volume *volume);
+void freeVolume(struct volume *volume);
 
 /**
  * Enqueue a page read.
@@ -135,7 +135,7 @@ void freeVolume(Volume *volume);
  * @return UDS_QUEUED if successful, or an error code
  **/
 int __must_check
-enqueuePageRead(Volume *volume, Request *request, int physicalPage);
+enqueuePageRead(struct volume *volume, Request *request, int physicalPage);
 
 /**
  * Find the lowest and highest contiguous chapters and determine their
@@ -162,7 +162,7 @@ enqueuePageRead(Volume *volume, Request *request, int physicalPage);
  *              pcn == vcn % chaptersPerVolume.
  **/
 int __must_check
-findVolumeChapterBoundaries(Volume *volume,
+findVolumeChapterBoundaries(struct volume *volume,
 			    uint64_t *lowestVCN,
 			    uint64_t *highestVCN,
 			    bool *isEmpty);
@@ -181,7 +181,7 @@ findVolumeChapterBoundaries(Volume *volume,
  *
  * @return UDS_SUCCESS or an error
  **/
-int __must_check searchVolumePageCache(Volume *volume,
+int __must_check searchVolumePageCache(struct volume *volume,
 				       Request *request,
 				       const struct uds_chunk_name *name,
 				       uint64_t virtualChapter,
@@ -211,7 +211,7 @@ int __must_check searchVolumePageCache(Volume *volume,
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int __must_check searchCachedRecordPage(Volume *volume,
+int __must_check searchCachedRecordPage(struct volume *volume,
 					Request *request,
 					const struct uds_chunk_name *name,
 					unsigned int chapter,
@@ -229,7 +229,7 @@ int __must_check searchCachedRecordPage(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check forgetChapter(Volume *volume, uint64_t chapter,
+int __must_check forgetChapter(struct volume *volume, uint64_t chapter,
 			       enum invalidation_reason reason);
 
 /**
@@ -243,7 +243,7 @@ int __must_check forgetChapter(Volume *volume, uint64_t chapter,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeIndexPages(Volume *volume,
+int __must_check writeIndexPages(struct volume *volume,
 				 int physicalPage,
 				 struct open_chapter_index *chapterIndex,
 				 byte **pages);
@@ -259,7 +259,7 @@ int __must_check writeIndexPages(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeRecordPages(Volume *volume,
+int __must_check writeRecordPages(struct volume *volume,
 				  int physicalPage,
 				  const struct uds_chunk_record records[],
 				  byte **pages);
@@ -274,7 +274,7 @@ int __must_check writeRecordPages(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeChapter(Volume *volume,
+int __must_check writeChapter(struct volume *volume,
 			      struct open_chapter_index *chapterIndex,
 			      const struct uds_chunk_record records[]);
 
@@ -290,7 +290,7 @@ int __must_check writeChapter(Volume *volume,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-readChapterIndexFromVolume(const Volume *volume,
+readChapterIndexFromVolume(const struct volume *volume,
 			   uint64_t virtualChapter,
 			   struct volume_page volumePages[],
 			   struct delta_index_page indexPages[]);
@@ -316,7 +316,7 @@ readChapterIndexFromVolume(const Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPageLocked(Volume *volume,
+int __must_check getPageLocked(struct volume *volume,
 			       Request *request,
 			       unsigned int physicalPage,
 			       cache_probe_type_t probeType,
@@ -347,7 +347,7 @@ int __must_check getPageLocked(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPageProtected(Volume *volume,
+int __must_check getPageProtected(struct volume *volume,
 				  Request *request,
 				  unsigned int physicalPage,
 				  cache_probe_type_t probeType,
@@ -379,7 +379,7 @@ int __must_check getPageProtected(Volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPage(Volume *volume,
+int __must_check getPage(struct volume *volume,
 			 unsigned int chapter,
 			 unsigned int pageNumber,
 			 cache_probe_type_t probeType,
@@ -387,7 +387,7 @@ int __must_check getPage(Volume *volume,
 			 struct delta_index_page **indexPagePtr);
 
 /**********************************************************************/
-size_t __must_check getCacheSize(Volume *volume);
+size_t __must_check getCacheSize(struct volume *volume);
 
 /**********************************************************************/
 int __must_check

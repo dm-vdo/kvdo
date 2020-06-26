@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#5 $
  */
 
 #include "hashUtils.h"
@@ -79,7 +79,7 @@ int chunk_data_to_hex(const struct uds_chunk_data *chunk_data,
 		      size_t hex_data_len)
 {
 	return data_to_hex(chunk_data->data,
-			   UDS_MAX_BLOCK_DATA_SIZE,
+			   UDS_METADATA_SIZE,
 			   hex_data,
 			   hex_data_len);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#19 $
  */
 
 /**
@@ -500,7 +500,7 @@ int search_sparse_cache(struct index_zone *zone,
 			uint64_t *virtual_chapter_ptr,
 			int *record_page_ptr)
 {
-	Volume *volume = zone->index->volume;
+	struct volume *volume = zone->index->volume;
 	struct sparse_cache *cache = volume->sparseCache;
 	unsigned int zone_number = zone->id;
 	// If the caller did not specify a virtual chapter, search the entire

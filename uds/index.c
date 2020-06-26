@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#29 $
  */
 
 #include "index.h"
@@ -44,7 +44,7 @@ static int replay_index_from_checkpoint(struct index *index,
 	// Find the volume chapter boundaries
 	uint64_t lowest_vcn, highest_vcn;
 	bool is_empty = false;
-	IndexLookupMode old_lookup_mode = index->volume->lookupMode;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
 	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
 	int result = findVolumeChapterBoundaries(index->volume,
 						 &lowest_vcn,
@@ -133,7 +133,7 @@ static int rebuild_index(struct index *index)
 	// Find the volume chapter boundaries
 	uint64_t lowest_vcn, highest_vcn;
 	bool is_empty = false;
-	IndexLookupMode old_lookup_mode = index->volume->lookupMode;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
 	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
 	int result = findVolumeChapterBoundaries(index->volume, &lowest_vcn,
 						 &highest_vcn, &is_empty);
@@ -836,7 +836,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 *   Starts empty, then dense-only, then dense-plus-sparse.
 	 *   Need to sparsify while processing individual chapters.
 	 */
-	IndexLookupMode old_lookup_mode = index->volume->lookupMode;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
 	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
 	/*
 	 * Go through each record page of each chapter and add the records back

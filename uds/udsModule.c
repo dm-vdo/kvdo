@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#48 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#49 $
  */
 
 #include <linux/module.h>
@@ -30,7 +30,6 @@
 #include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
-#include "uds-block.h"
 #include "util/funnelQueue.h"
 
 /**********************************************************************/

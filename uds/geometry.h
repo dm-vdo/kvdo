@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#6 $
  */
 
 #ifndef GEOMETRY_H
@@ -25,7 +25,6 @@
 #include "compiler.h"
 #include "typeDefs.h"
 #include "uds.h"
-#include "uds-block.h"
 
 /**
  * geometry defines constants and a record that parameterize the layout of an
@@ -96,7 +95,7 @@ struct geometry {
 
 enum {
 	/* The number of bytes in a record (name + metadata) */
-	BYTES_PER_RECORD = (UDS_CHUNK_NAME_SIZE + UDS_MAX_BLOCK_DATA_SIZE),
+	BYTES_PER_RECORD = (UDS_CHUNK_NAME_SIZE + UDS_METADATA_SIZE),
 
 	/* The default length of a page in a chapter, in bytes */
 	DEFAULT_BYTES_PER_PAGE = 1024 * BYTES_PER_RECORD,

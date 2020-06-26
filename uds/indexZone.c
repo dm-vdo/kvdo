@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#18 $
  */
 
 #include "indexZone.h"
@@ -361,7 +361,7 @@ int get_record_from_zone(struct index_zone *zone,
 		return UDS_SUCCESS;
 	}
 
-	Volume *volume = zone->index->volume;
+	struct volume *volume = zone->index->volume;
 	if (is_zone_chapter_sparse(zone, virtual_chapter) &&
 	    sparse_cache_contains(volume->sparseCache,
 				  virtual_chapter,
@@ -415,7 +415,7 @@ int search_sparse_cache_in_zone(struct index_zone *zone,
 		return result;
 	}
 
-	Volume *volume = zone->index->volume;
+	struct volume *volume = zone->index->volume;
 	// XXX map to physical chapter and validate. It would be nice to just
 	// pass the virtual in to the slow lane, since it's tracking
 	// invalidations.

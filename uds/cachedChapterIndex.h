@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.h#12 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -180,7 +180,7 @@ should_skip_chapter_index(const struct index_zone *zone,
  **/
 int __must_check cache_chapter_index(struct cached_chapter_index *chapter,
 				     uint64_t virtual_chapter,
-				     const Volume *volume);
+				     const struct volume *volume);
 
 /**
  * Search a single cached sparse chapter index for a chunk name, returning the

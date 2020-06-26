@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#22 $
  */
 
 #include "openChapter.h"
@@ -143,7 +143,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 /**********************************************************************/
 int close_open_chapter(struct open_chapter_zone **chapter_zones,
 		       unsigned int zone_count,
-		       Volume *volume,
+		       struct volume *volume,
 		       struct open_chapter_index *chapter_index,
 		       struct uds_chunk_record *collated_records,
 		       uint64_t virtual_chapter_number)

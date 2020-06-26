@@ -1,4 +1,4 @@
-UDS_VERSION = 8.1.0.141
+UDS_VERSION = 8.1.0.144
 
 SOURCES =  $(notdir $(wildcard $(src)/*.c)) murmur/MurmurHash3.c
 SOURCES += $(addprefix util/,$(notdir $(wildcard $(src)/util/*.c)))
