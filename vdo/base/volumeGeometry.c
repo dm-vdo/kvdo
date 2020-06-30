@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#24 $
  */
 
 #include "volumeGeometry.h"
@@ -451,7 +451,7 @@ int compute_index_blocks(const struct index_config *index_config,
 
 	uint64_t index_bytes;
 	result = uds_compute_index_size(uds_configuration, 0, &index_bytes);
-	udsFreeConfiguration(uds_configuration);
+	uds_free_configuration(uds_configuration);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "error computing index size");
@@ -569,14 +569,14 @@ int index_config_to_uds_configuration(const struct index_config *index_config,
 				      struct uds_configuration **uds_config_ptr)
 {
 	struct uds_configuration *uds_configuration;
-	int result = udsInitializeConfiguration(&uds_configuration,
-						index_config->mem);
+	int result = uds_initialize_configuration(&uds_configuration,
+						  index_config->mem);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "error initializing configuration");
 	}
 
-	udsConfigurationSetSparse(uds_configuration, index_config->sparse);
+	uds_configuration_set_sparse(uds_configuration, index_config->sparse);
 	*uds_config_ptr = uds_configuration;
 	return VDO_SUCCESS;
 }

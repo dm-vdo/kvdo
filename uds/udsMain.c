@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#14 $
  */
 
 #include "uds.h"
@@ -30,10 +30,13 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX   = 1024;
-const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB = (uds_memory_config_size_t) -256;
-const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB = (uds_memory_config_size_t) -512;
-const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB = (uds_memory_config_size_t) -768;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX = 1024;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB =
+	(uds_memory_config_size_t) -256;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB =
+	(uds_memory_config_size_t) -512;
+const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB =
+	(uds_memory_config_size_t) -768;
 
 /*
  * ===========================================================================
@@ -42,268 +45,290 @@ const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB = (uds_memory_config_size
  */
 
 /**********************************************************************/
-int udsInitializeConfiguration(struct uds_configuration **userConfig,
-                               uds_memory_config_size_t   memGB)
+int uds_initialize_configuration(struct uds_configuration **user_config,
+				 uds_memory_config_size_t mem_gb)
 {
-  if (userConfig == NULL) {
-    return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
-                                   "received a NULL config pointer");
-  }
+	if (user_config == NULL) {
+		return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
+					       "received a NULL config pointer");
+	}
 
-  /* Set the configuration parameters that change with memory size.  If you
-   * change these values, you should also:
-   *
-   * Change Configuration_x1, which tests these values and expects to see them
-   *
-   * Bump the index configuration version number.  This bump ensures that
-   * the test infrastructure will be forced to test the new configuration.
-   */
+	/* Set the configuration parameters that change with memory size.  If
+	 * you change these values, you should also:
+	 *
+	 * Change Configuration_x1, which tests these values and expects to see
+	 * them
+	 *
+	 * Bump the index configuration version number.  This bump ensures that
+	 * the test infrastructure will be forced to test the new
+	 * configuration.
+	 */
 
-  unsigned int chaptersPerVolume, recordPagesPerChapter;
-  if (memGB == UDS_MEMORY_CONFIG_256MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == UDS_MEMORY_CONFIG_512MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == UDS_MEMORY_CONFIG_768MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == 1) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-  } else if ((memGB > 1) && (memGB <= UDS_MEMORY_CONFIG_MAX)) {
-    chaptersPerVolume     = memGB * DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-  } else {
-    return UDS_INVALID_MEMORY_SIZE;
-  }
+	unsigned int chapters_per_volume, record_pages_per_chapter;
+	if (mem_gb == UDS_MEMORY_CONFIG_256MB) {
+		chapters_per_volume = DEFAULT_CHAPTERS_PER_VOLUME;
+		record_pages_per_chapter = SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_512MB) {
+		chapters_per_volume = DEFAULT_CHAPTERS_PER_VOLUME;
+		record_pages_per_chapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == UDS_MEMORY_CONFIG_768MB) {
+		chapters_per_volume = DEFAULT_CHAPTERS_PER_VOLUME;
+		record_pages_per_chapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (mem_gb == 1) {
+		chapters_per_volume = DEFAULT_CHAPTERS_PER_VOLUME;
+		record_pages_per_chapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else if ((mem_gb > 1) && (mem_gb <= UDS_MEMORY_CONFIG_MAX)) {
+		chapters_per_volume = mem_gb * DEFAULT_CHAPTERS_PER_VOLUME;
+		record_pages_per_chapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else {
+		return UDS_INVALID_MEMORY_SIZE;
+	}
 
-  int result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
-                        userConfig);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
+			      user_config);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  (*userConfig)->record_pages_per_chapter   = recordPagesPerChapter;
-  (*userConfig)->chapters_per_volume        = chaptersPerVolume;
-  (*userConfig)->sparse_chapters_per_volume
-    = DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
-  (*userConfig)->cache_chapters             = DEFAULT_CACHE_CHAPTERS;
-  (*userConfig)->checkpoint_frequency       = DEFAULT_CHECKPOINT_FREQUENCY;
-  (*userConfig)->master_index_mean_delta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
-  (*userConfig)->bytes_per_page             = DEFAULT_BYTES_PER_PAGE;
-  (*userConfig)->sparse_sample_rate         = DEFAULT_SPARSE_SAMPLE_RATE;
-  (*userConfig)->nonce                      = 0;
-  return UDS_SUCCESS;
+	(*user_config)->record_pages_per_chapter = record_pages_per_chapter;
+	(*user_config)->chapters_per_volume = chapters_per_volume;
+	(*user_config)->sparse_chapters_per_volume =
+		DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
+	(*user_config)->cache_chapters = DEFAULT_CACHE_CHAPTERS;
+	(*user_config)->checkpoint_frequency = DEFAULT_CHECKPOINT_FREQUENCY;
+	(*user_config)->master_index_mean_delta =
+		DEFAULT_MASTER_INDEX_MEAN_DELTA;
+	(*user_config)->bytes_per_page = DEFAULT_BYTES_PER_PAGE;
+	(*user_config)->sparse_sample_rate = DEFAULT_SPARSE_SAMPLE_RATE;
+	(*user_config)->nonce = 0;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void udsConfigurationSetSparse(struct uds_configuration *userConfig,
-                               bool sparse)
+void uds_configuration_set_sparse(struct uds_configuration *user_config,
+				  bool sparse)
 {
-  bool prevSparse = (userConfig->sparse_chapters_per_volume != 0);
-  if (sparse == prevSparse) {
-    // nothing to do
-    return;
-  }
+	bool prev_sparse = (user_config->sparse_chapters_per_volume != 0);
+	if (sparse == prev_sparse) {
+		// nothing to do
+		return;
+	}
 
-  unsigned int prevChaptersPerVolume = userConfig->chapters_per_volume;
-  if (sparse) {
-    // Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB) footprint
-    userConfig->chapters_per_volume = 10 * prevChaptersPerVolume;
-    userConfig->sparse_chapters_per_volume = 9 * prevChaptersPerVolume
-      + prevChaptersPerVolume / 2;
-    userConfig->sparse_sample_rate = 32;
-  } else {
-    userConfig->chapters_per_volume = prevChaptersPerVolume / 10;
-    userConfig->sparse_chapters_per_volume = 0;
-    userConfig->sparse_sample_rate = 0;
-  }
+	unsigned int prev_chapters_per_volume =
+		user_config->chapters_per_volume;
+	if (sparse) {
+		// Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
+		// footprint
+		user_config->chapters_per_volume =
+			10 * prev_chapters_per_volume;
+		user_config->sparse_chapters_per_volume =
+			9 * prev_chapters_per_volume +
+			prev_chapters_per_volume / 2;
+		user_config->sparse_sample_rate = 32;
+	} else {
+		user_config->chapters_per_volume =
+			prev_chapters_per_volume / 10;
+		user_config->sparse_chapters_per_volume = 0;
+		user_config->sparse_sample_rate = 0;
+	}
 }
 
 /**********************************************************************/
-bool udsConfigurationGetSparse(struct uds_configuration *userConfig)
+bool uds_configuration_get_sparse(struct uds_configuration *user_config)
 {
-  return userConfig->sparse_chapters_per_volume > 0;
+	return user_config->sparse_chapters_per_volume > 0;
 }
 
 /**********************************************************************/
-void udsConfigurationSetNonce(struct uds_configuration *userConfig,
-                              uds_nonce_t nonce)
+void uds_configuration_set_nonce(struct uds_configuration *user_config,
+				 uds_nonce_t nonce)
 {
-  userConfig->nonce = nonce;
+	user_config->nonce = nonce;
 }
 
 /**********************************************************************/
-uds_nonce_t udsConfigurationGetNonce(struct uds_configuration *userConfig)
+uds_nonce_t uds_configuration_get_nonce(struct uds_configuration *user_config)
 {
-  return userConfig->nonce;
-}
-
-/**********************************************************************/
-unsigned int udsConfigurationGetMemory(struct uds_configuration *userConfig)
-{
-  enum {
-    CHAPTERS = DEFAULT_CHAPTERS_PER_VOLUME,
-    SMALL_PAGES = CHAPTERS * SMALL_RECORD_PAGES_PER_CHAPTER,
-    LARGE_PAGES = CHAPTERS * DEFAULT_RECORD_PAGES_PER_CHAPTER
-  };
-  unsigned int pages = (userConfig->chapters_per_volume
-                        * userConfig->record_pages_per_chapter);
-  if (userConfig->sparse_chapters_per_volume != 0) {
-    pages /= 10;
-  }
-  switch (pages) {
-  case SMALL_PAGES:     return UDS_MEMORY_CONFIG_256MB;
-  case 2 * SMALL_PAGES: return UDS_MEMORY_CONFIG_512MB;
-  case 3 * SMALL_PAGES: return UDS_MEMORY_CONFIG_768MB;
-  default:              return pages / LARGE_PAGES;
-  }
+	return user_config->nonce;
 }
 
 /**********************************************************************/
 unsigned int
-udsConfigurationGetChaptersPerVolume(struct uds_configuration *userConfig)
+uds_configuration_get_memory(struct uds_configuration *user_config)
 {
-  return userConfig->chapters_per_volume;
+	enum { CHAPTERS = DEFAULT_CHAPTERS_PER_VOLUME,
+	       SMALL_PAGES = CHAPTERS * SMALL_RECORD_PAGES_PER_CHAPTER,
+	       LARGE_PAGES = CHAPTERS * DEFAULT_RECORD_PAGES_PER_CHAPTER };
+	unsigned int pages = (user_config->chapters_per_volume *
+			      user_config->record_pages_per_chapter);
+	if (user_config->sparse_chapters_per_volume != 0) {
+		pages /= 10;
+	}
+	switch (pages) {
+	case SMALL_PAGES:
+		return UDS_MEMORY_CONFIG_256MB;
+	case 2 * SMALL_PAGES:
+		return UDS_MEMORY_CONFIG_512MB;
+	case 3 * SMALL_PAGES:
+		return UDS_MEMORY_CONFIG_768MB;
+	default:
+		return pages / LARGE_PAGES;
+	}
 }
 
 /**********************************************************************/
-void udsFreeConfiguration(struct uds_configuration *userConfig)
+unsigned int
+uds_configuration_get_chapters_per_volume(struct uds_configuration *user_config)
 {
-  FREE(userConfig);
+	return user_config->chapters_per_volume;
 }
 
 /**********************************************************************/
-int udsCreateIndexSession(struct uds_index_session **session)
+void uds_free_configuration(struct uds_configuration *user_config)
 {
-  if (session == NULL) {
-    return UDS_NO_INDEXSESSION;
-  }
-
-  struct uds_index_session *indexSession = NULL;
-  int result = makeEmptyIndexSession(&indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  *session = indexSession;
-  return UDS_SUCCESS;
+	FREE(user_config);
 }
 
 /**********************************************************************/
-static
-int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
-                                     struct index_layout         *layout,
-                                     const struct uds_parameters *userParams,
-                                     enum load_type               loadType)
+int uds_create_index_session(struct uds_index_session **session)
 {
-  int result = ((loadType == LOAD_CREATE)
-                ? write_index_config(layout, &indexSession->userConfig)
-                : verify_index_config(layout, &indexSession->userConfig));
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	if (session == NULL) {
+		return UDS_NO_INDEXSESSION;
+	}
 
-  struct configuration *indexConfig;
-  result = make_configuration(&indexSession->userConfig, &indexConfig);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed to allocate config");
-    return result;
-  }
+	struct uds_index_session *index_session = NULL;
+	int result = makeEmptyIndexSession(&index_session);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  // Zero the stats for the new index.
-  memset(&indexSession->stats, 0, sizeof(indexSession->stats));
-
-  result = make_index_router(layout, indexConfig, userParams, loadType,
-                             &indexSession->loadContext, enter_callback_stage,
-                             &indexSession->router);
-  free_configuration(indexConfig);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed to make router");
-    return result;
-  }
-
-  log_uds_configuration(&indexSession->userConfig);
-  return UDS_SUCCESS;
+	*session = index_session;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int initializeIndexSession(struct uds_index_session    *indexSession,
-                                  const char                  *name,
-                                  const struct uds_parameters *userParams,
-                                  enum load_type               loadType)
+static int
+initialize_index_session_with_layout(struct uds_index_session *index_session,
+				     struct index_layout *layout,
+				     const struct uds_parameters *user_params,
+				     enum load_type load_type)
 {
-  struct index_layout *layout;
-  int result = make_index_layout(name, loadType == LOAD_CREATE,
-                                 &indexSession->userConfig, &layout);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ((load_type == LOAD_CREATE) ?
+			      write_index_config(layout,
+						 &index_session->userConfig) :
+			      verify_index_config(layout,
+						  &index_session->userConfig));
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = initializeIndexSessionWithLayout(indexSession, layout, userParams,
-                                            loadType);
-  put_index_layout(&layout);
-  return result;
+	struct configuration *index_config;
+	result = make_configuration(&index_session->userConfig, &index_config);
+	if (result != UDS_SUCCESS) {
+		logErrorWithStringError(result, "Failed to allocate config");
+		return result;
+	}
+
+	// Zero the stats for the new index.
+	memset(&index_session->stats, 0, sizeof(index_session->stats));
+
+	result = make_index_router(layout,
+				   index_config,
+				   user_params,
+				   load_type,
+				   &index_session->loadContext,
+				   enter_callback_stage,
+				   &index_session->router);
+	free_configuration(index_config);
+	if (result != UDS_SUCCESS) {
+		logErrorWithStringError(result, "Failed to make router");
+		return result;
+	}
+
+	log_uds_configuration(&index_session->userConfig);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int udsOpenIndex(enum uds_open_index_type     openType,
-                 const char                  *name,
-                 const struct uds_parameters *userParams,
-                 struct uds_configuration    *userConfig,
-                 struct uds_index_session    *session)
+static int initialize_index_session(struct uds_index_session *index_session,
+				    const char *name,
+				    const struct uds_parameters *user_params,
+				    enum load_type load_type)
 {
-  if (name == NULL) {
-    return UDS_INDEX_NAME_REQUIRED;
-  }
-  if (userConfig == NULL) {
-    return UDS_CONF_REQUIRED;
-  }
-  if (session == NULL) {
-    return UDS_NO_INDEXSESSION;
-  }
+	struct index_layout *layout;
+	int result = make_index_layout(name,
+				       load_type == LOAD_CREATE,
+				       &index_session->userConfig,
+				       &layout);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  int result = startLoadingIndexSession(session);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  session->userConfig = *userConfig;
-
-  // Map the external openType to the internal loadType
-  enum load_type loadType =   openType == UDS_CREATE     ? LOAD_CREATE
-                            : openType == UDS_NO_REBUILD ? LOAD_LOAD
-                            :                              LOAD_REBUILD;
-  logNotice("%s: %s", get_load_type(loadType), name);
-
-  result = initializeIndexSession(session, name, userParams, loadType);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed %s", get_load_type(loadType));
-    saveAndFreeIndex(session);
-  }
-
-  finishLoadingIndexSession(session, result);
-  return sansUnrecoverable(result);
+	result = initialize_index_session_with_layout(index_session, layout,
+						      user_params, load_type);
+	put_index_layout(&layout);
+	return result;
 }
 
 /**********************************************************************/
-const char *udsGetVersion(void)
+int uds_open_index(enum uds_open_index_type open_type,
+		   const char *name,
+		   const struct uds_parameters *user_params,
+		   struct uds_configuration *user_config,
+		   struct uds_index_session *session)
+{
+	if (name == NULL) {
+		return UDS_INDEX_NAME_REQUIRED;
+	}
+	if (user_config == NULL) {
+		return UDS_CONF_REQUIRED;
+	}
+	if (session == NULL) {
+		return UDS_NO_INDEXSESSION;
+	}
+
+	int result = startLoadingIndexSession(session);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	session->userConfig = *user_config;
+
+	// Map the external open_type to the internal load_type
+	enum load_type load_type =
+		open_type == UDS_CREATE ?
+			LOAD_CREATE :
+			open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
+	logNotice("%s: %s", get_load_type(load_type), name);
+
+	result = initialize_index_session(session, name, user_params,
+					  load_type);
+	if (result != UDS_SUCCESS) {
+		logErrorWithStringError(result, "Failed %s",
+					get_load_type(load_type));
+		saveAndFreeIndex(session);
+	}
+
+	finishLoadingIndexSession(session, result);
+	return sansUnrecoverable(result);
+}
+
+/**********************************************************************/
+const char *uds_get_version(void)
 {
 #ifdef UDS_VERSION
-  return UDS_VERSION;
+	return UDS_VERSION;
 #else
-  return "internal version";
+	return "internal version";
 #endif
 }
 
 /**********************************************************************/
-const char *udsStringError(int errnum, char *buf, size_t buflen)
+const char *uds_string_error(int errnum, char *buf, size_t buflen)
 {
-  if (buf == NULL) {
-    return NULL;
-  }
+	if (buf == NULL) {
+		return NULL;
+	}
 
-  return stringError(errnum, buf, buflen);
+	return stringError(errnum, buf, buflen);
 }

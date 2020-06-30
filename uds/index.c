@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#32 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#33 $
  */
 
 #include "index.h"
@@ -943,15 +943,15 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 	get_master_index_stats(index->master_index, &dense_stats,
 			       &sparse_stats);
 
-	counters->entriesIndexed =
+	counters->entries_indexed =
 		(dense_stats.record_count + sparse_stats.record_count);
-	counters->memoryUsed =
+	counters->memory_used =
 		((uint64_t) dense_stats.memory_allocated +
 		 (uint64_t) sparse_stats.memory_allocated +
 		 (uint64_t) get_cache_size(index->volume) + cw_allocated);
 	counters->collisions =
 		(dense_stats.collision_count + sparse_stats.collision_count);
-	counters->entriesDiscarded =
+	counters->entries_discarded =
 		(dense_stats.discard_count + sparse_stats.discard_count);
 	counters->checkpoints = get_checkpoint_count(index->checkpoint);
 }

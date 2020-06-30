@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#15 $
  */
 
 #include "indexSession.h"
@@ -33,20 +33,20 @@ static void collectStats(const struct uds_index_session *indexSession,
 {
   const SessionStats *sessionStats = &indexSession->stats;
 
-  stats->currentTime = absTimeToSeconds(currentTime(CLOCK_REALTIME));
+  stats->current_time = absTimeToSeconds(currentTime(CLOCK_REALTIME));
 
-  stats->postsFound         = READ_ONCE(sessionStats->postsFound);
-  stats->inMemoryPostsFound = READ_ONCE(sessionStats->postsFoundOpenChapter);
-  stats->densePostsFound    = READ_ONCE(sessionStats->postsFoundDense);
-  stats->sparsePostsFound   = READ_ONCE(sessionStats->postsFoundSparse);
-  stats->postsNotFound      = READ_ONCE(sessionStats->postsNotFound);
-  stats->updatesFound       = READ_ONCE(sessionStats->updatesFound);
-  stats->updatesNotFound    = READ_ONCE(sessionStats->updatesNotFound);
-  stats->deletionsFound     = READ_ONCE(sessionStats->deletionsFound);
-  stats->deletionsNotFound  = READ_ONCE(sessionStats->deletionsNotFound);
-  stats->queriesFound       = READ_ONCE(sessionStats->queriesFound);
-  stats->queriesNotFound    = READ_ONCE(sessionStats->queriesNotFound);
-  stats->requests           = READ_ONCE(sessionStats->requests);
+  stats->posts_found           = READ_ONCE(sessionStats->postsFound);
+  stats->in_memory_posts_found = READ_ONCE(sessionStats->postsFoundOpenChapter);
+  stats->dense_posts_found     = READ_ONCE(sessionStats->postsFoundDense);
+  stats->sparse_posts_found    = READ_ONCE(sessionStats->postsFoundSparse);
+  stats->posts_not_found       = READ_ONCE(sessionStats->postsNotFound);
+  stats->updates_found         = READ_ONCE(sessionStats->updatesFound);
+  stats->updates_not_found     = READ_ONCE(sessionStats->updatesNotFound);
+  stats->deletions_found       = READ_ONCE(sessionStats->deletionsFound);
+  stats->deletions_not_found   = READ_ONCE(sessionStats->deletionsNotFound);
+  stats->queries_found         = READ_ONCE(sessionStats->queriesFound);
+  stats->queries_not_found     = READ_ONCE(sessionStats->queriesNotFound);
+  stats->requests              = READ_ONCE(sessionStats->requests);
 }
 
 /**********************************************************************/
@@ -65,7 +65,7 @@ static void handleCallbacks(Request *request)
     request->found = (request->location != LOC_UNAVAILABLE);
     request->callback((struct uds_request *) request);
     // We do this release after the callback because of the contract of the
-    // udsFlushIndexSession method.
+    // uds_flush_index_session method.
     releaseIndexSession(indexSession);
   }
 }
@@ -208,7 +208,7 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
 }
 
 /**********************************************************************/
-int udsSuspendIndexSession(struct uds_index_session *session, bool save)
+int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
   int result;
   bool save_index = false;
@@ -273,7 +273,7 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
 }
 
 /**********************************************************************/
-int udsResumeIndexSession(struct uds_index_session *session)
+int uds_resume_index_session(struct uds_index_session *session)
 {
   lockMutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
@@ -372,7 +372,7 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
 }
 
 /**********************************************************************/
-int udsCloseIndex(struct uds_index_session *indexSession)
+int uds_close_index(struct uds_index_session *indexSession)
 {
   lockMutex(&indexSession->requestMutex);
   // Wait for any pending operation to complete.
@@ -398,7 +398,7 @@ int udsCloseIndex(struct uds_index_session *indexSession)
 }
 
 /**********************************************************************/
-int udsDestroyIndexSession(struct uds_index_session *indexSession)
+int uds_destroy_index_session(struct uds_index_session *indexSession)
 {
   logDebug("Destroying index session");
 
@@ -449,7 +449,7 @@ int udsDestroyIndexSession(struct uds_index_session *indexSession)
 }
 
 /**********************************************************************/
-int udsFlushIndexSession(struct uds_index_session *indexSession)
+int uds_flush_index_session(struct uds_index_session *indexSession)
 {
   waitForNoRequestsInProgress(indexSession);
   // Wait until any open chapter writes are complete
@@ -475,8 +475,8 @@ int udsSetCheckpointFrequency(struct uds_index_session *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexConfiguration(struct uds_index_session  *indexSession,
-                             struct uds_configuration **conf)
+int uds_get_index_configuration(struct uds_index_session  *indexSession,
+                                struct uds_configuration **conf)
 {
   if (conf == NULL) {
     return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
@@ -490,8 +490,8 @@ int udsGetIndexConfiguration(struct uds_index_session  *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexStats(struct uds_index_session *indexSession,
-                     struct uds_index_stats   *stats)
+int uds_get_index_stats(struct uds_index_session *indexSession,
+                        struct uds_index_stats   *stats)
 {
   if (stats == NULL) {
     return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
@@ -502,8 +502,8 @@ int udsGetIndexStats(struct uds_index_session *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexSessionStats(struct uds_index_session *indexSession,
-                            struct uds_context_stats *stats)
+int uds_get_index_session_stats(struct uds_index_session *indexSession,
+                                struct uds_context_stats *stats)
 {
   if (stats == NULL) {
     return logWarningWithStringError(UDS_CONTEXT_STATS_PTR_REQUIRED,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#58 $
  */
 
 #include "dedupeIndex.h"
@@ -173,7 +173,7 @@ static void encode_uds_advice(struct uds_request *request,
 			      struct data_location advice)
 {
 	size_t offset = 0;
-	struct uds_chunk_data *encoding = &request->newMetadata;
+	struct uds_chunk_data *encoding = &request->new_metadata;
 
 	encoding->data[offset++] = UDS_ADVICE_VERSION;
 	encoding->data[offset++] = advice.state;
@@ -197,7 +197,7 @@ static bool decode_uds_advice(const struct uds_request *request,
 	}
 
 	size_t offset = 0;
-	const struct uds_chunk_data *encoding = &request->oldMetadata;
+	const struct uds_chunk_data *encoding = &request->old_metadata;
 	byte version = encoding->data[offset++];
 
 	if (version != UDS_ADVICE_VERSION) {
@@ -502,7 +502,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 		struct uds_request *uds_request =
 			&data_kvio->dedupe_context.uds_request;
 
-		uds_request->chunkName = *dedupe_context->chunk_name;
+		uds_request->chunk_name = *dedupe_context->chunk_name;
 		uds_request->callback = finish_index_operation;
 		uds_request->session = index->index_session;
 		uds_request->type = operation;
@@ -549,7 +549,7 @@ static void close_index(struct dedupe_index *index)
 	index->index_state = IS_CHANGING;
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
-	int result = udsCloseIndex(index->index_session);
+	int result = uds_close_index(index->index_session);
 
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
@@ -575,9 +575,10 @@ static void open_index(struct dedupe_index *index)
 	index->error_flag = false;
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
-	int result = udsOpenIndex(create_flag ? UDS_CREATE : UDS_LOAD,
-				  index->index_name, &index->uds_params,
-				  index->configuration, index->index_session);
+	int result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
+				    index->index_name, &index->uds_params,
+				    index->configuration,
+				    index->index_session);
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
 					"Error opening index %s",
@@ -701,8 +702,8 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 
 	spin_unlock(&index->state_lock);
 	if (index_state != IS_CLOSED) {
-		int result = udsSuspendIndexSession(index->index_session,
-						    save_flag);
+		int result = uds_suspend_index_session(index->index_session,
+						       save_flag);
 		if (result != UDS_SUCCESS) {
 			logErrorWithStringError(result,
 						"Error suspending dedupe index");
@@ -713,7 +714,7 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 /*****************************************************************************/
 void resume_dedupe_index(struct dedupe_index *index)
 {
-	int result = udsResumeIndexSession(index->index_session);
+	int result = uds_resume_index_session(index->index_session);
 
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result, "Error resuming dedupe index");
@@ -749,7 +750,7 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 void finish_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
-	udsDestroyIndexSession(index->index_session);
+	uds_destroy_index_session(index->index_session);
 	finish_work_queue(index->uds_queue);
 }
 
@@ -794,25 +795,27 @@ void get_index_statistics(struct dedupe_index *index,
 	stats->curr_dedupe_queries = atomic_read(&index->active);
 	if (index_state == IS_OPENED) {
 		struct uds_index_stats index_stats;
-		int result =
-			udsGetIndexStats(index->index_session, &index_stats);
+		int result = uds_get_index_stats(index->index_session,
+						 &index_stats);
 		if (result == UDS_SUCCESS) {
-			stats->entries_indexed = index_stats.entriesIndexed;
+			stats->entries_indexed = index_stats.entries_indexed;
 		} else {
 			logErrorWithStringError(result,
 						"Error reading index stats");
 		}
 		struct uds_context_stats context_stats;
 
-		result = udsGetIndexSessionStats(index->index_session,
-						 &context_stats);
+		result = uds_get_index_session_stats(index->index_session,
+					             &context_stats);
 		if (result == UDS_SUCCESS) {
-			stats->posts_found = context_stats.postsFound;
-			stats->posts_not_found = context_stats.postsNotFound;
-			stats->queries_found = context_stats.queriesFound;
-			stats->queries_not_found = context_stats.queriesNotFound;
-			stats->updates_found = context_stats.updatesFound;
-			stats->updates_not_found = context_stats.updatesNotFound;
+			stats->posts_found = context_stats.posts_found;
+			stats->posts_not_found = context_stats.posts_not_found;
+			stats->queries_found = context_stats.queries_found;
+			stats->queries_not_found =
+				context_stats.queries_not_found;
+			stats->updates_found = context_stats.updates_found;
+			stats->updates_not_found =
+				context_stats.updates_not_found;
 		} else {
 			logErrorWithStringError(result,
 						"Error reading context stats");
@@ -876,7 +879,7 @@ static void dedupe_kobj_release(struct kobject *kobj)
 	struct dedupe_index *index = container_of(kobj,
 						  struct dedupe_index,
 						  dedupe_object);
-	udsFreeConfiguration(index->configuration);
+	uds_free_configuration(index->configuration);
 	FREE(index->index_name);
 	FREE(index);
 }
@@ -985,12 +988,12 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		FREE(index);
 		return result;
 	}
-	udsConfigurationSetNonce(index->configuration,
-				 (uds_nonce_t) layer->geometry.nonce);
+	uds_configuration_set_nonce(index->configuration,
+				    (uds_nonce_t) layer->geometry.nonce);
 
-	result = udsCreateIndexSession(&index->index_session);
+	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
-		udsFreeConfiguration(index->configuration);
+		uds_free_configuration(index->configuration);
 		FREE(index->index_name);
 		FREE(index);
 		return result;
@@ -1016,8 +1019,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 				 &index->uds_queue);
 	if (result != VDO_SUCCESS) {
 		logError("UDS index queue initialization failed (%d)", result);
-		udsDestroyIndexSession(index->index_session);
-		udsFreeConfiguration(index->configuration);
+		uds_destroy_index_session(index->index_session);
+		uds_free_configuration(index->configuration);
 		FREE(index->index_name);
 		FREE(index);
 		return result;
@@ -1027,8 +1030,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	result = kobject_add(&index->dedupe_object, &layer->kobj, "dedupe");
 	if (result != VDO_SUCCESS) {
 		free_work_queue(&index->uds_queue);
-		udsDestroyIndexSession(index->index_session);
-		udsFreeConfiguration(index->configuration);
+		uds_destroy_index_session(index->index_session);
+		uds_free_configuration(index->configuration);
 		FREE(index->index_name);
 		FREE(index);
 		return result;

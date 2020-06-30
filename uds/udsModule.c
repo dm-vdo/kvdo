@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#53 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#54 $
  */
 
 #include <linux/module.h>
@@ -57,27 +57,27 @@ EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_768MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_MAX);
-EXPORT_SYMBOL_GPL(udsInitializeConfiguration);
+EXPORT_SYMBOL_GPL(uds_initialize_configuration);
 EXPORT_SYMBOL_GPL(uds_compute_index_size);
-EXPORT_SYMBOL_GPL(udsConfigurationSetNonce);
-EXPORT_SYMBOL_GPL(udsConfigurationGetNonce);
-EXPORT_SYMBOL_GPL(udsConfigurationSetSparse);
-EXPORT_SYMBOL_GPL(udsConfigurationGetSparse);
-EXPORT_SYMBOL_GPL(udsConfigurationGetMemory);
-EXPORT_SYMBOL_GPL(udsConfigurationGetChaptersPerVolume);
-EXPORT_SYMBOL_GPL(udsFreeConfiguration);
-EXPORT_SYMBOL_GPL(udsGetVersion);
-EXPORT_SYMBOL_GPL(udsCreateIndexSession);
-EXPORT_SYMBOL_GPL(udsOpenIndex);
-EXPORT_SYMBOL_GPL(udsSuspendIndexSession);
-EXPORT_SYMBOL_GPL(udsResumeIndexSession);
-EXPORT_SYMBOL_GPL(udsCloseIndex);
-EXPORT_SYMBOL_GPL(udsDestroyIndexSession);
-EXPORT_SYMBOL_GPL(udsFlushIndexSession);
-EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
-EXPORT_SYMBOL_GPL(udsGetIndexStats);
-EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
-EXPORT_SYMBOL_GPL(udsStringError);
+EXPORT_SYMBOL_GPL(uds_configuration_set_nonce);
+EXPORT_SYMBOL_GPL(uds_configuration_get_nonce);
+EXPORT_SYMBOL_GPL(uds_configuration_set_sparse);
+EXPORT_SYMBOL_GPL(uds_configuration_get_sparse);
+EXPORT_SYMBOL_GPL(uds_configuration_get_memory);
+EXPORT_SYMBOL_GPL(uds_configuration_get_chapters_per_volume);
+EXPORT_SYMBOL_GPL(uds_free_configuration);
+EXPORT_SYMBOL_GPL(uds_get_version);
+EXPORT_SYMBOL_GPL(uds_create_index_session);
+EXPORT_SYMBOL_GPL(uds_open_index);
+EXPORT_SYMBOL_GPL(uds_suspend_index_session);
+EXPORT_SYMBOL_GPL(uds_resume_index_session);
+EXPORT_SYMBOL_GPL(uds_close_index);
+EXPORT_SYMBOL_GPL(uds_destroy_index_session);
+EXPORT_SYMBOL_GPL(uds_flush_index_session);
+EXPORT_SYMBOL_GPL(uds_get_index_configuration);
+EXPORT_SYMBOL_GPL(uds_get_index_stats);
+EXPORT_SYMBOL_GPL(uds_get_index_session_stats);
+EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
