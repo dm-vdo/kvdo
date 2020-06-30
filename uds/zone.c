@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/zone.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/zone.c#2 $
  */
 
 #include "zone.h"
@@ -25,19 +25,21 @@
 #include "threads.h"
 
 /**********************************************************************/
-unsigned int getZoneCount(const struct uds_parameters *userParams)
+unsigned int get_zone_count(const struct uds_parameters *user_params)
 {
-  unsigned int zoneCount = (userParams == NULL) ? 0 : userParams->zone_count;
-  if (zoneCount == 0) {
-    zoneCount = getNumCores() / 2;
-  }
-  if (zoneCount < 1) {
-    zoneCount = 1;
-  }
-  if (zoneCount > MAX_ZONES) {
-    zoneCount = MAX_ZONES;
-  }
-  logInfo("Using %u indexing zone%s for concurrency.", zoneCount,
-          zoneCount == 1 ? "" : "s");
-  return zoneCount;
+	unsigned int zone_count =
+		(user_params == NULL) ? 0 : user_params->zone_count;
+	if (zone_count == 0) {
+		zone_count = getNumCores() / 2;
+	}
+	if (zone_count < 1) {
+		zone_count = 1;
+	}
+	if (zone_count > MAX_ZONES) {
+		zone_count = MAX_ZONES;
+	}
+	logInfo("Using %u indexing zone%s for concurrency.",
+		zone_count,
+		zone_count == 1 ? "" : "s");
+	return zone_count;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#18 $
  */
 
 #ifndef VOLUME_H
@@ -36,116 +36,117 @@
 #include "volumeStore.h"
 
 enum reader_state {
-  READER_STATE_RUN   = 1,
-  READER_STATE_EXIT  = 2,
-  READER_STATE_STOP  = 4
+	READER_STATE_RUN = 1,
+	READER_STATE_EXIT = 2,
+	READER_STATE_STOP = 4
 };
 
 enum index_lookup_mode {
-  /* Always do lookups in all chapters normally.  */
-  LOOKUP_NORMAL,
-  /*
-   * Don't do lookups in closed chapters; assume records not in the
-   * open chapter are always new.  You don't want this normally; it's
-   * for programs like albfill.  (Even then, with multiple runs using
-   * the same tag, we may actually duplicate older records, but if
-   * it's in a separate chapter it won't really matter.)
-   */
-  LOOKUP_CURRENT_CHAPTER_ONLY,
-  /*
-   * Only do a subset of lookups needed when rebuilding an index.
-   * This cannot be set externally.
-   */
-  LOOKUP_FOR_REBUILD
+	/* Always do lookups in all chapters normally.  */
+	LOOKUP_NORMAL,
+	/*
+	 * Don't do lookups in closed chapters; assume records not in the
+	 * open chapter are always new.  You don't want this normally; it's
+	 * for programs like albfill.  (Even then, with multiple runs using
+	 * the same tag, we may actually duplicate older records, but if
+	 * it's in a separate chapter it won't really matter.)
+	 */
+	LOOKUP_CURRENT_CHAPTER_ONLY,
+	/*
+	 * Only do a subset of lookups needed when rebuilding an index.
+	 * This cannot be set externally.
+	 */
+	LOOKUP_FOR_REBUILD
 };
 
 struct volume {
-  /* The layout of the volume */
-  struct geometry                *geometry;
-  /* The configuration of the volume */
-  struct configuration           *config;
-  /* The access to the volume's backing store */
-  struct volume_store             volumeStore;
-  /* A single page used for writing to the volume */
-  struct volume_page              scratchPage;
-  /* The nonce used to save the volume */
-  uint64_t                        nonce;
-  /* A single page's records, for sorting */
-  const struct uds_chunk_record **recordPointers;
-  /* For sorting record pages */
-  struct radix_sorter            *radixSorter;
-  /* The sparse chapter index cache */
-  struct sparse_cache            *sparseCache;
-  /* The page cache */
-  struct page_cache              *pageCache;
-  /* The index page map maps delta list numbers to index page numbers */
-  struct index_page_map          *indexPageMap;
-  /* Mutex to sync between read threads and index thread */
-  Mutex                           readThreadsMutex;
-  /* Condvar to indicate when read threads should start working */
-  CondVar                         readThreadsCond;
-  /* Condvar to indicate when a read thread has finished a read */
-  CondVar                         readThreadsReadDoneCond;
-  /* Threads to read data from disk */
-  Thread                         *readerThreads;
-  /* Number of threads busy with reads */
-  unsigned int                    busyReaderThreads;
-  /* The state of the reader threads */
-  enum reader_state               readerState;
-  /* The lookup mode for the index */
-  enum index_lookup_mode          lookupMode;
-  /* Number of read threads to use (run-time parameter) */
-  unsigned int                    numReadThreads;
+	/* The layout of the volume */
+	struct geometry *geometry;
+	/* The configuration of the volume */
+	struct configuration *config;
+	/* The access to the volume's backing store */
+	struct volume_store volume_store;
+	/* A single page used for writing to the volume */
+	struct volume_page scratch_page;
+	/* The nonce used to save the volume */
+	uint64_t nonce;
+	/* A single page's records, for sorting */
+	const struct uds_chunk_record **record_pointers;
+	/* For sorting record pages */
+	struct radix_sorter *radix_sorter;
+	/* The sparse chapter index cache */
+	struct sparse_cache *sparse_cache;
+	/* The page cache */
+	struct page_cache *page_cache;
+	/* The index page map maps delta list numbers to index page numbers */
+	struct index_page_map *index_page_map;
+	/* mutex to sync between read threads and index thread */
+	struct mutex read_threads_mutex;
+	/* cond_var to indicate when read threads should start working */
+	struct cond_var read_threads_cond;
+	/* cond_var to indicate when a read thread has finished a read */
+	struct cond_var read_threads_read_done_cond;
+	/* Threads to read data from disk */
+	struct thread **reader_threads;
+	/* Number of threads busy with reads */
+	unsigned int busy_reader_threads;
+	/* The state of the reader threads */
+	enum reader_state reader_state;
+	/* The lookup mode for the index */
+	enum index_lookup_mode lookup_mode;
+	/* Number of read threads to use (run-time parameter) */
+	unsigned int num_read_threads;
 };
 
 /**
  * Create a volume.
  *
- * @param config            The configuration to use.
- * @param layout            The index layout
- * @param userParams        The index session parameters.  If NULL, the default
- *                          session parameters will be used.
- * @param readQueueMaxSize  The maximum size of the read queue.
- * @param zoneCount         The number of zones to use.
- * @param newVolume         A pointer to hold a pointer to the new volume.
+ * @param config               The configuration to use.
+ * @param layout               The index layout
+ * @param user_params          The index session parameters.  If NULL, the
+ *                             default session parameters will be used.
+ * @param read_queue_max_size  The maximum size of the read queue.
+ * @param zone_count           The number of zones to use.
+ * @param new_volume           A pointer to hold a pointer to the new volume.
  *
  * @return          UDS_SUCCESS or an error code
  **/
-int __must_check makeVolume(const struct configuration *config,
-			    struct index_layout *layout,
-			    const struct uds_parameters *userParams,
-			    unsigned int readQueueMaxSize,
-			    unsigned int zoneCount,
-			    struct volume **newVolume);
+int __must_check make_volume(const struct configuration *config,
+			     struct index_layout *layout,
+			     const struct uds_parameters *user_params,
+			     unsigned int read_queue_max_size,
+			     unsigned int zone_count,
+			     struct volume **new_volume);
 
 /**
  * Clean up a volume and its memory.
  *
  * @param volume  The volume to destroy.
  **/
-void freeVolume(struct volume *volume);
+void free_volume(struct volume *volume);
 
 /**
  * Enqueue a page read.
  *
- * @param volume       the volume
- * @param request      the request to waiting on the read
- * @param physicalPage the page number to read
+ * @param volume         the volume
+ * @param request        the request to waiting on the read
+ * @param physical_page  the page number to read
  *
  * @return UDS_QUEUED if successful, or an error code
  **/
-int __must_check
-enqueuePageRead(struct volume *volume, Request *request, int physicalPage);
+int __must_check enqueue_page_read(struct volume *volume,
+				   Request *request,
+				   int physical_page);
 
 /**
  * Find the lowest and highest contiguous chapters and determine their
  * virtual chapter numbers.
  *
- * @param [in]  volume      The volume to probe.
- * @param [out] lowestVCN   Pointer for lowest virtual chapter number.
- * @param [out] highestVCN  Pointer for highest virtual chapter number.
- * @param [out] isEmpty     Pointer to a bool indicating whether or not the
- *                          volume is empty.
+ * @param [in]  volume       The volume to probe.
+ * @param [out] lowest_vcn   Pointer for lowest virtual chapter number.
+ * @param [out] highest_vcn  Pointer for highest virtual chapter number.
+ * @param [out] is_empty     Pointer to a bool indicating whether or not the
+ *                           volume is empty.
  *
  * @return              UDS_SUCCESS, or an error code.
  *
@@ -159,34 +160,33 @@ enqueuePageRead(struct volume *volume, Request *request, int physicalPage);
  *              chapter number in which the index pages are found should have
  *              headers which state that the virtual chapter number are all
  *              identical and maintain the invariant that
- *              pcn == vcn % chaptersPerVolume.
+ *              pcn == vcn % chapters_per_volume.
  **/
-int __must_check
-findVolumeChapterBoundaries(struct volume *volume,
-			    uint64_t *lowestVCN,
-			    uint64_t *highestVCN,
-			    bool *isEmpty);
+int __must_check find_volume_chapter_boundaries(struct volume *volume,
+						uint64_t *lowest_vcn,
+						uint64_t *highest_vcn,
+						bool *is_empty);
 
 /**
  * Find any matching metadata for the given name within a given physical
  * chapter.
  *
- * @param volume          The volume.
- * @param request         The request originating the search.
- * @param name            The block name of interest.
- * @param virtualChapter  The number of the chapter to search.
- * @param metadata        The old metadata for the name.
- * @param found           A pointer which will be set to
- *                        <code>true</code> if a match was found.
+ * @param volume           The volume.
+ * @param request          The request originating the search.
+ * @param name             The block name of interest.
+ * @param virtual_chapter  The number of the chapter to search.
+ * @param metadata         The old metadata for the name.
+ * @param found            A pointer which will be set to
+ *                         <code>true</code> if a match was found.
  *
  * @return UDS_SUCCESS or an error
  **/
-int __must_check searchVolumePageCache(struct volume *volume,
-				       Request *request,
-				       const struct uds_chunk_name *name,
-				       uint64_t virtualChapter,
-				       struct uds_chunk_data *metadata,
-				       bool *found);
+int __must_check search_volume_page_cache(struct volume *volume,
+					  Request *request,
+					  const struct uds_chunk_name *name,
+					  uint64_t virtual_chapter,
+					  struct uds_chunk_data *metadata,
+					  bool *found);
 
 /**
  * Fetch a record page from the cache or read it from the volume and search it
@@ -198,26 +198,26 @@ int __must_check searchVolumePageCache(struct volume *volume,
  * returned and the request will be requeued for continued processing after
  * the page is read and added to the cache.
  *
- * @param volume           the volume containing the record page to search
- * @param request          the request originating the search (may be NULL for
- *                         a direct query from volume replay)
- * @param name             the name of the block or chunk
- * @param chapter          the chapter to search
- * @param recordPageNumber the record page number of the page to search
- * @param duplicate        an array in which to place the metadata of the
- *                         duplicate, if one was found
- * @param found            a (bool *) which will be set to true if the chunk
- *                         was found
+ * @param volume              the volume containing the record page to search
+ * @param request             the request originating the search (may be NULL
+ *                            for a direct query from volume replay)
+ * @param name                the name of the block or chunk
+ * @param chapter             the chapter to search
+ * @param record_page_number  the record page number of the page to search
+ * @param duplicate           an array in which to place the metadata of the
+ *                            duplicate, if one was found
+ * @param found               a (bool *) which will be set to true if the chunk
+ *                            was found
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int __must_check searchCachedRecordPage(struct volume *volume,
-					Request *request,
-					const struct uds_chunk_name *name,
-					unsigned int chapter,
-					int recordPageNumber,
-					struct uds_chunk_data *duplicate,
-					bool *found);
+int __must_check search_cached_record_page(struct volume *volume,
+					   Request *request,
+					   const struct uds_chunk_name *name,
+					   unsigned int chapter,
+					   int record_page_number,
+					   struct uds_chunk_data *duplicate,
+					   bool *found);
 
 /**
  * Forget the contents of a chapter. Invalidates any cached state for the
@@ -229,71 +229,73 @@ int __must_check searchCachedRecordPage(struct volume *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check forgetChapter(struct volume *volume, uint64_t chapter,
-			       enum invalidation_reason reason);
+int __must_check forget_chapter(struct volume *volume,
+				uint64_t chapter,
+				enum invalidation_reason reason);
 
 /**
  * Write a chapter's worth of index pages to a volume
  *
- * @param volume        the volume containing the chapter
- * @param physicalPage  the page number in the volume for the chapter
- * @param chapterIndex  the populated delta chapter index
- * @param pages         pointer to array of page pointers. Used only in testing
- *                      to return what data has been written to disk.
+ * @param volume         the volume containing the chapter
+ * @param physical_page  the page number in the volume for the chapter
+ * @param chapter_index  the populated delta chapter index
+ * @param pages          pointer to array of page pointers. Used only in
+ *                       testing to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeIndexPages(struct volume *volume,
-				 int physicalPage,
-				 struct open_chapter_index *chapterIndex,
-				 byte **pages);
+int __must_check write_index_pages(struct volume *volume,
+				   int physical_page,
+				   struct open_chapter_index *chapter_index,
+				   byte **pages);
 
 /**
  * Write a chapter's worth of record pages to a volume
  *
- * @param volume        the volume containing the chapter
- * @param physicalPage  the page number in the volume for the chapter
- * @param records       a 1-based array of chunk records in the chapter
- * @param pages         pointer to array of page pointers. Used only in testing
- *                      to return what data has been written to disk.
+ * @param volume         the volume containing the chapter
+ * @param physical_page  the page number in the volume for the chapter
+ * @param records        a 1-based array of chunk records in the chapter
+ * @param pages          pointer to array of page pointers. Used only in
+ *                       testing to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeRecordPages(struct volume *volume,
-				  int physicalPage,
-				  const struct uds_chunk_record records[],
-				  byte **pages);
+int __must_check write_record_pages(struct volume *volume,
+				    int physical_page,
+				    const struct uds_chunk_record records[],
+				    byte **pages);
 
 /**
  * Write the index and records from the most recently filled chapter to the
  * volume.
  *
  * @param volume                the volume containing the chapter
- * @param chapterIndex          the populated delta chapter index
+ * @param chapter_index         the populated delta chapter index
  * @param records               a 1-based array of chunk records in the chapter
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check writeChapter(struct volume *volume,
-			      struct open_chapter_index *chapterIndex,
-			      const struct uds_chunk_record records[]);
+int __must_check write_chapter(struct volume *volume,
+			       struct open_chapter_index *chapter_index,
+			       const struct uds_chunk_record records[]);
 
 /**
  * Read all the index pages for a chapter from the volume and initialize an
  * array of ChapterIndexPages to represent them.
  *
- * @param [in]  volume          the volume containing the chapter
- * @param [in]  virtualChapter  the virtual chapter number of the index to read
- * @param [out] volumePages     an array to receive the raw index page data
- * @param [out] indexPages      an array of ChapterIndexPages to initialize
+ * @param [in]  volume           the volume containing the chapter
+ * @param [in]  virtual_chapter  the virtual chapter number of the index to
+ *                               read
+ * @param [out] volume_pages     an array to receive the raw index page data
+ * @param [out] index_pages      an array of ChapterIndexPages to initialize
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-readChapterIndexFromVolume(const struct volume *volume,
-			   uint64_t virtualChapter,
-			   struct volume_page volumePages[],
-			   struct delta_index_page indexPages[]);
+read_chapter_index_from_volume(const struct volume *volume,
+			       uint64_t virtual_chapter,
+			       struct volume_page volume_pages[],
+			       struct delta_index_page index_pages[]);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -308,19 +310,19 @@ readChapterIndexFromVolume(const struct volume *volume,
  *
  * This function is only exposed for the use of unit tests.
  *
- * @param volume       The volume containing the page
- * @param request      The request originating the search
- * @param physicalPage The physical page number
- * @param probeType    The type of cache access being done
- * @param entryPtr     A pointer to hold the retrieved cached entry
+ * @param volume         The volume containing the page
+ * @param request        The request originating the search
+ * @param physical_page  The physical page number
+ * @param probe_type     The type of cache access being done
+ * @param entry_ptr      A pointer to hold the retrieved cached entry
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPageLocked(struct volume *volume,
-			       Request *request,
-			       unsigned int physicalPage,
-			       cache_probe_type_t probeType,
-			       struct cached_page **entryPtr);
+int __must_check get_volume_page_locked(struct volume *volume,
+					Request *request,
+					unsigned int physical_page,
+					cache_probe_type_t probe_type,
+					struct cached_page **entry_ptr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -339,19 +341,19 @@ int __must_check getPageLocked(struct volume *volume,
  *
  * This function is only exposed for the use of unit tests.
  *
- * @param volume       The volume containing the page
- * @param request      The request originating the search
- * @param physicalPage The physical page number
- * @param probeType    The type of cache access being done
- * @param entryPtr     A pointer to hold the retrieved cached entry
+ * @param volume         The volume containing the page
+ * @param request        The request originating the search
+ * @param physical_page  The physical page number
+ * @param probe_type     The type of cache access being done
+ * @param entry_ptr      A pointer to hold the retrieved cached entry
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPageProtected(struct volume *volume,
-				  Request *request,
-				  unsigned int physicalPage,
-				  cache_probe_type_t probeType,
-				  struct cached_page **entryPtr);
+int __must_check get_volume_page_protected(struct volume *volume,
+					   Request *request,
+					   unsigned int physical_page,
+					   cache_probe_type_t probe_type,
+					   struct cached_page **entry_ptr);
 
 /**
  * Retrieve a page either from the cache (if we can) or from disk. If a read
@@ -369,36 +371,37 @@ int __must_check getPageProtected(struct volume *volume,
  * multi-threading to access the volume. These include rebuild, volume
  * explorer, and certain unit tests.
  *
- * @param volume        The volume containing the page
- * @param chapter       The number of the chapter containing the page
- * @param pageNumber    The number of the page
- * @param probeType     The type of cache access being done
- * @param dataPtr       Pointer to hold the retrieved page, NULL if not wanted
- * @param indexPagePtr  Pointer to hold the retrieved chapter index page, or
- *                      NULL if not wanted
+ * @param volume          The volume containing the page
+ * @param chapter         The number of the chapter containing the page
+ * @param page_number     The number of the page
+ * @param probe_type      The type of cache access being done
+ * @param data_ptr        Pointer to hold the retrieved page, NULL if not
+ *                        wanted
+ * @param index_page_ptr  Pointer to hold the retrieved chapter index page, or
+ *                        NULL if not wanted
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check getPage(struct volume *volume,
-			 unsigned int chapter,
-			 unsigned int pageNumber,
-			 cache_probe_type_t probeType,
-			 byte **dataPtr,
-			 struct delta_index_page **indexPagePtr);
+int __must_check get_volume_page(struct volume *volume,
+				 unsigned int chapter,
+				 unsigned int page_number,
+				 cache_probe_type_t probe_type,
+				 byte **data_ptr,
+				 struct delta_index_page **index_page_ptr);
 
 /**********************************************************************/
-size_t __must_check getCacheSize(struct volume *volume);
+size_t __must_check get_cache_size(struct volume *volume);
 
 /**********************************************************************/
 int __must_check
-findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
-                                unsigned int  maxBadChapters,
-                                uint64_t     *lowestVCN,
-                                uint64_t     *highestVCN,
-                                int (*probeFunc)(void         *aux,
-                                                 unsigned int  chapter,
-                                                 uint64_t     *vcn),
-                                void *aux);
+find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
+				    unsigned int max_bad_chapters,
+				    uint64_t *lowest_vcn,
+				    uint64_t *highest_vcn,
+				    int (*probe_func)(void *aux,
+						      unsigned int chapter,
+						      uint64_t *vcn),
+				    void *aux);
 
 /**
  * Map a chapter number and page number to a phsical volume page number.
@@ -409,7 +412,8 @@ findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  *
  * @return the physical page number
  **/
-int __must_check
-mapToPhysicalPage(const struct geometry *geometry, int chapter, int page);
+int __must_check map_to_physical_page(const struct geometry *geometry,
+				      int chapter,
+				      int page);
 
 #endif /* VOLUME_H */

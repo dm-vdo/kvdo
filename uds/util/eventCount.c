@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#4 $
  */
 
 /**
@@ -112,7 +112,7 @@ struct event_count {
 	atomic64_t state;
 
 	// Semaphore used to block threads when waiting is required.
-	Semaphore semaphore;
+	struct semaphore semaphore;
 
 	// Instrumentation counters.
 

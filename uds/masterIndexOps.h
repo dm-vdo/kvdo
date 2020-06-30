@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#15 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -82,7 +82,7 @@ struct master_index_record {
 					       // records
 	unsigned int zone_number;              // Zone that contains this block
 	struct master_index *master_index;     // The master index
-	Mutex *mutex;                          // Mutex that must be held while
+	struct mutex *mutex;                   // Mutex that must be held while
 					       // accessing this delta index
 					       // entry; used only for a
 					       // sampled index; otherwise is

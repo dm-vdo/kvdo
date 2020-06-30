@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#9 $
  */
 
 #include "indexCheckpoint.h"
@@ -44,7 +44,7 @@ enum checkpoint_state {
  * Private structure which tracks checkpointing.
  **/
 struct index_checkpoint {
-	Mutex mutex;                  // covers this group of fields
+	struct mutex mutex;           // covers this group of fields
 	uint64_t chapter;             // vcn of the starting chapter
 	enum checkpoint_state state;  // is checkpoint in progress or aborting
 	unsigned int zones_busy;      // count of zones not yet done

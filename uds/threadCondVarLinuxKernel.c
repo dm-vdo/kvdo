@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#4 $
  */
 
 #include "threads.h"
@@ -24,28 +24,28 @@
 #include "uds-error.h"
 
 /**********************************************************************/
-int initCond(CondVar *cv)
+int initCond(struct cond_var *cv)
 {
   cv->eventCount = NULL;
   return make_event_count(&cv->eventCount);
 }
 
 /**********************************************************************/
-int signalCond(CondVar *cv)
+int signalCond(struct cond_var *cv)
 {
   event_count_broadcast(cv->eventCount);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int broadcastCond(CondVar *cv)
+int broadcastCond(struct cond_var *cv)
 {
   event_count_broadcast(cv->eventCount);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int waitCond(CondVar *cv, Mutex *mutex)
+int waitCond(struct cond_var *cv, struct mutex *mutex)
 {
   event_token_t token = event_count_prepare(cv->eventCount);
   unlockMutex(mutex);
@@ -55,7 +55,7 @@ int waitCond(CondVar *cv, Mutex *mutex)
 }
 
 /**********************************************************************/
-int timedWaitCond(CondVar *cv, Mutex *mutex, rel_time_t timeout)
+int timedWaitCond(struct cond_var *cv, struct mutex *mutex, rel_time_t timeout)
 {
   event_token_t token = event_count_prepare(cv->eventCount);
   unlockMutex(mutex);
@@ -65,7 +65,7 @@ int timedWaitCond(CondVar *cv, Mutex *mutex, rel_time_t timeout)
 }
 
 /**********************************************************************/
-int destroyCond(CondVar *cv)
+int destroyCond(struct cond_var *cv)
 {
   free_event_count(cv->eventCount);
   cv->eventCount = NULL;

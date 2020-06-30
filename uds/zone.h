@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/zone.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/zone.h#4 $
  */
 
 #ifndef ZONE_H
@@ -26,17 +26,18 @@
 #include "uds.h"
 
 enum {
-  MAX_ZONES = 16,
+	MAX_ZONES = 16,
 };
 
 /**
  * Return the number of zones.
  *
- * @param userParams  the index session parameters.  If NULL, the default
- *                    session parameters will be used.
+ * @param user_params  the index session parameters.  If NULL, the default
+ *                     session parameters will be used.
  *
  * @return the number of zones
  **/
-unsigned int __must_check getZoneCount(const struct uds_parameters *userParams);
+unsigned int __must_check
+get_zone_count(const struct uds_parameters *user_params);
 
 #endif /* ZONE_H */

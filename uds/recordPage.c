@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/recordPage.c#10 $
  */
 
 #include "recordPage.h"
@@ -62,7 +62,7 @@ int encode_record_page(const struct volume *volume,
 {
 	unsigned int records_per_page = volume->geometry->records_per_page;
 	const struct uds_chunk_record **record_pointers =
-		volume->recordPointers;
+		volume->record_pointers;
 
 	// Build an array of record pointers. We'll sort the pointers by the
 	// block names in the records, which is less work than sorting the
@@ -73,7 +73,7 @@ int encode_record_page(const struct volume *volume,
 	}
 
 	STATIC_ASSERT(offsetof(struct uds_chunk_record, name) == 0);
-	int result = radix_sort(volume->radixSorter,
+	int result = radix_sort(volume->radix_sorter,
 				(const byte **) record_pointers,
 				records_per_page,
 				UDS_CHUNK_NAME_SIZE);

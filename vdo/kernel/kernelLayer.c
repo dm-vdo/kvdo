@@ -16,15 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#97 $
  */
 
 #include "kernelLayer.h"
 
-#include <linux/crc32.h>
-#include <linux/blkdev.h>
-#include <linux/module.h>
 #include <linux/backing-dev.h>
+#include <linux/blkdev.h>
+#include <linux/crc32.h>
+#include <linux/delay.h>
+#include <linux/module.h>
 #include <linux/lz4.h>
 
 #include "logger.h"
@@ -482,6 +483,9 @@ static void wait_for_sync_operation(PhysicalLayer *common)
 	// Using the "interruptible" interface means that Linux will not log a
 	// message when we wait for more than 120 seconds.
 	while (wait_for_completion_interruptible(&layer->callbackSync) != 0) {
+		// However, if we get a signal in a user-mode process, we could
+		// spin...
+                msleep(1);
 	}
 }
 

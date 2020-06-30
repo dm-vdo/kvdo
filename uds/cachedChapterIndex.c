@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#13 $
  */
 
 #include "cachedChapterIndex.h"
@@ -81,10 +81,10 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 	// Read all the page data and initialize the entire delta_index_page
 	// array. (It's not safe for the zone threads to do it lazily--they'll
 	// race.)
-	int result = readChapterIndexFromVolume(volume,
-						virtual_chapter,
-						chapter->volume_pages,
-						chapter->index_pages);
+	int result = read_chapter_index_from_volume(volume,
+						    virtual_chapter,
+						    chapter->volume_pages,
+						    chapter->index_pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

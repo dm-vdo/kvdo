@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#21 $
  */
 #include "masterIndex006.h"
 
@@ -50,7 +50,7 @@
  */
 
 struct master_index_zone {
-	Mutex hook_mutex; // Protects the sampled index in this zone
+	struct mutex hook_mutex; // Protects the sampled index in this zone
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 struct master_index6 {
@@ -484,7 +484,7 @@ set_master_index_zone_open_chapter_006(struct master_index *master_index,
 
 	// We need to prevent a lookup_master_index_name() happening while we
 	// are changing the open chapter number
-	Mutex *mutex = &mi6->master_zones[zone_number].hook_mutex;
+	struct mutex *mutex = &mi6->master_zones[zone_number].hook_mutex;
 	lockMutex(mutex);
 	set_master_index_zone_open_chapter(mi6->mi_hook, zone_number,
 					   virtual_chapter);
@@ -551,7 +551,8 @@ lookup_master_index_name_006(const struct master_index *master_index,
 	triage->zone = get_master_index_zone_006(master_index, name);
 	int result = UDS_SUCCESS;
 	if (triage->is_sample) {
-		Mutex *mutex = &mi6->master_zones[triage->zone].hook_mutex;
+		struct mutex *mutex =
+			&mi6->master_zones[triage->zone].hook_mutex;
 		lockMutex(mutex);
 		result = lookup_master_index_sampled_name(mi6->mi_hook, name,
 							  triage);
@@ -628,7 +629,7 @@ static int get_master_index_record_006(struct master_index *master_index,
 		 * get_master_index_record() is not a read-only operation.
 		 */
 		unsigned int zone = get_master_index_zone(mi6->mi_hook, name);
-		Mutex *mutex = &mi6->master_zones[zone].hook_mutex;
+		struct mutex *mutex = &mi6->master_zones[zone].hook_mutex;
 		lockMutex(mutex);
 		result = get_master_index_record(mi6->mi_hook, name, record);
 		unlockMutex(mutex);

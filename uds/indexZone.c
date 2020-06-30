@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#19 $
  */
 
 #include "indexZone.h"
@@ -314,7 +314,8 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 	 * shadows the oldest chapter in the cache, until we write the new open
 	 * chapter to disk, we'll never look for it in the cache.
 	 */
-	return forgetChapter(zone->index->volume, victim, INVALIDATION_EXPIRE);
+	return forget_chapter(zone->index->volume, victim,
+			      INVALIDATION_EXPIRE);
 }
 
 /**********************************************************************/
@@ -363,7 +364,7 @@ int get_record_from_zone(struct index_zone *zone,
 
 	struct volume *volume = zone->index->volume;
 	if (is_zone_chapter_sparse(zone, virtual_chapter) &&
-	    sparse_cache_contains(volume->sparseCache,
+	    sparse_cache_contains(volume->sparse_cache,
 				  virtual_chapter,
 				  request->zone_number)) {
 		// The named chunk, if it exists, is in a sparse chapter that
@@ -373,12 +374,10 @@ int get_record_from_zone(struct index_zone *zone,
 						   virtual_chapter, found);
 	}
 
-	return searchVolumePageCache(volume,
-				     request,
-				     &request->chunk_name,
-				     virtual_chapter,
-				     &request->old_metadata,
-				     found);
+	return search_volume_page_cache(volume,
+					request, &request->chunk_name,
+					virtual_chapter,
+					&request->old_metadata, found);
 }
 
 /**********************************************************************/
@@ -422,11 +421,8 @@ int search_sparse_cache_in_zone(struct index_zone *zone,
 	unsigned int chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
 
-	return searchCachedRecordPage(volume,
-				      request,
-				      &request->chunk_name,
-				      chapter,
-				      record_page_number,
-				      &request->old_metadata,
-				      found);
+	return search_cached_record_page(volume,
+					 request, &request->chunk_name,
+					 chapter, record_page_number,
+					 &request->old_metadata, found);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#5 $
  */
 
 #include <linux/completion.h>
@@ -32,13 +32,13 @@ static struct hlist_head kernelThreadList;
 static struct mutex kernelThreadMutex;
 static once_state_t kernelThreadOnce;
 
-typedef struct kernelThread {
+struct thread {
   void (*threadFunc)(void *);
   void *threadData;
   struct hlist_node threadLinks;
   struct task_struct *threadTask;
   struct completion threadDone;
-} KernelThread;
+};
 
 /**********************************************************************/
 static void kernelThreadInit(void)
@@ -49,7 +49,7 @@ static void kernelThreadInit(void)
 /**********************************************************************/
 static int threadStarter(void *arg)
 {
-  KernelThread *kt = arg;
+  struct thread *kt = arg;
   kt->threadTask = current;
   perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
@@ -64,15 +64,15 @@ static int threadStarter(void *arg)
 }
 
 /**********************************************************************/
-int createThread(void      (*threadFunc)(void *),
-                 void       *threadData,
-                 const char *name,
-                 Thread     *newThread)
+int createThread(void          (*threadFunc)(void *),
+                 void           *threadData,
+                 const char     *name,
+                 struct thread **newThread)
 {
   char *nameColon = strchr(name, ':');
   char *myNameColon = strchr(current->comm, ':');
-  KernelThread *kt;
-  int result = ALLOCATE(1, KernelThread, __func__, &kt);
+  struct thread *kt;
+  int result = ALLOCATE(1, struct thread, __func__, &kt);
   if (result != UDS_SUCCESS) {
     logWarning("Error allocating memory for %s", name);
     return result;
@@ -111,7 +111,7 @@ int createThread(void      (*threadFunc)(void *),
   return UDS_SUCCESS;
 }
 /**********************************************************************/
-int joinThreads(Thread kt)
+int joinThreads(struct thread *kt)
 {
   while (wait_for_completion_interruptible(&kt->threadDone) != 0) {
   }
@@ -126,7 +126,7 @@ int joinThreads(Thread kt)
 void applyToThreads(void applyFunc(void *, struct task_struct *),
                     void *argument)
 {
-  KernelThread *kt;
+  struct thread *kt;
   perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
   hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
@@ -138,7 +138,7 @@ void applyToThreads(void applyFunc(void *, struct task_struct *),
 /**********************************************************************/
 void exitThread(void)
 {
-  KernelThread *kt;
+  struct thread *kt;
   struct completion *completion = NULL;
   perform_once(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
@@ -166,7 +166,7 @@ unsigned int getNumCores(void)
 }
 
 /**********************************************************************/
-int initializeBarrier(Barrier *barrier, unsigned int threadCount)
+int initializeBarrier(struct barrier *barrier, unsigned int threadCount)
 {
   barrier->arrived     = 0;
   barrier->threadCount = threadCount;
@@ -178,7 +178,7 @@ int initializeBarrier(Barrier *barrier, unsigned int threadCount)
 }
 
 /**********************************************************************/
-int destroyBarrier(Barrier *barrier)
+int destroyBarrier(struct barrier *barrier)
 {
   int result = destroySemaphore(&barrier->mutex);
   if (result != UDS_SUCCESS) {
@@ -188,7 +188,7 @@ int destroyBarrier(Barrier *barrier)
 }
 
 /**********************************************************************/
-int enterBarrier(Barrier *barrier, bool *winner)
+int enterBarrier(struct barrier *barrier, bool *winner)
 {
   acquireSemaphore(&barrier->mutex);
   bool lastThread = ++barrier->arrived == barrier->threadCount;

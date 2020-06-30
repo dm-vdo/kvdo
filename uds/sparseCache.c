@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#21 $
  */
 
 /**
@@ -176,8 +176,8 @@ struct sparse_cache {
 
 	/** the thread barriers used to synchronize the zone threads for update
 	 */
-	Barrier begin_cache_update;
-	Barrier end_cache_update;
+	struct barrier begin_cache_update;
+	struct barrier end_cache_update;
 
 	/** frequently-updated counter fields (cache-aligned) */
 	struct sparse_cache_counters counters;
@@ -423,7 +423,7 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 {
 	const struct index *index = zone->index;
-	struct sparse_cache *cache = index->volume->sparseCache;
+	struct sparse_cache *cache = index->volume->sparse_cache;
 
 	// If the chapter is already in the cache, we don't need to do a thing
 	// except update the search list order, which this check does.
@@ -501,7 +501,7 @@ int search_sparse_cache(struct index_zone *zone,
 			int *record_page_ptr)
 {
 	struct volume *volume = zone->index->volume;
-	struct sparse_cache *cache = volume->sparseCache;
+	struct sparse_cache *cache = volume->sparse_cache;
 	unsigned int zone_number = zone->id;
 	// If the caller did not specify a virtual chapter, search the entire
 	// cache.
@@ -527,7 +527,7 @@ int search_sparse_cache(struct index_zone *zone,
 		int result =
 			search_cached_chapter_index(chapter,
 						    cache->geometry,
-						    volume->indexPageMap,
+						    volume->index_page_map,
 						    name,
 						    record_page_ptr);
 		if (result != UDS_SUCCESS) {

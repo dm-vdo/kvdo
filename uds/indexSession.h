@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#6 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -89,20 +89,20 @@ typedef enum {
 } IndexSuspendStatus;
 
 /**
- * The CondVar here must be notified when the status changes to
+ * The cond_var here must be notified when the status changes to
  * INDEX_SUSPENDED, in order to wake up the waiting udsSuspendIndexSession()
  * call. It must also be notified when the status changes away from
  * INDEX_SUSPENDED, to resume rebuild the index from checkForSuspend() in the
  * index.
  **/
 typedef struct indexLoadContext {
-  Mutex              mutex;
-  CondVar            cond;
+  struct mutex       mutex;
+  struct cond_var    cond;
   IndexSuspendStatus status;  // Covered by indexLoadContext.mutex.
 } IndexLoadContext;
 
 /**
- * The request CondVar here must be notified when IS_FLAG_WAITING is cleared,
+ * The request cond_var here must be notified when IS_FLAG_WAITING is cleared,
  * in case udsCloseIndex() or udDestroyIndexSesion() is waiting for it. It
  * must also be notified when IS_FLAG_LOADING is cleared, to inform
  * udsDestroyIndexSession() that the index session can be safely freed.
@@ -114,8 +114,8 @@ struct uds_index_session {
   struct uds_configuration  userConfig;
   IndexLoadContext          loadContext;
   // Asynchronous Request synchronization
-  Mutex                     requestMutex;
-  CondVar                   requestCond;
+  struct mutex              requestMutex;
+  struct cond_var           requestCond;
   int                       requestCount;
   // Request statistics, all owned by the callback thread
   SessionStats              stats;

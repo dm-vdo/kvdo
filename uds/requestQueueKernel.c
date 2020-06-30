@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#7 $
  */
 
 #include "requestQueue.h"
@@ -90,7 +90,7 @@ struct request_queue {
 	/* old requests to retry first */
 	struct funnel_queue *retry_queue;
 	/* thread id of the worker thread */
-	Thread thread;
+	struct thread *thread;
 	/* true if the worker was started */
 	bool started;
 	/* when true, requests can be enqueued */

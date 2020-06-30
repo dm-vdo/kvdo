@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#32 $
  */
 
 #include "index.h"
@@ -44,13 +44,12 @@ static int replay_index_from_checkpoint(struct index *index,
 	// Find the volume chapter boundaries
 	uint64_t lowest_vcn, highest_vcn;
 	bool is_empty = false;
-	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
-	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
-	int result = findVolumeChapterBoundaries(index->volume,
-						 &lowest_vcn,
-						 &highest_vcn,
-						 &is_empty);
-	index->volume->lookupMode = old_lookup_mode;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
+	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
+	int result = find_volume_chapter_boundaries(index->volume,
+						    &lowest_vcn, &highest_vcn,
+						    &is_empty);
+	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
 		return logFatalWithStringError(result,
 					       "cannot replay index: unknown volume chapter boundaries");
@@ -133,11 +132,11 @@ static int rebuild_index(struct index *index)
 	// Find the volume chapter boundaries
 	uint64_t lowest_vcn, highest_vcn;
 	bool is_empty = false;
-	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
-	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
-	int result = findVolumeChapterBoundaries(index->volume, &lowest_vcn,
-						 &highest_vcn, &is_empty);
-	index->volume->lookupMode = old_lookup_mode;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
+	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
+	int result = find_volume_chapter_boundaries(index->volume, &lowest_vcn,
+						    &highest_vcn, &is_empty);
+	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
 		return logFatalWithStringError(result,
 					       "cannot rebuild index: unknown volume chapter boundaries");
@@ -225,7 +224,7 @@ int make_index(struct index_layout *layout,
 
 	result = add_index_state_component(index->state,
 					   &INDEX_PAGE_MAP_INFO,
-					   index->volume->indexPageMap,
+					   index->volume->index_page_map,
 					   NULL);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
@@ -628,12 +627,10 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
 		struct delta_index_page *chapter_index_page;
-		int result = getPage(index->volume,
-				     chapter,
-				     index_page_number,
-				     CACHE_PROBE_INDEX_FIRST,
-				     NULL,
-				     &chapter_index_page);
+		int result = get_volume_page(index->volume,
+					     chapter, index_page_number,
+					     CACHE_PROBE_INDEX_FIRST, NULL,
+					     &chapter_index_page);
 		if (result != UDS_SUCCESS) {
 			return logErrorWithStringError(result,
 						       "failed to read index page %u in chapter %u",
@@ -650,7 +647,7 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 						       chapter,
 						       index_page_number);
 		}
-		result = update_index_page_map(index->volume->indexPageMap,
+		result = update_index_page_map(index->volume->index_page_map,
 					       vcn,
 					       chapter,
 					       index_page_number,
@@ -729,10 +726,10 @@ static int replay_record(struct index *index,
 			 * that chapter to determine if the master index entry
 			 * was for the same record or a different one.
 			 */
-			result = searchVolumePageCache(index->volume,
-						       NULL, name,
-						       record.virtual_chapter,
-						       NULL, &update_record);
+			result = search_volume_page_cache(index->volume,
+							  NULL, name,
+							  record.virtual_chapter,
+							  NULL, &update_record);
 			if (result != UDS_SUCCESS) {
 				return result;
 			}
@@ -836,8 +833,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 *   Starts empty, then dense-only, then dense-plus-sparse.
 	 *   Need to sparsify while processing individual chapters.
 	 */
-	enum index_lookup_mode old_lookup_mode = index->volume->lookupMode;
-	index->volume->lookupMode = LOOKUP_FOR_REBUILD;
+	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
+	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
 	/*
 	 * Go through each record page of each chapter and add the records back
 	 * to the master index.	 This should not cause anything to be written
@@ -849,7 +846,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 * index page map.
 	 */
 	const struct geometry *geometry = index->volume->geometry;
-	uint64_t old_ipm_update = get_last_update(index->volume->indexPageMap);
+	uint64_t old_ipm_update =
+		get_last_update(index->volume->index_page_map);
 	uint64_t vcn;
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {
 		if (check_for_suspend(index)) {
@@ -861,13 +859,13 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		bool will_be_sparse_chapter =
 			is_chapter_sparse(geometry, from_vcn, upto_vcn, vcn);
 		unsigned int chapter = map_to_physical_chapter(geometry, vcn);
-		prefetch_volume_pages(&index->volume->volumeStore,
-				      mapToPhysicalPage(geometry, chapter, 0),
+		prefetch_volume_pages(&index->volume->volume_store,
+				      map_to_physical_page(geometry, chapter, 0),
 				      geometry->pages_per_chapter);
 		set_master_index_open_chapter(index->master_index, vcn);
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
-			index->volume->lookupMode = old_lookup_mode;
+			index->volume->lookup_mode = old_lookup_mode;
 			return logErrorWithStringError(result,
 						       "could not rebuild index page map for chapter %u",
 						       chapter);
@@ -878,12 +876,12 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 			unsigned int record_page_number =
 				geometry->index_pages_per_chapter + j;
 			byte *record_page;
-			result = getPage(index->volume, chapter,
-					 record_page_number,
-					 CACHE_PROBE_RECORD_FIRST,
-					 &record_page, NULL);
+			result = get_volume_page(index->volume, chapter,
+						 record_page_number,
+						 CACHE_PROBE_RECORD_FIRST,
+						 &record_page, NULL);
 			if (result != UDS_SUCCESS) {
-				index->volume->lookupMode = old_lookup_mode;
+				index->volume->lookup_mode = old_lookup_mode;
 				return logUnrecoverable(result,
 							"could not get page %d",
 							record_page_number);
@@ -908,7 +906,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 						strncpy(hex_name, "<unknown>",
 							sizeof(hex_name));
 					}
-					index->volume->lookupMode =
+					index->volume->lookup_mode =
 						old_lookup_mode;
 					return logUnrecoverable(result,
 								"could not find block %s during rebuild",
@@ -917,12 +915,13 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 			}
 		}
 	}
-	index->volume->lookupMode = old_lookup_mode;
+	index->volume->lookup_mode = old_lookup_mode;
 
 	// We also need to reap the chapter being replaced by the open chapter
 	set_master_index_open_chapter(index->master_index, upto_vcn);
 
-	uint64_t new_ipm_update = get_last_update(index->volume->indexPageMap);
+	uint64_t new_ipm_update =
+		get_last_update(index->volume->index_page_map);
 
 	if (new_ipm_update != old_ipm_update) {
 		logInfo("replay changed index page map update from %llu to %llu",
@@ -949,7 +948,7 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 	counters->memoryUsed =
 		((uint64_t) dense_stats.memory_allocated +
 		 (uint64_t) sparse_stats.memory_allocated +
-		 (uint64_t) getCacheSize(index->volume) + cw_allocated);
+		 (uint64_t) get_cache_size(index->volume) + cw_allocated);
 	counters->collisions =
 		(dense_stats.collision_count + sparse_stats.collision_count);
 	counters->entriesDiscarded =

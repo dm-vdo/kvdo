@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#17 $
  */
 
 #include "chapterWriter.h"
@@ -35,11 +35,11 @@ struct chapter_writer {
 	/* The index to which we belong */
 	struct index *index;
 	/* The thread to do the writing */
-	Thread thread;
+	struct thread *thread;
 	/* lock protecting the following fields */
-	Mutex mutex;
+	struct mutex mutex;
 	/* condition signalled on state changes */
-	CondVar cond;
+	struct cond_var cond;
 	/* Set to true to stop the thread */
 	bool stop;
 	/* The result from the most recent write */
@@ -259,7 +259,7 @@ void wait_for_idle_chapter_writer(struct chapter_writer *writer)
 /**********************************************************************/
 int stop_chapter_writer(struct chapter_writer *writer)
 {
-	Thread writer_thread = 0;
+	struct thread *writer_thread = 0;
 
 	lockMutex(&writer->mutex);
 	if (writer->thread != 0) {

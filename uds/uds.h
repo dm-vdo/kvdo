@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#10 $
  */
 
 /**
@@ -31,13 +31,8 @@
 #ifndef UDS_H
 #define UDS_H
 
+#include "compiler.h"
 #include "uds-platform.h"
-
-#ifdef UDS_DISABLE_ATTR_WARN_UNUSED_RESULT
-#define UDS_ATTR_WARN_UNUSED_RESULT
-#else
-#define UDS_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
-#endif
 
 /**
  * Valid request types as described in callbacks.
@@ -335,9 +330,8 @@ struct uds_request {
  *
  * @return                    Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsInitializeConfiguration(struct uds_configuration **conf,
-                               uds_memory_config_size_t   memGB);
+int __must_check udsInitializeConfiguration(struct uds_configuration **conf,
+                                            uds_memory_config_size_t   memGB);
 
 /**
  * Sets or clears an index configuration's sparse indexing settings.
@@ -358,8 +352,7 @@ void udsConfigurationSetSparse(struct uds_configuration *conf, bool sparse);
  * @return                    Returns <code>true</code> if the configuration
  *                            is sparse, or <code>false</code> if not
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-bool udsConfigurationGetSparse(struct uds_configuration *conf);
+bool __must_check udsConfigurationGetSparse(struct uds_configuration *conf);
 
 /**
  * Sets an index configuration's nonce.
@@ -377,8 +370,8 @@ void udsConfigurationSetNonce(struct uds_configuration *conf, uds_nonce_t nonce)
  *
  * @return  The 64 bit nonce.
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-uds_nonce_t udsConfigurationGetNonce(struct uds_configuration *conf);
+uds_nonce_t __must_check
+udsConfigurationGetNonce(struct uds_configuration *conf);
 
 /**
  * Fetches a configuration's maximum memory allocation.
@@ -387,8 +380,8 @@ uds_nonce_t udsConfigurationGetNonce(struct uds_configuration *conf);
  *
  * @return      The amount of memory allocated, in GB
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-uds_memory_config_size_t udsConfigurationGetMemory(struct uds_configuration *conf);
+uds_memory_config_size_t __must_check
+udsConfigurationGetMemory(struct uds_configuration *conf);
 
 /**
  * Fetches a configuration's chapters per volume value.
@@ -397,8 +390,8 @@ uds_memory_config_size_t udsConfigurationGetMemory(struct uds_configuration *con
  *
  * @return      The number of chapters per volume
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-unsigned int udsConfigurationGetChaptersPerVolume(struct uds_configuration *conf);
+unsigned int __must_check
+udsConfigurationGetChaptersPerVolume(struct uds_configuration *conf);
 
 /**
  * Frees memory used by a configuration.
@@ -420,10 +413,10 @@ void udsFreeConfiguration(struct uds_configuration *conf);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int uds_compute_index_size(const struct uds_configuration *config,
-                           unsigned int                    numCheckpoints,
-                           uint64_t                       *indexSize);
+int __must_check
+uds_compute_index_size(const struct uds_configuration *config,
+                       unsigned int                    numCheckpoints,
+                       uint64_t                       *indexSize);
 
 /**
  * Opens an index session.
@@ -437,16 +430,14 @@ int uds_compute_index_size(const struct uds_configuration *config,
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCreateIndexSession(struct uds_index_session **session);
+int __must_check udsCreateIndexSession(struct uds_index_session **session);
 
 /**
  * Fetches the UDS library version.
  *
  * @return       The library version
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-const char *udsGetVersion(void);
+const char * __must_check udsGetVersion(void);
 
 /**
  * The name argument to #udsOpenIndex is a text string that names the index.
@@ -474,12 +465,11 @@ const char *udsGetVersion(void);
  *
  * @return          Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsOpenIndex(enum uds_open_index_type     openType,
-                 const char                  *name,
-                 const struct uds_parameters *params,
-                 struct uds_configuration    *conf,
-                 struct uds_index_session    *session);
+int __must_check udsOpenIndex(enum uds_open_index_type     openType,
+                              const char                  *name,
+                              const struct uds_parameters *params,
+                              struct uds_configuration    *conf,
+                              struct uds_index_session    *session);
 
 /**
  * Waits until all callbacks for index operations are complete, and prevents
@@ -492,8 +482,8 @@ int udsOpenIndex(enum uds_open_index_type     openType,
  *
  * @return  Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsSuspendIndexSession(struct uds_index_session *session, bool save);
+int __must_check udsSuspendIndexSession(struct uds_index_session *session,
+                                        bool save);
 
 /**
  * Allows new index operations for an index, whether it was suspended or not.
@@ -502,8 +492,7 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save);
  *
  * @return  Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsResumeIndexSession(struct uds_index_session *session);
+int __must_check udsResumeIndexSession(struct uds_index_session *session);
 
 /**
  * Waits until all callbacks for index operations are complete.
@@ -512,8 +501,7 @@ int udsResumeIndexSession(struct uds_index_session *session);
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsFlushIndexSession(struct uds_index_session *session);
+int __must_check udsFlushIndexSession(struct uds_index_session *session);
 
 /**
  * Closes an index.  This operation will fail if the index session is
@@ -525,8 +513,7 @@ int udsFlushIndexSession(struct uds_index_session *session);
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCloseIndex(struct uds_index_session *session);
+int __must_check udsCloseIndex(struct uds_index_session *session);
 
 /**
  * Destroys an index session.
@@ -549,9 +536,8 @@ int udsDestroyIndexSession(struct uds_index_session *session);
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexConfiguration(struct uds_index_session  *session,
-                             struct uds_configuration **conf);
+int __must_check udsGetIndexConfiguration(struct uds_index_session  *session,
+                                          struct uds_configuration **conf);
 
 /**
  * Fetches index statistics for the given index session.
@@ -561,9 +547,8 @@ int udsGetIndexConfiguration(struct uds_index_session  *session,
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexStats(struct uds_index_session *session,
-                     struct uds_index_stats *stats);
+int __must_check udsGetIndexStats(struct uds_index_session *session,
+                                  struct uds_index_stats *stats);
 
 /**
  * Fetches index session statistics for the given index session.
@@ -573,9 +558,8 @@ int udsGetIndexStats(struct uds_index_session *session,
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexSessionStats(struct uds_index_session *session,
-                            struct uds_context_stats *stats);
+int __must_check udsGetIndexSessionStats(struct uds_index_session *session,
+                                         struct uds_context_stats *stats);
 
 /**
  * Convert an error code to a string.
@@ -586,8 +570,7 @@ int udsGetIndexSessionStats(struct uds_index_session *session,
  *
  * @return A pointer to buf
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-const char *udsStringError(int errnum, char *buf, size_t buflen);
+const char * __must_check udsStringError(int errnum, char *buf, size_t buflen);
 
 /**
  * Suggested buffer size for udsStringError.
@@ -641,8 +624,7 @@ enum {
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int uds_start_chunk_operation(struct uds_request *request);
+int __must_check uds_start_chunk_operation(struct uds_request *request);
 /** @} */
 
 #endif /* UDS_H */

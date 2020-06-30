@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#23 $
  */
 
 #include "openChapter.h"
@@ -163,7 +163,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 	// Pass the populated chapter index and the records to the volume,
 	// which will generate and write the index and record pages for the
 	// chapter.
-	return writeChapter(volume, chapter_index, collated_records);
+	return write_chapter(volume, chapter_index, collated_records);
 }
 
 /**********************************************************************/
