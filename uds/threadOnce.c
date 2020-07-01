@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#4 $
  */
 
 #include "errors.h"
@@ -38,7 +38,7 @@ int perform_once(once_state_t *once, void (*function)(void))
 			atomic_set_release(once, ONCE_COMPLETE);
 			return UDS_SUCCESS;
 		case ONCE_IN_PROGRESS:
-			yieldScheduler();
+			yield_scheduler();
 			break;
 		case ONCE_COMPLETE:
 			return UDS_SUCCESS;

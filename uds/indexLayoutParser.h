@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#6 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
@@ -25,16 +25,16 @@
 #include "compiler.h"
 #include "typeDefs.h"
 
-typedef enum {
+enum lp_type {
 	LP_STRING = 0x001,
 	LP_UINT64 = 0x002,
 	LP_TYPE_MASK = 0x0FF,
 	LP_DEFAULT = 0x100,
-} LPType;
+};
 
 struct layout_parameter {
 	const char *name;
-	LPType type;
+	enum lp_type type;
 	union {
 		char **str;
 		uint64_t *num;

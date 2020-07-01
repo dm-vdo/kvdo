@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#19 $
  */
 
 #ifndef VOLUME_H
@@ -321,7 +321,7 @@ read_chapter_index_from_volume(const struct volume *volume,
 int __must_check get_volume_page_locked(struct volume *volume,
 					Request *request,
 					unsigned int physical_page,
-					cache_probe_type_t probe_type,
+					enum cache_probe_type probe_type,
 					struct cached_page **entry_ptr);
 
 /**
@@ -352,7 +352,7 @@ int __must_check get_volume_page_locked(struct volume *volume,
 int __must_check get_volume_page_protected(struct volume *volume,
 					   Request *request,
 					   unsigned int physical_page,
-					   cache_probe_type_t probe_type,
+					   enum cache_probe_type probe_type,
 					   struct cached_page **entry_ptr);
 
 /**
@@ -385,7 +385,7 @@ int __must_check get_volume_page_protected(struct volume *volume,
 int __must_check get_volume_page(struct volume *volume,
 				 unsigned int chapter,
 				 unsigned int page_number,
-				 cache_probe_type_t probe_type,
+				 enum cache_probe_type probe_type,
 				 byte **data_ptr,
 				 struct delta_index_page **index_page_ptr);
 

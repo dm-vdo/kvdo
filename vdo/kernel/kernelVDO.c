@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#54 $
  */
 
 /*
@@ -56,14 +56,14 @@ static void start_kvdo_request_queue(void *ptr)
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
 						  kvdo);
-	registerAllocatingThread(&thread->allocating_thread,
-				 &layer->allocations_allowed);
+	register_allocating_thread(&thread->allocating_thread,
+				   &layer->allocations_allowed);
 }
 
 /**********************************************************************/
 static void finish_kvdo_request_queue(void *ptr)
 {
-	unregisterAllocatingThread();
+	unregister_allocating_thread();
 }
 
 /**********************************************************************/

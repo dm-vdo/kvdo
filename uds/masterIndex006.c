@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#22 $
  */
 #include "masterIndex006.h"
 
@@ -114,7 +114,7 @@ static void free_master_index_006(struct master_index *master_index)
 		if (mi6->master_zones != NULL) {
 			unsigned int zone;
 			for (zone = 0; zone < mi6->num_zones; zone++) {
-				destroyMutex(&mi6->master_zones[zone].hook_mutex);
+				destroy_mutex(&mi6->master_zones[zone].hook_mutex);
 			}
 			FREE(mi6->master_zones);
 			mi6->master_zones = NULL;
@@ -485,10 +485,10 @@ set_master_index_zone_open_chapter_006(struct master_index *master_index,
 	// We need to prevent a lookup_master_index_name() happening while we
 	// are changing the open chapter number
 	struct mutex *mutex = &mi6->master_zones[zone_number].hook_mutex;
-	lockMutex(mutex);
+	lock_mutex(mutex);
 	set_master_index_zone_open_chapter(mi6->mi_hook, zone_number,
 					   virtual_chapter);
-	unlockMutex(mutex);
+	unlock_mutex(mutex);
 }
 
 /***********************************************************************/
@@ -553,10 +553,10 @@ lookup_master_index_name_006(const struct master_index *master_index,
 	if (triage->is_sample) {
 		struct mutex *mutex =
 			&mi6->master_zones[triage->zone].hook_mutex;
-		lockMutex(mutex);
+		lock_mutex(mutex);
 		result = lookup_master_index_sampled_name(mi6->mi_hook, name,
 							  triage);
-		unlockMutex(mutex);
+		unlock_mutex(mutex);
 	}
 	return result;
 }
@@ -630,9 +630,9 @@ static int get_master_index_record_006(struct master_index *master_index,
 		 */
 		unsigned int zone = get_master_index_zone(mi6->mi_hook, name);
 		struct mutex *mutex = &mi6->master_zones[zone].hook_mutex;
-		lockMutex(mutex);
+		lock_mutex(mutex);
 		result = get_master_index_record(mi6->mi_hook, name, record);
-		unlockMutex(mutex);
+		unlock_mutex(mutex);
 		// Remember the mutex so that other operations on the
 		// master_index_record can use it
 		record->mutex = mutex;
@@ -819,8 +819,7 @@ int make_master_index006(const struct configuration *config,
 	unsigned int zone;
 	for (zone = 0; zone < num_zones; zone++) {
 		if (result == UDS_SUCCESS) {
-			result =
-				initMutex(&mi6->master_zones[zone].hook_mutex);
+			result = init_mutex(&mi6->master_zones[zone].hook_mutex);
 		}
 	}
 	if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#12 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -238,7 +238,7 @@ int __must_check assert_page_in_cache(struct page_cache *cache,
  * @param [in] cache         the page cache
  * @param [in] physical_page the page number
  * @param [in] probe_type    the type of cache access being done
- *                           (cache_probe_type_t optionally OR'ed with
+ *                           (cache_probe_type optionally OR'ed with
  *                           CACHE_PROBE_IGNORE_FAILURE)
  * @param [out] page_ptr     the found page
  *

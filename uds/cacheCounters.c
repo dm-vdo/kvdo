@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#5 $
  */
 
 #include "cacheCounters.h"
@@ -31,9 +31,9 @@
 /**********************************************************************/
 void increment_cache_counter(struct cache_counters *counters,
 			     int probe_type,
-			     cache_result_kind_t kind)
+			     enum cache_result_kind kind)
 {
-	cache_probe_type_t basic_probe_type =
+	enum cache_probe_type basic_probe_type =
 		probe_type & ~CACHE_PROBE_IGNORE_FAILURE;
 	int result = ASSERT(basic_probe_type <= CACHE_PROBE_RECORD_RETRY,
 			    "invalid cache probe type %#x",

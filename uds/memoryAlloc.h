@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#4 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -295,16 +295,16 @@ void memory_init(void);
  * If no flag is supplied, the thread is always allowed to allocate
  * storage without complaint.
  *
- * @param newThread  RegisteredThread structure to use for the current thread
- * @param flagPtr    Location of the allocation-allowed flag
+ * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param flag_ptr    Location of the allocation-allowed flag
  **/
-void registerAllocatingThread(RegisteredThread *newThread,
-                              const bool       *flagPtr);
+void register_allocating_thread(RegisteredThread *new_thread,
+                                const bool       *flag_ptr);
 
 /**
  * Unregister the current thread as an allocating thread.
  **/
-void unregisterAllocatingThread(void);
+void unregister_allocating_thread(void);
 
 /**
  * Get the memory statistics.

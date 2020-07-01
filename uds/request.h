@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#13 $
  */
 
 #ifndef REQUEST_H
@@ -229,15 +229,15 @@ void enter_callback_stage(Request *request);
 void update_request_context_stats(Request *request);
 
 /**
- * Compute the cache_probe_type_t value reflecting the request and page type.
+ * Compute the cache_probe_type value reflecting the request and page type.
  *
  * @param request      The request being processed, or NULL
  * @param is_index_page  Whether the cache probe will be for an index page
  *
  * @return the cache probe type enumeration
  **/
-static INLINE cache_probe_type_t cache_probe_type(Request *request,
-						  bool is_index_page)
+static INLINE enum cache_probe_type cache_probe_type(Request *request,
+						     bool is_index_page)
 {
 	if ((request != NULL) && request->requeued) {
 		return is_index_page ? CACHE_PROBE_INDEX_RETRY :

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#62 $
  */
 
 #include "dmvdo.h"
@@ -450,7 +450,7 @@ static int vdo_message(struct dm_target *ti,
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread allocating_thread, instance_thread;
 
-	registerAllocatingThread(&allocating_thread, NULL);
+	register_allocating_thread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
 
 	// Must be done here so we don't map return codes. The code in
@@ -460,14 +460,14 @@ static int vdo_message(struct dm_target *ti,
 		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
 			write_vdo_stats(layer, result_buffer, maxlen);
 			unregister_thread_device_id();
-			unregisterAllocatingThread();
+			unregister_allocating_thread();
 			return 1;
 		}
 
 		if (strcasecmp(argv[0], "kernel_stats") == 0) {
 			write_kernel_stats(layer, result_buffer, maxlen);
 			unregister_thread_device_id();
-			unregisterAllocatingThread();
+			unregister_allocating_thread();
 			return 1;
 		}
 	}
@@ -475,7 +475,7 @@ static int vdo_message(struct dm_target *ti,
 	int result = process_vdo_message(layer, argc, argv);
 
 	unregister_thread_device_id();
-	unregisterAllocatingThread();
+	unregister_allocating_thread();
 	return map_to_system_error(result);
 }
 
@@ -654,16 +654,16 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	RegisteredThread allocating_thread;
 
-	registerAllocatingThread(&allocating_thread, NULL);
+	register_allocating_thread(&allocating_thread, NULL);
 
 	struct kernel_layer *old_layer = find_layer_matching(layer_is_named,
-							      pool_name);
+							     pool_name);
 	unsigned int instance;
 
 	if (old_layer == NULL) {
 		result = allocate_kvdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
-			unregisterAllocatingThread();
+			unregister_allocating_thread();
 			return -ENOMEM;
 		}
 	} else {
@@ -680,7 +680,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	result = parse_device_config(argc, argv, ti, verbose, &config);
 	if (result != VDO_SUCCESS) {
 		unregister_thread_device_id();
-		unregisterAllocatingThread();
+		unregister_allocating_thread();
 		if (old_layer == NULL) {
 			release_kvdo_instance(instance);
 		}
@@ -709,7 +709,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			configure_target_capabilities(ti, old_layer);
 		}
 		unregister_thread_device_id();
-		unregisterAllocatingThread();
+		unregister_allocating_thread();
 		return result;
 	}
 
@@ -721,7 +721,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	unregister_thread_device_id();
-	unregisterAllocatingThread();
+	unregister_allocating_thread();
 	return result;
 }
 
@@ -739,7 +739,7 @@ static void vdo_dtr(struct dm_target *ti)
 		RegisteredThread allocating_thread, instance_thread;
 
 		register_thread_device_id(&instance_thread, &instance);
-		registerAllocatingThread(&allocating_thread, NULL);
+		register_allocating_thread(&allocating_thread, NULL);
 
 		wait_for_no_requests_active(layer);
 		logInfo("stopping device '%s'", config->pool_name);
@@ -751,7 +751,7 @@ static void vdo_dtr(struct dm_target *ti)
 		free_kernel_layer(layer);
 		logInfo("device '%s' stopped", config->pool_name);
 		unregister_thread_device_id();
-		unregisterAllocatingThread();
+		unregister_allocating_thread();
 	} else if (config == layer->device_config) {
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.

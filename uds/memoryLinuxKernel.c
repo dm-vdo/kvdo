@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#5 $
  */
 
 #include <linux/delay.h>
@@ -37,33 +37,34 @@
  ******************************************************************************
  * Production: UDS and VDO keep track of which threads are allowed to allocate
  * memory freely, and which threads must be careful to not do a memory
- * allocation that does an I/O request.  The allocatingThreads ThreadsRegistry
+ * allocation that does an I/O request.  The allocating_threads ThreadsRegistry
  * and its associated methods implement this tracking.
  */
 
-static ThreadRegistry allocatingThreads;
+static ThreadRegistry allocating_threads;
 
 /*****************************************************************************/
-static bool allocationsAllowed(void)
+static bool allocations_allowed(void)
 {
-  const bool *pointer = lookupThread(&allocatingThreads);
-  return pointer != NULL ? *pointer : false;
+	const bool *pointer = lookupThread(&allocating_threads);
+	return pointer != NULL ? *pointer : false;
 }
 
 /*****************************************************************************/
-void registerAllocatingThread(RegisteredThread *newThread, const bool *flagPtr)
+void register_allocating_thread(RegisteredThread *new_thread,
+				const bool *flag_ptr)
 {
-  if (flagPtr == NULL) {
-    static const bool allocationAlwaysAllowed = true;
-    flagPtr = &allocationAlwaysAllowed;
-  }
-  registerThread(&allocatingThreads, newThread, flagPtr);
+	if (flag_ptr == NULL) {
+		static const bool allocation_always_allowed = true;
+		flag_ptr = &allocation_always_allowed;
+	}
+	registerThread(&allocating_threads, new_thread, flag_ptr);
 }
 
 /*****************************************************************************/
-void unregisterAllocatingThread(void)
+void unregister_allocating_thread(void)
 {
-  unregisterThread(&allocatingThreads);
+	unregisterThread(&allocating_threads);
 }
 
 /*
@@ -82,88 +83,89 @@ void unregisterAllocatingThread(void)
 
 // We allocate very few large objects, and allocation/deallocation isn't done
 // in a performance-critical stage for us, so a linked list should be fine.
-typedef struct vmallocBlockInfo {
-  void                    *ptr;
-  size_t                   size;
-  struct vmallocBlockInfo *next;
-} VmallocBlockInfo;
+struct vmalloc_block_info {
+	void *ptr;
+	size_t size;
+	struct vmalloc_block_info *next;
+};
 
 static struct {
-  spinlock_t        lock;
-  size_t            kmallocBlocks;
-  size_t            kmallocBytes;
-  size_t            vmallocBlocks;
-  size_t            vmallocBytes;
-  size_t            peakBytes;
-  VmallocBlockInfo *vmallocList;
-} memoryStats __cacheline_aligned;
+	spinlock_t lock;
+	size_t kmalloc_blocks;
+	size_t kmalloc_bytes;
+	size_t vmalloc_blocks;
+	size_t vmalloc_bytes;
+	size_t peak_bytes;
+	struct vmalloc_block_info *vmalloc_list;
+} memory_stats __cacheline_aligned;
 
 /*****************************************************************************/
-static void updatePeakUsage(void)
+static void update_peak_usage(void)
 {
-  size_t totalBytes = memoryStats.kmallocBytes + memoryStats.vmallocBytes;
-  if (totalBytes > memoryStats.peakBytes) {
-    memoryStats.peakBytes = totalBytes;
-  }
+	size_t total_bytes =
+		memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
+	if (total_bytes > memory_stats.peak_bytes) {
+		memory_stats.peak_bytes = total_bytes;
+	}
 }
 
 /*****************************************************************************/
-static void addKmallocBlock(size_t size)
+static void add_kmalloc_block(size_t size)
 {
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.kmallocBlocks++;
-  memoryStats.kmallocBytes += size;
-  updatePeakUsage();
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	memory_stats.kmalloc_blocks++;
+	memory_stats.kmalloc_bytes += size;
+	update_peak_usage();
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
 /*****************************************************************************/
-static void removeKmallocBlock(size_t size)
+static void remove_kmalloc_block(size_t size)
 {
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.kmallocBlocks--;
-  memoryStats.kmallocBytes -= size;
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	memory_stats.kmalloc_blocks--;
+	memory_stats.kmalloc_bytes -= size;
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
 /*****************************************************************************/
-static void addVmallocBlock(VmallocBlockInfo *block)
+static void add_vmalloc_block(struct vmalloc_block_info *block)
 {
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  block->next = memoryStats.vmallocList;
-  memoryStats.vmallocList = block;
-  memoryStats.vmallocBlocks++;
-  memoryStats.vmallocBytes += block->size;
-  updatePeakUsage();
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	block->next = memory_stats.vmalloc_list;
+	memory_stats.vmalloc_list = block;
+	memory_stats.vmalloc_blocks++;
+	memory_stats.vmalloc_bytes += block->size;
+	update_peak_usage();
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
 /*****************************************************************************/
-static void removeVmallocBlock(void *ptr)
+static void remove_vmalloc_block(void *ptr)
 {
-  VmallocBlockInfo *block, **blockPtr;
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  for (blockPtr = &memoryStats.vmallocList;
-       (block = *blockPtr) != NULL;
-       blockPtr = &block->next) {
-    if (block->ptr == ptr) {
-      *blockPtr = block->next;
-      memoryStats.vmallocBlocks--;
-      memoryStats.vmallocBytes -= block->size;
-      break;
-    }
-  }
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-  if (block != NULL) {
-    FREE(block);
-  } else {
-    logInfo("attempting to remove ptr %" PRIptr " not found in vmalloc list",
-	    ptr);
-  }
+	struct vmalloc_block_info *block, **block_ptr;
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	for (block_ptr = &memory_stats.vmalloc_list;
+	     (block = *block_ptr) != NULL;
+	     block_ptr = &block->next) {
+		if (block->ptr == ptr) {
+			*block_ptr = block->next;
+			memory_stats.vmalloc_blocks--;
+			memory_stats.vmalloc_bytes -= block->size;
+			break;
+		}
+	}
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
+	if (block != NULL) {
+		FREE(block);
+	} else {
+		logInfo("attempting to remove ptr %" PRIptr " not found in vmalloc list",
+			ptr);
+	}
 }
 
 
@@ -201,235 +203,253 @@ static void removeVmallocBlock(void *ptr)
  *
  * @param size  How many bytes to allocate
  **/
-static INLINE bool useKmalloc(size_t size)
+static INLINE bool use_kmalloc(size_t size)
 {
-  return size <= PAGE_SIZE;
+	return size <= PAGE_SIZE;
 }
 
 /*****************************************************************************/
 int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
-  if (ptr == NULL) {
-    return UDS_INVALID_ARGUMENT;
-  }
-  if (size == 0) {
-    *((void **) ptr) = NULL;
-    return UDS_SUCCESS;
-  }
+	if (ptr == NULL) {
+		return UDS_INVALID_ARGUMENT;
+	}
+	if (size == 0) {
+		*((void **) ptr) = NULL;
+		return UDS_SUCCESS;
+	}
 
 
-  /*
-   * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry memory
-   * reclaim procedures that have previously failed if there is some indication
-   * that progress has been made else where.  It can wait for other tasks to
-   * attempt high level approaches to freeing memory such as compaction (which
-   * removes fragmentation) and page-out.  There is still a definite limit to
-   * the number of retries, but it is a larger limit than with __GFP_NORETRY.
-   * Allocations with this flag may fail, but only when there is genuinely
-   * little unused memory. While these allocations do not directly trigger the
-   * OOM killer, their failure indicates that the system is likely to need to
-   * use the OOM killer soon.  The caller must handle failure, but can
-   * reasonably do so by failing a higher-level request, or completing it only
-   * in a much less efficient manner.
-   */
-  const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
+	/*
+	 * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry
+	 * memory reclaim procedures that have previously failed if there is
+	 * some indication that progress has been made else where.  It can wait
+	 * for other tasks to attempt high level approaches to freeing memory
+	 * such as compaction (which removes fragmentation) and page-out. There
+	 * is still a definite limit to the number of retries, but it is a
+	 * larger limit than with __GFP_NORETRY. Allocations with this flag may
+	 * fail, but only when there is genuinely little unused memory. While
+	 * these allocations do not directly trigger the OOM killer, their
+	 * failure indicates that the system is likely to need to use the OOM
+	 * killer soon.  The caller must handle failure, but can reasonably do
+	 * so by failing a higher-level request, or completing it only in a
+	 * much less efficient manner.
+	 */
+	const gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
 
-  bool allocationsRestricted = !allocationsAllowed();
-  unsigned int noioFlags;
-  if (allocationsRestricted) {
-    noioFlags = memalloc_noio_save();
-  }
+	bool allocations_restricted = !allocations_allowed();
+	unsigned int noio_flags;
+	if (allocations_restricted) {
+		noio_flags = memalloc_noio_save();
+	}
 
-  unsigned long startTime = jiffies;
-  void *p = NULL;
-  if (useKmalloc(size) && (align < PAGE_SIZE)) {
-    p = kmalloc(size, gfpFlags | __GFP_NOWARN);
-    if (p == NULL) {
-      /*
-       * If we had just done kmalloc(size, gfpFlags) it is possible that the
-       * allocation would fail (see VDO-3688).  The kernel log would then
-       * contain a long report about the failure.  Although the failure occurs
-       * because there is no page available to allocate, by the time it logs
-       * the available space, there is a page available.  So hopefully a short
-       * sleep will allow the page reclaimer to free a single page, which is
-       * all that we need.
-       */
-      msleep(1);
-      p = kmalloc(size, gfpFlags);
-    }
-    if (p != NULL) {
-      addKmallocBlock(ksize(p));
-    }
-  } else {
-    VmallocBlockInfo *block;
-    if (ALLOCATE(1, VmallocBlockInfo, __func__, &block) == UDS_SUCCESS) {
-      /*
-       * If we just do __vmalloc(size, gfpFlags, PAGE_KERNEL) it is possible
-       * that the allocation will fail (see VDO-3661).  The kernel log will
-       * then contain a long report about the failure.  Although the failure
-       * occurs because there are not enough pages available to allocate, by
-       * the time it logs the available space, there may enough pages available
-       * for smaller allocations.  So hopefully a short sleep will allow the
-       * page reclaimer to free enough pages for us.
-       *
-       * For larger allocations, the kernel page_alloc code is racing against
-       * the page reclaimer.  If the page reclaimer can stay ahead of
-       * page_alloc, the __vmalloc will succeed.  But if page_alloc overtakes
-       * the page reclaimer, the allocation fails.  It is possible that more
-       * retries will succeed.
-       */
-      for (;;) {
+	unsigned long start_time = jiffies;
+	void *p = NULL;
+	if (use_kmalloc(size) && (align < PAGE_SIZE)) {
+		p = kmalloc(size, gfp_flags | __GFP_NOWARN);
+		if (p == NULL) {
+			/*
+			 * If we had just done kmalloc(size, gfp_flags) it is
+			 * possible that the allocation would fail (see
+			 * VDO-3688).  The kernel log would then contain a long
+			 * report about the failure.  Although the failure
+			 * occurs because there is no page available to
+			 * allocate, by the time it logs the available space,
+			 * there is a page available.  So hopefully a short
+			 * sleep will allow the page reclaimer to free a single
+			 * page, which is all that we need.
+			 */
+			msleep(1);
+			p = kmalloc(size, gfp_flags);
+		}
+		if (p != NULL) {
+			add_kmalloc_block(ksize(p));
+		}
+	} else {
+		struct vmalloc_block_info *block;
+		if (ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
+		    UDS_SUCCESS) {
+			/*
+			 * If we just do __vmalloc(size, gfp_flags,
+			 * PAGE_KERNEL) it is possible that the allocation will
+			 * fail (see VDO-3661).  The kernel log will then
+			 * contain a long report about the failure.  Although
+			 * the failure occurs because there are not enough
+			 * pages available to allocate, by the time it logs the
+			 * available space, there may enough pages available
+			 * for smaller allocations.  So hopefully a short sleep
+			 * will allow the page reclaimer to free enough pages
+			 * for us.
+			 *
+			 * For larger allocations, the kernel page_alloc code
+			 * is racing against the page reclaimer.  If the page
+			 * reclaimer can stay ahead of page_alloc, the
+			 * __vmalloc will succeed.  But if page_alloc overtakes
+			 * the page reclaimer, the allocation fails.  It is
+			 * possible that more retries will succeed.
+			 */
+			for (;;) {
 // XXX Take out when all Fedora lab machines have upgraded to 5.8+. ALB-3032.
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-        p = __vmalloc(size, gfpFlags | __GFP_NOWARN);
+				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
 #else
-        p = __vmalloc(size, gfpFlags | __GFP_NOWARN, PAGE_KERNEL);
+				p = __vmalloc(size,
+					      gfp_flags | __GFP_NOWARN,
+					      PAGE_KERNEL);
 #endif
-        // Try again unless we succeeded or more than 1 second has elapsed.
-        if ((p != NULL) || (jiffies_to_msecs(jiffies - startTime) > 1000)) {
-          break;
-        }
-        msleep(1);
-      }
-      if (p == NULL) {
-        // Try one more time, logging a failure for this call.
+				// Try again unless we succeeded or more than 1
+				// second has elapsed.
+				if ((p != NULL) ||
+				    (jiffies_to_msecs(jiffies - start_time) >
+				     1000)) {
+					break;
+				}
+				msleep(1);
+			}
+			if (p == NULL) {
+				// Try one more time, logging a failure for
+				// this call.
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-        p = __vmalloc(size, gfpFlags);
+				p = __vmalloc(size, gfp_flags);
 #else
-        p = __vmalloc(size, gfpFlags, PAGE_KERNEL);
+				p = __vmalloc(size, gfp_flags, PAGE_KERNEL);
 #endif
-      }
-      if (p == NULL) {
-        FREE(block);
-      } else {
-        block->ptr = p;
-        block->size = PAGE_ALIGN(size);
-        addVmallocBlock(block);
-      }
-    }
-  }
+			}
+			if (p == NULL) {
+				FREE(block);
+			} else {
+				block->ptr = p;
+				block->size = PAGE_ALIGN(size);
+				add_vmalloc_block(block);
+			}
+		}
+	}
 
-  if (allocationsRestricted) {
-    memalloc_noio_restore(noioFlags);
-  }
+	if (allocations_restricted) {
+		memalloc_noio_restore(noio_flags);
+	}
 
-  if (p == NULL) {
-    unsigned int duration = jiffies_to_msecs(jiffies - startTime);
-    logError("Could not allocate %zu bytes for %s in %u msecs",
-             size, what, duration);
-    return ENOMEM;
-  }
-  *((void **) ptr) = p;
-  return UDS_SUCCESS;
+	if (p == NULL) {
+		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
+		logError("Could not allocate %zu bytes for %s in %u msecs",
+			 size,
+			 what,
+			 duration);
+		return ENOMEM;
+	}
+	*((void **) ptr) = p;
+	return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
-void *allocate_memory_nowait(size_t      size,
+void *allocate_memory_nowait(size_t size,
 			     const char *what __attribute__((unused)))
 {
-  void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
-  if (p != NULL) {
-    addKmallocBlock(ksize(p));
-  }
-  return p;
+	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
+	if (p != NULL) {
+		add_kmalloc_block(ksize(p));
+	}
+	return p;
 }
 
 /*****************************************************************************/
 void free_memory(void *ptr)
 {
-  if (ptr != NULL) {
-    if (is_vmalloc_addr(ptr)) {
-      removeVmallocBlock(ptr);
-      vfree(ptr);
-    } else {
-      removeKmallocBlock(ksize(ptr));
-      kfree(ptr);
-    }
-  }
+	if (ptr != NULL) {
+		if (is_vmalloc_addr(ptr)) {
+			remove_vmalloc_block(ptr);
+			vfree(ptr);
+		} else {
+			remove_kmalloc_block(ksize(ptr));
+			kfree(ptr);
+		}
+	}
 }
 
 /*****************************************************************************/
-int reallocate_memory(void       *ptr,
-		      size_t      oldSize,
-		      size_t      size,
+int reallocate_memory(void *ptr,
+		      size_t old_size,
+		      size_t size,
 		      const char *what,
-		      void       *newPtr)
+		      void *new_ptr)
 {
-  // Handle special case of zero sized result
-  if (size == 0) {
-    FREE(ptr);
-    *(void **)newPtr = NULL;
-    return UDS_SUCCESS;
-  }
+	// Handle special case of zero sized result
+	if (size == 0) {
+		FREE(ptr);
+		*(void **) new_ptr = NULL;
+		return UDS_SUCCESS;
+	}
 
-  int result = ALLOCATE(size, char, what, newPtr);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(size, char, what, new_ptr);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  if (ptr != NULL) {
-    if (oldSize < size) {
-      size = oldSize;
-    }
-    memcpy(*((void **) newPtr), ptr, size);
-    FREE(ptr);
-  }
-  return UDS_SUCCESS;
+	if (ptr != NULL) {
+		if (old_size < size) {
+			size = old_size;
+		}
+		memcpy(*((void **) new_ptr), ptr, size);
+		FREE(ptr);
+	}
+	return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
 void memory_init(void)
 {
 
-  spin_lock_init(&memoryStats.lock);
-  initializeThreadRegistry(&allocatingThreads);
+	spin_lock_init(&memory_stats.lock);
+	initializeThreadRegistry(&allocating_threads);
 }
-
 
 /*****************************************************************************/
 void memory_exit(void)
 {
 
-  ASSERT_LOG_ONLY(memoryStats.kmallocBytes == 0,
-                  "kmalloc memory used (%zd bytes in %zd blocks)"
-                  " is returned to the kernel",
-                  memoryStats.kmallocBytes, memoryStats.kmallocBlocks);
-  ASSERT_LOG_ONLY(memoryStats.vmallocBytes == 0,
-                  "vmalloc memory used (%zd bytes in %zd blocks)"
-                  " is returned to the kernel",
-                  memoryStats.vmallocBytes, memoryStats.vmallocBlocks);
-  logDebug("%s peak usage %zd bytes", THIS_MODULE->name,
-           memoryStats.peakBytes);
+	ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
+			"kmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
+			memory_stats.kmalloc_bytes,
+			memory_stats.kmalloc_blocks);
+	ASSERT_LOG_ONLY(memory_stats.vmalloc_bytes == 0,
+			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
+			memory_stats.vmalloc_bytes,
+			memory_stats.vmalloc_blocks);
+	logDebug("%s peak usage %zd bytes",
+		 THIS_MODULE->name,
+		 memory_stats.peak_bytes);
 }
 
 /**********************************************************************/
-void get_memory_stats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
+void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 {
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  *bytesUsed     = memoryStats.kmallocBytes + memoryStats.vmallocBytes;
-  *peakBytesUsed = memoryStats.peakBytes;
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	*bytes_used = memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
+	*peak_bytes_used = memory_stats.peak_bytes;
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
 /**********************************************************************/
 void report_memory_usage()
 {
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  uint64_t kmallocBlocks = memoryStats.kmallocBlocks;
-  uint64_t kmallocBytes = memoryStats.kmallocBytes;
-  uint64_t vmallocBlocks = memoryStats.vmallocBlocks;
-  uint64_t vmallocBytes = memoryStats.vmallocBytes;
-  uint64_t peakUsage = memoryStats.peakBytes;
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-  uint64_t totalBytes = kmallocBytes + vmallocBytes;
-  logInfo("current module memory tracking"
-          " (actual allocation sizes, not requested):");
-  logInfo("  %llu bytes in %llu kmalloc blocks",
-          kmallocBytes, kmallocBlocks);
-  logInfo("  %llu bytes in %llu vmalloc blocks",
-          vmallocBytes, vmallocBlocks);
-  logInfo("  total %llu bytes, peak usage %llu bytes",
-          totalBytes, peakUsage);
+	unsigned long flags;
+	spin_lock_irqsave(&memory_stats.lock, flags);
+	uint64_t kmalloc_blocks = memory_stats.kmalloc_blocks;
+	uint64_t kmalloc_bytes = memory_stats.kmalloc_bytes;
+	uint64_t vmalloc_blocks = memory_stats.vmalloc_blocks;
+	uint64_t vmalloc_bytes = memory_stats.vmalloc_bytes;
+	uint64_t peak_usage = memory_stats.peak_bytes;
+	spin_unlock_irqrestore(&memory_stats.lock, flags);
+	uint64_t total_bytes = kmalloc_bytes + vmalloc_bytes;
+	logInfo("current module memory tracking (actual allocation sizes, not requested):");
+	logInfo("  %llu bytes in %llu kmalloc blocks",
+		kmalloc_bytes,
+		kmalloc_blocks);
+	logInfo("  %llu bytes in %llu vmalloc blocks",
+		vmalloc_bytes,
+		vmalloc_blocks);
+	logInfo("  total %llu bytes, peak usage %llu bytes",
+		total_bytes,
+		peak_usage);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#7 $
  */
 
 #include <linux/completion.h>
@@ -28,193 +28,197 @@
 #include "threads.h"
 #include "uds-error.h"
 
-static struct hlist_head kernelThreadList;
-static struct mutex kernelThreadMutex;
-static once_state_t kernelThreadOnce;
+static struct hlist_head kernel_thread_list;
+static struct mutex kernel_thread_mutex;
+static once_state_t kernel_thread_once;
 
 struct thread {
-  void (*threadFunc)(void *);
-  void *threadData;
-  struct hlist_node threadLinks;
-  struct task_struct *threadTask;
-  struct completion threadDone;
+	void (*thread_func)(void *);
+	void *thread_data;
+	struct hlist_node thread_links;
+	struct task_struct *thread_task;
+	struct completion thread_done;
 };
 
 /**********************************************************************/
-static void kernelThreadInit(void)
+static void kernel_thread_init(void)
 {
-  mutex_init(&kernelThreadMutex);
+	mutex_init(&kernel_thread_mutex);
 }
 
 /**********************************************************************/
-static int threadStarter(void *arg)
+static int thread_starter(void *arg)
 {
-  struct thread *kt = arg;
-  kt->threadTask = current;
-  perform_once(&kernelThreadOnce, kernelThreadInit);
-  mutex_lock(&kernelThreadMutex);
-  hlist_add_head(&kt->threadLinks, &kernelThreadList);
-  mutex_unlock(&kernelThreadMutex);
-  RegisteredThread allocatingThread;
-  registerAllocatingThread(&allocatingThread, NULL);
-  kt->threadFunc(kt->threadData);
-  unregisterAllocatingThread();
-  complete(&kt->threadDone);
-  return 0;
+	struct thread *kt = arg;
+	kt->thread_task = current;
+	perform_once(&kernel_thread_once, kernel_thread_init);
+	mutex_lock(&kernel_thread_mutex);
+	hlist_add_head(&kt->thread_links, &kernel_thread_list);
+	mutex_unlock(&kernel_thread_mutex);
+	RegisteredThread allocating_thread;
+	register_allocating_thread(&allocating_thread, NULL);
+	kt->thread_func(kt->thread_data);
+	unregister_allocating_thread();
+	complete(&kt->thread_done);
+	return 0;
 }
 
 /**********************************************************************/
-int createThread(void          (*threadFunc)(void *),
-                 void           *threadData,
-                 const char     *name,
-                 struct thread **newThread)
+int create_thread(void (*thread_func)(void *),
+		  void *thread_data,
+		  const char *name,
+		  struct thread **new_thread)
 {
-  char *nameColon = strchr(name, ':');
-  char *myNameColon = strchr(current->comm, ':');
-  struct thread *kt;
-  int result = ALLOCATE(1, struct thread, __func__, &kt);
-  if (result != UDS_SUCCESS) {
-    logWarning("Error allocating memory for %s", name);
-    return result;
-  }
-  kt->threadFunc = threadFunc;
-  kt->threadData = threadData;
-  init_completion(&kt->threadDone);
-  struct task_struct *thread;
-  /*
-   * Start the thread, with an appropriate thread name.
-   *
-   * If the name supplied contains a colon character, use that name.  This
-   * causes uds module threads to have names like "uds:callbackW" and the main
-   * test runner thread to be named "zub:runtest".
-   *
-   * Otherwise if the current thread has a name containing a colon character,
-   * prefix the name supplied with the name of the current thread up to (and
-   * including) the colon character.  Thus when the "kvdo0:dedupeQ" thread
-   * opens an index session, all the threads associated with that index will
-   * have names like "kvdo0:foo".
-   *
-   * Otherwise just use the name supplied.  This should be a rare occurrence.
-   */
-  if ((nameColon == NULL) && (myNameColon != NULL)) {
-    thread = kthread_run(threadStarter, kt, "%.*s:%s",
-                         (int) (myNameColon - current->comm), current->comm,
-                         name);
-  } else {
-    thread = kthread_run(threadStarter, kt, "%s", name);
-  }
-  if (IS_ERR(thread)) {
-    FREE(kt);
-    return UDS_ENOTHREADS;
-  }
-  *newThread = kt;
-  return UDS_SUCCESS;
+	char *name_colon = strchr(name, ':');
+	char *my_name_colon = strchr(current->comm, ':');
+	struct thread *kt;
+	int result = ALLOCATE(1, struct thread, __func__, &kt);
+	if (result != UDS_SUCCESS) {
+		logWarning("Error allocating memory for %s", name);
+		return result;
+	}
+	kt->thread_func = thread_func;
+	kt->thread_data = thread_data;
+	init_completion(&kt->thread_done);
+	struct task_struct *thread;
+	/*
+	 * Start the thread, with an appropriate thread name.
+	 *
+	 * If the name supplied contains a colon character, use that name. This
+	 * causes uds module threads to have names like "uds:callbackW" and the
+	 * main test runner thread to be named "zub:runtest".
+	 *
+	 * Otherwise if the current thread has a name containing a colon
+	 * character, prefix the name supplied with the name of the current
+	 * thread up to (and including) the colon character.  Thus when the
+	 * "kvdo0:dedupeQ" thread opens an index session, all the threads
+	 * associated with that index will have names like "kvdo0:foo".
+	 *
+	 * Otherwise just use the name supplied.  This should be a rare
+	 * occurrence.
+	 */
+	if ((name_colon == NULL) && (my_name_colon != NULL)) {
+		thread = kthread_run(thread_starter,
+				     kt,
+				     "%.*s:%s",
+				     (int) (my_name_colon - current->comm),
+				     current->comm,
+				     name);
+	} else {
+		thread = kthread_run(thread_starter, kt, "%s", name);
+	}
+	if (IS_ERR(thread)) {
+		FREE(kt);
+		return UDS_ENOTHREADS;
+	}
+	*new_thread = kt;
+	return UDS_SUCCESS;
 }
 /**********************************************************************/
-int joinThreads(struct thread *kt)
+int join_threads(struct thread *kt)
 {
-  while (wait_for_completion_interruptible(&kt->threadDone) != 0) {
-  }
-  mutex_lock(&kernelThreadMutex);
-  hlist_del(&kt->threadLinks);
-  mutex_unlock(&kernelThreadMutex);
-  FREE(kt);
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void applyToThreads(void applyFunc(void *, struct task_struct *),
-                    void *argument)
-{
-  struct thread *kt;
-  perform_once(&kernelThreadOnce, kernelThreadInit);
-  mutex_lock(&kernelThreadMutex);
-  hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
-    applyFunc(argument, kt->threadTask);
-  }
-  mutex_unlock(&kernelThreadMutex);
+	while (wait_for_completion_interruptible(&kt->thread_done) != 0) {
+	}
+	mutex_lock(&kernel_thread_mutex);
+	hlist_del(&kt->thread_links);
+	mutex_unlock(&kernel_thread_mutex);
+	FREE(kt);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void exitThread(void)
+void apply_to_threads(void apply_func(void *, struct task_struct *),
+		      void *argument)
 {
-  struct thread *kt;
-  struct completion *completion = NULL;
-  perform_once(&kernelThreadOnce, kernelThreadInit);
-  mutex_lock(&kernelThreadMutex);
-  hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
-    if (kt->threadTask == current) {
-      completion = &kt->threadDone;
-      break;
-    }
-  }
-  mutex_unlock(&kernelThreadMutex);
-  unregisterAllocatingThread();
-  complete_and_exit(completion, 1);
+	struct thread *kt;
+	perform_once(&kernel_thread_once, kernel_thread_init);
+	mutex_lock(&kernel_thread_mutex);
+	hlist_for_each_entry (kt, &kernel_thread_list, thread_links) {
+		apply_func(argument, kt->thread_task);
+	}
+	mutex_unlock(&kernel_thread_mutex);
+}
+
+/**********************************************************************/
+void thread_exit(void)
+{
+	struct thread *kt;
+	struct completion *completion = NULL;
+	perform_once(&kernel_thread_once, kernel_thread_init);
+	mutex_lock(&kernel_thread_mutex);
+	hlist_for_each_entry (kt, &kernel_thread_list, thread_links) {
+		if (kt->thread_task == current) {
+			completion = &kt->thread_done;
+			break;
+		}
+	}
+	mutex_unlock(&kernel_thread_mutex);
+	unregister_allocating_thread();
+	complete_and_exit(completion, 1);
 }
 
 /**********************************************************************/
 pid_t get_thread_id(void)
 {
-  return current->pid;
+	return current->pid;
 }
 
 /**********************************************************************/
-unsigned int getNumCores(void)
+unsigned int get_num_cores(void)
 {
-  return num_online_cpus();
+	return num_online_cpus();
 }
 
 /**********************************************************************/
-int initializeBarrier(struct barrier *barrier, unsigned int threadCount)
+int initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
-  barrier->arrived     = 0;
-  barrier->threadCount = threadCount;
-  int result = initializeSemaphore(&barrier->mutex, 1);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  return initializeSemaphore(&barrier->wait, 0);
+	barrier->arrived = 0;
+	barrier->thread_count = thread_count;
+	int result = initialize_semaphore(&barrier->mutex, 1);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	return initialize_semaphore(&barrier->wait, 0);
 }
 
 /**********************************************************************/
-int destroyBarrier(struct barrier *barrier)
+int destroy_barrier(struct barrier *barrier)
 {
-  int result = destroySemaphore(&barrier->mutex);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  return destroySemaphore(&barrier->wait);
+	int result = destroy_semaphore(&barrier->mutex);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	return destroy_semaphore(&barrier->wait);
 }
 
 /**********************************************************************/
-int enterBarrier(struct barrier *barrier, bool *winner)
+int enter_barrier(struct barrier *barrier, bool *winner)
 {
-  acquireSemaphore(&barrier->mutex);
-  bool lastThread = ++barrier->arrived == barrier->threadCount;
-  if (lastThread) {
-    // This is the last thread to arrive, so wake up the others
-    int i;
-    for (i = 1; i < barrier->threadCount; i++) {
-      releaseSemaphore(&barrier->wait);
-    }
-    // Then reinitialize for the next cycle
-    barrier->arrived = 0;
-    releaseSemaphore(&barrier->mutex);
-  } else {
-    // This is NOT the last thread to arrive, so just wait
-    releaseSemaphore(&barrier->mutex);
-    acquireSemaphore(&barrier->wait);
-  }
-  if (winner != NULL) {
-    *winner = lastThread;
-  }
-  return UDS_SUCCESS;
+	acquire_semaphore(&barrier->mutex);
+	bool last_thread = ++barrier->arrived == barrier->thread_count;
+	if (last_thread) {
+		// This is the last thread to arrive, so wake up the others
+		int i;
+		for (i = 1; i < barrier->thread_count; i++) {
+			release_semaphore(&barrier->wait);
+		}
+		// Then reinitialize for the next cycle
+		barrier->arrived = 0;
+		release_semaphore(&barrier->mutex);
+	} else {
+		// This is NOT the last thread to arrive, so just wait
+		release_semaphore(&barrier->mutex);
+		acquire_semaphore(&barrier->wait);
+	}
+	if (winner != NULL) {
+		*winner = last_thread;
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int yieldScheduler(void)
+int yield_scheduler(void)
 {
-  yield();
-  return UDS_SUCCESS;
+	yield();
+	return UDS_SUCCESS;
 }

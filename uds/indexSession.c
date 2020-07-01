@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#16 $
  */
 
 #include "indexSession.h"
@@ -73,9 +73,9 @@ static void handleCallbacks(Request *request)
 /**********************************************************************/
 int checkIndexSession(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   unsigned int state = indexSession->state;
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 
   if (state == IS_FLAG_LOADED) {
     return UDS_SUCCESS;
@@ -93,9 +93,9 @@ int checkIndexSession(struct uds_index_session *indexSession)
 /**********************************************************************/
 int getIndexSession(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   indexSession->requestCount++;
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 
   int result = checkIndexSession(indexSession);
   if (result != UDS_SUCCESS) {
@@ -108,18 +108,18 @@ int getIndexSession(struct uds_index_session *indexSession)
 /**********************************************************************/
 void releaseIndexSession(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   if (--indexSession->requestCount == 0) {
-    broadcastCond(&indexSession->requestCond);
+    broadcast_cond(&indexSession->requestCond);
   }
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
 int startLoadingIndexSession(struct uds_index_session *indexSession)
 {
   int result;
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   if (indexSession->state & IS_FLAG_SUSPENDED) {
     result = UDS_SUSPENDED;
   } else if (indexSession->state != 0) {
@@ -128,7 +128,7 @@ int startLoadingIndexSession(struct uds_index_session *indexSession)
     indexSession->state |= IS_FLAG_LOADING;
     result = UDS_SUCCESS;
   }
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
   return result;
 }
 
@@ -136,21 +136,21 @@ int startLoadingIndexSession(struct uds_index_session *indexSession)
 void finishLoadingIndexSession(struct uds_index_session *indexSession,
                                int                       result)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   indexSession->state &= ~IS_FLAG_LOADING;
   if (result == UDS_SUCCESS) {
     indexSession->state |= IS_FLAG_LOADED;
   }
-  broadcastCond(&indexSession->requestCond);
-  unlockMutex(&indexSession->requestMutex);
+  broadcast_cond(&indexSession->requestCond);
+  unlock_mutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
 void disableIndexSession(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   indexSession->state |= IS_FLAG_DISABLED;
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
@@ -162,32 +162,32 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
     return result;
   }
 
-  result = initMutex(&session->requestMutex);
+  result = init_mutex(&session->requestMutex);
   if (result != UDS_SUCCESS) {
     FREE(session);
     return result;
   }
 
-  result = initCond(&session->requestCond);
+  result = init_cond(&session->requestCond);
   if (result != UDS_SUCCESS) {
-    destroyMutex(&session->requestMutex);
+    destroy_mutex(&session->requestMutex);
     FREE(session);
     return result;
   }
 
-  result = initMutex(&session->loadContext.mutex);
+  result = init_mutex(&session->loadContext.mutex);
   if (result != UDS_SUCCESS) {
-    destroyCond(&session->requestCond);
-    destroyMutex(&session->requestMutex);
+    destroy_cond(&session->requestCond);
+    destroy_mutex(&session->requestMutex);
     FREE(session);
     return result;
   }
 
-  result = initCond(&session->loadContext.cond);
+  result = init_cond(&session->loadContext.cond);
   if (result != UDS_SUCCESS) {
-    destroyMutex(&session->loadContext.mutex);
-    destroyCond(&session->requestCond);
-    destroyMutex(&session->requestMutex);
+    destroy_mutex(&session->loadContext.mutex);
+    destroy_cond(&session->requestCond);
+    destroy_mutex(&session->requestMutex);
     FREE(session);
     return result;
   }
@@ -195,10 +195,10 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
   result = make_request_queue("callbackW", &handleCallbacks,
                               &session->callbackQueue);
   if (result != UDS_SUCCESS) {
-    destroyCond(&session->loadContext.cond);
-    destroyMutex(&session->loadContext.mutex);
-    destroyCond(&session->requestCond);
-    destroyMutex(&session->requestMutex);
+    destroy_cond(&session->loadContext.cond);
+    destroy_mutex(&session->loadContext.mutex);
+    destroy_cond(&session->requestCond);
+    destroy_mutex(&session->requestMutex);
     FREE(session);
     return result;
   }
@@ -213,14 +213,14 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
   int result;
   bool save_index = false;
   bool suspendIndex = false;
-  lockMutex(&session->requestMutex);
+  lock_mutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
     result = EBUSY;
   } else if (session->state & IS_FLAG_SUSPENDED) {
     result = UDS_SUCCESS;
   } else if (!(session->state & IS_FLAG_LOADING)) {
     session->state |= IS_FLAG_SUSPENDED;
-    broadcastCond(&session->requestCond);
+    broadcast_cond(&session->requestCond);
     save_index = save;
     result = UDS_SUCCESS;
   } else {
@@ -228,7 +228,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
     suspendIndex = true;
     result = UDS_SUCCESS;
   }
-  unlockMutex(&session->requestMutex);
+  unlock_mutex(&session->requestMutex);
   if (save_index) {
     result = udsSaveIndex(session);
   }
@@ -236,7 +236,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
     return result;
   }
 
-  lockMutex(&session->loadContext.mutex);
+  lock_mutex(&session->loadContext.mutex);
   switch (session->loadContext.status) {
   case INDEX_OPENING:
     session->loadContext.status = INDEX_SUSPENDING;
@@ -244,7 +244,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
     // Wait until the index indicates that it is not replaying.
     while ((session->loadContext.status != INDEX_SUSPENDED)
            && (session->loadContext.status != INDEX_READY)) {
-      waitCond(&session->loadContext.cond,
+      wait_cond(&session->loadContext.cond,
                &session->loadContext.mutex);
     }
     break;
@@ -262,46 +262,46 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
                     session->loadContext.status);
     break;
   }
-  unlockMutex(&session->loadContext.mutex);
+  unlock_mutex(&session->loadContext.mutex);
 
-  lockMutex(&session->requestMutex);
+  lock_mutex(&session->requestMutex);
   session->state &= ~IS_FLAG_WAITING;
   session->state |= IS_FLAG_SUSPENDED;
-  broadcastCond(&session->requestCond);
-  unlockMutex(&session->requestMutex);
+  broadcast_cond(&session->requestCond);
+  unlock_mutex(&session->requestMutex);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int uds_resume_index_session(struct uds_index_session *session)
 {
-  lockMutex(&session->requestMutex);
+  lock_mutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
-    unlockMutex(&session->requestMutex);
+    unlock_mutex(&session->requestMutex);
     return EBUSY;
   }
 
   /* If not suspended, just succeed */
   if (!(session->state & IS_FLAG_SUSPENDED)) {
-    unlockMutex(&session->requestMutex);
+    unlock_mutex(&session->requestMutex);
     return UDS_SUCCESS;
   }
 
   if (!(session->state & IS_FLAG_LOADING)) {
     session->state &= ~IS_FLAG_SUSPENDED;
-    unlockMutex(&session->requestMutex);
+    unlock_mutex(&session->requestMutex);
     return UDS_SUCCESS;
   }
 
   session->state |= IS_FLAG_WAITING;
-  unlockMutex(&session->requestMutex);
+  unlock_mutex(&session->requestMutex);
 
-  lockMutex(&session->loadContext.mutex);
+  lock_mutex(&session->loadContext.mutex);
   switch (session->loadContext.status) {
   case INDEX_SUSPENDED:
     session->loadContext.status = INDEX_OPENING;
     // Notify the index to start replaying again.
-    broadcastCond(&session->loadContext.cond);
+    broadcast_cond(&session->loadContext.cond);
     break;
 
   case INDEX_READY:
@@ -317,24 +317,24 @@ int uds_resume_index_session(struct uds_index_session *session)
                     session->loadContext.status);
     break;
   }
-  unlockMutex(&session->loadContext.mutex);
+  unlock_mutex(&session->loadContext.mutex);
 
-  lockMutex(&session->requestMutex);
+  lock_mutex(&session->requestMutex);
   session->state &= ~IS_FLAG_WAITING;
   session->state &= ~IS_FLAG_SUSPENDED;
-  broadcastCond(&session->requestCond);
-  unlockMutex(&session->requestMutex);
+  broadcast_cond(&session->requestCond);
+  unlock_mutex(&session->requestMutex);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 static void waitForNoRequestsInProgress(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   while (indexSession->requestCount > 0) {
-    waitCond(&indexSession->requestCond, &indexSession->requestMutex);
+    wait_cond(&indexSession->requestCond, &indexSession->requestMutex);
   }
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
@@ -343,9 +343,9 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
   int result = UDS_SUCCESS;
   struct index_router *router = indexSession->router;
   if (router != NULL) {
-    lockMutex(&indexSession->requestMutex);
+    lock_mutex(&indexSession->requestMutex);
     bool suspended = (indexSession->state & IS_FLAG_SUSPENDED);
-    unlockMutex(&indexSession->requestMutex);
+    unlock_mutex(&indexSession->requestMutex);
     if (!suspended) {
       result = save_index_router(router);
       if (result != UDS_SUCCESS) {
@@ -357,14 +357,14 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
 
     // Reset all index state that happens to be in the index session, so it
     // doesn't affect any future index.
-    lockMutex(&indexSession->loadContext.mutex);
+    lock_mutex(&indexSession->loadContext.mutex);
     indexSession->loadContext.status = INDEX_OPENING;
-    unlockMutex(&indexSession->loadContext.mutex);
+    unlock_mutex(&indexSession->loadContext.mutex);
 
-    lockMutex(&indexSession->requestMutex);
+    lock_mutex(&indexSession->requestMutex);
     // Only the suspend bit will remain relevant.
     indexSession->state &= IS_FLAG_SUSPENDED;
-    unlockMutex(&indexSession->requestMutex);
+    unlock_mutex(&indexSession->requestMutex);
   }
 
   logDebug("Closed index");
@@ -374,10 +374,10 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
 /**********************************************************************/
 int uds_close_index(struct uds_index_session *indexSession)
 {
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
   // Wait for any pending operation to complete.
   while (indexSession->state & IS_FLAG_WAITING) {
-    waitCond(&indexSession->requestCond, &indexSession->requestMutex);
+    wait_cond(&indexSession->requestCond, &indexSession->requestMutex);
   }
 
   int result = UDS_SUCCESS;
@@ -387,7 +387,7 @@ int uds_close_index(struct uds_index_session *indexSession)
     // Either the index hasn't finished loading, or it doesn't exist.
     result = UDS_NO_INDEXSESSION;
   }
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -403,11 +403,11 @@ int uds_destroy_index_session(struct uds_index_session *indexSession)
   logDebug("Destroying index session");
 
   bool loadPending = false;
-  lockMutex(&indexSession->requestMutex);
+  lock_mutex(&indexSession->requestMutex);
 
   // Wait for any pending operation to complete.
   while (indexSession->state & IS_FLAG_WAITING) {
-    waitCond(&indexSession->requestCond, &indexSession->requestMutex);
+    wait_cond(&indexSession->requestCond, &indexSession->requestMutex);
   }
 
   loadPending = ((indexSession->state & IS_FLAG_LOADING)
@@ -416,33 +416,33 @@ int uds_destroy_index_session(struct uds_index_session *indexSession)
     // Prevent any more suspend or resume operations.
     indexSession->state |= IS_FLAG_WAITING;
   }
-  unlockMutex(&indexSession->requestMutex);
+  unlock_mutex(&indexSession->requestMutex);
 
   if (loadPending) {
     // Tell the index to terminate the rebuild.
-    lockMutex(&indexSession->loadContext.mutex);
+    lock_mutex(&indexSession->loadContext.mutex);
     if (indexSession->loadContext.status == INDEX_SUSPENDED) {
       indexSession->loadContext.status = INDEX_FREEING;
-      broadcastCond(&indexSession->loadContext.cond);
+      broadcast_cond(&indexSession->loadContext.cond);
     }
-    unlockMutex(&indexSession->loadContext.mutex);
+    unlock_mutex(&indexSession->loadContext.mutex);
 
     // Wait until the load exits before proceeding.
-    lockMutex(&indexSession->requestMutex);
+    lock_mutex(&indexSession->requestMutex);
     while (indexSession->state & IS_FLAG_LOADING) {
-      waitCond(&indexSession->requestCond, &indexSession->requestMutex);
+      wait_cond(&indexSession->requestCond, &indexSession->requestMutex);
     }
-    unlockMutex(&indexSession->requestMutex);
+    unlock_mutex(&indexSession->requestMutex);
   }
 
   waitForNoRequestsInProgress(indexSession);
   int result = saveAndFreeIndex(indexSession);
   request_queue_finish(indexSession->callbackQueue);
   indexSession->callbackQueue = NULL;
-  destroyCond(&indexSession->loadContext.cond);
-  destroyMutex(&indexSession->loadContext.mutex);
-  destroyCond(&indexSession->requestCond);
-  destroyMutex(&indexSession->requestMutex);
+  destroy_cond(&indexSession->loadContext.cond);
+  destroy_mutex(&indexSession->loadContext.mutex);
+  destroy_cond(&indexSession->requestCond);
+  destroy_mutex(&indexSession->requestMutex);
   logDebug("Destroyed index session");
   FREE(indexSession);
   return result;

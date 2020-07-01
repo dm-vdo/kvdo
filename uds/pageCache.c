@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#14 $
  */
 
 #include "pageCache.h"
@@ -164,7 +164,7 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			// We need to wait for the search to finish.
 			while (initial_counters[i] ==
 			       get_invalidate_counter(cache, i)) {
-				yieldScheduler();
+				yield_scheduler();
 			}
 		}
 	}
@@ -507,11 +507,11 @@ int get_page_from_cache(struct page_cache *cache,
 		return result;
 	}
 
-	cache_result_kind_t cache_result = ((page != NULL) ?
-					    CACHE_RESULT_HIT :
-					    ((queue_index != -1) ?
-					     CACHE_RESULT_QUEUED :
-					     CACHE_RESULT_MISS));
+	enum cache_result_kind cache_result = ((page != NULL) ?
+					       CACHE_RESULT_HIT :
+						((queue_index != -1) ?
+						 CACHE_RESULT_QUEUED :
+						 CACHE_RESULT_MISS));
 	increment_cache_counter(&cache->counters, probe_type, cache_result);
 
 	if (page_ptr != NULL) {

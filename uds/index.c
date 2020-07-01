@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#34 $
  */
 
 #include "index.h"
@@ -275,12 +275,12 @@ int make_index(struct index_layout *layout,
 	}
 
 	if (index->load_context != NULL) {
-		lockMutex(&index->load_context->mutex);
+		lock_mutex(&index->load_context->mutex);
 		index->load_context->status = INDEX_READY;
 		// If we get here, suspend is meaningless, but notify any
 		// thread trying to suspend us so it doesn't hang.
-		broadcastCond(&index->load_context->cond);
-		unlockMutex(&index->load_context->mutex);
+		broadcast_cond(&index->load_context->cond);
+		unlock_mutex(&index->load_context->mutex);
 	}
 
 	index->has_saved_open_chapter = index->loaded_type == LOAD_LOAD;
@@ -793,24 +793,24 @@ static bool check_for_suspend(struct index *index)
 		return false;
 	}
 
-	lockMutex(&index->load_context->mutex);
+	lock_mutex(&index->load_context->mutex);
 	if (index->load_context->status != INDEX_SUSPENDING) {
-		unlockMutex(&index->load_context->mutex);
+		unlock_mutex(&index->load_context->mutex);
 		return false;
 	}
 
 	// Notify that we are suspended and wait for the resume.
 	index->load_context->status = INDEX_SUSPENDED;
-	broadcastCond(&index->load_context->cond);
+	broadcast_cond(&index->load_context->cond);
 
 	while ((index->load_context->status != INDEX_OPENING) &&
 	       (index->load_context->status != INDEX_FREEING)) {
-		waitCond(&index->load_context->cond,
+		wait_cond(&index->load_context->cond,
 			 &index->load_context->mutex);
 	}
 
 	bool ret_val = (index->load_context->status == INDEX_FREEING);
-	unlockMutex(&index->load_context->mutex);
+	unlock_mutex(&index->load_context->mutex);
 	return ret_val;
 }
 

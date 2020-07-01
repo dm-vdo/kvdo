@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#54 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#56 $
  */
 
 #include <linux/module.h>
@@ -147,7 +147,7 @@ EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
 EXPORT_SYMBOL_GPL(priority_to_string);
 EXPORT_SYMBOL_GPL(reallocate_memory);
-EXPORT_SYMBOL_GPL(registerAllocatingThread);
+EXPORT_SYMBOL_GPL(register_allocating_thread);
 EXPORT_SYMBOL_GPL(registerErrorBlock);
 EXPORT_SYMBOL_GPL(report_memory_usage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
@@ -158,7 +158,7 @@ EXPORT_SYMBOL_GPL(stringError);
 EXPORT_SYMBOL_GPL(stringErrorName);
 EXPORT_SYMBOL_GPL(string_to_priority);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
-EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
+EXPORT_SYMBOL_GPL(unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(v_log_message);
 EXPORT_SYMBOL_GPL(vLogWithStringError);
 EXPORT_SYMBOL_GPL(wrap_buffer);
