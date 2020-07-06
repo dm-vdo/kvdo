@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#47 $
  */
 
 #include "refCounts.h"
@@ -39,6 +39,7 @@
 #include "referenceBlock.h"
 #include "referenceOperation.h"
 #include "slab.h"
+#include "slabDepotFormat.h"
 #include "slabJournal.h"
 #include "slabJournalInternals.h"
 #include "slabSummary.h"
@@ -1093,12 +1094,6 @@ void reset_reference_counts(struct ref_counts *ref_counts)
 	notify_all_waiters(&ref_counts->dirty_blocks,
 			   clear_dirty_reference_blocks,
 			   NULL);
-}
-
-/**********************************************************************/
-block_count_t get_saved_reference_count_size(block_count_t block_count)
-{
-	return compute_bucket_count(block_count, COUNTS_PER_BLOCK);
 }
 
 /**

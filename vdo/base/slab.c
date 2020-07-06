@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#40 $
  */
 
 #include "slab.h"
@@ -36,86 +36,6 @@
 #include "slabJournal.h"
 #include "slabJournalInternals.h"
 #include "slabSummary.h"
-
-/**********************************************************************/
-int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
-		   struct slab_config *slab_config)
-{
-	if (slab_journal_blocks >= slab_size) {
-		return VDO_BAD_CONFIGURATION;
-	}
-
-	/*
-	 * This calculation should technically be a recurrence, but the total
-	 * number of metadata blocks is currently less than a single block of
-	 * refCounts, so we'd gain at most one data block in each slab with more
-	 * iteration.
-	 */
-	block_count_t ref_blocks =
-		get_saved_reference_count_size(slab_size - slab_journal_blocks);
-	block_count_t meta_blocks = (ref_blocks + slab_journal_blocks);
-
-	// Make sure test code hasn't configured slabs to be too small.
-	if (meta_blocks >= slab_size) {
-		return VDO_BAD_CONFIGURATION;
-	}
-
-	/*
-	 * If the slab size is very small, assume this must be a unit test and
-	 * override the number of data blocks to be a power of two (wasting
-	 * blocks in the slab). Many tests need their data_blocks fields to be
-	 * the exact capacity of the configured volume, and that used to fall
-	 * out since they use a power of two for the number of data blocks, the
-	 * slab size was a power of two, and every block in a slab was a data
-	 * block.
-	 *
-	 * XXX Try to figure out some way of structuring testParameters and unit
-	 * tests so this hack isn't needed without having to edit several unit
-	 * tests every time the metadata size changes by one block.
-	 */
-	block_count_t data_blocks = slab_size - meta_blocks;
-	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {
-		data_blocks = ((block_count_t) 1 << log_base_two(data_blocks));
-	}
-
-	/*
-	 * Configure the slab journal thresholds. The flush threshold is 168 of
-	 * 224 blocks in production, or 3/4ths, so we use this ratio for all
-	 * sizes.
-	 */
-	block_count_t flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
-	/*
-	 * The blocking threshold should be far enough from the the flushing
-	 * threshold to not produce delays, but far enough from the end of the
-	 * journal to allow multiple successive recovery failures.
-	 */
-	block_count_t remaining = slab_journal_blocks - flushing_threshold;
-	block_count_t blocking_threshold =
-		flushing_threshold + ((remaining * 5) / 7);
-	/*
-	 * The scrubbing threshold should be at least 2048 entries before the
-	 * end of the journal.
-	 */
-	block_count_t minimal_extra_space =
-		1 + (MAXIMUM_USER_VIOS / SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
-	block_count_t scrubbing_threshold = blocking_threshold;
-	if (slab_journal_blocks > minimal_extra_space) {
-		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;
-	}
-	if (blocking_threshold > scrubbing_threshold) {
-		blocking_threshold = scrubbing_threshold;
-	}
-
-	*slab_config = (struct slab_config) {
-		.slab_blocks = slab_size,
-		.data_blocks = data_blocks,
-		.reference_count_blocks = ref_blocks,
-		.slab_journal_blocks = slab_journal_blocks,
-		.slab_journal_flushing_threshold = flushing_threshold,
-		.slab_journal_blocking_threshold = blocking_threshold,
-		.slab_journal_scrubbing_threshold = scrubbing_threshold};
-	return VDO_SUCCESS;
-}
 
 /**********************************************************************/
 physical_block_number_t

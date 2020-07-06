@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#73 $
  */
 
 #include "slabDepot.h"
@@ -41,24 +41,6 @@
 #include "threadConfig.h"
 #include "types.h"
 #include "vdoState.h"
-
-/**
- * Compute the number of slabs a depot with given parameters would have.
- *
- * @param first_block      PBN of the first data block
- * @param last_block       PBN of the last data block
- * @param slab_size_shift  Exponent for the number of blocks per slab
- *
- * @return The number of slabs
- **/
-static slab_count_t __must_check
-compute_slab_count(physical_block_number_t first_block,
-		   physical_block_number_t last_block,
-		   unsigned int slab_size_shift)
-{
-	block_count_t data_blocks = last_block - first_block;
-	return (slab_count_t) (data_blocks >> slab_size_shift);
-}
 
 /**********************************************************************/
 slab_count_t calculate_slab_count(struct slab_depot *depot)
@@ -377,62 +359,6 @@ allocate_depot(struct slab_depot_state_2_0 state,
 	return VDO_SUCCESS;
 }
 
-/**
- * Configure the slab_depot for the specified storage capacity, finding the
- * number of data blocks that will fit and still leave room for the depot
- * metadata, then return the saved state for that configuration.
- *
- * @param [in]  block_count  The number of blocks in the underlying storage
- * @param [in]  first_block  The number of the first block that may be allocated
- * @param [in]  slab_config  The configuration of a single slab
- * @param [in]  zone_count   The number of zones the depot will use
- * @param [out] state        The state structure to be configured
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int configure_state(block_count_t block_count,
-			   physical_block_number_t first_block,
-			   struct slab_config slab_config,
-			   zone_count_t zone_count,
-			   struct slab_depot_state_2_0 *state)
-{
-	block_count_t slab_size = slab_config.slab_blocks;
-	logDebug("slabDepot configure_state(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
-		 block_count,
-		 first_block,
-		 slab_size,
-		 zone_count);
-
-	// We do not allow runt slabs, so we waste up to a slab's worth.
-	size_t slab_count = (block_count / slab_size);
-	if (slab_count == 0) {
-		return VDO_NO_SPACE;
-	}
-
-	if (slab_count > MAX_SLABS) {
-		return VDO_TOO_MANY_SLABS;
-	}
-
-	block_count_t total_slab_blocks = slab_count * slab_config.slab_blocks;
-	block_count_t total_data_blocks = slab_count * slab_config.data_blocks;
-	physical_block_number_t last_block = first_block + total_slab_blocks;
-
-	*state = (struct slab_depot_state_2_0) {
-		.slab_config = slab_config,
-		.first_block = first_block,
-		.last_block = last_block,
-		.zone_count = zone_count,
-	};
-
-	logDebug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
-		 last_block,
-		 total_data_blocks,
-		 slab_count,
-		 block_count - (last_block - first_block));
-
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
 int make_slab_depot(block_count_t block_count,
 		    physical_block_number_t first_block,
@@ -448,9 +374,8 @@ int make_slab_depot(block_count_t block_count,
 		    struct slab_depot **depot_ptr)
 {
 	struct slab_depot_state_2_0 state;
-	int result =
-		configure_state(block_count, first_block, slab_config, 0,
-				&state);
+	int result = configure_slab_depot(block_count, first_block,
+					  slab_config, 0, &state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -763,11 +688,11 @@ int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
 
 	// Generate the depot configuration for the new block count.
 	struct slab_depot_state_2_0 new_state;
-	int result = configure_state(new_size,
-				    depot->first_block,
-				    depot->slab_config,
-				    depot->zone_count,
-				    &new_state);
+	int result = configure_slab_depot(new_size,
+					  depot->first_block,
+					  depot->slab_config,
+					  depot->zone_count,
+					  &new_state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

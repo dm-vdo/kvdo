@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#19 $
  */
 
 #ifndef REF_COUNTS_H
@@ -200,18 +200,6 @@ block_count_t __must_check
 count_unreferenced_blocks(struct ref_counts *ref_counts,
 			  physical_block_number_t start_pbn,
 			  physical_block_number_t end_pbn);
-
-/**
- * Get the number of blocks required to save a reference counts state covering
- * the specified number of data blocks.
- *
- * @param block_count  The number of physical data blocks that can be referenced
- *
- * @return The number of blocks required to save reference counts with the
- *         given block count
- **/
-block_count_t __must_check
-get_saved_reference_count_size(block_count_t block_count);
 
 /**
  * Request a ref_counts object save several dirty blocks asynchronously. This

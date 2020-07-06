@@ -16,15 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#3 $
  */
 
 #include "slabDepotFormat.h"
 
+#include "buffer.h"
+#include "logger.h"
 #include "permassert.h"
 
-#include "buffer.h"
+#include "constants.h"
 #include "header.h"
+#include "numUtils.h"
+#include "referenceBlock.h"
+#include "slabJournalFormat.h"
 #include "types.h"
 
 const struct header SLAB_DEPOT_HEADER_2_0 = {
@@ -35,6 +40,16 @@ const struct header SLAB_DEPOT_HEADER_2_0 = {
 	},
 	.size = sizeof(struct slab_depot_state_2_0),
 };
+
+/**********************************************************************/
+slab_count_t __must_check
+compute_slab_count(physical_block_number_t first_block,
+		   physical_block_number_t last_block,
+		   unsigned int slab_size_shift)
+{
+	block_count_t data_blocks = last_block - first_block;
+	return (slab_count_t) (data_blocks >> slab_size_shift);
+}
 
 /**********************************************************************/
 size_t get_slab_depot_encoded_size(void)
@@ -239,4 +254,134 @@ int decode_slab_depot_state_2_0(struct buffer *buffer,
 	};
 
 	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int configure_slab_depot(block_count_t block_count,
+			 physical_block_number_t first_block,
+			 struct slab_config slab_config,
+			 zone_count_t zone_count,
+			 struct slab_depot_state_2_0 *state)
+{
+	block_count_t slab_size = slab_config.slab_blocks;
+	logDebug("slabDepot configure_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
+		 block_count,
+		 first_block,
+		 slab_size,
+		 zone_count);
+
+	// We do not allow runt slabs, so we waste up to a slab's worth.
+	size_t slab_count = (block_count / slab_size);
+	if (slab_count == 0) {
+		return VDO_NO_SPACE;
+	}
+
+	if (slab_count > MAX_SLABS) {
+		return VDO_TOO_MANY_SLABS;
+	}
+
+	block_count_t total_slab_blocks = slab_count * slab_config.slab_blocks;
+	block_count_t total_data_blocks = slab_count * slab_config.data_blocks;
+	physical_block_number_t last_block = first_block + total_slab_blocks;
+
+	*state = (struct slab_depot_state_2_0) {
+		.slab_config = slab_config,
+		.first_block = first_block,
+		.last_block = last_block,
+		.zone_count = zone_count,
+	};
+
+	logDebug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
+		 last_block,
+		 total_data_blocks,
+		 slab_count,
+		 block_count - (last_block - first_block));
+
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
+		   struct slab_config *slab_config)
+{
+	if (slab_journal_blocks >= slab_size) {
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	/*
+	 * This calculation should technically be a recurrence, but the total
+	 * number of metadata blocks is currently less than a single block of
+	 * refCounts, so we'd gain at most one data block in each slab with more
+	 * iteration.
+	 */
+	block_count_t ref_blocks =
+		get_saved_reference_count_size(slab_size - slab_journal_blocks);
+	block_count_t meta_blocks = (ref_blocks + slab_journal_blocks);
+
+	// Make sure test code hasn't configured slabs to be too small.
+	if (meta_blocks >= slab_size) {
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	/*
+	 * If the slab size is very small, assume this must be a unit test and
+	 * override the number of data blocks to be a power of two (wasting
+	 * blocks in the slab). Many tests need their data_blocks fields to be
+	 * the exact capacity of the configured volume, and that used to fall
+	 * out since they use a power of two for the number of data blocks, the
+	 * slab size was a power of two, and every block in a slab was a data
+	 * block.
+	 *
+	 * XXX Try to figure out some way of structuring testParameters and unit
+	 * tests so this hack isn't needed without having to edit several unit
+	 * tests every time the metadata size changes by one block.
+	 */
+	block_count_t data_blocks = slab_size - meta_blocks;
+	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {
+		data_blocks = ((block_count_t) 1 << log_base_two(data_blocks));
+	}
+
+	/*
+	 * Configure the slab journal thresholds. The flush threshold is 168 of
+	 * 224 blocks in production, or 3/4ths, so we use this ratio for all
+	 * sizes.
+	 */
+	block_count_t flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
+	/*
+	 * The blocking threshold should be far enough from the the flushing
+	 * threshold to not produce delays, but far enough from the end of the
+	 * journal to allow multiple successive recovery failures.
+	 */
+	block_count_t remaining = slab_journal_blocks - flushing_threshold;
+	block_count_t blocking_threshold =
+		flushing_threshold + ((remaining * 5) / 7);
+	/*
+	 * The scrubbing threshold should be at least 2048 entries before the
+	 * end of the journal.
+	 */
+	block_count_t minimal_extra_space =
+		1 + (MAXIMUM_USER_VIOS / SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
+	block_count_t scrubbing_threshold = blocking_threshold;
+	if (slab_journal_blocks > minimal_extra_space) {
+		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;
+	}
+	if (blocking_threshold > scrubbing_threshold) {
+		blocking_threshold = scrubbing_threshold;
+	}
+
+	*slab_config = (struct slab_config) {
+		.slab_blocks = slab_size,
+		.data_blocks = data_blocks,
+		.reference_count_blocks = ref_blocks,
+		.slab_journal_blocks = slab_journal_blocks,
+		.slab_journal_flushing_threshold = flushing_threshold,
+		.slab_journal_blocking_threshold = blocking_threshold,
+		.slab_journal_scrubbing_threshold = scrubbing_threshold};
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+block_count_t get_saved_reference_count_size(block_count_t block_count)
+{
+	return compute_bucket_count(block_count, COUNTS_PER_BLOCK);
 }

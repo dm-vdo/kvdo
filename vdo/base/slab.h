@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#28 $
  */
 
 #ifndef VDO_SLAB_H
@@ -30,8 +30,6 @@
 #include "journalPoint.h"
 #include "referenceOperation.h"
 #include "types.h"
-
-typedef uint32_t slab_block_number;
 
 typedef enum {
 	SLAB_REBUILT = 0,
@@ -83,19 +81,6 @@ struct vdo_slab {
 	/** The priority at which this slab has been queued for allocation */
 	uint8_t priority;
 };
-
-/**
- * Measure and initialize the configuration to use for each slab.
- *
- * @param [in]  slab_size            The number of blocks per slab
- * @param [in]  slab_journal_blocks  The number of blocks for the slab journal
- * @param [out] slab_config          The slab configuration to initialize
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check configure_slab(block_count_t slab_size,
-				block_count_t slab_journal_blocks,
-				struct slab_config *slab_config);
 
 /**
  * Convert a vdo_slab's list entry back to the vdo_slab.
