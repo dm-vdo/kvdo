@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#36 $
  */
 
 /**
@@ -172,7 +172,7 @@ static void set_hash_lock_state(struct hash_lock *lock,
 				hash_lock_state new_state)
 {
 	if (false) {
-		logWarning("XXX %" PRIptr " %s -> %s", (void *) lock,
+		logWarning("XXX %px %s -> %s", (void *) lock,
 			   get_hash_lock_state_name(lock->state),
 			   get_hash_lock_state_name(new_state));
 	}

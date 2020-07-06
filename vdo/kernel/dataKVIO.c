@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#68 $
  */
 
 #include "dataKVIO.h"
@@ -1180,7 +1180,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct data_vio *data_vio = waiter_as_data_vio(first);
 
-	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
+	logInfo("      %s is locked. Waited on by: VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 		wait_on, data_vio, get_data_vio_allocation(data_vio),
 		data_vio->logical.lbn, data_vio->duplicate.pbn,
 		get_operation_name(data_vio));
@@ -1190,7 +1190,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		logInfo("     ... and : VIO %" PRIptr " pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		logInfo("     ... and : VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 			data_vio, get_data_vio_allocation(data_vio),
 			data_vio->logical.lbn, data_vio->duplicate.pbn,
 			get_operation_name(data_vio));
@@ -1304,7 +1304,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
-	logInfo("  kvio %" PRIptr " %s%s %s %s%s", data_kvio,
+	logInfo("  kvio %px %s%s %s %s%s", data_kvio,
 		vio_block_number_dump_buffer, vio_flush_generation_buffer,
 		get_operation_name(data_vio), vio_work_item_dump_buffer,
 		flags_dump_buffer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#31 $
  */
 
 #include "workQueue.h"
@@ -159,7 +159,7 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 			struct kvdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
-			"item %" PRIptr " (fn %" PRIptr "/%" PRIptr ") to enqueue (%" PRIptr ") is not already queued (%" PRIptr ")",
+			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
 			item, item->work, item->stats_function, queue,
 			item->my_queue);
 	if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
@@ -418,7 +418,7 @@ static void process_work_item(struct simple_work_queue *queue,
 			      struct kvdo_work_item *item)
 {
 	if (ASSERT(item->my_queue == &queue->common,
-		   "item %" PRIptr " from queue %" PRIptr " marked as being in this queue (%" PRIptr ")",
+		   "item %px from queue %px marked as being in this queue (%px)",
 		   item, queue, item->my_queue) == UDS_SUCCESS) {
 		update_stats_for_dequeue(&queue->stats, item);
 		item->my_queue = NULL;
@@ -950,7 +950,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	} else {
 		thread_status = "running";
 	}
-	logInfo("workQ %" PRIptr " (%s) %u entries %llu waits, %s (%c)",
+	logInfo("workQ %px (%s) %u entries %llu waits, %s (%c)",
 		&queue->common,
 		queue_data.common.name,
 		get_pending_count(&queue_data),
