@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.h#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.h#2 $
  */
 
 #ifndef THREAD_REGISTRY_H
@@ -30,16 +30,16 @@
  * is adequate.
  */
 
-typedef struct threadRegistry {
+struct thread_registry {
   struct list_head links;
   rwlock_t         lock;
-} ThreadRegistry;
+};
 
-typedef struct registeredThread {
+struct registered_thread {
   struct list_head    links;
   const void         *pointer;
   struct task_struct *task;
-} RegisteredThread;
+};
 
 /*****************************************************************************/
 
@@ -48,7 +48,7 @@ typedef struct registeredThread {
  *
  * @param  registry  The registry to initialize
  **/
-void initializeThreadRegistry(ThreadRegistry *registry);
+void initializeThreadRegistry(struct thread_registry *registry);
 
 /**
  * Register the current thread and associate it with a data pointer.
@@ -56,12 +56,12 @@ void initializeThreadRegistry(ThreadRegistry *registry);
  * This call will log messages if the thread is already registered.
  *
  * @param registry   The thread registry
- * @param newThread  RegisteredThread structure to use for the current thread
+ * @param newThread  registered_thread structure to use for the current thread
  * @param pointer    The value to associated with the current thread
  **/
-void registerThread(ThreadRegistry   *registry,
-                    RegisteredThread *newThread,
-                    const void       *pointer);
+void registerThread(struct thread_registry   *registry,
+                    struct registered_thread *newThread,
+                    const void               *pointer);
 
 /**
  * Remove the registration for the current thread.
@@ -70,7 +70,7 @@ void registerThread(ThreadRegistry   *registry,
  *
  * @param  registry  The thread registry
  **/
-void unregisterThread(ThreadRegistry *registry);
+void unregisterThread(struct thread_registry *registry);
 
 /**
  * Fetch a pointer that may have been registered for the current
@@ -81,6 +81,6 @@ void unregisterThread(ThreadRegistry *registry);
  *
  * @return  the registered pointer, if any, or NULL
  **/
-const void *lookupThread(ThreadRegistry *registry);
+const void *lookupThread(struct thread_registry *registry);
 
 #endif /* THREAD_REGISTRY_H */

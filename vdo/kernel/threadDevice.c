@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#4 $
  */
 
 #include "threadDevice.h"
@@ -27,10 +27,10 @@
  * A registry of all threads temporarily associated with particular
  * VDO devices.
  */
-static ThreadRegistry device_id_thread_registry;
+static struct thread_registry device_id_thread_registry;
 
 /**********************************************************************/
-void register_thread_device_id(RegisteredThread *new_thread,
+void register_thread_device_id(struct registered_thread *new_thread,
 			       unsigned int *id_ptr)
 {
 	registerThread(&device_id_thread_registry, new_thread, id_ptr);

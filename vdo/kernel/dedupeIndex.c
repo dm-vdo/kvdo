@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#60 $
  */
 
 #include "dedupeIndex.h"
@@ -78,7 +78,7 @@ struct periodic_event_reporter {
 
 struct dedupe_index {
 	struct kobject dedupe_object;
-	RegisteredThread allocating_thread;
+	struct registered_thread allocating_thread;
 	char *index_name;
 	struct uds_configuration *configuration;
 	struct uds_parameters uds_params;

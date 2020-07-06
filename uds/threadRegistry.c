@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#2 $
  */
 
 #include "threadRegistry.h"
@@ -33,16 +33,16 @@
  */
 
 /*****************************************************************************/
-void registerThread(ThreadRegistry   *registry,
-                    RegisteredThread *newThread,
-                    const void       *pointer)
+void registerThread(struct thread_registry   *registry,
+                    struct registered_thread *newThread,
+                    const void               *pointer)
 {
   INIT_LIST_HEAD(&newThread->links);
   newThread->pointer = pointer;
   newThread->task    = current;
 
   bool foundIt = false;
-  RegisteredThread *thread;
+  struct registered_thread *thread;
   write_lock(&registry->lock);
   list_for_each_entry(thread, &registry->links, links) {
     if (thread->task == current) {
@@ -59,10 +59,10 @@ void registerThread(ThreadRegistry   *registry,
 }
 
 /*****************************************************************************/
-void unregisterThread(ThreadRegistry *registry)
+void unregisterThread(struct thread_registry *registry)
 {
   bool foundIt = false;
-  RegisteredThread *thread;
+  struct registered_thread *thread;
   write_lock(&registry->lock);
   list_for_each_entry(thread, &registry->links, links) {
     if (thread->task == current) {
@@ -76,18 +76,18 @@ void unregisterThread(ThreadRegistry *registry)
 }
 
 /*****************************************************************************/
-void initializeThreadRegistry(ThreadRegistry *registry)
+void initializeThreadRegistry(struct thread_registry *registry)
 {
   INIT_LIST_HEAD(&registry->links);
   rwlock_init(&registry->lock);
 }
 
 /*****************************************************************************/
-const void *lookupThread(ThreadRegistry *registry)
+const void *lookupThread(struct thread_registry *registry)
 {
   const void *result = NULL;
   read_lock(&registry->lock);
-  RegisteredThread *thread;
+  struct registered_thread *thread;
   list_for_each_entry(thread, &registry->links, links) {
     if (thread->task == current) {
       result = thread->pointer;

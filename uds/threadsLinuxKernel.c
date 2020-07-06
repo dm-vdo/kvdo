@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#8 $
  */
 
 #include <linux/completion.h>
@@ -55,7 +55,7 @@ static int thread_starter(void *arg)
 	mutex_lock(&kernel_thread_mutex);
 	hlist_add_head(&kt->thread_links, &kernel_thread_list);
 	mutex_unlock(&kernel_thread_mutex);
-	RegisteredThread allocating_thread;
+	struct registered_thread allocating_thread;
 	register_allocating_thread(&allocating_thread, NULL);
 	kt->thread_func(kt->thread_data);
 	unregister_allocating_thread();

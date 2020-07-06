@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#4 $
  */
 
 #include "kernelLayer.h"
@@ -30,10 +30,10 @@
  *
  * The pointed-to ID number should be nonzero.
  *
- * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param new_thread  registered_thread structure to use for the current thread
  * @param id_ptr      Location where the ID number is stored
  **/
-void register_thread_device_id(RegisteredThread *new_thread,
+void register_thread_device_id(struct registered_thread *new_thread,
 			       unsigned int *id_ptr);
 
 /**
@@ -43,10 +43,10 @@ void register_thread_device_id(RegisteredThread *new_thread,
  * Any such registered thread must later be unregistered via
  * unregister_thread_device_id.
  *
- * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param new_thread  registered_thread structure to use for the current thread
  * @param layer       The kernel_layer object for the VDO device
  **/
-static inline void register_thread_device(RegisteredThread *new_thread,
+static inline void register_thread_device(struct registered_thread *new_thread,
 					  struct kernel_layer *layer)
 {
 	register_thread_device_id(new_thread, &layer->instance);

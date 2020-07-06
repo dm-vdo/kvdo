@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#6 $
  */
 
 #include <linux/delay.h>
@@ -41,7 +41,7 @@
  * and its associated methods implement this tracking.
  */
 
-static ThreadRegistry allocating_threads;
+static struct thread_registry allocating_threads;
 
 /*****************************************************************************/
 static bool allocations_allowed(void)
@@ -51,7 +51,7 @@ static bool allocations_allowed(void)
 }
 
 /*****************************************************************************/
-void register_allocating_thread(RegisteredThread *new_thread,
+void register_allocating_thread(struct registered_thread *new_thread,
 				const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {

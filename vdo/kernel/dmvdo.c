@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#63 $
  */
 
 #include "dmvdo.h"
@@ -448,7 +448,7 @@ static int vdo_message(struct dm_target *ti,
 	}
 
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	RegisteredThread allocating_thread, instance_thread;
+	struct registered_thread allocating_thread, instance_thread;
 
 	register_allocating_thread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
@@ -652,7 +652,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		return -EINVAL;
 	}
 
-	RegisteredThread allocating_thread;
+	struct registered_thread allocating_thread;
 
 	register_allocating_thread(&allocating_thread, NULL);
 
@@ -670,7 +670,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		instance = old_layer->instance;
 	}
 
-	RegisteredThread instance_thread;
+	struct registered_thread instance_thread;
 
 	register_thread_device_id(&instance_thread, &instance);
 
@@ -736,7 +736,7 @@ static void vdo_dtr(struct dm_target *ti)
 	if (list_empty(&layer->device_config_list)) {
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
-		RegisteredThread allocating_thread, instance_thread;
+		struct registered_thread allocating_thread, instance_thread;
 
 		register_thread_device_id(&instance_thread, &instance);
 		register_allocating_thread(&allocating_thread, NULL);
@@ -767,7 +767,7 @@ static void vdo_dtr(struct dm_target *ti)
 static void vdo_presuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	RegisteredThread instance_thread;
+	struct registered_thread instance_thread;
 
 	register_thread_device(&instance_thread, layer);
 	if (dm_noflush_suspending(ti)) {
@@ -780,7 +780,7 @@ static void vdo_presuspend(struct dm_target *ti)
 static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	RegisteredThread instance_thread;
+	struct registered_thread instance_thread;
 
 	register_thread_device(&instance_thread, layer);
 	const char *pool_name = layer->device_config->pool_name;
@@ -804,7 +804,7 @@ static int vdo_preresume(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
-	RegisteredThread instance_thread;
+	struct registered_thread instance_thread;
 
 	register_thread_device(&instance_thread, layer);
 
@@ -855,7 +855,7 @@ static int vdo_preresume(struct dm_target *ti)
 static void vdo_resume(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	RegisteredThread instance_thread;
+	struct registered_thread instance_thread;
 
 	register_thread_device(&instance_thread, layer);
 	logInfo("device '%s' resumed", layer->device_config->pool_name);
