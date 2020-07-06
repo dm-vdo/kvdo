@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#13 $
  */
 
 #include "indexState.h"
@@ -26,6 +26,7 @@
 #include "indexLayout.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+
 
 /*****************************************************************************/
 int make_index_state(struct index_layout *layout,

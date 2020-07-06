@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#56 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#58 $
  */
 
 #include <linux/module.h>
@@ -117,6 +117,7 @@ EXPORT_SYMBOL_GPL(get_uint64_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
 EXPORT_SYMBOL_GPL(grow_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
+EXPORT_SYMBOL_GPL(initializeThreadRegistry);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(logDebug);
 EXPORT_SYMBOL_GPL(logError);
@@ -124,6 +125,7 @@ EXPORT_SYMBOL_GPL(logErrorWithStringError);
 EXPORT_SYMBOL_GPL(logInfo);
 EXPORT_SYMBOL_GPL(logWarning);
 EXPORT_SYMBOL_GPL(logWarningWithStringError);
+EXPORT_SYMBOL_GPL(lookupThread);
 EXPORT_SYMBOL_GPL(make_buffer);
 EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
@@ -149,6 +151,7 @@ EXPORT_SYMBOL_GPL(priority_to_string);
 EXPORT_SYMBOL_GPL(reallocate_memory);
 EXPORT_SYMBOL_GPL(register_allocating_thread);
 EXPORT_SYMBOL_GPL(registerErrorBlock);
+EXPORT_SYMBOL_GPL(registerThread);
 EXPORT_SYMBOL_GPL(report_memory_usage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
@@ -159,6 +162,7 @@ EXPORT_SYMBOL_GPL(stringErrorName);
 EXPORT_SYMBOL_GPL(string_to_priority);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregister_allocating_thread);
+EXPORT_SYMBOL_GPL(unregisterThread);
 EXPORT_SYMBOL_GPL(v_log_message);
 EXPORT_SYMBOL_GPL(vLogWithStringError);
 EXPORT_SYMBOL_GPL(wrap_buffer);
