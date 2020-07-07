@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#41 $
  */
 
 #include "slab.h"
@@ -34,17 +34,9 @@
 #include "refCounts.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
+#include "slabJournalFormat.h"
 #include "slabJournalInternals.h"
 #include "slabSummary.h"
-
-/**********************************************************************/
-physical_block_number_t
-get_slab_journal_start_block(const struct slab_config *slab_config,
-			     physical_block_number_t origin)
-{
-	return origin + slab_config->data_blocks
-	       + slab_config->reference_count_blocks;
-}
 
 /**********************************************************************/
 int make_slab(physical_block_number_t slab_origin,

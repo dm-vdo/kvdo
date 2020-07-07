@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#29 $
  */
 
 #ifndef VDO_SLAB_H
@@ -94,17 +94,6 @@ static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
 	STATIC_ASSERT(offsetof(struct vdo_slab, list_entry) == 0);
 	return (struct vdo_slab *) entry;
 }
-
-/**
- * Get the physical block number of the start of the slab journal
- * relative to the start block allocator partition.
- *
- * @param slab_config  The slab configuration of the VDO
- * @param origin       The first block of the slab
- **/
-physical_block_number_t __must_check
-get_slab_journal_start_block(const struct slab_config *slab_config,
-			     physical_block_number_t origin);
 
 /**
  * Construct a new, empty slab.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#5 $
  */
 
 #include "slabDepotFormat.h"
@@ -29,7 +29,7 @@
 #include "header.h"
 #include "numUtils.h"
 #include "referenceBlock.h"
-#include "slabJournalInternals.h"
+#include "slabJournalFormat.h"
 #include "types.h"
 
 const struct header SLAB_DEPOT_HEADER_2_0 = {
