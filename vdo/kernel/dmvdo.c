@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#64 $
  */
 
 #include "dmvdo.h"
@@ -510,7 +510,6 @@ static void configure_target_capabilities(struct dm_target *ti,
 #if HAS_NO_BLKDEV_SPLIT
 	ti->split_discard_bios = 1;
 #endif
-	dm_table_add_target_callbacks(ti->table, &layer->callbacks);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#5 $
  */
 
 #ifndef LIMITER_H
@@ -70,15 +70,6 @@ void initialize_limiter(struct limiter *limiter, uint32_t limit);
  * @return true if there are no active resources
  **/
 bool limiter_is_idle(struct limiter *limiter);
-
-/**
- * Determine whether there are any available resources
- *
- * @param limiter  The limiter
- *
- * @return true if there are any available resources
- **/
-bool limiter_has_one_free(struct limiter *limiter);
 
 /**
  * Release resources, making them available for other uses

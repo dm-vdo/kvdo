@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#42 $
  */
 
 #ifndef KERNELLAYER_H
@@ -97,7 +97,6 @@ struct kernel_layer {
 	bool no_flush_suspend;
 	bool allocations_allowed;
 	AtomicBool processing_message;
-	struct dm_target_callbacks callbacks;
 
 	/** Limit the number of requests that are being processed. */
 	struct limiter request_limiter;

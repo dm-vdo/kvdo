@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#98 $
  */
 
 #include "kernelLayer.h"
@@ -489,33 +489,6 @@ static void wait_for_sync_operation(PhysicalLayer *common)
 	}
 }
 
-/**
- * Check whether a VDO, or its backing storage, is congested.
- *
- * @param callbacks  The callbacks structure inside the kernel layer
- * @param bdi_bits   Some info things to pass through.
- *
- * @return true if VDO or one of its backing storage stack is congested.
- **/
-static int kvdo_is_congested(struct dm_target_callbacks *callbacks,
-			     int bdi_bits)
-{
-	struct kernel_layer *layer =
-		container_of(callbacks, struct kernel_layer, callbacks);
-	if (!limiter_has_one_free(&layer->request_limiter)) {
-		return 1;
-	}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
-	struct backing_dev_info *backing =
-		bdev_get_queue(get_kernel_layer_bdev(layer))->backing_dev_info;
-#else
-	struct backing_dev_info *backing =
-		&bdev_get_queue(get_kernel_layer_bdev(layer))->backing_dev_info;
-#endif
-	return bdi_congested(backing, bdi_bits);
-}
-
 /**********************************************************************/
 int make_kernel_layer(uint64_t starting_sector,
 		      unsigned int instance,
@@ -620,10 +593,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->statsMutex);
 	bio_list_init(&layer->waiting_flushes);
-
-	// This can go anywhere, as long as it is not registered until the
-	// layer is fully allocated.
-	layer->callbacks.congested_fn = kvdo_is_congested;
 
 	result = add_layer_to_device_registry(layer);
 	if (result != VDO_SUCCESS) {
