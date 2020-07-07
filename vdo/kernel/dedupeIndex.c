@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#61 $
  */
 
 #include "dedupeIndex.h"
@@ -416,7 +416,7 @@ init_periodic_event_reporter(struct periodic_event_reporter *reporter,
  * @param timeouts       How many requests were timed out.
  **/
 static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
-				   unsigned int                    timeouts)
+				   unsigned int timeouts)
 {
 	atomic64_add(timeouts, &reporter->value);
 	// If it's already queued, requeueing it will do nothing.
@@ -1002,7 +1002,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	static const struct kvdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
-		.action_table  = {
+		.action_table = {
 			{ .name = "uds_action",
 			  .code = UDS_Q_ACTION,
 			  .priority = 0 },

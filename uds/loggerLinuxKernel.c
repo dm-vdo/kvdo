@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#6 $
  */
 
 #include <linux/delay.h>
@@ -136,7 +136,6 @@ void log_backtrace(int priority)
 	if (priority > get_log_level()) {
 		return;
 	}
-	log_message(priority, "%s", "[backtrace]");
 	dump_stack();
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#28 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -324,10 +324,10 @@ static inline void pack_slab_journal_entry(packed_slab_journal_entry *packed,
 					   slab_block_number sbn,
 					   bool is_increment)
 {
-	packed->fields.offset_low8  = (sbn & 0x0000FF);
-	packed->fields.offset_mid8  = (sbn & 0x00FF00) >> 8;
+	packed->fields.offset_low8 = (sbn & 0x0000FF);
+	packed->fields.offset_mid8 = (sbn & 0x00FF00) >> 8;
 	packed->fields.offset_high7 = (sbn & 0x7F0000) >> 16;
-	packed->fields.increment   = is_increment ? 1 : 0;
+	packed->fields.increment = is_increment ? 1 : 0;
 }
 
 /**

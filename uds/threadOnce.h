@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#4 $
  */
 
 #ifndef THREAD_ONCE_H
@@ -36,13 +36,11 @@ typedef atomic_t once_state_t;
  * @param init_function  called if once_state does not indicate
  *                       initialization has been performed
  *
- * @return             UDS_SUCCESS or error code
- *
  * @note Generally the following declaration of once_state is performed in
  *       at file scope:
  *
  *       static once_state_t once_state = ONCE_STATE_INITIALIZER;
  **/
-int perform_once(once_state_t *once_state, void (*init_function) (void));
+void perform_once(once_state_t *once_state, void (*init_function) (void));
 
 #endif /* THREAD_ONCE_H */

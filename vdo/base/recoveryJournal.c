@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#71 $
  */
 
 #include "recoveryJournal.h"
@@ -1028,7 +1028,7 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 {
 	while (!list_empty(&journal->active_tail_blocks)) {
 		struct recovery_journal_block *block
-		  = block_from_list_entry(journal->active_tail_blocks.next);
+			= block_from_list_entry(journal->active_tail_blocks.next);
 
 		if (block->committing) {
 			// Don't recycle committing blocks.

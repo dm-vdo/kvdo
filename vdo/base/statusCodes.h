@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#5 $
  */
 
 #ifndef STATUS_CODES_H
@@ -25,11 +25,11 @@
 #include "errors.h"
 
 enum {
-	UDS_BLOCK_SIZE  = UDS_ERROR_CODE_BLOCK_END - UDS_ERROR_CODE_BASE,
+	UDS_BLOCK_SIZE = UDS_ERROR_CODE_BLOCK_END - UDS_ERROR_CODE_BASE,
 	VDO_BLOCK_START = UDS_ERROR_CODE_BLOCK_END,
-	VDO_BLOCK_END   = VDO_BLOCK_START + UDS_BLOCK_SIZE,
+	VDO_BLOCK_END = VDO_BLOCK_START + UDS_BLOCK_SIZE,
 	PRP_BLOCK_START = VDO_BLOCK_END,
-	PRP_BLOCK_END   = PRP_BLOCK_START + UDS_BLOCK_SIZE,
+	PRP_BLOCK_END = PRP_BLOCK_START + UDS_BLOCK_SIZE,
 };
 
 /**

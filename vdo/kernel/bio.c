@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#18 $
  */
 
 #include "bio.h"
@@ -174,13 +174,13 @@ static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
 {
 	// Save off important info so it can be set back later
 	unsigned short vcnt = bio->bi_vcnt;
-	void *pvt	   = bio->bi_private;
+	void *pvt = bio->bi_private;
 
 	bio_reset(bio); // Memsets large portion of bio. Reset all needed
 			// fields.
 	bio->bi_private = pvt;
-	bio->bi_vcnt    = vcnt;
-	bio->bi_end_io  = complete_async_bio;
+	bio->bi_vcnt = vcnt;
+	bio->bi_end_io = complete_async_bio;
 	set_bio_sector(bio, (sector_t) -1); // Sector will be set later on.
 	set_bio_block_device(bio, get_kernel_layer_bdev(layer));
 }
@@ -238,8 +238,8 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 	}
 
 	struct bio *bio = NULL;
-	int result      = ALLOCATE_EXTENDED(
-		     struct bio, bvec_count, struct bio_vec, "bio", &bio);
+	int result = ALLOCATE_EXTENDED(struct bio, bvec_count, struct bio_vec,
+				       "bio", &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -248,7 +248,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 	bio_init(bio, bio->bi_inline_vecs, bvec_count);
 #else
 	bio_init(bio);
-	bio->bi_io_vec   = bio->bi_inline_vecs;
+	bio->bi_io_vec = bio->bi_inline_vecs;
 	bio->bi_max_vecs = bvec_count;
 #endif
 
@@ -258,7 +258,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 		return VDO_SUCCESS;
 	}
 
-	int len    = VDO_BLOCK_SIZE;
+	int len = VDO_BLOCK_SIZE;
 	int offset = offset_in_page(data);
 	unsigned int i;
 
@@ -305,9 +305,9 @@ void prepare_flush_bio(struct bio *bio,
 	 */
 	set_bio_operation_write(bio);
 	set_bio_operation_flag_preflush(bio);
-	bio->bi_end_io  = end_io_callback;
+	bio->bi_end_io = end_io_callback;
 	bio->bi_private = context;
-	bio->bi_vcnt    = 0;
+	bio->bi_vcnt = 0;
 	set_bio_block_device(bio, device);
 	set_bio_size(bio, 0);
 	set_bio_sector(bio, 0);

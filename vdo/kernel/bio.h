@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#9 $
  */
 
 #ifndef BIO_H
@@ -86,7 +86,7 @@ static inline void copy_bio_operation_and_flags(struct bio *to,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	to->bi_opf = from->bi_opf;
 #else
-	to->bi_rw  = from->bi_rw;
+	to->bi_rw = from->bi_rw;
 #endif
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#40 $
  */
 
 /*
@@ -534,8 +534,8 @@ static void journal_decrement(struct data_vio *data_vio)
  **/
 static void update_reference_count(struct data_vio *data_vio)
 {
-	struct slab_depot       *depot = get_vdo_from_data_vio(data_vio)->depot;
-	physical_block_number_t  pbn   = data_vio->operation.pbn;
+	struct slab_depot *depot = get_vdo_from_data_vio(data_vio)->depot;
+	physical_block_number_t pbn = data_vio->operation.pbn;
 	int result =
 		ASSERT(is_physical_data_block(depot, pbn),
 		       "Adding slab journal entry for impossible PBN %llufor LBN %llu",
@@ -1145,8 +1145,8 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 
 	atomicStoreBool(&data_vio->has_allocation, true);
 	data_vio->new_mapped = (struct zoned_pbn) {
-		.zone  = allocating_vio->zone,
-		.pbn   = allocating_vio->allocation,
+		.zone = allocating_vio->zone,
+		.pbn = allocating_vio->allocation,
 		.state = MAPPING_STATE_UNCOMPRESSED,
 	};
 

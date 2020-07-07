@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#15 $
  */
 
 #include <linux/kobject.h>
@@ -525,7 +525,7 @@ static ssize_t histogram_show_unit(struct histogram *h, char *buf)
 /***********************************************************************/
 
 static struct sysfs_ops histogram_sysfs_ops = {
-	.show  = histogram_show,
+	.show = histogram_show,
 	.store = histogram_store,
 };
 
@@ -580,7 +580,7 @@ static struct histogram_attribute limit_attribute = {
 			.name = "limit",
 			.mode = 0644,
 		},
-	.show  = histogram_show_limit,
+	.show = histogram_show_limit,
 	.store = histogram_store_limit,
 };
 

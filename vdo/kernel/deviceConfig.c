@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#18 $
  */
 
 #include "deviceConfig.h"
@@ -51,7 +51,7 @@ enum {
 };
 
 // arrays for handling different table versions
-static const uint8_t REQUIRED_ARGC[]       = { 10, 12, 9 };
+static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9 };
 static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
 /**
@@ -170,7 +170,7 @@ static void resolve_config_with_device(struct device_config *config,
 	}
 
 	if (config->version == 0) {
-		uint64_t device_size    = i_size_read(dev->bdev->bd_inode);
+		uint64_t device_size = i_size_read(dev->bdev->bd_inode);
 
 		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
 	}

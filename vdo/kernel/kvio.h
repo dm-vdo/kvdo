@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#26 $
  */
 
 #ifndef KVIO_H
@@ -59,7 +59,7 @@ struct metadata_kvio {
 };
 
 struct compressed_write_kvio {
-	struct kvio           kvio;
+	struct kvio kvio;
 	struct allocating_vio allocating_vio;
 };
 
