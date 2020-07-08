@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#4 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -24,35 +24,6 @@
 
 #include <stdarg.h>
 #include <linux/types.h>
-
-/**
- * Helper to append a string to a buffer.
- *
- * @param buffer   the place at which to append the string
- * @param buf_end  pointer to the end of the buffer
- * @param fmt      a printf format string
- *
- * @return  the updated buffer position after the append
- *
- * if insufficient space is available, the contents are silently truncated
- **/
-char *appendToBuffer(char *buffer, char *buf_end, const char *fmt, ...);
-
-/**
- * Variable-arglist helper to append a string to a buffer.
- * If insufficient space is available, the contents are silently truncated.
- *
- * @param buffer   the place at which to append the string
- * @param buf_end  pointer to the end of the buffer
- * @param fmt      a printf format string
- * @param args     printf arguments
- *
- * @return  the updated buffer position after the append
- **/
-char *v_append_to_buffer(char *buffer,
-			 char *buf_end,
-			 const char *fmt,
-			 va_list args);
 
 /**
  * Split the input string into substrings, separated at occurrences of

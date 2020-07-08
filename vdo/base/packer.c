@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#52 $
  */
 
 #include "packerInternals.h"
@@ -1037,7 +1037,7 @@ void dump_packer(const struct packer *packer)
 	logInfo("packer");
 	logInfo("  flushGeneration=%llu state %s writing_batches=%s",
 		packer->flush_generation, get_admin_state_name(&packer->state),
-		boolToString(packer->writing_batches));
+		bool_to_string(packer->writing_batches));
 
 	logInfo("  input_bin_count=%llu", packer->size);
 	struct input_bin *bin;

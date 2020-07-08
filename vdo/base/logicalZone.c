@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#40 $
  */
 
 #include "logicalZone.h"
@@ -463,6 +463,6 @@ void dump_logical_zone(const struct logical_zone *zone)
 	logInfo("  flush_generation=%llu oldest_active_generation=%llu oldest_locked_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",
 		zone->flush_generation, zone->oldest_active_generation,
 		relaxedLoad64(&zone->oldest_locked_generation),
-		zone->notification_generation, boolToString(zone->notifying),
+		zone->notification_generation, bool_to_string(zone->notifying),
 		zone->ios_in_flush_generation);
 }

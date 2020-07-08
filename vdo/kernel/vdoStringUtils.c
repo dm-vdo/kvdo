@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#6 $
  */
 
 #include "vdoStringUtils.h"
@@ -27,34 +27,6 @@
 #include "stringUtils.h"
 
 #include "statusCodes.h"
-
-/**********************************************************************/
-char *v_append_to_buffer(char *buffer,
-			 char *buf_end,
-			 const char *fmt,
-			 va_list args)
-{
-	size_t n = vsnprintf(buffer, buf_end - buffer, fmt, args);
-
-	if (n >= (size_t) (buf_end - buffer)) {
-		buffer = buf_end;
-	} else {
-		buffer += n;
-	}
-	return buffer;
-}
-
-/**********************************************************************/
-char *appendToBuffer(char *buffer, char *buf_end, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	char *pos = v_append_to_buffer(buffer, buf_end, fmt, ap);
-
-	va_end(ap);
-	return pos;
-}
 
 /**********************************************************************/
 void free_string_array(char **string_array)
@@ -156,10 +128,10 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 	char *current_position = &output[0];
 
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
-		current_position = appendToBuffer(current_position,
-						  output + string_length,
-						  "%s",
-						  substring_array[i]);
+		current_position = append_to_buffer(current_position,
+						    output + string_length,
+						    "%s",
+						    substring_array[i]);
 		*current_position = separator;
 		current_position++;
 	}

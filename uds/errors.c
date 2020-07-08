@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#4 $
  */
 
 #include "errors.h"
@@ -270,7 +270,7 @@ const char *stringError(int errnum, char *buf, size_t buflen)
   char *bufEnd = buf + buflen;
 
   if (isUnrecoverable(errnum)) {
-    buffer = appendToBuffer(buffer, bufEnd, "Unrecoverable error: ");
+    buffer = append_to_buffer(buffer, bufEnd, "Unrecoverable error: ");
     errnum = sansUnrecoverable(errnum);
   }
 
@@ -279,18 +279,18 @@ const char *stringError(int errnum, char *buf, size_t buflen)
 
   if (blockName != NULL) {
     if (info != NULL) {
-      buffer = appendToBuffer(buffer, bufEnd,
-                              "%s: %s", blockName, info->message);
+      buffer = append_to_buffer(buffer, bufEnd,
+                                "%s: %s", blockName, info->message);
     } else {
-      buffer = appendToBuffer(buffer, bufEnd,
-                              "Unknown %s %d", blockName, errnum);
+      buffer = append_to_buffer(buffer, bufEnd,
+                                "Unknown %s %d", blockName, errnum);
     }
   } else if (info != NULL) {
-    buffer = appendToBuffer(buffer, bufEnd, "%s", info->message);
+    buffer = append_to_buffer(buffer, bufEnd, "%s", info->message);
   } else {
     const char *tmp = systemStringError(errnum, buffer, bufEnd - buffer);
     if (tmp != buffer) {
-      buffer = appendToBuffer(buffer, bufEnd, "%s", tmp);
+      buffer = append_to_buffer(buffer, bufEnd, "%s", tmp);
     } else {
       buffer += strlen(tmp);
     }
@@ -311,16 +311,16 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen)
 
   if (blockName != NULL) {
     if (info != NULL) {
-      buffer = appendToBuffer(buffer, bufEnd, "%s", info->name);
+      buffer = append_to_buffer(buffer, bufEnd, "%s", info->name);
     } else {
-      buffer = appendToBuffer(buffer, bufEnd, "%s %d", blockName, errnum);
+      buffer = append_to_buffer(buffer, bufEnd, "%s %d", blockName, errnum);
     }
   } else if (info != NULL) {
-    buffer = appendToBuffer(buffer, bufEnd, "%s", info->name);
+    buffer = append_to_buffer(buffer, bufEnd, "%s", info->name);
   } else {
     const char *tmp = systemStringError(errnum, buffer, bufEnd - buffer);
     if (tmp != buffer) {
-      buffer = appendToBuffer(buffer, bufEnd, "%s", tmp);
+      buffer = append_to_buffer(buffer, bufEnd, "%s", tmp);
     } else {
       buffer += strlen(tmp);
     }
