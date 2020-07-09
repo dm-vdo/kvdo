@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#14 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -201,9 +201,7 @@ void enqueue_work_queue(struct kvdo_work_queue *queue,
  * for it to do so.
  *
  * There should not be any new enqueueing of work items done once this
- * function is called. Any pending delayed work items will be
- * processed, as scheduled, before the worker thread shuts down, but
- * they must not re-queue themselves to run again.
+ * function is called.
  *
  * @param queue  The work queue to shut down
  **/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#11 $
  */
 
 #include "workItemStats.h"
@@ -86,9 +86,6 @@ static unsigned int get_stat_table_index(struct kvdo_work_item_stats *stats,
 	}
 
 	unsigned long flags = 0;
-	// The delayed-work-item processing uses queue->lock in some cases,
-	// and one case may call into this function, so we can't reuse
-	// queue->lock here.
 	spin_lock_irqsave(&function_table->lock, flags);
 	// Recheck now that we've got the lock...
 	index = scan_stat_table(function_table, work, priority);
