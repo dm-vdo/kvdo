@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#18 $
  */
 
 #include "indexSession.h"
@@ -31,7 +31,7 @@
 static void collectStats(const struct uds_index_session *indexSession,
                          struct uds_context_stats       *stats)
 {
-  const SessionStats *sessionStats = &indexSession->stats;
+  const struct session_stats *sessionStats = &indexSession->stats;
 
   stats->current_time = absTimeToSeconds(currentTime(CLOCK_REALTIME));
 

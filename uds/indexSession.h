@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#8 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -32,7 +32,7 @@
 /**
  * The bit position of flags used to indicate index session states.
  **/
-typedef enum {
+enum index_session_flag_bit {
   IS_FLAG_BIT_START      = 8,
   /** Flag indicating that the session is loading */
   IS_FLAG_BIT_LOADING    = IS_FLAG_BIT_START,
@@ -48,12 +48,12 @@ typedef enum {
   IS_FLAG_BIT_CLOSING,
   /** Flag indicating that that the session is being destroyed */
   IS_FLAG_BIT_DESTROYING,
-} IndexSessionFlagBit;
+};
 
 /**
  * The index session state flags.
  **/
-typedef enum {
+enum index_session_flag {
   IS_FLAG_LOADED     = (1 << IS_FLAG_BIT_LOADED),
   IS_FLAG_LOADING    = (1 << IS_FLAG_BIT_LOADING),
   IS_FLAG_DISABLED   = (1 << IS_FLAG_BIT_DISABLED),
@@ -61,9 +61,9 @@ typedef enum {
   IS_FLAG_WAITING    = (1 << IS_FLAG_BIT_WAITING),
   IS_FLAG_CLOSING    = (1 << IS_FLAG_BIT_CLOSING),
   IS_FLAG_DESTROYING = (1 << IS_FLAG_BIT_DESTROYING),
-} IndexSessionFlag;
+};
 
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
+struct __attribute__((aligned(CACHE_LINE_BYTES))) session_stats {
   uint64_t postsFound;            /* Post calls that found an entry */
   uint64_t postsFoundOpenChapter; /* Post calls found in the open chapter */
   uint64_t postsFoundDense;       /* Post calls found in the dense index */
@@ -76,12 +76,12 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
   uint64_t queriesFound;          /* Query calls that found an entry */
   uint64_t queriesNotFound;       /* Query calls that did not find an entry */
   uint64_t requests;              /* Total number of requests */
-} SessionStats;
+};
 
 /**
  * States used in the index load context, reflecting the state of the index.
  **/
-typedef enum {
+enum index_suspend_status {
   /** The index has not been loaded or rebuilt completely */
   INDEX_OPENING    = 0,
   /** The index is able to handle requests */
@@ -92,7 +92,7 @@ typedef enum {
   INDEX_SUSPENDED,
   /** The index is being shut down while suspended */
   INDEX_FREEING,
-} IndexSuspendStatus;
+};
 
 /**
  * The cond_var here must be notified when the status changes to
@@ -101,11 +101,11 @@ typedef enum {
  * INDEX_SUSPENDED, to resume rebuild the index from checkForSuspend() in the
  * index.
  **/
-typedef struct indexLoadContext {
+struct index_load_context {
   struct mutex       mutex;
   struct cond_var    cond;
-  IndexSuspendStatus status;  // Covered by indexLoadContext.mutex.
-} IndexLoadContext;
+  enum index_suspend_status status;  // Covered by indexLoadContext.mutex.
+};
 
 /**
  * The request cond_var here must be notified when IS_FLAG_WAITING is cleared,
@@ -121,13 +121,13 @@ struct uds_index_session {
   struct index_router      *router;
   RequestQueue             *callbackQueue;
   struct uds_configuration  userConfig;
-  IndexLoadContext          loadContext;
+  struct index_load_context loadContext;
   // Asynchronous Request synchronization
   struct mutex              requestMutex;
   struct cond_var           requestCond;
   int                       requestCount;
   // Request statistics, all owned by the callback thread
-  SessionStats              stats;
+  struct session_stats      stats;
 };
 
 /**

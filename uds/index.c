@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#34 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#35 $
  */
 
 #include "index.h"
@@ -193,7 +193,7 @@ int make_index(struct index_layout *layout,
 	       const struct uds_parameters *user_params,
 	       unsigned int zone_count,
 	       enum load_type load_type,
-	       IndexLoadContext *load_context,
+	       struct index_load_context *load_context,
 	       struct index **new_index)
 {
 	struct index *index;

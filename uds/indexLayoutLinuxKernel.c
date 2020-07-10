@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#8 $
  */
 
 #include "indexLayout.h"
@@ -42,8 +42,8 @@ int make_index_layout(const char *name,
 		sizeof(parameter_table) / sizeof(*parameter_table);
 
 	char *params = NULL;
-	int result =
-		duplicateString(name, "make_index_layout parameters", &params);
+	int result = duplicate_string(name, "make_index_layout parameters",
+				      &params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

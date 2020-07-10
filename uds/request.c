@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#9 $
  */
 
 #include "request.h"
@@ -162,7 +162,7 @@ void update_request_context_stats(Request *request)
 	 *          sparsePostsFound
 	 */
 
-	SessionStats *session_stats = &request->session->stats;
+	struct session_stats *session_stats = &request->session->stats;
 
 	increment_once(&session_stats->requests);
 	bool found = (request->location != LOC_UNAVAILABLE);

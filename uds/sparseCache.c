@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#23 $
  */
 
 /**
@@ -248,7 +248,7 @@ int make_sparse_cache(const struct geometry *geometry,
 		 (capacity * sizeof(struct cached_chapter_index)));
 
 	struct sparse_cache *cache;
-	int result = allocateCacheAligned(bytes, "sparse cache", &cache);
+	int result = allocate_cache_aligned(bytes, "sparse cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

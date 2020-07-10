@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#19 $
  */
 
 #include "chapterWriter.h"
@@ -159,9 +159,9 @@ int make_chapter_writer(struct index *index,
 
 	// Now that we have the mutex+cond, it is safe to call
 	// free_chapter_writer.
-	result = allocateCacheAligned(collated_records_size,
-				      "collated records",
-				      &writer->collated_records);
+	result = allocate_cache_aligned(collated_records_size,
+					"collated records",
+					&writer->collated_records);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
 		return makeUnrecoverable(result);

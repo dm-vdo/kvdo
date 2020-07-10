@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#6 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -29,7 +29,7 @@
 #include "permassert.h"
 #include "typeDefs.h"
 
-#include <linux/io.h>  // for PAGE_SIZE
+#include <linux/io.h> // for PAGE_SIZE
 #include "threadRegistry.h"
 
 /**
@@ -43,8 +43,10 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-allocate_memory(size_t size, size_t align, const char *what, void *ptr);
+int __must_check allocate_memory(size_t size,
+				 size_t align,
+				 const char *what,
+				 void *ptr);
 
 /**
  * Free storage
@@ -78,46 +80,46 @@ void free_memory(void *ptr);
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int doAllocation(size_t      count,
-                               size_t      size,
-                               size_t      extra,
-                               size_t      align,
-                               const char *what,
-                               void       *ptr)
+static INLINE int do_allocation(size_t count,
+				size_t size,
+				size_t extra,
+				size_t align,
+				const char *what,
+				void *ptr)
 {
-  size_t totalSize = count * size + extra;
-  // Overflow check:
-  if ((size > 0) && (count > ((SIZE_MAX - extra) / size))) {
-    /*
-     * This is kind of a hack: We rely on the fact that SIZE_MAX would
-     * cover the entire address space (minus one byte) and thus the
-     * system can never allocate that much and the call will always
-     * fail.  So we can report an overflow as "out of memory" by asking
-     * for "merely" SIZE_MAX bytes.
-     */
-    totalSize = SIZE_MAX;
-  }
+	size_t total_size = count * size + extra;
+	// Overflow check:
+	if ((size > 0) && (count > ((SIZE_MAX - extra) / size))) {
+		/*
+		 * This is kind of a hack: We rely on the fact that SIZE_MAX
+		 * would cover the entire address space (minus one byte) and
+		 * thus the system can never allocate that much and the call
+		 * will always fail.  So we can report an overflow as "out of
+		 * memory" by asking for "merely" SIZE_MAX bytes.
+		 */
+		total_size = SIZE_MAX;
+	}
 
-  return allocate_memory(totalSize, align, what, ptr);
+	return allocate_memory(total_size, align, what, ptr);
 }
 
 /**
  * Reallocate dynamically allocated memory.  There are no alignment guarantees
  * for the reallocated memory.
  *
- * @param ptr      The memory to reallocate.
- * @param oldSize  The old size of the memory
- * @param size     The new size to allocate
- * @param what     What is being allocated (for error logging)
- * @param newPtr   A pointer to hold the reallocated pointer
+ * @param ptr       The memory to reallocate.
+ * @param old_size  The old size of the memory
+ * @param size      The new size to allocate
+ * @param what      What is being allocated (for error logging)
+ * @param new_ptr   A pointer to hold the reallocated pointer
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check reallocate_memory(void *ptr,
-				   size_t oldSize,
+				   size_t old_size,
 				   size_t size,
 				   const char *what,
-				   void *newPtr);
+				   void *new_ptr);
 
 /**
  * Allocate one or more elements of the indicated type, logging an
@@ -132,7 +134,7 @@ int __must_check reallocate_memory(void *ptr,
  * @return UDS_SUCCESS or an error code
  **/
 #define ALLOCATE(COUNT, TYPE, WHAT, PTR) \
-  doAllocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
+	do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
 
 /**
  * Allocate one object of an indicated type, followed by one or more
@@ -148,14 +150,18 @@ int __must_check reallocate_memory(void *ptr,
  *
  * @return UDS_SUCCESS or an error code
  **/
-#define ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)             \
-  __extension__ ({                                                    \
-      TYPE1 **_ptr = (PTR);                                           \
-      STATIC_ASSERT(__alignof__(TYPE1) >= __alignof__(TYPE2));        \
-      int _result = doAllocation(COUNT, sizeof(TYPE2), sizeof(TYPE1), \
-                                 __alignof__(TYPE1), WHAT, _ptr);     \
-      _result;                                                        \
-    })
+#define ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)                \
+	__extension__({                                                  \
+		TYPE1 **_ptr = (PTR);                                    \
+		STATIC_ASSERT(__alignof__(TYPE1) >= __alignof__(TYPE2)); \
+		int _result = do_allocation(COUNT,                       \
+					    sizeof(TYPE2),               \
+					    sizeof(TYPE1),               \
+					    __alignof__(TYPE1),          \
+					    WHAT,                        \
+					    _ptr);                       \
+		_result;                                                 \
+	})
 
 /**
  * Allocate one or more elements of the indicated type, aligning them
@@ -170,7 +176,7 @@ int __must_check reallocate_memory(void *ptr,
  * @return UDS_SUCCESS or an error code
  **/
 #define ALLOCATE_IO_ALIGNED(COUNT, TYPE, WHAT, PTR) \
-  doAllocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
+	do_allocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
 
 /**
  * Free memory allocated with ALLOCATE().
@@ -179,7 +185,7 @@ int __must_check reallocate_memory(void *ptr,
  **/
 static INLINE void FREE(void *ptr)
 {
-  free_memory(ptr);
+	free_memory(ptr);
 }
 
 /**
@@ -192,10 +198,11 @@ static INLINE void FREE(void *ptr)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int __must_check
-allocateCacheAligned(size_t size, const char *what, void *ptr)
+static INLINE int __must_check allocate_cache_aligned(size_t size,
+						      const char *what,
+						      void *ptr)
 {
-  return allocate_memory(size, CACHE_LINE_BYTES, what, ptr);
+	return allocate_memory(size, CACHE_LINE_BYTES, what, ptr);
 }
 
 /**
@@ -208,7 +215,7 @@ allocateCacheAligned(size_t size, const char *what, void *ptr)
  * @return pointer to the allocated memory, or NULL if the required space is
  *         not available.
  **/
-void * __must_check allocate_memory_nowait(size_t size, const char *what);
+void *__must_check allocate_memory_nowait(size_t size, const char *what);
 
 /**
  * Allocate one element of the indicated type immediately, failing if the
@@ -224,40 +231,43 @@ void * __must_check allocate_memory_nowait(size_t size, const char *what);
 /**
  * Duplicate a string.
  *
- * @param string    The string to duplicate
- * @param what      What is being allocated (for error logging)
- * @param newString A pointer to hold the duplicated string
+ * @param string     The string to duplicate
+ * @param what       What is being allocated (for error logging)
+ * @param new_string A pointer to hold the duplicated string
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-duplicateString(const char *string, const char *what, char **newString);
+int __must_check duplicate_string(const char *string,
+				  const char *what,
+				  char **new_string);
 
 /**
  * Duplicate a buffer, logging an error if the allocation fails.
  *
- * @param ptr     The buffer to copy
- * @param size    The size of the buffer
- * @param what    What is being duplicated (for error logging)
- * @param dupPtr  A pointer to hold the allocated array
+ * @param ptr      The buffer to copy
+ * @param size     The size of the buffer
+ * @param what     What is being duplicated (for error logging)
+ * @param dup_ptr  A pointer to hold the allocated array
  *
  * @return UDS_SUCCESS or ENOMEM
  **/
-int __must_check
-memdup(const void *ptr, size_t size, const char *what, void *dupPtr);
+int __must_check memdup(const void *ptr,
+			size_t size,
+			const char *what,
+			void *dup_ptr);
 
 /**
  * Wrapper which permits freeing a const pointer.
  *
  * @param pointer  the pointer to be freed
  **/
-static INLINE void freeConst(const void *pointer)
+static INLINE void free_const(const void *pointer)
 {
-  union {
-    const void *constP;
-    void *notConst;
-  } u = { .constP = pointer };
-  FREE(u.notConst);
+	union {
+		const void *const_p;
+		void *not_const;
+	} u = { .const_p = pointer };
+	FREE(u.not_const);
 }
 
 /**
@@ -265,13 +275,13 @@ static INLINE void freeConst(const void *pointer)
  *
  * @param pointer  the pointer to be freed
  **/
-static INLINE void freeVolatile(volatile void *pointer)
+static INLINE void free_volatile(volatile void *pointer)
 {
-  union {
-    volatile void *volP;
-    void *notVol;
-  } u = { .volP = pointer };
-  FREE(u.notVol);
+	union {
+		volatile void *vol_p;
+		void *not_vol;
+	} u = { .vol_p = pointer };
+	FREE(u.not_vol);
 }
 
 /**
@@ -299,7 +309,7 @@ void memory_init(void);
  * @param flag_ptr    Location of the allocation-allowed flag
  **/
 void register_allocating_thread(struct registered_thread *new_thread,
-                                const bool               *flag_ptr);
+				const bool *flag_ptr);
 
 /**
  * Unregister the current thread as an allocating thread.
@@ -309,11 +319,11 @@ void unregister_allocating_thread(void);
 /**
  * Get the memory statistics.
  *
- * @param bytesUsed     A pointer to hold the number of bytes in use
- * @param peakBytesUsed A pointer to hold the maximum value bytesUsed has
+ * @param bytes_used      A pointer to hold the number of bytes in use
+ * @param peak_bytes_used A pointer to hold the maximum value bytes_used has
  *                      attained
  **/
-void get_memory_stats(uint64_t *bytesUsed, uint64_t *peakBytesUsed);
+void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used);
 
 /**
  * Report stats on any allocated memory that we're tracking.

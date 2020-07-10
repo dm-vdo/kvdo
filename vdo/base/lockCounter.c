@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#14 $
  */
 
 #include "lockCounter.h"
@@ -144,9 +144,9 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
 	}
 
 	struct lock_counter *lock_counter = *lock_counter_ptr;
-	freeVolatile(lock_counter->physical_zone_counts);
-	freeVolatile(lock_counter->logical_zone_counts);
-	freeVolatile(lock_counter->journal_decrement_counts);
+	free_volatile(lock_counter->physical_zone_counts);
+	free_volatile(lock_counter->logical_zone_counts);
+	free_volatile(lock_counter->journal_decrement_counts);
 	FREE(lock_counter->journal_counters);
 	FREE(lock_counter->logical_counters);
 	FREE(lock_counter->physical_counters);

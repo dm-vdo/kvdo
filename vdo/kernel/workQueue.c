@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#32 $
  */
 
 #include "workQueue.h"
@@ -649,7 +649,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	result = duplicateString(name, "queue name", &queue->common.name);
+	result = duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
 		FREE(queue);
 		return -ENOMEM;
@@ -763,7 +763,7 @@ int make_work_queue(const char *thread_name_prefix,
 	queue->common.round_robin_mode = true;
 	queue->common.owner = owner;
 
-	result = duplicateString(name, "queue name", &queue->common.name);
+	result = duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
 		FREE(queue->service_queues);
 		FREE(queue);

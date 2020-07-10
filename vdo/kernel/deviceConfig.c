@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#19 $
  */
 
 #include "deviceConfig.h"
@@ -622,9 +622,9 @@ int parse_device_config(int argc,
 		dm_shift_arg(&arg_set);
 	}
 
-	result = duplicateString(dm_shift_arg(&arg_set),
-				 "parent device name",
-				 &config->parent_device_name);
+	result = duplicate_string(dm_shift_arg(&arg_set),
+				  "parent device name",
+				  &config->parent_device_name);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
 				   error_ptr,
@@ -720,9 +720,9 @@ int parse_device_config(int argc,
 
 	// Get the address where the albserver is running. Check for validation
 	// is done in dedupe.c code during startKernelLayer call
-	result = duplicateString(dm_shift_arg(&arg_set),
-				 "pool name",
-				 &config->pool_name);
+	result = duplicate_string(dm_shift_arg(&arg_set),
+				  "pool name",
+				  &config->pool_name);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
 				   error_ptr,
