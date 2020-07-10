@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#7 $
  */
 
 #include <linux/delay.h>
@@ -46,7 +46,7 @@ static struct thread_registry allocating_threads;
 /*****************************************************************************/
 static bool allocations_allowed(void)
 {
-	const bool *pointer = lookupThread(&allocating_threads);
+	const bool *pointer = lookup_thread(&allocating_threads);
 	return pointer != NULL ? *pointer : false;
 }
 
@@ -58,13 +58,13 @@ void register_allocating_thread(struct registered_thread *new_thread,
 		static const bool allocation_always_allowed = true;
 		flag_ptr = &allocation_always_allowed;
 	}
-	registerThread(&allocating_threads, new_thread, flag_ptr);
+	register_thread(&allocating_threads, new_thread, flag_ptr);
 }
 
 /*****************************************************************************/
 void unregister_allocating_thread(void)
 {
-	unregisterThread(&allocating_threads);
+	unregister_thread(&allocating_threads);
 }
 
 /*
@@ -400,7 +400,7 @@ void memory_init(void)
 {
 
 	spin_lock_init(&memory_stats.lock);
-	initializeThreadRegistry(&allocating_threads);
+	initialize_thread_registry(&allocating_threads);
 }
 
 /*****************************************************************************/
