@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#15 $
  */
 
 #include "uds.h"
@@ -197,7 +197,7 @@ int uds_create_index_session(struct uds_index_session **session)
 	}
 
 	struct uds_index_session *index_session = NULL;
-	int result = makeEmptyIndexSession(&index_session);
+	int result = make_empty_index_session(&index_session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -214,16 +214,17 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 				     enum load_type load_type)
 {
 	int result = ((load_type == LOAD_CREATE) ?
-			      write_index_config(layout,
-						 &index_session->userConfig) :
-			      verify_index_config(layout,
-						  &index_session->userConfig));
+			write_index_config(layout,
+					   &index_session->user_config) :
+			verify_index_config(layout,
+					    &index_session->user_config));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	struct configuration *index_config;
-	result = make_configuration(&index_session->userConfig, &index_config);
+	result = make_configuration(&index_session->user_config,
+				    &index_config);
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result, "Failed to allocate config");
 		return result;
@@ -236,7 +237,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 				   index_config,
 				   user_params,
 				   load_type,
-				   &index_session->loadContext,
+				   &index_session->load_context,
 				   enter_callback_stage,
 				   &index_session->router);
 	free_configuration(index_config);
@@ -245,7 +246,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 		return result;
 	}
 
-	log_uds_configuration(&index_session->userConfig);
+	log_uds_configuration(&index_session->user_config);
 	return UDS_SUCCESS;
 }
 
@@ -258,7 +259,7 @@ static int initialize_index_session(struct uds_index_session *index_session,
 	struct index_layout *layout;
 	int result = make_index_layout(name,
 				       load_type == LOAD_CREATE,
-				       &index_session->userConfig,
+				       &index_session->user_config,
 				       &layout);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -287,12 +288,12 @@ int uds_open_index(enum uds_open_index_type open_type,
 		return UDS_NO_INDEXSESSION;
 	}
 
-	int result = startLoadingIndexSession(session);
+	int result = start_loading_index_session(session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	session->userConfig = *user_config;
+	session->user_config = *user_config;
 
 	// Map the external open_type to the internal load_type
 	enum load_type load_type =
@@ -306,10 +307,10 @@ int uds_open_index(enum uds_open_index_type open_type,
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result, "Failed %s",
 					get_load_type(load_type));
-		saveAndFreeIndex(session);
+		save_and_free_index(session);
 	}
 
-	finishLoadingIndexSession(session, result);
+	finish_loading_index_session(session, result);
 	return sansUnrecoverable(result);
 }
 

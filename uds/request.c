@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#10 $
  */
 
 #include "request.h"
@@ -46,7 +46,7 @@ int uds_start_chunk_operation(struct uds_request *uds_request)
 	memset(uds_request->private, 0, sizeof(uds_request->private));
 	Request *request = (Request *) uds_request;
 
-	int result = getIndexSession(request->session);
+	int result = get_index_session(request->session);
 	if (result != UDS_SUCCESS) {
 		return sansUnrecoverable(result);
 	}
@@ -89,7 +89,7 @@ static RequestQueue *get_next_stage_queue(Request *request,
 					  enum request_stage next_stage)
 {
 	if (next_stage == STAGE_CALLBACK) {
-		return request->session->callbackQueue;
+		return request->session->callback_queue;
 	}
 
 	// Local and remote index routers handle the rest of the pipeline
@@ -170,41 +170,41 @@ void update_request_context_stats(Request *request)
 	switch (request->action) {
 	case REQUEST_INDEX:
 		if (found) {
-			increment_once(&session_stats->postsFound);
+			increment_once(&session_stats->posts_found);
 
 			if (request->location == LOC_IN_OPEN_CHAPTER) {
-				increment_once(&session_stats->postsFoundOpenChapter);
+				increment_once(&session_stats->posts_found_open_chapter);
 			} else if (request->location == LOC_IN_DENSE) {
-				increment_once(&session_stats->postsFoundDense);
+				increment_once(&session_stats->posts_found_dense);
 			} else if (request->location == LOC_IN_SPARSE) {
-				increment_once(&session_stats->postsFoundSparse);
+				increment_once(&session_stats->posts_found_sparse);
 			}
 		} else {
-			increment_once(&session_stats->postsNotFound);
+			increment_once(&session_stats->posts_not_found);
 		}
 		break;
 
 	case REQUEST_UPDATE:
 		if (found) {
-			increment_once(&session_stats->updatesFound);
+			increment_once(&session_stats->updates_found);
 		} else {
-			increment_once(&session_stats->updatesNotFound);
+			increment_once(&session_stats->updates_not_found);
 		}
 		break;
 
 	case REQUEST_DELETE:
 		if (found) {
-			increment_once(&session_stats->deletionsFound);
+			increment_once(&session_stats->deletions_found);
 		} else {
-			increment_once(&session_stats->deletionsNotFound);
+			increment_once(&session_stats->deletions_not_found);
 		}
 		break;
 
 	case REQUEST_QUERY:
 		if (found) {
-			increment_once(&session_stats->queriesFound);
+			increment_once(&session_stats->queries_found);
 		} else {
-			increment_once(&session_stats->queriesNotFound);
+			increment_once(&session_stats->queries_not_found);
 		}
 		break;
 
@@ -221,9 +221,9 @@ void enter_callback_stage(Request *request)
 	if (!request->is_control_message) {
 		if (isUnrecoverable(request->status)) {
 			// Unrecoverable errors must disable the index session
-			disableIndexSession(request->session);
+			disable_index_session(request->session);
 			// The unrecoverable state is internal and must not
-			// sent to the client.
+			// be sent to the client.
 			request->status = sansUnrecoverable(request->status);
 		}
 

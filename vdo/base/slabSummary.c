@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#41 $
  */
 
 #include "slabSummary.h"
@@ -27,26 +27,10 @@
 #include "constants.h"
 #include "extent.h"
 #include "readOnlyNotifier.h"
+#include "slabSummaryFormat.h"
 #include "slabSummaryInternals.h"
 #include "threadConfig.h"
 #include "types.h"
-
-// SIZING
-
-/**********************************************************************/
-static block_count_t get_slab_summary_zone_size(block_size_t block_size)
-{
-	slab_count_t entries_per_block =
-		block_size / sizeof(struct slab_summary_entry);
-	block_count_t blocks_needed = MAX_SLABS / entries_per_block;
-	return blocks_needed;
-}
-
-/**********************************************************************/
-block_count_t get_slab_summary_size(block_size_t block_size)
-{
-	return get_slab_summary_zone_size(block_size) * MAX_PHYSICAL_ZONES;
-}
 
 // FULLNESS HINT COMPUTATION
 
@@ -233,7 +217,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 
 	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
-	summary->hint_shift = (slab_size_shift > 6) ? (slab_size_shift - 6) : 0;
+	summary->hint_shift = get_slab_summary_hint_shift(slab_size_shift);
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
@@ -544,7 +528,7 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
 	return get_approximate_free_blocks(summary_zone->summary,
-					entry->fullness_hint);
+                                           entry->fullness_hint);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#22 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -25,6 +25,7 @@
 #include "completion.h"
 #include "fixedLayout.h"
 #include "slab.h"
+#include "slabSummaryFormat.h"
 #include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
@@ -52,11 +53,6 @@
  **/
 
 /**
- * The offset of a slab journal tail block.
- **/
-typedef uint8_t TailBlockOffset;
-
-/**
  * A slab status is a very small structure for use in determining the ordering
  * of slabs in the scrubbing process.
  **/
@@ -65,15 +61,6 @@ struct slab_status {
 	bool is_clean;
 	uint8_t emptiness;
 };
-
-/**
- * Returns the size on disk of the slab_summary structure.
- *
- * @param block_size  The block size of the physical layer
- *
- * @return the blocks required to store the slab_summary on disk
- **/
-block_count_t __must_check get_slab_summary_size(block_size_t block_size);
 
 /**
  * Create a slab summary.

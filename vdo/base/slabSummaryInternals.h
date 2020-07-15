@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#18 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -26,27 +26,7 @@
 
 #include "adminState.h"
 #include "atomic.h"
-
-struct slab_summary_entry {
-	/** Bits 7..0: The offset of the tail block within the slab journal */
-	TailBlockOffset tail_block_offset;
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	/** Bits 13..8: A hint about the fullness of the slab */
-	unsigned int fullness_hint : 6;
-	/** Bit 14: Whether the refCounts must be loaded from the layer */
-	unsigned int load_ref_counts : 1;
-	/** Bit 15: The believed cleanliness of this slab */
-	unsigned int is_dirty : 1;
-#else
-	/** Bit 15: The believed cleanliness of this slab */
-	unsigned int is_dirty : 1;
-	/** Bit 14: Whether the refCounts must be loaded from the layer */
-	unsigned int load_ref_counts : 1;
-	/** Bits 13..8: A hint about the fullness of the slab */
-	unsigned int fullness_hint : 6;
-#endif
-} __attribute__((packed));
+#include "slabSummaryFormat.h"
 
 struct slab_summary_block {
 	/** The zone to which this block belongs */
