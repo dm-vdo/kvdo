@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#43 $
  */
 
 #include "ioSubmitter.h"
@@ -240,15 +240,9 @@ void count_completed_bios(struct bio *bio)
 }
 
 /**********************************************************************/
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 void complete_async_bio(struct bio *bio)
-#else
-void complete_async_bio(struct bio *bio, int error)
-#endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 	int error = get_bio_result(bio);
-#endif
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
@@ -601,9 +595,6 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 				unsigned int queue_number,
 				struct kernel_layer *layer)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 38)
-	bio_queue_data->bdev = layer->dev->bdev;
-#endif
 	bio_queue_data->queue_number = queue_number;
 
 	return make_work_queue(thread_name_prefix, queue_name,

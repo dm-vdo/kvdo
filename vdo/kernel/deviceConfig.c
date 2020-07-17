@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#20 $
  */
 
 #include "deviceConfig.h"
@@ -134,17 +134,10 @@ static void resolve_config_with_device(struct device_config *config,
 {
 	struct dm_dev *dev = config->owned_device;
 	struct request_queue *request_queue = bdev_get_queue(dev->bdev);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	bool flush_supported =
 		((request_queue->queue_flags & (1ULL << QUEUE_FLAG_WC)) != 0);
 	bool fua_supported =
 		((request_queue->queue_flags & (1ULL << QUEUE_FLAG_FUA)) != 0);
-#else
-	bool flush_supported =
-		((request_queue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
-	bool fua_supported =
-		((request_queue->flush_flags & REQ_FUA) == REQ_FUA);
-#endif
 	if (verbose) {
 		logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
 			(flush_supported ? "supported" : "not supported"),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#10 $
  */
 
 #ifndef BIO_H
@@ -24,13 +24,8 @@
 
 #include <linux/bio.h>
 #include <linux/blkdev.h>
-#include <linux/version.h>
 
 #include "kernelTypes.h"
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-#define USE_BI_ITER 1
-#endif
 
 /**
  * Copy the bio data to a char array.
@@ -188,7 +183,6 @@ static inline bool is_write_bio(struct bio *bio)
 	return bio_data_dir(bio) == WRITE;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Get the error from the bio.
  *
@@ -198,13 +192,8 @@ static inline bool is_write_bio(struct bio *bio)
  **/
 static inline int get_bio_result(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	return blk_status_to_errno(bio->bi_status);
-#else
-	return bio->bi_error;
-#endif
 }
-#endif // newer than 4.4
 
 /**
  * Set the block device for a bio.
@@ -231,11 +220,7 @@ static inline void set_bio_block_device(struct bio *bio,
  **/
 static inline unsigned int get_bio_size(struct bio *bio)
 {
-#ifdef USE_BI_ITER
 	return bio->bi_iter.bi_size;
-#else
-	return bio->bi_size;
-#endif
 }
 
 /**
@@ -246,11 +231,7 @@ static inline unsigned int get_bio_size(struct bio *bio)
  **/
 static inline void set_bio_sector(struct bio *bio, sector_t sector)
 {
-#ifdef USE_BI_ITER
 	bio->bi_iter.bi_sector = sector;
-#else
-	bio->bi_sector = sector;
-#endif
 }
 
 /**
@@ -262,11 +243,7 @@ static inline void set_bio_sector(struct bio *bio, sector_t sector)
  **/
 static inline sector_t get_bio_sector(struct bio *bio)
 {
-#ifdef USE_BI_ITER
 	return bio->bi_iter.bi_sector;
-#else
-	return bio->bi_sector;
-#endif
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#36 $
  */
 
 #include "kvio.h"
@@ -193,7 +193,6 @@ void submitMetadataVIO(struct vio *vio)
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Handle the completion of a base-code initiated flush by continuing the flush
  * vio.
@@ -201,25 +200,11 @@ void submitMetadataVIO(struct vio *vio)
  * @param bio    The bio to complete
  **/
 static void complete_flush_bio(struct bio *bio)
-#else
-/**
- * Handle the completion of a base-code initiated flush by continuing the flush
- * vio.
- *
- * @param bio    The bio to complete
- * @param error  Possible error from underlying block device
- **/
-static void complete_flush_bio(struct bio *bio, int error)
-#endif
 {
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	// Restore the bio's notion of its own data.
 	reset_bio(bio, kvio->layer);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 	kvdo_continue_kvio(kvio, get_bio_result(bio));
-#else
-	kvdo_continue_kvio(kvio, error);
-#endif
 }
 
 /**********************************************************************/

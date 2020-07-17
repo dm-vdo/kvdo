@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#19 $
  */
 
 #include "bio.h"
@@ -30,27 +30,9 @@
 
 #include "ioSubmitter.h"
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-#include "bioIterator.h"
-
-/**
- * Gets the raw buffer from a biovec.
- *
- * @param biovec  The biovec in question
- *
- * @return the buffer
- **/
-static char *get_buffer_for_biovec(struct bio_vec *biovec)
-{
-	return (page_address(biovec->bv_page) + biovec->bv_offset);
-}
-#endif
-
 /**********************************************************************/
 void bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
-	// 4.14 is probably newer than necessary.
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	struct bio_vec biovec;
 	struct bvec_iter iter;
 	unsigned long flags;
@@ -62,22 +44,11 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr)
 		data_ptr += biovec.bv_len;
 		bvec_kunmap_irq(from, &flags);
 	}
-#else
-	struct bio_vec *biovec;
-
-	for (struct bio_iterator iter = create_bio_iterator(bio);
-	     (biovec = get_next_biovec(&iter)) != NULL;
-	     advance_bio_iterator(&iter)) {
-		memcpy(data_ptr, get_buffer_for_biovec(biovec), biovec->bv_len);
-		data_ptr += biovec->bv_len;
-	}
-#endif
 }
 
 /**********************************************************************/
 void bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	struct bio_vec biovec;
 	struct bvec_iter iter;
 	unsigned long flags;
@@ -90,42 +61,19 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 		flush_dcache_page(biovec.bv_page);
 		bvec_kunmap_irq(dest, &flags);
 	}
-#else
-	struct bio_vec *biovec;
-
-	for (struct bio_iterator iter = create_bio_iterator(bio);
-	     (biovec = get_next_biovec(&iter)) != NULL;
-	     advance_bio_iterator(&iter)) {
-		memcpy(get_buffer_for_biovec(biovec), data_ptr, biovec->bv_len);
-		flush_dcache_page(biovec->bv_page);
-		data_ptr += biovec->bv_len;
-	}
-#endif
 }
 
 /**********************************************************************/
 void set_bio_operation(struct bio *bio, unsigned int operation)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio->bi_opf &= ~REQ_OP_MASK;
 	bio->bi_opf |= operation;
-#else
-
-	unsigned int OPERATION_MASK = WRITE | REQ_DISCARD | REQ_FLUSH;
-
-	// Clear the relevant bits
-	bio->bi_rw &= ~OPERATION_MASK;
-	// Set the operation we care about
-	bio->bi_rw |= operation;
-#endif
 }
 
 /**********************************************************************/
 void free_bio(struct bio *bio, struct kernel_layer *layer)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 	bio_uninit(bio);
-#endif
 	FREE(bio);
 }
 
@@ -244,13 +192,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 		return result;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio_init(bio, bio->bi_inline_vecs, bvec_count);
-#else
-	bio_init(bio);
-	bio->bi_io_vec = bio->bi_inline_vecs;
-	bio->bi_max_vecs = bvec_count;
-#endif
 
 	initialize_bio(bio, layer);
 	if (data == NULL) {

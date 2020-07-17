@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#65 $
  */
 
 #include "dmvdo.h"
@@ -149,9 +149,6 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 		VDO_SECTORS_PER_BLOCK;
 
 	limits->discard_granularity = VDO_BLOCK_SIZE;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
-	limits->discard_zeroes_data = 1;
-#endif
 }
 
 /**********************************************************************/

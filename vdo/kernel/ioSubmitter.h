@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#7 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -34,7 +34,6 @@
  **/
 void count_completed_bios(struct bio *bio);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Completes a bio relating to a kvio, causing the completion callback
  * to be invoked.
@@ -47,21 +46,6 @@ void count_completed_bios(struct bio *bio);
  * @param bio   The bio to complete
  **/
 void complete_async_bio(struct bio *bio);
-#else
-/**
- * Completes a bio relating to a kvio, causing the completion callback
- * to be invoked.
- *
- * This is used as the bi_end_io function for most of the bios created
- * within VDO and submitted to the storage device. Exceptions are the
- * flush code and the read-block code, both of which need to regain
- * control in the kernel layer after the I/O is completed.
- *
- * @param bio   The bio to complete
- * @param error Possible error from underlying block device
- **/
-void complete_async_bio(struct bio *bio, int error);
-#endif
 
 /**
  * Create a io_submitter structure for a new physical layer.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#69 $
  */
 
 #include "dataKVIO.h"
@@ -141,11 +141,7 @@ static void kvdo_acknowledge_data_kvio(struct data_kvio *data_kvio)
 		map_to_system_error(data_vio_as_completion(&data_kvio->data_vio)->result);
 	bio->bi_end_io = external_io_request->end_io;
 	bio->bi_private = external_io_request->private;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio->bi_opf = external_io_request->rw;
-#else
-	bio->bi_rw = external_io_request->rw;
-#endif
 
 	count_bios(&layer->biosAcknowledged, bio);
 	if (data_kvio->isPartial) {
@@ -289,39 +285,6 @@ static void read_data_kvio_read_block_callback(struct data_kvio *data_kvio)
 				      CPU_Q_ACTION_COMPRESS_BLOCK);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
-/**
- * Complete and reset a bio that was supplied by the user and then used for a
- * read (so that we can complete it with the user's callback).
- *
- * @param bio   The bio to complete
- **/
-static void reset_user_bio(struct bio *bio)
-#else
-/**
- * Complete and reset a bio that was supplied by the user and then used for a
- * read (so that we can complete it with the user's callback).
- *
- * @param bio   The bio to complete
- * @param error Possible error from underlying block device
- **/
-static void reset_user_bio(struct bio *bio, int error)
-#endif
-{
-#if ((KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE) && \
-     (KERNEL_VERSION(4, 2, 0) > LINUX_VERSION_CODE))
-	// This is a user bio, and the device just called bio_endio() on it, so
-	// we need to re-increment bi_remaining so we too can call bio_endio().
-	atomic_inc(&bio->bi_remaining);
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
-	complete_async_bio(bio);
-#else
-	complete_async_bio(bio, error);
-#endif
-}
-
 /**
  * Uncompress the data that's just been read and then call back the requesting
  * data_kvio.
@@ -390,22 +353,12 @@ static void complete_read(struct data_kvio *data_kvio, int result)
 	read_block->callback(data_kvio);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Callback for a bio doing a read.
  *
  * @param bio     The bio
  */
 static void read_bio_callback(struct bio *bio)
-#else
-/**
- * Callback for a bio doing a read.
- *
- * @param bio     The bio
- * @param result  The result of the read operation
- */
-static void read_bio_callback(struct bio *bio, int result)
-#endif
 {
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
@@ -413,11 +366,7 @@ static void read_bio_callback(struct bio *bio, int result)
 	data_kvio->read_block.data = data_kvio->read_block.buffer;
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
 	count_completed_bios(bio);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 	complete_read(data_kvio, get_bio_result(bio));
-#else
-	complete_read(data_kvio, result);
-#endif
 }
 
 /**********************************************************************/
@@ -468,7 +417,7 @@ void readDataVIO(struct data_vio *data_vio)
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
 	struct bio *bio = kvio->bio;
 
-	bio->bi_end_io = reset_user_bio;
+	bio->bi_end_io = complete_async_bio;
 	set_bio_sector(bio, block_to_sector(kvio->layer, data_vio->mapped.pbn));
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
@@ -765,11 +714,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		.bio = bio,
 		.private = bio->bi_private,
 		.end_io = bio->bi_end_io,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 		.rw = bio->bi_opf,
-#else
-		.rw = bio->bi_rw,
-#endif
 	};
 
 	// We will handle FUA at the end of the request (after we restore the

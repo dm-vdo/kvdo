@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#63 $
  */
 
 #include "dedupeIndex.h"
@@ -433,17 +433,9 @@ stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 }
 
 /*****************************************************************************/
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 static void timeout_index_operations(struct timer_list *t)
-#else
-static void timeout_index_operations(unsigned long arg)
-#endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
-#else
-	struct dedupe_index *index = (struct dedupe_index *) arg;
-#endif
 	LIST_HEAD(expiredHead);
 	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
@@ -1040,13 +1032,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	INIT_LIST_HEAD(&index->pending_head);
 	spin_lock_init(&index->pending_lock);
 	spin_lock_init(&index->state_lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	timer_setup(&index->pending_timer, timeout_index_operations, 0);
-#else
-	setup_timer(&index->pending_timer,
-		    timeout_index_operations,
-		    (unsigned long) index);
-#endif
 
 	// UDS Timeout Reporter
 	init_periodic_event_reporter(&index->timeout_reporter,

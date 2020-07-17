@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#33 $
  */
 
 #include "workQueue.h"
@@ -924,23 +924,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	char task_state_report = '-';
 
 	if (queue_data.thread != NULL) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		task_state_report = task_state_to_char(queue->thread);
-#else
-		unsigned int task_state = queue->thread->state & TASK_REPORT;
-
-		task_state &= 0x1ff;
-		unsigned int task_state_index;
-
-		if (task_state != 0) {
-			task_state_index = __ffs(task_state) + 1;
-			BUG_ON(task_state_index >=
-			       sizeof(TASK_STATE_TO_CHAR_STR));
-		} else {
-			task_state_index = 0;
-		}
-		task_state_report = TASK_STATE_TO_CHAR_STR[task_state_index];
-#endif
 	}
 
 	if (queue_data.thread == NULL) {

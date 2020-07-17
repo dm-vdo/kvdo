@@ -16,18 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#6 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
 #define WORK_QUEUE_HANDLE_H
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/task_stack.h>
-#else
-#include <linux/sched.h>
-#endif
 
 #include "workQueueInternals.h"
 
