@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#12 $
  */
 
 #ifndef BIO_H
@@ -24,7 +24,6 @@
 
 #include <linux/bio.h>
 #include <linux/blkdev.h>
-#include <linux/version.h>
 
 #include "kernelTypes.h"
 
@@ -68,53 +67,32 @@ static inline void set_bio_operation_write(struct bio *bio)
 /**********************************************************************/
 static inline void clear_bio_operation_and_flags(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio->bi_opf = 0;
-#else
-	bio->bi_rw = 0;
-#endif
 }
 
 /**********************************************************************/
 static inline void copy_bio_operation_and_flags(struct bio *to,
 						struct bio *from)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	to->bi_opf = from->bi_opf;
-#else
-	to->bi_rw = from->bi_rw;
-#endif
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag(struct bio *bio, unsigned int flag)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio->bi_opf |= flag;
-#else
-	bio->bi_rw |= flag;
-#endif
 }
 
 /**********************************************************************/
 static inline void clear_bio_operation_flag(struct bio *bio, unsigned int flag)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	bio->bi_opf &= ~flag;
-#else
-	bio->bi_rw &= ~flag;
-#endif
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag_preflush(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	set_bio_operation_flag(bio, REQ_PREFLUSH);
-#else
-	// Preflushes and empty flushes are not currently distinguished.
-	set_bio_operation(bio, WRITE_FLUSH);
-#endif
 }
 
 /**********************************************************************/
@@ -144,32 +122,20 @@ static inline void clear_bio_operation_flag_fua(struct bio *bio)
 /**********************************************************************/
 static inline bool is_discard_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
-#else
-	return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
-#endif
 }
 
 /**********************************************************************/
 static inline bool is_flush_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	return (bio_op(bio) == REQ_OP_FLUSH) ||
 	       ((bio->bi_opf & REQ_PREFLUSH) != 0);
-#else
-	return (bio->bi_rw & REQ_FLUSH) != 0;
-#endif
 }
 
 /**********************************************************************/
 static inline bool is_fua_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	return (bio->bi_opf & REQ_FUA) != 0;
-#else
-	return (bio->bi_rw & REQ_FUA) != 0;
-#endif
 }
 
 /**********************************************************************/
@@ -205,11 +171,7 @@ static inline int get_bio_result(struct bio *bio)
 static inline void set_bio_block_device(struct bio *bio,
 					struct block_device *device)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	bio_set_dev(bio, device);
-#else
-	bio->bi_bdev = device;
-#endif
 }
 
 /**
@@ -255,15 +217,8 @@ static inline sector_t get_bio_sector(struct bio *bio)
  **/
 static inline void complete_bio(struct bio *bio, int error)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	bio->bi_status = errno_to_blk_status(error);
 	bio_endio(bio);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
-	bio->bi_error = error;
-	bio_endio(bio);
-#else
-	bio_endio(bio, error);
-#endif
 }
 
 /**
@@ -333,12 +288,8 @@ void prepare_flush_bio(struct bio *bio,
  **/
 static inline int submit_bio_and_wait(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
 	submit_bio_wait(bio);
 	int result = get_bio_result(bio);
-#else
-	int result = submit_bio_wait(bio->bi_rw, bio);
-#endif
 	return result;
 }
 
