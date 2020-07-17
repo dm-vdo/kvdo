@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#11 $
  */
 
 #ifndef BIO_H
@@ -24,6 +24,7 @@
 
 #include <linux/bio.h>
 #include <linux/blkdev.h>
+#include <linux/version.h>
 
 #include "kernelTypes.h"
 
