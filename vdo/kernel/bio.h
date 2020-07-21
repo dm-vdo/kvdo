@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#13 $
  */
 
 #ifndef BIO_H
@@ -277,20 +277,5 @@ void prepare_flush_bio(struct bio *bio,
 		       void *context,
 		       struct block_device *device,
 		       bio_end_io_t *end_io_callback);
-
-/**
- * Perform IO with a bio, waiting for completion and returning its result.
- * The bio must already have its sector, block device, and operation set.
- *
- * @param bio  The bio to do IO with
- *
- * @return The bio result
- **/
-static inline int submit_bio_and_wait(struct bio *bio)
-{
-	submit_bio_wait(bio);
-	int result = get_bio_result(bio);
-	return result;
-}
 
 #endif /* BIO_H */
