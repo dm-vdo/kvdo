@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#71 $
  */
 
 #include "dataKVIO.h"
@@ -333,15 +333,14 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
  * necessary and then call back the requesting data_kvio.
  *
  * @param data_kvio  The data_kvio requesting the data
- * @param result     The result of the read operation
  **/
-static void complete_read(struct data_kvio *data_kvio, int result)
+static void complete_read(struct data_kvio *data_kvio)
 {
 	struct read_block *read_block = &data_kvio->read_block;
 
-	read_block->status = result;
+	read_block->status = blk_status_to_errno(read_block->bio->bi_status);
 
-	if ((result == VDO_SUCCESS) &&
+	if ((read_block->status == VDO_SUCCESS) &&
 	    is_compressed(read_block->mapping_state)) {
 		launch_data_kvio_on_cpu_queue(data_kvio,
 					      uncompress_read_block,
@@ -366,7 +365,7 @@ static void read_bio_callback(struct bio *bio)
 	data_kvio->read_block.data = data_kvio->read_block.buffer;
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
 	count_completed_bios(bio);
-	complete_read(data_kvio, get_bio_result(bio));
+	complete_read(data_kvio);
 }
 
 /**********************************************************************/
