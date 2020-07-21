@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#22 $
  */
 
 #include "bio.h"
@@ -94,12 +94,6 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 	if (is_fua_bio(bio)) {
 		atomic64_inc(&bio_stats->fua);
 	}
-}
-
-/**********************************************************************/
-void bio_zero_data(struct bio *bio)
-{
-	zero_fill_bio(bio);
 }
 
 /**********************************************************************/

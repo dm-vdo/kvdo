@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#14 $
  */
 
 #ifndef BIO_H
@@ -246,13 +246,6 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
  * @param layer  The physical layer
  **/
 void reset_bio(struct bio *bio, struct kernel_layer *layer);
-
-/**
- * Set a bio's data to all zeroes.
- *
- * @param [in] bio  The bio
- **/
-void bio_zero_data(struct bio *bio);
 
 /**
  * Create a new bio structure for kernel buffer storage.

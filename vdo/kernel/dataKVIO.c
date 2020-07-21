@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#70 $
  */
 
 #include "dataKVIO.h"
@@ -575,7 +575,7 @@ void zeroDataVIO(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("zeroDataVIO;io=readData"));
-	bio_zero_data(data_vio_as_kvio(data_vio)->bio);
+	zero_fill_bio(data_vio_as_kvio(data_vio)->bio);
 }
 
 /**********************************************************************/
