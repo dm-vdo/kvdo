@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#18 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -25,7 +25,7 @@
 #include "refCounts.h"
 
 #include "journalPoint.h"
-#include "referenceBlock.h"
+#include "packedReferenceBlock.h"
 #include "slab.h"
 #include "blockAllocatorInternals.h"
 #include "waitQueue.h"
@@ -39,6 +39,33 @@ typedef enum {
 	RS_SHARED, // this block is shared
 	RS_PROVISIONAL // this block is provisionally allocated
 } reference_status;
+
+/*
+ * Reference_block structure
+ *
+ * Blocks are used as a proxy, permitting saves of partial refcounts.
+ **/
+struct reference_block {
+	/** This block waits on the refCounts to tell it to write */
+	struct waiter waiter;
+	/** The parent RefCount structure */
+	struct ref_counts *ref_counts;
+	/** The number of references in this block that represent allocations */
+	block_size_t allocated_count;
+	/** The slab journal block on which this block must hold a lock */
+	sequence_number_t slab_journal_lock;
+	/**
+	 * The slab journal block which should be released when this block
+	 * is committed
+	 **/
+	sequence_number_t slab_journal_lock_to_release;
+	/** The point up to which each sector is accurate on disk */
+	struct journal_point commit_points[SECTORS_PER_BLOCK];
+	/** Whether this block has been modified since it was written to disk */
+	bool is_dirty;
+	/** Whether this block is currently writing */
+	bool is_writing;
+};
 
 /**
  * The search_cursor represents the saved position of a free block search.

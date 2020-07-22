@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#8 $
  */
 
 #include "pbnLock.h"
@@ -24,7 +24,7 @@
 #include "logger.h"
 
 #include "blockAllocator.h"
-#include "referenceBlock.h"
+#include "packedReferenceBlock.h"
 
 struct pbn_lock_implementation {
 	pbn_lock_type type;
