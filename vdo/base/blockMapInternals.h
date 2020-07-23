@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#39 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -123,35 +123,6 @@ struct block_map {
  * @return The number of pages required
  **/
 page_count_t compute_block_map_page_count(block_count_t entries);
-
-/**
- * Compute the number of the block map page on which the entry for a given
- * logical block resides.
- *
- * @param lbn  The logical block number whose page is desired
- *
- * @return The number of the block map page containing the entry for
- *         the given logical block number
- **/
-static inline page_number_t __must_check
-compute_page_number(logical_block_number_t lbn)
-{
-	return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
-}
-
-/**
- * Find the block map page slot in which the entry for a given logical
- * block resides.
- *
- * @param lbn  The logical block number whose slot
- *
- * @return The slot containing the entry for the given logical block number
- **/
-static inline slot_number_t __must_check
-compute_slot(logical_block_number_t lbn)
-{
-	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
-}
 
 /**
  * Check whether a zone of the block map has drained, and if so, send a

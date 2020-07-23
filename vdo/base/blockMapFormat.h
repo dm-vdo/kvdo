@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#2 $
  */
 
 #ifndef BLOCK_MAP_FORMAT_H
@@ -24,6 +24,7 @@
 
 #include "buffer.h"
 
+#include "constants.h"
 #include "header.h"
 #include "types.h"
 
@@ -35,6 +36,35 @@ struct block_map_state_2_0 {
 } __attribute__((packed));
 
 extern const struct header BLOCK_MAP_HEADER_2_0;
+
+/**
+ * Compute the number of the block map page on which the entry for a given
+ * logical block resides.
+ *
+ * @param lbn  The logical block number whose page is desired
+ *
+ * @return The number of the block map page containing the entry for
+ *         the given logical block number
+ **/
+static inline page_number_t __must_check
+compute_page_number(logical_block_number_t lbn)
+{
+	return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
+}
+
+/**
+ * Find the block map page slot in which the entry for a given logical
+ * block resides.
+ *
+ * @param lbn  The logical block number whose slot
+ *
+ * @return The slot containing the entry for the given logical block number
+ **/
+static inline slot_number_t __must_check
+compute_slot(logical_block_number_t lbn)
+{
+	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
+}
 
 /**
  * Decode block map component state version 2.0 from a buffer.
