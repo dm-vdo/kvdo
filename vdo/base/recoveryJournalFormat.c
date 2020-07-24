@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#3 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -127,4 +127,25 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 	};
 
 	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+const char *get_journal_operation_name(journal_operation operation)
+{
+	switch (operation) {
+	case DATA_DECREMENT:
+		return "data decrement";
+
+	case DATA_INCREMENT:
+		return "data increment";
+
+	case BLOCK_MAP_DECREMENT:
+		return "block map decrement";
+
+	case BLOCK_MAP_INCREMENT:
+		return "block map increment";
+
+	default:
+		return "unknown journal operation";
+	}
 }

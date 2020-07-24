@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#26 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -126,16 +126,6 @@ static inline bool is_increment_operation(journal_operation operation)
 	return ((operation == DATA_INCREMENT)
 		|| (operation == BLOCK_MAP_INCREMENT));
 }
-
-/**
- * Get the name of a journal operation.
- *
- * @param operation  The operation to name
- *
- * @return The name of the operation
- **/
-const char * __must_check
-get_journal_operation_name(journal_operation operation);
 
 /**
  * Create a recovery journal.

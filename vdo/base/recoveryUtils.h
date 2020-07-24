@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#12 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -83,23 +83,6 @@ is_exact_recovery_journal_block(const struct recovery_journal *journal,
 {
 	return ((header->sequence_number == sequence)
 		&& is_valid_recovery_journal_block(journal, header));
-}
-
-/**
- * Determine whether the header of the given sector could describe a
- * valid sector for the given journal block header.
- *
- * @param header  The unpacked block header to compare against
- * @param sector  The packed sector to check
- *
- * @return <code>True</code> if the sector matches the block header
- **/
-static inline bool __must_check
-is_valid_recovery_journal_sector(const struct recovery_block_header *header,
-				 const struct packed_journal_sector *sector)
-{
-	return ((header->check_byte == sector->check_byte)
-		&& (header->recovery_count == sector->recovery_count));
 }
 
 /**

@@ -16,11 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.c#4 $
  */
 
 #include "permassert.h"
-#include "permassertInternals.h"
 
 #include "errors.h"
 #include "logger.h"
@@ -28,11 +27,11 @@
 
 /**********************************************************************/
 __attribute__((format(printf, 4, 0)))
-void handleAssertionFailure(const char *expressionString,
-                            const char *fileName,
-                            int         lineNumber,
-                            const char *format,
-                            va_list     args)
+static void handleAssertionFailure(const char *expressionString,
+                                   const char *fileName,
+                                   int         lineNumber,
+                                   const char *format,
+                                   va_list     args)
 {
   log_embedded_message(LOG_ERR, "assertion \"", format, args,
                        "\" (%s) failed at %s:%d",

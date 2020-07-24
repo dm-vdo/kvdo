@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#72 $
  */
 
 #include "recoveryJournal.h"
@@ -49,27 +49,6 @@ enum {
 	 */
 	RECOVERY_JOURNAL_RESERVED_BLOCKS = 8,
 };
-
-/**********************************************************************/
-const char *get_journal_operation_name(journal_operation operation)
-{
-	switch (operation) {
-	case DATA_DECREMENT:
-		return "data decrement";
-
-	case DATA_INCREMENT:
-		return "data increment";
-
-	case BLOCK_MAP_DECREMENT:
-		return "block map decrement";
-
-	case BLOCK_MAP_INCREMENT:
-		return "block map increment";
-
-	default:
-		return "unknown journal operation";
-	}
-}
 
 /**
  * Get a block from the end of the free list.
@@ -476,7 +455,7 @@ int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 
 			list_move_tail(&block->list_entry,
 				       &journal->free_tail_blocks);
-				
+
 		}
 
 		result = make_lock_counter(layer, journal,

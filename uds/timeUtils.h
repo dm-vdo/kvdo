@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#5 $
  */
 
 #ifndef TIME_UTILS_H
@@ -29,9 +29,6 @@
 #include <linux/time.h>
 
 // Some constants that are defined in kernel headers.
-
-// Absolute time.
-typedef int64_t abs_time_t;
 
 // Relative time, the length of a time interval, or the difference between
 // two times.  A signed 64-bit number of nanoseconds.
@@ -46,7 +43,7 @@ typedef int64_t rel_time_t;
  *
  * @note the precision of the clock is system specific
  **/
-static INLINE abs_time_t currentTime(clockid_t clock)
+static INLINE ktime_t currentTime(clockid_t clock)
 {
   // clock is always a constant, so gcc reduces this to a single call
   return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
@@ -61,7 +58,7 @@ static INLINE abs_time_t currentTime(clockid_t clock)
  *
  * @return the relative time between the two timestamps
  **/
-static INLINE rel_time_t timeDifference(abs_time_t a, abs_time_t b)
+static INLINE rel_time_t timeDifference(ktime_t a, ktime_t b)
 {
   return a - b;
 }
@@ -69,13 +66,13 @@ static INLINE rel_time_t timeDifference(abs_time_t a, abs_time_t b)
 
 
 /**
- * Convert an abs_time_t value to milliseconds
+ * Convert a ktime_t value to milliseconds
  *
  * @param abstime  The absolute time
  *
  * @return the equivalent number of milliseconds since the epoch
  **/
-static INLINE int64_t absTimeToMilliseconds(abs_time_t abstime)
+static INLINE int64_t absTimeToMilliseconds(ktime_t abstime)
 {
   return abstime / NSEC_PER_MSEC;
 }
@@ -187,25 +184,25 @@ static INLINE int64_t relTimeToNanoseconds(rel_time_t reltime)
 uint64_t __must_check nowUsec(void);
 
 /**
- * Convert from an abs_time_t to seconds truncating
+ * Convert from a ktime_t to seconds truncating
  *
- * @param time  an abs_time_t time
+ * @param time  a ktime_t time
  *
  * @return a 64 bit signed number of seconds
  **/
-static INLINE int64_t absTimeToSeconds(abs_time_t time)
+static INLINE int64_t absTimeToSeconds(ktime_t time)
 {
   return time / NSEC_PER_SEC;
 }
 
 /**
- * Convert from seconds to an abs_time_t,
+ * Convert from seconds to a ktime_t,
  *
  * @param time  a 64 bit signed number of seconds
  *
- * @return an abs_time_t time
+ * @return a ktime_t time
  **/
-static INLINE abs_time_t fromSeconds(int64_t time)
+static INLINE ktime_t fromSeconds(int64_t time)
 {
   return time * NSEC_PER_SEC;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#13 $
  */
 #include "deltaMemory.h"
 
@@ -621,7 +621,7 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 					       "Attempt to read into an immutable delta list memory");
 	}
 
-	abs_time_t start_time = currentTime(CLOCK_MONOTONIC);
+	ktime_t start_time = currentTime(CLOCK_MONOTONIC);
 
 	// Calculate the amount of space that is in use.  Include the space
 	// that has a planned use.
@@ -663,7 +663,7 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 	if (do_copy) {
 		rebalance_delta_memory(delta_memory, 1,
 				       delta_memory->num_lists + 1);
-		abs_time_t end_time = currentTime(CLOCK_MONOTONIC);
+		ktime_t end_time = currentTime(CLOCK_MONOTONIC);
 		delta_memory->rebalance_count++;
 		delta_memory->rebalance_time +=
 			timeDifference(end_time, start_time);
