@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#14 $
  */
 #include "deltaMemory.h"
 
@@ -666,7 +666,7 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 		ktime_t end_time = currentTime(CLOCK_MONOTONIC);
 		delta_memory->rebalance_count++;
 		delta_memory->rebalance_time +=
-			timeDifference(end_time, start_time);
+			ktime_sub(end_time, start_time);
 	} else {
 		for (i = 1; i <= delta_memory->num_lists + 1; i++) {
 			delta_lists[i].start_offset =

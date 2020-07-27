@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#11 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -110,13 +110,5 @@ void load_super_block_async(struct vdo_completion *parent,
  **/
 struct buffer * __must_check
 get_component_buffer(struct vdo_super_block *super_block);
-
-/**
- * Get the encoded size of the fixed (non-component data) portion of a super
- * block (this is for unit testing).
- *
- * @return The encoded size of the fixed portion of the super block
- **/
-size_t __must_check get_fixed_super_block_size(void);
 
 #endif /* SUPER_BLOCK_H */
