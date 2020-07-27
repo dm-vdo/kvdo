@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#7 $
  */
 
 #ifndef TIME_UTILS_H
@@ -29,10 +29,6 @@
 #include <linux/time.h>
 
 // Some constants that are defined in kernel headers.
-
-// Relative time, the length of a time interval, or the difference between
-// two times.  A signed 64-bit number of nanoseconds.
-typedef int64_t rel_time_t;
 
 /**
  * Return the current time according to the specified clock type.
@@ -58,7 +54,7 @@ static INLINE ktime_t currentTime(clockid_t clock)
  *
  * @return the relative time between the two timestamps
  **/
-static INLINE rel_time_t timeDifference(ktime_t a, ktime_t b)
+static INLINE ktime_t timeDifference(ktime_t a, ktime_t b)
 {
   return a - b;
 }
@@ -78,51 +74,39 @@ static INLINE int64_t absTimeToMilliseconds(ktime_t abstime)
 }
 
 /**
- * Convert seconds to a rel_time_t value
+ * Convert seconds to a ktime_t value
  *
  * @param seconds  A number of seconds
  *
- * @return the equivalent number of seconds as a rel_time_t
+ * @return the equivalent number of seconds as a ktime_t
  **/
-static INLINE rel_time_t secondsToRelTime(int64_t seconds)
+static INLINE ktime_t secondsToRelTime(int64_t seconds)
 {
-  return (rel_time_t) seconds * (1000 * 1000 * 1000);
+  return (ktime_t) seconds * (1000 * 1000 * 1000);
 }
 
 /**
- * Convert milliseconds to a rel_time_t value
+ * Convert milliseconds to a ktime_t value
  *
  * @param milliseconds  A number of milliseconds
  *
- * @return the equivalent number of milliseconds as a rel_time_t
+ * @return the equivalent number of milliseconds as a ktime_t
  **/
-static INLINE rel_time_t millisecondsToRelTime(int64_t milliseconds)
+static INLINE ktime_t millisecondsToRelTime(int64_t milliseconds)
 {
-  return (rel_time_t) milliseconds * (1000 * 1000);
+  return (ktime_t) milliseconds * (1000 * 1000);
 }
 
 /**
- * Convert microseconds to a rel_time_t value
+ * Convert microseconds to a ktime_t value
  *
  * @param microseconds  A number of microseconds
  *
- * @return the equivalent number of microseconds as a rel_time_t
+ * @return the equivalent number of microseconds as a ktime_t
  **/
-static INLINE rel_time_t microsecondsToRelTime(int64_t microseconds)
+static INLINE ktime_t microsecondsToRelTime(int64_t microseconds)
 {
-  return (rel_time_t) microseconds * 1000;
-}
-
-/**
- * Convert nanoseconds to a rel_time_t value
- *
- * @param nanoseconds  A number of nanoseconds
- *
- * @return the equivalent number of nanoseconds as a rel_time_t
- **/
-static INLINE rel_time_t nanosecondsToRelTime(int64_t nanoseconds)
-{
-  return (rel_time_t) nanoseconds;
+  return (ktime_t) microseconds * 1000;
 }
 
 /**
@@ -132,45 +116,33 @@ static INLINE rel_time_t nanosecondsToRelTime(int64_t nanoseconds)
  *
  * @return the equivalent number of milliseconds
  **/
-static INLINE int64_t relTimeToSeconds(rel_time_t reltime)
+static INLINE int64_t relTimeToSeconds(ktime_t reltime)
 {
   return reltime / (1000 * 1000 * 1000);
 }
 
 /**
- * Convert a rel_time_t value to milliseconds
+ * Convert a ktime_t value to milliseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of milliseconds
  **/
-static INLINE int64_t relTimeToMilliseconds(rel_time_t reltime)
+static INLINE int64_t relTimeToMilliseconds(ktime_t reltime)
 {
   return reltime / (1000 * 1000);
 }
 
 /**
- * Convert a rel_time_t value to microseconds
+ * Convert a ktime_t value to microseconds
  *
  * @param reltime  The relative time
  *
  * @return the equivalent number of microseconds
  **/
-static INLINE int64_t relTimeToMicroseconds(rel_time_t reltime)
+static INLINE int64_t relTimeToMicroseconds(ktime_t reltime)
 {
   return reltime / 1000;
-}
-
-/**
- * Convert a rel_time_t value to nanoseconds
- *
- * @param reltime  The relative time
- *
- * @return the equivalent number of nanoseconds
- **/
-static INLINE int64_t relTimeToNanoseconds(rel_time_t reltime)
-{
-  return reltime;
 }
 
 /**

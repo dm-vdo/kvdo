@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#16 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -34,7 +34,7 @@ extern unsigned int min_master_index_delta_lists;
 
 struct master_index_stats {
 	size_t memory_allocated;    // Number of bytes allocated
-	rel_time_t rebalance_time;  // The number of seconds spent rebalancing
+	ktime_t rebalance_time;	    // Nanoseconds spent rebalancing
 	int rebalance_count;        // Number of memory rebalances
 	long record_count;          // The number of records in the index
 	long collision_count;       // The number of collision records
