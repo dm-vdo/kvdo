@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.c#8 $
  */
 
 #include "permassert.h"
@@ -25,7 +25,6 @@
 
 #include <linux/delay.h>
 #include <linux/ktime.h> // for getnstimeofday on Vivid
-
 
 
 /*****************************************************************************/
