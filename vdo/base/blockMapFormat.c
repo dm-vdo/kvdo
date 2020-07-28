@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#3 $
  */
 
 #include "blockMapFormat.h"
@@ -26,6 +26,7 @@
 
 #include "constants.h"
 #include "header.h"
+#include "numUtils.h"
 #include "types.h"
 
 const struct header BLOCK_MAP_HEADER_2_0 = {
@@ -159,3 +160,35 @@ int encode_block_map_state_2_0(struct block_map_state_2_0 state,
 	return ASSERT(BLOCK_MAP_HEADER_2_0.size == encoded_size,
 		      "encoded block map component size must match header size");
 }
+
+/**********************************************************************/
+page_count_t compute_block_map_page_count(block_count_t entries)
+{
+	return compute_bucket_count(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
+}
+
+/**********************************************************************/
+block_count_t compute_new_forest_pages(root_count_t root_count,
+				       struct boundary *old_sizes,
+				       block_count_t entries,
+				       struct boundary *new_sizes)
+{
+	page_count_t leaf_pages
+		= max_page_count(compute_block_map_page_count(entries), 1);
+	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
+	block_count_t total_pages = 0;
+	height_t height;
+	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+		level_size = compute_bucket_count(level_size,
+						  BLOCK_MAP_ENTRIES_PER_PAGE);
+		new_sizes->levels[height] = level_size;
+		block_count_t new_pages = level_size;
+		if (old_sizes != NULL) {
+			new_pages -= old_sizes->levels[height];
+		}
+		total_pages += (new_pages * root_count);
+	}
+
+	return total_pages;
+}
+

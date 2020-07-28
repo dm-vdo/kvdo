@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#40 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -113,16 +113,6 @@ struct block_map {
 	/** The per zone block map structure */
 	struct block_map_zone zones[];
 };
-
-/**
- * Compute the number of pages required for a block map with the specified
- * parameters.
- *
- * @param entries   The number of block map entries
- *
- * @return The number of pages required
- **/
-page_count_t compute_block_map_page_count(block_count_t entries);
 
 /**
  * Check whether a zone of the block map has drained, and if so, send a

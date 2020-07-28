@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#36 $
  */
 
 #include "forest.h"
@@ -108,42 +108,6 @@ struct tree_page *get_tree_page_by_index(struct forest *forest,
 	}
 
 	return NULL;
-}
-
-/**
- * Compute the number of pages which must be allocated at each level in order
- * to grow the forest to a new number of entries.
- *
- * @param [in]  root_count       The number of roots
- * @param [in]  old_sizes        The current size of the forest at each level
- * @param [in]  entries          The new number of entries the block map must
- *                               address
- * @param [out] new_sizes        The new size of the forest at each level
- *
- * @return The total number of non-leaf pages required
- **/
-static block_count_t compute_new_pages(root_count_t root_count,
-				       struct boundary *old_sizes,
-				       block_count_t entries,
-				       struct boundary *new_sizes)
-{
-	page_count_t leaf_pages
-		= max_page_count(compute_block_map_page_count(entries), 1);
-	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
-	block_count_t total_pages = 0;
-	height_t height;
-	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
-		level_size = compute_bucket_count(level_size,
-						  BLOCK_MAP_ENTRIES_PER_PAGE);
-		new_sizes->levels[height] = level_size;
-		block_count_t new_pages = level_size;
-		if (old_sizes != NULL) {
-			new_pages -= old_sizes->levels[height];
-		}
-		total_pages += (new_pages * root_count);
-	}
-
-	return total_pages;
 }
 
 /**********************************************************************/
@@ -280,10 +244,10 @@ int make_forest(struct block_map *map, block_count_t entries)
 	}
 
 	struct boundary new_boundary;
-	block_count_t new_pages = compute_new_pages(map->root_count,
-						    old_boundary,
-						    entries,
-						    &new_boundary);
+	block_count_t new_pages = compute_new_forest_pages(map->root_count,
+							   old_boundary,
+							   entries,
+							   &new_boundary);
 	if (new_pages == 0) {
 		map->next_entry_count = entries;
 		return VDO_SUCCESS;
@@ -590,30 +554,4 @@ void traverse_forest(struct block_map *map,
 		cursor->waiter.callback = launch_cursor;
 		acquire_vio_from_pool(cursors->pool, &cursor->waiter);
 	};
-}
-
-/**********************************************************************/
-block_count_t compute_forest_size(block_count_t logical_blocks,
-				  root_count_t root_count)
-{
-	struct boundary new_sizes;
-	block_count_t approximate_non_leaves =
-		compute_new_pages(root_count,
-				  NULL,
-				  logical_blocks,
-				  &new_sizes);
-
-	// Exclude the tree roots since those aren't allocated from slabs,
-	// and also exclude the super-roots, which only exist in memory.
-	approximate_non_leaves -=
-		root_count * (new_sizes.levels[BLOCK_MAP_TREE_HEIGHT - 2] +
-			      new_sizes.levels[BLOCK_MAP_TREE_HEIGHT - 1]);
-
-	block_count_t approximate_leaves =
-		compute_block_map_page_count(logical_blocks -
-					     approximate_non_leaves);
-
-	// This can be a slight over-estimate since the tree will never have to
-	// address these blocks, so it might be a tiny bit smaller.
-	return (approximate_non_leaves + approximate_leaves);
 }

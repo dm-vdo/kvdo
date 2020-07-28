@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#13 $
  */
 
 #ifndef FOREST_H
@@ -98,17 +98,4 @@ void traverse_forest(struct block_map *map,
 		     entry_callback *entry_callback,
 		     struct vdo_completion *parent);
 
-/**
- * Compute the approximate number of pages which the forest will allocate in
- * order to map the specified number of logical blocks. This method assumes
- * that the block map is entirely arboreal.
- *
- * @param logical_blocks  The number of blocks to map
- * @param root_count      The number of trees in the forest
- *
- * @return A (slight) over-estimate of the total number of possible forest
- *         pages including the leaves
- **/
-block_count_t __must_check
-compute_forest_size(block_count_t logical_blocks, root_count_t root_count);
 #endif // FOREST_H

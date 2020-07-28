@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#3 $
  */
 
 #ifndef BLOCK_MAP_FORMAT_H
@@ -34,6 +34,10 @@ struct block_map_state_2_0 {
 	physical_block_number_t root_origin;
 	block_count_t root_count;
 } __attribute__((packed));
+
+struct boundary {
+	page_number_t levels[BLOCK_MAP_TREE_HEIGHT];
+};
 
 extern const struct header BLOCK_MAP_HEADER_2_0;
 
@@ -95,5 +99,32 @@ size_t __must_check get_block_map_encoded_size(void);
 int __must_check
 encode_block_map_state_2_0(struct block_map_state_2_0 state,
 			   struct buffer *buffer);
+
+/**
+ * Compute the number of pages required for a block map with the specified
+ * parameters.
+ *
+ * @param entries   The number of block map entries
+ *
+ * @return The number of pages required
+ **/
+page_count_t compute_block_map_page_count(block_count_t entries);
+
+/**
+ * Compute the number of pages which must be allocated at each level in order
+ * to grow the forest to a new number of entries.
+ *
+ * @param [in]  root_count       The number of roots
+ * @param [in]  old_sizes        The current size of the forest at each level
+ * @param [in]  entries          The new number of entries the block map must
+ *                               address
+ * @param [out] new_sizes        The new size of the forest at each level
+ *
+ * @return The total number of non-leaf pages required
+ **/
+block_count_t __must_check compute_new_forest_pages(root_count_t root_count,
+						    struct boundary *old_sizes,
+						    block_count_t entries,
+						    struct boundary *new_sizes);
 
 #endif // BLOCK_MAP_FORMAT_H

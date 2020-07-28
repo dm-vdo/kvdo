@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#73 $
  */
 
 #include "blockMap.h"
@@ -110,12 +110,6 @@ static bool handle_page_write(void *raw_page,
 						 zone->zone_number);
 	context->recovery_lock = 0;
 	return false;
-}
-
-/**********************************************************************/
-page_count_t compute_block_map_page_count(block_count_t entries)
-{
-	return compute_bucket_count(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**********************************************************************/
