@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#9 $
  */
 
 #include "requestQueue.h"
@@ -80,7 +80,7 @@ enum {
 	MAXIMUM_BATCH = 64  // wait time decreases if batch larger than this
 };
 
-struct request_queue {
+struct uds_request_queue {
 	/* Wait queue for synchronizing producers and consumer */
 	struct wait_queue_head wqhead;
 	/* function to process 1 request */

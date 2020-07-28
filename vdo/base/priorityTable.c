@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#10 $
  */
 
 #include "priorityTable.h"
@@ -60,19 +60,6 @@ struct priority_table {
 	/** The array of all buckets, indexed by priority */
 	struct bucket buckets[];
 };
-
-/**
- * Convert a queue head to to the bucket that contains it.
- *
- * @param head  The bucket queue list head pointer to convert
- *
- * @return the enclosing bucket
- **/
-static inline struct bucket *as_bucket(struct list_head *head)
-{
-	STATIC_ASSERT(offsetof(struct bucket, queue) == 0);
-	return (struct bucket *) head;
-}
 
 /**********************************************************************/
 int make_priority_table(unsigned int max_priority,
@@ -194,7 +181,8 @@ void priority_table_remove(struct priority_table *table,
 	// If the rest of the list is now empty, the next node must be the list
 	// head in the bucket and we can use it to update the search vector.
 	if (list_empty(next_entry)) {
-		mark_bucket_empty(table, as_bucket(next_entry));
+		mark_bucket_empty(table, container_of(next_entry,
+						      struct bucket, queue));
 	}
 }
 
