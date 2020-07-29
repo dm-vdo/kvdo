@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#38 $
  */
 
 #include "kvio.h"
@@ -201,10 +201,11 @@ void submitMetadataVIO(struct vio *vio)
  **/
 static void complete_flush_bio(struct bio *bio)
 {
+	int error = get_bio_result(bio);
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	// Restore the bio's notion of its own data.
 	reset_bio(bio, kvio->layer);
-	kvdo_continue_kvio(kvio, get_bio_result(bio));
+	kvdo_continue_kvio(kvio, error);
 }
 
 /**********************************************************************/
