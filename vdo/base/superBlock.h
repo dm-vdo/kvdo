@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#12 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -48,20 +48,6 @@ int __must_check make_super_block(PhysicalLayer *layer,
 void free_super_block(struct vdo_super_block **super_block_ptr);
 
 /**
- * Save a super block.
- *
- * @param layer               The physical layer on which to save the
- *                            super block
- * @param super_block         The super block to save
- * @param super_block_offset  The location of the super block
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check save_super_block(PhysicalLayer *layer,
-				  struct vdo_super_block *super_block,
-				  physical_block_number_t super_block_offset);
-
-/**
  * Save a super block asynchronously.
  *
  * @param super_block         The super block to save
@@ -71,20 +57,6 @@ int __must_check save_super_block(PhysicalLayer *layer,
 void save_super_block_async(struct vdo_super_block *super_block,
 			    physical_block_number_t super_block_offset,
 			    struct vdo_completion *parent);
-
-/**
- * Allocate a super block and read its contents from storage.
- *
- * @param [in]  layer               The layer from which to load the super block
- * @param [in]  super_block_offset  The location from which to read the super
- *                                  block
- * @param [out] super_block_ptr     A pointer to hold the loaded super block
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check load_super_block(PhysicalLayer *layer,
-				  physical_block_number_t super_block_offset,
-				  struct vdo_super_block **super_block_ptr);
 
 /**
  * Allocate a super block and read its contents from storage asynchronously.
@@ -102,13 +74,13 @@ void load_super_block_async(struct vdo_completion *parent,
 			    struct vdo_super_block **super_block_ptr);
 
 /**
- * Get a buffer which contains the component data from a super block.
+ * Get the super block codec from a super block.
  *
  * @param super_block  The super block from which to get the component data
  *
- * @return the component data in a buffer
+ * @return the codec
  **/
-struct buffer * __must_check
-get_component_buffer(struct vdo_super_block *super_block);
+struct super_block_codec * __must_check
+get_super_block_codec(struct vdo_super_block *super_block);
 
 #endif /* SUPER_BLOCK_H */

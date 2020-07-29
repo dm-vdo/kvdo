@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDecode.c#7 $
  */
 
 #include "vdoDecode.h"
@@ -28,6 +28,8 @@
 #include "recoveryJournal.h"
 #include "slabDepot.h"
 #include "types.h"
+#include "superBlockCodec.h"
+#include "superBlock.h"
 #include "vdoComponentStates.h"
 #include "vdoInternal.h"
 
@@ -35,7 +37,8 @@
 int start_vdo_decode(struct vdo *vdo, bool validate_config)
 {
 	// Decode the component data from the super block.
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer
+		= get_super_block_codec(vdo->super_block)->component_buffer;
 	int result = decode_component_states(buffer,
 					     vdo->load_config.release_version,
 					     &vdo->states);

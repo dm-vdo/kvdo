@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#24 $
  */
 
 #include "superBlock.h"
@@ -111,21 +111,6 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 	*super_block_ptr = NULL;
 }
 
-/**********************************************************************/
-int save_super_block(PhysicalLayer *layer,
-		     struct vdo_super_block *super_block,
-		     physical_block_number_t super_block_offset)
-{
-	int result = encode_super_block(&super_block->codec);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return layer->writer(layer, super_block_offset, 1,
-			     (char *) super_block->codec.encoded_super_block,
-			     NULL);
-}
-
 /**
  * Finish the parent of a super block load or save operation. This
  * callback is registered in save_super_block_async() and
@@ -194,36 +179,6 @@ void save_super_block_async(struct vdo_super_block *super_block,
 					     true, true);
 }
 
-/**********************************************************************/
-int load_super_block(PhysicalLayer *layer,
-		     physical_block_number_t super_block_offset,
-		     struct vdo_super_block **super_block_ptr)
-{
-	struct vdo_super_block *super_block = NULL;
-	int result = allocate_super_block(layer, &super_block);
-	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
-		return result;
-	}
-
-	result = layer->reader(layer, super_block_offset, 1,
-			       (char *) super_block->codec.encoded_super_block,
-			       NULL);
-	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
-		return result;
-	}
-
-	result = decode_super_block(&super_block->codec);
-	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
-		return result;
-	}
-
-	*super_block_ptr = super_block;
-	return result;
-}
-
 /**
  * Continue after loading the super block. This callback is registered
  * in load_super_block_async().
@@ -264,7 +219,8 @@ void load_super_block_async(struct vdo_completion *parent,
 }
 
 /**********************************************************************/
-struct buffer *get_component_buffer(struct vdo_super_block *super_block)
+struct super_block_codec *
+get_super_block_codec(struct vdo_super_block *super_block)
 {
-	return super_block->codec.component_buffer;
+	return &super_block->codec;
 }

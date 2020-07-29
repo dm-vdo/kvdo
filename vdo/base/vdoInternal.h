@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#40 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -130,15 +130,6 @@ VDOState get_vdo_state(const struct vdo *vdo)
  * @param state  The new state of the vdo
  **/
 void set_vdo_state(struct vdo *vdo, VDOState state);
-
-/**
- * Encode the vdo and save the super block synchronously.
- *
- * @param vdo  The vdo whose state is being saved
- *
- * @return VDO_SUCCESS or an error
- **/
-int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#3 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -85,15 +85,15 @@ decode_component_states(struct buffer *buffer,
 /**
  * Validate the decoded super block configuration.
  *
- * @param states       The state decoded from the super block
- * @param load_config  The load-time configuration of the vdo
- * @param size         The size of underlying storage
+ * @param states          The state decoded from the super block
+ * @param geometry_nonce  The nonce from the geometry block
+ * @param size            The size of underlying storage
  *
  * @return VDO_SUCESS or an error if the configuration is invalid
  **/
 int __must_check
 validate_component_states(struct vdo_component_states *states,
-			  struct vdo_load_config *load_config,
+			  nonce_t geometry_nonce,
 			  block_count_t size);
 
 /**

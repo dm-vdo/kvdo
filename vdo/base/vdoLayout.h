@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#11 $
  */
 
 /**
@@ -36,26 +36,6 @@
 
 #include "fixedLayout.h"
 #include "types.h"
-
-/**
- * Make a VDO layout with the specified parameters.
- *
- * @param [in]  physical_blocks   The number of physical blocks in the VDO
- * @param [in]  starting_offset   The starting offset of the layout
- * @param [in]  block_map_blocks  The size of the block map partition
- * @param [in]  journal_blocks    The size of the journal partition
- * @param [in]  summary_blocks    The size of the slab summary partition
- * @param [out] vdo_layout_ptr    A pointer to hold the new vdo_layout
- *
- * @return VDO_SUCCESS or an error
- **/
-int make_vdo_layout(block_count_t physical_blocks,
-		    physical_block_number_t starting_offset,
-		    block_count_t block_map_blocks,
-		    block_count_t journal_blocks,
-		    block_count_t summary_blocks,
-		    struct vdo_layout **vdo_layout_ptr)
-	__attribute__((warn_unused_result));
 
 /**
  * Make a vdo_layout from the fixed_layout decoded from the super block.

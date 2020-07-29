@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#78 $
  */
 
 /*
@@ -45,6 +45,8 @@
 #include "slabSummary.h"
 #include "statistics.h"
 #include "statusCodes.h"
+#include "superBlock.h"
+#include "superBlockCodec.h"
 #include "threadConfig.h"
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
@@ -165,23 +167,10 @@ static void record_vdo(struct vdo *vdo)
 }
 
 /**********************************************************************/
-int save_vdo_components(struct vdo *vdo)
-{
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
-	record_vdo(vdo);
-	int result = encode_component_states(buffer, &vdo->states);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return save_super_block(vdo->layer, vdo->super_block,
-				get_first_block_offset(vdo));
-}
-
-/**********************************************************************/
 void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 {
-	struct buffer *buffer = get_component_buffer(vdo->super_block);
+	struct buffer *buffer
+		= get_super_block_codec(vdo->super_block)->component_buffer;
 	record_vdo(vdo);
 	int result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {

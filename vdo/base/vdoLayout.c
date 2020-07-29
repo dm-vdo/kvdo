@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#14 $
  */
 
 #include "vdoLayout.h"
@@ -44,83 +44,6 @@ static const partition_id REQUIRED_PARTITIONS[] = {
 static const uint8_t REQUIRED_PARTITION_COUNT = 4;
 
 /**
- * Make a fixed layout for a VDO.
- *
- * @param [in]  physical_blocks   The number of physical blocks in the VDO
- * @param [in]  starting_offset   The starting offset of the layout
- * @param [in]  block_map_blocks  The size of the block map partition
- * @param [in]  journal_blocks    The size of the journal partition
- * @param [in]  summary_blocks    The size of the slab summary partition
- * @param [out] layout_ptr        A pointer to hold the new fixed_layout
- *
- * @return VDO_SUCCESS or an error
- **/
-__attribute__((warn_unused_result)) static int
-make_vdo_fixed_layout(block_count_t physical_blocks,
-		      physical_block_number_t starting_offset,
-		      block_count_t block_map_blocks,
-		      block_count_t journal_blocks,
-		      block_count_t summary_blocks,
-		      struct fixed_layout **layout_ptr)
-{
-	block_count_t necessary_size = (starting_offset + block_map_blocks +
-					journal_blocks + summary_blocks);
-	if (necessary_size > physical_blocks) {
-		return logErrorWithStringError(VDO_NO_SPACE,
-					       "Not enough space to make a VDO");
-	}
-
-	struct fixed_layout *layout;
-	int result = make_fixed_layout(physical_blocks - starting_offset,
-				       starting_offset, &layout);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = make_fixed_layout_partition(layout, BLOCK_MAP_PARTITION,
-					     block_map_blocks, FROM_BEGINNING,
-					     0);
-	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&layout);
-		return result;
-	}
-
-	result = make_fixed_layout_partition(layout, SLAB_SUMMARY_PARTITION,
-					     summary_blocks, FROM_END, 0);
-	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&layout);
-		return result;
-	}
-
-	result = make_fixed_layout_partition(layout, RECOVERY_JOURNAL_PARTITION,
-					     journal_blocks, FROM_END, 0);
-	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&layout);
-		return result;
-	}
-
-	/*
-	 * The block allocator no longer traffics in relative PBNs so the offset
-	 * doesn't matter. We need to keep this partition around both for
-	 * upgraded systems, and because we decided that all of the usable space
-	 * in the volume, other than the super block, should be part of some
-	 * partition.
-	 */
-	result = make_fixed_layout_partition(layout,
-					     BLOCK_ALLOCATOR_PARTITION,
-					     ALL_FREE_BLOCKS,
-					     FROM_BEGINNING,
-					     block_map_blocks);
-	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&layout);
-		return result;
-	}
-
-	*layout_ptr = layout;
-	return VDO_SUCCESS;
-}
-
-/**
  * Get the offset of a given partition.
  *
  * @param layout        The layout containing the partition
@@ -133,37 +56,6 @@ get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
 								   partition_id));
-}
-
-/**********************************************************************/
-int make_vdo_layout(block_count_t physical_blocks,
-		    physical_block_number_t starting_offset,
-		    block_count_t block_map_blocks,
-		    block_count_t journal_blocks,
-		    block_count_t summary_blocks,
-		    struct vdo_layout **vdo_layout_ptr)
-{
-	struct vdo_layout *vdo_layout;
-	int result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = make_vdo_fixed_layout(physical_blocks,
-				       starting_offset,
-				       block_map_blocks,
-				       journal_blocks,
-				       summary_blocks,
-				       &vdo_layout->layout);
-	if (result != VDO_SUCCESS) {
-		free_vdo_layout(&vdo_layout);
-		return result;
-	}
-
-	vdo_layout->starting_offset = starting_offset;
-
-	*vdo_layout_ptr = vdo_layout;
-	return VDO_SUCCESS;
 }
 
 /**********************************************************************/

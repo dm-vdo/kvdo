@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#9 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -211,5 +211,25 @@ encode_fixed_layout(const struct fixed_layout *layout, struct buffer *buffer);
  **/
 int __must_check
 decode_fixed_layout(struct buffer *buffer, struct fixed_layout **layout_ptr);
+
+/**
+ * Make a fixed layout for a VDO.
+ *
+ * @param [in]  physical_blocks   The number of physical blocks in the VDO
+ * @param [in]  starting_offset   The starting offset of the layout
+ * @param [in]  block_map_blocks  The size of the block map partition
+ * @param [in]  journal_blocks    The size of the journal partition
+ * @param [in]  summary_blocks    The size of the slab summary partition
+ * @param [out] layout_ptr        A pointer to hold the new fixed_layout
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+make_vdo_fixed_layout(block_count_t physical_blocks,
+		      physical_block_number_t starting_offset,
+		      block_count_t block_map_blocks,
+		      block_count_t journal_blocks,
+		      block_count_t summary_blocks,
+		      struct fixed_layout **layout_ptr);
 
 #endif // FIXED_LAYOUT_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#16 $
  */
 
 #include "fixedLayout.h"
@@ -545,6 +545,71 @@ int decode_fixed_layout(struct buffer *buffer,
 	layout->num_partitions = layout_header.partition_count;
 
 	result = decode_partitions_3_0(buffer, layout);
+	if (result != VDO_SUCCESS) {
+		free_fixed_layout(&layout);
+		return result;
+	}
+
+	*layout_ptr = layout;
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int make_vdo_fixed_layout(block_count_t physical_blocks,
+			  physical_block_number_t starting_offset,
+			  block_count_t block_map_blocks,
+			  block_count_t journal_blocks,
+			  block_count_t summary_blocks,
+			  struct fixed_layout **layout_ptr)
+{
+	block_count_t necessary_size = (starting_offset + block_map_blocks +
+					journal_blocks + summary_blocks);
+	if (necessary_size > physical_blocks) {
+		return logErrorWithStringError(VDO_NO_SPACE,
+					       "Not enough space to make a VDO");
+	}
+
+	struct fixed_layout *layout;
+	int result = make_fixed_layout(physical_blocks - starting_offset,
+				       starting_offset, &layout);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = make_fixed_layout_partition(layout, BLOCK_MAP_PARTITION,
+					     block_map_blocks, FROM_BEGINNING,
+					     0);
+	if (result != VDO_SUCCESS) {
+		free_fixed_layout(&layout);
+		return result;
+	}
+
+	result = make_fixed_layout_partition(layout, SLAB_SUMMARY_PARTITION,
+					     summary_blocks, FROM_END, 0);
+	if (result != VDO_SUCCESS) {
+		free_fixed_layout(&layout);
+		return result;
+	}
+
+	result = make_fixed_layout_partition(layout, RECOVERY_JOURNAL_PARTITION,
+					     journal_blocks, FROM_END, 0);
+	if (result != VDO_SUCCESS) {
+		free_fixed_layout(&layout);
+		return result;
+	}
+
+	/*
+	 * The block allocator no longer traffics in relative PBNs so the offset
+	 * doesn't matter. We need to keep this partition around both for
+	 * upgraded systems, and because we decided that all of the usable space
+	 * in the volume, other than the super block, should be part of some
+	 * partition.
+	 */
+	result = make_fixed_layout_partition(layout,
+					     BLOCK_ALLOCATOR_PARTITION,
+					     ALL_FREE_BLOCKS,
+					     FROM_BEGINNING,
+					     block_map_blocks);
 	if (result != VDO_SUCCESS) {
 		free_fixed_layout(&layout);
 		return result;

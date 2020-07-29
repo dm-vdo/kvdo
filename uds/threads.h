@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threads.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threads.h#11 $
  */
 
 #ifndef THREADS_H
@@ -315,8 +315,7 @@ static INLINE bool __must_check attempt_semaphore(struct semaphore *semaphore,
 		// No timeout, just try to grab the semaphore.
 		return down_trylock(semaphore) == 0;
 	} else {
-		unsigned int jiffies =
-			usecs_to_jiffies(relTimeToMicroseconds(timeout));
+		unsigned int jiffies = nsecs_to_jiffies(timeout);
 		return down_timeout(semaphore, jiffies) == 0;
 	}
 }
