@@ -37,7 +37,7 @@ Other Contributors:
   Achilles Gaikwad <agaikwad@redhat.com>
     Bash completion for the vdo and vdostats commands
   Jin-young Kwon <gc757489@gmail.com>
-    Adding vdo --version command
+    Adding vdo --version command, and documentation fixes
 
 VDO was originally created at Permabit Technology Corporation, and was
 subsequently acquired and open-sourced by Red Hat.

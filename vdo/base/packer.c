@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#54 $
  */
 
 #include "packerInternals.h"
@@ -48,28 +48,12 @@ static inline void assert_on_packer_thread(struct packer *packer,
 }
 
 /**********************************************************************/
-static inline struct input_bin * __must_check
-input_bin_from_list_entry(struct list_head *entry)
-{
-	STATIC_ASSERT(offsetof(struct input_bin, list) == 0);
-	return (struct input_bin *) entry;
-}
-
-/**********************************************************************/
-static inline struct output_bin * __must_check
-output_bin_from_list_entry(struct list_head *entry)
-{
-	STATIC_ASSERT(offsetof(struct output_bin, list) == 0);
-	return (struct output_bin *) entry;
-}
-
-/**********************************************************************/
 struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin)
 {
 	if (bin->list.next == &packer->input_bins) {
 		return NULL;
 	} else {
-		return input_bin_from_list_entry(bin->list.next);
+		return container_of(bin->list.next, struct input_bin, list);
 	}
 }
 
@@ -79,7 +63,8 @@ struct input_bin *get_fullest_bin(const struct packer *packer)
 	if (list_empty(&packer->input_bins)) {
 		return NULL;
 	} else {
-		return input_bin_from_list_entry(packer->input_bins.next);
+		return container_of(packer->input_bins.next,
+				    struct input_bin, list);
 	}
 }
 
@@ -1041,10 +1026,10 @@ void dump_packer(const struct packer *packer)
 		 bool_to_string(packer->writing_batches));
 
 	log_info("  input_bin_count=%llu", packer->size);
-	struct input_bin *bin;
-	for (bin = get_fullest_bin(packer); bin != NULL;
-	     bin = next_bin(packer, bin)) {
-		dump_input_bin(bin, false);
+	struct input_bin *input;
+	for (input = get_fullest_bin(packer); input != NULL;
+	     input = next_bin(packer, input)) {
+		dump_input_bin(input, false);
 	}
 
 	dump_input_bin(packer->canceled_bin, true);
@@ -1053,6 +1038,8 @@ void dump_packer(const struct packer *packer)
 		 packer->output_bin_count, packer->idle_output_bin_count);
 	struct list_head *entry;
 	list_for_each(entry, &packer->output_bins) {
-		dump_output_bin(output_bin_from_list_entry(entry));
+		struct output_bin *output
+			= container_of(entry, struct output_bin, list);
+		dump_output_bin(output);
 	}
 }
