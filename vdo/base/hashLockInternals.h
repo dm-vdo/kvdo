@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#13 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -58,14 +58,14 @@ typedef enum {
 } hash_lock_state;
 
 struct hash_lock {
+	/** The block hash covered by this lock */
+	struct uds_chunk_name hash;
+
 	/**
 	 * When the lock is unused, this list entry allows the lock to be
 	 * pooled
 	 */
 	struct list_head pool_node;
-
-	/** The block hash covered by this lock */
-	struct uds_chunk_name hash;
 
 	/**
 	 * A list containing the data VIOs sharing this lock, all having the

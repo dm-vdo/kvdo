@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#30 $
  */
 
 #include "hashZone.h"
@@ -85,13 +85,6 @@ static uint32_t hash_key(const void *key)
 	 */
 	// XXX pick an offset in the chunk name that isn't used elsewhere
 	return get_unaligned_le32(&name->name[4]);
-}
-
-/**********************************************************************/
-static inline struct hash_lock *as_hash_lock(struct list_head *entry)
-{
-	STATIC_ASSERT(offsetof(struct hash_lock, pool_node) == 0);
-	return (struct hash_lock *) entry;
 }
 
 /**********************************************************************/
@@ -207,9 +200,9 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	struct list_head *entry = zone->lock_pool.prev;
-	list_del_init(entry);
-	struct hash_lock *new_lock = as_hash_lock(entry);
+	struct hash_lock *new_lock = container_of(zone->lock_pool.prev,
+						  struct hash_lock, pool_node);
+	list_del_init(&new_lock->pool_node);
 
 	// Fill in the hash of the new lock so we can map it, since we have to
 	// use the hash as the map key.
