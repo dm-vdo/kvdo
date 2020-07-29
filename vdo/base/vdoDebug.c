@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#12 $
  */
 
 #include "vdoDebug.h"
@@ -79,7 +79,7 @@ static void log_debug_message(struct vdo_command_completion *cmd)
 	if (buf == end) {
 		strcpy(buf - 4, "...");
 	}
-	logInfo("debug message:%s", buffer);
+	log_info("debug message:%s", buffer);
 	finish_completion(&cmd->completion, VDO_SUCCESS);
 }
 

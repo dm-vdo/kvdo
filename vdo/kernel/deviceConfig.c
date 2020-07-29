@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#21 $
  */
 
 #include "deviceConfig.h"
@@ -95,11 +95,11 @@ static int get_version_number(int argc,
 	}
 
 	if (*version_ptr != TABLE_VERSION) {
-		logWarning(
+		log_warning(
 			"Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
 			TABLE_VERSION,
 			*version_ptr);
-		logWarning(
+		log_warning(
 			"Please consider upgrading management tools to match kernel.");
 	}
 	return VDO_SUCCESS;
@@ -139,9 +139,9 @@ static void resolve_config_with_device(struct device_config *config,
 	bool fua_supported =
 		((request_queue->queue_flags & (1ULL << QUEUE_FLAG_FUA)) != 0);
 	if (verbose) {
-		logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
-			(flush_supported ? "supported" : "not supported"),
-			(fua_supported ? "supported" : "not supported"));
+		log_info("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
+			 (flush_supported ? "supported" : "not supported"),
+			 (fua_supported ? "supported" : "not supported"));
 	} else {
 		// We should probably always log, but need to make sure that
 		// makes sense before changing behavior.
@@ -150,15 +150,15 @@ static void resolve_config_with_device(struct device_config *config,
 	if (config->write_policy == WRITE_POLICY_AUTO) {
 		config->write_policy = (flush_supported ? WRITE_POLICY_ASYNC :
 							  WRITE_POLICY_SYNC);
-		logInfo("Using write policy %s automatically.",
-			get_config_write_policy_string(config));
+		log_info("Using write policy %s automatically.",
+			 get_config_write_policy_string(config));
 	} else {
-		logInfo("Using write policy %s.",
-			get_config_write_policy_string(config));
+		log_info("Using write policy %s.",
+			 get_config_write_policy_string(config));
 	}
 
 	if (flush_supported && (config->write_policy == WRITE_POLICY_SYNC)) {
-		logWarning(
+		log_warning(
 			"WARNING: Running in sync mode atop a device supporting flushes is dangerous!");
 	}
 
@@ -221,11 +221,11 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	// Handle limited thread parameters
 	if (strcmp(thread_param_type, "bioRotationInterval") == 0) {
 		if (count == 0) {
-			logError(
+			log_error(
 				"thread config string error:  'bioRotationInterval' of at least 1 is required");
 			return -EINVAL;
 		} else if (count > BIO_ROTATION_INTERVAL_LIMIT) {
-			logError(
+			log_error(
 				"thread config string error: 'bioRotationInterval' cannot be higher than %d",
 				BIO_ROTATION_INTERVAL_LIMIT);
 			return -EINVAL;
@@ -234,7 +234,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "logical") == 0) {
 		if (count > LOGICAL_THREAD_COUNT_LIMIT) {
-			logError(
+			log_error(
 				"thread config string error: at most %d 'logical' threads are allowed",
 				LOGICAL_THREAD_COUNT_LIMIT);
 			return -EINVAL;
@@ -243,7 +243,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "physical") == 0) {
 		if (count > PHYSICAL_THREAD_COUNT_LIMIT) {
-			logError(
+			log_error(
 				"thread config string error: at most %d 'physical' threads are allowed",
 				PHYSICAL_THREAD_COUNT_LIMIT);
 			return -EINVAL;
@@ -253,7 +253,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	} else {
 		// Handle other thread count parameters
 		if (count > THREAD_COUNT_LIMIT) {
-			logError(
+			log_error(
 				"thread config string error: at most %d '%s' threads are allowed",
 				THREAD_COUNT_LIMIT,
 				thread_param_type);
@@ -265,7 +265,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 			return VDO_SUCCESS;
 		} else if (strcmp(thread_param_type, "cpu") == 0) {
 			if (count == 0) {
-				logError(
+				log_error(
 					"thread config string error: at least one 'cpu' thread required");
 				return -EINVAL;
 			}
@@ -276,7 +276,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 			return VDO_SUCCESS;
 		} else if (strcmp(thread_param_type, "bio") == 0) {
 			if (count == 0) {
-				logError(
+				log_error(
 					"thread config string error: at least one 'bio' thread required");
 				return -EINVAL;
 			}
@@ -287,7 +287,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 
 	// Don't fail, just log. This will handle version mismatches between
 	// user mode tools and kernel.
-	logInfo("unknown thread parameter type \"%s\"", thread_param_type);
+	log_info("unknown thread parameter type \"%s\"", thread_param_type);
 	return VDO_SUCCESS;
 }
 
@@ -308,7 +308,7 @@ static int parse_one_thread_config_spec(const char *spec,
 		return result;
 	}
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
-		logError(
+		log_error(
 			"thread config string error: expected thread parameter assignment, saw \"%s\"",
 			spec);
 		free_string_array(fields);
@@ -319,7 +319,7 @@ static int parse_one_thread_config_spec(const char *spec,
 
 	result = string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
-		logError(
+		log_error(
 			"thread config string error: integer value needed, found \"%s\"",
 			fields[1]);
 		free_string_array(fields);
@@ -399,13 +399,13 @@ static int process_one_key_value_pair(const char *key,
 	// Non thread optional parameters
 	if (strcmp(key, "maxDiscard") == 0) {
 		if (value == 0) {
-			logError(
+			log_error(
 				"optional parameter error: at least one max discard block required");
 			return -EINVAL;
 		}
 		// Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9
 		if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
-			logError(
+			log_error(
 				"optional parameter error: at most %d max discard  blocks are allowed",
 				UINT_MAX / VDO_BLOCK_SIZE);
 			return -EINVAL;
@@ -440,7 +440,7 @@ static int parse_one_key_value_pair(const char *key,
 	unsigned int count;
 	int result = string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
-		logError(
+		log_error(
 			"optional config string error: integer value needed, found \"%s\"",
 			value);
 		return result;
@@ -752,9 +752,9 @@ int parse_device_config(int argc,
 			       dm_table_get_mode(ti->table),
 			       &config->owned_device);
 	if (result != 0) {
-		logError("couldn't open device \"%s\": error %d",
-			 config->parent_device_name,
-			 result);
+		log_error("couldn't open device \"%s\": error %d",
+			  config->parent_device_name,
+			  result);
 		handle_parse_error(&config,
 				   error_ptr,
 				   "Unable to open storage device");

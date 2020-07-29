@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#7 $
  */
 
 #include "bufferPool.h"
@@ -74,21 +74,22 @@ int make_buffer_pool(const char *pool_name,
 	int result = ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
 
 	if (result != VDO_SUCCESS) {
-		logError("buffer pool allocation failure %d", result);
+		log_error("buffer pool allocation failure %d", result);
 		return result;
 	}
 
 	result = ALLOCATE(size, struct buffer_element, "buffer pool elements",
 			  &pool->bhead);
 	if (result != VDO_SUCCESS) {
-		logError("buffer element array allocation failure %d", result);
+		log_error("buffer element array allocation failure %d",
+			  result);
 		free_buffer_pool(&pool);
 		return result;
 	}
 
 	result = ALLOCATE(size, void *, "object pointers", &pool->objects);
 	if (result != VDO_SUCCESS) {
-		logError("buffer object array allocation failure %d", result);
+		log_error("buffer object array allocation failure %d", result);
 		free_buffer_pool(&pool);
 		return result;
 	}
@@ -108,8 +109,8 @@ int make_buffer_pool(const char *pool_name,
 	for (i = 0; i < pool->size; i++) {
 		result = pool->alloc(pool->data, &bh->data);
 		if (result != VDO_SUCCESS) {
-			logError("verify buffer data allocation failure %d",
-				 result);
+			log_error("verify buffer data allocation failure %d",
+				  result);
 			free_buffer_pool(&pool);
 			return result;
 		}
@@ -177,8 +178,8 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 		return;
 	}
 	spin_lock(&pool->lock);
-	logInfo("%s: %u of %u busy (max %u)", pool->name, pool->num_busy,
-		pool->size, pool->max_busy);
+	log_info("%s: %u of %u busy (max %u)", pool->name, pool->num_busy,
+		 pool->size, pool->max_busy);
 	if (dump_elements && (pool->dump != NULL)) {
 		int dumped = 0;
 		int i;
@@ -208,7 +209,7 @@ int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 	spin_lock(&pool->lock);
 	if (unlikely(list_empty(&pool->free_object_list))) {
 		spin_unlock(&pool->lock);
-		logDebug("no free buffers");
+		log_debug("no free buffers");
 		return -ENOMEM;
 	}
 
@@ -250,7 +251,7 @@ void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 
 	spin_unlock(&pool->lock);
 	if (!success) {
-		logDebug("trying to add to free list when already full");
+		log_debug("trying to add to free list when already full");
 	}
 }
 
@@ -266,6 +267,6 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 	}
 	spin_unlock(&pool->lock);
 	if (!success) {
-		logDebug("trying to add to free list when already full");
+		log_debug("trying to add to free list when already full");
 	}
 }

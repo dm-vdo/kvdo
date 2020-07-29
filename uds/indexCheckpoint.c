@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#11 $
  */
 
 #include "indexCheckpoint.h"
@@ -206,7 +206,7 @@ int process_chapter_writer_checkpoint_saves(struct index *index)
 
 		if (result != UDS_SUCCESS) {
 			checkpoint->state = CHECKPOINT_ABORTING;
-			logInfo("checkpoint failed");
+			log_info("checkpoint failed");
 			index->last_checkpoint = index->prev_checkpoint;
 		}
 	}
@@ -227,7 +227,7 @@ static int abort_checkpointing(struct index *index, int result)
 {
 	if (index->checkpoint->state != NOT_CHECKPOINTING) {
 		index->checkpoint->state = CHECKPOINT_ABORTING;
-		logInfo("checkpoint failed");
+		log_info("checkpoint failed");
 		index->last_checkpoint = index->prev_checkpoint;
 	}
 	return result;
@@ -317,7 +317,7 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 		lock_mutex(&checkpoint->mutex);
 		if (--checkpoint->zones_busy == 0) {
 			checkpoint->checkpoints += 1;
-			logInfo("finished checkpoint");
+			log_info("finished checkpoint");
 			result = finish_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
 				logErrorWithStringError(result,
@@ -343,7 +343,7 @@ static int do_checkpoint_abort(struct index *index, unsigned int zone)
 					"cannot abort index checkpoint");
 	} else if (status == CS_JUST_COMPLETED) {
 		if (--checkpoint->zones_busy == 0) {
-			logInfo("aborted checkpoint");
+			log_info("aborted checkpoint");
 			result = abort_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
 				logErrorWithStringError(result,
@@ -375,7 +375,7 @@ static int do_checkpoint_finish(struct index *index, unsigned int zone)
 		lock_mutex(&checkpoint->mutex);
 		if (--checkpoint->zones_busy == 0) {
 			checkpoint->checkpoints += 1;
-			logInfo("finished checkpoint");
+			log_info("finished checkpoint");
 			result = finish_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
 				logErrorWithStringError(result,

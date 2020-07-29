@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#100 $
  */
 
 #include "kernelLayer.h"
@@ -141,15 +141,15 @@ int map_to_system_error(int error)
 	case VDO_READ_ONLY:
 		return -EIO;
 	default:
-		logInfo("%s: mapping internal status code %d (%s: %s) to EIO",
-			__func__,
-			error,
-			stringErrorName(error,
-					error_name,
-					sizeof(error_name)),
-			stringError(error,
-				    error_message,
-				    sizeof(error_message)));
+		log_info("%s: mapping internal status code %d (%s: %s) to EIO",
+			 __func__,
+			 error,
+			 stringErrorName(error,
+					 error_name,
+					 sizeof(error_name)),
+			 stringError(error,
+				     error_message,
+				     sizeof(error_message)));
 		return -EIO;
 	}
 }
@@ -208,7 +208,7 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 					    struct bio *bio,
 					    Jiffies arrival_time)
 {
-	logWarning("kvdo_map_bio called from within a VDO thread!");
+	log_warning("kvdo_map_bio called from within a VDO thread!");
 	/*
 	 * We're not yet entirely sure what circumstances are causing this
 	 * situation in [ESC-638], but it does appear to be happening and
@@ -237,7 +237,7 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	  add_to_deadlock_queue(&layer->deadlock_queue,
 				bio,
 				arrival_time);
-		logWarning("queued an I/O request to avoid deadlock!");
+		log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
 	}
@@ -522,9 +522,9 @@ int make_kernel_layer(uint64_t starting_sector,
 	struct kernel_layer *old_layer = find_layer_matching(layer_uses_device,
 							     config);
 	if (old_layer != NULL) {
-		logError("Existing layer named %s already uses device %s",
-			 old_layer->device_config->pool_name,
-			 old_layer->device_config->parent_device_name);
+		log_error("Existing layer named %s already uses device %s",
+			  old_layer->device_config->pool_name,
+			  old_layer->device_config->parent_device_name);
 		*reason = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -618,11 +618,11 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	logInfo("zones: %d logical, %d physical, %d hash; base threads: %d",
-		config->thread_counts.logical_zones,
-		config->thread_counts.physical_zones,
-		config->thread_counts.hash_zones,
-		(*thread_config_pointer)->base_thread_count);
+	log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+		 config->thread_counts.logical_zones,
+		 config->thread_counts.physical_zones,
+		 config->thread_counts.hash_zones,
+		 (*thread_config_pointer)->base_thread_count);
 
 	result = make_batch_processor(layer,
 				      return_data_kvio_batch_to_pool,
@@ -886,8 +886,8 @@ int modify_kernel_layer(struct kernel_layer *layer,
 	if (state == LAYER_RUNNING) {
 		return VDO_SUCCESS;
 	} else if (state != LAYER_SUSPENDED) {
-		logError("pre-resume invoked while in unexpected kernel layer state %d",
-			 state);
+		log_error("pre-resume invoked while in unexpected kernel layer state %d",
+			  state);
 		return -EINVAL;
 	}
 	set_kernel_layer_state(layer, LAYER_RESUMING);
@@ -905,10 +905,10 @@ int modify_kernel_layer(struct kernel_layer *layer,
 		 * metadata between the suspend and the write policy change is
 		 * written to synchronous storage.
 		 */
-		logInfo("Modifying device '%s' write policy from %s to %s",
-			config->pool_name,
-			get_config_write_policy_string(extant_config),
-			get_config_write_policy_string(config));
+		log_info("Modifying device '%s' write policy from %s to %s",
+			 config->pool_name,
+			 get_config_write_policy_string(extant_config),
+			 get_config_write_policy_string(config));
 		set_write_policy(layer->kvdo.vdo, config->write_policy);
 	}
 
@@ -953,7 +953,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	switch (state) {
 	case LAYER_STOPPING:
-		logError("re-entered free_kernel_layer while stopping");
+		log_error("re-entered free_kernel_layer while stopping");
 		break;
 
 	case LAYER_RUNNING:
@@ -1015,7 +1015,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		break;
 
 	default:
-		logError("Unknown Kernel Layer state: %d", state);
+		log_error("Unknown Kernel Layer state: %d", state);
 	}
 
 	// Late deallocation of resources in work queues.
@@ -1169,7 +1169,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 	if (state != LAYER_RUNNING) {
-		logError(
+		log_error(
 			"Suspend invoked while in unexpected kernel layer state %d",
 			state);
 		return -EINVAL;
@@ -1226,7 +1226,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 int prepare_to_resize_physical(struct kernel_layer *layer,
 			       block_count_t physical_count)
 {
-	logInfo("Preparing to resize physical to %llu", physical_count);
+	log_info("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	int result =
@@ -1245,7 +1245,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 		}
 	}
 
-	logInfo("Done preparing to resize physical");
+	log_info("Done preparing to resize physical");
 	return VDO_SUCCESS;
 }
 
@@ -1270,7 +1270,7 @@ int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 int prepare_to_resize_logical(struct kernel_layer *layer,
 			      block_count_t logical_count)
 {
-	logInfo("Preparing to resize logical to %llu", logical_count);
+	log_info("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	int result = kvdo_prepare_to_grow_logical(&layer->kvdo, logical_count);
@@ -1280,14 +1280,14 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 		return result;
 	}
 
-	logInfo("Done preparing to resize logical");
+	log_info("Done preparing to resize logical");
 	return VDO_SUCCESS;
 }
 
 /***********************************************************************/
 int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 {
-	logInfo("Resizing logical to %llu", logical_count);
+	log_info("Resizing logical to %llu", logical_count);
 	/*
 	 * We must not mark the layer as allowing allocations when it is
 	 * suspended lest an allocation attempt block on writing IO to the
@@ -1300,7 +1300,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 		return result;
 	}
 
-	logInfo("Logical blocks now %llu", logical_count);
+	log_info("Logical blocks now %llu", logical_count);
 	return VDO_SUCCESS;
 }
 

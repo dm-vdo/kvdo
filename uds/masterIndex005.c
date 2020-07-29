@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#28 $
  */
 #include "masterIndex005.h"
 
@@ -887,7 +887,7 @@ set_master_index_zone_open_chapter_005(struct master_index *master_index,
 				1 + (used_bits - mi5->max_zone_bits) /
 					    mi5->chapter_zone_bits;
 			if (expire_count == 1) {
-				log_ratelimit(logInfo,
+				log_ratelimit(log_info,
 					      "masterZone %u:  At chapter %llu, expiring chapter %llu early",
 					      zone_number,
 					      virtual_chapter,
@@ -913,7 +913,7 @@ set_master_index_zone_open_chapter_005(struct master_index *master_index,
 						master_zone
 							->virtual_chapter_high;
 				}
-				log_ratelimit(logInfo,
+				log_ratelimit(log_info,
 					      "masterZone %u:  At chapter %llu, expiring chapters %llu to %llu early",
 					      zone_number,
 					      virtual_chapter,
@@ -946,21 +946,21 @@ set_master_index_open_chapter_005(struct master_index *master_index,
 		bool log_move = virtual_chapter !=
 				master_zone->virtual_chapter_high + 1;
 		if (log_move) {
-			logDebug("masterZone %u: The range of indexed chapters is moving from [%llu, %llu] ...",
-				z,
-				master_zone->virtual_chapter_low,
-				master_zone->virtual_chapter_high);
+			log_debug("masterZone %u: The range of indexed chapters is moving from [%llu, %llu] ...",
+				  z,
+				  master_zone->virtual_chapter_low,
+				  master_zone->virtual_chapter_high);
 		}
 
 		set_master_index_zone_open_chapter_005(master_index, z,
 						       virtual_chapter);
 
 		if (log_move) {
-			logDebug("masterZone %u: ... and moving to [%" PRIu64
-				 ", %llu]",
-				 z,
-				 master_zone->virtual_chapter_low,
-				 master_zone->virtual_chapter_high);
+			log_debug("masterZone %u: ... and moving to [%" PRIu64
+				  ", %llu]",
+				  z,
+				  master_zone->virtual_chapter_low,
+				  master_zone->virtual_chapter_high);
 		}
 	}
 }

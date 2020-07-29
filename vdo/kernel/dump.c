@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#20 $
  */
 
 #include "dump.h"
@@ -86,7 +86,7 @@ static void do_dump(struct kernel_layer *layer,
 		    unsigned int dump_options_requested,
 		    const char *why)
 {
-	logInfo("%s dump triggered via %s", THIS_MODULE->name, why);
+	log_info("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
 	uint32_t active, maximum;
 
@@ -95,11 +95,11 @@ static void do_dump(struct kernel_layer *layer,
 				      &maximum);
 	int64_t outstanding = atomic64_read(&layer->bios_submitted) -
 			      atomic64_read(&layer->bios_completed);
-	logInfo("%u device requests outstanding (max %u), %lld bio requests outstanding, poolName '%s'",
-		active,
-		maximum,
-		outstanding,
-		layer->device_config->pool_name);
+	log_info("%u device requests outstanding (max %u), %lld bio requests outstanding, poolName '%s'",
+		 active,
+		 maximum,
+		 outstanding,
+		 layer->device_config->pool_name);
 	if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
 		dump_kvdo_work_queue(&layer->kvdo);
 	}
@@ -124,7 +124,7 @@ static void do_dump(struct kernel_layer *layer,
 		dump_kvdo_status(&layer->kvdo);
 	}
 	report_memory_usage();
-	logInfo("end of %s dump", THIS_MODULE->name);
+	log_info("end of %s dump", THIS_MODULE->name);
 }
 
 /**********************************************************************/
@@ -178,7 +178,7 @@ static int parse_dump_options(unsigned int argc,
 			}
 		}
 		if (j == COUNT_OF(option_names)) {
-			logWarning("dump option name '%s' unknown", argv[i]);
+			log_warning("dump option name '%s' unknown", argv[i]);
 			options_okay = false;
 		}
 	}

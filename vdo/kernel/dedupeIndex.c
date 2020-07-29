@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#64 $
  */
 
 #include "dedupeIndex.h"
@@ -201,7 +201,7 @@ static bool decode_uds_advice(const struct uds_request *request,
 	byte version = encoding->data[offset++];
 
 	if (version != UDS_ADVICE_VERSION) {
-		logError("invalid UDS advice version code %u", version);
+		log_error("invalid UDS advice version code %u", version);
 		return false;
 	}
 
@@ -362,8 +362,8 @@ static void report_events(struct periodic_event_reporter *reporter,
 
 	if (difference != 0) {
 		if (!ratelimit || __ratelimit(&reporter->ratelimiter)) {
-			logDebug("UDS index timeout on %llu requests",
-				 difference);
+			log_debug("UDS index timeout on %llu requests",
+				  difference);
 			reporter->last_reported_value = new_value;
 		} else {
 			/**
@@ -598,7 +598,7 @@ static void open_index(struct dedupe_index *index)
 		index->index_target = IS_CLOSED;
 		index->error_flag = true;
 		spin_unlock(&index->state_lock);
-		logInfo("Setting UDS index target state to error");
+		log_info("Setting UDS index target state to error");
 		spin_lock(&index->state_lock);
 	}
 	// ASSERTION: On success, we leave in IS_OPENED state.
@@ -681,7 +681,7 @@ static void set_target_state(struct dedupe_index *index,
 		index_state_to_string(index, index->index_target);
 	spin_unlock(&index->state_lock);
 	if (old_state != new_state) {
-		logInfo("Setting UDS index target state to %s", new_state);
+		log_info("Setting UDS index target state to %s", new_state);
 	}
 }
 
@@ -729,9 +729,9 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 			 index_state_to_string(index, index->index_target) :
 			 NULL);
 	spin_unlock(&index->state_lock);
-	logInfo("UDS index: state: %s", state);
+	log_info("UDS index: state: %s", state);
 	if (target != NULL) {
-		logInfo("UDS index: changing to state: %s", target);
+		log_info("UDS index: changing to state: %s", target);
 	}
 	if (show_queue) {
 		dump_work_queue(index->uds_queue);
@@ -965,7 +965,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 			       get_index_region_size(layer->geometry) *
 					VDO_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
-		logError("Creating index name failed (%d)", result);
+		log_error("Creating index name failed (%d)", result);
 		FREE(index);
 		return result;
 	}
@@ -1010,7 +1010,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 				 NULL,
 				 &index->uds_queue);
 	if (result != VDO_SUCCESS) {
-		logError("UDS index queue initialization failed (%d)", result);
+		log_error("UDS index queue initialization failed (%d)",
+			  result);
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);
 		FREE(index->index_name);

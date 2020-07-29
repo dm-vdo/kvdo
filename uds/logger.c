@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#6 $
  */
 
 #include "logger.h"
@@ -126,7 +126,7 @@ void log_message(int priority, const char *format, ...)
 }
 
 /*****************************************************************************/
-void logDebug(const char *format, ...)
+void log_debug(const char *format, ...)
 {
   va_list args;
 
@@ -136,7 +136,7 @@ void logDebug(const char *format, ...)
 }
 
 /*****************************************************************************/
-void logInfo(const char *format, ...)
+void log_info(const char *format, ...)
 {
   va_list args;
 
@@ -146,7 +146,7 @@ void logInfo(const char *format, ...)
 }
 
 /*****************************************************************************/
-void logNotice(const char *format, ...)
+void log_notice(const char *format, ...)
 {
   va_list args;
 
@@ -156,7 +156,7 @@ void logNotice(const char *format, ...)
 }
 
 /*****************************************************************************/
-void logWarning(const char *format, ...)
+void log_warning(const char *format, ...)
 {
   va_list args;
 
@@ -166,7 +166,7 @@ void logWarning(const char *format, ...)
 }
 
 /*****************************************************************************/
-void logError(const char *format, ...)
+void log_error(const char *format, ...)
 {
   va_list args;
 
@@ -266,7 +266,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
 }
 
 /*****************************************************************************/
-int logUnrecoverable(int errnum, const char *format, ...)
+int log_unrecoverable(int errnum, const char *format, ...)
 {
   if (isSuccessful(errnum)) {
     return errnum;
@@ -279,7 +279,7 @@ int logUnrecoverable(int errnum, const char *format, ...)
 }
 
 /*****************************************************************************/
-void logFatal(const char *format, ...)
+void log_fatal(const char *format, ...)
 {
   va_list args;
 

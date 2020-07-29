@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#79 $
  */
 
 /*
@@ -276,7 +276,7 @@ void enter_recovery_mode(struct vdo *vdo)
 		return;
 	}
 
-	logInfo("Entering recovery mode");
+	log_info("Entering recovery mode");
 	set_vdo_state(vdo, VDO_RECOVERING);
 }
 
@@ -298,8 +298,8 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 		flush_packer(vdo->packer);
 	}
 
-	logInfo("compression is %s",
-		(enable_compression ? "enabled" : "disabled"));
+	log_info("compression is %s",
+		 (enable_compression ? "enabled" : "disabled"));
 	return (state_changed ? !enable_compression : enable_compression);
 }
 
@@ -662,10 +662,10 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 	// Don't use advice that's clearly meaningless.
 	if ((advice->state == MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == ZERO_BLOCK)) {
-		logDebug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
-			 advice->pbn,
-			 advice->state,
-			 lbn);
+		log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
+			  advice->pbn,
+			  advice->state,
+			  lbn);
 		atomicAdd64(&vdo->error_stats.invalid_advice_pbn_count, 1);
 		return no_advice;
 	}
@@ -673,9 +673,9 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 	struct physical_zone *zone;
 	int result = get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
-		logDebug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
-			 advice->pbn,
-			 lbn);
+		log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
+			  advice->pbn,
+			  lbn);
 		atomicAdd64(&vdo->error_stats.invalid_advice_pbn_count, 1);
 		return no_advice;
 	}

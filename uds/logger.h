@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#7 $
  */
 
 #ifndef LOGGER_H
@@ -100,35 +100,35 @@ const char *priority_to_string(int priority);
  *
  * @param format The format of the message (a printf style format)
  **/
-void logDebug(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_debug(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log an informational message.
  *
  * @param  format The format of the message (a printf style format)
  **/
-void logInfo(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_info(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log a normal (but notable) condition.
  *
  * @param  format The format of the message (a printf style format)
  **/
-void logNotice(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_notice(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log a warning.
  *
  * @param  format The format of the message (a printf style format)
  **/
-void logWarning(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_warning(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log an error.
  *
  * @param  format The format of the message (a printf style format)
  **/
-void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_error(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log a message embedded within another message.
@@ -240,7 +240,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
  *
  * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
-int logUnrecoverable(int errnum, const char *format, ...)
+int log_unrecoverable(int errnum, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
 /**
@@ -248,7 +248,7 @@ int logUnrecoverable(int errnum, const char *format, ...)
  *
  * @param  format The format of the message (a printf style format)
  **/
-void logFatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void log_fatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
  * Log a message -- for internal use only.

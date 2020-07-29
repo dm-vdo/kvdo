@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#36 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -350,9 +350,9 @@ int commit_recovery_block(struct recovery_journal_block *block,
 /**********************************************************************/
 void dump_recovery_block(const struct recovery_journal_block *block)
 {
-	logInfo("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
-		block->sequence_number, block->entry_count,
-		(block->committing ? "committing" : "waiting"),
-		count_waiters(&block->entry_waiters),
-		count_waiters(&block->commit_waiters));
+	log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
+		 block->sequence_number, block->entry_count,
+		 (block->committing ? "committing" : "waiting"),
+		 count_waiters(&block->entry_waiters),
+		 count_waiters(&block->commit_waiters));
 }

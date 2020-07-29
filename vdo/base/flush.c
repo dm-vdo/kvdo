@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#29 $
  */
 
 #include "flush.h"
@@ -258,11 +258,11 @@ void complete_flushes(struct flusher *flusher)
 /**********************************************************************/
 void dump_flusher(const struct flusher *flusher)
 {
-	logInfo("struct flusher");
-	logInfo("  flush_generation=%llu first_unacknowledged_generation=%llu",
-		flusher->flush_generation,
-		flusher->first_unacknowledged_generation);
-	logInfo("  notifiers queue is %s; pending_flushes queue is %s",
-		(has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
-		(has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));
+	log_info("struct flusher");
+	log_info("  flush_generation=%llu first_unacknowledged_generation=%llu",
+		 flusher->flush_generation,
+		 flusher->first_unacknowledged_generation);
+	log_info("  notifiers queue is %s; pending_flushes queue is %s",
+		 (has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
+		 (has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));
 }

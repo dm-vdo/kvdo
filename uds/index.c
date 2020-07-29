@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#35 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#36 $
  */
 
 #include "index.h"
@@ -55,14 +55,14 @@ static int replay_index_from_checkpoint(struct index *index,
 					       "cannot replay index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
-		logFatal("cannot replay index: no valid chapters exist");
+		log_fatal("cannot replay index: no valid chapters exist");
 		return UDS_CORRUPT_COMPONENT;
 	}
 
 	if (is_empty) {
 		// The volume is empty, so the index should also be empty
 		if (index->newest_virtual_chapter != 0) {
-			logFatal("cannot replay index from empty volume");
+			log_fatal("cannot replay index from empty volume");
 			return UDS_CORRUPT_COMPONENT;
 		}
 		return UDS_SUCCESS;
@@ -105,9 +105,9 @@ static int load_index(struct index *index, bool allow_replay)
 			 index->last_checkpoint :
 			 0);
 
-	logInfo("loaded index from chapter %llu through chapter %llu",
-		index->oldest_virtual_chapter,
-		last_checkpoint_chapter);
+	log_info("loaded index from chapter %llu through chapter %llu",
+		 index->oldest_virtual_chapter,
+		 last_checkpoint_chapter);
 
 	if (replay_required) {
 		result = replay_index_from_checkpoint(index,
@@ -142,7 +142,7 @@ static int rebuild_index(struct index *index)
 					       "cannot rebuild index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
-		logFatal("cannot rebuild index: no valid chapters exist");
+		log_fatal("cannot rebuild index: no valid chapters exist");
 		return UDS_CORRUPT_COMPONENT;
 	}
 
@@ -271,7 +271,7 @@ int make_index(struct index_layout *layout,
 
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return logUnrecoverable(result, "fatal error in make_index");
+		return log_unrecoverable(result, "fatal error in make_index");
 	}
 
 	if (index->load_context != NULL) {
@@ -308,19 +308,19 @@ int save_index(struct index *index)
 	wait_for_idle_chapter_writer(index->chapter_writer);
 	int result = finish_checkpointing(index);
 	if (result != UDS_SUCCESS) {
-		logInfo("save index failed");
+		log_info("save index failed");
 		return result;
 	}
 	begin_save(index, false, index->newest_virtual_chapter);
 
 	result = save_index_state(index->state);
 	if (result != UDS_SUCCESS) {
-		logInfo("save index failed");
+		log_info("save index failed");
 		index->last_checkpoint = index->prev_checkpoint;
 	} else {
 		index->has_saved_open_chapter = true;
-		logInfo("finished save (vcn %llu)",
-			index->last_checkpoint);
+		log_info("finished save (vcn %llu)",
+			 index->last_checkpoint);
 	}
 	return result;
 }
@@ -776,8 +776,8 @@ void begin_save(struct index *index,
 					      open_chapter_number - 1);
 
 	const char *what = (checkpoint ? "checkpoint" : "save");
-	logInfo("beginning %s (vcn %llu)", what,
-		index->last_checkpoint);
+	log_info("beginning %s (vcn %llu)", what,
+		 index->last_checkpoint);
 }
 
 /**
@@ -819,9 +819,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 {
 	int result;
 	uint64_t upto_vcn = index->newest_virtual_chapter;
-	logInfo("Replaying volume from chapter %llu through chapter %llu",
-		from_vcn,
-		upto_vcn);
+	log_info("Replaying volume from chapter %llu through chapter %llu",
+		 from_vcn,
+		 upto_vcn);
 	set_master_index_open_chapter(index->master_index, upto_vcn);
 	set_master_index_open_chapter(index->master_index, from_vcn);
 
@@ -851,8 +851,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	uint64_t vcn;
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {
 		if (check_for_suspend(index)) {
-			logInfo("Replay interrupted by index shutdown at chapter %llu",
-				vcn);
+			log_info("Replay interrupted by index shutdown at chapter %llu",
+				 vcn);
 			return UDS_SHUTTINGDOWN;
 		}
 
@@ -882,9 +882,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 						 &record_page, NULL);
 			if (result != UDS_SUCCESS) {
 				index->volume->lookup_mode = old_lookup_mode;
-				return logUnrecoverable(result,
-							"could not get page %d",
-							record_page_number);
+				return log_unrecoverable(result,
+							 "could not get page %d",
+							 record_page_number);
 			}
 			unsigned int k;
 			for (k = 0; k < geometry->records_per_page; k++) {
@@ -908,9 +908,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 					}
 					index->volume->lookup_mode =
 						old_lookup_mode;
-					return logUnrecoverable(result,
-								"could not find block %s during rebuild",
-								hex_name);
+					return log_unrecoverable(result,
+								 "could not find block %s during rebuild",
+								 hex_name);
 				}
 			}
 		}
@@ -924,9 +924,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		get_last_update(index->volume->index_page_map);
 
 	if (new_ipm_update != old_ipm_update) {
-		logInfo("replay changed index page map update from %llu to %llu",
-			old_ipm_update,
-			new_ipm_update);
+		log_info("replay changed index page map update from %llu to %llu",
+			 old_ipm_update,
+			 new_ipm_update);
 	}
 
 	return UDS_SUCCESS;

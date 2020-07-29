@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#64 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#65 $
  */
 
 #include <linux/module.h>
@@ -36,7 +36,7 @@
 static int __init dedupeInit(void)
 {
   memory_init();
-  logInfo("loaded version %s", UDS_VERSION);
+  log_info("loaded version %s", UDS_VERSION);
   init_sysfs();
   return 0;
 }
@@ -46,7 +46,7 @@ static void __exit dedupeExit(void)
 {
   put_sysfs();
   memory_exit();
-  logInfo("unloaded version %s", UDS_VERSION);
+  log_info("unloaded version %s", UDS_VERSION);
 }
 
 /**********************************************************************/
@@ -120,11 +120,11 @@ EXPORT_SYMBOL_GPL(grow_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
 EXPORT_SYMBOL_GPL(initialize_thread_registry);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
-EXPORT_SYMBOL_GPL(logDebug);
-EXPORT_SYMBOL_GPL(logError);
+EXPORT_SYMBOL_GPL(log_debug);
+EXPORT_SYMBOL_GPL(log_error);
 EXPORT_SYMBOL_GPL(logErrorWithStringError);
-EXPORT_SYMBOL_GPL(logInfo);
-EXPORT_SYMBOL_GPL(logWarning);
+EXPORT_SYMBOL_GPL(log_info);
+EXPORT_SYMBOL_GPL(log_warning);
 EXPORT_SYMBOL_GPL(logWarningWithStringError);
 EXPORT_SYMBOL_GPL(lookup_thread);
 EXPORT_SYMBOL_GPL(make_buffer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#29 $
  */
 
 #include "hashZone.h"
@@ -297,11 +297,11 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	// chars of state is unambiguous. 'U' indicates a lock not registered in
 	// the map.
 	const char *state = get_hash_lock_state_name(lock->state);
-	logInfo("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
-		(const void *) lock, state, (lock->registered ? 'D' : 'U'),
-		lock->duplicate.pbn, lock->duplicate.state,
-		lock->reference_count, count_waiters(&lock->waiters),
-		(void *) lock->agent);
+	log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
+		 (const void *) lock, state, (lock->registered ? 'D' : 'U'),
+		 lock->duplicate.pbn, lock->duplicate.state,
+		 lock->reference_count, count_waiters(&lock->waiters),
+		 (void *) lock->agent);
 }
 
 /**
@@ -344,12 +344,12 @@ void bump_hash_zone_collision_count(struct hash_zone *zone)
 void dump_hash_zone(const struct hash_zone *zone)
 {
 	if (zone->hash_lock_map == NULL) {
-		logInfo("struct hash_zone %u: NULL map", zone->zone_number);
+		log_info("struct hash_zone %u: NULL map", zone->zone_number);
 		return;
 	}
 
-	logInfo("struct hash_zone %u: mapSize=%zu", zone->zone_number,
-		pointer_map_size(zone->hash_lock_map));
+	log_info("struct hash_zone %u: mapSize=%zu", zone->zone_number,
+		 pointer_map_size(zone->hash_lock_map));
 	vio_count_t i;
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		dump_hash_lock(&zone->lock_array[i]);

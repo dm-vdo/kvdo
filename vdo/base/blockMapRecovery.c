@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#31 $
  */
 
 #include "blockMapRecovery.h"
@@ -251,8 +251,8 @@ make_recovery_completion(struct vdo *vdo,
 			   parent);
 
 	// This message must be recognizable by VDOTest::RebuildBase.
-	logInfo("Replaying %zu recovery entries into block map",
-		recovery->replay_heap.count);
+	log_info("Replaying %zu recovery entries into block map",
+		 recovery->replay_heap.count);
 
 	*recovery_ptr = recovery;
 	return VDO_SUCCESS;
@@ -261,7 +261,7 @@ make_recovery_completion(struct vdo *vdo,
 /**********************************************************************/
 static void flush_block_map(struct vdo_completion *completion)
 {
-	logInfo("Flushing block map changes");
+	log_info("Flushing block map changes");
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion->parent);
 	ASSERT_LOG_ONLY((completion->callback_thread_id ==

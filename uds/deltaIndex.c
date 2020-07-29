@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#16 $
  */
 #include "deltaIndex.h"
 
@@ -531,15 +531,15 @@ static bool invalid_parameters(unsigned int mean_delta,
 	const unsigned int min_delta = 10;
 	const unsigned int max_delta = 1 << MAX_FIELD_BITS;
 	if ((mean_delta < min_delta) || (mean_delta > max_delta)) {
-		logWarning("error initializing delta index: mean delta (%u) is not in the range %u to %u",
-			   mean_delta,
-			   min_delta,
-			   max_delta);
+		log_warning("error initializing delta index: mean delta (%u) is not in the range %u to %u",
+			    mean_delta,
+			    min_delta,
+			    max_delta);
 		return true;
 	}
 	if (num_payload_bits > MAX_FIELD_BITS) {
-		logWarning("error initializing delta index: Too many payload bits (%u)",
-			   num_payload_bits);
+		log_warning("error initializing delta index: Too many payload bits (%u)",
+			    num_payload_bits);
 		return true;
 	}
 	return false;
@@ -1426,7 +1426,7 @@ next_delta_index_entry(struct delta_index_entry *delta_entry)
 	if (next_offset > size) {
 		// This is not an assertion because
 		// validate_chapter_index_page() wants to handle this error.
-		logWarning("Decoded past the end of the delta list");
+		log_warning("Decoded past the end of the delta list");
 		return UDS_CORRUPT_DATA;
 	}
 	return UDS_SUCCESS;
@@ -1829,7 +1829,7 @@ unsigned int get_delta_index_page_count(unsigned int num_entries,
 /**********************************************************************/
 void log_delta_index_entry(struct delta_index_entry *delta_entry)
 {
-	log_ratelimit(logInfo,
+	log_ratelimit(log_info,
 		      "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
 		      delta_entry->list_number,
 		      delta_entry->key,

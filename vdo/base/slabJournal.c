@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#64 $
  */
 
 #include "slabJournalInternals.h"
@@ -1355,18 +1355,18 @@ void decode_slab_journal(struct slab_journal *journal)
 /**********************************************************************/
 void dump_slab_journal(const struct slab_journal *journal)
 {
-	logInfo("  slab journal: entry_waiters=%zu waiting_to_commit=%s" " updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
-		count_waiters(&journal->entry_waiters),
-		bool_to_string(journal->waiting_to_commit),
-		bool_to_string(journal->updating_slab_summary),
-		journal->head,
-		journal->unreapable,
-		journal->tail,
-		journal->next_commit,
-		journal->summarized,
-		journal->last_summarized,
-		journal->recovery_lock,
-		bool_to_string(is_slab_journal_dirty(journal)));
+	log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s" " updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
+		 count_waiters(&journal->entry_waiters),
+		 bool_to_string(journal->waiting_to_commit),
+		 bool_to_string(journal->updating_slab_summary),
+		 journal->head,
+		 journal->unreapable,
+		 journal->tail,
+		 journal->next_commit,
+		 journal->summarized,
+		 journal->last_summarized,
+		 journal->recovery_lock,
+		 bool_to_string(is_slab_journal_dirty(journal)));
 	// Given the frequency with which the locks are just a tiny bit off, it
 	// might be worth dumping all the locks, but that might be too much
 	// logging.

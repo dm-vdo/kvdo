@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#30 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#31 $
  */
 
 #include "volume.h"
@@ -114,7 +114,7 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 	}
 
 	while (read_queue_is_full(volume->page_cache)) {
-		logDebug("Waiting until read queue not full");
+		log_debug("Waiting until read queue not full");
 		signal_cond(&volume->read_threads_cond);
 		wait_cond(&volume->read_threads_read_done_cond,
 			  &volume->read_threads_mutex);
@@ -136,7 +136,7 @@ int enqueue_page_read(struct volume *volume,
 	// Don't allow new requests if we are shutting down, but make sure
 	// to process any requests that are still in the pipeline.
 	if ((volume->reader_state & READER_STATE_EXIT) != 0) {
-		logInfo("failed to queue read while shutting down");
+		log_info("failed to queue read while shutting down");
 		return UDS_SHUTTINGDOWN;
 	}
 
@@ -147,7 +147,7 @@ int enqueue_page_read(struct volume *volume,
 	while ((result = enqueue_read(volume->page_cache,
 				      request,
 				      physical_page)) == UDS_SUCCESS) {
-		logDebug("Read queues full, waiting for reads to finish");
+		log_debug("Read queues full, waiting for reads to finish");
 		wait_for_read_queue_not_full(volume, request);
 	}
 
@@ -216,13 +216,13 @@ static int init_chapter_index_page(const struct volume *volume,
 		return UDS_SUCCESS;
 	}
 
-	logWarning("Index page map updated to %llu",
-		   get_last_update(volume->index_page_map));
-	logWarning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
-		   chapter, index_page_number, bounds.lowest_list,
-		   bounds.highest_list, ci_virtual,
-		   chapter_index_page->lowest_list_number,
-		   chapter_index_page->highest_list_number);
+	log_warning("Index page map updated to %llu",
+		    get_last_update(volume->index_page_map));
+	log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
+		    chapter, index_page_number, bounds.lowest_list,
+		    bounds.highest_list, ci_virtual,
+		    chapter_index_page->lowest_list_number,
+		    chapter_index_page->highest_list_number);
 	return ASSERT_WITH_ERROR_CODE(false, UDS_CORRUPT_DATA,
 				      "index page map mismatch with chapter index");
 }
@@ -254,7 +254,7 @@ static void read_thread_function(void *arg)
 	unsigned int physical_page;
 	bool invalid = false;
 
-	logDebug("reader starting");
+	log_debug("reader starting");
 	lock_mutex(&volume->read_threads_mutex);
 	while (true) {
 		wait_to_reserve_read_queue_entry(volume,
@@ -285,15 +285,15 @@ static void read_thread_function(void *arg)
 							 physical_page,
 							 &page->cp_page_data);
 				if (result != UDS_SUCCESS) {
-					logWarning("Error reading page %u from volume",
-						   physical_page);
+					log_warning("Error reading page %u from volume",
+						    physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
 							     page);
 				}
 				lock_mutex(&volume->read_threads_mutex);
 			} else {
-				logWarning("Error selecting cache victim for page read");
+				log_warning("Error selecting cache victim for page read");
 			}
 
 			if (result == UDS_SUCCESS) {
@@ -304,7 +304,7 @@ static void read_thread_function(void *arg)
 									       physical_page,
 									       page);
 						if (result != UDS_SUCCESS) {
-							logWarning("Error initializing chapter index page");
+							log_warning("Error initializing chapter index page");
 							cancel_page_in_cache(volume->page_cache,
 									     physical_page,
 									     page);
@@ -316,16 +316,16 @@ static void read_thread_function(void *arg)
 									   physical_page,
 									   page);
 						if (result != UDS_SUCCESS) {
-							logWarning("Error putting page %u in cache",
-								   physical_page);
+							log_warning("Error putting page %u in cache",
+								    physical_page);
 							cancel_page_in_cache(volume->page_cache,
 									     physical_page,
 									     page);
 						}
 					}
 				} else {
-					logWarning("Page %u invalidated after read",
-						   physical_page);
+					log_warning("Page %u invalidated after read",
+						    physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
 							     page);
@@ -333,7 +333,7 @@ static void read_thread_function(void *arg)
 				}
 			}
 		} else {
-			logDebug("Requeuing requests for invalid page");
+			log_debug("Requeuing requests for invalid page");
 		}
 
 		if (invalid) {
@@ -382,7 +382,7 @@ static void read_thread_function(void *arg)
 		broadcast_cond(&volume->read_threads_read_done_cond);
 	}
 	unlock_mutex(&volume->read_threads_mutex);
-	logDebug("reader done");
+	log_debug("reader done");
 }
 
 /**********************************************************************/
@@ -402,15 +402,15 @@ static int read_page_locked(struct volume *volume,
 		// Find a place to put the page.
 		result = select_victim_in_cache(volume->page_cache, &page);
 		if (result != UDS_SUCCESS) {
-			logWarning("Error selecting cache victim for page read");
+			log_warning("Error selecting cache victim for page read");
 			return result;
 		}
 		result = read_volume_page(&volume->volume_store,
 					  physical_page,
 					  &page->cp_page_data);
 		if (result != UDS_SUCCESS) {
-			logWarning("Error reading page %u from volume",
-				   physical_page);
+			log_warning("Error reading page %u from volume",
+				    physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
 			return result;
@@ -421,8 +421,8 @@ static int read_page_locked(struct volume *volume,
 			if (result != UDS_SUCCESS) {
 				if (volume->lookup_mode !=
 				    LOOKUP_FOR_REBUILD) {
-					logWarning("Corrupt index page %u",
-						   physical_page);
+					log_warning("Corrupt index page %u",
+						    physical_page);
 				}
 				cancel_page_in_cache(volume->page_cache,
 						     physical_page,
@@ -433,8 +433,8 @@ static int read_page_locked(struct volume *volume,
 		result = put_page_in_cache(volume->page_cache, physical_page,
 					   page);
 		if (result != UDS_SUCCESS) {
-			logWarning("Error putting page %u in cache",
-				   physical_page);
+			log_warning("Error putting page %u in cache",
+				    physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
 			return result;
@@ -828,7 +828,7 @@ int forget_chapter(struct volume *volume,
 		   uint64_t virtual_chapter,
 		   enum invalidation_reason reason)
 {
-	logDebug("forgetting chapter %llu", virtual_chapter);
+	log_debug("forgetting chapter %llu", virtual_chapter);
 	unsigned int physical_chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
 	lock_mutex(&volume->read_threads_mutex);
@@ -875,14 +875,14 @@ static int donate_index_page_locked(struct volume *volume,
 					 index_page_number,
 					 &page->cp_index_page);
 	if (result != UDS_SUCCESS) {
-		logWarning("Error initialize chapter index page");
+		log_warning("Error initialize chapter index page");
 		cancel_page_in_cache(volume->page_cache, physical_page, page);
 		return result;
 	}
 
 	result = put_page_in_cache(volume->page_cache, physical_page, page);
 	if (result != UDS_SUCCESS) {
-		logWarning("Error putting page %u in cache", physical_page);
+		log_warning("Error putting page %u in cache", physical_page);
 		cancel_page_in_cache(volume->page_cache, physical_page, page);
 		return result;
 	}
@@ -947,9 +947,9 @@ int write_index_pages(struct volume *volume,
 		// Tell the index page map the list number of the last delta
 		// list that was packed into the index page.
 		if (lists_packed == 0) {
-			logDebug("no delta lists packed on chapter %u page %u",
-				 physical_chapter_number,
-				 index_page_number);
+			log_debug("no delta lists packed on chapter %u page %u",
+				  physical_chapter_number,
+				  index_page_number);
 		} else {
 			delta_list_number += lists_packed;
 		}
@@ -1100,15 +1100,15 @@ static int probe_chapter(struct volume *volume,
 		if (last_vcn == UINT64_MAX) {
 			last_vcn = vcn;
 		} else if (vcn != last_vcn) {
-			logError("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
-				 chapter_number, i, last_vcn, vcn);
+			log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
+				  chapter_number, i, last_vcn, vcn);
 			return UDS_CORRUPT_COMPONENT;
 		}
 
 		if (expected_list_number != page->lowest_list_number) {
-			logError("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
-				 chapter_number, i, expected_list_number,
-				 page->lowest_list_number);
+			log_error("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
+				  chapter_number, i, expected_list_number,
+				  page->lowest_list_number);
 			return UDS_CORRUPT_COMPONENT;
 		}
 		expected_list_number = page->highest_list_number + 1;
@@ -1120,15 +1120,15 @@ static int probe_chapter(struct volume *volume,
 	}
 
 	if (last_vcn == UINT64_MAX) {
-		logError("no chapter %u virtual chapter number determined",
-			 chapter_number);
+		log_error("no chapter %u virtual chapter number determined",
+			  chapter_number);
 		return UDS_CORRUPT_COMPONENT;
 	}
 	if (chapter_number != last_vcn % geometry->chapters_per_volume) {
-		logError("chapter %u vcn %llu is out of phase (%u)",
-			 chapter_number,
-			 last_vcn,
-			 geometry->chapters_per_volume);
+		log_error("chapter %u vcn %llu is out of phase (%u)",
+			  chapter_number,
+			  last_vcn,
+			  geometry->chapters_per_volume);
 		return UDS_CORRUPT_COMPONENT;
 	}
 	*virtual_chapter_number = last_vcn;
@@ -1322,8 +1322,8 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 			break;
 		}
 		if (++bad_chapters >= max_bad_chapters) {
-			logError("too many bad chapters in volume: %u",
-				 bad_chapters);
+			log_error("too many bad chapters in volume: %u",
+				  bad_chapters);
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -1448,7 +1448,7 @@ int make_volume(const struct configuration *config,
 	unsigned int volume_read_threads = get_read_threads(user_params);
 
 	if (read_queue_max_size <= volume_read_threads) {
-		logError("Number of read threads must be smaller than read queue");
+		log_error("Number of read threads must be smaller than read queue");
 		return UDS_INVALID_ARGUMENT;
 	}
 

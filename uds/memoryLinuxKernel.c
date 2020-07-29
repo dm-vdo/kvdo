@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#8 $
  */
 
 #include <linux/delay.h>
@@ -163,8 +163,8 @@ static void remove_vmalloc_block(void *ptr)
 	if (block != NULL) {
 		FREE(block);
 	} else {
-		logInfo("attempting to remove ptr %" PRIptr " not found in vmalloc list",
-			ptr);
+		log_info("attempting to remove ptr %" PRIptr " not found in vmalloc list",
+			 ptr);
 	}
 }
 
@@ -331,10 +331,10 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 
 	if (p == NULL) {
 		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
-		logError("Could not allocate %zu bytes for %s in %u msecs",
-			 size,
-			 what,
-			 duration);
+		log_error("Could not allocate %zu bytes for %s in %u msecs",
+			  size,
+			  what,
+			  duration);
 		return ENOMEM;
 	}
 	*((void **) ptr) = p;
@@ -415,9 +415,9 @@ void memory_exit(void)
 			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
 			memory_stats.vmalloc_bytes,
 			memory_stats.vmalloc_blocks);
-	logDebug("%s peak usage %zd bytes",
-		 THIS_MODULE->name,
-		 memory_stats.peak_bytes);
+	log_debug("%s peak usage %zd bytes",
+		  THIS_MODULE->name,
+		  memory_stats.peak_bytes);
 }
 
 /**********************************************************************/
@@ -442,14 +442,14 @@ void report_memory_usage()
 	uint64_t peak_usage = memory_stats.peak_bytes;
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	uint64_t total_bytes = kmalloc_bytes + vmalloc_bytes;
-	logInfo("current module memory tracking (actual allocation sizes, not requested):");
-	logInfo("  %llu bytes in %llu kmalloc blocks",
-		kmalloc_bytes,
-		kmalloc_blocks);
-	logInfo("  %llu bytes in %llu vmalloc blocks",
-		vmalloc_bytes,
-		vmalloc_blocks);
-	logInfo("  total %llu bytes, peak usage %llu bytes",
-		total_bytes,
-		peak_usage);
+	log_info("current module memory tracking (actual allocation sizes, not requested):");
+	log_info("  %llu bytes in %llu kmalloc blocks",
+		 kmalloc_bytes,
+		 kmalloc_blocks);
+	log_info("  %llu bytes in %llu vmalloc blocks",
+		 vmalloc_bytes,
+		 vmalloc_blocks);
+	log_info("  total %llu bytes, peak usage %llu bytes",
+		 total_bytes,
+		 peak_usage);
 }

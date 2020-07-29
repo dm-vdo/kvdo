@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#17 $
  */
 
 #include "indexPageMap.h"
@@ -127,9 +127,9 @@ int update_index_page_map(struct index_page_map *map,
 		// if the last_update is 0, this is likely to be normal because
 		// we are replaying the volume
 		if (map->last_update != 0) {
-			logWarning("unexpected index page map update, jumping from %llu to %llu",
-				   map->last_update,
-				   virtual_chapter_number);
+			log_warning("unexpected index page map update, jumping from %llu to %llu",
+				    map->last_update,
+				    virtual_chapter_number);
 		}
 	}
 	map->last_update = virtual_chapter_number;
@@ -376,7 +376,7 @@ static int read_index_page_map(struct read_portal *portal)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	logDebug("read index page map, last update %llu",
-		 map->last_update);
+	log_debug("read index page map, last update %llu",
+		  map->last_update);
 	return UDS_SUCCESS;
 }

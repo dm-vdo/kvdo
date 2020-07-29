@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#34 $
  */
 
 #include "workQueue.h"
@@ -664,7 +664,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			     parent_kobject,
 			     queue->common.name);
 	if (result != 0) {
-		logError("Cannot add sysfs node: %d", result);
+		log_error("Cannot add sysfs node: %d", result);
 		free_simple_work_queue(queue);
 		return result;
 	}
@@ -679,7 +679,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	result =
 		initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
 	if (result != 0) {
-		logError("Cannot initialize statistics tracking: %d", result);
+		log_error("Cannot initialize statistics tracking: %d", result);
 		free_simple_work_queue(queue);
 		return result;
 	}
@@ -775,7 +775,7 @@ int make_work_queue(const char *thread_name_prefix,
 			     parent_kobject,
 			     queue->common.name);
 	if (result != 0) {
-		logError("Cannot add sysfs node: %d", result);
+		log_error("Cannot add sysfs node: %d", result);
 		finish_work_queue(&queue->common);
 		kobject_put(&queue->common.kobj);
 		return result;
@@ -934,13 +934,13 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	} else {
 		thread_status = "running";
 	}
-	logInfo("workQ %px (%s) %u entries %llu waits, %s (%c)",
-		&queue->common,
-		queue_data.common.name,
-		get_pending_count(&queue_data),
-		queue_data.stats.waits,
-		thread_status,
-		task_state_report);
+	log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
+		 &queue->common,
+		 queue_data.common.name,
+		 get_pending_count(&queue_data),
+		 queue_data.stats.waits,
+		 thread_status,
+		 task_state_report);
 
 	log_work_item_stats(&queue_data.stats.work_item_stats);
 	log_work_queue_stats(queue);

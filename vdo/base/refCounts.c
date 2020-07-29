@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#49 $
  */
 
 #include "refCounts.h"
@@ -628,8 +628,8 @@ update_reference_count(struct ref_counts *ref_counts,
 		break;
 
 	default:
-		logError("Unknown reference count operation: %u",
-			 operation.type);
+		log_error("Unknown reference count operation: %u",
+			  operation.type);
 		enter_ref_counts_read_only_mode(ref_counts, VDO_NOT_IMPLEMENTED);
 		result = VDO_NOT_IMPLEMENTED;
 	}
@@ -1397,10 +1397,10 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		    !are_equivalent_journal_points(&block->commit_points[0],
 						   &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
-			logWarning("Torn write detected in sector %u of reference block %zu of slab %u",
-				   i,
-				   block_index,
-				   block->ref_counts->slab->slab_number);
+			log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
+				    i,
+				    block_index,
+				    block->ref_counts->slab->slab_number);
 		}
 	}
 
@@ -1547,13 +1547,13 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 void dump_ref_counts(const struct ref_counts *ref_counts)
 {
 	// Terse because there are a lot of slabs to dump and syslog is lossy.
-	logInfo("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
-		ref_counts->free_blocks,
-		ref_counts->block_count,
-		ref_counts->reference_block_count,
-		count_waiters(&ref_counts->dirty_blocks),
-		ref_counts->active_count,
-		ref_counts->slab_journal_point.sequence_number,
-		ref_counts->slab_journal_point.entry_count,
-		(ref_counts->updating_slab_summary ? " updating" : ""));
+	log_info("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
+		 ref_counts->free_blocks,
+		 ref_counts->block_count,
+		 ref_counts->reference_block_count,
+		 count_waiters(&ref_counts->dirty_blocks),
+		 ref_counts->active_count,
+		 ref_counts->slab_journal_point.sequence_number,
+		 ref_counts->slab_journal_point.entry_count,
+		 (ref_counts->updating_slab_summary ? " updating" : ""));
 }

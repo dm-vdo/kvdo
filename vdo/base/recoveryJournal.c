@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#73 $
  */
 
 #include "recoveryJournal.h"
@@ -523,7 +523,7 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 				"journal being freed has no active tail blocks");
 	} else if (!is_saved(&journal->state)
 		   && !list_empty(&journal->active_tail_blocks)) {
-		logWarning("journal being freed has uncommited entries");
+		log_warning("journal being freed has uncommited entries");
 	}
 
 	struct recovery_journal_block *block;
@@ -724,7 +724,7 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	if (!check_for_entry_space(journal, increment)) {
 		if (!increment) {
 			// There must always be room to make a decrement entry.
-			logError("No space for decrement entry in recovery journal");
+			log_error("No space for decrement entry in recovery journal");
 			enter_journal_read_only_mode(journal,
 						     VDO_RECOVERY_JOURNAL_FULL);
 		}
@@ -851,8 +851,8 @@ static void assign_entry(struct waiter *waiter, void *context)
 		break;
 
 	default:
-		logError("Invalid journal operation %u",
-			 data_vio->operation.type);
+		log_error("Invalid journal operation %u",
+			  data_vio->operation.type);
 		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
 		continue_data_vio(data_vio, VDO_NOT_IMPLEMENTED);
 		return;
@@ -1357,22 +1357,22 @@ void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 {
 	struct recovery_journal_statistics stats =
 		get_recovery_journal_statistics(journal);
-	logInfo("Recovery Journal");
-	logInfo("  block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
-		journal->block_map_head, journal->slab_journal_head,
-		journal->last_write_acknowledged, journal->tail,
-		journal->block_map_reap_head, journal->slab_journal_reap_head,
-		stats.disk_full, stats.slab_journal_commits_requested,
-		count_waiters(&journal->increment_waiters),
-		count_waiters(&journal->decrement_waiters));
-	logInfo("  entries: started=%llu written=%llu committed=%llu",
-		stats.entries.started, stats.entries.written,
-		stats.entries.committed);
-	logInfo("  blocks: started=%llu written=%llu committed=%llu",
-		stats.blocks.started, stats.blocks.written,
-		stats.blocks.committed);
+	log_info("Recovery Journal");
+	log_info("  block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
+		 journal->block_map_head, journal->slab_journal_head,
+		 journal->last_write_acknowledged, journal->tail,
+		 journal->block_map_reap_head, journal->slab_journal_reap_head,
+		 stats.disk_full, stats.slab_journal_commits_requested,
+		 count_waiters(&journal->increment_waiters),
+		 count_waiters(&journal->decrement_waiters));
+	log_info("  entries: started=%llu written=%llu committed=%llu",
+		 stats.entries.started, stats.entries.written,
+		 stats.entries.committed);
+	log_info("  blocks: started=%llu written=%llu committed=%llu",
+		 stats.blocks.started, stats.blocks.written,
+		 stats.blocks.committed);
 
-	logInfo("  active blocks:");
+	log_info("  active blocks:");
 	const struct list_head *head = &journal->active_tail_blocks;
 	struct list_head *entry;
 	list_for_each(entry, head) {

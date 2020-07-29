@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#24 $
  */
 
 #include "openChapter.h"
@@ -134,8 +134,8 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		}
 	}
 	if (overflow_count > 0) {
-		logWarning("Failed to add %d entries to chapter index",
-			   overflow_count);
+		log_warning("Failed to add %d entries to chapter index",
+			    overflow_count);
 	}
 	return UDS_SUCCESS;
 }

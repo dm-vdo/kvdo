@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#20 $
  */
 
 #include "indexZone.h"
@@ -250,12 +250,12 @@ static int announce_chapter_closed(Request *request,
 /**********************************************************************/
 int open_next_chapter(struct index_zone *zone, Request *request)
 {
-	logDebug("closing chapter %" PRIu64
-		 " of zone %d after %u entries (%u short)",
-		 zone->newest_virtual_chapter,
-		 zone->id,
-		 zone->open_chapter->size,
-		 zone->open_chapter->capacity - zone->open_chapter->size);
+	log_debug("closing chapter %" PRIu64
+		  " of zone %d after %u entries (%u short)",
+		  zone->newest_virtual_chapter,
+		  zone->id,
+		  zone->open_chapter->size,
+		  zone->open_chapter->capacity - zone->open_chapter->size);
 
 	int result = swap_open_chapter(zone);
 	if (result != UDS_SUCCESS) {
@@ -265,7 +265,7 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 	uint64_t closed_chapter = zone->newest_virtual_chapter++;
 	result = reap_oldest_chapter(zone);
 	if (result != UDS_SUCCESS) {
-		return logUnrecoverable(result, "reap_oldest_chapter failed");
+		return log_unrecoverable(result, "reap_oldest_chapter failed");
 	}
 
 	reset_open_chapter(zone->open_chapter);

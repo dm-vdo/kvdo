@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#74 $
  */
 
 #include "slabDepot.h"
@@ -836,7 +836,7 @@ void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 		// We're the last!
 		if (compareAndSwap32(depot->vdo_state, VDO_RECOVERING,
 				     VDO_DIRTY)) {
-			logInfo("Exiting recovery mode");
+			log_info("Exiting recovery mode");
 			return;
 		}
 
@@ -847,7 +847,7 @@ void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 		 * yet know about.
 		 */
 		if (atomicLoad32(depot->vdo_state) == VDO_DIRTY) {
-			logInfo("VDO commencing normal operation");
+			log_info("VDO commencing normal operation");
 		}
 	}
 }
@@ -964,11 +964,11 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
 /**********************************************************************/
 void dump_slab_depot(const struct slab_depot *depot)
 {
-	logInfo("vdo slab depot");
-	logInfo("  zone_count=%u old_zone_count=%u slabCount=%u active_release_request=%llu new_release_request=%llu",
-		(unsigned int) depot->zone_count,
-		(unsigned int) depot->old_zone_count,
-		depot->slab_count,
-		depot->active_release_request,
-		depot->new_release_request);
+	log_info("vdo slab depot");
+	log_info("  zone_count=%u old_zone_count=%u slabCount=%u active_release_request=%llu new_release_request=%llu",
+		 (unsigned int) depot->zone_count,
+		 (unsigned int) depot->old_zone_count,
+		 depot->slab_count,
+		 depot->active_release_request,
+		 depot->new_release_request);
 }

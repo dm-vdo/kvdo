@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#10 $
  */
 
 #include "sysfs.h"
@@ -388,10 +388,10 @@ int vdo_init_sysfs(struct kobject *module_object)
 	int result = kobject_add(module_object, NULL, THIS_MODULE->name);
 
 	if (result < 0) {
-		logError("kobject_add failed with status %d", -result);
+		log_error("kobject_add failed with status %d", -result);
 		kobject_put(module_object);
 	}
-	logDebug("added sysfs objects");
+	log_debug("added sysfs objects");
 	return result;
 };
 

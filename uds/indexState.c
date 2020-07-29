@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#14 $
  */
 
 #include "indexState.h"
@@ -453,7 +453,7 @@ int abort_index_state_checkpoint(struct index_state *state)
 					       "not saving the index state");
 	}
 
-	logError("aborting index state checkpoint");
+	log_error("aborting index state checkpoint");
 
 	int result = UDS_SUCCESS;
 	unsigned int i;

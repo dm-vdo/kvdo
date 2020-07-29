@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#12 $
  */
 
 #include "workItemStats.h"
@@ -372,22 +372,22 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 						    &min,
 						    &mean,
 						    &max);
-			logInfo("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
-				function_ids->priorities[i],
-				pending,
-				enqueued,
-				processed,
-				work,
-				min,
-				mean,
-				max);
+			log_info("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
+				 function_ids->priorities[i],
+				 pending,
+				 enqueued,
+				 processed,
+				 work,
+				 min,
+				 mean,
+				 max);
 		} else {
-			logInfo("  priority %d: %u pending %llu enqueued %llu processed %s",
-				function_ids->priorities[i],
-				pending,
-				enqueued,
-				processed,
-				work);
+			log_info("  priority %d: %u pending %llu enqueued %llu processed %s",
+				 function_ids->priorities[i],
+				 pending,
+				 enqueued,
+				 processed,
+				 work);
 		}
 	}
 	if (i == NUM_WORK_QUEUE_ITEM_STATS) {
@@ -397,12 +397,12 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 		if (enqueued > 0) {
 			total_enqueued += enqueued;
 			total_processed += processed;
-			logInfo("  ... others: %llu enqueued %llu processed",
-				enqueued,
-				processed);
+			log_info("  ... others: %llu enqueued %llu processed",
+				 enqueued,
+				 processed);
 		}
 	}
-	logInfo("  total: %llu enqueued %llu processed",
-		total_enqueued,
-		total_processed);
+	log_info("  total: %llu enqueued %llu processed",
+		 total_enqueued,
+		 total_processed);
 }

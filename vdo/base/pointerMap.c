@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#8 $
  */
 
 /**
@@ -351,11 +351,11 @@ static int resize_buckets(struct pointer_map *map)
 
 	// Re-initialize the map to be empty and 50% larger.
 	size_t new_capacity = map->capacity / 2 * 3;
-	logInfo("%s: attempting resize from %zu to %zu, current size=%zu",
-		__func__,
-		map->capacity,
-		new_capacity,
-		map->size);
+	log_info("%s: attempting resize from %zu to %zu, current size=%zu",
+		 __func__,
+		 map->capacity,
+		 new_capacity,
+		 map->size);
 	int result = allocate_buckets(map, new_capacity);
 	if (result != UDS_SUCCESS) {
 		*map = old_map;

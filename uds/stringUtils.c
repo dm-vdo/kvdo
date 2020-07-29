@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#3 $
  */
 
 #include "stringUtils.h"
@@ -45,7 +45,7 @@ int alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 		va_end(args);
 	}
 	if ((result != UDS_SUCCESS) && (what != NULL)) {
-		logError("cannot allocate %s", what);
+		log_error("cannot allocate %s", what);
 	}
 	return result;
 }

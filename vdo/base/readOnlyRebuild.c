@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#39 $
  */
 
 #include "readOnlyRebuild.h"
@@ -165,7 +165,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 						 rebuild->tail,
 						 rebuild->logical_blocks_used,
 						 rebuild->block_map_data_blocks);
-	logInfo("Read-only rebuild complete");
+	log_info("Read-only rebuild complete");
 	complete_rebuild(completion);
 }
 
@@ -176,7 +176,7 @@ static void finish_rebuild(struct vdo_completion *completion)
  **/
 static void abort_rebuild(struct vdo_completion *completion)
 {
-	logInfo("Read-only rebuild aborted");
+	log_info("Read-only rebuild aborted");
 	complete_rebuild(completion);
 }
 
@@ -216,7 +216,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 		vdo->states.vdo.complete_recoveries++;
 	}
 
-	logInfo("Saving rebuilt state");
+	log_info("Saving rebuilt state");
 	prepare_to_finish_parent(completion, &rebuild->completion);
 	drain_slab_depot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
 }
@@ -387,7 +387,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
 
-	logInfo("Finished reading recovery journal");
+	log_info("Finished reading recovery journal");
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	bool found_entries = find_head_and_tail(vdo->recovery_journal,
@@ -442,9 +442,9 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
 	// Note: These messages must be recognizable by Permabit::VDODeviceBase.
 	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
-		logWarning("Rebuilding reference counts for upgrade");
+		log_warning("Rebuilding reference counts for upgrade");
 	} else {
-		logWarning("Rebuilding reference counts to clear read-only mode");
+		log_warning("Rebuilding reference counts to clear read-only mode");
 		vdo->states.vdo.read_only_recoveries++;
 	}
 

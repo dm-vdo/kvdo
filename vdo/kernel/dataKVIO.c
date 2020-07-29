@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#72 $
  */
 
 #include "dataKVIO.h"
@@ -306,7 +306,7 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 						   &fragment_offset,
 						   &fragment_size);
 	if (result != VDO_SUCCESS) {
-		logDebug("%s: frag err %d", __func__, result);
+		log_debug("%s: frag err %d", __func__, result);
 		read_block->status = result;
 		read_block->callback(data_kvio);
 		return;
@@ -321,7 +321,7 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 	if (size == VDO_BLOCK_SIZE) {
 		read_block->data = data_kvio->scratch_block;
 	} else {
-		logDebug("%s: lz4 error", __func__);
+		log_debug("%s: lz4 error", __func__);
 		read_block->status = VDO_INVALID_FRAGMENT;
 	}
 
@@ -872,7 +872,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	int result = kvdo_create_kvio_from_bio(layer, bio, arrival_time, &data_kvio);
 
 	if (unlikely(result != VDO_SUCCESS)) {
-		logInfo("%s: kvio allocation failure", __func__);
+		log_info("%s: kvio allocation failure", __func__);
 		if (has_discard_permit) {
 			limiter_release(&layer->discard_limiter);
 		}
@@ -1124,20 +1124,20 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct data_vio *data_vio = waiter_as_data_vio(first);
 
-	logInfo("      %s is locked. Waited on by: VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-		wait_on, data_vio, get_data_vio_allocation(data_vio),
-		data_vio->logical.lbn, data_vio->duplicate.pbn,
-		get_operation_name(data_vio));
+	log_info("      %s is locked. Waited on by: VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		 wait_on, data_vio, get_data_vio_allocation(data_vio),
+		 data_vio->logical.lbn, data_vio->duplicate.pbn,
+		 get_operation_name(data_vio));
 
 	struct waiter *waiter;
 
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		logInfo("     ... and : VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-			data_vio, get_data_vio_allocation(data_vio),
-			data_vio->logical.lbn, data_vio->duplicate.pbn,
-			get_operation_name(data_vio));
+		log_info("     ... and : VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+			 data_vio, get_data_vio_allocation(data_vio),
+			 data_vio->logical.lbn, data_vio->duplicate.pbn,
+			 get_operation_name(data_vio));
 	}
 }
 
@@ -1248,10 +1248,10 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
-	logInfo("  kvio %px %s%s %s %s%s", data_kvio,
-		vio_block_number_dump_buffer, vio_flush_generation_buffer,
-		get_operation_name(data_vio), vio_work_item_dump_buffer,
-		flags_dump_buffer);
+	log_info("  kvio %px %s%s %s %s%s", data_kvio,
+		 vio_block_number_dump_buffer, vio_flush_generation_buffer,
+		 get_operation_name(data_vio), vio_work_item_dump_buffer,
+		 flags_dump_buffer);
 	// might want info on: wantAlbireoAnswer / operation / status
 	// might want info on: bio / bio_to_submit / bios_merged
 

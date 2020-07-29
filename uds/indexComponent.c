@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#12 $
  */
 
 #include "indexComponent.h"
@@ -616,9 +616,9 @@ int finish_index_component_zone_save(struct index_component *component,
 			return result;
 		}
 		if (!done) {
-			logWarning("finish incremental save did not complete for %s zone %u",
-				   component->info->name,
-				   zone);
+			log_warning("finish incremental save did not complete for %s zone %u",
+				    component->info->name,
+				    zone);
 			return UDS_CHECKPOINT_INCOMPLETE;
 		}
 		wz->phase = IWC_IDLE;
@@ -649,9 +649,9 @@ int finish_index_component_incremental_save(struct index_component *component)
 				return result;
 			}
 			if (!done) {
-				logWarning("finishing incremental save did not complete for %s zone %u",
-					   component->info->name,
-					   zone);
+				log_warning("finishing incremental save did not complete for %s zone %u",
+					    component->info->name,
+					    zone);
 				return UDS_UNEXPECTED_RESULT;
 			}
 			wz->phase = IWC_IDLE;

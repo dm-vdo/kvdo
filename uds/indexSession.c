@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#21 $
  */
 
 #include "indexSession.h"
@@ -396,7 +396,7 @@ int save_and_free_index(struct uds_index_session *index_session)
 		unlock_mutex(&index_session->request_mutex);
 	}
 
-	logDebug("Closed index");
+	log_debug("Closed index");
 	return result;
 }
 
@@ -429,7 +429,7 @@ int uds_close_index(struct uds_index_session *index_session)
 		return result;
 	}
 
-	logDebug("Closing index");
+	log_debug("Closing index");
 	wait_for_no_requests_in_progress(index_session);
 	result = save_and_free_index(index_session);
 
@@ -443,7 +443,7 @@ int uds_close_index(struct uds_index_session *index_session)
 /**********************************************************************/
 int uds_destroy_index_session(struct uds_index_session *index_session)
 {
-	logDebug("Destroying index session");
+	log_debug("Destroying index session");
 
 	bool load_pending = false;
 	lock_mutex(&index_session->request_mutex);
@@ -492,7 +492,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	destroy_mutex(&index_session->load_context.mutex);
 	destroy_cond(&index_session->request_cond);
 	destroy_mutex(&index_session->request_mutex);
-	logDebug("Destroyed index session");
+	log_debug("Destroyed index session");
 	FREE(index_session);
 	return result;
 }

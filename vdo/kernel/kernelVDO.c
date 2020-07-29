@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#55 $
  */
 
 /*
@@ -199,12 +199,12 @@ int suspend_kvdo(struct kvdo *kvdo)
 		char error_name[80] = "";
 		char error_message[ERRBUF_SIZE] = "";
 
-		logError("%s: Suspend device failed %d (%s: %s)",
-			 __func__, result,
-			 stringErrorName(result, error_name,
-					 sizeof(error_name)),
-			 stringError(result, error_message,
-				     sizeof(error_message)));
+		log_error("%s: Suspend device failed %d (%s: %s)",
+			  __func__, result,
+			  stringErrorName(result, error_name,
+					  sizeof(error_name)),
+			  stringError(result, error_message,
+				      sizeof(error_message)));
 		return result;
 	}
 
@@ -506,7 +506,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, block_count_t physical_count)
 	int result = perform_grow_physical(kvdo->vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
-		logError("resize operation failed, result = %d", result);
+		log_error("resize operation failed, result = %d", result);
 		return result;
 	}
 
@@ -531,7 +531,8 @@ int kvdo_resize_logical(struct kvdo *kvdo, block_count_t logical_count)
 	int result = perform_grow_logical(kvdo->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
-		logError("grow logical operation failed, result = %d", result);
+		log_error("grow logical operation failed, result = %d",
+			  result);
 	}
 
 	return result;

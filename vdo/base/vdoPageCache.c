@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#38 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -256,8 +256,8 @@ static void report_cache_pressure(struct vdo_page_cache *cache)
 	relaxedAdd64(&cache->stats.cache_pressure, 1);
 	if (cache->waiter_count > cache->page_count) {
 		if ((cache->pressure_report % LOG_INTERVAL) == 0) {
-			logInfo("page cache pressure %llu",
-				relaxedLoad64(&cache->stats.cache_pressure));
+			log_info("page cache pressure %llu",
+				 relaxedLoad64(&cache->stats.cache_pressure));
 		}
 
 		if (++cache->pressure_report >= DISPLAY_INTERVAL) {
@@ -958,7 +958,7 @@ static void allocate_free_page(struct page_info *info)
 
 	if (!has_waiters(&cache->free_waiters)) {
 		if (relaxedLoad64(&cache->stats.cache_pressure) > 0) {
-			logInfo("page cache pressure relieved");
+			log_info("page cache pressure relieved");
 			relaxedStore64(&cache->stats.cache_pressure, 0);
 		}
 		return;
@@ -1097,8 +1097,8 @@ static void handle_page_write_error(struct vdo_completion *completion)
 					      DEFAULT_RATELIMIT_BURST);
 
 		if (__ratelimit(&errorLimiter)) {
-			logError("failed to write block map page %llu",
-				 info->pbn);
+			log_error("failed to write block map page %llu",
+				  info->pbn);
 		}
 	}
 

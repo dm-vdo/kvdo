@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.c#5 $
  */
 
 #include "config.h"
@@ -43,51 +43,51 @@ bool are_uds_configurations_equal(struct uds_configuration *a,
 {
 	bool result = true;
 	if (a->record_pages_per_chapter != b->record_pages_per_chapter) {
-		logError("Record pages per chapter (%u) does not match (%u)",
-			 a->record_pages_per_chapter,
-			 b->record_pages_per_chapter);
+		log_error("Record pages per chapter (%u) does not match (%u)",
+			  a->record_pages_per_chapter,
+			  b->record_pages_per_chapter);
 		result = false;
 	}
 	if (a->chapters_per_volume != b->chapters_per_volume) {
-		logError("Chapter count (%u) does not match (%u)",
-			 a->chapters_per_volume,
-			 b->chapters_per_volume);
+		log_error("Chapter count (%u) does not match (%u)",
+			  a->chapters_per_volume,
+			  b->chapters_per_volume);
 		result = false;
 	}
 	if (a->sparse_chapters_per_volume != b->sparse_chapters_per_volume) {
-		logError("Sparse chapter count (%u) does not match (%u)",
-			 a->sparse_chapters_per_volume,
-			 b->sparse_chapters_per_volume);
+		log_error("Sparse chapter count (%u) does not match (%u)",
+			  a->sparse_chapters_per_volume,
+			  b->sparse_chapters_per_volume);
 		result = false;
 	}
 	if (a->cache_chapters != b->cache_chapters) {
-		logError("Cache size (%u) does not match (%u)",
-			 a->cache_chapters,
-			 b->cache_chapters);
+		log_error("Cache size (%u) does not match (%u)",
+			  a->cache_chapters,
+			  b->cache_chapters);
 		result = false;
 	}
 	if (a->master_index_mean_delta != b->master_index_mean_delta) {
-		logError("Master index mean delta (%u) does not match (%u)",
-			 a->master_index_mean_delta,
-			 b->master_index_mean_delta);
+		log_error("Master index mean delta (%u) does not match (%u)",
+			  a->master_index_mean_delta,
+			  b->master_index_mean_delta);
 		result = false;
 	}
 	if (a->bytes_per_page != b->bytes_per_page) {
-		logError("Bytes per page value (%u) does not match (%u)",
-			 a->bytes_per_page,
-			 b->bytes_per_page);
+		log_error("Bytes per page value (%u) does not match (%u)",
+			  a->bytes_per_page,
+			  b->bytes_per_page);
 		result = false;
 	}
 	if (a->sparse_sample_rate != b->sparse_sample_rate) {
-		logError("Sparse sample rate (%u) does not match (%u)",
-			 a->sparse_sample_rate,
-			 b->sparse_sample_rate);
+		log_error("Sparse sample rate (%u) does not match (%u)",
+			  a->sparse_sample_rate,
+			  b->sparse_sample_rate);
 		result = false;
 	}
 	if (a->nonce != b->nonce) {
-		logError("Nonce (%llu) does not match (%llu)",
-			 a->nonce,
-			 b->nonce);
+		log_error("Nonce (%llu) does not match (%llu)",
+			  a->nonce,
+			  b->nonce);
 		result = false;
 	}
 	return result;
@@ -96,18 +96,18 @@ bool are_uds_configurations_equal(struct uds_configuration *a,
 /**********************************************************************/
 void log_uds_configuration(struct uds_configuration *conf)
 {
-	logDebug("Configuration:");
-	logDebug("  Record pages per chapter:   %10u",
-		 conf->record_pages_per_chapter);
-	logDebug("  Chapters per volume:        %10u",
-		 conf->chapters_per_volume);
-	logDebug("  Sparse chapters per volume: %10u",
-		 conf->sparse_chapters_per_volume);
-	logDebug("  Cache size (chapters):      %10u", conf->cache_chapters);
-	logDebug("  Master index mean delta:    %10u",
-		 conf->master_index_mean_delta);
-	logDebug("  Bytes per page:             %10u", conf->bytes_per_page);
-	logDebug("  Sparse sample rate:         %10u",
-		 conf->sparse_sample_rate);
-	logDebug("  Nonce:                      %llu", conf->nonce);
+	log_debug("Configuration:");
+	log_debug("  Record pages per chapter:   %10u",
+		  conf->record_pages_per_chapter);
+	log_debug("  Chapters per volume:        %10u",
+		  conf->chapters_per_volume);
+	log_debug("  Sparse chapters per volume: %10u",
+		  conf->sparse_chapters_per_volume);
+	log_debug("  Cache size (chapters):      %10u", conf->cache_chapters);
+	log_debug("  Master index mean delta:    %10u",
+		  conf->master_index_mean_delta);
+	log_debug("  Bytes per page:             %10u", conf->bytes_per_page);
+	log_debug("  Sparse sample rate:         %10u",
+		  conf->sparse_sample_rate);
+	log_debug("  Nonce:                      %llu", conf->nonce);
 }

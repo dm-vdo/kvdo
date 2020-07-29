@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#20 $
  */
 
 #include "chapterWriter.h"
@@ -63,7 +63,7 @@ struct chapter_writer {
 static void close_chapters(void *arg)
 {
 	struct chapter_writer *writer = arg;
-	logDebug("chapter writer starting");
+	log_debug("chapter writer starting");
 	lock_mutex(&writer->mutex);
 	for (;;) {
 		while (writer->zones_to_write < writer->index->zone_count) {
@@ -72,7 +72,7 @@ static void close_chapters(void *arg)
 				// zones are in the same open chapter, so we
 				// can exit now.
 				unlock_mutex(&writer->mutex);
-				logDebug("chapter writer stopping");
+				log_debug("chapter writer stopping");
 				return;
 			}
 			wait_cond(&writer->cond, &writer->mutex);
@@ -99,7 +99,7 @@ static void close_chapters(void *arg)
 			                             &OPEN_CHAPTER_INFO);
 			int result = discard_index_component(oc);
 			if (result == UDS_SUCCESS) {
-				logDebug("Discarding saved open chapter");
+				log_debug("Discarding saved open chapter");
 			}
 		}
 
@@ -239,7 +239,7 @@ int finish_previous_chapter(struct chapter_writer *writer,
 	unlock_mutex(&writer->mutex);
 
 	if (result != UDS_SUCCESS) {
-		return logUnrecoverable(
+		return log_unrecoverable(
 			result, "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;
@@ -277,7 +277,7 @@ int stop_chapter_writer(struct chapter_writer *writer)
 	}
 
 	if (result != UDS_SUCCESS) {
-		return logUnrecoverable(
+		return log_unrecoverable(
 			result, "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;

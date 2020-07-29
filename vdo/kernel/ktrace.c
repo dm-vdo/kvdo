@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#20 $
  */
 
 #include "ktrace.h"
@@ -90,7 +90,7 @@ static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
 	int result = ALLOCATE(1, struct trace, __func__, &trace);
 
 	if (result != VDO_SUCCESS) {
-		logError("trace data allocation failure %d", result);
+		log_error("trace data allocation failure %d", result);
 		return result;
 	}
 
@@ -165,12 +165,12 @@ void log_kvio_trace(struct kvio *kvio)
 			    sizeof(trace_logging_state.buffer), &trace_len);
 
 		if (is_metadata(kvio)) {
-			logInfo("finishing kvio %s meta @%px %s",
-				(is_write_vio(kvio->vio) ? "read" : "write"),
-				kvio, trace_logging_state.buffer);
+			log_info("finishing kvio %s meta @%px %s",
+				 (is_write_vio(kvio->vio) ? "read" : "write"),
+				 kvio, trace_logging_state.buffer);
 		} else if (is_compressed_writer(kvio)) {
-			logInfo("finishing kvio write comp @%px %s",
-				kvio, trace_logging_state.buffer);
+			log_info("finishing kvio write comp @%px %s",
+				 kvio, trace_logging_state.buffer);
 		} else {
 			const char *dupe_label = "";
 
@@ -188,19 +188,19 @@ void log_kvio_trace(struct kvio *kvio)
 				}
 			}
 
-			logInfo("finishing kvio %s data %s@%px %.*s",
-				(is_write_vio(kvio->vio) ? "read" : "write"),
-				dupe_label,
-				kvio,
-				TRACE_LOG_MAX,
-				trace_logging_state.buffer);
+			log_info("finishing kvio %s data %s@%px %.*s",
+				 (is_write_vio(kvio->vio) ? "read" : "write"),
+				 dupe_label,
+				 kvio,
+				 TRACE_LOG_MAX,
+				 trace_logging_state.buffer);
 			char *buf = trace_logging_state.buffer;
 
 			while (trace_len > TRACE_LOG_MAX) {
 				trace_len -= TRACE_LOG_MAX;
 				buf += TRACE_LOG_MAX;
-				logInfo("more kvio %px path: %.*s",
-					kvio, TRACE_LOG_MAX, buf);
+				log_info("more kvio %px path: %.*s",
+					 kvio, TRACE_LOG_MAX, buf);
 			}
 		}
 	}
