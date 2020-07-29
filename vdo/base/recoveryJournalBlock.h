@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#19 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -78,23 +78,7 @@ struct recovery_journal_block {
 static inline struct recovery_journal_block *
 block_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct recovery_journal_block, list_entry) == 0);
-	return (struct recovery_journal_block *) entry;
-}
-
-/**
- * Return the block associated with a waiter
- *
- * @param waiter  The waiter to recast as a block
- *
- * @return The block
- **/
-static inline struct recovery_journal_block *
-block_from_waiter(struct waiter *waiter)
-{
-	return (struct recovery_journal_block *)
-		((uintptr_t) waiter - offsetof(struct recovery_journal_block,
-					       write_waiter));
+	return container_of(entry, struct recovery_journal_block, list_entry);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#74 $
  */
 
 #include "recoveryJournal.h"
@@ -1089,7 +1089,10 @@ static void handle_write_error(struct vdo_completion *completion)
 static void write_block(struct waiter *waiter,
 			void *context __attribute__((unused)))
 {
-	struct recovery_journal_block *block = block_from_waiter(waiter);
+	struct recovery_journal_block *block
+		= container_of(waiter, struct recovery_journal_block,
+			       write_waiter);
+
 	if (is_read_only(block->journal->read_only_notifier)) {
 		return;
 	}
