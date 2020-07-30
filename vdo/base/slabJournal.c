@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#66 $
  */
 
 #include "slabJournalInternals.h"
@@ -33,36 +33,6 @@
 #include "slabDepot.h"
 #include "slabSummary.h"
 
-/**
- * Return the slab journal from the resource waiter.
- *
- * @param waiter  The waiter
- *
- * @return The slab journal
- **/
-static inline struct slab_journal * __must_check
-slab_journal_from_resource_waiter(struct waiter *waiter)
-{
-	STATIC_ASSERT(offsetof(struct slab_journal, resource_waiter) == 0);
-	return (struct slab_journal *) waiter;
-}
-
-/**
- * Return the slab journal from the flush waiter.
- *
- * @param waiter  The waiter
- *
- * @return The slab journal
- **/
-static inline struct slab_journal * __must_check
-slab_journal_from_flush_waiter(struct waiter *waiter)
-{
-	if (waiter == NULL) {
-		return NULL;
-	}
-	return container_of(waiter, struct slab_journal, flush_waiter);
-}
-
 /**********************************************************************/
 struct slab_journal *slab_journal_from_dirty_entry(struct list_head *entry)
 {
@@ -70,22 +40,6 @@ struct slab_journal *slab_journal_from_dirty_entry(struct list_head *entry)
 		return NULL;
 	}
 	return list_entry(entry, struct slab_journal, dirty_entry);
-}
-
-/**
- * Return the slab journal from the slab summary waiter.
- *
- * @param waiter  The waiter
- *
- * @return The slab journal
- **/
-static inline struct slab_journal * __must_check
-slab_journal_from_slab_summary_waiter(struct waiter *waiter)
-{
-	if (waiter == NULL) {
-		return NULL;
-	}
-	return container_of(waiter, struct slab_journal, slab_summary_waiter);
 }
 
 /**
@@ -427,7 +381,8 @@ static void handle_flush_error(struct vdo_completion *completion)
  **/
 static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 {
-	struct slab_journal *journal = slab_journal_from_flush_waiter(waiter);
+	struct slab_journal *journal =
+		container_of(waiter, struct slab_journal, flush_waiter);
 	struct vio_pool_entry *entry = vio_context;
 	struct vio *vio = entry->vio;
 
@@ -526,7 +481,7 @@ static void reap_slab_journal(struct slab_journal *journal)
 static void release_journal_locks(struct waiter *waiter, void *context)
 {
 	struct slab_journal *journal =
-		slab_journal_from_slab_summary_waiter(waiter);
+		container_of(waiter, struct slab_journal, slab_summary_waiter);
 	int result = *((int *)context);
 	if (result != VDO_SUCCESS) {
 		if (result != VDO_READ_ONLY) {
@@ -696,7 +651,8 @@ static void complete_write(struct vdo_completion *completion)
  **/
 static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 {
-	struct slab_journal *journal = slab_journal_from_resource_waiter(waiter);
+	struct slab_journal *journal =
+		container_of(waiter, struct slab_journal, resource_waiter);
 	struct vio_pool_entry *entry = vio_context;
 	struct slab_journal_block_header *header = &journal->tail_header;
 
@@ -1299,7 +1255,8 @@ static void set_decoded_state(struct vdo_completion *completion)
  **/
 static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 {
-	struct slab_journal *journal = slab_journal_from_resource_waiter(waiter);
+	struct slab_journal *journal =
+		container_of(waiter, struct slab_journal, resource_waiter);
 	struct vdo_slab *slab = journal->slab;
 	struct vio_pool_entry *entry = vio_context;
 	TailBlockOffset last_commit_point =
