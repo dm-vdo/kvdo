@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#68 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -77,8 +77,7 @@ struct missing_decref {
 __attribute__((warn_unused_result)) static inline struct missing_decref *
 as_missing_decref(struct waiter *waiter)
 {
-	STATIC_ASSERT(offsetof(struct missing_decref, waiter) == 0);
-	return (struct missing_decref *) waiter;
+	return container_of(waiter, struct missing_decref, waiter);
 }
 
 /**
