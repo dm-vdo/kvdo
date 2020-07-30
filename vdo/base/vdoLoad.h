@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#8 $
  */
 
 #ifndef VDO_LOAD_H
 #define VDO_LOAD_H
 
-#include "volumeGeometry.h"
 #include "types.h"
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#80 $
  */
 
 /*
@@ -31,7 +31,6 @@
 
 #include "adminCompletion.h"
 #include "blockMap.h"
-#include "extent.h"
 #include "hashZone.h"
 #include "header.h"
 #include "logicalZone.h"
@@ -50,8 +49,6 @@
 #include "threadConfig.h"
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
-#include "vioWrite.h"
-#include "volumeGeometry.h"
 
 /**********************************************************************/
 int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)

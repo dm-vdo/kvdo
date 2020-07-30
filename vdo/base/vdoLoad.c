@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#52 $
  */
 
 #include "vdoLoad.h"
@@ -42,7 +42,6 @@
 #include "vdoDecode.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
-#include "volumeGeometry.h"
 
 /**
  * Extract the vdo from an AdminCompletion, checking that the current operation
