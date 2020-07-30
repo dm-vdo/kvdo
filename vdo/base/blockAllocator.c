@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#84 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -552,6 +552,20 @@ static void swap_slab_statuses(void *item1, void *item2)
 }
 
 /**
+ * Convert a generic vdo_completion to the block_allocator containing it.
+ *
+ * @param completion  The completion to convert
+ *
+ * @return The block allocator containing the completion
+ **/
+static struct block_allocator *
+as_block_allocator(struct vdo_completion *completion)
+{
+	assert_completion_type(completion->type, BLOCK_ALLOCATOR_COMPLETION);
+	return container_of(completion, struct block_allocator, completion);
+}
+
+/**
  * Inform the allocator that a slab action has finished on some slab. This
  * callback is registered in applyToSlabs().
  *
@@ -559,8 +573,7 @@ static void swap_slab_statuses(void *item1, void *item2)
  **/
 static void slab_action_callback(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator =
-		container_of(completion, struct block_allocator, completion);
+	struct block_allocator *allocator = as_block_allocator(completion);
 	struct slab_actor *actor = &allocator->slab_actor;
 	if (--actor->slab_action_count == 0) {
 		actor->callback(completion);
@@ -577,8 +590,7 @@ static void slab_action_callback(struct vdo_completion *completion)
  **/
 static void handle_operation_error(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator =
-		(struct block_allocator *) completion;
+	struct block_allocator *allocator = as_block_allocator(completion);
 	set_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
 }
@@ -631,8 +643,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
  **/
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator =
-		(struct block_allocator *) completion;
+	struct block_allocator *allocator = as_block_allocator(completion);
 	if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			get_current_action_context(allocator->depot->action_manager);
@@ -793,8 +804,7 @@ void register_new_slabs_for_allocator(void *context,
  **/
 static void do_drain_step(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator =
-		(struct block_allocator *) completion;
+	struct block_allocator *allocator = as_block_allocator(completion);
 	prepare_for_requeue(&allocator->completion,
 			    do_drain_step,
 			    handle_operation_error,
@@ -861,8 +871,7 @@ void drain_block_allocator(void *context,
  **/
 static void do_resume_step(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator =
-		(struct block_allocator *) completion;
+	struct block_allocator *allocator = as_block_allocator(completion);
 	prepare_for_requeue(&allocator->completion,
 			    do_resume_step,
 			    handle_operation_error,
