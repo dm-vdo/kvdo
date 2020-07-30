@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#12 $
  */
 
 #include "indexStateData.h"
@@ -75,10 +75,10 @@ static int read_index_state_data(struct read_portal *portal)
 	}
 
 	if (file_version.signature != -1 || file_version.version_id != 301) {
-		return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
-					       "index state version %d,%d is unsupported",
-					       file_version.signature,
-					       file_version.version_id);
+		return log_error_strerror(UDS_UNSUPPORTED_VERSION,
+					  "index state version %d,%d is unsupported",
+					  file_version.signature,
+					  file_version.version_id);
 	}
 
 	struct index_state_data301 state;

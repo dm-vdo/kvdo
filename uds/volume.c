@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#31 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#32 $
  */
 
 #include "volume.h"
@@ -195,9 +195,9 @@ static int init_chapter_index_page(const struct volume *volume,
 		return result;
 	}
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "Reading chapter index page for chapter %u page %u",
-					       chapter, index_page_number);
+		return log_error_strerror(result,
+					  "Reading chapter index page for chapter %u page %u",
+					  chapter, index_page_number);
 	}
 
 	struct index_page_bounds bounds;
@@ -912,8 +912,8 @@ int write_index_pages(struct volume *volume,
 							index_page_number,
 						     &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to prepare index page");
+			return log_warning_strerror(result,
+						    "failed to prepare index page");
 		}
 
 		// Pack as many delta lists into the index page as will fit.
@@ -926,16 +926,16 @@ int write_index_pages(struct volume *volume,
 						      last_page,
 						      &lists_packed);
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to pack index page");
+			return log_warning_strerror(result,
+						    "failed to pack index page");
 		}
 
 		result = write_volume_page(&volume->volume_store,
 					   physical_page + index_page_number,
 					   &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to write chapter index page");
+			return log_warning_strerror(result,
+						    "failed to write chapter index page");
 		}
 
 		if (pages != NULL) {
@@ -959,8 +959,8 @@ int write_index_pages(struct volume *volume,
 					       index_page_number,
 					       delta_list_number - 1);
 		if (result != UDS_SUCCESS) {
-			return logErrorWithStringError(result,
-						       "failed to update index page map");
+			return log_error_strerror(result,
+						  "failed to update index page map");
 		}
 
 		// Donate the page data for the index page to the page cache.
@@ -999,8 +999,8 @@ int write_record_pages(struct volume *volume,
 							record_page_number,
 						     &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to prepare record page");
+			return log_warning_strerror(result,
+						    "failed to prepare record page");
 		}
 
 		// Sort the next page of records and copy them to the record
@@ -1008,9 +1008,9 @@ int write_record_pages(struct volume *volume,
 		result = encode_record_page(volume, next_record,
 					    get_page_data(&volume->scratch_page));
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to encode record page %u",
-							 record_page_number);
+			return log_warning_strerror(result,
+						    "failed to encode record page %u",
+						    record_page_number);
 		}
 		next_record += geometry->records_per_page;
 
@@ -1018,8 +1018,8 @@ int write_record_pages(struct volume *volume,
 					   physical_page + record_page_number,
 					   &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return logWarningWithStringError(result,
-							 "failed to write chapter record page");
+			return log_warning_strerror(result,
+						    "failed to write chapter record page");
 		}
 
 		if (pages != NULL) {
@@ -1180,8 +1180,8 @@ static int find_real_end_of_volume(struct volume *volume,
 				span *= 2;
 			}
 		} else {
-			return logErrorWithStringError(result,
-						       "cannot determine end of volume");
+			return log_error_strerror(result,
+						  "cannot determine end of volume");
 		}
 	}
 
@@ -1202,8 +1202,8 @@ int find_volume_chapter_boundaries(struct volume *volume,
 	int result =
 		find_real_end_of_volume(volume, chapter_limit, &chapter_limit);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "cannot find end of volume");
+		return log_error_strerror(result,
+					  "cannot find end of volume");
 	}
 
 	if (chapter_limit == 0) {
@@ -1361,8 +1361,8 @@ static int __must_check allocate_volume(const struct configuration *config,
 	result = copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
-		return logWarningWithStringError(result,
-						 "failed to allocate geometry: error");
+		return log_warning_strerror(result,
+					    "failed to allocate geometry: error");
 	}
 
 	// Need a buffer for each entry in the page cache

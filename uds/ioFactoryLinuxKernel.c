@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#7 $
  */
 
 #include <linux/blkdev.h>
@@ -55,8 +55,8 @@ int make_io_factory(const char *path, struct io_factory **factory_ptr)
 		bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
 	}
 	if (IS_ERR(bdev)) {
-		logErrorWithStringError(
-			-PTR_ERR(bdev), "%s is not a block device", path);
+		log_error_strerror(-PTR_ERR(bdev),
+				   "%s is not a block device", path);
 		return UDS_INVALID_ARGUMENT;
 	}
 
@@ -97,13 +97,13 @@ int make_bufio(struct io_factory *factory,
 	       struct dm_bufio_client **client_ptr)
 {
 	if (offset % SECTOR_SIZE != 0) {
-		return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
-					       "offset %zd not multiple of %d",
-					       offset,
-					       SECTOR_SIZE);
+		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					  "offset %zd not multiple of %d",
+					  offset,
+					  SECTOR_SIZE);
 	}
 	if (block_size % UDS_BLOCK_SIZE != 0) {
-		return logErrorWithStringError(
+		return log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
 			"block_size %zd not multiple of %d",
 			block_size,
@@ -128,7 +128,7 @@ int open_buffered_reader(struct io_factory *factory,
 			 struct buffered_reader **reader_ptr)
 {
 	if (size % UDS_BLOCK_SIZE != 0) {
-		return logErrorWithStringError(
+		return log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
 			"region size %zd is not multiple of %d",
 			size,
@@ -156,11 +156,10 @@ int open_buffered_writer(struct io_factory *factory,
 			 struct buffered_writer **writer_ptr)
 {
 	if (size % UDS_BLOCK_SIZE != 0) {
-		return logErrorWithStringError(
-			UDS_INCORRECT_ALIGNMENT,
-			"region size %zd is not multiple of %d",
-			size,
-			UDS_BLOCK_SIZE);
+		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					  "region size %zd is not multiple of %d",
+					  size,
+					  UDS_BLOCK_SIZE);
 	}
 
 	struct dm_bufio_client *client = NULL;

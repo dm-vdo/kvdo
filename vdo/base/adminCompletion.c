@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#21 $
  */
 
 #include "adminCompletion.h"
@@ -142,9 +142,9 @@ int perform_admin_operation(struct vdo *vdo,
 {
 	struct admin_completion *admin_completion = &vdo->admin_completion;
 	if (!compareAndSwapBool(&admin_completion->busy, false, true)) {
-		return logErrorWithStringError(VDO_COMPONENT_BUSY,
-					       "Can't start admin operation of type %u, another operation is already in progress",
-					       type);
+		return log_error_strerror(VDO_COMPONENT_BUSY,
+					  "Can't start admin operation of type %u, another operation is already in progress",
+					  type);
 	}
 
 	prepare_completion(&admin_completion->completion,

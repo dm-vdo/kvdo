@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#36 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#37 $
  */
 
 #include "index.h"
@@ -51,8 +51,8 @@ static int replay_index_from_checkpoint(struct index *index,
 						    &is_empty);
 	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
-		return logFatalWithStringError(result,
-					       "cannot replay index: unknown volume chapter boundaries");
+		return log_fatal_strerror(result,
+					  "cannot replay index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
 		log_fatal("cannot replay index: no valid chapters exist");
@@ -96,8 +96,8 @@ static int load_index(struct index *index, bool allow_replay)
 	}
 
 	if (replay_required && !allow_replay) {
-		return logErrorWithStringError(UDS_INDEX_NOT_SAVED_CLEANLY,
-					       "index not saved cleanly: open chapter missing");
+		return log_error_strerror(UDS_INDEX_NOT_SAVED_CLEANLY,
+					  "index not saved cleanly: open chapter missing");
 	}
 
 	uint64_t last_checkpoint_chapter =
@@ -138,8 +138,8 @@ static int rebuild_index(struct index *index)
 						    &highest_vcn, &is_empty);
 	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
-		return logFatalWithStringError(result,
-					       "cannot rebuild index: unknown volume chapter boundaries");
+		return log_fatal_strerror(result,
+					  "cannot rebuild index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
 		log_fatal("cannot rebuild index: no valid chapters exist");
@@ -163,8 +163,8 @@ static int rebuild_index(struct index *index)
 
 	if ((index->newest_virtual_chapter - index->oldest_virtual_chapter) >
 	    index->volume->geometry->chapters_per_volume) {
-		return logFatalWithStringError(UDS_CORRUPT_COMPONENT,
-					       "cannot rebuild index: volume chapter boundaries too large");
+		return log_fatal_strerror(UDS_CORRUPT_COMPONENT,
+					  "cannot rebuild index: volume chapter boundaries too large");
 	}
 
 	set_master_index_open_chapter(index->master_index, 0);
@@ -200,8 +200,8 @@ int make_index(struct index_layout *layout,
 	int result = allocate_index(layout, config, user_params, zone_count,
 				    load_type, &index);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "could not allocate index");
+		return log_error_strerror(result,
+					  "could not allocate index");
 	}
 
 	index->load_context = load_context;
@@ -211,8 +211,8 @@ int make_index(struct index_layout *layout,
 				   &index->master_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return logErrorWithStringError(result,
-					       "could not make master index");
+		return log_error_strerror(result,
+					  "could not make master index");
 	}
 
 	result = add_index_state_component(index->state, MASTER_INDEX_INFO,
@@ -249,17 +249,17 @@ int make_index(struct index_layout *layout,
 			break;
 		case ENOMEM:
 			// We should not try a rebuild for this error.
-			logErrorWithStringError(result,
-						"index could not be loaded");
+			log_error_strerror(result,
+					   "index could not be loaded");
 			break;
 		default:
-			logErrorWithStringError(result,
-						"index could not be loaded");
+			log_error_strerror(result,
+					   "index could not be loaded");
 			if (load_type == LOAD_REBUILD) {
 				result = rebuild_index(index);
 				if (result != UDS_SUCCESS) {
-					logErrorWithStringError(result,
-								"index could not be rebuilt");
+					log_error_strerror(result,
+							   "index could not be rebuilt");
 				}
 			}
 			break;
@@ -600,9 +600,9 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 		break;
 
 	default:
-		result = logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						   "attempted to execute invalid action: %d",
-						   request->action);
+		result = log_warning_strerror(UDS_INVALID_ARGUMENT,
+					      "attempted to execute invalid action: %d",
+					      request->action);
 		break;
 	}
 
@@ -632,20 +632,20 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 					     CACHE_PROBE_INDEX_FIRST, NULL,
 					     &chapter_index_page);
 		if (result != UDS_SUCCESS) {
-			return logErrorWithStringError(result,
-						       "failed to read index page %u in chapter %u",
-						       index_page_number,
-						       chapter);
+			return log_error_strerror(result,
+						  "failed to read index page %u in chapter %u",
+						  index_page_number,
+						  chapter);
 		}
 		unsigned int lowest_delta_list =
 			chapter_index_page->lowest_list_number;
 		unsigned int highest_delta_list =
 			chapter_index_page->highest_list_number;
 		if (lowest_delta_list != expected_list_number) {
-			return logErrorWithStringError(UDS_CORRUPT_DATA,
-						       "chapter %u index page %u is corrupt",
-						       chapter,
-						       index_page_number);
+			return log_error_strerror(UDS_CORRUPT_DATA,
+						  "chapter %u index page %u is corrupt",
+						  chapter,
+						  index_page_number);
 		}
 		result = update_index_page_map(index->volume->index_page_map,
 					       vcn,
@@ -653,10 +653,10 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 					       index_page_number,
 					       highest_delta_list);
 		if (result != UDS_SUCCESS) {
-			return logErrorWithStringError(result,
-						       "failed to update chapter %u index page %u",
-						       chapter,
-						       index_page_number);
+			return log_error_strerror(result,
+						  "failed to update chapter %u index page %u",
+						  chapter,
+						  index_page_number);
 		}
 		expected_list_number = highest_delta_list + 1;
 	}
@@ -866,9 +866,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
 			index->volume->lookup_mode = old_lookup_mode;
-			return logErrorWithStringError(result,
-						       "could not rebuild index page map for chapter %u",
-						       chapter);
+			return log_error_strerror(result,
+						  "could not rebuild index page map for chapter %u",
+						  chapter);
 		}
 
 		unsigned int j;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#14 $
  */
 
 #include "indexConfig.h"
@@ -103,8 +103,8 @@ static int read_version(struct buffered_reader *reader,
 	int result = read_from_buffered_reader(reader, buffer,
 					       INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "cannot read index config version");
+		return log_error_strerror(result,
+					  "cannot read index config version");
 	}
 	if (memcmp(INDEX_CONFIG_VERSION, buffer,
 		   INDEX_CONFIG_VERSION_LENGTH) == 0) {
@@ -118,8 +118,8 @@ static int read_version(struct buffered_reader *reader,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(&buffer);
-			return logErrorWithStringError(result,
-						       "cannot read config data");
+			return log_error_strerror(result,
+						  "cannot read config data");
 		}
 		clear_buffer(buffer);
 		result = decode_index_config(buffer, conf);
@@ -138,8 +138,8 @@ static int read_version(struct buffered_reader *reader,
 		result = read_from_buffered_reader(reader, &old_conf,
 						   sizeof(old_conf));
 		if (result != UDS_SUCCESS) {
-			logErrorWithStringError(result,
-						"failed to read version 6.01 config file");
+			log_error_strerror(result,
+					   "failed to read version 6.01 config file");
 			return result;
 		}
 		conf->record_pages_per_chapter =
@@ -160,10 +160,10 @@ static int read_version(struct buffered_reader *reader,
 		return UDS_UNSUPPORTED_VERSION;
 	}
 
-	return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-				       "unsupported configuration version: '%.*s'",
-				       INDEX_CONFIG_VERSION_LENGTH,
-				       buffer);
+	return log_error_strerror(UDS_CORRUPT_COMPONENT,
+				  "unsupported configuration version: '%.*s'",
+				  INDEX_CONFIG_VERSION_LENGTH,
+				  buffer);
 }
 
 /**********************************************************************/
@@ -180,12 +180,12 @@ int read_config_contents(struct buffered_reader *reader,
 	result = read_version(reader, config, &version);
 	if (result != UDS_SUCCESS) {
 		if (result == UDS_UNSUPPORTED_VERSION) {
-			logNoticeWithStringError(result,
-						 "Found index config version %s",
-						 version);
+			log_notice_strerror(result,
+					    "Found index config version %s",
+					    version);
 		} else {
-			logErrorWithStringError(result,
-						"Failed to read index config");
+			log_error_strerror(result,
+					   "Failed to read index config");
 		}
 	}
 	return result;
@@ -281,8 +281,8 @@ int make_configuration(const struct uds_configuration *conf,
 {
 	*config_ptr = NULL;
 	if (conf == NULL) {
-		return logErrorWithStringError(UDS_CONF_REQUIRED,
-					       "received an invalid config");
+		return log_error_strerror(UDS_CONF_REQUIRED,
+					  "received an invalid config");
 	}
 
 	struct configuration *config;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#101 $
  */
 
 #include "kernelLayer.h"
@@ -411,7 +411,7 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 	submit_bio_wait(bio);
 	result = blk_status_to_errno(bio->bi_status);
 	if (result != 0) {
-		logErrorWithStringError(result, "synchronous read failed");
+		log_error_strerror(result, "synchronous read failed");
 		result = -EIO;
 	}
 	free_bio(bio, kernel_layer);
@@ -486,7 +486,7 @@ static void wait_for_sync_operation(PhysicalLayer *common)
 	while (wait_for_completion_interruptible(&layer->callbackSync) != 0) {
 		// However, if we get a signal in a user-mode process, we could
 		// spin...
-                msleep(1);
+		msleep(1);
 	}
 }
 

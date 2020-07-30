@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#7 $
  */
 
 #include "searchList.h"
@@ -29,12 +29,12 @@
 int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 {
 	if (capacity == 0) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "search list must have entries");
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "search list must have entries");
 	}
 	if (capacity > UINT8_MAX) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "search list capacity must fit in 8 bits");
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "search list capacity must fit in 8 bits");
 	}
 
 	// We need three temporary entry arrays for purge_search_list().

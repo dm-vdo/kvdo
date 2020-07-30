@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#27 $
  */
 
 #include "recoveryUtils.h"
@@ -155,21 +155,23 @@ int validate_recovery_journal_entry(const struct vdo *vdo,
  	    (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE) ||
  	    !is_valid_location(&entry->mapping) ||
  	    !is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
-		return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
-					       "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
-					       entry->slot.pbn, entry->slot.slot, entry->mapping.pbn,
-					       get_journal_operation_name(entry->operation));
+		return log_error_strerror(VDO_CORRUPT_JOURNAL,
+					  "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
+					  entry->slot.pbn,
+					  entry->slot.slot,
+					  entry->mapping.pbn,
+					  get_journal_operation_name(entry->operation));
 	}
 
 	if ((entry->operation == BLOCK_MAP_INCREMENT) &&
 	    (is_compressed(entry->mapping.state) ||
 	    (entry->mapping.pbn == ZERO_BLOCK))) {
-		return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
-					       "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",
-					       entry->slot.pbn,
-					       entry->slot.slot,
-					       entry->mapping.pbn,
-					       get_journal_operation_name(entry->operation));
+		return log_error_strerror(VDO_CORRUPT_JOURNAL,
+					  "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",
+					  entry->slot.pbn,
+					  entry->slot.slot,
+					  entry->mapping.pbn,
+					  get_journal_operation_name(entry->operation));
 	}
 
 	return VDO_SUCCESS;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#40 $
  */
 
 #include "referenceCountRebuild.h"
@@ -333,11 +333,11 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		int result = adjust_reference_count_for_rebuild(
 			slab->reference_counts, mapping.pbn, DATA_INCREMENT);
 		if (result != VDO_SUCCESS) {
-			logErrorWithStringError(result,
-						"Could not adjust reference count for PBN %llu, slot %u mapped to PBN %llu",
-						get_block_map_page_pbn(page),
-						slot,
-						mapping.pbn);
+			log_error_strerror(result,
+					   "Could not adjust reference count for PBN %llu, slot %u mapped to PBN %llu",
+					   get_block_map_page_pbn(page),
+					   slot,
+					   mapping.pbn);
 			page->entries[slot] =
 				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
@@ -464,18 +464,18 @@ static int process_entry(physical_block_number_t pbn,
 		as_rebuild_completion(completion->parent);
 	if ((pbn == ZERO_BLOCK)
 	    || !is_physical_data_block(rebuild->depot, pbn)) {
-		return logErrorWithStringError(VDO_BAD_CONFIGURATION,
-					       "PBN %llu out of range",
-					       pbn);
+		return log_error_strerror(VDO_BAD_CONFIGURATION,
+					  "PBN %llu out of range",
+					  pbn);
 	}
 
 	struct vdo_slab *slab = get_slab(rebuild->depot, pbn);
 	int result = adjust_reference_count_for_rebuild(
 		slab->reference_counts, pbn, BLOCK_MAP_INCREMENT);
 	if (result != VDO_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "Could not adjust reference count for block map tree PBN %llu",
-					       pbn);
+		return log_error_strerror(result,
+					  "Could not adjust reference count for block map tree PBN %llu",
+					  pbn);
 	}
 
 	(*rebuild->block_map_data_blocks)++;

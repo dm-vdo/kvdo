@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#51 $
  */
 
 #include "vdoLoad.h"
@@ -93,7 +93,7 @@ static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 static void abort_load(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	logErrorWithStringError(completion->result, "aborting load");
+	log_error_strerror(completion->result, "aborting load");
 	if (vdo->read_only_notifier == NULL) {
 		// There are no threads, so we're done
 		finish_parent_callback(completion);
@@ -139,8 +139,8 @@ static void wait_for_read_only_mode(struct vdo_completion *completion)
 static void continue_load_read_only(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	logErrorWithStringError(completion->result,
-				"Entering read-only mode due to load error");
+	log_error_strerror(completion->result,
+			   "Entering read-only mode due to load error");
 	enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	wait_for_read_only_mode(completion);
 }

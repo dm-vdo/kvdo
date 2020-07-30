@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#16 $
  */
 
 #include "pageCache.h"
@@ -348,18 +348,18 @@ int make_page_cache(const struct geometry  *geometry,
 		    struct page_cache **cache_ptr)
 {
 	if (chapters_in_cache < 1) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "cache size must be"
-						 " at least one chapter");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "cache size must be"
+					    " at least one chapter");
 	}
 	if (read_queue_max_size <= 0) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "read queue max size must be"
-						 " greater than 0");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "read queue max size must be"
+					    " greater than 0");
 	}
 	if (zone_count < 1) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cache must have at least one zone");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cache must have at least one zone");
 	}
 
 	struct page_cache *cache;
@@ -494,8 +494,8 @@ int get_page_from_cache(struct page_cache *cache,
 	// ASSERTION: We holding a search_pending_counter or the
 	// readThreadsMutex.
 	if (cache == NULL) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "cannot get page with NULL cache");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "cannot get page with NULL cache");
 	}
 
 	// Get the cache page from the index
@@ -640,8 +640,8 @@ int select_victim_in_cache(struct page_cache *cache,
 {
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "cannot put page in NULL cache");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "cannot put page in NULL cache");
 	}
 
 	struct cached_page *page = NULL;
@@ -678,8 +678,8 @@ int put_page_in_cache(struct page_cache *cache,
 {
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "cannot complete page in NULL cache");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "cannot complete page in NULL cache");
 	}
 
 	int result = ASSERT((page != NULL), "page to install exists");

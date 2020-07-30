@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#73 $
  */
 
 #include "dataKVIO.h"
@@ -658,8 +658,8 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
 	int result = alloc_buffer_from_pool(layer->data_kvio_pool,
 					    (void **) &data_kvio);
 	if (result != VDO_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "data kvio allocation failure");
+		return log_error_strerror(result,
+					  "data kvio allocation failure");
 	}
 
 	if (WRITE_PROTECT_FREE_POOL) {
@@ -1038,8 +1038,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	}
 
 	if (result != VDO_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "data_kvio allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio allocation failure");
 	}
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
@@ -1047,8 +1047,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 				 &data_kvio->data_block);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
-		return logErrorWithStringError(result,
-					       "data_kvio data allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio data allocation failure");
 	}
 
 	result = create_bio(layer,
@@ -1056,24 +1056,24 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 			    &data_kvio->data_block_bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
-		return logErrorWithStringError(result,
-					       "data_kvio data bio allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio data bio allocation failure");
 	}
 
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
 				 &data_kvio->read_block.buffer);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
-		return logErrorWithStringError(result,
-					       "data_kvio read allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio read allocation failure");
 	}
 
 	result = create_bio(layer, data_kvio->read_block.buffer,
 			    &data_kvio->read_block.bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
-		return logErrorWithStringError(result,
-					       "data_kvio read bio allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio read bio allocation failure");
 	}
 
 	data_kvio->read_block.bio->bi_private = &data_kvio->kvio;
@@ -1082,8 +1082,8 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 				 &data_kvio->scratch_block);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
-		return logErrorWithStringError(result,
-					       "data_kvio scratch allocation failure");
+		return log_error_strerror(result,
+					  "data_kvio scratch allocation failure");
 	}
 
 	*data_kvio_ptr = data_kvio;

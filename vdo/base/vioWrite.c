@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#42 $
  */
 
 /*
@@ -388,13 +388,13 @@ static bool abort_on_error(int result,
 			data_vio_as_vio(data_vio)->vdo->read_only_notifier;
 		if (!is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
-				logErrorWithStringError(result,
-							"Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
-							data_vio->logical.lbn,
-							data_vio->new_mapped.pbn,
-							data_vio->mapped.pbn,
-							get_data_vio_allocation(data_vio),
-							get_operation_name(data_vio));
+				log_error_strerror(result,
+						   "Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
+						   data_vio->logical.lbn,
+						   data_vio->new_mapped.pbn,
+						   data_vio->mapped.pbn,
+						   get_data_vio_allocation(data_vio),
+						   get_operation_name(data_vio));
 			}
 
 			enter_read_only_mode(notifier, result);

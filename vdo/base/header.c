@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#7 $
  */
 
 #include "header.h"
@@ -31,13 +31,13 @@ int validate_version(struct version_number expected_version,
 		     const char *component_name)
 {
 	if (!are_same_version(expected_version, actual_version)) {
-		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "%s version mismatch, expected %d.%d, got %d.%d",
-					       component_name,
-					       expected_version.major_version,
-					       expected_version.minor_version,
-					       actual_version.major_version,
-					       actual_version.minor_version);
+		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					  "%s version mismatch, expected %d.%d, got %d.%d",
+					  component_name,
+					  expected_version.major_version,
+					  expected_version.minor_version,
+					  actual_version.major_version,
+					  actual_version.minor_version);
 	}
 	return VDO_SUCCESS;
 }
@@ -49,11 +49,11 @@ int validate_header(const struct header *expected_header,
 		    const char *component_name)
 {
 	if (expected_header->id != actual_header->id) {
-		return logErrorWithStringError(VDO_INCORRECT_COMPONENT,
-					       "%s ID mismatch, expected %d, got %d",
-					       component_name,
-					       expected_header->id,
-					       actual_header->id);
+		return log_error_strerror(VDO_INCORRECT_COMPONENT,
+					  "%s ID mismatch, expected %d, got %d",
+					  component_name,
+					  expected_header->id,
+					  actual_header->id);
 	}
 
 	int result = validate_version(expected_header->version,
@@ -64,11 +64,11 @@ int validate_header(const struct header *expected_header,
 
 	if ((expected_header->size > actual_header->size)
 	    || (exact_size && (expected_header->size < actual_header->size))) {
-		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "%s size mismatch, expected %zu, got %zu",
-					       component_name,
-					       expected_header->size,
-					       actual_header->size);
+		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					  "%s size mismatch, expected %zu, got %zu",
+					  component_name,
+					  expected_header->size,
+					  actual_header->size);
 	}
 
 	return VDO_SUCCESS;

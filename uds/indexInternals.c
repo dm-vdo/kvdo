@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#14 $
  */
 
 #include "indexInternals.h"
@@ -108,8 +108,8 @@ int allocate_index(struct index_layout *layout,
 		result = make_index_zone(index, i);
 		if (result != UDS_SUCCESS) {
 			free_index(index);
-			return logErrorWithStringError(result,
-						       "Could not create index zone");
+			return log_error_strerror(result,
+						  "Could not create index zone");
 		}
 	}
 
@@ -117,8 +117,8 @@ int allocate_index(struct index_layout *layout,
 					   index, NULL);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return logErrorWithStringError(result,
-					       "Could not create open chapter");
+		return log_error_strerror(result,
+					  "Could not create open chapter");
 	}
 
 	*new_index = index;

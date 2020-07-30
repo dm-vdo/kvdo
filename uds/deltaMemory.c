@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#15 $
  */
 #include "deltaMemory.h"
 
@@ -276,8 +276,8 @@ int initialize_delta_memory(struct delta_memory *delta_memory,
 			    unsigned int num_payload_bits)
 {
 	if (num_lists == 0) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize delta memory with 0 delta lists");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize delta memory with 0 delta lists");
 	}
 	byte *memory = NULL;
 	int result = ALLOCATE(size, byte, "delta list", &memory);
@@ -433,13 +433,13 @@ int read_saved_delta_list(struct delta_list_save_info *dlsi,
 		return UDS_END_OF_FILE;
 	}
 	if (result != UDS_SUCCESS) {
-		return logWarningWithStringError(result,
-						 "failed to read delta list data");
+		return log_warning_strerror(result,
+					    "failed to read delta list data");
 	}
 	if ((dlsi->bit_offset >= CHAR_BIT) ||
 	    (dlsi->byte_count > DELTA_LIST_MAX_BYTE_COUNT)) {
-		return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "corrupt delta list data");
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "corrupt delta list data");
 	}
 	if (dlsi->tag == 'z') {
 		return UDS_END_OF_FILE;
@@ -447,8 +447,8 @@ int read_saved_delta_list(struct delta_list_save_info *dlsi,
 	result = read_from_buffered_reader(buffered_reader, data,
 					   dlsi->byte_count);
 	if (result != UDS_SUCCESS) {
-		return logWarningWithStringError(result,
-						 "failed to read delta list data");
+		return log_warning_strerror(result,
+					    "failed to read delta list data");
 	}
 	return UDS_SUCCESS;
 }
@@ -460,18 +460,18 @@ int restore_delta_list(struct delta_memory *delta_memory,
 {
 	unsigned int list_number = dlsi->index - delta_memory->first_list;
 	if (list_number >= delta_memory->num_lists) {
-		return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "invalid delta list number %u not in range [%u,%u)",
-						 dlsi->index,
-						 delta_memory->first_list,
-						 delta_memory->first_list +
-						 	delta_memory->num_lists);
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "invalid delta list number %u not in range [%u,%u)",
+					    dlsi->index,
+					    delta_memory->first_list,
+					    delta_memory->first_list +
+					    delta_memory->num_lists);
 	}
 
 	if (get_field(delta_memory->flags, list_number, 1) == 0) {
-		return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "unexpected delta list number %u",
-						 dlsi->index);
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "unexpected delta list number %u",
+					    dlsi->index);
 	}
 
 	struct delta_list *delta_list =
@@ -481,10 +481,10 @@ int restore_delta_list(struct delta_memory *delta_memory,
 		((unsigned int) dlsi->bit_offset + bit_size + CHAR_BIT - 1) /
 		CHAR_BIT;
 	if (dlsi->byte_count != byte_count) {
-		return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "unexpected delta list size %u != %u",
-						 dlsi->byte_count,
-						 byte_count);
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "unexpected delta list size %u != %u",
+					    dlsi->byte_count,
+					    byte_count);
 	}
 
 	move_bits(data,
@@ -525,8 +525,8 @@ int finish_saving_delta_memory(struct delta_memory *delta_memory)
 	}
 	if (delta_memory->num_transfers > 0) {
 		delta_memory->transfer_status =
-			logWarningWithStringError(UDS_CORRUPT_DATA,
-						  "Not all delta lists written");
+			log_warning_strerror(UDS_CORRUPT_DATA,
+					     "Not all delta lists written");
 	}
 	delta_memory->buffered_writer = NULL;
 	return delta_memory->transfer_status;
@@ -574,8 +574,8 @@ void flush_delta_list(struct delta_memory *delta_memory,
 						&dlsi);
 	if (result != UDS_SUCCESS) {
 		if (delta_memory->transfer_status == UDS_SUCCESS) {
-			logWarningWithStringError(result,
-						  "failed to write delta list memory");
+			log_warning_strerror(result,
+					     "failed to write delta list memory");
 			delta_memory->transfer_status = result;
 		}
 	}
@@ -584,8 +584,8 @@ void flush_delta_list(struct delta_memory *delta_memory,
 		dlsi.byte_count);
 	if (result != UDS_SUCCESS) {
 		if (delta_memory->transfer_status == UDS_SUCCESS) {
-			logWarningWithStringError(result,
-						  "failed to write delta list memory");
+			log_warning_strerror(result,
+					     "failed to write delta list memory");
 			delta_memory->transfer_status = result;
 		}
 	}
@@ -604,8 +604,8 @@ int write_guard_delta_list(struct buffered_writer *buffered_writer)
 					 (const byte *) &dlsi,
 					 sizeof(struct delta_list_save_info));
 	if (result != UDS_SUCCESS) {
-		logWarningWithStringError(result,
-					  "failed to write guard delta list");
+		log_warning_strerror(result,
+				     "failed to write guard delta list");
 	}
 	return result;
 }
@@ -617,8 +617,8 @@ int extend_delta_memory(struct delta_memory *delta_memory,
 			bool do_copy)
 {
 	if (!is_mutable(delta_memory)) {
-		return logErrorWithStringError(UDS_BAD_STATE,
-					       "Attempt to read into an immutable delta list memory");
+		return log_error_strerror(UDS_BAD_STATE,
+					  "Attempt to read into an immutable delta list memory");
 	}
 
 	ktime_t start_time = currentTime(CLOCK_MONOTONIC);
@@ -681,44 +681,44 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 {
 	// Validate the delta index fields set by restoring a delta index
 	if (delta_memory->collision_count > delta_memory->record_count) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "delta index contains more collisions (%ld) than records (%ld)",
-						 delta_memory->collision_count,
-						 delta_memory->record_count);
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "delta index contains more collisions (%ld) than records (%ld)",
+					    delta_memory->collision_count,
+					    delta_memory->record_count);
 	}
 
 	// Validate the delta lists
 	struct delta_list *delta_lists = delta_memory->delta_lists;
 	if (get_delta_list_start(&delta_lists[0]) != 0) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "the head guard delta list does not start at 0: %llu",
-						 get_delta_list_start(&delta_lists[0]));
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "the head guard delta list does not start at 0: %llu",
+					    get_delta_list_start(&delta_lists[0]));
 	}
 	uint64_t num_bits =
 		get_delta_list_end(&delta_lists[delta_memory->num_lists + 1]);
 	if (num_bits != delta_memory->size * CHAR_BIT) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "the tail guard delta list does not end at end of allocated memory:  %llu != %zd",
-						 num_bits,
-						 delta_memory->size * CHAR_BIT);
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "the tail guard delta list does not end at end of allocated memory:  %llu != %zd",
+					    num_bits,
+					    delta_memory->size * CHAR_BIT);
 	}
 	int num_guard_bits =
 		get_delta_list_size(&delta_lists[delta_memory->num_lists + 1]);
 	if (num_guard_bits < GUARD_BITS) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "the tail guard delta list does not contain sufficient guard bits:  %d < %d",
-						 num_guard_bits,
-						 GUARD_BITS);
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "the tail guard delta list does not contain sufficient guard bits:  %d < %d",
+					    num_guard_bits,
+					    GUARD_BITS);
 	}
 	unsigned int i;
 	for (i = 0; i <= delta_memory->num_lists + 1; i++) {
 		if (get_delta_list_start(&delta_lists[i]) >
 		    get_delta_list_end(&delta_lists[i])) {
-			return logWarningWithStringError(UDS_BAD_STATE,
-							 "invalid delta list %u: [%llu, %llu)",
-							 i,
-							 get_delta_list_start(&delta_lists[i]),
-							 get_delta_list_end(&delta_lists[i]));
+			return log_warning_strerror(UDS_BAD_STATE,
+						    "invalid delta list %u: [%llu, %llu)",
+						    i,
+						    get_delta_list_start(&delta_lists[i]),
+						    get_delta_list_end(&delta_lists[i]));
 		}
 		if (i > delta_memory->num_lists) {
 			// The rest of the checks do not apply to the tail guard
@@ -727,11 +727,11 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 		}
 		if (get_delta_list_end(&delta_lists[i]) >
 		    get_delta_list_start(&delta_lists[i + 1])) {
-			return logWarningWithStringError(UDS_BAD_STATE,
-							 "delta lists %u and %u overlap:  %llu > %llu",
-							 i, i + 1,
-							 get_delta_list_end(&delta_lists[i]),
-							 get_delta_list_start(&delta_lists[i + 1]));
+			return log_warning_strerror(UDS_BAD_STATE,
+						    "delta lists %u and %u overlap:  %llu > %llu",
+						    i, i + 1,
+						    get_delta_list_end(&delta_lists[i]),
+						    get_delta_list_start(&delta_lists[i + 1]));
 		}
 		if (i == 0) {
 			// The rest of the checks do not apply to the head guard
@@ -740,11 +740,11 @@ int validate_delta_lists(const struct delta_memory *delta_memory)
 		}
 		if (delta_lists[i].save_offset >
 		    get_delta_list_size(&delta_lists[i])) {
-			return logWarningWithStringError(UDS_BAD_STATE,
-							 "delta lists %u saved offset is larger than the list:  %u > %u",
-							 i,
-							 delta_lists[i].save_offset,
-							 get_delta_list_size(&delta_lists[i]));
+			return log_warning_strerror(UDS_BAD_STATE,
+						    "delta lists %u saved offset is larger than the list:  %u > %u",
+						    i,
+						    delta_lists[i].save_offset,
+						    get_delta_list_size(&delta_lists[i]));
 		}
 	}
 

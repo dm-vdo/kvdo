@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#23 $
  */
 
 #include "vio.h"
@@ -103,7 +103,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 
 	va_list args;
 	va_start(args, format);
-	vLogWithStringError(priority, result, format, args);
+	vlog_strerror(priority, result, format, args);
 	va_end(args);
 }
 
@@ -150,7 +150,7 @@ void launch_metadata_vio(struct vio *vio,
  **/
 static void handle_flush_error(struct vdo_completion *completion)
 {
-	logErrorWithStringError(completion->result, "Error flushing layer");
+	log_error_strerror(completion->result, "Error flushing layer");
 	completion->error_handler = as_vio(completion)->error_handler;
 	complete_completion(completion);
 }

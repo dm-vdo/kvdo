@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#8 $
  */
 
 #include "nonce.h"
@@ -37,35 +37,23 @@ static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 }
 
 /*****************************************************************************/
-static void *memput(void *buf, void *end, const void *data, size_t len)
-{
-	byte *bp = buf;
-	byte *be = end;
-
-	size_t chunk = min_size_t(len, be - bp);
-	memcpy(bp, data, chunk);
-	return bp + chunk;
-}
-
-/*****************************************************************************/
-size_t create_unique_nonce_data(byte *buffer, size_t length)
+void create_unique_nonce_data(byte *buffer)
 {
 	ktime_t now = currentTime(CLOCK_REALTIME);
-
-	byte *be = buffer + length;
-	byte *bp = memput(buffer, be, &now, sizeof(now));
-
 	uint32_t rand = random_in_range(1, (1 << 30) - 1);
+	size_t offset = 0;
 
-	bp = memput(bp, be, &rand, sizeof(rand));
-
-	while (bp < be) {
-		size_t n = min_size_t(be - bp, bp - buffer);
-		memcpy(bp, buffer, n);
-		bp += n;
+	// Fill NONCE_INFO_SIZE bytes with copies of the time and a
+	// pseudorandom number.
+	memcpy(buffer + offset, &now, sizeof(now));
+	offset += sizeof(now);
+	memcpy(buffer + offset, &rand, sizeof(rand));
+	offset += sizeof(rand);
+	while (offset < NONCE_INFO_SIZE) {
+		size_t len = min_size_t(NONCE_INFO_SIZE - offset, offset);
+		memcpy(buffer + offset, buffer, len);
+		offset += len;
 	}
-
-	return bp - buffer;
 }
 
 /*****************************************************************************/

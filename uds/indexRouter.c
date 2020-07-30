@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#19 $
  */
 
 #include "indexRouter.h"
@@ -170,8 +170,8 @@ int make_index_router(struct index_layout *layout,
 			    &router->index);
 	if (result != UDS_SUCCESS) {
 		free_index_router(router);
-		return logErrorWithStringError(result,
-					       "failed to create index");
+		return log_error_strerror(result,
+					  "failed to create index");
 	}
 
 	router->need_to_save = (router->index->loaded_type != LOAD_LOAD);
@@ -241,9 +241,9 @@ void execute_index_router_request(struct index_router *router,
 	if (request->is_control_message) {
 		int result = dispatch_index_zone_control_request(request);
 		if (result != UDS_SUCCESS) {
-			logErrorWithStringError(result,
-						"error executing control message: %d",
-						request->action);
+			log_error_strerror(result,
+					   "error executing control message: %d",
+					   request->action);
 		}
 		request->status = result;
 		enter_callback_stage(request);

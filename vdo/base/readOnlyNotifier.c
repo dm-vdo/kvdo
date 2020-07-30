@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#22 $
  */
 
 #include "readOnlyNotifier.h"
@@ -271,8 +271,8 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		if (thread_id == 0) {
 			// Note: This message must be recognizable by
 			// Permabit::UserMachine.
-			logErrorWithStringError((int) atomicLoad32(&notifier->read_only_error),
-						"Unrecoverable error, entering read-only mode");
+			log_error_strerror((int) atomicLoad32(&notifier->read_only_error),
+					   "Unrecoverable error, entering read-only mode");
 		}
 	} else {
 		// We've just finished notifying a listener

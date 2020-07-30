@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#83 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -500,10 +500,10 @@ void release_block_reference(struct block_allocator *allocator,
 	};
 	int result = modify_slab_reference_count(slab, NULL, operation);
 	if (result != VDO_SUCCESS) {
-		logErrorWithStringError(result,
-					"Failed to release reference to %s physical block %llu",
-					why,
-					pbn);
+		log_error_strerror(result,
+				   "Failed to release reference to %s physical block %llu",
+				   why,
+				   pbn);
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#17 $
  */
 
 #include "uds.h"
@@ -49,8 +49,8 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 				 uds_memory_config_size_t mem_gb)
 {
 	if (user_config == NULL) {
-		return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
-					       "received a NULL config pointer");
+		return log_error_strerror(UDS_CONF_PTR_REQUIRED,
+					  "received a NULL config pointer");
 	}
 
 	/* Set the configuration parameters that change with memory size.  If
@@ -226,7 +226,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 	result = make_configuration(&index_session->user_config,
 				    &index_config);
 	if (result != UDS_SUCCESS) {
-		logErrorWithStringError(result, "Failed to allocate config");
+		log_error_strerror(result, "Failed to allocate config");
 		return result;
 	}
 
@@ -242,7 +242,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 				   &index_session->router);
 	free_configuration(index_config);
 	if (result != UDS_SUCCESS) {
-		logErrorWithStringError(result, "Failed to make router");
+		log_error_strerror(result, "Failed to make router");
 		return result;
 	}
 
@@ -305,8 +305,8 @@ int uds_open_index(enum uds_open_index_type open_type,
 	result = initialize_index_session(session, name, user_params,
 					  load_type);
 	if (result != UDS_SUCCESS) {
-		logErrorWithStringError(result, "Failed %s",
-					get_load_type(load_type));
+		log_error_strerror(result, "Failed %s",
+				   get_load_type(load_type));
 		save_and_free_index(session);
 	}
 

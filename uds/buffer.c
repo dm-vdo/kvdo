@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#6 $
  */
 
 #include "buffer.h"
@@ -123,17 +123,17 @@ size_t buffer_used(struct buffer *buffer)
 int grow_buffer(struct buffer *buffer, size_t length)
 {
 	if (buffer == NULL) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot resize NULL buffer");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot resize NULL buffer");
 	}
 
 	if (buffer->wrapped) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot resize wrapped buffer");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot resize wrapped buffer");
 	}
 	if (buffer->end > length) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot shrink buffer");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot shrink buffer");
 	}
 
 	byte *data;

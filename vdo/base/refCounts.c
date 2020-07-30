@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#50 $
  */
 
 #include "refCounts.h"
@@ -406,10 +406,10 @@ static int increment_for_data(struct ref_counts *ref_counts,
 	default:
 		// Single or shared
 		if (*counter_ptr >= MAXIMUM_REFERENCE_COUNT) {
-			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Incrementing a block already having 254 references (slab %u, offset %u)",
-						       ref_counts->slab->slab_number,
-						       slab_block_number);
+			return log_error_strerror(VDO_REF_COUNT_INVALID,
+						  "Incrementing a block already having 254 references (slab %u, offset %u)",
+						  ref_counts->slab->slab_number,
+						  slab_block_number);
 		}
 		(*counter_ptr)++;
 		*free_status_changed = false;
@@ -450,10 +450,10 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 {
 	switch (old_status) {
 	case RS_FREE:
-		return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-					       "Decrementing free block at offset %u in slab %u",
-					       slab_block_number,
-					       ref_counts->slab->slab_number);
+		return log_error_strerror(VDO_REF_COUNT_INVALID,
+					  "Decrementing free block at offset %u in slab %u",
+					  slab_block_number,
+					  ref_counts->slab->slab_number);
 
 	case RS_PROVISIONAL:
 	case RS_SINGLE:
@@ -516,10 +516,10 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 	switch (old_status) {
 	case RS_FREE:
 		if (normal_operation) {
-			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Incrementing unallocated block map block (slab %u, offset %u)",
-						       ref_counts->slab->slab_number,
-						       slab_block_number);
+			return log_error_strerror(VDO_REF_COUNT_INVALID,
+						  "Incrementing unallocated block map block (slab %u, offset %u)",
+						  ref_counts->slab->slab_number,
+						  slab_block_number);
 		}
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
@@ -530,10 +530,10 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 
 	case RS_PROVISIONAL:
 		if (!normal_operation) {
-			return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-						       "Block map block had provisional reference during replay (slab %u, offset %u)",
-						       ref_counts->slab->slab_number,
-						       slab_block_number);
+			return log_error_strerror(VDO_REF_COUNT_INVALID,
+						  "Block map block had provisional reference during replay (slab %u, offset %u)",
+						  ref_counts->slab->slab_number,
+						  slab_block_number);
 		}
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
@@ -544,11 +544,11 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		return VDO_SUCCESS;
 
 	default:
-		return logErrorWithStringError(VDO_REF_COUNT_INVALID,
-					       "Incrementing a block map block which is already referenced %u times (slab %u, offset %u)",
-					       *counter_ptr,
-					       ref_counts->slab->slab_number,
-					       slab_block_number);
+		return log_error_strerror(VDO_REF_COUNT_INVALID,
+					  "Incrementing a block map block which is already referenced %u times (slab %u, offset %u)",
+					  *counter_ptr,
+					  ref_counts->slab->slab_number,
+					  slab_block_number);
 	}
 }
 
@@ -1110,7 +1110,7 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 		return;
 	}
 
-	logErrorWithStringError(result, "failed to update slab summary");
+	log_error_strerror(result, "failed to update slab summary");
 	enter_ref_counts_read_only_mode(ref_counts, result);
 }
 

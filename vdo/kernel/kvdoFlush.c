@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#23 $
  */
 
 #include "kvdoFlush.h"
@@ -255,7 +255,7 @@ int synchronous_flush(struct kernel_layer *layer)
 
 	atomic64_inc(&layer->flushOut);
 	if (result != 0) {
-		logErrorWithStringError(result, "synchronous flush failed");
+		log_error_strerror(result, "synchronous flush failed");
 		result = -EIO;
 	}
 

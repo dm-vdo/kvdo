@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#23 $
  */
 #include "masterIndex006.h"
 
@@ -213,8 +213,8 @@ start_saving_master_index_006(const struct master_index *master_index,
 					  content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
-		logWarningWithStringError(result,
-					  "failed to write master index header");
+		log_warning_strerror(result,
+				     "failed to write master index header");
 		return result;
 	}
 
@@ -362,8 +362,8 @@ start_restoring_master_index_006(struct master_index *master_index,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(&buffer);
-			return logWarningWithStringError(result,
-							 "failed to read master index header");
+			return log_warning_strerror(result,
+						    "failed to read master index header");
 		}
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
@@ -377,17 +377,17 @@ start_restoring_master_index_006(struct master_index *master_index,
 			return result;
 		}
 		if (memcmp(header.magic, MAGIC_MI_START, MAGIC_SIZE) != 0) {
-			return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-							 "master index file had bad magic number");
+			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						    "master index file had bad magic number");
 		}
 		if (i == 0) {
 			mi6->sparse_sample_rate = header.sparse_sample_rate;
 		} else if (mi6->sparse_sample_rate !=
 			   header.sparse_sample_rate) {
-			logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
-						 mi6->sparse_sample_rate,
-						 header.sparse_sample_rate);
+			log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					     "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
+					     mi6->sparse_sample_rate,
+					     header.sparse_sample_rate);
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -833,8 +833,8 @@ int make_master_index006(const struct configuration *config,
 				      &mi6->mi_non_hook);
 	if (result != UDS_SUCCESS) {
 		free_master_index_006(&mi6->common);
-		return logErrorWithStringError(result,
-					       "Error creating non hook master index");
+		return log_error_strerror(result,
+					  "Error creating non hook master index");
 	}
 	set_master_index_tag(mi6->mi_non_hook, 'd');
 
@@ -842,8 +842,8 @@ int make_master_index006(const struct configuration *config,
 				      volume_nonce, &mi6->mi_hook);
 	if (result != UDS_SUCCESS) {
 		free_master_index_006(&mi6->common);
-		return logErrorWithStringError(result,
-					       "Error creating hook master index");
+		return log_error_strerror(result,
+					  "Error creating hook master index");
 	}
 	set_master_index_tag(mi6->mi_hook, 's');
 

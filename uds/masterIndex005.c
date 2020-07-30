@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#29 $
  */
 #include "masterIndex005.h"
 
@@ -465,8 +465,8 @@ start_saving_master_index_005(const struct master_index *master_index,
 					  content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
-		return logWarningWithStringError(result,
-						 "failed to write master index header");
+		return log_warning_strerror(result,
+					    "failed to write master index header");
 	}
 	result = make_buffer(num_lists * sizeof(uint64_t), &buffer);
 	if (result != UDS_SUCCESS) {
@@ -484,8 +484,8 @@ start_saving_master_index_005(const struct master_index *master_index,
 					  content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
-		return logWarningWithStringError(result,
-						 "failed to write master index flush ranges");
+		return log_warning_strerror(result,
+					    "failed to write master index flush ranges");
 	}
 
 	return start_saving_delta_index(&mi5->delta_index, zone_number,
@@ -608,8 +608,8 @@ start_restoring_master_index_005(struct master_index *master_index,
 				 int num_readers)
 {
 	if (master_index == NULL) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "cannot restore to null master index");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "cannot restore to null master index");
 	}
 	struct master_index5 *mi5 =
 		container_of(master_index, struct master_index5, common);
@@ -629,8 +629,8 @@ start_restoring_master_index_005(struct master_index *master_index,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(&buffer);
-			return logWarningWithStringError(result,
-							 "failed to read master index header");
+			return log_warning_strerror(result,
+						    "failed to read master index header");
 		}
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
@@ -644,27 +644,27 @@ start_restoring_master_index_005(struct master_index *master_index,
 			return result;
 		}
 		if (memcmp(header.magic, MAGIC_MI_START, MAGIC_SIZE) != 0) {
-			return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-							 "master index file had bad magic number");
+			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						    "master index file had bad magic number");
 		}
 		if (mi5->volume_nonce == 0) {
 			mi5->volume_nonce = header.volume_nonce;
 		} else if (header.volume_nonce != mi5->volume_nonce) {
-			return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-							 "master index volume nonce incorrect");
+			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						    "master index volume nonce incorrect");
 		}
 		if (i == 0) {
 			virtual_chapter_low = header.virtual_chapter_low;
 			virtual_chapter_high = header.virtual_chapter_high;
 		} else if (virtual_chapter_high !=
 			   header.virtual_chapter_high) {
-			return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-							 "Inconsistent master index zone files: Chapter range is [%llu,%llu], chapter range %d is [%llu,%llu]",
-							 virtual_chapter_low,
-							 virtual_chapter_high,
-							 i,
-							 header.virtual_chapter_low,
-							 header.virtual_chapter_high);
+			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						    "Inconsistent master index zone files: Chapter range is [%llu,%llu], chapter range %d is [%llu,%llu]",
+						    virtual_chapter_low,
+						    virtual_chapter_high,
+						    i,
+						    header.virtual_chapter_low,
+						    header.virtual_chapter_high);
 		} else if (virtual_chapter_low < header.virtual_chapter_low) {
 			virtual_chapter_low = header.virtual_chapter_low;
 		}
@@ -680,8 +680,8 @@ start_restoring_master_index_005(struct master_index *master_index,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(&buffer);
-			return logWarningWithStringError(result,
-							 "failed to read master index flush ranges");
+			return log_warning_strerror(result,
+						    "failed to read master index flush ranges");
 		}
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
@@ -710,8 +710,8 @@ start_restoring_master_index_005(struct master_index *master_index,
 						 buffered_readers,
 						 num_readers);
 	if (result != UDS_SUCCESS) {
-		return logWarningWithStringError(result,
-						 "restoring delta index failed");
+		return log_warning_strerror(result,
+					    "restoring delta index failed");
 	}
 	return UDS_SUCCESS;
 }
@@ -1160,17 +1160,17 @@ int put_master_index_record(struct master_index_record *record,
 						       struct master_index5,
 						       common);
 	if (record->magic != master_index_record_magic) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "bad magic number in master index record");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "bad magic number in master index record");
 	}
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		const struct master_index_zone *master_zone =
 			get_master_zone(record);
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot put record into chapter number %llu that is out of the valid range %llu to %llu",
-						 virtual_chapter,
-						 master_zone->virtual_chapter_low,
-						 master_zone->virtual_chapter_high);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot put record into chapter number %llu that is out of the valid range %llu to %llu",
+					    virtual_chapter,
+					    master_zone->virtual_chapter_low,
+					    master_zone->virtual_chapter_high);
 	}
 	unsigned int address = extract_address(mi5, record->name);
 	if (unlikely(record->mutex != NULL)) {
@@ -1190,7 +1190,7 @@ int put_master_index_record(struct master_index_record *record,
 		record->is_found = true;
 		break;
 	case UDS_OVERFLOW:
-		log_ratelimit(logWarningWithStringError,
+		log_ratelimit(log_warning_strerror,
 			      UDS_OVERFLOW,
 			      "Master index entry dropped due to overflow condition");
 		log_delta_index_entry(&record->delta_entry);
@@ -1205,12 +1205,12 @@ int put_master_index_record(struct master_index_record *record,
 static INLINE int validate_record(struct master_index_record *record)
 {
 	if (record->magic != master_index_record_magic) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "bad magic number in master index record");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "bad magic number in master index record");
 	}
 	if (!record->is_found) {
-		return logWarningWithStringError(UDS_BAD_STATE,
-						 "illegal operation on new record");
+		return log_warning_strerror(UDS_BAD_STATE,
+					    "illegal operation on new record");
 	}
 	return UDS_SUCCESS;
 }
@@ -1255,11 +1255,11 @@ int set_master_index_record_chapter(struct master_index_record *record,
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		const struct master_index_zone *master_zone =
 			get_master_zone(record);
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot set chapter number %llu that is out of the valid range %llu to %llu",
-						 virtual_chapter,
-						 master_zone->virtual_chapter_low,
-						 master_zone->virtual_chapter_high);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot set chapter number %llu that is out of the valid range %llu to %llu",
+					    virtual_chapter,
+					    master_zone->virtual_chapter_low,
+					    master_zone->virtual_chapter_high);
 	}
 	if (unlikely(record->mutex != NULL)) {
 		lock_mutex(record->mutex);
@@ -1394,29 +1394,29 @@ compute_master_index_parameters005(const struct configuration *config,
 
 	if ((unsigned int) params->num_delta_lists !=
 	    params->num_delta_lists) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize master index with %lu delta lists",
-						 params->num_delta_lists);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize master index with %lu delta lists",
+					    params->num_delta_lists);
 	}
 	if (params->address_bits > 31) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize master index with %u address bits",
-						 params->address_bits);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize master index with %u address bits",
+					    params->address_bits);
 	}
 	if (is_sparse(geometry)) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize dense master index with %u sparse chapters",
-						 geometry->sparse_chapters_per_volume);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize dense master index with %u sparse chapters",
+					    geometry->sparse_chapters_per_volume);
 	}
 	if (records_per_chapter == 0) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize master index with %lu records per chapter",
-						 records_per_chapter);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize master index with %lu records per chapter",
+					    records_per_chapter);
 	}
 	if (params->num_chapters == 0) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "cannot initialize master index with %lu chapters per volume",
-						 params->num_chapters);
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "cannot initialize master index with %lu chapters per volume",
+					    params->num_chapters);
 	}
 
 	/*

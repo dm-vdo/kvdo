@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#4 $
  */
 
 #include "stringUtils.h"
@@ -66,16 +66,16 @@ int wrap_vsnprintf(const char *what,
 	}
 	int n = vsnprintf(buf, buf_size, fmt, ap);
 	if (n < 0) {
-		return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-					       "%s: vsnprintf failed", what);
+		return log_error_strerror(UDS_UNEXPECTED_RESULT,
+					  "%s: vsnprintf failed", what);
 	}
 	if (needed) {
 		*needed = n;
 	}
 	if (((size_t) n >= buf_size) && (buf != NULL) &&
 	    (error != UDS_SUCCESS)) {
-		return logErrorWithStringError(error,
-					       "%s: string too long", what);
+		return log_error_strerror(error,
+					  "%s: string too long", what);
 	}
 	return UDS_SUCCESS;
 }

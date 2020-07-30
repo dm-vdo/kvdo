@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.h#3 $
  */
 
 #ifndef NONCE_H
@@ -24,16 +24,15 @@
 
 #include "typeDefs.h"
 
+enum { NONCE_INFO_SIZE = 32 };
+
 /**
- * Create unique data for the master nonce, using system-specific
- * methods such as the current time and a random number.
+ * Create NONCE_INFO_SIZE (32) bytes of unique data for generating a
+ * nonce, using the current time and a pseudorandom number.
  *
- * @param buffer        A buffer of length specified next.
- * @param length        Length of the buffer.
- *
- * @return the amount of the buffer that has been filled with unique data
+ * @param buffer        Where to put the data
  **/
-size_t create_unique_nonce_data(byte *buffer, size_t length);
+void create_unique_nonce_data(byte *buffer);
 
 /**
  * Generate a master nonce, using the specified data.

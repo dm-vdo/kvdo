@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#18 $
  */
 
 #include "indexPageMap.h"
@@ -135,22 +135,22 @@ int update_index_page_map(struct index_page_map *map,
 	map->last_update = virtual_chapter_number;
 
 	if (chapter_number >= geometry->chapters_per_volume) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "chapter number %u exceeds maximum %u",
-					       chapter_number,
-					       geometry->chapters_per_volume - 1);
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "chapter number %u exceeds maximum %u",
+					  chapter_number,
+					  geometry->chapters_per_volume - 1);
 	}
 	if (index_page_number >= geometry->index_pages_per_chapter) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "index page number %u exceeds maximum %u",
-					       index_page_number,
-					       geometry->index_pages_per_chapter - 1);
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "index page number %u exceeds maximum %u",
+					  index_page_number,
+					  geometry->index_pages_per_chapter - 1);
 	}
 	if (delta_list_number >= geometry->delta_lists_per_chapter) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "delta list number %u exceeds maximum %u",
-					       delta_list_number,
-					       geometry->delta_lists_per_chapter - 1);
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "delta list number %u exceeds maximum %u",
+					  delta_list_number,
+					  geometry->delta_lists_per_chapter - 1);
 	}
 
 	if (index_page_number == (geometry->index_pages_per_chapter - 1)) {
@@ -177,10 +177,10 @@ int find_index_page_number(const struct index_page_map *map,
 {
 	const struct geometry *geometry = map->geometry;
 	if (chapter_number >= geometry->chapters_per_volume) {
-		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-					       "chapter number %u exceeds maximum %u",
-					       chapter_number,
-					       geometry->chapters_per_volume - 1);
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "chapter number %u exceeds maximum %u",
+					  chapter_number,
+					  geometry->chapters_per_volume - 1);
 	}
 
 	unsigned int delta_list_number =
@@ -281,8 +281,8 @@ static int write_index_page_map(struct index_component *component,
 					  content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "cannot write index page map header");
+		return log_error_strerror(result,
+					  "cannot write index page map header");
 	}
 	result = make_buffer(index_page_map_size(map->geometry), &buffer);
 	if (result != UDS_SUCCESS) {
@@ -298,8 +298,8 @@ static int write_index_page_map(struct index_component *component,
 					  content_length(buffer));
 	free_buffer(&buffer);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "cannot write index page map data");
+		return log_error_strerror(result,
+					  "cannot write index page map data");
 	}
 	return UDS_SUCCESS;
 }
@@ -347,8 +347,8 @@ static int read_index_page_map(struct read_portal *portal)
 	result = verify_buffered_data(reader, INDEX_PAGE_MAP_MAGIC,
 				      INDEX_PAGE_MAP_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "bad index page map saved magic");
+		return log_error_strerror(result,
+					  "bad index page map saved magic");
 	}
 
 	struct buffer *buffer;
@@ -362,8 +362,8 @@ static int read_index_page_map(struct read_portal *portal)
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		free_buffer(&buffer);
-		logErrorWithStringError(result,
-					"cannot read index page map data");
+		log_error_strerror(result,
+				   "cannot read index page map data");
 		return result;
 	}
 	result = reset_buffer_end(buffer, buffer_length(buffer));

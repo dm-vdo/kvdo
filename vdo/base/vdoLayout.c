@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#15 $
  */
 
 #include "vdoLayout.h"
@@ -70,9 +70,9 @@ int decode_vdo_layout(struct fixed_layout *layout,
 		result = get_partition(layout, REQUIRED_PARTITIONS[i],
 				       &partition);
 		if (result != VDO_SUCCESS) {
-			return logErrorWithStringError(result,
-						       "VDO layout is missing required partition %u",
-						       REQUIRED_PARTITIONS[i]);
+			return log_error_strerror(result,
+						  "VDO layout is missing required partition %u",
+						  REQUIRED_PARTITIONS[i]);
 		}
 	}
 

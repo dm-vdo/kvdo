@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#15 $
  */
 #include "masterIndexOps.h"
 
@@ -99,9 +99,9 @@ static int read_master_index(struct read_portal *portal)
 		index_component_context(portal->component);
 	unsigned int num_zones = portal->zones;
 	if (num_zones > MAX_ZONES) {
-		return logErrorWithStringError(UDS_BAD_STATE,
-					       "zone count %u must not exceed MAX_ZONES",
-					       num_zones);
+		return log_error_strerror(UDS_BAD_STATE,
+					  "zone count %u must not exceed MAX_ZONES",
+					  num_zones);
 	}
 
 	struct buffered_reader *readers[MAX_ZONES];
@@ -110,9 +110,9 @@ static int read_master_index(struct read_portal *portal)
 		int result =
 			get_buffered_reader_for_portal(portal, z, &readers[z]);
 		if (result != UDS_SUCCESS) {
-			return logErrorWithStringError(result,
-						       "cannot read component for zone %u",
-						       z);
+			return log_error_strerror(result,
+						  "cannot read component for zone %u",
+						  z);
 		}
 	}
 	return restore_master_index(readers, num_zones, master_index);
@@ -150,8 +150,8 @@ static int write_master_index(struct index_component *component,
 		is_complete = true;
 		break;
 	default:
-		result = logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						   "Invalid writer command");
+		result = log_warning_strerror(UDS_INVALID_ARGUMENT,
+					      "Invalid writer command");
 		break;
 	}
 	if (completed != NULL) {
@@ -214,8 +214,8 @@ static int restore_master_index_body(struct buffered_reader **buffered_readers,
 	}
 	if (!is_restoring_master_index_done(master_index)) {
 		abort_restoring_master_index(master_index);
-		return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-						 "incomplete delta list data");
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "incomplete delta list data");
 	}
 	return UDS_SUCCESS;
 }

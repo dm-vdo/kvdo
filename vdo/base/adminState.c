@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#22 $
  */
 
 #include "adminState.h"
@@ -161,14 +161,16 @@ static int __must_check begin_operation(struct admin_state *state,
 	int result;
 	if (is_operating(state) ||
 	    (is_quiescent(state) != is_quiescent_operation(operation))) {
-		result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-						 "Can't start %s from %s",
-						 get_admin_state_code_name(operation),
-						 get_admin_state_name(state));
+		result =
+		  log_error_strerror(VDO_INVALID_ADMIN_STATE,
+				     "Can't start %s from %s",
+				     get_admin_state_code_name(operation),
+				     get_admin_state_name(state));
 	} else if (state->waiter != NULL) {
-		result = logErrorWithStringError(VDO_COMPONENT_BUSY,
-						 "Can't start %s with extant waiter",
-						 get_admin_state_code_name(operation));
+		result =
+		  log_error_strerror(VDO_COMPONENT_BUSY,
+				     "Can't start %s with extant waiter",
+				     get_admin_state_code_name(operation));
 	} else {
 		state->waiter = waiter;
 		state->next_state = get_next_state(state->state, operation);
@@ -212,10 +214,10 @@ static bool check_code(bool valid,
 		return true;
 	}
 
-	int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-					     "%s is not a %s",
-					     get_admin_state_code_name(code),
-					     what);
+	int result = log_error_strerror(VDO_INVALID_ADMIN_STATE,
+					"%s is not a %s",
+					get_admin_state_code_name(code),
+					what);
 	if (waiter != NULL) {
 		finish_completion(waiter, result);
 	}

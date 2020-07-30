@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#9 $
  */
 
 #include "threadConfig.h"
@@ -100,19 +100,17 @@ int make_thread_config(zone_count_t logical_zone_count,
 	}
 
 	if (physical_zone_count > MAX_PHYSICAL_ZONES) {
-		return logErrorWithStringError(
-			VDO_BAD_CONFIGURATION,
-			"Physical zone count %u exceeds maximum (%u)",
-			physical_zone_count,
-			MAX_PHYSICAL_ZONES);
+		return log_error_strerror(VDO_BAD_CONFIGURATION,
+					  "Physical zone count %u exceeds maximum (%u)",
+					  physical_zone_count,
+					  MAX_PHYSICAL_ZONES);
 	}
 
 	if (logical_zone_count > MAX_LOGICAL_ZONES) {
-		return logErrorWithStringError(
-			VDO_BAD_CONFIGURATION,
-			"Logical zone count %u exceeds maximum (%u)",
-			logical_zone_count,
-			MAX_LOGICAL_ZONES);
+		return log_error_strerror(VDO_BAD_CONFIGURATION,
+					  "Logical zone count %u exceeds maximum (%u)",
+					  logical_zone_count,
+					  MAX_LOGICAL_ZONES);
 	}
 
 	struct thread_config *config;

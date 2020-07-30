@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#75 $
  */
 
 #include "recoveryJournal.h"
@@ -1076,9 +1076,9 @@ static void handle_write_error(struct vdo_completion *completion)
 {
 	struct recovery_journal_block *block = completion->parent;
 	struct recovery_journal *journal = block->journal;
-	logErrorWithStringError(completion->result,
-				"cannot write recovery journal block %llu",
-				block->sequence_number);
+	log_error_strerror(completion->result,
+			   "cannot write recovery journal block %llu",
+			   block->sequence_number);
 	enter_journal_read_only_mode(journal, completion->result);
 	complete_write(completion);
 }

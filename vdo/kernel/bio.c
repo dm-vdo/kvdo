@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#23 $
  */
 
 #include "bio.h"
@@ -208,10 +208,9 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 
 		if (bytes_added != bytes) {
 			free_bio(bio, layer);
-			return logErrorWithStringError(
-				VDO_BIO_CREATION_FAILED,
-				"Could only add %i bytes to bio",
-				bytes_added);
+			return log_error_strerror(VDO_BIO_CREATION_FAILED,
+						  "Could only add %i bytes to bio",
+						  bytes_added);
 		}
 
 		data += bytes;

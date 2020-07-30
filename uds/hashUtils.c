@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#7 $
  */
 
 #include "hashUtils.h"
@@ -45,8 +45,8 @@ static int data_to_hex(const unsigned char *data,
 		       size_t hex_len)
 {
 	if (hex_len < 2 * data_len + 1) {
-		return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-						 "hex data incorrect size");
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "hex data incorrect size");
 	}
 	size_t i;
 	for (i = 0; i < data_len; ++i) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#67 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -681,12 +681,12 @@ static int compute_usages(struct recovery_completion *recovery)
 				break;
 
 			default:
-				return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
-							       "Recovery journal entry at sequence number %llu, sector %u, entry %u had invalid operation %u",
-							       recovery_point.sequence_number,
-							       recovery_point.sector_count,
-							       recovery_point.entry_count,
-							       entry.operation);
+				return log_error_strerror(VDO_CORRUPT_JOURNAL,
+							  "Recovery journal entry at sequence number %llu, sector %u, entry %u had invalid operation %u",
+							  recovery_point.sequence_number,
+							  recovery_point.sector_count,
+							  recovery_point.entry_count,
+							  entry.operation);
 			}
 		}
 
@@ -883,10 +883,10 @@ static int record_missing_decref(struct missing_decref *decref,
 	// The location was invalid
 	enter_read_only_mode(recovery->vdo->read_only_notifier, error_code);
 	set_completion_result(&recovery->completion, error_code);
-	logErrorWithStringError(error_code,
-				"Invalid mapping for pbn %llu with state %u",
-				location.pbn,
-				location.state);
+	log_error_strerror(error_code,
+			   "Invalid mapping for pbn %llu with state %u",
+			   location.pbn,
+			   location.state);
 	return error_code;
 }
 
@@ -964,10 +964,10 @@ find_missing_decrefs(struct recovery_completion *recovery)
 				       slot_as_number(entry.slot));
 		if (entry.operation == BLOCK_MAP_INCREMENT) {
 			if (decref != NULL) {
-				return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
-							       "decref found for block map block %llu with state %u",
-							       entry.mapping.pbn,
-							       entry.mapping.state);
+				return log_error_strerror(VDO_CORRUPT_JOURNAL,
+							  "decref found for block map block %llu with state %u",
+							  entry.mapping.pbn,
+							  entry.mapping.state);
 			}
 
 			// There are no decrefs for block map pages, so they
@@ -1283,11 +1283,11 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	if ((recovery->block_map_head > recovery->tail) ||
 	    (recovery->slab_journal_head > recovery->tail)) {
 		int result =
-			logErrorWithStringError(VDO_CORRUPT_JOURNAL,
-						"Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
-						recovery->block_map_head,
-						recovery->slab_journal_head,
-						recovery->tail);
+			log_error_strerror(VDO_CORRUPT_JOURNAL,
+					   "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
+					   recovery->block_map_head,
+					   recovery->slab_journal_head,
+					   recovery->tail);
 		finish_completion(&recovery->completion, result);
 		return;
 	}

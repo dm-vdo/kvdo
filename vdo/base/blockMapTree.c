@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#71 $
  */
 
 #include "blockMapTree.h"
@@ -192,9 +192,9 @@ bool copy_valid_page(char *buffer, nonce_t nonce, physical_block_number_t pbn,
 	}
 
 	if (validity == BLOCK_MAP_PAGE_BAD) {
-		logErrorWithStringError(VDO_BAD_PAGE,
-					"Expected page %llu but got page %llu instead",
-					pbn, get_block_map_page_pbn(loaded));
+		log_error_strerror(VDO_BAD_PAGE,
+				   "Expected page %llu but got page %llu instead",
+				   pbn, get_block_map_page_pbn(loaded));
 	}
 
 	return false;
@@ -755,11 +755,11 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		unpack_block_map_entry(&page->entries[slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
 			          lock->height)) {
-		logErrorWithStringError(VDO_BAD_MAPPING,
-					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
-					mapping.pbn, mapping.state,
-					lock->tree_slots[lock->height - 1].page_index,
-					lock->height - 1);
+		log_error_strerror(VDO_BAD_MAPPING,
+				   "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
+				   mapping.pbn, mapping.state,
+				   lock->tree_slots[lock->height - 1].page_index,
+				   lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;
 	}
@@ -1249,11 +1249,11 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		unpack_block_map_entry(&page->entries[tree_slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
 				  lock->height)) {
-		logErrorWithStringError(VDO_BAD_MAPPING,
-					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
-					mapping.pbn, mapping.state,
-					lock->tree_slots[lock->height - 1].page_index,
-					lock->height - 1);
+		log_error_strerror(VDO_BAD_MAPPING,
+				   "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
+				   mapping.pbn, mapping.state,
+				   lock->tree_slots[lock->height - 1].page_index,
+				   lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
 		return;
 	}

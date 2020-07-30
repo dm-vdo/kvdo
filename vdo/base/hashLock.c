@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#38 $
  */
 
 /**
@@ -1138,9 +1138,8 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 						       agent->duplicate.pbn,
 						       lock);
 		if (result != VDO_SUCCESS) {
-			logWarningWithStringError(
-				result,
-				"Error acquiring provisional reference for dedupe candidate; aborting dedupe");
+			log_warning_strerror(result,
+					     "Error acquiring provisional reference for dedupe candidate; aborting dedupe");
 			agent->is_duplicate = false;
 			release_pbn_lock(zone, agent->duplicate.pbn, &lock);
 			continue_data_vio(agent, result);

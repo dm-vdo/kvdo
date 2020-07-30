@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#25 $
  */
 
 #include "volumeGeometry.h"
@@ -428,9 +428,9 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 	FREE(block);
 
 	if (!is_loadable_release_version(geometry->release_version)) {
-		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-					       "release version %d cannot be loaded",
-					       geometry->release_version);
+		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					  "release version %d cannot be loaded",
+					  geometry->release_version);
 	}
 
 	return ((checksum == saved_checksum) ? VDO_SUCCESS :
@@ -445,23 +445,23 @@ int compute_index_blocks(const struct index_config *index_config,
 	int result = index_config_to_uds_configuration(index_config,
 						       &uds_configuration);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "error creating index config");
+		return log_error_strerror(result,
+					  "error creating index config");
 	}
 
 	uint64_t index_bytes;
 	result = uds_compute_index_size(uds_configuration, 0, &index_bytes);
 	uds_free_configuration(uds_configuration);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "error computing index size");
+		return log_error_strerror(result,
+					  "error computing index size");
 	}
 
 	block_count_t index_blocks = index_bytes / VDO_BLOCK_SIZE;
 	if ((((uint64_t) index_blocks) * VDO_BLOCK_SIZE) != index_bytes) {
-		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
-					       "index size must be a multiple of block size %d",
-					       VDO_BLOCK_SIZE);
+		return log_error_strerror(VDO_PARAMETER_MISMATCH,
+					  "index size must be a multiple of block size %d",
+					  VDO_BLOCK_SIZE);
 	}
 
 	*index_blocks_ptr = index_blocks;
@@ -572,8 +572,8 @@ int index_config_to_uds_configuration(const struct index_config *index_config,
 	int result = uds_initialize_configuration(&uds_configuration,
 						  index_config->mem);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "error initializing configuration");
+		return log_error_strerror(result,
+					  "error initializing configuration");
 	}
 
 	uds_configuration_set_sparse(uds_configuration, index_config->sparse);

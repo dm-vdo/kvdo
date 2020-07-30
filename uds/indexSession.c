@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#22 $
  */
 
 #include "indexSession.h"
@@ -377,8 +377,8 @@ int save_and_free_index(struct uds_index_session *index_session)
 		if (!suspended) {
 			result = save_index_router(router);
 			if (result != UDS_SUCCESS) {
-				logWarningWithStringError(result,
-							  "ignoring error from save_index_router");
+				log_warning_strerror(result,
+						     "ignoring error from save_index_router");
 			}
 		}
 		free_index_router(router);
@@ -528,8 +528,8 @@ int uds_get_index_configuration(struct uds_index_session *index_session,
 				struct uds_configuration **conf)
 {
 	if (conf == NULL) {
-		return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
-					       "received a NULL config pointer");
+		return log_error_strerror(UDS_CONF_PTR_REQUIRED,
+					  "received a NULL config pointer");
 	}
 	int result = ALLOCATE(1, struct uds_configuration, __func__, conf);
 	if (result == UDS_SUCCESS) {
@@ -543,8 +543,8 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 			struct uds_index_stats *stats)
 {
 	if (stats == NULL) {
-		return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
-					       "received a NULL index stats pointer");
+		return log_error_strerror(UDS_INDEX_STATS_PTR_REQUIRED,
+					  "received a NULL index stats pointer");
 	}
 	get_index_stats(index_session->router->index, stats);
 	return UDS_SUCCESS;
@@ -555,8 +555,8 @@ int uds_get_index_session_stats(struct uds_index_session *index_session,
 				struct uds_context_stats *stats)
 {
 	if (stats == NULL) {
-		return logWarningWithStringError(UDS_CONTEXT_STATS_PTR_REQUIRED,
-						 "received a NULL context stats pointer");
+		return log_warning_strerror(UDS_CONTEXT_STATS_PTR_REQUIRED,
+					    "received a NULL context stats pointer");
 	}
 	collect_stats(index_session, stats);
 	return UDS_SUCCESS;

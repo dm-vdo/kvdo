@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#39 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -505,12 +505,12 @@ static void complete_with_page(struct page_info *info,
 	bool available =
 		vdo_page_comp->writable ? is_present(info) : is_valid(info);
 	if (!available) {
-		logErrorWithStringError(VDO_BAD_PAGE,
-					"Requested cache page %llu in state %s is not %s",
-					info->pbn,
-					vpc_page_state_name(info->state),
-					vdo_page_comp->writable ? "present" :
-								  "valid");
+		log_error_strerror(VDO_BAD_PAGE,
+				   "Requested cache page %llu in state %s is not %s",
+				   info->pbn,
+				   vpc_page_state_name(info->state),
+				   vdo_page_comp->writable ? "present" :
+				   "valid");
 		finish_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
 		return;
 	}
@@ -607,9 +607,9 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 	// If we're already read-only, there's no need to log.
 	struct read_only_notifier *notifier = cache->zone->read_only_notifier;
 	if ((result != VDO_READ_ONLY) && !is_read_only(notifier)) {
-		logErrorWithStringError(result,
-					"VDO Page Cache persistent error: %s",
-					context);
+		log_error_strerror(result,
+				   "VDO Page Cache persistent error: %s",
+				   context);
 		enter_read_only_mode(notifier, result);
 	}
 

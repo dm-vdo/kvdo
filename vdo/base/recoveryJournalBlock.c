@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#37 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -264,9 +264,9 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 	int result = translate_to_pbn(journal->partition, block->block_number,
 				      pbn_ptr);
 	if (result != VDO_SUCCESS) {
-		logErrorWithStringError(result,
-					"Error translating recovery journal block number %llu",
-					block->block_number);
+		log_error_strerror(result,
+				   "Error translating recovery journal block number %llu",
+				   block->block_number);
 	}
 	return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#8 $
  */
 
 #include "geometry.h"
@@ -96,10 +96,9 @@ int read_volume_page(const struct volume_store *volume_store,
 	byte *data = dm_bufio_read(volume_store->vs_client, physical_page,
 				   &volume_page->vp_buffer);
 	if (IS_ERR(data)) {
-		return logWarningWithStringError(
-			-PTR_ERR(data),
-			"error reading physical page %u",
-			physical_page);
+		return log_warning_strerror(-PTR_ERR(data),			
+					    "error reading physical page %u",
+					    physical_page);
 	}
 	return UDS_SUCCESS;
 }
@@ -128,8 +127,8 @@ int sync_volume_store(const struct volume_store *volume_store)
 {
 	int result = -dm_bufio_write_dirty_buffers(volume_store->vs_client);
 	if (result != UDS_SUCCESS) {
-		return logErrorWithStringError(result,
-					       "cannot sync chapter to volume");
+		return log_error_strerror(result,
+					  "cannot sync chapter to volume");
 	}
 	return UDS_SUCCESS;
 }
