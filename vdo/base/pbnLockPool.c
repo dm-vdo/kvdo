@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#10 $
  */
 
 #include "pbnLockPool.h"
@@ -115,12 +115,10 @@ int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	list_del(idle_entry);
 	memset(idle_entry, 0, sizeof(*idle_entry));
 
-	STATIC_ASSERT(offsetof(idle_pbn_lock, entry) ==
-		      offsetof(idle_pbn_lock, lock));
-	struct pbn_lock *lock = (struct pbn_lock *) idle_entry;
-	initialize_pbn_lock(lock, type);
+	idle_pbn_lock *idle = container_of(idle_entry, idle_pbn_lock, entry);
+	initialize_pbn_lock(&idle->lock, type);
 
-	*lock_ptr = lock;
+	*lock_ptr = &idle->lock;
 	return VDO_SUCCESS;
 }
 
@@ -135,9 +133,9 @@ void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 	// A bit expensive, but will promptly catch some use-after-free errors.
 	memset(lock, 0, sizeof(*lock));
 
-	struct list_head *idle_entry = (struct list_head *) lock;
-	INIT_LIST_HEAD(idle_entry);
-	list_add_tail(idle_entry, &pool->idle_list);
+	idle_pbn_lock *idle = container_of(lock, idle_pbn_lock, lock);
+	INIT_LIST_HEAD(&idle->entry);
+	list_add_tail(&idle->entry, &pool->idle_list);
 
 	ASSERT_LOG_ONLY(pool->borrowed > 0,
 			"shouldn't return more than borrowed");
