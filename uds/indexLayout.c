@@ -986,7 +986,7 @@ static int loadIndexSave(IndexSaveLayout *isl,
     FREE(table);
     return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
                                    "unexpected index 0 save %u "
-                                   "region block count %" PRIu64,
+                                   "region block count %llu",
                                    saveId, regionBlocks);
   }
 
@@ -2361,7 +2361,7 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
   if (namedSize > size) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
                                    "index storage (%zu) is smaller than the"
-                                   " requested size %" PRIu64,
+                                   " requested size %llu",
                                    size, namedSize);
   }
   if ((namedSize > 0) && (namedSize < size)) {
@@ -2377,7 +2377,7 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
   if (size < configSize) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
                                    "index storage (%zu) is smaller than the"
-                                   " required size %" PRIu64,
+                                   " required size %llu",
                                    size, configSize);
   }
   size = configSize;

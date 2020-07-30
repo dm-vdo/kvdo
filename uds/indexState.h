@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#5 $
  */
 
 #ifndef INDEX_STATE_H
@@ -24,6 +24,7 @@
 
 #include "buffer.h"
 #include "indexComponent.h"
+
 
 /**
  * Used here and in SingleFileLayout.

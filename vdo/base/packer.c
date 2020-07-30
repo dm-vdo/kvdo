@@ -1001,11 +1001,11 @@ static void dumpOutputBin(const OutputBin *bin)
 void dumpPacker(const Packer *packer)
 {
   logInfo("Packer");
-  logInfo("  flushGeneration=%" PRIu64 " state %s writingBatches=%s",
+  logInfo("  flushGeneration=%llu state %s writingBatches=%s",
           packer->flushGeneration, getAdminStateName(&packer->state),
           boolToString(packer->writingBatches));
 
-  logInfo("  inputBinCount=%" PRIu64, packer->size);
+  logInfo("  inputBinCount=%llu", packer->size);
   for (InputBin *bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {

@@ -417,10 +417,10 @@ void reportMemoryUsage()
   uint64_t totalBytes = kmallocBytes + vmallocBytes;
   logInfo("current module memory tracking"
           " (actual allocation sizes, not requested):");
-  logInfo("  %" PRIu64 " bytes in %" PRIu64 " kmalloc blocks",
+  logInfo("  %llu bytes in %llu kmalloc blocks",
           kmallocBytes, kmallocBlocks);
-  logInfo("  %" PRIu64 " bytes in %" PRIu64 " vmalloc blocks",
+  logInfo("  %llu bytes in %llu vmalloc blocks",
           vmallocBytes, vmallocBlocks);
-  logInfo("  total %" PRIu64 " bytes, peak usage %" PRIu64 " bytes",
+  logInfo("  total %llu bytes, peak usage %llu bytes",
           totalBytes, peakUsage);
 }

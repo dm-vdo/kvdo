@@ -194,7 +194,7 @@ static void assertRunningInBioQueueForPBN(PhysicalBlockNumber pbn)
   IOSubmitter *submitter = bioQueueToSubmitter(thisQueue);
   unsigned int computedQueueNumber = bioQueueNumberForPBN(submitter, pbn);
   ASSERT_LOG_ONLY(thisQueue->queueNumber == computedQueueNumber,
-                  "running in correct bio queue (%u vs %u) for PBN %" PRIu64,
+                  "running in correct bio queue (%u vs %u) for PBN %llu",
                   thisQueue->queueNumber, computedQueueNumber, pbn);
 }
 

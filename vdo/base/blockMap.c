@@ -87,7 +87,7 @@ static int validatePageOnRead(void                *buffer,
   if (validity == BLOCK_MAP_PAGE_BAD) {
     return logErrorWithStringError(VDO_BAD_PAGE,
                                    "Expected page %" PRIu64
-                                   " but got page %" PRIu64 " instead",
+                                   " but got page %llu instead",
                                    pbn, getBlockMapPagePBN(page));
   }
 
@@ -239,7 +239,7 @@ int decodeBlockMap(Buffer              *buffer,
   }
 
   result = ASSERT(state.flatPageOrigin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
-                  "Flat page origin must be %u (recorded as %" PRIu64 ")",
+                  "Flat page origin must be %u (recorded as %llu)",
                   BLOCK_MAP_FLAT_PAGE_ORIGIN, state.flatPageOrigin);
   if (result != UDS_SUCCESS) {
     return result;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * %Copyright%
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#10 $
  */
 
 #include "indexSession.h"
@@ -219,25 +219,46 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
   bool saveIndex = false;
   bool suspendIndex = false;
   lockMutex(&session->requestMutex);
-  if (session->state & IS_FLAG_WAITING) {
+  // Wait for any pending close operation to complete.
+  while (session->state & IS_FLAG_CLOSING) {
+    waitCond(&session->requestCond, &session->requestMutex);
+  }
+  if ((session->state & IS_FLAG_WAITING)
+      || (session->state & IS_FLAG_DESTROYING)) {
     result = EBUSY;
   } else if (session->state & IS_FLAG_SUSPENDED) {
     result = UDS_SUCCESS;
-  } else if (!(session->state & IS_FLAG_LOADING)) {
-    session->state |= IS_FLAG_SUSPENDED;
-    broadcastCond(&session->requestCond);
-    saveIndex = save;
-    result = UDS_SUCCESS;
-  } else {
+  } else if (session->state & IS_FLAG_LOADING) {
     session->state |= IS_FLAG_WAITING;
     suspendIndex = true;
     result = UDS_SUCCESS;
+  } else if (!(session->state & IS_FLAG_LOADED)) {
+    session->state |= IS_FLAG_SUSPENDED;
+    broadcastCond(&session->requestCond);
+    result = UDS_SUCCESS;
+  } else {
+    saveIndex = save;
+    if (saveIndex) {
+      session->state |= IS_FLAG_WAITING;
+    } else {
+      session->state |= IS_FLAG_SUSPENDED;
+      broadcastCond(&session->requestCond);
+    }
+    result = UDS_SUCCESS;
   }
   unlockMutex(&session->requestMutex);
+
+  if (!saveIndex && !suspendIndex) {
+    return result;
+  }
+
   if (saveIndex) {
     result = udsSaveIndex(session);
-  }
-  if (!suspendIndex) {
+    lockMutex(&session->requestMutex);
+    session->state &= ~IS_FLAG_WAITING;
+    session->state |= IS_FLAG_SUSPENDED;
+    broadcastCond(&session->requestCond);
+    unlockMutex(&session->requestMutex);
     return result;
   }
 
@@ -283,10 +304,10 @@ int udsResumeIndexSession(struct uds_index_session *session)
   lockMutex(&session->requestMutex);
   if (session->state & IS_FLAG_WAITING) {
     unlockMutex(&session->requestMutex);
-    return UDS_INVALID_OPERATION;
+    return EBUSY;
   }
 
-/* If not suspended, just succeed */
+  /* If not suspended, just succeed */
   if (!(session->state & IS_FLAG_SUSPENDED)) {
     unlockMutex(&session->requestMutex);
     return UDS_SUCCESS;
@@ -380,17 +401,22 @@ int saveAndFreeIndex(struct uds_index_session *indexSession)
 int udsCloseIndex(struct uds_index_session *indexSession)
 {
   lockMutex(&indexSession->requestMutex);
-  // Wait for any pending operation to complete.
-  while (indexSession->state & IS_FLAG_WAITING) {
+
+  // Wait for any pending suspend, resume or close operations to complete.
+  while ((indexSession->state & IS_FLAG_WAITING)
+         || (indexSession->state & IS_FLAG_CLOSING)) {
     waitCond(&indexSession->requestCond, &indexSession->requestMutex);
   }
 
   int result = UDS_SUCCESS;
   if (indexSession->state & IS_FLAG_SUSPENDED) {
     result = UDS_SUSPENDED;
-  } else if (!(indexSession->state & IS_FLAG_LOADED)) {
-    // Either the index hasn't finished loading, or it doesn't exist.
+  } else if ((indexSession->state & IS_FLAG_DESTROYING)
+             || !(indexSession->state & IS_FLAG_LOADED)) {
+    // The index doesn't exist, hasn't finished loading, or is being destroyed.
     result = UDS_NO_INDEXSESSION;
+  } else {
+    indexSession->state |= IS_FLAG_CLOSING;
   }
   unlockMutex(&indexSession->requestMutex);
   if (result != UDS_SUCCESS) {
@@ -399,7 +425,13 @@ int udsCloseIndex(struct uds_index_session *indexSession)
 
   logDebug("Closing index");
   waitForNoRequestsInProgress(indexSession);
-  return saveAndFreeIndex(indexSession);
+  result = saveAndFreeIndex(indexSession);
+
+  lockMutex(&indexSession->requestMutex);
+  indexSession->state &= ~IS_FLAG_CLOSING;
+  broadcastCond(&indexSession->requestCond);
+  unlockMutex(&indexSession->requestMutex);
+  return result;
 }
 
 /**********************************************************************/
@@ -410,17 +442,20 @@ int udsDestroyIndexSession(struct uds_index_session *indexSession)
   bool loadPending = false;
   lockMutex(&indexSession->requestMutex);
 
-  // Wait for any pending operation to complete.
-  while (indexSession->state & IS_FLAG_WAITING) {
+  // Wait for any pending suspend, resume, or close operations to complete.
+  while ((indexSession->state & IS_FLAG_WAITING)
+         || (indexSession->state & IS_FLAG_CLOSING)) {
     waitCond(&indexSession->requestCond, &indexSession->requestMutex);
   }
 
+  if (indexSession->state & IS_FLAG_DESTROYING) {
+    unlockMutex(&indexSession->requestMutex);
+    return EBUSY;
+  }
+
+  indexSession->state |= IS_FLAG_DESTROYING;
   loadPending = ((indexSession->state & IS_FLAG_LOADING)
                  && (indexSession->state & IS_FLAG_SUSPENDED));
-  if (loadPending) {
-    // Prevent any more suspend or resume operations.
-    indexSession->state |= IS_FLAG_WAITING;
-  }
   unlockMutex(&indexSession->requestMutex);
 
   if (loadPending) {

@@ -256,8 +256,8 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
       getWorkItemTimesByItem(stats, i, &min, &mean, &max);
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36ps %d %10" PRIu64 " %10" PRIu64
-                                " %10" PRIu64 " %10" PRIu64 " %10" PRIu64
+                                "%-36ps %d %10llu %10" PRIu64
+                                " %10llu %10llu %10" PRIu64
                                 "\n",
                                 functionIDs->functions[i],
                                 functionIDs->priorities[i],
@@ -266,7 +266,7 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
     } else {
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36ps %d %10" PRIu64 " %10" PRIu64
+                                "%-36ps %d %10llu %10" PRIu64
                                 "\n",
                                 functionIDs->functions[i],
                                 functionIDs->priorities[i],
@@ -282,7 +282,7 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
     if (enqueued > 0) {
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36s %d %10" PRIu64 " %10" PRIu64
+                                "%-36s %d %10llu %10" PRIu64
                                 "\n",
                                 "OTHER", 0,
                                 enqueued, processed);
@@ -328,15 +328,15 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
       uint64_t min, mean, max;
       getWorkItemTimesByItem(stats, i, &min, &mean, &max);
       logInfo("  priority %d: %u pending"
-              " %" PRIu64 " enqueued %" PRIu64 " processed"
+              " %llu enqueued %llu processed"
               " %s"
-              " times %" PRIu64 "/%" PRIu64 "/%" PRIu64 "ns",
+              " times %llu/%llu/%lluns",
               functionIDs->priorities[i],
               pending, enqueued, processed, work,
               min, mean, max);
     } else {
       logInfo("  priority %d: %u pending"
-              " %" PRIu64 " enqueued %" PRIu64 " processed"
+              " %llu enqueued %llu processed"
               " %s",
               functionIDs->priorities[i],
               pending, enqueued, processed, work);
@@ -348,7 +348,7 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
     if (enqueued > 0) {
       totalEnqueued  += enqueued;
       totalProcessed += processed;
-      logInfo("  ... others: %" PRIu64 " enqueued %" PRIu64 " processed",
+      logInfo("  ... others: %llu enqueued %llu processed",
               enqueued, processed);
     }
   }

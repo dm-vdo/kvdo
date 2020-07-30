@@ -251,7 +251,7 @@ static int getRecoveryBlockPBN(RecoveryJournalBlock *block,
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result,
                             "Error translating recovery journal block "
-                            "number %" PRIu64, block->blockNumber);
+                            "number %llu", block->blockNumber);
   }
   return result;
 }
@@ -331,7 +331,7 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
 /**********************************************************************/
 void dumpRecoveryBlock(const RecoveryJournalBlock *block)
 {
-  logInfo("    sequence number %" PRIu64 "; entries %" PRIu16
+  logInfo("    sequence number %llu; entries %" PRIu16
           "; %s; %zu entry waiters; %zu commit waiters",
           block->sequenceNumber,
           block->entryCount,

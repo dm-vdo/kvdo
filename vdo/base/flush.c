@@ -243,7 +243,7 @@ void completeFlushes(Flusher *flusher)
     ASSERT_LOG_ONLY((flush->flushGeneration
                      == flusher->firstUnacknowledgedGeneration),
                     "acknowledged next expected flush, %" PRIu64
-                    ", was: %" PRIu64,
+                    ", was: %llu",
                     flusher->firstUnacknowledgedGeneration,
                     flush->flushGeneration);
     dequeueNextWaiter(&flusher->pendingFlushes);
@@ -257,7 +257,7 @@ void dumpFlusher(const Flusher *flusher)
 {
   logInfo("Flusher");
   logInfo("  flushGeneration=%" PRIu64
-          " firstUnacknowledgedGeneration=%" PRIu64,
+          " firstUnacknowledgedGeneration=%llu",
           flusher->flushGeneration, flusher->firstUnacknowledgedGeneration);
   logInfo("  notifiers queue is %s; pendingFlushes queue is %s",
           (hasWaiters(&flusher->notifiers) ? "not empty" : "empty"),

@@ -758,7 +758,7 @@ int makeKernelLayer(uint64_t        startingSector,
 
   // Albireo Timeout Reporter
   initPeriodicEventReporter(&layer->albireoTimeoutReporter,
-                            "Albireo timeout on %" PRIu64 " requests",
+                            "Albireo timeout on %llu requests",
                             DEDUPE_TIMEOUT_REPORT_INTERVAL, layer);
 
   // Dedupe Index
@@ -1296,7 +1296,7 @@ int resumeKernelLayer(KernelLayer *layer)
 /***********************************************************************/
 int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
-  logInfo("Preparing to resize physical to %" PRIu64, physicalCount);
+  logInfo("Preparing to resize physical to %llu", physicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowPhysical(&layer->kvdo, physicalCount);
@@ -1331,7 +1331,7 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 /***********************************************************************/
 int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
-  logInfo("Preparing to resize logical to %" PRIu64, logicalCount);
+  logInfo("Preparing to resize logical to %llu", logicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowLogical(&layer->kvdo, logicalCount);
@@ -1347,7 +1347,7 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 /***********************************************************************/
 int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
-  logInfo("Resizing logical to %" PRIu64, logicalCount);
+  logInfo("Resizing logical to %llu", logicalCount);
   // We must not mark the layer as allowing allocations when it is suspended
   // lest an allocation attempt block on writing IO to the suspended VDO.
   int result = kvdoResizeLogical(&layer->kvdo, logicalCount);
@@ -1356,7 +1356,7 @@ int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
     return result;
   }
 
-  logInfo("Logical blocks now %" PRIu64, logicalCount);
+  logInfo("Logical blocks now %llu", logicalCount);
   return VDO_SUCCESS;
 }
 

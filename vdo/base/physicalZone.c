@@ -150,7 +150,7 @@ int attemptPBNLock(PhysicalZone         *zone,
     returnPBNLockToPool(zone->lockPool, &newLock);
 
     result = ASSERT(lock->holderCount > 0,
-                    "physical block %" PRIu64 " lock held", pbn);
+                    "physical block %llu lock held", pbn);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -183,7 +183,7 @@ void releasePBNLock(PhysicalZone         *zone,
 
   PBNLock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
   ASSERT_LOG_ONLY((lock == holder),
-                  "physical block lock mismatch for block %" PRIu64,
+                  "physical block lock mismatch for block %llu",
                   lockedPBN);
 
   releaseProvisionalReference(lock, lockedPBN, zone->allocator);

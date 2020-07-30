@@ -373,7 +373,7 @@ static int configureState(BlockCount           blockCount,
 {
   BlockCount slabSize = slabConfig.slabBlocks;
   logDebug("slabDepot configureState(blockCount=%" PRIu64
-           ", firstBlock=%" PRIu64 ", slabSize=%" PRIu64 ", zoneCount=%u)",
+           ", firstBlock=%llu, slabSize=%llu, zoneCount=%u)",
            blockCount, firstBlock, slabSize, zoneCount);
 
   // We do not allow runt slabs, so we waste up to a slab's worth.
@@ -397,8 +397,8 @@ static int configureState(BlockCount           blockCount,
     .zoneCount  = zoneCount,
   };
 
-  logDebug("slabDepot lastBlock=%" PRIu64 ", totalDataBlocks=%" PRIu64
-           ", slabCount=%zu, leftOver=%" PRIu64,
+  logDebug("slabDepot lastBlock=%llu, totalDataBlocks=%" PRIu64
+           ", slabCount=%zu, leftOver=%llu",
            lastBlock, totalDataBlocks, slabCount,
            blockCount - (lastBlock - firstBlock));
 
@@ -1138,7 +1138,7 @@ void dumpSlabDepot(const SlabDepot *depot)
 {
   logInfo("Slab Depot");
   logInfo("  zoneCount=%u oldZoneCount=%u slabCount=%" PRIu32
-          " activeReleaseRequest=%" PRIu64 " newReleaseRequest=%" PRIu64,
+          " activeReleaseRequest=%llu newReleaseRequest=%llu",
           (unsigned int) depot->zoneCount, (unsigned int) depot->oldZoneCount,
           depot->slabCount, depot->activeReleaseRequest,
           depot->newReleaseRequest);

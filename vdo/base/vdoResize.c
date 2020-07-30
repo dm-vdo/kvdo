@@ -169,7 +169,7 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
     return result;
   }
 
-  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
+  logInfo("Physical block count was %llu, now %llu",
           oldPhysicalBlocks, newPhysicalBlocks);
   return VDO_SUCCESS;
 }
@@ -218,7 +218,7 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 
   if (newPhysicalBlocks == currentPhysicalBlocks) {
     logWarning("Requested physical block count %" PRIu64
-               " not greater than %" PRIu64,
+               " not greater than %llu",
                newPhysicalBlocks, currentPhysicalBlocks);
     finishVDOLayoutGrowth(vdo->layout);
     abandonNewSlabs(vdo->depot);

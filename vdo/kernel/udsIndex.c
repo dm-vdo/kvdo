@@ -747,7 +747,7 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   }
 
   result = allocSprintf("index name", &index->indexName,
-                        "dev=%s offset=4096 size=%" PRIu64,
+                        "dev=%s offset=4096 size=%llu",
                         layer->deviceConfig->parentDeviceName,
                         getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
   if (result != UDS_SUCCESS) {

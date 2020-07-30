@@ -296,7 +296,7 @@ static void dumpHashLock(const HashLock *lock)
   // Necessarily cryptic since we can log a lot of these. First three chars of
   // state is unambiguous. 'U' indicates a lock not registered in the map.
   const char *state = getHashLockStateName(lock->state);
-  logInfo("  hl %" PRIptr ": %3.3s %c%" PRIu64 "/%u rc=%u wc=%zu agt=%" PRIptr,
+  logInfo("  hl %" PRIptr ": %3.3s %c%llu/%u rc=%u wc=%zu agt=%" PRIptr,
           (const void *) lock,
           state,
           (lock->registered ? 'D' : 'U'),

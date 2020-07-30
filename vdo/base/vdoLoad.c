@@ -312,7 +312,7 @@ static int startVDODecode(VDO *vdo, bool validateConfig)
 
   if (vdo->loadConfig.nonce != vdo->nonce) {
     return logErrorWithStringError(VDO_BAD_NONCE, "Geometry nonce %" PRIu64
-                                   " does not match superblock nonce %" PRIu64,
+                                   " does not match superblock nonce %llu",
                                    vdo->loadConfig.nonce, vdo->nonce);
   }
 

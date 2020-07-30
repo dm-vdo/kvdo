@@ -1440,7 +1440,7 @@ void dumpRefCounts(const RefCounts *refCounts)
 {
   // Terse because there are a lot of slabs to dump and syslog is lossy.
   logInfo("  refCounts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32
-          " dirty=%zu active=%zu journal@(%" PRIu64 ",%" PRIu16 ")%s",
+          " dirty=%zu active=%zu journal@(%llu,%" PRIu16 ")%s",
           refCounts->freeBlocks, refCounts->blockCount,
           refCounts->referenceBlockCount,
           countWaiters(&refCounts->dirtyBlocks),

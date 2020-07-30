@@ -243,7 +243,7 @@ static void reportCachePressure(VDOPageCache *cache)
   relaxedAdd64(&cache->stats.cachePressure, 1);
   if (cache->waiterCount > cache->pageCount) {
     if ((cache->pressureReport % LOG_INTERVAL) == 0) {
-      logInfo("page cache pressure %" PRIu64,
+      logInfo("page cache pressure %llu",
               relaxedLoad64(&cache->stats.cachePressure));
     }
 
@@ -495,7 +495,7 @@ static void completeWithPage(PageInfo *info, VDOPageCompletion *vdoPageComp)
   bool available = vdoPageComp->writable ? isPresent(info) : isValid(info);
   if (!available) {
     logErrorWithStringError(VDO_BAD_PAGE,
-                            "Requested cache page %" PRIu64 " in state %s is"
+                            "Requested cache page %llu in state %s is"
                             " not %s",
                             info->pbn, vpcPageStateName(info->state),
                             vdoPageComp->writable ? "present" : "valid");
@@ -1061,10 +1061,10 @@ static void handlePageWriteError(VDOCompletion *completion)
                                   DEFAULT_RATELIMIT_BURST);
 
     if (__ratelimit(&errorLimiter)) {
-      logError("failed to write block map page %" PRIu64, info->pbn);
+      logError("failed to write block map page %llu", info->pbn);
     }
 #else
-    logError("failed to write block map page %" PRIu64, info->pbn);
+    logError("failed to write block map page %llu", info->pbn);
 #endif
   }
 

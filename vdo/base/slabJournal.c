@@ -523,7 +523,7 @@ static void releaseJournalLocks(Waiter *waiter, void *context)
     if (result != VDO_READ_ONLY) {
       // Don't bother logging what might be lots of errors if we are already
       // in read-only mode.
-      logErrorWithStringError(result, "failed slab summary update %" PRIu64,
+      logErrorWithStringError(result, "failed slab summary update %llu",
                               journal->summarized);
     }
 
@@ -614,7 +614,7 @@ void reopenSlabJournal(SlabJournal *journal)
   // Ensure no locks are spuriously held on an empty journal.
   for (SequenceNumber block = 1; block <= journal->size; block++) {
     ASSERT_LOG_ONLY((getLock(journal, block)->count == 0),
-                    "Scrubbed journal's block %" PRIu64 " is not locked",
+                    "Scrubbed journal's block %llu is not locked",
                     block);
   }
 
@@ -646,7 +646,7 @@ static void completeWrite(VDOCompletion *completion)
 
   if (writeResult != VDO_SUCCESS) {
     logErrorWithStringError(writeResult,
-                            "cannot write slab journal block %" PRIu64,
+                            "cannot write slab journal block %llu",
                             committed);
     enterJournalReadOnlyMode(journal, writeResult);
     return;
@@ -811,8 +811,8 @@ static void addEntry(SlabJournal         *journal,
   int result = ASSERT(beforeJournalPoint(&journal->tailHeader.recoveryPoint,
                                          recoveryPoint),
                       "recovery journal point is monotonically increasing, "
-                      "recovery point: %" PRIu64 ".%u, "
-                      "block recovery point: %" PRIu64 ".%u",
+                      "recovery point: %llu.%u, "
+                      "block recovery point: %llu.%u",
                       recoveryPoint->sequenceNumber, recoveryPoint->entryCount,
                       journal->tailHeader.recoveryPoint.sequenceNumber,
                       journal->tailHeader.recoveryPoint.entryCount);
@@ -1306,9 +1306,9 @@ void decodeSlabJournal(SlabJournal *journal)
 void dumpSlabJournal(const SlabJournal *journal)
 {
   logInfo("  slab journal: entryWaiters=%zu waitingToCommit=%s"
-          " updatingSlabSummary=%s head=%" PRIu64 " unreapable=%" PRIu64
-          " tail=%" PRIu64 " nextCommit=%" PRIu64 " summarized=%" PRIu64
-          " lastSummarized=%" PRIu64 " recoveryJournalLock=%" PRIu64
+          " updatingSlabSummary=%s head=%llu unreapable=%" PRIu64
+          " tail=%llu nextCommit=%llu summarized=%" PRIu64
+          " lastSummarized=%llu recoveryJournalLock=%" PRIu64
           " dirty=%s", countWaiters(&journal->entryWaiters),
           boolToString(journal->waitingToCommit),
           boolToString(journal->updatingSlabSummary),

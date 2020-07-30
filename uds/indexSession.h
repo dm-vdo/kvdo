@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#6 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -44,17 +44,23 @@ typedef enum {
   IS_FLAG_BIT_SUSPENDED,
   /** Flag indicating that the session is waiting for an index state change */
   IS_FLAG_BIT_WAITING,
+  /** Flag indicating that that the session is closing */
+  IS_FLAG_BIT_CLOSING,
+  /** Flag indicating that that the session is being destroyed */
+  IS_FLAG_BIT_DESTROYING,
 } IndexSessionFlagBit;
 
 /**
  * The index session state flags.
  **/
 typedef enum {
-  IS_FLAG_LOADED    = (1 << IS_FLAG_BIT_LOADED),
-  IS_FLAG_LOADING   = (1 << IS_FLAG_BIT_LOADING),
-  IS_FLAG_DISABLED  = (1 << IS_FLAG_BIT_DISABLED),
-  IS_FLAG_SUSPENDED = (1 << IS_FLAG_BIT_SUSPENDED),
-  IS_FLAG_WAITING   = (1 << IS_FLAG_BIT_WAITING),
+  IS_FLAG_LOADED     = (1 << IS_FLAG_BIT_LOADED),
+  IS_FLAG_LOADING    = (1 << IS_FLAG_BIT_LOADING),
+  IS_FLAG_DISABLED   = (1 << IS_FLAG_BIT_DISABLED),
+  IS_FLAG_SUSPENDED  = (1 << IS_FLAG_BIT_SUSPENDED),
+  IS_FLAG_WAITING    = (1 << IS_FLAG_BIT_WAITING),
+  IS_FLAG_CLOSING    = (1 << IS_FLAG_BIT_CLOSING),
+  IS_FLAG_DESTROYING = (1 << IS_FLAG_BIT_DESTROYING),
 } IndexSessionFlag;
 
 typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
@@ -103,8 +109,11 @@ typedef struct indexLoadContext {
 
 /**
  * The request CondVar here must be notified when IS_FLAG_WAITING is cleared,
- * in case udsCloseIndex() or udDestroyIndexSesion() is waiting for it. It
- * must also be notified when IS_FLAG_LOADING is cleared, to inform
+ * in case udsCloseIndex() or udsDestroyIndexSession() is waiting on that flag.
+ * It must also be notified when IS_FLAG_CLOSING is cleared, in case
+ * udsSuspendIndexSession(), udsCloseIndex() or udsDestroyIndexSession() is
+ * waiting on that flag.
+ * Finally, it must also be notified when IS_FLAG_LOADING is cleared, to inform
  * udsDestroyIndexSession() that the index session can be safely freed.
  **/
 struct uds_index_session {

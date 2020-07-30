@@ -302,7 +302,7 @@ static void releaseLock(DataVIO *dataVIO)
     // map.
     DataVIO *lockHolder = intMapGet(lockMap, lock->lbn);
     ASSERT_LOG_ONLY((dataVIO != lockHolder),
-                    "no logical block lock held for block %" PRIu64,
+                    "no logical block lock held for block %llu",
                     lock->lbn);
     return;
   }
@@ -310,7 +310,7 @@ static void releaseLock(DataVIO *dataVIO)
   // Remove the lock from the logical block lock map, releasing the lock.
   DataVIO *lockHolder = intMapRemove(lockMap, lock->lbn);
   ASSERT_LOG_ONLY((dataVIO == lockHolder),
-                  "logical block lock mismatch for block %" PRIu64, lock->lbn);
+                  "logical block lock mismatch for block %llu", lock->lbn);
   lock->locked = false;
   return;
 }
@@ -343,7 +343,7 @@ void releaseLogicalBlockLock(DataVIO *dataVIO)
   }
 
   ASSERT_LOG_ONLY((lockHolder == dataVIO),
-                  "logical block lock mismatch for block %" PRIu64, lock->lbn);
+                  "logical block lock mismatch for block %llu", lock->lbn);
   lock->locked = false;
 
   /*

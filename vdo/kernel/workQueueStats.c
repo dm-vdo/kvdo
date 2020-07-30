@@ -153,6 +153,6 @@ ssize_t formatRunTimeStats(const KvdoWorkQueueStats *stats, char *buffer)
   uint64_t lifetime = now - startTime;
 
   return sprintf(buffer,
-                 "%" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
+                 "%llu %llu %llu\n",
                  lifetime, runTime, rescheduleTime);
 }

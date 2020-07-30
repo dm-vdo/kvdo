@@ -150,7 +150,7 @@ int validateRecoveryJournalEntry(const VDO                  *vdo,
       || !isValidLocation(&entry->mapping)
       || !isPhysicalDataBlock(vdo->depot, entry->mapping.pbn)) {
     return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
-                                   " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
+                                   " (%llu, %" PRIu16 ") to %" PRIu64
                                    " (%s) is not within bounds",
                                    entry->slot.pbn, entry->slot.slot,
                                    entry->mapping.pbn,
@@ -161,7 +161,7 @@ int validateRecoveryJournalEntry(const VDO                  *vdo,
       && (isCompressed(entry->mapping.state)
           || (entry->mapping.pbn == ZERO_BLOCK))) {
     return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
-                                   " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
+                                   " (%llu, %" PRIu16 ") to %" PRIu64
                                    " (%s) is not a valid tree mapping",
                                    entry->slot.pbn, entry->slot.slot,
                                    entry->mapping.pbn,

@@ -185,7 +185,7 @@ static void vdoStatus(struct dm_target *ti,
     mutex_lock(&layer->statsMutex);
     getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
     VDOStatistics *stats = &layer->vdoStatsStorage;
-    DMEMIT("/dev/%s %s %s %s %s %" PRIu64 " %" PRIu64,
+    DMEMIT("/dev/%s %s %s %s %s %llu %llu",
            bdevname(getKernelLayerBdev(layer), nameBuffer),
 	   stats->mode,
 	   stats->inRecoveryMode ? "recovering" : "-",
@@ -229,7 +229,7 @@ static int vdoPrepareToGrowLogical(KernelLayer *layer, char *sizeString)
   }
 
   if (logicalCount > MAXIMUM_LOGICAL_BLOCKS) {
-    logWarning("Logical block count \"%" PRIu64 "\" exceeds the maximum (%"
+    logWarning("Logical block count \"%llu\" exceeds the maximum (%"
                PRIu64 ")", logicalCount, MAXIMUM_LOGICAL_BLOCKS);
     return -EINVAL;
   }
@@ -515,11 +515,11 @@ static int vdoInitialize(struct dm_target *ti,
   uint64_t   logicalSize    = to_bytes(ti->len);
   BlockCount logicalBlocks  = logicalSize / blockSize;
 
-  logDebug("Logical block size     = %" PRIu64,
+  logDebug("Logical block size     = %llu",
            (uint64_t) config->logicalBlockSize);
-  logDebug("Logical blocks         = %" PRIu64, logicalBlocks);
-  logDebug("Physical block size    = %" PRIu64, (uint64_t) blockSize);
-  logDebug("Physical blocks        = %" PRIu64, config->physicalBlocks);
+  logDebug("Logical blocks         = %llu", logicalBlocks);
+  logDebug("Physical block size    = %llu", (uint64_t) blockSize);
+  logDebug("Physical blocks        = %llu", config->physicalBlocks);
   logDebug("Block map cache blocks = %u", config->cacheSize);
   logDebug("Block map maximum age  = %u", config->blockMapMaximumAge);
   logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled

@@ -1038,7 +1038,7 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
 
   DataVIO *dataVIO = waiterAsDataVIO(first);
   logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %" PRIu64
-          " lbn %" PRIu64 " d-pbn %" PRIu64 " lastOp %s",
+          " lbn %llu d-pbn %llu lastOp %s",
           waitOn, dataVIO, getDataVIOAllocation(dataVIO),
           dataVIO->logical.lbn, dataVIO->duplicate.pbn,
           getOperationName(dataVIO));
@@ -1048,8 +1048,8 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
        waiter != first;
        waiter = waiter->nextWaiter) {
     dataVIO = waiterAsDataVIO(waiter);
-    logInfo("     ... and : VIO %" PRIptr " pbn %" PRIu64 " lbn %"
-            PRIu64 " d-pbn %" PRIu64 " lastOp %s",
+    logInfo("     ... and : VIO %" PRIptr " pbn %llu lbn %"
+            PRIu64 " d-pbn %llu lastOp %s",
             dataVIO, getDataVIOAllocation(dataVIO), dataVIO->logical.lbn,
             dataVIO->duplicate.pbn, getOperationName(dataVIO));
   }
@@ -1129,16 +1129,16 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
                                        + 3 * DECIMAL_DIGITS_PER_UINT64_T];
   if (dataVIO->isDuplicate) {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "P%" PRIu64 " L%" PRIu64 " D%" PRIu64,
+             "P%llu L%llu D%llu",
              getDataVIOAllocation(dataVIO), dataVIO->logical.lbn,
              dataVIO->duplicate.pbn);
   } else if (hasAllocation(dataVIO)) {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "P%" PRIu64 " L%" PRIu64,
+             "P%llu L%llu",
              getDataVIOAllocation(dataVIO), dataVIO->logical.lbn);
   } else {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "L%" PRIu64,
+             "L%llu",
              dataVIO->logical.lbn);
   }
 
@@ -1146,7 +1146,7 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
                                        + DECIMAL_DIGITS_PER_UINT64_T] = "";
   if (dataVIO->flushGeneration != 0) {
     snprintf(vioFlushGenerationBuffer, sizeof(vioFlushGenerationBuffer),
-             " FG%" PRIu64, dataVIO->flushGeneration);
+             " FG%llu", dataVIO->flushGeneration);
   }
 
   // Encode VIO attributes as a string of one-character flags, usually empty.

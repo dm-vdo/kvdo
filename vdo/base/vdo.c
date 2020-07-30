@@ -615,7 +615,7 @@ int validateVDOConfig(const VDOConfig *config,
   }
 
   result = ASSERT(config->physicalBlocks <= MAXIMUM_PHYSICAL_BLOCKS,
-                  "physical block count %" PRIu64 " exceeds maximum %" PRIu64,
+                  "physical block count %llu exceeds maximum %llu",
                   config->physicalBlocks, MAXIMUM_PHYSICAL_BLOCKS);
   if (result != UDS_SUCCESS) {
     return VDO_OUT_OF_RANGE;
@@ -624,8 +624,8 @@ int validateVDOConfig(const VDOConfig *config,
   // This can't check equality because FileLayer et al can only known about
   // the storage size, which may not match the super block size.
   if (blockCount < config->physicalBlocks) {
-    logError("A physical size of %" PRIu64 " blocks was specified,"
-             " but that is smaller than the %" PRIu64 " blocks"
+    logError("A physical size of %llu blocks was specified,"
+             " but that is smaller than the %llu blocks"
              " configured in the VDO super block",
              blockCount, config->physicalBlocks);
     return VDO_PARAMETER_MISMATCH;
@@ -1129,8 +1129,8 @@ ZonedPBN validateDedupeAdvice(VDO                *vdo,
   // Don't use advice that's clearly meaningless.
   if ((advice->state == MAPPING_STATE_UNMAPPED)
       || (advice->pbn == ZERO_BLOCK)) {
-    logDebug("Invalid advice from deduplication server: pbn %" PRIu64 ", "
-             "state %u. Giving up on deduplication of logical block %" PRIu64,
+    logDebug("Invalid advice from deduplication server: pbn %llu, "
+             "state %u. Giving up on deduplication of logical block %llu",
              advice->pbn, advice->state, lbn);
     atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
     return noAdvice;
@@ -1140,7 +1140,7 @@ ZonedPBN validateDedupeAdvice(VDO                *vdo,
   int result = getPhysicalZone(vdo, advice->pbn, &zone);
   if ((result != VDO_SUCCESS) || (zone == NULL)) {
     logDebug("Invalid physical block number from deduplication server: %"
-             PRIu64 ", giving up on deduplication of logical block %" PRIu64,
+             PRIu64 ", giving up on deduplication of logical block %llu",
              advice->pbn, lbn);
     atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
     return noAdvice;

@@ -77,7 +77,7 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
     result = false;
   }
   if (a->nonce != b->nonce) {
-    logError("Nonce (%" PRIu64 ") does not match (%" PRIu64 ")",
+    logError("Nonce (%llu) does not match (%llu)",
              a->nonce, b->nonce);
     result = false;
   }
@@ -95,5 +95,5 @@ void logUdsConfiguration(UdsConfiguration conf)
   logDebug("  Master index mean delta:    %10u", conf->masterIndexMeanDelta);
   logDebug("  Bytes per page:             %10u", conf->bytesPerPage);
   logDebug("  Sparse sample rate:         %10u", conf->sparseSampleRate);
-  logDebug("  Nonce:                      %" PRIu64, conf->nonce);
+  logDebug("  Nonce:                      %llu", conf->nonce);
 }

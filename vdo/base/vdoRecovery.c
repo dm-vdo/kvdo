@@ -827,7 +827,7 @@ static int recordMissingDecref(MissingDecref *decref,
   enterReadOnlyMode(recovery->vdo->readOnlyNotifier, errorCode);
   setCompletionResult(&recovery->completion, errorCode);
   logErrorWithStringError(errorCode,
-                          "Invalid mapping for pbn %" PRIu64 " with state %u",
+                          "Invalid mapping for pbn %llu with state %u",
                           location.pbn, location.state);
   return errorCode;
 }
@@ -1182,7 +1182,7 @@ static void prepareToApplyJournalEntries(VDOCompletion *completion)
                                          "Journal tail too early. "
                                          "block map head: %" PRIu64
                                          ", slab journal head: %" PRIu64
-                                         ", tail: %" PRIu64,
+                                         ", tail: %llu",
                                          recovery->blockMapHead,
                                          recovery->slabJournalHead,
                                          recovery->tail);
@@ -1204,7 +1204,7 @@ static void prepareToApplyJournalEntries(VDOCompletion *completion)
   }
 
   logInfo("Highest-numbered recovery journal block has sequence number"
-          " %" PRIu64 ", and the highest-numbered usable block is %"
+          " %llu, and the highest-numbered usable block is %"
           PRIu64, recovery->highestTail, recovery->tail);
 
   if (isReplaying(vdo)) {

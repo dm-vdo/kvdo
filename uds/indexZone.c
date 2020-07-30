@@ -130,7 +130,7 @@ static int reapOldestChapter(IndexZone *zone)
   int result
     = ASSERT(((zone->newestVirtualChapter - zone->oldestVirtualChapter)
               <= chaptersPerVolume),
-             "newest (%" PRIu64 ") and oldest (%" PRIu64 ") virtual chapters "
+             "newest (%llu) and oldest (%llu) virtual chapters "
              "less than or equal to chapters per volume (%u)",
              zone->newestVirtualChapter, zone->oldestVirtualChapter,
              chaptersPerVolume);
@@ -242,7 +242,7 @@ static int announceChapterClosed(Request   *request,
 /**********************************************************************/
 int openNextChapter(IndexZone *zone, Request *request)
 {
-  logDebug("closing chapter %" PRIu64 " of zone %d after %u entries (%u short)",
+  logDebug("closing chapter %llu of zone %d after %u entries (%u short)",
            zone->newestVirtualChapter, zone->id, zone->openChapter->size,
            zone->openChapter->capacity - zone->openChapter->size);
 

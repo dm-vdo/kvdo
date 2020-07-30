@@ -194,7 +194,7 @@ bool copyValidPage(char                *buffer,
   if (validity == BLOCK_MAP_PAGE_BAD) {
     logErrorWithStringError(VDO_BAD_PAGE,
                             "Expected page %" PRIu64
-                            " but got page %" PRIu64 " instead",
+                            " but got page %llu instead",
                             pbn, getBlockMapPagePBN(loaded));
   }
 
@@ -609,7 +609,7 @@ static void releasePageLock(DataVIO *dataVIO, char *what)
   BlockMapTreeZone *zone       = getBlockMapTreeZone(dataVIO);
   TreeLock         *lockHolder = intMapRemove(zone->loadingPages, lock->key);
   ASSERT_LOG_ONLY((lockHolder == lock),
-                  "block map page %s mismatch for key %" PRIu64 " in tree %u",
+                  "block map page %s mismatch for key %llu in tree %u",
                   what, lock->key, lock->rootIndex);
   lock->locked = false;
 }
@@ -735,7 +735,7 @@ static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
     = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
-                            "Invalid block map tree PBN: %" PRIu64 " with "
+                            "Invalid block map tree PBN: %llu with "
                             "state %u for page index %u at height %u",
                             mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,
@@ -1203,7 +1203,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     = unpackBlockMapEntry(&page->entries[treeSlot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
-                            "Invalid block map tree PBN: %" PRIu64 " with "
+                            "Invalid block map tree PBN: %llu with "
                             "state %u for page index %u at height %u",
                             mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,

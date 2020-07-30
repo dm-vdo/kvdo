@@ -272,14 +272,14 @@ static ssize_t histogramShowHistogram(Histogram *h, char *buffer)
       return bufferSize - 1;
     }
     length += snprintf(buffer + length, bufferSize - length,
-                       " : %12" PRIu64 "%.*s\n", value, barLength, bar);
+                       " : %12llu%.*s\n", value, barLength, bar);
     if (length >= (bufferSize - 1)) {
       return bufferSize - 1;
     }
   }
 
   length += snprintf(buffer + length, bufferSize - length,
-                     "total %" PRIu64 "\n", total);
+                     "total %llu\n", total);
   return minSizeT(bufferSize - 1, length);
 }
 

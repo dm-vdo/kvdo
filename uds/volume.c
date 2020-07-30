@@ -198,7 +198,7 @@ static int initChapterIndexPage(const Volume   *volume,
     return UDS_SUCCESS;
   }
 
-  logWarning("Index page map updated to %" PRIu64,
+  logWarning("Index page map updated to %llu",
              getLastUpdate(volume->indexPageMap));
   logWarning("Page map expects that chapter %u page %u has range %u to %u, "
              "but chapter index page has chapter %" PRIu64
@@ -724,7 +724,7 @@ int forgetChapter(Volume             *volume,
                   uint64_t            virtualChapter,
                   InvalidationReason  reason)
 {
-  logDebug("forgetting chapter %" PRIu64, virtualChapter);
+  logDebug("forgetting chapter %llu", virtualChapter);
   unsigned int physicalChapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);
   lockMutex(&volume->readThreadsMutex);
@@ -971,7 +971,7 @@ static int probeChapter(Volume       *volume,
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
       logError("inconsistent chapter %u index page %u: expected vcn %"
-               PRIu64 ", got vcn %" PRIu64,
+               PRIu64 ", got vcn %llu",
                chapterNumber, i, lastVCN, vcn);
       return UDS_CORRUPT_COMPONENT;
     }
@@ -995,7 +995,7 @@ static int probeChapter(Volume       *volume,
     return UDS_CORRUPT_COMPONENT;
   }
   if (chapterNumber != lastVCN % geometry->chaptersPerVolume) {
-    logError("chapter %u vcn %" PRIu64 " is out of phase (%u)",
+    logError("chapter %u vcn %llu is out of phase (%u)",
              chapterNumber, lastVCN, geometry->chaptersPerVolume);
     return UDS_CORRUPT_COMPONENT;
   }

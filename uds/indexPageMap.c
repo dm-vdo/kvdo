@@ -125,7 +125,7 @@ int updateIndexPageMap(IndexPageMap   *map,
     // replaying the volume
     if (map->lastUpdate != 0) {
       logWarning("unexpected index page map update, jumping from %" PRIu64
-                 " to %" PRIu64,
+                 " to %llu",
                  map->lastUpdate, virtualChapterNumber);
     }
   }
@@ -356,6 +356,6 @@ static int readIndexPageMap(ReadPortal *portal)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  logDebug("read index page map, last update %" PRIu64, map->lastUpdate);
+  logDebug("read index page map, last update %llu", map->lastUpdate);
   return UDS_SUCCESS;
 }

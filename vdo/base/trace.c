@@ -67,7 +67,7 @@ void formatTrace(Trace  *trace,
   if (trace->used > 0) {
     TraceRecord *record = &trace->records[0];
     TraceLocationRecord *location = baseTraceLocation + record->location;
-    snprintf(buf, bufferEnd - buf, "Trace[%s@%" PRIu64 ".%06" PRIu64,
+    snprintf(buf, bufferEnd - buf, "Trace[%s@%llu.%06llu",
              location->function, record->when / 1000000,
              record->when % 1000000);
     buf += strlen(buf);

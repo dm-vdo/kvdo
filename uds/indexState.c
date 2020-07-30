@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#6 $
  */
 
 #include "indexState.h"
@@ -26,6 +26,7 @@
 #include "indexLayout.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+
 
 /*****************************************************************************/
 int makeIndexState(IndexLayout   *layout,
@@ -231,7 +232,9 @@ int saveIndexState(IndexState *state)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  unsigned int i;
+  
+
+unsigned int i;
   for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     result = writeIndexComponent(component);

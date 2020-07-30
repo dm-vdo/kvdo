@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/uds-error.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/uds-error.h#3 $
  */
 
 /**
@@ -139,8 +139,8 @@ enum udsStatusCodes {
   UDS_UNUSED_CODE_49              = UDS_ERROR_CODE_BASE + 49,
   /** Index is suspended */
   UDS_SUSPENDED                   = UDS_ERROR_CODE_BASE + 50,
-  /** Session operation not allowed at the current time */
-  UDS_INVALID_OPERATION           = UDS_ERROR_CODE_BASE + 51,
+  /** Unused */
+  UDS_UNUSED_CODE_51              = UDS_ERROR_CODE_BASE + 51,
   /** Index session is already initialized */
   UDS_INDEXSESSION_IN_USE         = UDS_ERROR_CODE_BASE + 52,
   /** Callback required */

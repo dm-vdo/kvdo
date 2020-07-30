@@ -382,9 +382,9 @@ static bool abortOnError(int             result,
     if (!isReadOnly(notifier)) {
       if (result != VDO_READ_ONLY) {
         logErrorWithStringError(result, "Preparing to enter read-only mode:"
-                                " DataVIO for LBN %" PRIu64 " (becoming mapped"
-                                " to %" PRIu64 ", previously mapped"
-                                " to %" PRIu64 ", allocated %" PRIu64 ") is"
+                                " DataVIO for LBN %llu (becoming mapped"
+                                " to %llu, previously mapped"
+                                " to %llu, allocated %llu) is"
                                 " completing with a fatal error after"
                                 " operation %s", dataVIO->logical.lbn,
                                 dataVIO->newMapped.pbn, dataVIO->mapped.pbn,
@@ -525,7 +525,7 @@ static void updateReferenceCount(DataVIO *dataVIO)
   PhysicalBlockNumber  pbn   = dataVIO->operation.pbn;
   int result = ASSERT(isPhysicalDataBlock(depot, pbn),
                       "Adding slab journal entry for impossible PBN %" PRIu64
-                      "for LBN %" PRIu64, pbn, dataVIO->logical.lbn);
+                      "for LBN %llu", pbn, dataVIO->logical.lbn);
   if (abortOnError(result, dataVIO, READ_ONLY)) {
     return;
   }
@@ -627,7 +627,7 @@ static void incrementForCompression(VDOCompletion *completion)
 
   ASSERT_LOG_ONLY(isCompressed(dataVIO->newMapped.state),
                   "Impossible attempt to update reference counts for a block "
-                  "which was not compressed (logical block %" PRIu64 ")",
+                  "which was not compressed (logical block %llu)",
                   dataVIO->logical.lbn);
 
   /*
@@ -727,7 +727,7 @@ static void incrementForDedupe(VDOCompletion *completion)
 
   ASSERT_LOG_ONLY(dataVIO->isDuplicate,
                   "Impossible attempt to update reference counts for a block "
-                  "which was not a duplicate (logical block %" PRIu64 ")",
+                  "which was not a duplicate (logical block %llu)",
                   dataVIO->logical.lbn);
 
   /*

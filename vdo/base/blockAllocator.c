@@ -344,7 +344,7 @@ void queueSlab(Slab *slab)
   BlockCount      freeBlocks = getSlabFreeBlockCount(slab);
   int result = ASSERT((freeBlocks <= allocator->depot->slabConfig.dataBlocks),
                       "rebuilt slab %u must have a valid free block count"
-                      " (has %" PRIu64 ", expected maximum %" PRIu64 ")",
+                      " (has %llu, expected maximum %llu)",
                       slab->slabNumber, freeBlocks,
                       allocator->depot->slabConfig.dataBlocks);
   if (result != VDO_SUCCESS) {
@@ -470,7 +470,7 @@ void releaseBlockReference(BlockAllocator      *allocator,
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result,
                             "Failed to release reference to %s "
-                            "physical block %" PRIu64,
+                            "physical block %llu",
                             why, pbn);
   }
 }

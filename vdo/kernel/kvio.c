@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#7 $
  */
 
 #include "kvio.h"
@@ -185,17 +185,16 @@ static void completeFlushBio(BIO *bio)
 static void completeFlushBio(BIO *bio, int error)
 #endif
 {
-  KVIO *kvio   = (KVIO *) bio->bi_private;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+  int error = getBioResult(bio);
+#endif
+  KVIO *kvio = (KVIO *) bio->bi_private;
   // XXX This assumes a VDO-created bio around a buffer contains exactly 1
   // page, which we believe is true, but do not assert.
   bio->bi_vcnt = 1;
   // Restore the bio's notion of its own data.
   resetBio(bio, kvio->layer);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  kvdoContinueKvio(kvio, getBioResult(bio));
-#else
   kvdoContinueKvio(kvio, error);
-#endif
 }
 
 /**********************************************************************/

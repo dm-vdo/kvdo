@@ -139,14 +139,14 @@ int prepareToGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
   if (newLogicalBlocks < vdo->config.logicalBlocks) {
     return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
                                    "Can't shrink VDO logical size from its "
-                                   "current value of %" PRIu64,
+                                   "current value of %llu",
                                    vdo->config.logicalBlocks);
   }
 
   if (newLogicalBlocks == vdo->config.logicalBlocks) {
     return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
                                    "Can't grow VDO logical size to its "
-                                   "current value of %" PRIu64,
+                                   "current value of %llu",
                                    vdo->config.logicalBlocks);
   }
 
