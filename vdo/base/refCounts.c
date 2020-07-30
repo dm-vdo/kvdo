@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#51 $
  */
 
 #include "refCounts.h"
@@ -1057,8 +1057,7 @@ block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
 static inline struct reference_block *
 waiter_as_reference_block(struct waiter *waiter)
 {
-	STATIC_ASSERT(offsetof(struct reference_block, waiter) == 0);
-	return (struct reference_block *) waiter;
+	return container_of(waiter, struct reference_block, waiter);
 }
 
 /**
