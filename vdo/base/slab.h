@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#30 $
  */
 
 #ifndef VDO_SLAB_H
@@ -91,8 +91,7 @@ struct vdo_slab {
  **/
 static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct vdo_slab, list_entry) == 0);
-	return (struct vdo_slab *) entry;
+	return container_of(entry, struct vdo_slab, list_entry);
 }
 
 /**
