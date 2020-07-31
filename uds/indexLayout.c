@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#32 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#33 $
  */
 
 #include "indexLayout.h"
@@ -2029,7 +2029,8 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 	isl->read = isl->written = false;
 	isl->save_type = save_type;
 	memset(&isl->save_data, 0, sizeof(isl->save_data));
-	isl->save_data.timestamp = ktime_to_ms(currentTime(CLOCK_REALTIME));
+	isl->save_data.timestamp =
+		ktime_to_ms(current_time_ns(CLOCK_REALTIME));
 	isl->save_data.version = 1;
 
 	isl->save_data.nonce = generate_index_save_nonce(volume_nonce, isl);

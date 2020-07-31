@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#12 $
  */
 
 #ifndef TIME_UTILS_H
@@ -31,18 +31,17 @@
 // Some constants that are defined in kernel headers.
 
 /**
- * Return the current time according to the specified clock type.
+ * Return the current nanosecond time according to the specified clock
+ * type.
  *
  * @param clock         Either CLOCK_REALTIME or CLOCK_MONOTONIC
  *
  * @return the current time according to the clock in question
- *
- * @note the precision of the clock is system specific
  **/
-static INLINE ktime_t currentTime(clockid_t clock)
+static INLINE ktime_t current_time_ns(clockid_t clock)
 {
-  // clock is always a constant, so gcc reduces this to a single call
-  return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
+	// clock is always a constant, so gcc reduces this to a single call
+	return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
 }
 
 
@@ -59,7 +58,7 @@ static INLINE ktime_t currentTime(clockid_t clock)
  **/
 static INLINE ktime_t seconds_to_ktime(int64_t seconds)
 {
-  return (ktime_t) seconds * NSEC_PER_SEC;
+	return (ktime_t) seconds * NSEC_PER_SEC;
 }
 
 
@@ -72,7 +71,7 @@ static INLINE ktime_t seconds_to_ktime(int64_t seconds)
  **/
 static INLINE ktime_t us_to_ktime(int64_t microseconds)
 {
-  return (ktime_t) microseconds * NSEC_PER_USEC;
+	return (ktime_t) microseconds * NSEC_PER_USEC;
 }
 
 /**
@@ -84,7 +83,7 @@ static INLINE ktime_t us_to_ktime(int64_t microseconds)
  **/
 static INLINE int64_t ktime_to_seconds(ktime_t reltime)
 {
-  return reltime / NSEC_PER_SEC;
+	return reltime / NSEC_PER_SEC;
 }
 
 
@@ -96,7 +95,7 @@ static INLINE int64_t ktime_to_seconds(ktime_t reltime)
  *
  * @return the time in microseconds
  **/
-uint64_t __must_check nowUsec(void);
+uint64_t __must_check current_time_us(void);
 
 
 #endif /* TIME_UTILS_H */

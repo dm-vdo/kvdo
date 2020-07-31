@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.c#11 $
  */
 
 #include "permassert.h"
@@ -28,9 +28,9 @@
 
 
 /*****************************************************************************/
-uint64_t nowUsec(void)
+uint64_t current_time_us(void)
 {
-  return currentTime(CLOCK_REALTIME) / NSEC_PER_USEC;
+	return current_time_ns(CLOCK_REALTIME) / NSEC_PER_USEC;
 }
 
 

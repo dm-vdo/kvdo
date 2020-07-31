@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#9 $
  */
 
 #include "nonce.h"
@@ -39,7 +39,7 @@ static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 /*****************************************************************************/
 void create_unique_nonce_data(byte *buffer)
 {
-	ktime_t now = currentTime(CLOCK_REALTIME);
+	ktime_t now = current_time_ns(CLOCK_REALTIME);
 	uint32_t rand = random_in_range(1, (1 << 30) - 1);
 	size_t offset = 0;
 

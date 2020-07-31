@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#8 $
  */
 
 #include "trace.h"
@@ -39,7 +39,7 @@ void add_trace_record(struct trace *trace,
 	if (trace->used < NUM_TRACE_RECORDS) {
 		struct trace_record *record = &trace->records[trace->used];
 		trace->used++;
-		record->when = nowUsec();
+		record->when = current_time_us();
 		record->tid = get_thread_id();
 		record->location = location - base_trace_location;
 	}
