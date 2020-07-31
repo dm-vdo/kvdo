@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#53 $
  */
 
 #include "vdoLoad.h"
@@ -37,9 +37,9 @@
 #include "releaseVersions.h"
 #include "slabDepot.h"
 #include "slabSummary.h"
+#include "superBlockCodec.h"
 #include "threadConfig.h"
 #include "types.h"
-#include "vdoDecode.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
 
@@ -274,27 +274,54 @@ int perform_vdo_load(struct vdo *vdo)
 }
 
 /**
+ * Decode the VDO state from the super block and validate that it is correct.
+ * On error from this method, the component states must be destroyed
+ * explicitly. If this method returns successfully, the component states must
+ * not be destroyed.
+ *
+ * @param vdo  The vdo being loaded
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int __must_check decode_from_super_block(struct vdo *vdo)
+{
+	struct super_block_codec *codec
+		= get_super_block_codec(vdo->super_block);
+	int result = decode_component_states(codec->component_buffer,
+					     vdo->load_config.release_version,
+					     &vdo->states);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	set_vdo_state(vdo, vdo->states.vdo.state);
+	vdo->load_state = vdo->states.vdo.state;
+
+	block_count_t block_count = vdo->layer->getBlockCount(vdo->layer);
+	result = validate_component_states(&vdo->states,
+					   vdo->load_config.nonce,
+					   block_count);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	return decode_vdo_layout(vdo->states.layout, &vdo->layout);
+}
+
+/**
  * Decode the component data portion of a super block and fill in the
  * corresponding portions of the vdo being loaded. This will also allocate the
  * recovery journal and slab depot. If this method is called with an
  * asynchronous layer (i.e. a thread config which specifies at least one base
  * thread), the block map and packer will be constructed as well.
  *
- * @param vdo              The vdo being loaded
- * @param validate_config  Whether to validate the config
+ * @param vdo  The vdo being loaded
  *
  * @return VDO_SUCCESS or an error
  **/
-__attribute__((warn_unused_result)) static int
-decode_vdo(struct vdo *vdo, bool validate_config)
+static int __must_check decode_vdo(struct vdo *vdo)
 {
-	int result = start_vdo_decode(vdo, validate_config);
-	if (result != VDO_SUCCESS) {
-		destroy_component_states(&vdo->states);
-		return result;
-	}
-
-	result = decode_vdo_layout(vdo->states.layout, &vdo->layout);
+	int result = decode_from_super_block(vdo);
 	if (result != VDO_SUCCESS) {
 		destroy_component_states(&vdo->states);
 		return result;
@@ -314,7 +341,39 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = finish_vdo_decode(vdo);
+	result = decode_recovery_journal(vdo->states.recovery_journal,
+					 vdo->states.vdo.nonce,
+					 vdo->layer,
+					 get_vdo_partition(vdo->layout,
+							   RECOVERY_JOURNAL_PARTITION),
+					 vdo->states.vdo.complete_recoveries,
+					 vdo->states.vdo.config.recovery_journal_size,
+					 RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
+					 vdo->read_only_notifier,
+					 thread_config,
+					 &vdo->recovery_journal);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = decode_slab_depot(vdo->states.slab_depot,
+				   thread_config,
+				   vdo->states.vdo.nonce,
+				   vdo->layer,
+				   get_vdo_partition(vdo->layout,
+						     SLAB_SUMMARY_PARTITION),
+				   vdo->read_only_notifier,
+				   vdo->recovery_journal,
+				   &vdo->state,
+				   &vdo->depot);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = decode_block_map(vdo->states.block_map,
+				  vdo->states.vdo.config.logical_blocks,
+				  thread_config,
+				  &vdo->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -400,7 +459,7 @@ static void load_vdo_components(struct vdo_completion *completion)
 			   abort_load,
 			   completion->callback_thread_id,
 			   completion->parent);
-	finish_completion(completion, decode_vdo(vdo, true));
+	finish_completion(completion, decode_vdo(vdo));
 }
 
 /**
