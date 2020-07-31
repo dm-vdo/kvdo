@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#17 $
  */
 
 #include "vioPool.h"
@@ -156,7 +156,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 	pool->busy_count++;
 	struct list_head *entry = pool->available.next;
 	list_move_tail(entry, &pool->busy);
-	(*waiter->callback)(waiter, entry);
+	(*waiter->callback)(waiter, as_vio_pool_entry(entry));
 	return VDO_SUCCESS;
 }
 

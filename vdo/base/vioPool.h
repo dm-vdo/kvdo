@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#10 $
  */
 
 #ifndef VIO_POOL_H
@@ -115,9 +115,9 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
  **/
 static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 {
-	STATIC_ASSERT(offsetof(struct vio_pool_entry, list_entry) == 0);
-	return (struct vio_pool_entry *) entry;
+	return container_of(entry, struct vio_pool_entry, list_entry);
 }
+
 /**
  * Return the outage count of an vio pool.
  *
