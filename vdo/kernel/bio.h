@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#15 $
  */
 
 #ifndef BIO_H
@@ -117,37 +117,6 @@ static inline void set_bio_operation_flag_fua(struct bio *bio)
 static inline void clear_bio_operation_flag_fua(struct bio *bio)
 {
 	clear_bio_operation_flag(bio, REQ_FUA);
-}
-
-/**********************************************************************/
-static inline bool is_discard_bio(struct bio *bio)
-{
-	return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
-}
-
-/**********************************************************************/
-static inline bool is_flush_bio(struct bio *bio)
-{
-	return (bio_op(bio) == REQ_OP_FLUSH) ||
-	       ((bio->bi_opf & REQ_PREFLUSH) != 0);
-}
-
-/**********************************************************************/
-static inline bool is_fua_bio(struct bio *bio)
-{
-	return (bio->bi_opf & REQ_FUA) != 0;
-}
-
-/**********************************************************************/
-static inline bool is_read_bio(struct bio *bio)
-{
-	return bio_data_dir(bio) == READ;
-}
-
-/**********************************************************************/
-static inline bool is_write_bio(struct bio *bio)
-{
-	return bio_data_dir(bio) == WRITE;
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#103 $
  */
 
 #include "kernelLayer.h"
@@ -243,7 +243,8 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	}
 
 	bool has_discard_permit =
-		(is_discard_bio(bio) && limiter_poll(&layer->discard_limiter));
+		((bio_op(bio) == REQ_OP_DISCARD) &&
+		 limiter_poll(&layer->discard_limiter));
 	int result = kvdo_launch_data_kvio_from_bio(layer,
 						    bio,
 						    arrival_time,
@@ -266,14 +267,15 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
  **/
 static int __must_check check_bio_validity(struct bio *bio)
 {
-	if (is_discard_bio(bio) && is_read_bio(bio)) {
+	if ((bio_op(bio) == REQ_OP_DISCARD) && (bio_data_dir(bio) == READ)) {
 		// Read and Discard should never occur together
 		return -EIO;
 	}
 
 	bool is_empty = (get_bio_size(bio) == 0);
 	// Is this a flush? It must be empty.
-	if (is_flush_bio(bio)) {
+	if ((bio_op(bio) == REQ_OP_FLUSH) ||
+	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
 		return ASSERT_WITH_ERROR_CODE(is_empty, -EINVAL,
 					      "flush bios must be empty");
 	}
@@ -303,7 +305,8 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
-	if (is_flush_bio(bio)) {
+	if ((bio_op(bio) == REQ_OP_FLUSH) ||
+	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
 		if (should_process_flush(layer)) {
 			launch_kvdo_flush(layer, bio);
 			return DM_MAPIO_SUBMITTED;
@@ -334,7 +337,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	bool has_discard_permit = false;
 
-	if (is_discard_bio(bio)) {
+	if (bio_op(bio) == REQ_OP_DISCARD) {
 		limiter_wait_for_one_free(&layer->discard_limiter);
 		has_discard_permit = true;
 	}
@@ -371,7 +374,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 		}
 
 		bool has_discard_permit =
-			(is_discard_bio(bio) &&
+			((bio_op(bio) == REQ_OP_DISCARD) &&
 			 limiter_poll(&layer->discard_limiter));
 		int result = kvdo_launch_data_kvio_from_bio(
 			layer, bio, arrival_time, has_discard_permit);

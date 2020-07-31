@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#74 $
  */
 
 #include "dataKVIO.h"
@@ -442,7 +442,8 @@ void acknowledgeDataVIO(struct data_vio *data_vio)
 
 	// If the remaining discard work is not completely processed by this
 	// VIO, don't acknowledge it yet.
-	if (is_discard_bio(data_kvio->external_io_request.bio) &&
+	if ((data_kvio->external_io_request.bio != NULL) &&
+	    (bio_op(data_kvio->external_io_request.bio) == REQ_OP_DISCARD) && 
 	    (data_kvio->remaining_discard >
 	     (VDO_BLOCK_SIZE - data_kvio->offset))) {
 		invoke_callback(data_vio_as_completion(data_vio));
@@ -554,7 +555,7 @@ void applyPartialWrite(struct data_vio *data_vio)
 
 	reset_bio(data_kvio->data_block_bio, layer);
 
-	if (!is_discard_bio(bio)) {
+	if (bio_op(bio) != REQ_OP_DISCARD) {
 		bio_copy_data_in(bio, data_kvio->data_block + data_kvio->offset);
 	} else {
 		memset(data_kvio->data_block + data_kvio->offset, '\0',
@@ -629,7 +630,8 @@ void compressDataVIO(struct data_vio *data_vio)
 	 */
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 
-	if (is_discard_bio(data_kvio->external_io_request.bio) &&
+	if ((data_kvio->external_io_request.bio != NULL) &&
+	    (bio_op(data_kvio->external_io_request.bio) == REQ_OP_DISCARD) &&
 	    (data_kvio->remaining_discard > 0)) {
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 		kvdo_enqueue_data_vio_callback(data_kvio);
@@ -676,7 +678,7 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
 	bio_list_init(&kvio->bios_merged);
 
 	// The data_block is only needed for writes and some partial reads.
-	if (is_write_bio(bio) || (get_bio_size(bio) < VDO_BLOCK_SIZE)) {
+	if ((bio_data_dir(bio) == WRITE) || (get_bio_size(bio) < VDO_BLOCK_SIZE)) {
 		reset_bio(data_kvio->data_block_bio, layer);
 	}
 
@@ -743,7 +745,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		 * cases, but only once we're sure all such places are fixed to
 		 * check the is_zero_block flag first.
 		 */
-		if (is_discard_bio(bio)) {
+		if (bio_op(bio) == REQ_OP_DISCARD) {
 			/*
 			 * This is a discard/trim operation. This is treated
 			 * much like the zero block, but we keep differen
@@ -760,14 +762,14 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		}
 	}
 
-	if (data_kvio->isPartial || is_write_bio(bio)) {
+	if (data_kvio->isPartial || (bio_data_dir(bio) == WRITE)) {
 		/*
 		 * data_kvio->bio will point at kvio->data_block_bio for all writes
 		 * and partial block I/O so the rest of the kernel code doesn't
 		 * need to make a decision as to what to use.
 		 */
 		data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
-		if (data_kvio->isPartial && is_write_bio(bio)) {
+		if (data_kvio->isPartial && (bio_data_dir(bio) == WRITE)) {
 			clear_bio_operation_and_flags(data_kvio->data_block_bio);
 			set_bio_operation_read(data_kvio->data_block_bio);
 		} else {
@@ -890,7 +892,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 
-	if (is_discard_bio(bio)) {
+	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_kvio->hasDiscardPermit = has_discard_permit;
 		data_kvio->remaining_discard = get_bio_size(bio);
 		callback = kvdo_continue_discard_kvio;
