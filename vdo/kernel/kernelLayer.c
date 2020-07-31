@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#102 $
  */
 
 #include "kernelLayer.h"
@@ -257,6 +257,32 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	return DM_MAPIO_SUBMITTED;
 }
 
+/**
+ * Check that bios match up with what we expect.
+ *
+ * @param bio  The bio to check
+ *
+ * @return UDS_SUCCESS or -EINVAL.
+ **/
+static int __must_check check_bio_validity(struct bio *bio)
+{
+	if (is_discard_bio(bio) && is_read_bio(bio)) {
+		// Read and Discard should never occur together
+		return -EIO;
+	}
+
+	bool is_empty = (get_bio_size(bio) == 0);
+	// Is this a flush? It must be empty.
+	if (is_flush_bio(bio)) {
+		return ASSERT_WITH_ERROR_CODE(is_empty, -EINVAL,
+					      "flush bios must be empty");
+	}
+
+	// Is this anything else? It must not be empty.
+	return ASSERT_WITH_ERROR_CODE(!is_empty, -EINVAL,
+				      "data bios must not be empty");
+}
+
 /**********************************************************************/
 int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 {
@@ -270,13 +296,14 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	// Count all incoming bios.
 	count_bios(&layer->biosIn, bio);
 
+	// Check for invalid bios.
+	int result = check_bio_validity(bio);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if (is_flush_bio(bio)) {
-		if (ASSERT(get_bio_size(bio) == 0, "Flush bio is size 0") !=
-		    VDO_SUCCESS) {
-			// We expect flushes to be of size 0.
-			return -EINVAL;
-		}
 		if (should_process_flush(layer)) {
 			launch_kvdo_flush(layer, bio);
 			return DM_MAPIO_SUBMITTED;
@@ -291,17 +318,6 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			set_bio_block_device(bio, get_kernel_layer_bdev(layer));
 			return DM_MAPIO_REMAPPED;
 		}
-	}
-
-	if (ASSERT(get_bio_size(bio) != 0, "Data bio is not size 0") !=
-	    VDO_SUCCESS) {
-		// We expect non-flushes to be non-zero in size.
-		return -EINVAL;
-	}
-
-	if (is_discard_bio(bio) && is_read_bio(bio)) {
-		// Read and Discard should never occur together
-		return -EIO;
 	}
 
 	struct kvdo_work_queue *current_work_queue = get_current_work_queue();
@@ -324,8 +340,8 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	limiter_wait_for_one_free(&layer->request_limiter);
 
-	int result = kvdo_launch_data_kvio_from_bio(layer, bio, arrival_time,
-						    has_discard_permit);
+	result = kvdo_launch_data_kvio_from_bio(layer, bio, arrival_time,
+						has_discard_permit);
 	// Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s)
 	// now.
 	if (result != VDO_SUCCESS) {
