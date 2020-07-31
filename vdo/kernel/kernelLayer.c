@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#104 $
  */
 
 #include "kernelLayer.h"
@@ -267,9 +267,13 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
  **/
 static int __must_check check_bio_validity(struct bio *bio)
 {
-	if ((bio_op(bio) == REQ_OP_DISCARD) && (bio_data_dir(bio) == READ)) {
-		// Read and Discard should never occur together
-		return -EIO;
+	if ((bio_op(bio) != REQ_OP_READ) &&
+	    (bio_op(bio) != REQ_OP_WRITE) &&
+	    (bio_op(bio) != REQ_OP_FLUSH) &&
+	    (bio_op(bio) != REQ_OP_DISCARD)) {
+		// We should never get any other types of bio.
+		log_error("Received unexpected bio of type %d", bio_op(bio));
+		return -EINVAL;
 	}
 
 	bool is_empty = (get_bio_size(bio) == 0);
