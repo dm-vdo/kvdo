@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#39 $
  */
 
 #include "kvio.h"
@@ -293,94 +293,6 @@ void initialize_kvio(struct kvio *kvio,
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F;io=?init;j=normal"));
 }
 
-/**
- * Construct a metadata kvio.
- *
- * @param [in]  layer             The physical layer
- * @param [in]  vio_type          The type of vio to create
- * @param [in]  priority          The relative priority to assign to the
- *                                metadata_kvio
- * @param [in]  parent            The parent of the metadata_kvio completion
- * @param [in]  bio               The bio to associate with this metadata_kvio
- * @param [out] metadata_kvio_ptr  A pointer to hold the new metadata_kvio
- *
- * @return VDO_SUCCESS or an error
- **/
-static int __must_check
-make_metadata_kvio(struct kernel_layer *layer,
-		   vio_type vio_type,
-		   vio_priority priority,
-		   void *parent,
-		   struct bio *bio,
-		   struct metadata_kvio **metadata_kvio_ptr)
-{
-	// If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
-	// VDOSTORY-176.
-	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
-
-	// Metadata vios should use direct allocation and not use the buffer
-	// pool, which is reserved for submissions from the linux block layer.
-	struct metadata_kvio *metadata_kvio;
-	int result =
-		ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
-	if (result != VDO_SUCCESS) {
-		log_error("metadata kvio allocation failure %d", result);
-		return result;
-	}
-
-	struct kvio *kvio = &metadata_kvio->kvio;
-
-	kvio->vio = &metadata_kvio->vio;
-	initialize_kvio(kvio, layer, vio_type, priority, parent, bio);
-	*metadata_kvio_ptr = metadata_kvio;
-	return VDO_SUCCESS;
-}
-
-/**
- * Construct a struct compressed_write_kvio.
- *
- * @param [in]  layer                      The physical layer
- * @param [in]  parent                     The parent of the
- *                                         compressed_write_kvio completion
- * @param [in]  bio                        The bio to associate with this
- *                                         compressed_write_kvio
- * @param [out] compressed_write_kvio_ptr  A pointer to hold the new
- *                                         compressed_write_kvio
- *
- * @return VDO_SUCCESS or an error
- **/
-static int __must_check
-make_compressed_write_kvio(struct kernel_layer *layer,
-			   void *parent,
-			   struct bio *bio,
-			   struct compressed_write_kvio **compressed_write_kvio_ptr)
-{
-	// Compressed write vios should use direct allocation and not use the
-	// buffer pool, which is reserved for submissions from the linux block
-	// layer.
-	struct compressed_write_kvio *compressed_write_kvio;
-	int result = ALLOCATE(1, struct compressed_write_kvio, __func__,
-			      &compressed_write_kvio);
-	if (result != VDO_SUCCESS) {
-		log_error("compressed write kvio allocation failure %d",
-			  result);
-		return result;
-	}
-
-	struct kvio *kvio = &compressed_write_kvio->kvio;
-
-	kvio->vio =
-		allocating_vio_as_vio(&compressed_write_kvio->allocating_vio);
-	initialize_kvio(kvio,
-			layer,
-			VIO_TYPE_COMPRESSED_BLOCK,
-			VIO_PRIORITY_COMPRESSED_DATA,
-			parent,
-			bio);
-	*compressed_write_kvio_ptr = compressed_write_kvio;
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     vio_type vio_type,
@@ -404,14 +316,24 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	struct metadata_kvio *metadata_kvio;
+	// If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
+	// VDOSTORY-176.
+	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
 
-	result = make_metadata_kvio(kernel_layer, vio_type, priority, parent,
-				    bio, &metadata_kvio);
+	// Metadata vios should use direct allocation and not use the buffer
+	// pool, which is reserved for submissions from the linux block layer.
+	struct metadata_kvio *metadata_kvio;
+	result = ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
 	if (result != VDO_SUCCESS) {
+		log_error("metadata kvio allocation failure %d", result);
 		free_bio(bio, kernel_layer);
 		return result;
 	}
+
+	struct kvio *kvio = &metadata_kvio->kvio;
+
+	kvio->vio = &metadata_kvio->vio;
+	initialize_kvio(kvio, kernel_layer, vio_type, priority, parent, bio);
 
 	*vio_ptr = &metadata_kvio->vio;
 	return VDO_SUCCESS;
@@ -431,14 +353,29 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 		return result;
 	}
 
+	// Compressed write vios should use direct allocation and not use the
+	// buffer pool, which is reserved for submissions from the linux block
+	// layer.
 	struct compressed_write_kvio *compressed_write_kvio;
-
-	result = make_compressed_write_kvio(kernel_layer, parent, bio,
-					    &compressed_write_kvio);
+	result = ALLOCATE(1, struct compressed_write_kvio, __func__,
+			  &compressed_write_kvio);
 	if (result != VDO_SUCCESS) {
+		log_error("compressed write kvio allocation failure %d",
+			  result);
 		free_bio(bio, kernel_layer);
 		return result;
 	}
+
+	struct kvio *kvio = &compressed_write_kvio->kvio;
+
+	kvio->vio =
+		allocating_vio_as_vio(&compressed_write_kvio->allocating_vio);
+	initialize_kvio(kvio,
+			kernel_layer,
+			VIO_TYPE_COMPRESSED_BLOCK,
+			VIO_PRIORITY_COMPRESSED_DATA,
+			parent,
+			bio);
 
 	*allocating_vio_ptr = &compressed_write_kvio->allocating_vio;
 	return VDO_SUCCESS;
