@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#37 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -27,6 +27,7 @@
 #include "completion.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
+#include "slabDepotFormat.h"
 #include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
@@ -61,55 +62,6 @@ typedef enum {
 slab_count_t __must_check calculate_slab_count(struct slab_depot *depot);
 
 /**
- * Create a slab depot.
- *
- * @param [in]  block_count         The number of blocks initially available
- * @param [in]  first_block         The number of the first block which may be
- *                                  allocated
- * @param [in]  slab_config         The slab configuration
- * @param [in]  thread_config       The thread configuration of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vio_pool_size       The size of the VIO pool
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summary_partition   The partition which holds the slab summary
- * @param [in]  read_only_notifier  The context for entering read-only mode
- * @param [in]  recovery_journal    The recovery journal of the VDO
- * @param [in]  vdo_state           A pointer to the VDO's atomic state
- * @param [out] depot_ptr           A pointer to hold the depot
- *
- * @return A success or error code
- **/
-int __must_check make_slab_depot(block_count_t block_count,
-				 physical_block_number_t first_block,
-				 struct slab_config slab_config,
-				 const struct thread_config *thread_config,
-				 nonce_t nonce,
-				 block_count_t vio_pool_size,
-				 PhysicalLayer *layer,
-				 struct partition *summary_partition,
-				 struct read_only_notifier *read_only_notifier,
-				 struct recovery_journal *recovery_journal,
-				 Atomic32 *vdo_state,
-				 struct slab_depot **depot_ptr);
-
-/**
- * Destroy a slab depot and null out the reference to it.
- *
- * @param depot_ptr  The reference to the depot to destroy
- **/
-void free_slab_depot(struct slab_depot **depot_ptr);
-
-/**
- * Record the state of a slab depot for encoding into the super block.
- *
- * @param depot   The depot to encode
- *
- * @return The depot state
- **/
-struct slab_depot_state_2_0 __must_check
-record_slab_depot(const struct slab_depot *depot);
-
-/**
  * Make a slab depot and configure it with the state read from the super block.
  *
  * @param [in]  state               The slab depot state from the super block
@@ -134,6 +86,23 @@ decode_slab_depot(struct slab_depot_state_2_0 state,
 		  struct recovery_journal *recovery_journal,
 		  Atomic32 *vdo_state,
 		  struct slab_depot **depot_ptr);
+
+/**
+ * Destroy a slab depot and null out the reference to it.
+ *
+ * @param depot_ptr  The reference to the depot to destroy
+ **/
+void free_slab_depot(struct slab_depot **depot_ptr);
+
+/**
+ * Record the state of a slab depot for encoding into the super block.
+ *
+ * @param depot   The depot to encode
+ *
+ * @return The depot state
+ **/
+struct slab_depot_state_2_0 __must_check
+record_slab_depot(const struct slab_depot *depot);
 
 /**
  * Allocate the RefCounts for all slabs in the depot. This method may be called

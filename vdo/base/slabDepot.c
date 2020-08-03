@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#76 $
  */
 
 #include "slabDepot.h"
@@ -205,16 +205,6 @@ static int allocate_components(struct slab_depot *depot,
 			       PhysicalLayer *layer,
 			       struct partition *summary_partition)
 {
-	/*
-	 * If createVIO is NULL, the slab depot is only being used to format
-	 * or audit the VDO. These only require the SuperBlock component, so we
-	 * can just skip allocating all the memory needed for runtime
-	 * components.
-	 */
-	if (layer->createMetadataVIO == NULL) {
-		return VDO_SUCCESS;
-	}
-
 	int result = make_action_manager(depot->zone_count,
 					 get_allocator_thread_id,
 					 get_journal_zone_thread(thread_config),
@@ -286,34 +276,16 @@ static int allocate_components(struct slab_depot *depot,
 	return VDO_SUCCESS;
 }
 
-/**
- * Allocate a slab depot.
- *
- * @param [in]  state               The parameters for the new depot
- * @param [in]  thread_config       The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vio_pool_size       The size of the VIO pool
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summary_partition   The partition which holds the slab summary
- *                                  (if NULL, the depot is format-only)
- * @param [in]  read_only_notifier  The context for entering read-only mode
- * @param [in]  recovery_journal    The recovery journal of the VDO
- * @param [in]  vdo_state           A pointer to the VDO's atomic state
- * @param [out] depot_ptr           A pointer to hold the depot
- *
- * @return A success or error code
- **/
-static int __must_check
-allocate_depot(struct slab_depot_state_2_0 state,
-	       const struct thread_config *thread_config,
-	       nonce_t nonce,
-	       block_count_t vio_pool_size,
-	       PhysicalLayer *layer,
-	       struct partition *summary_partition,
-	       struct read_only_notifier *read_only_notifier,
-	       struct recovery_journal *recovery_journal,
-	       Atomic32 *vdo_state,
-	       struct slab_depot **depot_ptr)
+/**********************************************************************/
+int decode_slab_depot(struct slab_depot_state_2_0 state,
+		      const struct thread_config *thread_config,
+		      nonce_t nonce,
+		      PhysicalLayer *layer,
+		      struct partition *summary_partition,
+		      struct read_only_notifier *read_only_notifier,
+		      struct recovery_journal *recovery_journal,
+		      Atomic32 *vdo_state,
+		      struct slab_depot **depot_ptr)
 {
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
@@ -347,51 +319,11 @@ allocate_depot(struct slab_depot_state_2_0 state,
 	result = allocate_components(depot,
 				     nonce,
 				     thread_config,
-				     vio_pool_size,
+				     VIO_POOL_SIZE,
 				     layer,
 				     summary_partition);
 	if (result != VDO_SUCCESS) {
 		free_slab_depot(&depot);
-		return result;
-	}
-
-	*depot_ptr = depot;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int make_slab_depot(block_count_t block_count,
-		    physical_block_number_t first_block,
-		    struct slab_config slab_config,
-		    const struct thread_config *thread_config,
-		    nonce_t nonce,
-		    block_count_t vio_pool_size,
-		    PhysicalLayer *layer,
-		    struct partition *summary_partition,
-		    struct read_only_notifier *read_only_notifier,
-		    struct recovery_journal *recovery_journal,
-		    Atomic32 *vdo_state,
-		    struct slab_depot **depot_ptr)
-{
-	struct slab_depot_state_2_0 state;
-	int result = configure_slab_depot(block_count, first_block,
-					  slab_config, 0, &state);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	struct slab_depot *depot = NULL;
-	result = allocate_depot(state,
-				thread_config,
-				nonce,
-				vio_pool_size,
-				layer,
-				summary_partition,
-				read_only_notifier,
-				recovery_journal,
-				vdo_state,
-				&depot);
-	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
@@ -451,29 +383,6 @@ struct slab_depot_state_2_0 record_slab_depot(const struct slab_depot *depot)
 	};
 
 	return state;
-}
-
-/**********************************************************************/
-int decode_slab_depot(struct slab_depot_state_2_0 state,
-		      const struct thread_config *thread_config,
-		      nonce_t nonce,
-		      PhysicalLayer *layer,
-		      struct partition *summary_partition,
-		      struct read_only_notifier *read_only_notifier,
-		      struct recovery_journal *recovery_journal,
-		      Atomic32 *vdo_state,
-		      struct slab_depot **depot_ptr)
-{
-	return allocate_depot(state,
-			      thread_config,
-			      nonce,
-			      VIO_POOL_SIZE,
-			      layer,
-			      summary_partition,
-			      read_only_notifier,
-			      recovery_journal,
-			      vdo_state,
-			      depot_ptr);
 }
 
 /**********************************************************************/

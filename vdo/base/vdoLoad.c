@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#54 $
  */
 
 #include "vdoLoad.h"
@@ -327,6 +327,13 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
+	block_count_t maximum_age = get_configured_block_map_maximum_age(vdo);
+	block_count_t journal_length =
+		get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
+	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
+		return VDO_BAD_CONFIGURATION;
+	}
+
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	result = make_read_only_notifier(in_read_only_mode(vdo),
 					 thread_config,
@@ -373,29 +380,18 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	result = decode_block_map(vdo->states.block_map,
 				  vdo->states.vdo.config.logical_blocks,
 				  thread_config,
+				  vdo->layer,
+				  vdo->read_only_notifier,
+				  vdo->recovery_journal,
+				  vdo->states.vdo.nonce,
+				  get_configured_cache_size(vdo),
+				  maximum_age,
 				  &vdo->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	result = make_flusher(vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	block_count_t maximum_age = get_configured_block_map_maximum_age(vdo);
-	block_count_t journal_length =
-		get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
-	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
-		return VDO_BAD_CONFIGURATION;
-	}
-	result = make_block_map_caches(vdo->block_map,
-				       vdo->layer,
-				       vdo->read_only_notifier,
-				       vdo->recovery_journal,
-				       vdo->states.vdo.nonce,
-				       get_configured_cache_size(vdo),
-				       maximum_age);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#76 $
  */
 
 #include "recoveryJournal.h"
@@ -407,14 +407,16 @@ static void set_journal_tail(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
-			  struct partition *partition,
-			  uint64_t recovery_count,
-			  block_count_t journal_size,
-			  block_count_t tail_buffer_size,
-			  struct read_only_notifier *read_only_notifier,
-			  const struct thread_config *thread_config,
-			  struct recovery_journal **journal_ptr)
+int decode_recovery_journal(struct recovery_journal_state_7_0 state,
+			    nonce_t nonce,
+			    PhysicalLayer *layer,
+			    struct partition *partition,
+			    uint64_t recovery_count,
+			    block_count_t journal_size,
+			    block_count_t tail_buffer_size,
+			    struct read_only_notifier *read_only_notifier,
+			    const struct thread_config *thread_config,
+			    struct recovery_journal **journal_ptr)
 {
 	struct recovery_journal *journal;
 	int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
@@ -432,73 +434,73 @@ int make_recovery_journal(nonce_t nonce, PhysicalLayer *layer,
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
 	journal->size = journal_size;
 	journal->read_only_notifier = read_only_notifier;
-	journal->tail = 1;
 	journal->slab_journal_commit_threshold = (journal_size * 2) / 3;
+	journal->logical_blocks_used = state.logical_blocks_used;
+	journal->block_map_data_blocks = state.block_map_data_blocks;
+	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
+
+	// XXX: this is a hack until we make initial resume of a VDO a real
+	// resume
+	journal->state.state = ADMIN_STATE_SUSPENDED;
 
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	block_count_t journal_length =
 		get_recovery_journal_length(journal_size);
 	journal->available_space = journal->entries_per_block * journal_length;
 
-	// Only make the tail buffer and VIO in normal operation since the
-	// formatter doesn't need them.
-	if (layer->createMetadataVIO != NULL) {
-		block_count_t i;
-		for (i = 0; i < tail_buffer_size; i++) {
-			struct recovery_journal_block *block;
-			result = make_recovery_block(layer, journal, &block);
-			if (result != VDO_SUCCESS) {
-				free_recovery_journal(&journal);
-				return result;
-			}
-
-			list_move_tail(&block->list_entry,
-				       &journal->free_tail_blocks);
-
-		}
-
-		result = make_lock_counter(layer, journal,
-					   reap_recovery_journal_callback,
-					   journal->thread_id,
-					   thread_config->logical_zone_count,
-					   thread_config->physical_zone_count,
-					   journal->size,
-					   &journal->lock_counter);
+	block_count_t i;
+	for (i = 0; i < tail_buffer_size; i++) {
+		struct recovery_journal_block *block;
+		result = make_recovery_block(layer, journal, &block);
 		if (result != VDO_SUCCESS) {
 			free_recovery_journal(&journal);
 			return result;
 		}
 
-		result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
-				  &journal->unused_flush_vio_data);
-		if (result != VDO_SUCCESS) {
-			free_recovery_journal(&journal);
-			return result;
-		}
-
-		result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
-				    VIO_PRIORITY_HIGH, journal,
-				    journal->unused_flush_vio_data,
-				    &journal->flush_vio);
-		if (result != VDO_SUCCESS) {
-			free_recovery_journal(&journal);
-			return result;
-		}
-
-		result = register_read_only_listener(read_only_notifier,
-						     journal,
-						     notify_recovery_journal_of_read_only_mode,
-						     journal->thread_id);
-		if (result != VDO_SUCCESS) {
-			free_recovery_journal(&journal);
-			return result;
-		}
-
-		journal->flush_vio->completion.callback_thread_id =
-			journal->thread_id;
+		list_move_tail(&block->list_entry,
+			       &journal->free_tail_blocks);
 	}
 
+	result = make_lock_counter(layer, journal,
+				   reap_recovery_journal_callback,
+				   journal->thread_id,
+				   thread_config->logical_zone_count,
+				   thread_config->physical_zone_count,
+				   journal->size,
+				   &journal->lock_counter);
+	if (result != VDO_SUCCESS) {
+		free_recovery_journal(&journal);
+		return result;
+	}
+
+	result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
+			  &journal->unused_flush_vio_data);
+	if (result != VDO_SUCCESS) {
+		free_recovery_journal(&journal);
+		return result;
+	}
+
+	result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
+			    VIO_PRIORITY_HIGH, journal,
+			    journal->unused_flush_vio_data,
+			    &journal->flush_vio);
+	if (result != VDO_SUCCESS) {
+		free_recovery_journal(&journal);
+		return result;
+	}
+
+	result = register_read_only_listener(read_only_notifier,
+					     journal,
+					     notify_recovery_journal_of_read_only_mode,
+					     journal->thread_id);
+	if (result != VDO_SUCCESS) {
+		free_recovery_journal(&journal);
+		return result;
+	}
+
+	journal->flush_vio->completion.callback_thread_id =
+		journal->thread_id;
 	*journal_ptr = journal;
 	return VDO_SUCCESS;
 }
@@ -621,46 +623,6 @@ record_recovery_journal(const struct recovery_journal *journal)
 	}
 
 	return state;
-}
-
-/**********************************************************************/
-int decode_recovery_journal(struct recovery_journal_state_7_0 state,
-			    nonce_t nonce,
-			    PhysicalLayer *layer,
-			    struct partition *partition,
-			    uint64_t recovery_count,
-			    block_count_t journal_size,
-			    block_count_t tail_buffer_size,
-			    struct read_only_notifier *read_only_notifier,
-			    const struct thread_config *thread_config,
-			    struct recovery_journal **journal_ptr)
-{
-	struct recovery_journal *journal;
-	int result = make_recovery_journal(nonce,
-					   layer,
-					   partition,
-					   recovery_count,
-					   journal_size,
-					   tail_buffer_size,
-					   read_only_notifier,
-					   thread_config,
-					   &journal);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// Update recovery journal in-memory information.
-	set_journal_tail(journal, state.journal_start);
-	journal->logical_blocks_used = state.logical_blocks_used;
-	journal->block_map_data_blocks = state.block_map_data_blocks;
-	initialize_journal_state(journal);
-
-	// XXX: this is a hack until we make initial resume of a VDO a real
-	// resume
-	journal->state.state = ADMIN_STATE_SUSPENDED;
-
-	*journal_ptr = journal;
-	return VDO_SUCCESS;
 }
 
 /**

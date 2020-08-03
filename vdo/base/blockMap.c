@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#75 $
  */
 
 #include "blockMap.h"
@@ -112,78 +112,33 @@ static bool handle_page_write(void *raw_page,
 	return false;
 }
 
-/**********************************************************************/
-int make_block_map(block_count_t logical_blocks,
-		   const struct thread_config *thread_config,
-		   physical_block_number_t root_origin,
-		   block_count_t root_count,
-		   struct block_map **map_ptr)
-{
-	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
-		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
-		       sizeof(block_map_entry)));
-
-	struct block_map *map;
-	int result = ALLOCATE_EXTENDED(struct block_map,
-				       thread_config->logical_zone_count,
-				       struct block_map_zone,
-				       __func__,
-				       &map);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	map->root_origin = root_origin;
-	map->root_count = root_count;
-	map->entry_count = logical_blocks;
-
-	zone_count_t zone_count = thread_config->logical_zone_count;
-	zone_count_t zone = 0;
-	for (zone = 0; zone < zone_count; zone++) {
-		struct block_map_zone *block_map_zone = &map->zones[zone];
-		block_map_zone->zone_number = zone;
-		block_map_zone->thread_id =
-			get_logical_zone_thread(thread_config, zone);
-		block_map_zone->block_map = map;
-		map->zone_count++;
-	}
-
-	*map_ptr = map;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int decode_block_map(struct block_map_state_2_0 state,
-		     block_count_t logical_blocks,
-		     const struct thread_config *thread_config,
-		     struct block_map **map_ptr)
-{
-	return make_block_map(logical_blocks,
-			      thread_config,
-			      state.root_origin,
-			      state.root_count,
-			      map_ptr);
-}
-
 /**
  * Initialize the per-zone portions of the block map.
  *
- * @param zone                The zone to initialize
+ * @param map                 The block map
+ * @param zone_number         The number of the zone to initialize
+ * @param thread_config       The thread config of the VDO
  * @param layer               The physical layer on which the zone resides
  * @param read_only_notifier  The read-only context for the VDO
- * @param cache_size          The size of the page cache for the zone
+ * @param cache_size          The size of the page cache for the block map
  * @param maximum_age         The number of journal blocks before a dirtied page
  *                            is considered old and must be written out
  *
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check
-initialize_block_map_zone(struct block_map_zone *zone,
+initialize_block_map_zone(struct block_map *map,
+			  zone_count_t zone_number,
+			  const struct thread_config *thread_config,
 			  PhysicalLayer *layer,
 			  struct read_only_notifier *read_only_notifier,
 			  page_count_t cache_size,
 			  block_count_t maximum_age)
 {
+	struct block_map_zone *zone = &map->zones[zone_number];
+	zone->zone_number = zone_number;
+	zone->thread_id = get_logical_zone_thread(thread_config, zone_number);
+	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
 	int result = initialize_tree_zone(zone, layer, maximum_age);
 	if (result != VDO_SUCCESS) {
@@ -191,7 +146,7 @@ initialize_block_map_zone(struct block_map_zone *zone,
 	}
 
 	return make_vdo_page_cache(layer,
-				   cache_size,
+				   cache_size / map->zone_count,
 				   validate_page_on_read,
 				   handle_page_write,
 				   sizeof(struct block_map_page_context),
@@ -269,51 +224,6 @@ static bool schedule_era_advance(void *context)
 			       NULL);
 }
 
-/**********************************************************************/
-int make_block_map_caches(struct block_map *map,
-			  PhysicalLayer *layer,
-			  struct read_only_notifier *read_only_notifier,
-			  struct recovery_journal *journal,
-			  nonce_t nonce,
-			  page_count_t cache_size,
-			  block_count_t maximum_age)
-{
-	int result = ASSERT(cache_size > 0,
-			    "block map cache size is specified");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	map->journal = journal;
-	map->nonce = nonce;
-
-	result = make_forest(map, map->entry_count);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	replace_forest(map);
-	zone_count_t zone = 0;
-	for (zone = 0; zone < map->zone_count; zone++) {
-		result = initialize_block_map_zone(&map->zones[zone],
-						   layer,
-						   read_only_notifier,
-						   cache_size / map->zone_count,
-						   maximum_age);
-		if (result != VDO_SUCCESS) {
-			return result;
-		}
-	}
-
-	return make_action_manager(map->zone_count,
-				   get_block_map_zone_thread_id,
-				   get_recovery_journal_thread_id(journal),
-				   map,
-				   schedule_era_advance,
-				   layer,
-				   &map->action_manager);
-}
-
 /**
  * Clean up a block_map_zone.
  *
@@ -344,6 +254,84 @@ void free_block_map(struct block_map **map_ptr)
 
 	FREE(map);
 	*map_ptr = NULL;
+}
+
+/**********************************************************************/
+int decode_block_map(struct block_map_state_2_0 state,
+		     block_count_t logical_blocks,
+		     const struct thread_config *thread_config,
+		     PhysicalLayer *layer,
+		     struct read_only_notifier *read_only_notifier,
+		     struct recovery_journal *journal,
+		     nonce_t nonce,
+		     page_count_t cache_size,
+		     block_count_t maximum_age,
+		     struct block_map **map_ptr)
+{
+	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
+		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
+		       sizeof(block_map_entry)));
+	int result = ASSERT(cache_size > 0,
+			    "block map cache size is specified");
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	struct block_map *map;
+	result = ALLOCATE_EXTENDED(struct block_map,
+				   thread_config->logical_zone_count,
+				   struct block_map_zone,
+				   __func__,
+				   &map);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	map->root_origin = state.root_origin;
+	map->root_count = state.root_count;
+	map->entry_count = logical_blocks;
+	map->journal = journal;
+	map->nonce = nonce;
+
+	result = make_forest(map, map->entry_count);
+	if (result != VDO_SUCCESS) {
+		free_block_map(&map);
+		return result;
+	}
+
+	replace_forest(map);
+
+	map->zone_count = thread_config->logical_zone_count;
+	zone_count_t zone = 0;
+	for (zone = 0; zone < map->zone_count; zone++) {
+		result = initialize_block_map_zone(map,
+						   zone,
+						   thread_config,
+						   layer,
+						   read_only_notifier,
+						   cache_size,
+						   maximum_age);
+		if (result != VDO_SUCCESS) {
+			free_block_map(&map);
+			return result;
+		}
+	}
+
+
+	result = make_action_manager(map->zone_count,
+				     get_block_map_zone_thread_id,
+				     get_recovery_journal_thread_id(journal),
+				     map,
+				     schedule_era_advance,
+				     layer,
+				     &map->action_manager);
+	if (result != VDO_SUCCESS) {
+		free_block_map(&map);
+		return result;
+	}
+
+	*map_ptr = map;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/

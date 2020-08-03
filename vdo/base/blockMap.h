@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#28 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -32,21 +32,33 @@
 #include "types.h"
 
 /**
- * Create a block map.
+ * Make a block map and configure it with the state read from the super block.
  *
- * @param [in]  logical_blocks     The number of logical blocks for the VDO
- * @param [in]  thread_config      The thread configuration of the VDO
- * @param [in]  root_origin        The absolute PBN of the first root page
- * @param [in]  root_count         The number of tree roots
- * @param [out] map_ptr            The pointer to hold the new block map
+ * @param [in]  state               The block map state from the super block
+ * @param [in]  logical_blocks      The number of logical blocks for the VDO
+ * @param [in]  thread_config       The thread configuration of the VDO
+ * @param [in]  layer               The physical layer
+ * @param [in]  read_only_notifier  The read only mode context
+ * @param [in]  journal             The recovery journal (may be NULL)
+ * @param [in]  nonce               The nonce to distinguish initialized pages
+ * @param [in]  cache_size          The block map cache size, in pages
+ * @param [in]  maximum_age         The number of journal blocks before a
+ *                                  dirtied page
+ * @param [out] map_ptr             The pointer to hold the new block map
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_block_map(block_count_t logical_blocks,
-				const struct thread_config *thread_config,
-				physical_block_number_t root_origin,
-				block_count_t root_count,
-				struct block_map **map_ptr);
+int __must_check
+decode_block_map(struct block_map_state_2_0 state,
+		 block_count_t logical_blocks,
+		 const struct thread_config *thread_config,
+		 PhysicalLayer *layer,
+		 struct read_only_notifier *read_only_notifier,
+		 struct recovery_journal *journal,
+		 nonce_t nonce,
+		 page_count_t cache_size,
+		 block_count_t maximum_age,
+		 struct block_map **map_ptr);
 
 /**
  * Quiesce all block map I/O, possibly writing out all dirty metadata.
@@ -104,45 +116,6 @@ void grow_block_map(struct block_map *map, struct vdo_completion *parent);
  * @param map  The map which won't be grown
  **/
 void abandon_block_map_growth(struct block_map *map);
-
-/**
- * Make a block map and configure it with the state read from the super block.
- * The caches are not constructed at this time.
- *
- * @param [in]  state           The block map state from the super block
- * @param [in]  logical_blocks  The number of logical blocks for the VDO
- * @param [in]  thread_config   The thread configuration of the VDO
- * @param [out] map_ptr         The pointer to hold the new block map
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check decode_block_map(struct block_map_state_2_0 state,
-				  block_count_t logical_blocks,
-				  const struct thread_config *thread_config,
-				  struct block_map **map_ptr);
-
-/**
- * Allocate the page caches for a block map.
- *
- * @param map                 The block map needing caches.
- * @param layer               The physical layer for the cache
- * @param read_only_notifier  The read only mode context
- * @param journal             The recovery journal (may be NULL)
- * @param nonce               The nonce to distinguish initialized pages
- * @param cache_size          The block map cache size, in pages
- * @param maximum_age         The number of journal blocks before a dirtied page
- *                            is considered old and must be written out
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check
-make_block_map_caches(struct block_map *map,
-		      PhysicalLayer *layer,
-		      struct read_only_notifier *read_only_notifier,
-		      struct recovery_journal *journal,
-		      nonce_t nonce,
-		      page_count_t cache_size,
-		      block_count_t maximum_age);
 
 /**
  * Free a block map and null out the reference to it.

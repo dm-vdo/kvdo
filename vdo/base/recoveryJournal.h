@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#27 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -128,8 +128,10 @@ static inline bool is_increment_operation(journal_operation operation)
 }
 
 /**
- * Create a recovery journal.
+ * Make a recovery journal and initialize it with the state that was decoded
+ * from the super block.
  *
+ * @param [in]  state               the decoded state of the journal
  * @param [in]  nonce               the nonce of the VDO
  * @param [in]  layer               the physical layer for the journal
  * @param [in]  partition           the partition for the journal
@@ -143,15 +145,16 @@ static inline bool is_increment_operation(journal_operation operation)
  * @return a success or error code
  **/
 int __must_check
-make_recovery_journal(nonce_t nonce,
-		      PhysicalLayer *layer,
-		      struct partition *partition,
-		      uint64_t recovery_count,
-		      block_count_t journal_size,
-		      block_count_t tail_buffer_size,
-		      struct read_only_notifier *read_only_notifier,
-		      const struct thread_config *thread_config,
-		      struct recovery_journal **journal_ptr);
+decode_recovery_journal(struct recovery_journal_state_7_0 state,
+			nonce_t nonce,
+			PhysicalLayer *layer,
+			struct partition *partition,
+			uint64_t recovery_count,
+			block_count_t journal_size,
+			block_count_t tail_buffer_size,
+			struct read_only_notifier *read_only_notifier,
+			const struct thread_config *thread_config,
+			struct recovery_journal **journal_ptr);
 
 /**
  * Free a recovery journal and null out the reference to it.
@@ -269,35 +272,6 @@ get_recovery_journal_length(block_count_t journal_size);
  **/
 struct recovery_journal_state_7_0 __must_check
 record_recovery_journal(const struct recovery_journal *journal);
-
-/**
- * Make a recovery journal and initialize it with the state that was decoded
- * from the super block.
- *
- * @param [in]  state               the decoded state of the journal
- * @param [in]  nonce               the nonce of the VDO
- * @param [in]  layer               the physical layer for the journal
- * @param [in]  partition           the partition for the journal
- * @param [in]  recovery_count      the VDO's number of completed recoveries
- * @param [in]  journal_size        the number of blocks in the journal on disk
- * @param [in]  tail_buffer_size    the number of blocks for tail buffer
- * @param [in]  read_only_notifier  the read-only mode notifier
- * @param [in]  thread_config       the thread configuration of the VDO
- * @param [out] journal_ptr         the pointer to hold the new recovery journal
- *
- * @return a success or error code
- **/
-int __must_check
-decode_recovery_journal(struct recovery_journal_state_7_0 state,
-			nonce_t nonce,
-			PhysicalLayer *layer,
-			struct partition *partition,
-			uint64_t recovery_count,
-			block_count_t journal_size,
-			block_count_t tail_buffer_size,
-			struct read_only_notifier *read_only_notifier,
-			const struct thread_config *thread_config,
-			struct recovery_journal **journal_ptr);
 
 /**
  * Add an entry to a recovery journal. This method is asynchronous. The data_vio
