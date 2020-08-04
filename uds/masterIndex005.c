@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#30 $
  */
 #include "masterIndex005.h"
 
@@ -1388,7 +1388,7 @@ compute_master_index_parameters005(const struct configuration *config,
 	unsigned int num_addresses =
 		config->master_index_mean_delta * DELTA_LIST_SIZE;
 	params->num_delta_lists =
-		max_uint(records_per_volume / DELTA_LIST_SIZE, min_delta_lists);
+		max(records_per_volume / DELTA_LIST_SIZE, min_delta_lists);
 	params->address_bits = compute_bits(num_addresses - 1);
 	params->chapter_bits = compute_bits(params->num_chapters - 1);
 
@@ -1440,7 +1440,7 @@ compute_master_index_parameters005(const struct configuration *config,
 	 * per 1K of chapters.
 	 */
 	unsigned long invalid_chapters =
-		max_uint(params->num_chapters / 256, 2);
+		max(params->num_chapters / 256, 2UL);
 	unsigned long chapters_in_master_index =
 		params->num_chapters + invalid_chapters;
 	unsigned long entries_in_master_index =

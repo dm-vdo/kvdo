@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#10 $
  */
 
 #include "bufferedWriter.h"
@@ -168,7 +168,7 @@ int write_to_buffered_writer(struct buffered_writer *bw,
 		}
 
 		size_t avail = space_remaining_in_write_buffer(bw);
-		size_t chunk = min_size_t(len, avail);
+		size_t chunk = min(len, avail);
 		memcpy(bw->bw_pointer, dp, chunk);
 		len -= chunk;
 		dp += chunk;
@@ -198,7 +198,7 @@ int write_zeros_to_buffered_writer(struct buffered_writer *bw, size_t len)
 		}
 
 		size_t avail = space_remaining_in_write_buffer(bw);
-		size_t chunk = min_size_t(len, avail);
+		size_t chunk = min(len, avail);
 		memset(bw->bw_pointer, 0, chunk);
 		len -= chunk;
 		bw->bw_pointer += chunk;

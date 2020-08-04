@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#7 $
  */
 
 #ifndef NUMERIC_H
@@ -25,86 +25,8 @@
 #include "compiler.h"
 
 #include <asm/unaligned.h>
+#include <linux/kernel.h>
 
-/**
- * Find the minimum of two ints.
- *
- * @param a The first int
- * @param b The second int
- *
- * @return The lesser of a and b
- **/
-static INLINE int __must_check min_int(int a, int b)
-{
-	return ((a < b) ? a : b);
-}
-
-/**
- * Find the maximum of two ints.
- *
- * @param a The first int
- * @param b The second int
- *
- * @return The greater of a and b
- **/
-static INLINE int __must_check max_int(int a, int b)
-{
-	return ((a > b) ? a : b);
-}
-
-/**
- * Find the maximum of two unsigned ints.
- *
- * @param a The first value
- * @param b The second value
- *
- * @return The greater of a and b
- **/
-static INLINE unsigned int __must_check max_uint(unsigned int a,
-						 unsigned int b)
-{
-	return ((a > b) ? a : b);
-}
-
-/**
- * Find the maximum of two signed longs.
- *
- * @param a The first int
- * @param b The second int
- *
- * @return The greater of a and b
- **/
-static INLINE long __must_check max_long(long a, long b)
-{
-	return ((a > b) ? a : b);
-}
-
-/**
- * Find the maximum of two unsigned longs.
- *
- * @param a The first int
- * @param b The second int
- *
- * @return The greater of a and b
- **/
-static INLINE unsigned long __must_check max_ulong(unsigned long a,
-						   unsigned long b)
-{
-	return ((a > b) ? a : b);
-}
-
-/**
- * Find the minimum of two size_ts.
- *
- * @param a The first size_t
- * @param b The second size_t
- *
- * @return The lesser of a and b
- **/
-static INLINE size_t __must_check min_size_t(size_t a, size_t b)
-{
-	return ((a < b) ? a : b);
-}
 
 /**
  * Extract a 64 bit unsigned big-endian number from a buffer at a

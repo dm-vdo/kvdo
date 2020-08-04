@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#16 $
  */
 
 #include <linux/kobject.h>
@@ -314,7 +314,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	 * if we report that we've written too much, so we'll truncate to
 	 * PAGE_SIZE-1.
 	 */
-	size_t buffer_size = PAGE_SIZE;
+	ssize_t buffer_size = PAGE_SIZE;
 	bool bars = true;
 	ssize_t length = 0;
 	int max = max_bucket(h);
@@ -425,7 +425,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 			   buffer_size - length,
 			   "total %llu\n",
 			   total);
-	return min_size_t(buffer_size - 1, length);
+	return min(buffer_size - 1, length);
 }
 
 /***********************************************************************/

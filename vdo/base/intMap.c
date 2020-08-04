@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#9 $
  */
 
 /**
@@ -427,8 +427,9 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 {
 	// Limit the search to either the nearer of the end of the bucket array
 	// or a fixed distance beyond the initial bucket.
-	size_t remaining = &map->buckets[map->bucket_count] - bucket;
-	struct bucket *sentinel = &bucket[min_size_t(remaining, max_probes)];
+	ptrdiff_t remaining = &map->buckets[map->bucket_count] - bucket;
+	struct bucket *sentinel =
+		&bucket[min(remaining, (ptrdiff_t) max_probes)];
 
 	struct bucket *entry;
 	for (entry = bucket; entry < sentinel; entry++) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#66 $
  */
 
 #include "dedupeIndex.h"
@@ -221,8 +221,8 @@ static bool decode_uds_advice(const struct uds_request *request,
  **/
 static Jiffies get_albireo_timeout(Jiffies start_jiffies)
 {
-	return max_ulong(start_jiffies + albireo_timeout_jiffies,
-			 jiffies + min_albireo_timer_jiffies);
+	return max(start_jiffies + albireo_timeout_jiffies,
+		   jiffies + min_albireo_timer_jiffies);
 }
 
 /*****************************************************************************/

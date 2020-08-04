@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#10 $
  */
 
 #include "nonce.h"
@@ -50,7 +50,7 @@ void create_unique_nonce_data(byte *buffer)
 	memcpy(buffer + offset, &rand, sizeof(rand));
 	offset += sizeof(rand);
 	while (offset < NONCE_INFO_SIZE) {
-		size_t len = min_size_t(NONCE_INFO_SIZE - offset, offset);
+		size_t len = min(NONCE_INFO_SIZE - offset, offset);
 		memcpy(buffer + offset, buffer, len);
 		offset += len;
 	}

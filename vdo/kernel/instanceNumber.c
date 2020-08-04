@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#9 $
  */
 
 #include "instanceNumber.h"
@@ -79,8 +79,8 @@ static size_t get_bit_array_size(unsigned int bit_count)
  **/
 static int grow_bit_array(void)
 {
-	unsigned int new_count = max_uint(bit_count + BIT_COUNT_INCREMENT,
-					  BIT_COUNT_MINIMUM);
+	unsigned int new_count = max(bit_count + BIT_COUNT_INCREMENT,
+				     (unsigned int) BIT_COUNT_MINIMUM);
 	unsigned long *new_words;
 	int result = reallocate_memory(words,
 				       get_bit_array_size(bit_count),
