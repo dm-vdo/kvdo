@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#40 $
  */
 
 #include "kvio.h"
@@ -270,8 +270,8 @@ void initialize_kvio(struct kvio *kvio,
 			 alloc_trace_from_pool(layer, &kvio->vio->trace) :
 			 ALLOCATE(1, struct trace, "trace", &kvio->vio->trace));
 		if (result != VDO_SUCCESS) {
-			log_error("trace record allocation failure %d",
-				  result);
+			uds_log_error("trace record allocation failure %d",
+				      result);
 		}
 	}
 
@@ -325,7 +325,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	struct metadata_kvio *metadata_kvio;
 	result = ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
 	if (result != VDO_SUCCESS) {
-		log_error("metadata kvio allocation failure %d", result);
+		uds_log_error("metadata kvio allocation failure %d", result);
 		free_bio(bio, kernel_layer);
 		return result;
 	}
@@ -360,8 +360,8 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	result = ALLOCATE(1, struct compressed_write_kvio, __func__,
 			  &compressed_write_kvio);
 	if (result != VDO_SUCCESS) {
-		log_error("compressed write kvio allocation failure %d",
-			  result);
+		uds_log_error("compressed write kvio allocation failure %d",
+			      result);
 		free_bio(bio, kernel_layer);
 		return result;
 	}

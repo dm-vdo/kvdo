@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#8 $
  */
 
 #include "bufferPool.h"
@@ -74,22 +74,23 @@ int make_buffer_pool(const char *pool_name,
 	int result = ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
 
 	if (result != VDO_SUCCESS) {
-		log_error("buffer pool allocation failure %d", result);
+		uds_log_error("buffer pool allocation failure %d", result);
 		return result;
 	}
 
 	result = ALLOCATE(size, struct buffer_element, "buffer pool elements",
 			  &pool->bhead);
 	if (result != VDO_SUCCESS) {
-		log_error("buffer element array allocation failure %d",
-			  result);
+		uds_log_error("buffer element array allocation failure %d",
+			      result);
 		free_buffer_pool(&pool);
 		return result;
 	}
 
 	result = ALLOCATE(size, void *, "object pointers", &pool->objects);
 	if (result != VDO_SUCCESS) {
-		log_error("buffer object array allocation failure %d", result);
+		uds_log_error("buffer object array allocation failure %d",
+			      result);
 		free_buffer_pool(&pool);
 		return result;
 	}
@@ -109,8 +110,8 @@ int make_buffer_pool(const char *pool_name,
 	for (i = 0; i < pool->size; i++) {
 		result = pool->alloc(pool->data, &bh->data);
 		if (result != VDO_SUCCESS) {
-			log_error("verify buffer data allocation failure %d",
-				  result);
+			uds_log_error("verify buffer data allocation failure %d",
+				      result);
 			free_buffer_pool(&pool);
 			return result;
 		}

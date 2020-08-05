@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#77 $
  */
 
 #include "recoveryJournal.h"
@@ -686,7 +686,7 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	if (!check_for_entry_space(journal, increment)) {
 		if (!increment) {
 			// There must always be room to make a decrement entry.
-			log_error("No space for decrement entry in recovery journal");
+			uds_log_error("No space for decrement entry in recovery journal");
 			enter_journal_read_only_mode(journal,
 						     VDO_RECOVERY_JOURNAL_FULL);
 		}
@@ -813,8 +813,8 @@ static void assign_entry(struct waiter *waiter, void *context)
 		break;
 
 	default:
-		log_error("Invalid journal operation %u",
-			  data_vio->operation.type);
+		uds_log_error("Invalid journal operation %u",
+			      data_vio->operation.type);
 		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
 		continue_data_vio(data_vio, VDO_NOT_IMPLEMENTED);
 		return;

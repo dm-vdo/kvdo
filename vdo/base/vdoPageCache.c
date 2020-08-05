@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#40 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -1097,8 +1097,8 @@ static void handle_page_write_error(struct vdo_completion *completion)
 					      DEFAULT_RATELIMIT_BURST);
 
 		if (__ratelimit(&errorLimiter)) {
-			log_error("failed to write block map page %llu",
-				  info->pbn);
+			uds_log_error("failed to write block map page %llu",
+				      info->pbn);
 		}
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#68 $
  */
 
 #include "dmvdo.h"
@@ -593,9 +593,9 @@ static int vdo_initialize(struct dm_target *ti,
 				       &failure_reason,
 				       &layer);
 	if (result != VDO_SUCCESS) {
-		log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
-			  result,
-			  failure_reason);
+		uds_log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
+			      result,
+			      failure_reason);
 		cleanup_initialize(ti,
 				   load_config.thread_config,
 				   NULL,
@@ -623,8 +623,8 @@ static int vdo_initialize(struct dm_target *ti,
 	// struct thread_config.
 	result = preload_kernel_layer(layer, &load_config, &failure_reason);
 	if (result != VDO_SUCCESS) {
-		log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
-			  result, failure_reason);
+		uds_log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
+			      result, failure_reason);
 		cleanup_initialize(ti, NULL, layer, instance, failure_reason);
 		return result;
 	}
@@ -788,9 +788,9 @@ static void vdo_postsuspend(struct dm_target *ti)
 	if (result == VDO_SUCCESS) {
 		log_info("device '%s' suspended", pool_name);
 	} else {
-		log_error("suspend of device '%s' failed with error: %d",
-			  pool_name,
-			  result);
+		uds_log_error("suspend of device '%s' failed with error: %d",
+			      pool_name,
+			      result);
 	}
 	layer->no_flush_suspend = false;
 	unregister_thread_device_id();
@@ -813,9 +813,9 @@ static int vdo_preresume(struct dm_target *ti)
 		int result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
-			log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
-				  result,
-				  failure_reason);
+			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
+				      result,
+				      failure_reason);
 			set_kvdo_read_only(&layer->kvdo, result);
 			unregister_thread_device_id();
 			return map_to_system_error(result);
@@ -840,8 +840,8 @@ static int vdo_preresume(struct dm_target *ti)
 		set_kernel_layer_active_config(layer, config);
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
-			log_error("resume of device '%s' failed with error: %d",
-				  layer->device_config->pool_name, result);
+			uds_log_error("resume of device '%s' failed with error: %d",
+				      layer->device_config->pool_name, result);
 		}
 	}
 	unregister_thread_device_id();
@@ -920,14 +920,14 @@ static int __init vdo_init(void)
 	// Add VDO errors to the already existing set of errors in UDS.
 	result = register_status_codes();
 	if (result != UDS_SUCCESS) {
-		log_error("register_status_codes failed %d", result);
+		uds_log_error("register_status_codes failed %d", result);
 		vdo_destroy();
 		return result;
 	}
 
 	result = dm_register_target(&vdo_target_bio);
 	if (result < 0) {
-		log_error("dm_register_target failed %d", result);
+		uds_log_error("dm_register_target failed %d", result);
 		vdo_destroy();
 		return result;
 	}
@@ -937,7 +937,7 @@ static int __init vdo_init(void)
 
 	result = vdo_init_sysfs(&kvdoGlobals.kobj);
 	if (result < 0) {
-		log_error("sysfs initialization failed %d", result);
+		uds_log_error("sysfs initialization failed %d", result);
 		vdo_destroy();
 		// vdo_init_sysfs only returns system error codes
 		return result;

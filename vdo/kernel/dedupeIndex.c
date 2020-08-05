@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#67 $
  */
 
 #include "dedupeIndex.h"
@@ -201,7 +201,7 @@ static bool decode_uds_advice(const struct uds_request *request,
 	byte version = encoding->data[offset++];
 
 	if (version != UDS_ADVICE_VERSION) {
-		log_error("invalid UDS advice version code %u", version);
+		uds_log_error("invalid UDS advice version code %u", version);
 		return false;
 	}
 
@@ -965,7 +965,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 			       get_index_region_size(layer->geometry) *
 					VDO_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
-		log_error("Creating index name failed (%d)", result);
+		uds_log_error("Creating index name failed (%d)", result);
 		FREE(index);
 		return result;
 	}
@@ -1010,7 +1010,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 				 NULL,
 				 &index->uds_queue);
 	if (result != VDO_SUCCESS) {
-		log_error("UDS index queue initialization failed (%d)",
+		uds_log_error("UDS index queue initialization failed (%d)",
 			  result);
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);

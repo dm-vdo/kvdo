@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#36 $
  */
 
 #include "workQueue.h"
@@ -662,7 +662,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			     parent_kobject,
 			     queue->common.name);
 	if (result != 0) {
-		log_error("Cannot add sysfs node: %d", result);
+		uds_log_error("Cannot add sysfs node: %d", result);
 		free_simple_work_queue(queue);
 		return result;
 	}
@@ -677,7 +677,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	result =
 		initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
 	if (result != 0) {
-		log_error("Cannot initialize statistics tracking: %d", result);
+		uds_log_error("Cannot initialize statistics tracking: %d",
+			      result);
 		free_simple_work_queue(queue);
 		return result;
 	}
@@ -773,7 +774,7 @@ int make_work_queue(const char *thread_name_prefix,
 			     parent_kobject,
 			     queue->common.name);
 	if (result != 0) {
-		log_error("Cannot add sysfs node: %d", result);
+		uds_log_error("Cannot add sysfs node: %d", result);
 		finish_work_queue(&queue->common);
 		kobject_put(&queue->common.kobj);
 		return result;

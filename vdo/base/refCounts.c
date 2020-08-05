@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#52 $
  */
 
 #include "refCounts.h"
@@ -628,8 +628,8 @@ update_reference_count(struct ref_counts *ref_counts,
 		break;
 
 	default:
-		log_error("Unknown reference count operation: %u",
-			  operation.type);
+		uds_log_error("Unknown reference count operation: %u",
+			      operation.type);
 		enter_ref_counts_read_only_mode(ref_counts, VDO_NOT_IMPLEMENTED);
 		result = VDO_NOT_IMPLEMENTED;
 	}

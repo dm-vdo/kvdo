@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#46 $
  */
 
 #include "ioSubmitter.h"
@@ -651,8 +651,8 @@ int make_io_submitter(const char *thread_name_prefix,
 				// Clean up the partially initialized bio-queue
 				// entirely and indicate that initialization
 				// failed.
-				log_error("bio map initialization failed %d",
-					  result);
+				uds_log_error("bio map initialization failed %d",
+					      result);
 				cleanup_io_submitter(io_submitter);
 				free_io_submitter(io_submitter);
 				return result;
@@ -670,8 +670,8 @@ int make_io_submitter(const char *thread_name_prefix,
 			if (USE_BIOMAP) {
 				free_int_map(&io_submitter->bio_queue_data[i].map);
 			}
-			log_error("bio queue initialization failed %d",
-				  result);
+			uds_log_error("bio queue initialization failed %d",
+				      result);
 			cleanup_io_submitter(io_submitter);
 			free_io_submitter(io_submitter);
 			return result;

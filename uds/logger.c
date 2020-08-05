@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#9 $
  */
 
 #include "logger.h"
@@ -166,7 +166,7 @@ void log_warning(const char *format, ...)
 }
 
 /*****************************************************************************/
-void log_error(const char *format, ...)
+void uds_log_error(const char *format, ...)
 {
 	va_list args;
 

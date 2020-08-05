@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#105 $
  */
 
 #include "kernelLayer.h"
@@ -272,7 +272,8 @@ static int __must_check check_bio_validity(struct bio *bio)
 	    (bio_op(bio) != REQ_OP_FLUSH) &&
 	    (bio_op(bio) != REQ_OP_DISCARD)) {
 		// We should never get any other types of bio.
-		log_error("Received unexpected bio of type %d", bio_op(bio));
+		uds_log_error("Received unexpected bio of type %d",
+			      bio_op(bio));
 		return -EINVAL;
 	}
 
@@ -545,9 +546,9 @@ int make_kernel_layer(uint64_t starting_sector,
 	struct kernel_layer *old_layer = find_layer_matching(layer_uses_device,
 							     config);
 	if (old_layer != NULL) {
-		log_error("Existing layer named %s already uses device %s",
-			  old_layer->device_config->pool_name,
-			  old_layer->device_config->parent_device_name);
+		uds_log_error("Existing layer named %s already uses device %s",
+			      old_layer->device_config->pool_name,
+			      old_layer->device_config->parent_device_name);
 		*reason = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -909,8 +910,8 @@ int modify_kernel_layer(struct kernel_layer *layer,
 	if (state == LAYER_RUNNING) {
 		return VDO_SUCCESS;
 	} else if (state != LAYER_SUSPENDED) {
-		log_error("pre-resume invoked while in unexpected kernel layer state %d",
-			  state);
+		uds_log_error("pre-resume invoked while in unexpected kernel layer state %d",
+			      state);
 		return -EINVAL;
 	}
 	set_kernel_layer_state(layer, LAYER_RESUMING);
@@ -976,7 +977,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	switch (state) {
 	case LAYER_STOPPING:
-		log_error("re-entered free_kernel_layer while stopping");
+		uds_log_error("re-entered free_kernel_layer while stopping");
 		break;
 
 	case LAYER_RUNNING:
@@ -1038,7 +1039,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		break;
 
 	default:
-		log_error("Unknown Kernel Layer state: %d", state);
+		uds_log_error("Unknown Kernel Layer state: %d", state);
 	}
 
 	// Late deallocation of resources in work queues.
@@ -1192,7 +1193,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 	if (state != LAYER_RUNNING) {
-		log_error(
+		uds_log_error(
 			"Suspend invoked while in unexpected kernel layer state %d",
 			state);
 		return -EINVAL;

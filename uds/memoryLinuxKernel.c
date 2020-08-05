@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#9 $
  */
 
 #include <linux/delay.h>
@@ -331,10 +331,10 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 
 	if (p == NULL) {
 		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
-		log_error("Could not allocate %zu bytes for %s in %u msecs",
-			  size,
-			  what,
-			  duration);
+		uds_log_error("Could not allocate %zu bytes for %s in %u msecs",
+			      size,
+			      what,
+			      duration);
 		return ENOMEM;
 	}
 	*((void **) ptr) = p;

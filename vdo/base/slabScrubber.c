@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#42 $
  */
 
 #include "slabScrubberInternals.h"
@@ -353,8 +353,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		    (header.has_block_map_increments &&
 		     (header.entry_count > journal->full_entries_per_block))) {
 			// The block is not what we expect it to be.
-			log_error("vdo_slab journal block for slab %u was invalid",
-				  slab->slab_number);
+			uds_log_error("vdo_slab journal block for slab %u was invalid",
+				      slab->slab_number);
 			abort_scrubbing(scrubber, VDO_CORRUPT_JOURNAL);
 			return;
 		}

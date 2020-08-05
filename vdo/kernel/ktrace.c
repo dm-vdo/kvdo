@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#21 $
  */
 
 #include "ktrace.h"
@@ -90,7 +90,7 @@ static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
 	int result = ALLOCATE(1, struct trace, __func__, &trace);
 
 	if (result != VDO_SUCCESS) {
-		log_error("trace data allocation failure %d", result);
+		uds_log_error("trace data allocation failure %d", result);
 		return result;
 	}
 

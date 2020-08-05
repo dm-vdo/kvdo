@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#32 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#33 $
  */
 
 #include "volume.h"
@@ -1100,15 +1100,15 @@ static int probe_chapter(struct volume *volume,
 		if (last_vcn == UINT64_MAX) {
 			last_vcn = vcn;
 		} else if (vcn != last_vcn) {
-			log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
-				  chapter_number, i, last_vcn, vcn);
+			uds_log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
+				      chapter_number, i, last_vcn, vcn);
 			return UDS_CORRUPT_COMPONENT;
 		}
 
 		if (expected_list_number != page->lowest_list_number) {
-			log_error("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
-				  chapter_number, i, expected_list_number,
-				  page->lowest_list_number);
+			uds_log_error("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
+				      chapter_number, i, expected_list_number,
+				      page->lowest_list_number);
 			return UDS_CORRUPT_COMPONENT;
 		}
 		expected_list_number = page->highest_list_number + 1;
@@ -1120,15 +1120,15 @@ static int probe_chapter(struct volume *volume,
 	}
 
 	if (last_vcn == UINT64_MAX) {
-		log_error("no chapter %u virtual chapter number determined",
-			  chapter_number);
+		uds_log_error("no chapter %u virtual chapter number determined",
+			      chapter_number);
 		return UDS_CORRUPT_COMPONENT;
 	}
 	if (chapter_number != last_vcn % geometry->chapters_per_volume) {
-		log_error("chapter %u vcn %llu is out of phase (%u)",
-			  chapter_number,
-			  last_vcn,
-			  geometry->chapters_per_volume);
+		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
+			      chapter_number,
+			      last_vcn,
+			      geometry->chapters_per_volume);
 		return UDS_CORRUPT_COMPONENT;
 	}
 	*virtual_chapter_number = last_vcn;
@@ -1322,8 +1322,8 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 			break;
 		}
 		if (++bad_chapters >= max_bad_chapters) {
-			log_error("too many bad chapters in volume: %u",
-				  bad_chapters);
+			uds_log_error("too many bad chapters in volume: %u",
+				      bad_chapters);
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -1448,7 +1448,7 @@ int make_volume(const struct configuration *config,
 	unsigned int volume_read_threads = get_read_threads(user_params);
 
 	if (read_queue_max_size <= volume_read_threads) {
-		log_error("Number of read threads must be smaller than read queue");
+		uds_log_error("Number of read threads must be smaller than read queue");
 		return UDS_INVALID_ARGUMENT;
 	}
 
