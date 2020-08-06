@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#37 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#38 $
  */
 
 #include "index.h"
@@ -591,12 +591,13 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 	case REQUEST_INDEX:
 	case REQUEST_UPDATE:
 	case REQUEST_QUERY:
-		result = makeUnrecoverable(search_index_zone(zone, request));
+		result = make_unrecoverable(search_index_zone(zone, request));
 		break;
 
 	case REQUEST_DELETE:
 		result =
-			makeUnrecoverable(remove_from_index_zone(zone, request));
+			make_unrecoverable(remove_from_index_zone(zone,
+								  request));
 		break;
 
 	default:

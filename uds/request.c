@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#11 $
  */
 
 #include "request.h"
@@ -48,7 +48,7 @@ int uds_start_chunk_operation(struct uds_request *uds_request)
 
 	int result = get_index_session(request->session);
 	if (result != UDS_SUCCESS) {
-		return sansUnrecoverable(result);
+		return sans_unrecoverable(result);
 	}
 
 	request->found = false;
@@ -219,12 +219,12 @@ void update_request_context_stats(Request *request)
 void enter_callback_stage(Request *request)
 {
 	if (!request->is_control_message) {
-		if (isUnrecoverable(request->status)) {
+		if (is_unrecoverable(request->status)) {
 			// Unrecoverable errors must disable the index session
 			disable_index_session(request->session);
 			// The unrecoverable state is internal and must not
 			// be sent to the client.
-			request->status = sansUnrecoverable(request->status);
+			request->status = sans_unrecoverable(request->status);
 		}
 
 		// Handle asynchronous client callbacks in the designated

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#13 $
  */
 
 #include "openChapterZone.h"
@@ -226,7 +226,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 	}
 
 	if (open_chapter->size >= open_chapter->capacity) {
-		return makeUnrecoverable(UDS_VOLUME_OVERFLOW);
+		return make_unrecoverable(UDS_VOLUME_OVERFLOW);
 	}
 
 	unsigned int record_number = ++open_chapter->size;

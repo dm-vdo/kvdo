@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#9 $
  */
 
 #include "statusCodes.h"
@@ -77,17 +77,17 @@ static void do_status_code_registration(void)
 	STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) ==
 		      COUNT_OF(vdo_status_list));
 
-	int result = registerErrorBlock("VDO Status",
-					VDO_STATUS_CODE_BASE,
-					VDO_STATUS_CODE_BLOCK_END,
-					vdo_status_list,
-					sizeof(vdo_status_list));
+	int result = register_error_block("VDO Status",
+					  VDO_STATUS_CODE_BASE,
+					  VDO_STATUS_CODE_BLOCK_END,
+					  vdo_status_list,
+					  sizeof(vdo_status_list));
 	/*
 	 *  The following test handles cases where libvdo is statically linked
 	 *  against both the test modules and the test driver (because multiple
 	 *  instances of this module call their own copy of this function
-	 *  once each, resulting in multiple calls to registerErrorBlock which
-	 *  is shared in libuds).
+	 *  once each, resulting in multiple calls to register_error_block
+	 *  which is shared in libuds).
 	 */
 	if (result == UDS_DUPLICATE_NAME) {
 		result = UDS_SUCCESS;

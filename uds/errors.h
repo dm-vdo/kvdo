@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#5 $
  */
 
 #ifndef ERRORS_H
@@ -26,7 +26,7 @@
 #include "typeDefs.h"
 #include "uds-error.h"
 
-enum udsInternalErrorCodes {
+enum uds_internal_error_codes {
   /** Used as a base value for reporting internal errors */
   UDS_INTERNAL_ERROR_CODE_BASE = 66560,
   /** Unused */
@@ -84,14 +84,14 @@ enum udsInternalErrorCodes {
 };
 
 enum {
-  ERRBUF_SIZE = 128 // default size for buffer passed to stringError
+  ERRBUF_SIZE = 128 // default size for buffer passed to string_error
 };
 
 // Error attributes - or into top half of error code
 enum { UDS_UNRECOVERABLE = (1 << 17) };
 
-const char *stringError(int errnum, char *buf, size_t buflen);
-const char *stringErrorName(int errnum, char *buf, size_t buflen);
+const char *string_error(int errnum, char *buf, size_t buflen);
+const char *string_error_name(int errnum, char *buf, size_t buflen);
 
 /*
  * Identify that an result code is a successful result.
@@ -100,7 +100,7 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen);
  *
  * @return true if the result represents a success.
  */
-static INLINE bool __must_check isSuccessful(int result)
+static INLINE bool __must_check is_successful(int result)
 {
   return (result == UDS_SUCCESS) || (result == UDS_QUEUED);
 }
@@ -112,7 +112,7 @@ static INLINE bool __must_check isSuccessful(int result)
  *
  * @return true if the result has been marked unrecoverable.
  */
-static INLINE bool __must_check isUnrecoverable(int result)
+static INLINE bool __must_check is_unrecoverable(int result)
 {
   return (result & UDS_UNRECOVERABLE) != 0;
 }
@@ -124,9 +124,9 @@ static INLINE bool __must_check isUnrecoverable(int result)
  *
  * @return the result code with the unrecoverable marker added
  */
-static INLINE int __must_check makeUnrecoverable(int result)
+static INLINE int __must_check make_unrecoverable(int result)
 {
-  return isSuccessful(result) ? result : (result | UDS_UNRECOVERABLE);
+  return is_successful(result) ? result : (result | UDS_UNRECOVERABLE);
 }
 
 /*
@@ -136,7 +136,7 @@ static INLINE int __must_check makeUnrecoverable(int result)
  *
  * @return the result code with the unrecoverable marker removed
  */
-static INLINE int __must_check sansUnrecoverable(int result)
+static INLINE int __must_check sans_unrecoverable(int result)
 {
   return result & ~UDS_UNRECOVERABLE;
 }
@@ -147,13 +147,13 @@ struct error_info {
 };
 
 /**
- * Register an error code block for stringError and stringErrorName.
+ * Register an error code block for string_error and string_error_name.
  *
- * @param blockName             the name of the block of error codes
- * @param firstError            the first error code in the block
- * @param lastReservedError     one past the highest possible error in the bloc
+ * @param block_name            the name of the block of error codes
+ * @param first_error           the first error code in the block
+ * @param last_reserved_error   one past the highest possible error in the bloc
  * @param infos                 a pointer to the error info array for the block
- * @param infoSize              the size of the error info array, which
+ * @param info_size             the size of the error info array, which
  *                              determines the last actual error for which
  *                              information is available
  *
@@ -161,11 +161,11 @@ struct error_info {
  *         block name is already present, or UDS_ALREADY_REGISTERED if a
  *         block with the specified error code is present
  **/
-int registerErrorBlock(const char              *blockName,
-                       int                      firstError,
-                       int                      lastReservedError,
-                       const struct error_info *infos,
-                       size_t                   infoSize);
+int register_error_block(const char              *block_name,
+			 int                      first_error,
+			 int                      last_reserved_error,
+			 const struct error_info *infos,
+			 size_t                   info_size);
 
 /**
  * Return the first error between result1 and result2.
@@ -175,7 +175,7 @@ int registerErrorBlock(const char              *blockName,
  *
  * @return result1 if that is an error, else result2
  **/
-static INLINE int firstError(int result1, int result2)
+static INLINE int first_error(int result1, int result2)
 {
   return result1 == UDS_SUCCESS ? result2 : result1;
 }

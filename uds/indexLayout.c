@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#34 $
  */
 
 #include "indexLayout.h"
@@ -2351,8 +2351,8 @@ int discard_index_saves(struct index_layout *layout, bool all)
 		unsigned int i;
 		for (i = 0; i < layout->super.max_saves; ++i) {
 			struct index_save_layout *isl = &sil->saves[i];
-			result = firstError(result,
-					    invalidate_old_save(layout, isl));
+			result = first_error(result,
+					     invalidate_old_save(layout, isl));
 		}
 	} else {
 		struct index_save_layout *isl;

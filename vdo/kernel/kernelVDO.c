@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#57 $
  */
 
 /*
@@ -201,10 +201,10 @@ int suspend_kvdo(struct kvdo *kvdo)
 
 		uds_log_error("%s: Suspend device failed %d (%s: %s)",
 			      __func__, result,
-			      stringErrorName(result, error_name,
-					      sizeof(error_name)),
-			      stringError(result, error_message,
-					  sizeof(error_message)));
+			      string_error_name(result, error_name,
+						sizeof(error_name)),
+			      uds_string_error(result, error_message,
+					       sizeof(error_message)));
 		return result;
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#5 $
  */
 
 #include "errors.h"
@@ -29,7 +29,7 @@
 
 static const struct error_info successful = { "UDS_SUCCESS", "Success" };
 
-static const char *const messageTable[] = {
+static const char *const message_table[] = {
   [EPERM]   = "Operation not permitted",
   [ENOENT]  = "No such file or directory",
   [ESRCH]   = "No such process",
@@ -66,7 +66,7 @@ static const char *const messageTable[] = {
   [ERANGE]  = "Numerical result out of range"
 };
 
-static const struct error_info errorList[] = {
+static const struct error_info error_list[] = {
   { "UDS_UNINITIALIZED", "UDS library is not initialized" },
   { "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
   { "UDS_EMODULE_LOAD", "Could not load modules" },
@@ -125,7 +125,7 @@ static const struct error_info errorList[] = {
   { "UDS_INVALID_OPERATION_TYPE", "Invalid type of request operation"},
 };
 
-static const struct error_info internalErrorList[] = {
+static const struct error_info internal_error_list[] = {
   { "UDS_INTERNAL_UNUSED_0", "Unused internal error 0" },
   { "UDS_OVERFLOW", "Index overflow" },
   { "UDS_INTERNAL_UNUSED_2", "Unused internal error 2" },
@@ -165,11 +165,11 @@ enum {
   MAX_ERROR_BLOCKS = 6          // needed for testing
 };
 
-static struct errorInformation {
+static struct error_information {
   int                allocated;
   int                count;
   struct error_block blocks[MAX_ERROR_BLOCKS];
-} registeredErrors = {
+} registered_errors = {
   .allocated = MAX_ERROR_BLOCKS,
   .count     = 2,
   .blocks    = {
@@ -178,14 +178,14 @@ static struct errorInformation {
       .base  = UDS_ERROR_CODE_BASE,
       .last  = UDS_ERROR_CODE_LAST,
       .max   = UDS_ERROR_CODE_BLOCK_END,
-      .infos = errorList,
+      .infos = error_list,
     },
     {
       .name  = "UDS Internal Error",
       .base  = UDS_INTERNAL_ERROR_CODE_BASE,
       .last  = UDS_INTERNAL_ERROR_CODE_LAST,
       .max   = UDS_INTERNAL_ERROR_CODE_BLOCK_END,
-      .infos = internalErrorList,
+      .infos = internal_error_list,
     }
   }
 };
@@ -194,39 +194,40 @@ static struct errorInformation {
  * Fetch the error info (if any) for the error number.
  *
  * @param errnum        the error number
- * @param infoPtr       the place to store the info for this error (if known),
+ * @param info_ptr      the place to store the info for this error (if known),
  *                      otherwise set to NULL
  *
  * @return              the name of the error block (if known), NULL othersise
  **/
-static const char *getErrorInfo(int errnum, const struct error_info **infoPtr)
+static const char *get_error_info(int errnum,
+				  const struct error_info **info_ptr)
 {
 
   if (errnum == UDS_SUCCESS) {
-    if (infoPtr != NULL) {
-      *infoPtr = &successful;
+    if (info_ptr != NULL) {
+      *info_ptr = &successful;
     }
     return NULL;
   }
 
   struct error_block *block;
-  for (block = registeredErrors.blocks;
-       block < registeredErrors.blocks + registeredErrors.count;
+  for (block = registered_errors.blocks;
+       block < registered_errors.blocks + registered_errors.count;
        ++block) {
     if ((errnum >= block->base) && (errnum < block->last)) {
-      if (infoPtr != NULL) {
-        *infoPtr = block->infos + (errnum - block->base);
+      if (info_ptr != NULL) {
+        *info_ptr = block->infos + (errnum - block->base);
       }
       return block->name;
     } else if ((errnum >= block->last) && (errnum < block->max)) {
-      if (infoPtr != NULL) {
-        *infoPtr = NULL;
+      if (info_ptr != NULL) {
+        *info_ptr = NULL;
       }
       return block->name;
     }
   }
-  if (infoPtr != NULL) {
-    *infoPtr = NULL;
+  if (info_ptr != NULL) {
+    *info_ptr = NULL;
   }
   return NULL;
 }
@@ -241,16 +242,16 @@ static const char *getErrorInfo(int errnum, const struct error_info **infoPtr)
  * @return The error string, which may be a string constant or may be
  *         returned in the buf argument
  **/
-static const char *systemStringError(int errnum, char *buf, size_t buflen)
+static const char *system_string_error(int errnum, char *buf, size_t buflen)
 {
-  const char *errorString = NULL;
-  if ((errnum > 0) && (errnum < COUNT_OF(messageTable))) {
-    errorString = messageTable[errnum];
+  const char *error_string = NULL;
+  if ((errnum > 0) && (errnum < COUNT_OF(message_table))) {
+    error_string = message_table[errnum];
   }
 
-  size_t len = ((errorString == NULL)
+  size_t len = ((error_string == NULL)
                 ? snprintf(buf, buflen, "Unknown error %d", errnum)
-                : snprintf(buf, buflen, "%s", errorString));
+                : snprintf(buf, buflen, "%s", error_string));
   if (len < buflen) {
     return buf;
   }
@@ -260,37 +261,37 @@ static const char *systemStringError(int errnum, char *buf, size_t buflen)
 }
 
 /*****************************************************************************/
-const char *stringError(int errnum, char *buf, size_t buflen)
+const char *string_error(int errnum, char *buf, size_t buflen)
 {
   if (buf == NULL) {
     return NULL;
   }
 
   char *buffer = buf;
-  char *bufEnd = buf + buflen;
+  char *buf_end = buf + buflen;
 
-  if (isUnrecoverable(errnum)) {
-    buffer = append_to_buffer(buffer, bufEnd, "Unrecoverable error: ");
-    errnum = sansUnrecoverable(errnum);
+  if (is_unrecoverable(errnum)) {
+    buffer = append_to_buffer(buffer, buf_end, "Unrecoverable error: ");
+    errnum = sans_unrecoverable(errnum);
   }
 
   const struct error_info *info      = NULL;
-  const char              *blockName = getErrorInfo(errnum, &info);
+  const char              *block_name = get_error_info(errnum, &info);
 
-  if (blockName != NULL) {
+  if (block_name != NULL) {
     if (info != NULL) {
-      buffer = append_to_buffer(buffer, bufEnd,
-                                "%s: %s", blockName, info->message);
+      buffer = append_to_buffer(buffer, buf_end,
+                                "%s: %s", block_name, info->message);
     } else {
-      buffer = append_to_buffer(buffer, bufEnd,
-                                "Unknown %s %d", blockName, errnum);
+      buffer = append_to_buffer(buffer, buf_end,
+                                "Unknown %s %d", block_name, errnum);
     }
   } else if (info != NULL) {
-    buffer = append_to_buffer(buffer, bufEnd, "%s", info->message);
+    buffer = append_to_buffer(buffer, buf_end, "%s", info->message);
   } else {
-    const char *tmp = systemStringError(errnum, buffer, bufEnd - buffer);
+    const char *tmp = system_string_error(errnum, buffer, buf_end - buffer);
     if (tmp != buffer) {
-      buffer = append_to_buffer(buffer, bufEnd, "%s", tmp);
+      buffer = append_to_buffer(buffer, buf_end, "%s", tmp);
     } else {
       buffer += strlen(tmp);
     }
@@ -299,28 +300,28 @@ const char *stringError(int errnum, char *buf, size_t buflen)
 }
 
 /*****************************************************************************/
-const char *stringErrorName(int errnum, char *buf, size_t buflen)
+const char *string_error_name(int errnum, char *buf, size_t buflen)
 {
-  errnum = sansUnrecoverable(errnum);
+  errnum = sans_unrecoverable(errnum);
 
   char *buffer = buf;
-  char *bufEnd = buf + buflen;
+  char *buf_end = buf + buflen;
 
   const struct error_info *info      = NULL;
-  const char              *blockName = getErrorInfo(errnum, &info);
+  const char              *block_name = get_error_info(errnum, &info);
 
-  if (blockName != NULL) {
+  if (block_name != NULL) {
     if (info != NULL) {
-      buffer = append_to_buffer(buffer, bufEnd, "%s", info->name);
+      buffer = append_to_buffer(buffer, buf_end, "%s", info->name);
     } else {
-      buffer = append_to_buffer(buffer, bufEnd, "%s %d", blockName, errnum);
+      buffer = append_to_buffer(buffer, buf_end, "%s %d", block_name, errnum);
     }
   } else if (info != NULL) {
-    buffer = append_to_buffer(buffer, bufEnd, "%s", info->name);
+    buffer = append_to_buffer(buffer, buf_end, "%s", info->name);
   } else {
-    const char *tmp = systemStringError(errnum, buffer, bufEnd - buffer);
+    const char *tmp = system_string_error(errnum, buffer, buf_end - buffer);
     if (tmp != buffer) {
-      buffer = append_to_buffer(buffer, bufEnd, "%s", tmp);
+      buffer = append_to_buffer(buffer, buf_end, "%s", tmp);
     } else {
       buffer += strlen(tmp);
     }
@@ -329,41 +330,41 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen)
 }
 
 /*****************************************************************************/
-int registerErrorBlock(const char              *blockName,
-                       int                      firstError,
-                       int                      lastReservedError,
-                       const struct error_info *infos,
-                       size_t                   infoSize)
+int register_error_block(const char              *block_name,
+			 int                      first_error,
+			 int                      last_reserved_error,
+			 const struct error_info *infos,
+			 size_t                   info_size)
 {
-  int result = ASSERT(firstError < lastReservedError,
+  int result = ASSERT(first_error < last_reserved_error,
                       "bad error block range");
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  if (registeredErrors.count == registeredErrors.allocated) {
+  if (registered_errors.count == registered_errors.allocated) {
     // could reallocate and grow, but should never happen
     return UDS_OVERFLOW;
   }
 
   struct error_block *block;
-  for (block = registeredErrors.blocks;
-       block < registeredErrors.blocks + registeredErrors.count;
+  for (block = registered_errors.blocks;
+       block < registered_errors.blocks + registered_errors.count;
        ++block) {
-    if (strcmp(blockName, block->name) == 0) {
+    if (strcmp(block_name, block->name) == 0) {
       return UDS_DUPLICATE_NAME;
     }
     // check for overlap in error ranges
-    if ((firstError < block->max) && (lastReservedError > block->base)) {
+    if ((first_error < block->max) && (last_reserved_error > block->base)) {
       return UDS_ALREADY_REGISTERED;
     }
   }
 
-  registeredErrors.blocks[registeredErrors.count++] = (struct error_block) {
-    .name  = blockName,
-    .base  = firstError,
-    .last  = firstError + (infoSize / sizeof(struct error_info)),
-    .max   = lastReservedError,
+  registered_errors.blocks[registered_errors.count++] = (struct error_block) {
+    .name  = block_name,
+    .base  = first_error,
+    .last  = first_error + (info_size / sizeof(struct error_info)),
+    .max   = last_reserved_error,
     .infos = infos
   };
 

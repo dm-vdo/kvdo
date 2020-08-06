@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#18 $
  */
 
 #include "uds.h"
@@ -311,7 +311,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 	}
 
 	finish_loading_index_session(session, result);
-	return sansUnrecoverable(result);
+	return sans_unrecoverable(result);
 }
 
 /**********************************************************************/
@@ -331,5 +331,5 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 		return NULL;
 	}
 
-	return stringError(errnum, buf, buflen);
+	return string_error(errnum, buf, buflen);
 }

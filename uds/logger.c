@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#10 $
  */
 
 #include "logger.h"
@@ -184,7 +184,7 @@ int vlog_strerror(int priority, int errnum, const char *format, va_list args)
 			     format,
 			     args,
 			     ": %s (%d)",
-			     stringError(errnum, errbuf, sizeof(errbuf)),
+			     string_error(errnum, errbuf, sizeof(errbuf)),
 			     errnum);
 	return errnum;
 }
@@ -269,14 +269,14 @@ int log_fatal_strerror(int errnum, const char *format, ...)
 /*****************************************************************************/
 int log_unrecoverable(int errnum, const char *format, ...)
 {
-	if (isSuccessful(errnum)) {
+	if (is_successful(errnum)) {
 		return errnum;
 	}
 	va_list args;
 	va_start(args, format);
 	vlog_strerror(LOG_CRIT, errnum, format, args);
 	va_end(args);
-	return makeUnrecoverable(errnum);
+	return make_unrecoverable(errnum);
 }
 
 /*****************************************************************************/

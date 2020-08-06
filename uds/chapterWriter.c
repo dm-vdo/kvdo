@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#21 $
  */
 
 #include "chapterWriter.h"
@@ -164,7 +164,7 @@ int make_chapter_writer(struct index *index,
 					&writer->collated_records);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return makeUnrecoverable(result);
+		return make_unrecoverable(result);
 	}
 	result = make_open_chapter_index(
 		&writer->open_chapter_index,
@@ -173,7 +173,7 @@ int make_chapter_writer(struct index *index,
 		index->volume->nonce);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return makeUnrecoverable(result);
+		return make_unrecoverable(result);
 	}
 
 	size_t open_chapter_index_memory_allocated =
@@ -189,7 +189,7 @@ int make_chapter_writer(struct index *index,
 			       &writer->thread);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return makeUnrecoverable(result);
+		return make_unrecoverable(result);
 	}
 
 	*writer_ptr = writer;

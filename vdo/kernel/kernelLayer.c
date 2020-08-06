@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#106 $
  */
 
 #include "kernelLayer.h"
@@ -135,7 +135,7 @@ int map_to_system_error(int error)
 	// VDO or UDS error
 	char error_name[80], error_message[ERRBUF_SIZE];
 
-	switch (sansUnrecoverable(error)) {
+	switch (sans_unrecoverable(error)) {
 	case VDO_NO_SPACE:
 		return -ENOSPC;
 	case VDO_READ_ONLY:
@@ -144,12 +144,12 @@ int map_to_system_error(int error)
 		log_info("%s: mapping internal status code %d (%s: %s) to EIO",
 			 __func__,
 			 error,
-			 stringErrorName(error,
-					 error_name,
-					 sizeof(error_name)),
-			 stringError(error,
-				     error_message,
-				     sizeof(error_message)));
+			 string_error_name(error,
+					   error_name,
+					   sizeof(error_name)),
+			 uds_string_error(error,
+					  error_message,
+					  sizeof(error_message)));
 		return -EIO;
 	}
 }
