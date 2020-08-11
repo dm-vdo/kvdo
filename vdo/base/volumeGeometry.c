@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#27 $
  */
 
 #include "volumeGeometry.h"
@@ -269,7 +269,7 @@ static int read_geometry_block(PhysicalLayer *layer, byte **block_ptr)
 		return result;
 	}
 
-	result = layer->reader(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
+	result = layer->reader(layer, GEOMETRY_BLOCK_LOCATION, 1, block);
 	if (result != VDO_SUCCESS) {
 		FREE(block);
 		return result;

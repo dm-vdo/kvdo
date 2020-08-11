@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/compiler.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/compiler.h#3 $
  */
 
 #ifndef COMMON_COMPILER_H
@@ -26,15 +26,17 @@
 
 // Count the elements in a static array while attempting to catch some type
 // errors. (See http://stackoverflow.com/a/1598827 for an explanation.)
-#define COUNT_OF(x) ((sizeof(x) / sizeof(0[x])) \
-                     / ((size_t) (!(sizeof(x) % sizeof(0[x])))))
+#define COUNT_OF(x)					\
+	((sizeof(x) / sizeof(0 [x])) /			\
+	 ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
 
 
-#define const_container_of(ptr, type, member)                     \
-  __extension__ ({                                                \
-    const __typeof__(((type *)0)->member) *__mptr = (ptr);        \
-    (const type *)((const char *)__mptr - offsetof(type,member)); \
-  })
+#define const_container_of(ptr, type, member)                           \
+	__extension__({                                                 \
+		const __typeof__(((type *) 0)->member) *__mptr = (ptr); \
+		(const type *) ((const char *) __mptr -                 \
+				offsetof(type, member));                \
+	})
 
 // The "inline" keyword alone takes effect only when the optimization level
 // is high enough.  Define INLINE to force the gcc to "always inline".

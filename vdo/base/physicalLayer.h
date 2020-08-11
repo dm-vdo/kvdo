@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#31 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -71,16 +71,13 @@ typedef int buffer_allocator(PhysicalLayer *layer,
  *                          extent
  * @param [in]  blockCount  The number of blocks in the extent
  * @param [out] buffer      A buffer to hold the extent
- * @param [out] blocksRead  A pointer to hold the number of blocks read (may be
- *                          NULL)
  *
  * @return a success or error code
  **/
 typedef int extent_reader(PhysicalLayer *layer,
 			  physical_block_number_t startBlock,
 			  size_t blockCount,
-			  char *buffer,
-			  size_t *blocksRead);
+			  char *buffer);
 
 /**
  * A function which can write an extent to a physicalLayer.
@@ -90,16 +87,13 @@ typedef int extent_reader(PhysicalLayer *layer,
  *                             extent
  * @param [in]  blockCount     The number of blocks in the extent
  * @param [in]  buffer         The buffer which contains the data
- * @param [out] blocksWritten  A pointer to hold the number of blocks written
- *                             (may be NULL)
  *
  * @return a success or error code
  **/
 typedef int extent_writer(PhysicalLayer *layer,
 			  physical_block_number_t startBlock,
 			  size_t blockCount,
-			  char *buffer,
-			  size_t *blocksWritten);
+			  char *buffer);
 
 /**
  * A function to allocate a metadata vio.

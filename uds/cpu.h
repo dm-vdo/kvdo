@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cpu.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cpu.h#3 $
  */
 
 #ifndef CPU_H
@@ -37,7 +37,7 @@
 #elif defined(__s390x__)
 #define CACHE_LINE_BYTES 256
 #elif defined(__x86_64__) || defined(__aarch64__)
-#define CACHE_LINE_BYTES  64
+#define CACHE_LINE_BYTES 64
 #else
 #error "unknown cache line size"
 #endif
@@ -52,11 +52,12 @@
  **/
 static INLINE void prefetch_address(const void *address, bool for_write)
 {
-  // for_write won't won't be a constant if we are compiled with optimization
-  // turned off, in which case prefetching really doesn't matter.
-  if (__builtin_constant_p(for_write)) {
-    __builtin_prefetch(address, for_write);
-  }
+	// for_write won't won't be a constant if we are compiled with
+	// optimization turned off, in which case prefetching really doesn't
+	// matter.
+	if (__builtin_constant_p(for_write)) {
+		__builtin_prefetch(address, for_write);
+	}
 }
 
 /**
@@ -68,21 +69,20 @@ static INLINE void prefetch_address(const void *address, bool for_write)
  * @param for_write  must be constant at compile time--false if
  *                   for reading, true if for writing
  **/
-static INLINE void prefetch_range(const void   *start,
-				  unsigned int  size,
-				  bool          for_write)
+static INLINE void
+prefetch_range(const void *start, unsigned int size, bool for_write)
 {
-  // Count the number of cache lines to fetch, allowing for the address range
-  // to span an extra cache line boundary due to address alignment.
-  const char *address = (const char *) start;
-  unsigned int offset = ((uintptr_t) address % CACHE_LINE_BYTES);
-  size += offset;
+	// Count the number of cache lines to fetch, allowing for the address
+	// range to span an extra cache line boundary due to address alignment.
+	const char *address = (const char *) start;
+	unsigned int offset = ((uintptr_t) address % CACHE_LINE_BYTES);
+	size += offset;
 
-  unsigned int cache_lines = (1 + (size / CACHE_LINE_BYTES));
-  while (cache_lines-- > 0) {
-    prefetch_address(address, for_write);
-    address += CACHE_LINE_BYTES;
-  }
+	unsigned int cache_lines = (1 + (size / CACHE_LINE_BYTES));
+	while (cache_lines-- > 0) {
+		prefetch_address(address, for_write);
+		address += CACHE_LINE_BYTES;
+	}
 }
 
 #endif /* CPU_H */

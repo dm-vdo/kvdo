@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/common.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/common.h#6 $
  */
 
 #ifndef COMMON_H
@@ -26,17 +26,15 @@
 #include "typeDefs.h"
 #include "uds.h"
 
-enum {
-  KILOBYTE = 1024,
-  MEGABYTE = KILOBYTE * KILOBYTE,
-  GIGABYTE = KILOBYTE * MEGABYTE
-};
+enum { KILOBYTE = 1024,
+       MEGABYTE = KILOBYTE * KILOBYTE,
+       GIGABYTE = KILOBYTE * MEGABYTE };
 
 struct uds_chunk_data;
 
 struct uds_chunk_record {
-  struct uds_chunk_name name;
-  struct uds_chunk_data data;
+	struct uds_chunk_name name;
+	struct uds_chunk_data data;
 };
 
 #endif /* COMMON_H */
