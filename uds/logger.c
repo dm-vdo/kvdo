@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#11 $
  */
 
 #include "logger.h"
@@ -110,7 +110,7 @@ void log_embedded_message(int priority,
 }
 
 /*****************************************************************************/
-void v_log_message(int priority, const char *format, va_list args)
+void vlog_message(int priority, const char *format, va_list args)
 {
 	log_embedded_message(priority, NULL, format, args, "%s", "");
 }
@@ -121,7 +121,7 @@ void log_message(int priority, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(priority, format, args);
+	vlog_message(priority, format, args);
 	va_end(args);
 }
 
@@ -131,7 +131,7 @@ void log_debug(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_DEBUG, format, args);
+	vlog_message(LOG_DEBUG, format, args);
 	va_end(args);
 }
 
@@ -141,7 +141,7 @@ void log_info(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_INFO, format, args);
+	vlog_message(LOG_INFO, format, args);
 	va_end(args);
 }
 
@@ -151,7 +151,7 @@ void log_notice(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_NOTICE, format, args);
+	vlog_message(LOG_NOTICE, format, args);
 	va_end(args);
 }
 
@@ -161,7 +161,7 @@ void log_warning(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_WARNING, format, args);
+	vlog_message(LOG_WARNING, format, args);
 	va_end(args);
 }
 
@@ -171,7 +171,7 @@ void uds_log_error(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_ERR, format, args);
+	vlog_message(LOG_ERR, format, args);
 	va_end(args);
 }
 
@@ -285,6 +285,6 @@ void log_fatal(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	v_log_message(LOG_CRIT, format, args);
+	vlog_message(LOG_CRIT, format, args);
 	va_end(args);
 }

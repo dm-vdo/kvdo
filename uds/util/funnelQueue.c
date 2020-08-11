@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#4 $
  */
 
 #include "funnelQueue.h"
@@ -133,7 +133,7 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 	 * If "oldest" is a very light-weight work item, we'll be looking
 	 * for the next one very soon, so prefetch it now.
 	 */
-	prefetchAddress(queue->oldest, true);
+	prefetch_address(queue->oldest, true);
 	oldest->next = NULL;
 	return oldest;
 }

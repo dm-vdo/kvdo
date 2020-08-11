@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#18 $
  */
 #include "deltaIndex.h"
 
@@ -1316,7 +1316,7 @@ static void prefetch_delta_list(const struct delta_memory *delta_zone,
 	const byte *addr =
 		&memory[get_delta_list_start(delta_list) / CHAR_BIT];
 	unsigned int size = get_delta_list_size(delta_list) / CHAR_BIT;
-	prefetchRange(addr, size, false);
+	prefetch_range(addr, size, false);
 }
 
 /**********************************************************************/

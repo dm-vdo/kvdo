@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#58 $
  */
 
 /*
@@ -279,8 +279,6 @@ struct sync_queue_work {
  * @param data        Unique data that can be used by the operation
  * @param thread_id   The thread on which to perform the operation
  * @param completion  The completion to wait on
- *
- * @return VDO_SUCCESS of an error code
  **/
 static void performKVDOOperation(struct kvdo *kvdo,
 				 KvdoWorkFunction action,

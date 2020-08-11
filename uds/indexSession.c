@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#24 $
  */
 
 #include "indexSession.h"
@@ -26,6 +26,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "requestQueue.h"
+#include "timeUtils.h"
 
 /**********************************************************************/
 static void collect_stats(const struct uds_index_session *index_session,

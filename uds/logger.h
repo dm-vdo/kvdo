@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#11 $
  */
 
 #ifndef LOGGER_H
@@ -257,7 +257,7 @@ void log_fatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * @param  format   The format of the message (a printf style format)
  * @param  args     The variadic argument list of format parameters.
  **/
-void v_log_message(int priority, const char *format, va_list args)
+void vlog_message(int priority, const char *format, va_list args)
 	__attribute__((format(printf, 2, 0)));
 
 /**

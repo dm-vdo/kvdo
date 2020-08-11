@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#69 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#71 $
  */
 
 #include <linux/module.h>
@@ -117,7 +117,6 @@ EXPORT_SYMBOL_GPL(get_uint32_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_bes_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
-EXPORT_SYMBOL_GPL(grow_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
 EXPORT_SYMBOL_GPL(initialize_thread_registry);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
@@ -134,7 +133,6 @@ EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(parse_uint64);
 EXPORT_SYMBOL_GPL(pause_for_logger);
-EXPORT_SYMBOL_GPL(peek_byte);
 EXPORT_SYMBOL_GPL(perform_once);
 EXPORT_SYMBOL_GPL(put_boolean);
 EXPORT_SYMBOL_GPL(put_buffer);
@@ -168,7 +166,7 @@ EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(unregister_thread);
 EXPORT_SYMBOL_GPL(v_append_to_buffer);
-EXPORT_SYMBOL_GPL(v_log_message);
+EXPORT_SYMBOL_GPL(vlog_message);
 EXPORT_SYMBOL_GPL(vlog_strerror);
 EXPORT_SYMBOL_GPL(wrap_buffer);
 EXPORT_SYMBOL_GPL(zero_bytes);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#5 $
  */
 
 #ifndef BUFFER_H
@@ -57,16 +57,6 @@ int __must_check make_buffer(size_t length, struct buffer **buffer_ptr);
  * @param p_buffer Pointer to the buffer to release
  **/
 void free_buffer(struct buffer **p_buffer);
-
-/**
- * Grow a non-wrapped buffer.
- *
- * @param buffer The buffer to resize
- * @param length The new length of the buffer
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check grow_buffer(struct buffer *buffer, size_t length);
 
 /**
  * Ensure that a buffer has a given amount of space available, compacting the
@@ -211,19 +201,6 @@ bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2);
  *         retrieve
  **/
 int __must_check get_byte(struct buffer *buffer, byte *byte_ptr);
-
-/**
- * Get a single byte from a buffer without advancing the start pointer.
- *
- * @param buffer   The buffer
- * @param offset   The offset past the start pointer of the desired byte
- * @param byte_ptr A pointer to hold the byte
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the offset is past the end
- * of the buffer
- **/
-int __must_check
-peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr);
 
 /**
  * Put a single byte into a buffer and advance the end pointer.

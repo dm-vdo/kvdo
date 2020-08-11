@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#13 $
  */
 
 #ifndef TIME_UTILS_H
@@ -95,7 +95,7 @@ static INLINE int64_t ktime_to_seconds(ktime_t reltime)
  *
  * @return the time in microseconds
  **/
-uint64_t __must_check current_time_us(void);
+int64_t __must_check current_time_us(void);
 
 
 #endif /* TIME_UTILS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#7 $
  */
 
 #include "buffer.h"
@@ -120,35 +120,6 @@ size_t buffer_used(struct buffer *buffer)
 }
 
 /***********************************************************************/
-int grow_buffer(struct buffer *buffer, size_t length)
-{
-	if (buffer == NULL) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "cannot resize NULL buffer");
-	}
-
-	if (buffer->wrapped) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "cannot resize wrapped buffer");
-	}
-	if (buffer->end > length) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "cannot shrink buffer");
-	}
-
-	byte *data;
-	int result = reallocate_memory(buffer->data, buffer->length, length,
-				       "buffer data", &data);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	buffer->data = data;
-	buffer->length = length;
-	return UDS_SUCCESS;
-}
-
-/***********************************************************************/
 bool ensure_available_space(struct buffer *buffer, size_t bytes)
 {
 	if (available_space(buffer) >= bytes) {
@@ -235,17 +206,6 @@ int get_byte(struct buffer *buffer, byte *byte_ptr)
 	}
 
 	*byte_ptr = buffer->data[buffer->start++];
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int peek_byte(struct buffer *buffer, size_t offset, byte *byte_ptr)
-{
-	if (content_length(buffer) < (offset + sizeof(byte))) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	*byte_ptr = buffer->data[buffer->start + offset];
 	return UDS_SUCCESS;
 }
 
