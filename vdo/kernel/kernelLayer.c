@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#108 $
  */
 
 #include "kernelLayer.h"
@@ -277,7 +277,7 @@ static int __must_check check_bio_validity(struct bio *bio)
 		return -EINVAL;
 	}
 
-	bool is_empty = (get_bio_size(bio) == 0);
+	bool is_empty = (bio->bi_iter.bi_size == 0);
 	// Is this a flush? It must be empty.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
@@ -323,7 +323,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			 */
 			count_bios(&layer->biosAcknowledged, bio);
 			atomic64_inc(&layer->flushOut);
-			set_bio_block_device(bio, get_kernel_layer_bdev(layer));
+			bio_set_dev(bio, get_kernel_layer_bdev(layer));
 			return DM_MAPIO_REMAPPED;
 		}
 	}
@@ -428,8 +428,8 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	set_bio_block_device(bio, get_kernel_layer_bdev(kernel_layer));
-	set_bio_sector(bio, block_to_sector(kernel_layer, start_block));
+	bio_set_dev(bio, get_kernel_layer_bdev(kernel_layer));
+	bio->bi_iter.bi_sector = block_to_sector(kernel_layer, start_block);
 	set_bio_operation_read(bio);
 	submit_bio_wait(bio);
 	result = blk_status_to_errno(bio->bi_status);

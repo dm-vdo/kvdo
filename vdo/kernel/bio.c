@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#25 $
  */
 
 #include "bio.h"
@@ -120,8 +120,8 @@ static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
 	bio->bi_private = pvt;
 	bio->bi_vcnt = vcnt;
 	bio->bi_end_io = complete_async_bio;
-	set_bio_sector(bio, (sector_t) -1); // Sector will be set later on.
-	set_bio_block_device(bio, get_kernel_layer_bdev(layer));
+	bio->bi_iter.bi_sector = (sector_t) -1; // Sector will be set later on.
+	bio_set_dev(bio, get_kernel_layer_bdev(layer));
 }
 
 /**********************************************************************/
@@ -240,7 +240,7 @@ void prepare_flush_bio(struct bio *bio,
 	bio->bi_end_io = end_io_callback;
 	bio->bi_private = context;
 	bio->bi_vcnt = 0;
-	set_bio_block_device(bio, device);
-	set_bio_size(bio, 0);
-	set_bio_sector(bio, 0);
+	bio_set_dev(bio, device);
+	bio->bi_iter.bi_size = 0;
+	bio->bi_iter.bi_sector = 0;
 }

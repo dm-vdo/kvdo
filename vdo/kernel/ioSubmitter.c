@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#47 $
  */
 
 #include "ioSubmitter.h"
@@ -303,6 +303,12 @@ static void send_bio_to_device(struct kvio *kvio,
 	generic_make_request(bio);
 }
 
+/**********************************************************************/
+static sector_t get_bio_sector(struct bio *bio)
+{
+  return bio->bi_iter.bi_sector;
+}
+
 /**
  * Submits a bio to the underlying block device.  May block if the
  * device is busy.
@@ -356,8 +362,8 @@ static void process_bio_map(struct kvdo_work_item *item)
 			struct bio *next = bio->bi_next;
 
 			bio->bi_next = NULL;
-			set_bio_block_device(bio,
-					     get_kernel_layer_bdev(kvio_bio->layer));
+			bio_set_dev(bio,
+				    get_kernel_layer_bdev(kvio_bio->layer));
 			send_bio_to_device(kvio_bio,
 					   bio,
 					   THIS_LOCATION("$F($io)"));

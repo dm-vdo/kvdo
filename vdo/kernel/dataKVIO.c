@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#75 $
  */
 
 #include "dataKVIO.h"
@@ -391,7 +391,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	struct bio *bio = read_block->bio;
 
 	reset_bio(bio, layer);
-	set_bio_sector(bio, block_to_sector(layer, location));
+	bio->bi_iter.bi_sector = block_to_sector(layer, location);
 	set_bio_operation_read(bio);
 	bio->bi_end_io = read_bio_callback;
 	vdo_submit_bio(bio, action);
@@ -417,7 +417,8 @@ void readDataVIO(struct data_vio *data_vio)
 	struct bio *bio = kvio->bio;
 
 	bio->bi_end_io = complete_async_bio;
-	set_bio_sector(bio, block_to_sector(kvio->layer, data_vio->mapped.pbn));
+	bio->bi_iter.bi_sector
+		= block_to_sector(kvio->layer, data_vio->mapped.pbn);
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -477,8 +478,8 @@ void writeDataVIO(struct data_vio *data_vio)
 	struct bio *bio = kvio->bio;
 
 	set_bio_operation_write(bio);
-	set_bio_sector(bio,
-		       block_to_sector(kvio->layer, data_vio->new_mapped.pbn));
+	bio->bi_iter.bi_sector
+		= block_to_sector(kvio->layer, data_vio->new_mapped.pbn);
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -675,10 +676,10 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
 	       sizeof(struct list_head));
 	memset(&data_kvio->data_vio, 0, sizeof(struct data_vio));
 	kvio->bio_to_submit = NULL;
-	bio_list_init(&kvio->bios_merged);
 
 	// The data_block is only needed for writes and some partial reads.
-	if ((bio_data_dir(bio) == WRITE) || (get_bio_size(bio) < VDO_BLOCK_SIZE)) {
+	if ((bio_data_dir(bio) == WRITE) ||
+	    (bio->bi_iter.bi_size < VDO_BLOCK_SIZE)) {
 		reset_bio(data_kvio->data_block_bio, layer);
 	}
 
@@ -730,8 +731,9 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	data_kvio->external_io_request = external_io_request;
-	data_kvio->offset = sector_to_block_offset(layer, get_bio_sector(bio));
-	data_kvio->isPartial = ((get_bio_size(bio) < VDO_BLOCK_SIZE) ||
+	data_kvio->offset = sector_to_block_offset(layer,
+						   bio->bi_iter.bi_sector);
+	data_kvio->isPartial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 			       (data_kvio->offset != 0));
 
 	if (data_kvio->isPartial) {
@@ -780,7 +782,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		data_kvio->read_block.data = data_kvio->data_block;
 	}
 
-	set_bio_block_device(bio, get_kernel_layer_bdev(layer));
+	bio_set_dev(bio, get_kernel_layer_bdev(layer));
 	bio->bi_end_io = complete_async_bio;
 	*data_kvio_ptr = data_kvio;
 	return VDO_SUCCESS;
@@ -894,7 +896,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_kvio->hasDiscardPermit = has_discard_permit;
-		data_kvio->remaining_discard = get_bio_size(bio);
+		data_kvio->remaining_discard = bio->bi_iter.bi_size;
 		callback = kvdo_continue_discard_kvio;
 		if (data_kvio->isPartial) {
 			operation = VIO_READ_MODIFY_WRITE;
@@ -917,7 +919,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	logical_block_number_t lbn =
-		sector_to_block(layer, get_bio_sector(bio) -
+		sector_to_block(layer, bio->bi_iter.bi_sector -
 				layer->starting_sector_offset);
 	prepare_data_vio(&data_kvio->data_vio, lbn, operation, is_trim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,

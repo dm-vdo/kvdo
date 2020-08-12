@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#16 $
  */
 
 #ifndef BIO_H
@@ -129,53 +129,6 @@ static inline void clear_bio_operation_flag_fua(struct bio *bio)
 static inline int get_bio_result(struct bio *bio)
 {
 	return blk_status_to_errno(bio->bi_status);
-}
-
-/**
- * Set the block device for a bio.
- *
- * @param bio     The bio to modify
- * @param device  The new block device for the bio
- **/
-static inline void set_bio_block_device(struct bio *bio,
-					struct block_device *device)
-{
-	bio_set_dev(bio, device);
-}
-
-/**
- * Get a bio's size.
- *
- * @param bio  The bio
- *
- * @return the bio's size
- **/
-static inline unsigned int get_bio_size(struct bio *bio)
-{
-	return bio->bi_iter.bi_size;
-}
-
-/**
- * Set the bio's sector.
- *
- * @param bio     The bio
- * @param sector  The sector
- **/
-static inline void set_bio_sector(struct bio *bio, sector_t sector)
-{
-	bio->bi_iter.bi_sector = sector;
-}
-
-/**
- * Get the bio's sector.
- *
- * @param bio  The bio
- *
- * @return the sector
- **/
-static inline sector_t get_bio_sector(struct bio *bio)
-{
-	return bio->bi_iter.bi_sector;
 }
 
 /**
