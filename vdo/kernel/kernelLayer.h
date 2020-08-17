@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#43 $
  */
 
 #ifndef KERNELLAYER_H
@@ -186,7 +186,6 @@ typedef enum {
 	BIO_Q_ACTION_FLUSH,
 	BIO_Q_ACTION_HIGH,
 	BIO_Q_ACTION_METADATA,
-	BIO_Q_ACTION_READCACHE,
 	BIO_Q_ACTION_VERIFY
 } bio_q_action;
 

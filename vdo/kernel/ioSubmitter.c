@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#48 $
  */
 
 #include "ioSubmitter.h"
@@ -116,9 +116,6 @@ static const struct kvdo_work_queue_type bio_queue_type = {
 			{ .name = "bio_metadata",
 			  .code = BIO_Q_ACTION_METADATA,
 			  .priority = 1 },
-			{ .name = "bio_readcache",
-			  .code = BIO_Q_ACTION_READCACHE,
-			  .priority = 0 },
 			{ .name = "bio_verify",
 			  .code = BIO_Q_ACTION_VERIFY,
 			  .priority = 1 },
