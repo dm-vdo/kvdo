@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#24 $
  */
 
 #include "kvdoFlush.h"
@@ -217,7 +217,11 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 				  get_kernel_layer_bdev(layer),
 				  bio->bi_end_io);
 		atomic64_inc(&layer->flushOut);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 		generic_make_request(bio);
+#else
+		submit_bio_noacct(bio);
+#endif
 	}
 
 

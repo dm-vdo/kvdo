@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#69 $
  */
 
 #include "dmvdo.h"
@@ -80,8 +80,8 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 
 /**
  * Begin VDO processing of a bio.  This is called by the device mapper
- * through the "map" function, and has resulted from a call to either
- * submit_bio or generic_make_request.
+ * through the "map" function, and has resulted from a bio being
+ * submitted.
  *
  * @param ti      The dm_target.  We only need the "private" member to give
  *                us the kernel_layer.
@@ -95,11 +95,11 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  *         DM_MAPIO_SUBMITTED  VDO will take care of this I/O, either
  *                             processing it completely and calling
  *                             bio_endio, or forwarding it onward by
- *                             calling generic_make_request.
+ *                             submitting it to the next layer.
  *
  *         DM_MAPIO_REMAPPED   VDO has modified the bio and the device
  *                             mapper will immediately forward the bio
- *                             onward using generic_make_request.
+ *                             onward by submitting it to the next layer.
  *
  *         DM_MAPIO_REQUEUE    We do not use this.  It is used by device
  *                             mapper devices to defer an I/O request

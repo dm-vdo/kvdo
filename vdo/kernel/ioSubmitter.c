@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#49 $
  */
 
 #include "ioSubmitter.h"
@@ -297,7 +297,11 @@ static void send_bio_to_device(struct kvio *kvio,
 	count_all_bios(kvio, bio);
 	kvio_add_trace_record(kvio, location);
 	bio->bi_next = NULL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 	generic_make_request(bio);
+#else
+	submit_bio_noacct(bio);
+#endif
 }
 
 /**********************************************************************/
