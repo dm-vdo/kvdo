@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#17 $
  */
 
 #include "indexState.h"
@@ -486,40 +486,41 @@ int discard_index_state_data(struct index_state *state)
 /*****************************************************************************/
 int discard_last_index_state_save(struct index_state *state)
 {
-  int result = discard_index_saves(state->layout, false);
-  state->save_slot = UINT_MAX;
-  if (result != UDS_SUCCESS) {
-    return log_error_strerror(result,
-			      "%s: cannot destroy latest index save",
-			      __func__);
-  }
-  return UDS_SUCCESS;
+	int result = discard_index_saves(state->layout, false);
+	state->save_slot = UINT_MAX;
+	if (result != UDS_SUCCESS) {
+		return log_error_strerror(result,
+					  "%s: cannot destroy latest index save",
+					  __func__);
+	}
+	return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
 struct buffer *get_state_index_state_buffer(struct index_state *state,
-                                            enum io_access_mode  mode)
+					    enum io_access_mode  mode)
 {
-  unsigned int slot = mode == IO_READ ? state->load_slot : state->save_slot;
-  return get_index_state_buffer(state->layout, slot);
+	unsigned int slot =
+		mode == IO_READ ? state->load_slot : state->save_slot;
+	return get_index_state_buffer(state->layout, slot);
 }
 
 /*****************************************************************************/
 int open_state_buffered_reader(struct index_state   *state,
-                            enum region_kind         kind,
-                            unsigned int             zone,
-                            struct buffered_reader **reader_ptr)
+			       enum region_kind         kind,
+			       unsigned int             zone,
+			       struct buffered_reader **reader_ptr)
 {
-  return open_index_buffered_reader(state->layout, state->load_slot, kind,
-  				    zone, reader_ptr);
+	return open_index_buffered_reader(state->layout, state->load_slot,
+					  kind, zone, reader_ptr);
 }
 
 /*****************************************************************************/
-int open_state_buffered_writer(struct index_state   *state,
-                            enum region_kind         kind,
-                            unsigned int             zone,
-                            struct buffered_writer **writer_ptr)
+int open_state_buffered_writer(struct index_state *state,
+			       enum region_kind kind,
+			       unsigned int zone,
+			       struct buffered_writer **writer_ptr)
 {
-  return open_index_buffered_writer(state->layout, state->save_slot, kind,
-  				    zone, writer_ptr);
+	return open_index_buffered_writer(state->layout, state->save_slot,
+					  kind, zone, writer_ptr);
 }

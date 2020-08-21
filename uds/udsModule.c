@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#71 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#73 $
  */
 
 #include <linux/module.h>
@@ -33,25 +33,25 @@
 #include "util/funnelQueue.h"
 
 /**********************************************************************/
-static int __init dedupeInit(void)
+static int __init dedupe_init(void)
 {
-  memory_init();
-  log_info("loaded version %s", UDS_VERSION);
-  init_sysfs();
-  return 0;
+	memory_init();
+	log_info("loaded version %s", UDS_VERSION);
+	init_sysfs();
+	return 0;
 }
 
 /**********************************************************************/
-static void __exit dedupeExit(void)
+static void __exit dedupe_exit(void)
 {
-  put_sysfs();
-  memory_exit();
-  log_info("unloaded version %s", UDS_VERSION);
+	put_sysfs();
+	memory_exit();
+	log_info("unloaded version %s", UDS_VERSION);
 }
 
 /**********************************************************************/
-module_init(dedupeInit);
-module_exit(dedupeExit);
+module_init(dedupe_init);
+module_exit(dedupe_exit);
 
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
@@ -84,8 +84,8 @@ EXPORT_SYMBOL_GPL(alloc_sprintf);
 EXPORT_SYMBOL_GPL(allocate_memory);
 EXPORT_SYMBOL_GPL(allocate_memory_nowait);
 EXPORT_SYMBOL_GPL(append_to_buffer);
-EXPORT_SYMBOL_GPL(assertionFailed);
-EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
+EXPORT_SYMBOL_GPL(assertion_failed);
+EXPORT_SYMBOL_GPL(assertion_failed_log_only);
 EXPORT_SYMBOL_GPL(available_space);
 EXPORT_SYMBOL_GPL(buffer_length);
 EXPORT_SYMBOL_GPL(buffer_used);

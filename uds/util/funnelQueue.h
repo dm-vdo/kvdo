@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#5 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -177,8 +177,25 @@ funnel_queue_poll(struct funnel_queue *queue);
  *
  * @param queue  the queue which to check for entries.
  *
- * @return true iff queue contains an entry which can be retrieved
+ * @return true iff queue contains no entry which can be retrieved
  **/
 bool __must_check is_funnel_queue_empty(struct funnel_queue *queue);
+
+/**
+ * Check whether the funnel queue is idle or not. This function must only be
+ * called from a single consumer thread, as with funnel_queue_poll.
+ *
+ * If the queue has entries available to be retrieved, it is not idle. If the
+ * queue is in a transition state with one or more entries being added such
+ * that the list view is incomplete, it may not be possible to retrieve an
+ * entry with the funnel_queue_poll() function, but the queue will not be
+ * considered idle.
+ *
+ * @param queue  the queue which to check for entries.
+ *
+ * @return true iff queue contains no entry which can be retrieved nor is
+ *              known to be having an entry added
+ **/
+bool __must_check is_funnel_queue_idle(struct funnel_queue *queue);
 
 #endif /* FUNNEL_QUEUE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#15 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -56,7 +56,8 @@ int __must_check make_index_layout(const char *name,
  * Construct an index layout using an IO factory.  This method is
  * common to all platforms.
  *
- * @param factory     The IO factory for the block storage containing the index.
+ * @param factory     The IO factory for the block storage containing the
+ *                    index.
  * @param offset      The offset of the start of the index within the block
  *                    storage address space.
  * @param named_size  The size in bytes of the space within the block storage
@@ -84,12 +85,12 @@ make_index_layout_from_factory(struct io_factory *factory,
 void put_index_layout(struct index_layout **layout_ptr);
 
 /*****************************************************************************/
-int __must_check
-cancel_index_save(struct index_layout *layout, unsigned int save_slot);
+int __must_check cancel_index_save(struct index_layout *layout,
+				   unsigned int save_slot);
 
 /*****************************************************************************/
-int __must_check
-commit_index_save(struct index_layout *layout, unsigned int save_slot);
+int __must_check commit_index_save(struct index_layout *layout,
+				   unsigned int save_slot);
 
 /*****************************************************************************/
 int __must_check discard_index_saves(struct index_layout *layout, bool all);
@@ -104,10 +105,9 @@ int __must_check discard_index_saves(struct index_layout *layout, bool all);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check
-find_latest_index_save_slot(struct index_layout *layout,
-			    unsigned int *num_zones_ptr,
-			    unsigned int *slot_ptr);
+int __must_check find_latest_index_save_slot(struct index_layout *layout,
+					     unsigned int *num_zones_ptr,
+					     unsigned int *slot_ptr);
 
 /**
  * Get another reference to an index layout, incrementing it's use count.
@@ -188,9 +188,8 @@ int __must_check open_volume_bufio(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-verify_index_config(struct index_layout *layout,
-                    struct uds_configuration *config);
+int __must_check verify_index_config(struct index_layout *layout,
+				     struct uds_configuration *config);
 
 /**
  * Determine which index save slot to use for a new index save.
@@ -218,9 +217,8 @@ int __must_check setup_index_save_slot(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check
-write_index_config(struct index_layout *layout,
-                   struct uds_configuration *config);
+int __must_check write_index_config(struct index_layout *layout,
+				    struct uds_configuration *config);
 
 /**
  * Get the index state buffer
@@ -230,8 +228,8 @@ write_index_config(struct index_layout *layout,
  *
  * @return UDS_SUCCESS or an error code
  **/
-struct buffer * __must_check
-get_index_state_buffer(struct index_layout *layout, unsigned int slot);
+struct buffer *__must_check get_index_state_buffer(struct index_layout *layout,
+						   unsigned int slot);
 
 /**
  * Get the index version parameters.
@@ -240,7 +238,7 @@ get_index_state_buffer(struct index_layout *layout, unsigned int slot);
  *
  * @return the index version parameters.
  **/
-const struct index_version * __must_check
+const struct index_version *__must_check
 get_index_version(struct index_layout *layout);
 
 #endif // INDEX_LAYOUT_H

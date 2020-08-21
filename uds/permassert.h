@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#4 $
  */
 
 #ifndef PERMASSERT_H
@@ -43,9 +43,9 @@
  *
  * @return       The supplied value
  */
-static INLINE int __must_check mustUse(int value)
+static INLINE int __must_check must_use(int value)
 {
-  return value;
+	return value;
 }
 
 /*
@@ -59,15 +59,18 @@ static INLINE int __must_check mustUse(int value)
  * @param arguments Any additional arguments required by the format
  *
  * @return UDS_SUCCESS If expr is true, code if expr is false and
- *         exitOnAssertionFailure is false. When exitOnAssertionFailure
+ *         exit_on_assertion_failure is false. When exit_on_assertion_failure
  *         is true and expr is false, the program will exit from within
  *         this macro.
  */
-#define ASSERT_WITH_ERROR_CODE(expr, code, ...)                         \
-  mustUse(__builtin_expect(!!(expr), 1)                                 \
-          ? UDS_SUCCESS                                                 \
-          : assertionFailed(STRINGIFY(expr), code, __FILE__, __LINE__,  \
-                            __VA_ARGS__))
+#define ASSERT_WITH_ERROR_CODE(expr, code, ...)            \
+	must_use(__builtin_expect(!!(expr), 1) ?           \
+			 UDS_SUCCESS :                     \
+			 assertion_failed(STRINGIFY(expr), \
+					  code,            \
+					  __FILE__,        \
+					  __LINE__,        \
+					  __VA_ARGS__))
 
 /*
  * A replacement for assert() from assert.h.
@@ -78,100 +81,97 @@ static INLINE int __must_check mustUse(int value)
  * @param arguments Any additional arguments required by the format
  *
  * @return UDS_SUCCESS If expr is true, UDS_ASSERTION_FAILED if expr is
- *         false and exitOnAssertionFailure is false. When
- *         exitOnAssertionFailure is true and expr is false, the
+ *         false and exit_on_assertion_failure is false. When
+ *         exit_on_assertion_failure is true and expr is false, the
  *         program will exit from within this macro.
  */
-#define ASSERT(expr, ...)                                         \
-  ASSERT_WITH_ERROR_CODE(expr, UDS_ASSERTION_FAILED, __VA_ARGS__)
+#define ASSERT(expr, ...) \
+	ASSERT_WITH_ERROR_CODE(expr, UDS_ASSERTION_FAILED, __VA_ARGS__)
 
 /*
  * A replacement for assert() which logs on failure, but does not return an
  * error code. This should be used sparingly. If the expression is false and
- * exitOnAssertionFailure is true, the program will exit from within this macro.
+ * exit_on_assertion_failure is true, the program will exit from within this
+ * macro.
  *
  * @param expr      The boolean expression being asserted
  * @param format    A printf() syle format for the message to log on
  *                  assertion failure
  * @param arguments Any additional arguments required by the format
  */
-#define ASSERT_LOG_ONLY(expr, ...)                                           \
-  (__builtin_expect(!!(expr), 1)                                             \
-   ? UDS_SUCCESS                                                             \
-   : assertionFailedLogOnly(STRINGIFY(expr), __FILE__, __LINE__, __VA_ARGS__))
+#define ASSERT_LOG_ONLY(expr, ...)          \
+	(__builtin_expect(!!(expr), 1) ?    \
+		 UDS_SUCCESS :              \
+		 assertion_failed_log_only( \
+			 STRINGIFY(expr), __FILE__, __LINE__, __VA_ARGS__))
 
 /*
  * This macro is a convenient wrapper for ASSERT(false, ...).
  */
-#define ASSERT_FALSE(...) \
-  ASSERT(false, __VA_ARGS__)
+#define ASSERT_FALSE(...) ASSERT(false, __VA_ARGS__)
 
-#define STATIC_ASSERT(expr) \
-  do {                      \
-    switch (0) {            \
-    case 0:                 \
-    case expr:              \
-      ;                     \
-    default:                \
-      ;                     \
-    }                       \
-  } while(0)
+#define STATIC_ASSERT(expr)  \
+	do {                 \
+		switch (0) { \
+		case 0:      \
+		case expr:;  \
+		default:;    \
+		}            \
+	} while (0)
 
-#define STATIC_ASSERT_SIZEOF(type, expectedSize) \
-  STATIC_ASSERT(sizeof(type) == (expectedSize))
+#define STATIC_ASSERT_SIZEOF(type, expected_size) \
+	STATIC_ASSERT(sizeof(type) == (expected_size))
 
 /**
  * Set whether or not to exit on an assertion failure.
  *
- * @param shouldExit If <code>true</code> assertion failures will cause
- *                   the program to exit
+ * @param should_exit If <code>true</code> assertion failures will cause
+ *                    the program to exit
  *
  * @return The previous setting
  **/
-bool setExitOnAssertionFailure(bool shouldExit);
+bool set_exit_on_assertion_failure(bool should_exit);
 
 /**
  * Log an assertion failure.
  *
- * @param expressionString The assertion
- * @param errorCode        The error code to return
- * @param fileName         The file in which the assertion appears
- * @param lineNumber       The line number on which the assertion
- *                         appears
- * @param format           A printf() style format describing the
- *                         assertion
+ * @param expression_string The assertion
+ * @param error_code        The error code to return
+ * @param file_name         The file in which the assertion appears
+ * @param line_number       The line number on which the assertion
+ *                          appears
+ * @param format            A printf() style format describing the
+ *                          assertion
  *
- * @return The supplied errorCode unless exitOnAssertionFailure is
+ * @return The supplied error_code unless exit_on_assertion_failure is
  *         true, in which case the process will be aborted
  **/
-int __must_check assertionFailed(const char *expressionString,
-                                 int         errorCode,
-                                 const char *fileName,
-                                 int         lineNumber,
-                                 const char *format,
-                                 ...)
-  __attribute__((format(printf, 5, 6)));
+int __must_check assertion_failed(const char *expression_string,
+				  int error_code,
+				  const char *file_name,
+				  int line_number,
+				  const char *format,
+				  ...) __attribute__((format(printf, 5, 6)));
 
 /**
  * Log an assertion failure. This function is different from
- * assertionFailed() in that its return value may be ignored, and so should
+ * assertion_failed() in that its return value may be ignored, and so should
  * only be used in cases where the return value will be ignored.
  *
- * @param expressionString The assertion
- * @param fileName         The file in which the assertion appears
- * @param lineNumber       The line number on which the assertion
- *                         appears
- * @param format           A printf() style format describing the
- *                         assertion
+ * @param expression_string The assertion
+ * @param file_name         The file in which the assertion appears
+ * @param line_number       The line number on which the assertion
+ *                          appears
+ * @param format            A printf() style format describing the
+ *                          assertion
  *
- * @return UDS_ASSERTION_FAILED unless exitOnAssertionFailure is
+ * @return UDS_ASSERTION_FAILED unless exit_on_assertion_failure is
  *         true, in which case the process will be aborted
  **/
-int assertionFailedLogOnly(const char *expressionString,
-                           const char *fileName,
-                           int         lineNumber,
-                           const char *format,
-                           ...)
-  __attribute__((format(printf, 4, 5)));
+int assertion_failed_log_only(const char *expression_string,
+			      const char *file_name,
+			      int line_number,
+			      const char *format,
+			      ...) __attribute__((format(printf, 4, 5)));
 
 #endif /* PERMASSERT_H */

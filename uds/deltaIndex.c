@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#19 $
  */
 #include "deltaIndex.h"
 
@@ -161,7 +161,7 @@ struct di_header {
  * @param increment   The change in the start of the delta list
  **/
 static INLINE void move_delta_list_start(struct delta_list *delta_list,
-                                         int increment)
+					 int increment)
 {
 	delta_list->start_offset += increment;
 	delta_list->size -= increment;
@@ -174,7 +174,7 @@ static INLINE void move_delta_list_start(struct delta_list *delta_list,
  * @param increment   The change in the end of the delta list
  **/
 static INLINE void move_delta_list_end(struct delta_list *delta_list,
-                                       int increment)
+				       int increment)
 {
 	delta_list->size += increment;
 }

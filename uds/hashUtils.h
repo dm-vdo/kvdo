@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#9 $
  */
 
 #ifndef HASH_UTILS_H
@@ -30,12 +30,12 @@
 
 // How various portions of a hash are apportioned.  Size dependent.
 enum {
-	MASTER_INDEX_BYTES_OFFSET  = 0,  // size 8
-	CHAPTER_INDEX_BYTES_OFFSET = 8,  // size 6
-	SAMPLE_BYTES_OFFSET 	   = 14, // size 2
-	MASTER_INDEX_BYTES_COUNT   = 8,
-       	CHAPTER_INDEX_BYTES_COUNT  = 6,
-       	SAMPLE_BYTES_COUNT = 2,
+	MASTER_INDEX_BYTES_OFFSET = 0, // size 8
+	CHAPTER_INDEX_BYTES_OFFSET = 8, // size 6
+	SAMPLE_BYTES_OFFSET = 14, // size 2
+	MASTER_INDEX_BYTES_COUNT = 8,
+	CHAPTER_INDEX_BYTES_COUNT = 6,
+	SAMPLE_BYTES_COUNT = 2,
 };
 
 /**
@@ -75,8 +75,7 @@ extract_master_index_bytes(const struct uds_chunk_name *name)
  *
  * @return The sparse sample portion of the block name
  **/
-static INLINE uint32_t
-extract_sampling_bytes(const struct uds_chunk_name *name)
+static INLINE uint32_t extract_sampling_bytes(const struct uds_chunk_name *name)
 {
 	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
@@ -91,7 +90,7 @@ extract_sampling_bytes(const struct uds_chunk_name *name)
  **/
 static INLINE unsigned int
 hash_to_chapter_delta_list(const struct uds_chunk_name *name,
-                           const struct geometry       *geometry)
+			   const struct geometry *geometry)
 {
 	return (unsigned int) ((extract_chapter_index_bytes(name) >>
 				geometry->chapter_address_bits) &
@@ -108,7 +107,7 @@ hash_to_chapter_delta_list(const struct uds_chunk_name *name,
  **/
 static INLINE unsigned int
 hash_to_chapter_delta_address(const struct uds_chunk_name *name,
-                              const struct geometry *geometry)
+			      const struct geometry *geometry)
 {
 	return (unsigned int) (extract_chapter_index_bytes(name) &
 			       ((1 << geometry->chapter_address_bits) - 1));
@@ -194,8 +193,8 @@ static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
  * @param value    The value to store
  **/
 static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
-                                               const struct geometry *geometry,
-                                               uint64_t               value)
+					       const struct geometry *geometry,
+					       uint64_t value)
 {
 	uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
 	delta_address |= value << geometry->chapter_address_bits;

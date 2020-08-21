@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#6 $
  */
 
 #include "funnelQueue.h"
@@ -74,7 +74,9 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 		// and ignored without breaking the queue invariants.
 		oldest = next;
 		queue->oldest = oldest;
-		smp_read_barrier_depends();
+		// XXX Some platforms such as Alpha may require an
+		// additional barrier here.  See
+		// https://lkml.org/lkml/2019/11/8/1021
 		next = oldest->next;
 	}
 
@@ -142,4 +144,34 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 bool is_funnel_queue_empty(struct funnel_queue *queue)
 {
 	return get_oldest(queue) == NULL;
+}
+
+/**********************************************************************/
+bool is_funnel_queue_idle(struct funnel_queue *queue)
+{
+	/*
+	 * Oldest is not the stub, so there's another entry, though if next is
+	 * NULL we can't retrieve it yet.
+	 */
+	if (queue->oldest != &queue->stub) {
+		return false;
+	}
+
+	/*
+	 * Oldest is the stub, but newest has been updated by _put(); either
+	 * there's another, retrievable entry in the list, or the list is
+	 * officially empty but in the intermediate state of having an entry
+	 * added.
+	 *
+	 * Whether anything is retrievable depends on whether stub.next has
+	 * been updated and become visible to us, but for idleness we don't
+	 * care. And due to memory ordering in _put(), the update to newest
+	 * would be visible to us at the same time or sooner.
+	 */
+	if (queue->newest != &queue->stub) {
+		return false;
+	}
+
+	// Otherwise, we're idle.
+	return true;
 }
