@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#25 $
  */
 
 #include "kvdoFlush.h"
@@ -211,11 +211,8 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 		// it again, so this is the last chance to account for it.
 		count_bios(&layer->biosAcknowledged, bio);
 
-		// Make sure the bio is an empty flush bio.
-		prepare_flush_bio(bio,
-				  bio->bi_private,
-				  get_kernel_layer_bdev(layer),
-				  bio->bi_end_io);
+		// Update the device, and send it on down...
+		bio_set_dev(bio, get_kernel_layer_bdev(layer));
 		atomic64_inc(&layer->flushOut);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 		generic_make_request(bio);
@@ -253,7 +250,8 @@ int synchronous_flush(struct kernel_layer *layer)
 {
 	struct bio bio;
 	bio_init(&bio, 0, 0);
-	prepare_flush_bio(&bio, layer, get_kernel_layer_bdev(layer), NULL);
+	bio_set_dev(&bio, get_kernel_layer_bdev(layer));
+	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	submit_bio_wait(&bio);
 	int result = blk_status_to_errno(bio.bi_status);
 
