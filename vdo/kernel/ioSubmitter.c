@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#50 $
  */
 
 #include "ioSubmitter.h"
@@ -296,7 +296,8 @@ static void send_bio_to_device(struct kvio *kvio,
 	atomic64_inc(&kvio->layer->bios_submitted);
 	count_all_bios(kvio, bio);
 	kvio_add_trace_record(kvio, location);
-	bio->bi_next = NULL;
+
+	bio_set_dev(bio, get_kernel_layer_bdev(kvio->layer));
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 	generic_make_request(bio);
 #else
@@ -328,11 +329,8 @@ static void process_bio_map(struct kvdo_work_item *item)
 {
 	assert_running_in_bio_queue();
 	struct kvio *kvio = work_item_as_kvio(item);
-	/*
-	 * XXX Make these paths more regular: Should bi_bdev be set here, or
-	 * in the caller, or in the callback function? Should we call
-	 * finish_bio_queue for the biomap case on old kernels?
-	 */
+	// XXX Should we call finish_bio_queue for the biomap case on old
+	// kernels?
 	if (USE_BIOMAP && is_data(kvio)) {
 		// We need to make sure to do two things here:
 		// 1. Use each bio's kvio when submitting. Any other kvio is
@@ -363,8 +361,6 @@ static void process_bio_map(struct kvdo_work_item *item)
 			struct bio *next = bio->bi_next;
 
 			bio->bi_next = NULL;
-			bio_set_dev(bio,
-				    get_kernel_layer_bdev(kvio_bio->layer));
 			send_bio_to_device(kvio_bio,
 					   bio,
 					   THIS_LOCATION("$F($io)"));
