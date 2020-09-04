@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#17 $
  */
 
 #ifndef BIO_H
@@ -179,18 +179,5 @@ void reset_bio(struct bio *bio, struct kernel_layer *layer);
  * @return VDO_SUCCESS or an error
  **/
 int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr);
-
-/**
- * Prepare a bio to issue a flush to the device below.
- *
- * @param bio              The flush bio
- * @param context          The context for the callback
- * @param device           The device to flush
- * @param end_io_callback  The function to call when the flush is complete
- **/
-void prepare_flush_bio(struct bio *bio,
-		       void *context,
-		       struct block_device *device,
-		       bio_end_io_t *end_io_callback);
 
 #endif /* BIO_H */

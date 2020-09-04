@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#42 $
  */
 
 #include "kvio.h"
@@ -217,10 +217,20 @@ void kvdo_flush_vio(struct vio *vio)
 	struct kernel_layer *layer = kvio->layer;
 
 	reset_bio(bio, layer);
-	prepare_flush_bio(bio,
-			  kvio,
-			  get_kernel_layer_bdev(layer),
-			  complete_flush_bio);
+	clear_bio_operation_and_flags(bio);
+	/*
+	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
+	 * layers of the stack don't recognize that as a flush. So do it
+	 * like blkdev_issue_flush() and make it a write+flush.
+	 */
+	set_bio_operation_write(bio);
+	set_bio_operation_flag_preflush(bio);
+	bio->bi_end_io = complete_flush_bio;
+	bio->bi_private = kvio;
+	bio->bi_vcnt = 0;
+	bio_set_dev(bio, get_kernel_layer_bdev(layer));
+	bio->bi_iter.bi_size = 0;
+	bio->bi_iter.bi_sector = 0;
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 

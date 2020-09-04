@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#26 $
  */
 
 #include "bio.h"
@@ -223,24 +223,4 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-void prepare_flush_bio(struct bio *bio,
-		       void *context,
-		       struct block_device *device,
-		       bio_end_io_t *end_io_callback)
-{
-	clear_bio_operation_and_flags(bio);
-	/*
-	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
-	 * layers of the stack don't recognize that as a flush. So do it
-	 * like blkdev_issue_flush() and make it a write+flush.
-	 */
-	set_bio_operation_write(bio);
-	set_bio_operation_flag_preflush(bio);
-	bio->bi_end_io = end_io_callback;
-	bio->bi_private = context;
-	bio->bi_vcnt = 0;
-	bio_set_dev(bio, device);
-	bio->bi_iter.bi_size = 0;
-	bio->bi_iter.bi_sector = 0;
-}
+
