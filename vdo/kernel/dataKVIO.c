@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#78 $
  */
 
 #include "dataKVIO.h"
@@ -387,9 +387,10 @@ void kvdo_read_block(struct data_vio *data_vio,
 
 	BUG_ON(get_bio_from_data_kvio(data_kvio)->bi_private !=
 	       &data_kvio->kvio);
-	// Read the data directly from the device using the read bio.
-	struct bio *bio = read_block->bio;
 
+	// Read the data using the read block bio, wrapping the read block
+	// buffer.
+	struct bio *bio = read_block->bio;
 	reset_bio(bio, layer);
 	bio->bi_iter.bi_sector = block_to_sector(layer, location);
 	set_bio_operation_read(bio);
@@ -483,6 +484,8 @@ void writeDataVIO(struct data_vio *data_vio)
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
 	struct bio *bio = kvio->bio;
 
+	// Write the data using the data block bio, wrapping the data block
+	// buffer.
 	set_bio_operation_write(bio);
 	bio->bi_iter.bi_sector
 		= block_to_sector(kvio->layer, data_vio->new_mapped.pbn);
@@ -772,9 +775,9 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 
 	if (data_kvio->isPartial || (bio_data_dir(bio) == WRITE)) {
 		/*
-		 * data_kvio->bio will point at kvio->data_block_bio for all writes
-		 * and partial block I/O so the rest of the kernel code doesn't
-		 * need to make a decision as to what to use.
+		 * kvio->bio will point at data_kvio->data_block_bio for all
+		 * writes and partial block I/O so the rest of the kernel code
+		 * doesn't need to make a decision as to what to use.
 		 */
 		data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
 		if (data_kvio->isPartial && (bio_data_dir(bio) == WRITE)) {

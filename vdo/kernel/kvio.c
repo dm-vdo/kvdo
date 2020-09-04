@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#44 $
  */
 
 #include "kvio.h"
@@ -133,6 +133,7 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 		compressed_write_kvio_as_kvio(compressed_write_kvio);
 	struct bio *bio = kvio->bio;
 
+	// Write the compressed block, using the compressed kvio's own bio.
 	reset_bio(bio, kvio->layer);
 	set_bio_operation_write(bio);
 	bio->bi_iter.bi_sector
@@ -163,7 +164,6 @@ void submitMetadataVIO(struct vio *vio)
 
 	bio->bi_iter.bi_sector = block_to_sector(kvio->layer, vio->physical);
 
-	// Metadata I/Os bypass the read cache.
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
@@ -191,6 +191,7 @@ void submitMetadataVIO(struct vio *vio)
 	if (vio_requires_flush_after(vio)) {
 		set_bio_operation_flag_fua(bio);
 	}
+	// Perform the metadata IO, using the metadata kvio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
@@ -216,6 +217,7 @@ void kvdo_flush_vio(struct vio *vio)
 	struct bio *bio = kvio->bio;
 	struct kernel_layer *layer = kvio->layer;
 
+	// Flush, using the metadata kvio's own bio.
 	reset_bio(bio, layer);
 	clear_bio_operation_and_flags(bio);
 	/*
