@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#76 $
  */
 
 #include "dataKVIO.h"
@@ -782,7 +782,6 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		data_kvio->read_block.data = data_kvio->data_block;
 	}
 
-	bio_set_dev(bio, get_kernel_layer_bdev(layer));
 	bio->bi_end_io = complete_async_bio;
 	*data_kvio_ptr = data_kvio;
 	return VDO_SUCCESS;

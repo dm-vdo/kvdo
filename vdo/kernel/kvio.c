@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#43 $
  */
 
 #include "kvio.h"
@@ -228,7 +228,6 @@ void kvdo_flush_vio(struct vio *vio)
 	bio->bi_end_io = complete_flush_bio;
 	bio->bi_private = kvio;
 	bio->bi_vcnt = 0;
-	bio_set_dev(bio, get_kernel_layer_bdev(layer));
 	bio->bi_iter.bi_size = 0;
 	bio->bi_iter.bi_sector = 0;
 	vdo_submit_bio(bio, get_metadata_action(vio));
