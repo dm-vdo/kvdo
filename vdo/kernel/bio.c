@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#29 $
  */
 
 #include "bio.h"
@@ -66,7 +66,8 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 /**********************************************************************/
 void set_bio_operation(struct bio *bio, unsigned int operation)
 {
-	bio->bi_opf = operation;
+	bio->bi_opf &= ~REQ_OP_MASK;
+	bio->bi_opf |= operation;
 }
 
 /**********************************************************************/
