@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#80 $
  */
 
 #include "dataKVIO.h"
@@ -421,8 +421,20 @@ void readDataVIO(struct data_vio *data_vio)
 	 * This bio is either the user bio (for a 4k read) or the data
 	 * block bio (for a partial IO). Since it could be a user bio,
 	 * we can't reset it here as we do at most other callsites to
-	 * vdo_submit_bio().
+	 * vdo_submit_bio(). The data block bio is reset in make_data_kvio().
 	 */
+	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
+		data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
+	} else if (data_kvio->isPartial) {
+		// A partial read.
+		data_kvio->data_block_bio->bi_opf =
+			data_kvio->external_io_request.bio->bi_opf & ~REQ_FUA;
+	} else {
+		// A full 4k read. FUA is irrelevant to a read, so strip it out.
+		bio->bi_opf &= ~REQ_FUA;
+	}
+
 	bio->bi_end_io = complete_async_bio;
 	bio->bi_iter.bi_sector
 		= block_to_sector(kvio->layer, data_vio->mapped.pbn);
@@ -484,10 +496,15 @@ void writeDataVIO(struct data_vio *data_vio)
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
 	struct bio *bio = kvio->bio;
 
-	// Force the bio to be a write, without touching any flags it may
-	// have picked up.
-	bio->bi_opf = (REQ_OP_WRITE | (bio->bi_opf & ~REQ_OP_MASK));
-	
+	// Force the bio to be a write, while preserving the original bio's
+	// flags (except FUA).
+	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+
+	reset_bio(bio, kvio->layer);
+	bio->bi_opf = (REQ_OP_WRITE |
+		      ((data_kvio->external_io_request.rw & ~REQ_OP_MASK) &
+		       ~REQ_FUA));
+
 	// Write the data using the data block bio, wrapping the data block
 	// buffer.
 	bio->bi_iter.bi_sector
@@ -564,9 +581,6 @@ void applyPartialWrite(struct data_vio *data_vio)
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct bio *bio = data_kvio->external_io_request.bio;
-	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
-
-	reset_bio(data_kvio->data_block_bio, layer);
 
 	if (bio_op(bio) != REQ_OP_DISCARD) {
 		bio_copy_data_in(bio, data_kvio->data_block + data_kvio->offset);
@@ -577,11 +591,6 @@ void applyPartialWrite(struct data_vio *data_vio)
 	}
 
 	data_vio->is_zero_block = is_zero_block(data_kvio);
-	data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
-	// Copy the incoming request's flags, but make the bio a write, not
-	// (potentially) a discard.
-	data_kvio->data_block_bio->bi_opf =
-		(REQ_OP_WRITE | (bio->bi_opf & ~REQ_OP_MASK));
 }
 
 /**********************************************************************/
@@ -732,10 +741,6 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		.rw = bio->bi_opf,
 	};
 
-	// We will handle FUA at the end of the request (after we restore the
-	// bi_rw field from external_io_request.rw).
-	bio->bi_opf &= ~REQ_FUA;
-
 	struct data_kvio *data_kvio = NULL;
 	int result = make_data_kvio(layer, bio, &data_kvio);
 
@@ -784,11 +789,6 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		 * doesn't need to make a decision as to what to use.
 		 */
 		data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
-		if (data_kvio->isPartial && (bio_data_dir(bio) == WRITE)) {
-			data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
-		} else {
-			data_kvio->data_block_bio->bi_opf = bio->bi_opf;
-		}
 		data_kvio_as_kvio(data_kvio)->bio = data_kvio->data_block_bio;
 		data_kvio->read_block.data = data_kvio->data_block;
 	}
@@ -833,9 +833,6 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 		return;
 	}
 
-	struct bio *bio = get_bio_from_data_kvio(data_kvio);
-
-	reset_bio(bio, layer);
 	data_kvio->isPartial = (data_kvio->remaining_discard < VDO_BLOCK_SIZE);
 	data_kvio->offset = 0;
 
@@ -843,7 +840,6 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 
 	if (data_kvio->isPartial) {
 		operation = VIO_READ_MODIFY_WRITE;
-		bio->bi_opf = REQ_OP_READ;
 	} else {
 		operation = VIO_WRITE;
 	}
