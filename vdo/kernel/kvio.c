@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#45 $
  */
 
 #include "kvio.h"
@@ -135,7 +135,7 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 
 	// Write the compressed block, using the compressed kvio's own bio.
 	reset_bio(bio, kvio->layer);
-	set_bio_operation_write(bio);
+	bio->bi_opf = REQ_OP_WRITE;
 	bio->bi_iter.bi_sector
 		= block_to_sector(kvio->layer, kvio->vio->physical);
 	vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
@@ -168,7 +168,7 @@ void submitMetadataVIO(struct vio *vio)
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
 		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
-		set_bio_operation_read(bio);
+		bio->bi_opf = REQ_OP_READ;
 	} else {
 		kernel_layer_state state = get_kernel_layer_state(kvio->layer);
 
@@ -177,19 +177,18 @@ void submitMetadataVIO(struct vio *vio)
 				 || (state = LAYER_STARTING)),
 				"write metadata in allowed state %d", state);
 		if (vio_requires_flush_before(vio)) {
-			set_bio_operation_write(bio);
-			set_bio_operation_flag_preflush(bio);
+			bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 			vio_add_trace_record(vio,
 					     THIS_LOCATION("$F;io=flushWriteMeta"));
 		} else {
-			set_bio_operation_write(bio);
+			bio->bi_opf = REQ_OP_WRITE;
 			vio_add_trace_record(vio,
 					     THIS_LOCATION("$F;io=writeMeta"));
 		}
 	}
 
 	if (vio_requires_flush_after(vio)) {
-		set_bio_operation_flag_fua(bio);
+		bio->bi_opf |= REQ_FUA;
 	}
 	// Perform the metadata IO, using the metadata kvio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
@@ -219,14 +218,12 @@ void kvdo_flush_vio(struct vio *vio)
 
 	// Flush, using the metadata kvio's own bio.
 	reset_bio(bio, layer);
-	clear_bio_operation_and_flags(bio);
 	/*
 	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
 	 * layers of the stack don't recognize that as a flush. So do it
 	 * like blkdev_issue_flush() and make it a write+flush.
 	 */
-	set_bio_operation_write(bio);
-	set_bio_operation_flag_preflush(bio);
+	bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	bio->bi_end_io = complete_flush_bio;
 	bio->bi_private = kvio;
 	bio->bi_vcnt = 0;

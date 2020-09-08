@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#18 $
  */
 
 #ifndef BIO_H
@@ -42,82 +42,6 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr);
  * @param data_ptr  The local array to copy the data from
  **/
 void bio_copy_data_out(struct bio *bio, char *data_ptr);
-
-/**
- * Set the bi_rw or equivalent field of a bio to a particular data
- * operation. Intended to be called only by set_bio_operation_read() etc.
- *
- * @param bio        The bio to modify
- * @param operation  The operation to set it to
- **/
-void set_bio_operation(struct bio *bio, unsigned int operation);
-
-/**********************************************************************/
-static inline void set_bio_operation_read(struct bio *bio)
-{
-	set_bio_operation(bio, READ);
-}
-
-/**********************************************************************/
-static inline void set_bio_operation_write(struct bio *bio)
-{
-	set_bio_operation(bio, WRITE);
-}
-
-/**********************************************************************/
-static inline void clear_bio_operation_and_flags(struct bio *bio)
-{
-	bio->bi_opf = 0;
-}
-
-/**********************************************************************/
-static inline void copy_bio_operation_and_flags(struct bio *to,
-						struct bio *from)
-{
-	to->bi_opf = from->bi_opf;
-}
-
-/**********************************************************************/
-static inline void set_bio_operation_flag(struct bio *bio, unsigned int flag)
-{
-	bio->bi_opf |= flag;
-}
-
-/**********************************************************************/
-static inline void clear_bio_operation_flag(struct bio *bio, unsigned int flag)
-{
-	bio->bi_opf &= ~flag;
-}
-
-/**********************************************************************/
-static inline void set_bio_operation_flag_preflush(struct bio *bio)
-{
-	set_bio_operation_flag(bio, REQ_PREFLUSH);
-}
-
-/**********************************************************************/
-static inline void set_bio_operation_flag_sync(struct bio *bio)
-{
-	set_bio_operation_flag(bio, REQ_SYNC);
-}
-
-/**********************************************************************/
-static inline void clear_bio_operation_flag_sync(struct bio *bio)
-{
-	clear_bio_operation_flag(bio, REQ_SYNC);
-}
-
-/**********************************************************************/
-static inline void set_bio_operation_flag_fua(struct bio *bio)
-{
-	set_bio_operation_flag(bio, REQ_FUA);
-}
-
-/**********************************************************************/
-static inline void clear_bio_operation_flag_fua(struct bio *bio)
-{
-	clear_bio_operation_flag(bio, REQ_FUA);
-}
 
 /**
  * Get the error from the bio.

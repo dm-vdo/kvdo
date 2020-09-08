@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#109 $
  */
 
 #include "kernelLayer.h"
@@ -430,7 +430,7 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 	}
 	bio_set_dev(bio, get_kernel_layer_bdev(kernel_layer));
 	bio->bi_iter.bi_sector = block_to_sector(kernel_layer, start_block);
-	set_bio_operation_read(bio);
+	bio->bi_opf = REQ_OP_READ;
 	submit_bio_wait(bio);
 	result = blk_status_to_errno(bio->bi_status);
 	if (result != 0) {

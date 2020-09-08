@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#79 $
  */
 
 #include "dataKVIO.h"
@@ -393,7 +393,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	struct bio *bio = read_block->bio;
 	reset_bio(bio, layer);
 	bio->bi_iter.bi_sector = block_to_sector(layer, location);
-	set_bio_operation_read(bio);
+	bio->bi_opf = REQ_OP_READ;
 	bio->bi_end_io = read_bio_callback;
 	vdo_submit_bio(bio, action);
 }
@@ -484,9 +484,12 @@ void writeDataVIO(struct data_vio *data_vio)
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
 	struct bio *bio = kvio->bio;
 
+	// Force the bio to be a write, without touching any flags it may
+	// have picked up.
+	bio->bi_opf = (REQ_OP_WRITE | (bio->bi_opf & ~REQ_OP_MASK));
+	
 	// Write the data using the data block bio, wrapping the data block
 	// buffer.
-	set_bio_operation_write(bio);
 	bio->bi_iter.bi_sector
 		= block_to_sector(kvio->layer, data_vio->new_mapped.pbn);
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
@@ -575,9 +578,10 @@ void applyPartialWrite(struct data_vio *data_vio)
 
 	data_vio->is_zero_block = is_zero_block(data_kvio);
 	data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
-	copy_bio_operation_and_flags(data_kvio->data_block_bio, bio);
-	// Make the bio a write, not (potentially) a discard.
-	set_bio_operation_write(data_kvio->data_block_bio);
+	// Copy the incoming request's flags, but make the bio a write, not
+	// (potentially) a discard.
+	data_kvio->data_block_bio->bi_opf =
+		(REQ_OP_WRITE | (bio->bi_opf & ~REQ_OP_MASK));
 }
 
 /**********************************************************************/
@@ -730,7 +734,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 
 	// We will handle FUA at the end of the request (after we restore the
 	// bi_rw field from external_io_request.rw).
-	clear_bio_operation_flag_fua(bio);
+	bio->bi_opf &= ~REQ_FUA;
 
 	struct data_kvio *data_kvio = NULL;
 	int result = make_data_kvio(layer, bio, &data_kvio);
@@ -781,11 +785,9 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		 */
 		data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
 		if (data_kvio->isPartial && (bio_data_dir(bio) == WRITE)) {
-			clear_bio_operation_and_flags(data_kvio->data_block_bio);
-			set_bio_operation_read(data_kvio->data_block_bio);
+			data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
 		} else {
-			copy_bio_operation_and_flags(data_kvio->data_block_bio,
-						     bio);
+			data_kvio->data_block_bio->bi_opf = bio->bi_opf;
 		}
 		data_kvio_as_kvio(data_kvio)->bio = data_kvio->data_block_bio;
 		data_kvio->read_block.data = data_kvio->data_block;
@@ -841,7 +843,7 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 
 	if (data_kvio->isPartial) {
 		operation = VIO_READ_MODIFY_WRITE;
-		set_bio_operation_read(bio);
+		bio->bi_opf = REQ_OP_READ;
 	} else {
 		operation = VIO_WRITE;
 	}

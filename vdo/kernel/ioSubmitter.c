@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#51 $
  */
 
 #include "ioSubmitter.h"
@@ -565,12 +565,12 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 		if (is_data(kvio)) {
 			// Clear the bits for sync I/O RW flags on data block
 			// bios.
-			clear_bio_operation_flag_sync(bio);
+			bio->bi_opf &= ~REQ_SYNC;
 		} else if ((kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
 			   (kvio->vio->type == VIO_TYPE_SLAB_JOURNAL)) {
 			// Set the bits for sync I/O RW flags on all
 			// journal-related and slab-journal-related bios.
-			set_bio_operation_flag_sync(bio);
+			bio->bi_opf |= REQ_SYNC;
 		}
 	}
 
