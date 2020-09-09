@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#81 $
  */
 
 #include "dataKVIO.h"
@@ -248,8 +248,8 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 	// For a read-modify-write, copy the data into the data_block buffer so
 	// it will be set up for the write phase.
 	if (is_read_modify_write_vio(data_kvio->kvio.vio)) {
-		bio_copy_data_out(get_bio_from_data_kvio(data_kvio),
-				  data_kvio->read_block.data);
+		memcpy(data_kvio->data_block, data_kvio->read_block.data,
+		       VDO_BLOCK_SIZE);
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
 	}
@@ -261,8 +261,8 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 		return;
 	}
 
-	// For a full block read, copy the data to the bio and acknowledge.
-	bio_copy_data_out(get_bio_from_data_kvio(data_kvio),
+	// For a 4k read, copy the data to the user bio and acknowledge.
+	bio_copy_data_out(data_kvio->external_io_request.bio,
 			  data_kvio->read_block.data);
 	acknowledgeDataVIO(&data_kvio->data_vio);
 }
@@ -384,9 +384,6 @@ void kvdo_read_block(struct data_vio *data_vio,
 	read_block->callback = callback;
 	read_block->status = VDO_SUCCESS;
 	read_block->mapping_state = mapping_state;
-
-	BUG_ON(get_bio_from_data_kvio(data_kvio)->bi_private !=
-	       &data_kvio->kvio);
 
 	// Read the data using the read block bio, wrapping the read block
 	// buffer.
