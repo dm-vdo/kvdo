@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#82 $
  */
 
 #include "dataKVIO.h"
@@ -236,8 +236,18 @@ void kvdo_complete_data_kvio(struct vdo_completion *completion)
 }
 
 /**
- * Copy the uncompressed data from a compressed block read into the user
- * bio which requested the read.
+ * For a read, dispatch the freshly uncompressed data to its destination:
+ * - for a 4k read, copy it into the user bio for later acknowlegement;
+ *
+ * - for a partial read, invoke its callback; kvdo_complete_partial_read will
+ *   copy the data into the user bio for acknowledgement;
+ *
+ * - for a partial write, copy it into the data block, so that we can later
+ *   copy data from the user bio atop it in applyPartialWrite and treat it as
+ *   a full-block write.
+ *
+ * This is called from read_data_kvio_read_block_callback, registered only in
+ * readDataVIO() and therefore never called on a 4k write.
  *
  * @param work_item  The data_kvio which requested the read
  **/
@@ -268,7 +278,9 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 }
 
 /**
- * Finish reading data for a compressed block.
+ * Finish reading data for a compressed block. This callback is registered
+ * in readDataVIO() when trying to read compressed data for a 4k read or
+ * a partial read or write.
  *
  * @param data_kvio  The data_kvio which requested the read
  **/
