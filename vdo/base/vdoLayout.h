@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#12 $
  */
 
 /**
@@ -45,9 +45,8 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int decode_vdo_layout(struct fixed_layout *layout,
-		      struct vdo_layout **vdo_layout_ptr)
-	__attribute__((warn_unused_result));
+int __must_check decode_vdo_layout(struct fixed_layout *layout,
+				   struct vdo_layout **vdo_layout_ptr);
 
 /**
  * Free a vdo_layout and NULL out the reference to it.
@@ -65,9 +64,8 @@ void free_vdo_layout(struct vdo_layout **vdo_layout_ptr);
  *
  * @return The requested partition
  **/
-struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
-				    partition_id id)
-	__attribute__((warn_unused_result));
+struct partition * __must_check
+get_vdo_partition(struct vdo_layout *vdo_layout, partition_id id);
 
 /**
  * Prepare the layout to be grown.
@@ -79,11 +77,11 @@ struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
-			       block_count_t old_physical_blocks,
-			       block_count_t new_physical_blocks,
-			       PhysicalLayer *layer)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
+			   block_count_t old_physical_blocks,
+			   block_count_t new_physical_blocks,
+			   PhysicalLayer *layer);
 
 /**
  * Get the size of the next layout.
@@ -93,8 +91,8 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
  * @return The size which was specified when the layout was prepared for growth
  *         or 0 if the layout is not prepared to grow
  **/
-block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_next_vdo_layout_size(struct vdo_layout *vdo_layout);
 
 /**
  * Get the size of the next block allocator partition.
@@ -104,9 +102,8 @@ block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
  * @return The size of the block allocator partition in the next layout or 0
  *         if the layout is not prepared to grow
  **/
-block_count_t
-get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check
+get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
 
 /**
  * Grow the layout by swapping in the prepared layout.
@@ -115,8 +112,7 @@ get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
  *
  * @return The new size of the VDO
  **/
-block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check grow_vdo_layout(struct vdo_layout *vdo_layout);
 
 /**
  * Revert the last growth attempt.
@@ -125,8 +121,7 @@ block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
  *
  * @return The reverted size (in blocks) of the VDO
  **/
-block_count_t revert_vdo_layout(struct vdo_layout *vdo_layout)
-	__attribute__((warn_unused_result));
+block_count_t __must_check revert_vdo_layout(struct vdo_layout *vdo_layout);
 
 /**
  * Clean up any unused resources once an attempt to grow has completed.

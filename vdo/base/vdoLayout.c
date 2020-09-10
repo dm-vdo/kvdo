@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#16 $
  */
 
 #include "vdoLayout.h"
@@ -51,7 +51,7 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
  *
  * @return The offset of the partition (in blocks)
  **/
-__attribute__((warn_unused_result)) static block_count_t
+static block_count_t __must_check
 get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
@@ -117,7 +117,7 @@ void free_vdo_layout(struct vdo_layout **vdo_layout_ptr)
  *
  * @return The desired partition
  **/
-__attribute__((warn_unused_result)) static struct partition *
+static struct partition * __must_check
 retrieve_partition(struct fixed_layout *layout, partition_id id)
 {
 	struct partition *partition;
@@ -143,7 +143,7 @@ struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
  *
  * @return The requested partition
  **/
-__attribute__((warn_unused_result)) static struct partition *
+static struct partition * __must_check
 get_partition_from_next_layout(struct vdo_layout *vdo_layout, partition_id id)
 {
 	ASSERT_LOG_ONLY(vdo_layout->next_layout != NULL,
@@ -159,7 +159,7 @@ get_partition_from_next_layout(struct vdo_layout *vdo_layout, partition_id id)
  *
  * @return The size of the partition (in blocks)
  **/
-__attribute__((warn_unused_result)) static block_count_t
+static block_count_t __must_check
 get_partition_size(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_size(get_vdo_partition(layout,
@@ -235,7 +235,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
  *
  * @return The total size of a VDO (in blocks) with the given layout
  **/
-__attribute__((warn_unused_result)) static block_count_t
+static block_count_t __must_check
 get_vdo_size(struct fixed_layout *layout, block_count_t starting_offset)
 {
 	// The fixed_layout does not include the super block or any earlier

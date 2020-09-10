@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#69 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -74,7 +74,7 @@ struct missing_decref {
  *
  * @return The missing_decref wrapping the waiter
  **/
-__attribute__((warn_unused_result)) static inline struct missing_decref *
+static inline struct missing_decref * __must_check
 as_missing_decref(struct waiter *waiter)
 {
 	return container_of(waiter, struct missing_decref, waiter);
@@ -125,7 +125,7 @@ static uint64_t slot_as_number(struct block_map_slot slot)
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 make_missing_decref(struct recovery_completion *recovery,
 		    struct recovery_journal_entry entry,
 		    struct missing_decref **decref_ptr)
@@ -227,7 +227,7 @@ static void decrement_recovery_point(struct recovery_point *point)
  *
  * @return <code>true</code> if the first point precedes the second point
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 before_recovery_point(const struct recovery_point *first,
 		      const struct recovery_point *second)
 {
@@ -406,7 +406,7 @@ static void abort_recovery(struct vdo_completion *completion)
  *
  * @return <code>true</code> if the result was an error
  **/
-__attribute__((warn_unused_result)) static bool
+static bool __must_check
 abort_recovery_on_error(int result, struct recovery_completion *recovery)
 {
 	if (result == VDO_SUCCESS) {
@@ -906,7 +906,7 @@ static int record_missing_decref(struct missing_decref *decref,
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 find_missing_decrefs(struct recovery_completion *recovery)
 {
 	struct int_map *slot_entry_map = recovery->slot_entry_map;

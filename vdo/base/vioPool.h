@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#11 $
  */
 
 #ifndef VIO_POOL_H
@@ -68,10 +68,12 @@ typedef int vio_constructor(PhysicalLayer *layer, void *parent, void *buffer,
  *
  * @return a success or error code
  **/
-int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
-		  vio_constructor *vio_constructor, void *context,
-		  struct vio_pool **pool_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_vio_pool(PhysicalLayer *layer,
+			       size_t pool_size,
+			       thread_id_t thread_id,
+			       vio_constructor *vio_constructor,
+			       void *context,
+			       struct vio_pool **pool_ptr);
 
 /**
  * Destroy a vio pool
@@ -85,8 +87,7 @@ void free_vio_pool(struct vio_pool **pool_ptr);
  *
  * @return <code>true</code> if the pool is busy
  **/
-bool is_vio_pool_busy(struct vio_pool *pool)
-	__attribute__((warn_unused_result));
+bool __must_check is_vio_pool_busy(struct vio_pool *pool);
 
 /**
  * Acquire a vio and buffer from the pool (asynchronous).
@@ -125,7 +126,6 @@ static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
  *
  * @return the number of times an acquisition request had to wait
  **/
-uint64_t get_vio_pool_outage_count(struct vio_pool *pool)
-	__attribute__((warn_unused_result));
+uint64_t __must_check get_vio_pool_outage_count(struct vio_pool *pool);
 
 #endif // VIO_POOL_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#17 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -71,7 +71,7 @@ struct volume_geometry {
  *
  * @return The start of the index region
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 get_index_region_offset(struct volume_geometry geometry)
 {
 	return geometry.regions[INDEX_REGION].start_block;
@@ -84,7 +84,7 @@ get_index_region_offset(struct volume_geometry geometry)
  *
  * @return The start of the data region
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 get_data_region_offset(struct volume_geometry geometry)
 {
 	return geometry.regions[DATA_REGION].start_block;
@@ -97,7 +97,7 @@ get_data_region_offset(struct volume_geometry geometry)
  *
  * @return the size of the index region
  **/
-__attribute__((warn_unused_result)) static inline physical_block_number_t
+static inline physical_block_number_t __must_check
 get_index_region_size(struct volume_geometry geometry)
 {
 	return get_data_region_offset(geometry) -
@@ -110,8 +110,8 @@ get_index_region_size(struct volume_geometry geometry)
  * @param layer     The layer to read and parse the geometry from
  * @param geometry  The geometry to be loaded
  **/
-int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
-	__attribute__((warn_unused_result));
+int __must_check
+load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry);
 
 
 /**
@@ -122,9 +122,9 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
  *
  * @return VDO_SUCCESS or an error
  **/
-int index_config_to_uds_configuration(const struct index_config *index_config,
-				      struct uds_configuration **uds_config_ptr)
-	__attribute__((warn_unused_result));
+int __must_check
+index_config_to_uds_configuration(const struct index_config *index_config,
+				  struct uds_configuration **uds_config_ptr);
 
 /**
  * Modify the uds_parameters to match the requested index config.

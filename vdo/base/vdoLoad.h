@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#9 $
  */
 
 #ifndef VDO_LOAD_H
@@ -32,8 +32,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_load(struct vdo *vdo)
-	__attribute__((warn_unused_result));
+int __must_check perform_vdo_load(struct vdo *vdo);
 
 /**
  * Perpare a vdo for loading by reading structures off disk. This method does
@@ -41,8 +40,7 @@ int perform_vdo_load(struct vdo *vdo)
  * whereas perform_vdo_load() will be called during pre-resume if the vdo has
  * not been resumed before.
  **/
-int prepare_to_load_vdo(struct vdo *vdo,
-			const struct vdo_load_config *load_config)
-	__attribute__((warn_unused_result));
+int __must_check
+prepare_to_load_vdo(struct vdo *vdo, const struct vdo_load_config *load_config);
 
 #endif /* VDO_LOAD_H */

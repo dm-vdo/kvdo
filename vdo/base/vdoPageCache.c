@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#41 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -56,8 +56,7 @@ static char *get_page_buffer(struct page_info *info)
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
-allocate_cache_components(struct vdo_page_cache *cache)
+static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
 	int result = ALLOCATE(cache->page_count,
 			      struct page_info,
@@ -376,7 +375,7 @@ static void set_info_state(struct page_info *info, page_state new_state)
  * @param info  The page info
  * @param pbn   The physical block number to set
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 set_info_pbn(struct page_info *info, physical_block_number_t pbn)
 {
 	struct vdo_page_cache *cache = info->cache;
@@ -432,7 +431,7 @@ static int reset_page_info(struct page_info *info)
  *
  * @return a pointer to the page info structure (if found), NULL otherwise
  **/
-__attribute__((warn_unused_result)) static struct page_info *
+static struct page_info * __must_check
 find_free_page(struct vdo_page_cache *cache)
 {
 	if (cache->free_list.next == &cache->free_list) {
@@ -470,7 +469,7 @@ struct page_info *vpc_find_page(struct vdo_page_cache *cache,
  *       of the ring it is unlikely that the entries at the front
  *       are busy unless the queue is very short, but not impossible.
  **/
-__attribute__((warn_unused_result)) static struct page_info *
+static struct page_info * __must_check
 select_lru_page(struct vdo_page_cache *cache)
 {
 	struct list_head *lru;
@@ -661,7 +660,7 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
  *
  * @return the embedding completion if valid, NULL if not
  **/
-__attribute__((warn_unused_result)) static struct vdo_page_completion *
+static struct vdo_page_completion * __must_check
 validate_completed_page(struct vdo_completion *completion, bool writable)
 {
 	struct vdo_page_completion *vpc = as_vdo_page_completion(completion);
@@ -807,7 +806,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result)) static int
+static int __must_check
 launch_page_load(struct page_info *info, physical_block_number_t pbn)
 {
 	struct vdo_page_cache *cache = info->cache;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#21 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -272,9 +272,8 @@ page_completion_from_waiter(struct waiter *waiter)
  *
  * @return the page info for the page if available, or NULL if not
  **/
-struct page_info *vpc_find_page(struct vdo_page_cache *cache,
-				physical_block_number_t pbn)
-	__attribute__((warn_unused_result));
+struct page_info * __must_check
+vpc_find_page(struct vdo_page_cache *cache, physical_block_number_t pbn);
 
 /**
  * Return the name of a page state.
@@ -286,7 +285,6 @@ struct page_info *vpc_find_page(struct vdo_page_cache *cache,
  * @note If the page state is invalid a static string is returned and the
  *       invalid state is logged.
  **/
-const char *vpc_page_state_name(page_state state)
-	__attribute__((warn_unused_result));
+const char * __must_check vpc_page_state_name(page_state state);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

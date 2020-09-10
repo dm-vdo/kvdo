@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#18 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -150,15 +150,14 @@ typedef bool vdo_page_write_function(void *raw_page,
  *
  * @return a success or error code
  **/
-int make_vdo_page_cache(PhysicalLayer *layer,
-			page_count_t page_count,
-			vdo_page_read_function *read_hook,
-			vdo_page_write_function *write_hook,
-			size_t page_context_size,
-			block_count_t maximum_age,
-			struct block_map_zone *zone,
-			struct vdo_page_cache **cache_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_vdo_page_cache(PhysicalLayer *layer,
+				     page_count_t page_count,
+				     vdo_page_read_function *read_hook,
+				     vdo_page_write_function *write_hook,
+				     size_t page_context_size,
+				     block_count_t maximum_age,
+				     struct block_map_zone *zone,
+				     struct vdo_page_cache **cache_ptr);
 
 /**
  * Free the page cache structure and null out the reference to it.
@@ -194,8 +193,7 @@ void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
  *
  * @return <code>true</code> if the cache is active
  **/
-bool is_page_cache_active(struct vdo_page_cache *cache)
-	__attribute__((warn_unused_result));
+bool __must_check is_page_cache_active(struct vdo_page_cache *cache);
 
 /**
  * Advance the dirty period for a page cache.
@@ -374,8 +372,7 @@ void drain_vdo_page_cache(struct vdo_page_cache *cache);
  *
  * @return a success or error code
  **/
-int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
-	__attribute__((warn_unused_result));
+int __must_check invalidate_vdo_page_cache(struct vdo_page_cache *cache);
 
 // STATISTICS & TESTING
 
@@ -386,8 +383,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
  *
  * @return the statistics
  **/
-struct atomic_page_cache_statistics *
-get_vdo_page_cache_statistics(struct vdo_page_cache *cache)
-	__attribute__((warn_unused_result));
+struct atomic_page_cache_statistics * __must_check
+get_vdo_page_cache_statistics(struct vdo_page_cache *cache);
 
 #endif // VDO_PAGE_CACHE_H

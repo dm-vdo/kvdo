@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#5 $
  */
 
 #ifndef WAIT_QUEUE_H
@@ -111,8 +111,7 @@ static inline void initialize_wait_queue(struct wait_queue *queue)
  *
  * @return <code>true</code> if there are any waiters in the queue
  **/
-__attribute__((warn_unused_result)) static inline bool
-has_waiters(const struct wait_queue *queue)
+static inline bool __must_check has_waiters(const struct wait_queue *queue)
 {
 	return (queue->last_waiter != NULL);
 }
@@ -126,8 +125,8 @@ has_waiters(const struct wait_queue *queue)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
-	__attribute__((warn_unused_result));
+int __must_check
+enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
 
 /**
  * Notify all the entries waiting in a queue to continue execution by invoking
@@ -213,8 +212,7 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue);
  *
  * @return the number of waiters in the queue
  **/
-__attribute__((warn_unused_result)) static inline size_t
-count_waiters(const struct wait_queue *queue)
+static inline size_t __must_check count_waiters(const struct wait_queue *queue)
 {
 	return queue->queue_length;
 }
@@ -227,8 +225,7 @@ count_waiters(const struct wait_queue *queue)
  *
  * @return the next waiter, or NULL
  **/
-const struct waiter *get_next_waiter(const struct wait_queue *queue,
-				     const struct waiter *waiter)
-	__attribute__((warn_unused_result));
+const struct waiter * __must_check
+get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter);
 
 #endif // WAIT_QUEUE_H

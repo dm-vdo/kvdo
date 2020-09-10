@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#7 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -52,11 +52,10 @@ struct thread_config {
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_thread_config(zone_count_t logical_zone_count,
-		       zone_count_t physical_zone_count,
-		       zone_count_t hash_zone_count,
-		       struct thread_config **config_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_thread_config(zone_count_t logical_zone_count,
+				    zone_count_t physical_zone_count,
+				    zone_count_t hash_zone_count,
+				    struct thread_config **config_ptr);
 
 /**
  * Make a thread configuration that uses no threads. This is the configuration
@@ -76,8 +75,7 @@ int make_zero_thread_config(struct thread_config **config_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_one_thread_config(struct thread_config **config_ptr)
-	__attribute__((warn_unused_result));
+int __must_check make_one_thread_config(struct thread_config **config_ptr);
 
 /**
  * Make a new thread config which is a copy of an existing one.
@@ -87,9 +85,8 @@ int make_one_thread_config(struct thread_config **config_ptr)
  *
  * @return VDO_SUCCESS or an error
  **/
-int copy_thread_config(const struct thread_config *old_config,
-		       struct thread_config **config_ptr)
-	__attribute__((warn_unused_result));
+int __must_check copy_thread_config(const struct thread_config *old_config,
+				    struct thread_config **config_ptr);
 
 /**
  * Destroy a thread configuration and null out the reference to it.
@@ -106,8 +103,7 @@ void free_thread_config(struct thread_config **config_ptr);
  *
  * @return the thread id for the given zone
  **/
-__attribute__((warn_unused_result))
-static inline thread_id_t
+static inline thread_id_t __must_check
 get_logical_zone_thread(const struct thread_config *thread_config,
 			zone_count_t logical_zone)
 {
@@ -124,8 +120,7 @@ get_logical_zone_thread(const struct thread_config *thread_config,
  *
  * @return the thread id for the given zone
  **/
-__attribute__((warn_unused_result))
-static inline thread_id_t
+static inline thread_id_t __must_check
 get_physical_zone_thread(const struct thread_config *thread_config,
 			 zone_count_t physical_zone)
 {
@@ -142,8 +137,7 @@ get_physical_zone_thread(const struct thread_config *thread_config,
  *
  * @return the thread id for the given zone
  **/
-__attribute__((warn_unused_result))
-static inline thread_id_t
+static inline thread_id_t __must_check
 get_hash_zone_thread(const struct thread_config *thread_config,
 		     zone_count_t hash_zone)
 {
@@ -159,9 +153,9 @@ get_hash_zone_thread(const struct thread_config *thread_config,
  *
  * @return the thread id for the journal zone
  **/
-__attribute__((warn_unused_result))
 static inline
-thread_id_t get_journal_zone_thread(const struct thread_config *thread_config)
+thread_id_t __must_check
+get_journal_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->journal_thread;
 }
@@ -173,9 +167,9 @@ thread_id_t get_journal_zone_thread(const struct thread_config *thread_config)
  *
  * @return the thread id for the packer zone
  **/
-__attribute__((warn_unused_result))
 static inline
-thread_id_t get_packer_zone_thread(const struct thread_config *thread_config)
+thread_id_t __must_check
+get_packer_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->packer_thread;
 }
@@ -187,9 +181,9 @@ thread_id_t get_packer_zone_thread(const struct thread_config *thread_config)
  *
  * @return the thread id to use for admin requests
  **/
-__attribute__((warn_unused_result))
 static inline
-thread_id_t get_admin_thread(const struct thread_config *thread_config)
+thread_id_t __must_check
+get_admin_thread(const struct thread_config *thread_config)
 {
 	return thread_config->admin_thread;
 }

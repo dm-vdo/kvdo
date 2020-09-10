@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#41 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -120,8 +120,7 @@ struct vdo {
  *
  * @return the current state of the vdo
  **/
-VDOState get_vdo_state(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+VDOState __must_check get_vdo_state(const struct vdo *vdo);
 
 /**
  * Set the current state of the vdo. This method may be called from any thread.
@@ -157,8 +156,7 @@ int enable_read_only_entry(struct vdo *vdo);
  *
  * @return the block map from the vdo
  **/
-struct block_map *get_block_map(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+struct block_map * __must_check get_block_map(const struct vdo *vdo);
 
 /**
  * Get the slab depot from a vdo.
@@ -167,8 +165,7 @@ struct block_map *get_block_map(const struct vdo *vdo)
  *
  * @return the slab depot from the vdo
  **/
-struct slab_depot *get_slab_depot(struct vdo *vdo)
-	__attribute__((warn_unused_result));
+struct slab_depot * __must_check get_slab_depot(struct vdo *vdo);
 
 /**
  * Get the recovery journal from a vdo.
@@ -177,8 +174,7 @@ struct slab_depot *get_slab_depot(struct vdo *vdo)
  *
  * @return the recovery journal from the vdo
  **/
-struct recovery_journal *get_recovery_journal(struct vdo *vdo)
-	__attribute__((warn_unused_result));
+struct recovery_journal * __must_check get_recovery_journal(struct vdo *vdo);
 
 /**
  * Check whether a vdo is in read-only mode.
@@ -187,8 +183,7 @@ struct recovery_journal *get_recovery_journal(struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo is in read-only mode
  **/
-bool in_read_only_mode(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+bool __must_check in_read_only_mode(const struct vdo *vdo);
 
 /**
  * Check whether the vdo requires a read-only mode rebuild.
@@ -197,8 +192,7 @@ bool in_read_only_mode(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo requires a read-only rebuild
  **/
-bool requires_read_only_rebuild(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+bool __must_check requires_read_only_rebuild(const struct vdo *vdo);
 
 /**
  * Check whether a vdo requires rebuilding.
@@ -207,8 +201,7 @@ bool requires_read_only_rebuild(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo must be rebuilt
  **/
-bool requires_rebuild(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+bool __must_check requires_rebuild(const struct vdo *vdo);
 
 /**
  * Check whether a vdo should enter recovery mode.
@@ -217,8 +210,7 @@ bool requires_rebuild(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo requires recovery
  **/
-bool requires_recovery(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+bool __must_check requires_recovery(const struct vdo *vdo);
 
 /**
  * Check whether a vdo was replaying the recovery journal into the block map
@@ -229,7 +221,7 @@ bool requires_recovery(const struct vdo *vdo)
  * @return <code>true</code> if the vdo crashed while reconstructing the
  *         block map
  **/
-bool is_replaying(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool __must_check is_replaying(const struct vdo *vdo);
 
 /**
  * Check whether the vdo is in recovery mode.
@@ -238,8 +230,7 @@ bool is_replaying(const struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return <code>true</code> if the vdo is in recovery mode
  **/
-bool in_recovery_mode(const struct vdo *vdo)
-	__attribute__((warn_unused_result));
+bool __must_check in_recovery_mode(const struct vdo *vdo);
 
 /**
  * Put the vdo into recovery mode
@@ -287,9 +278,8 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
  *
  * @return  The hash zone responsible for the chunk name
  **/
-struct hash_zone *select_hash_zone(const struct vdo *vdo,
-				   const struct uds_chunk_name *name)
-	__attribute__((warn_unused_result));
+struct hash_zone * __must_check
+select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
 
 /**
  * Get the physical zone responsible for a given physical block number of a
@@ -306,10 +296,9 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int get_physical_zone(const struct vdo *vdo,
-		      physical_block_number_t pbn,
-		      struct physical_zone **zone_ptr)
-	__attribute__((warn_unused_result));
+int __must_check get_physical_zone(const struct vdo *vdo,
+				   physical_block_number_t pbn,
+				   struct physical_zone **zone_ptr);
 
 /**********************************************************************/
 // Asynchronous callback to share a duplicate block. This is only public so
