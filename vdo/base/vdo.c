@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#81 $
  */
 
 /*
@@ -66,25 +66,6 @@ int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 
 	vdo->layer = layer;
 	initialize_admin_completion(vdo, &vdo->admin_completion);
-	*vdo_ptr = vdo;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
-{
-	struct vdo *vdo;
-	int result = allocate_vdo(layer, &vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = make_zero_thread_config(&vdo->load_config.thread_config);
-	if (result != VDO_SUCCESS) {
-		free_vdo(&vdo);
-		return result;
-	}
-
 	*vdo_ptr = vdo;
 	return VDO_SUCCESS;
 }

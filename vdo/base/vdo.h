@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#16 $
  */
 
 #ifndef VDO_H
@@ -33,16 +33,6 @@
  * @return VDO_SUCCESS or an error
  **/
 int __must_check allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr);
-
-/**
- * Construct a vdo structure for use in user space with a synchronous layer.
- *
- * @param [in]  layer    The physical layer the vdo sits on
- * @param [out] vdo_ptr  A pointer to hold the allocated vdo
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr);
 
 /**
  * Destroy a vdo instance.
