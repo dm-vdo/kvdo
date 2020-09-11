@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#83 $
  */
 
 #include "dataKVIO.h"
@@ -429,14 +429,18 @@ void readDataVIO(struct data_vio *data_vio)
 	/*
 	 * This bio is either the user bio (for a 4k read) or the data
 	 * block bio (for a partial IO). Since it could be a user bio,
-	 * we can't reset it here as we do at most other callsites to
-	 * vdo_submit_bio(). The data block bio is reset in make_data_kvio().
+	 * we can't reset it unconditionally as we do at most other
+	 * callsites to vdo_submit_bio().
 	 */
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
+		reset_bio(data_kvio->data_block_bio,
+			  get_layer_from_data_kvio(data_kvio));
 		data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
 	} else if (data_kvio->isPartial) {
 		// A partial read.
+		reset_bio(data_kvio->data_block_bio,
+			  get_layer_from_data_kvio(data_kvio));
 		data_kvio->data_block_bio->bi_opf =
 			data_kvio->external_io_request.bio->bi_opf & ~REQ_FUA;
 	} else {
@@ -708,12 +712,6 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
 	memset(&data_kvio->data_vio, 0, sizeof(struct data_vio));
 	kvio->bio_to_submit = NULL;
 
-	// The data_block is only needed for writes and some partial reads.
-	if ((bio_data_dir(bio) == WRITE) ||
-	    (bio->bi_iter.bi_size < VDO_BLOCK_SIZE)) {
-		reset_bio(data_kvio->data_block_bio, layer);
-	}
-
 	initialize_kvio(kvio,
 			layer,
 			VIO_TYPE_DATA,
@@ -797,7 +795,6 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		 * writes and partial block I/O so the rest of the kernel code
 		 * doesn't need to make a decision as to what to use.
 		 */
-		data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
 		data_kvio_as_kvio(data_kvio)->bio = data_kvio->data_block_bio;
 		data_kvio->read_block.data = data_kvio->data_block;
 	}
@@ -1078,6 +1075,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 		return log_error_strerror(result,
 					  "data_kvio data bio allocation failure");
 	}
+	data_kvio->data_block_bio->bi_private = &data_kvio->kvio;
 
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
 				 &data_kvio->read_block.buffer);
