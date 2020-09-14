@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#19 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
 #define VDO_PAGE_CACHE_H
 
 #include "adminState.h"
-#include "atomic.h"
 #include "completion.h"
+#include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
 
@@ -43,60 +43,6 @@ struct vdo_page_cache;
  * Generation counter for page references.
  **/
 typedef uint32_t vdo_page_generation;
-
-/**
- * Page-state count statistics sub-structure.
- **/
-struct atomic_page_state_counts {
-	/* free pages */
-	Atomic64 free_pages;
-	/* clean (resident) pages */
-	Atomic64 clean_pages;
-	/* dirty pages per era */
-	Atomic64 dirty_pages;
-	/* pages incoming */
-	Atomic64 incoming_pages;
-	/* pages outgoing */
-	Atomic64 outgoing_pages;
-	/* pages in failed state */
-	Atomic64 failed_pages;
-};
-
-/**
- * Statistics and debugging fields for the page cache.
- */
-struct atomic_page_cache_statistics {
-	/* counts of how many pages are in each state */
-	struct atomic_page_state_counts counts;
-	/* how many times free page not available */
-	Atomic64 cache_pressure;
-	/* number of get_vdo_page_async() for read */
-	Atomic64 read_count;
-	/* number or get_vdo_page_async() for write */
-	Atomic64 write_count;
-	/* number of times pages failed to read */
-	Atomic64 failed_reads;
-	/* number of times pages failed to write */
-	Atomic64 failed_writes;
-	/* number of gets that are reclaimed */
-	Atomic64 reclaimed;
-	/* number of gets for outgoing pages */
-	Atomic64 read_outgoing;
-	/* number of gets that were already there */
-	Atomic64 found_in_cache;
-	/* number of gets requiring discard */
-	Atomic64 discard_required;
-	/* number of gets enqueued for their page */
-	Atomic64 wait_for_page;
-	/* number of gets that have to fetch */
-	Atomic64 fetch_required;
-	/* number of page fetches */
-	Atomic64 pages_loaded;
-	/* number of page saves */
-	Atomic64 pages_saved;
-	/* number of flushes initiated */
-	Atomic64 flush_count;
-};
 
 /**
  * Signature for a function to call when a page is read into the cache.
@@ -383,7 +329,7 @@ int __must_check invalidate_vdo_page_cache(struct vdo_page_cache *cache);
  *
  * @return the statistics
  **/
-struct atomic_page_cache_statistics * __must_check
-get_vdo_page_cache_statistics(struct vdo_page_cache *cache);
+struct block_map_statistics __must_check
+get_vdo_page_cache_statistics(const struct vdo_page_cache *cache);
 
 #endif // VDO_PAGE_CACHE_H
