@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#43 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -489,27 +489,27 @@ get_vdo_page_cache_statistics(const struct vdo_page_cache *cache)
 {
 	const struct atomic_page_cache_statistics *stats = &cache->stats;
 	return (struct block_map_statistics) {
-		.dirty_pages = atomicLoad64(&stats->counts.dirty_pages),
-		.clean_pages = atomicLoad64(&stats->counts.clean_pages),
-		.free_pages = atomicLoad64(&stats->counts.free_pages),
-		.failed_pages = atomicLoad64(&stats->counts.failed_pages),
-		.incoming_pages = atomicLoad64(&stats->counts.incoming_pages),
-		.outgoing_pages = atomicLoad64(&stats->counts.outgoing_pages),
+		.dirty_pages = relaxedLoad64(&stats->counts.dirty_pages),
+		.clean_pages = relaxedLoad64(&stats->counts.clean_pages),
+		.free_pages = relaxedLoad64(&stats->counts.free_pages),
+		.failed_pages = relaxedLoad64(&stats->counts.failed_pages),
+		.incoming_pages = relaxedLoad64(&stats->counts.incoming_pages),
+		.outgoing_pages = relaxedLoad64(&stats->counts.outgoing_pages),
 
-		.cache_pressure = atomicLoad64(&stats->cache_pressure),
-		.read_count = atomicLoad64(&stats->read_count),
-		.write_count = atomicLoad64(&stats->write_count),
-		.failed_reads = atomicLoad64(&stats->failed_reads),
-		.failed_writes = atomicLoad64(&stats->failed_writes),
-		.reclaimed = atomicLoad64(&stats->reclaimed),
-		.read_outgoing = atomicLoad64(&stats->read_outgoing),
-		.found_in_cache = atomicLoad64(&stats->found_in_cache),
-		.discard_required = atomicLoad64(&stats->discard_required),
-		.wait_for_page = atomicLoad64(&stats->wait_for_page),
-		.fetch_required = atomicLoad64(&stats->fetch_required),
-		.pages_loaded = atomicLoad64(&stats->pages_loaded),
-		.pages_saved = atomicLoad64(&stats->pages_saved),
-		.flush_count = atomicLoad64(&stats->flush_count),
+		.cache_pressure = relaxedLoad64(&stats->cache_pressure),
+		.read_count = relaxedLoad64(&stats->read_count),
+		.write_count = relaxedLoad64(&stats->write_count),
+		.failed_reads = relaxedLoad64(&stats->failed_reads),
+		.failed_writes = relaxedLoad64(&stats->failed_writes),
+		.reclaimed = relaxedLoad64(&stats->reclaimed),
+		.read_outgoing = relaxedLoad64(&stats->read_outgoing),
+		.found_in_cache = relaxedLoad64(&stats->found_in_cache),
+		.discard_required = relaxedLoad64(&stats->discard_required),
+		.wait_for_page = relaxedLoad64(&stats->wait_for_page),
+		.fetch_required = relaxedLoad64(&stats->fetch_required),
+		.pages_loaded = relaxedLoad64(&stats->pages_loaded),
+		.pages_saved = relaxedLoad64(&stats->pages_saved),
+		.flush_count = relaxedLoad64(&stats->flush_count),
 	};
 }
 
