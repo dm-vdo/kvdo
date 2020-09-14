@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#44 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -40,6 +40,13 @@ enum {
 	LOG_INTERVAL = 4000,
 	DISPLAY_INTERVAL = 100000,
 };
+
+/*
+ * For adjusting VDO page cache statistic fields which are only mutated on the
+ * logical zone thread. Prevents any compiler shenanigans from affecting other
+ * threads reading those stats.
+ */
+#define ADD_ONCE(value, delta) WRITE_ONCE(value, (value) + (delta))
 
 /**********************************************************************/
 static char *get_page_buffer(struct page_info *info)
@@ -114,7 +121,6 @@ static int initialize_info(struct vdo_page_cache *cache)
 		INIT_LIST_HEAD(&info->lru_entry);
 	}
 
-	relaxedStore64(&cache->stats.counts.free_pages, cache->page_count);
 	return VDO_SUCCESS;
 }
 
@@ -150,6 +156,7 @@ int make_vdo_page_cache(PhysicalLayer *layer,
 	cache->read_hook = read_hook;
 	cache->write_hook = write_hook;
 	cache->zone = zone;
+	cache->stats.free_pages = page_count;
 
 	result = allocate_cache_components(cache);
 	if (result != VDO_SUCCESS) {
@@ -252,11 +259,11 @@ static inline void assert_io_allowed(struct vdo_page_cache *cache)
  **/
 static void report_cache_pressure(struct vdo_page_cache *cache)
 {
-	relaxedAdd64(&cache->stats.cache_pressure, 1);
+	ADD_ONCE(cache->stats.cache_pressure, 1);
 	if (cache->waiter_count > cache->page_count) {
 		if ((cache->pressure_report % LOG_INTERVAL) == 0) {
-			log_info("page cache pressure %llu",
-				 relaxedLoad64(&cache->stats.cache_pressure));
+			log_info("page cache pressure %u",
+				 cache->stats.cache_pressure);
 		}
 
 		if (++cache->pressure_report >= DISPLAY_INTERVAL) {
@@ -291,30 +298,30 @@ const char *vpc_page_state_name(page_state state)
  **/
 static void update_counter(struct page_info *info, int32_t delta)
 {
-	struct vdo_page_cache *cache = info->cache;
+	struct block_map_statistics *stats = &info->cache->stats;
 	switch (info->state) {
 	case PS_FREE:
-		relaxedAdd64(&cache->stats.counts.free_pages, delta);
+		ADD_ONCE(stats->free_pages, delta);
 		return;
 
 	case PS_INCOMING:
-		relaxedAdd64(&cache->stats.counts.incoming_pages, delta);
+		ADD_ONCE(stats->incoming_pages, delta);
 		return;
 
 	case PS_OUTGOING:
-		relaxedAdd64(&cache->stats.counts.outgoing_pages, delta);
+		ADD_ONCE(stats->outgoing_pages, delta);
 		return;
 
 	case PS_FAILED:
-		relaxedAdd64(&cache->stats.counts.failed_pages, delta);
+		ADD_ONCE(stats->failed_pages, delta);
 		return;
 
 	case PS_RESIDENT:
-		relaxedAdd64(&cache->stats.counts.clean_pages, delta);
+		ADD_ONCE(stats->clean_pages, delta);
 		return;
 
 	case PS_DIRTY:
-		relaxedAdd64(&cache->stats.counts.dirty_pages, delta);
+		ADD_ONCE(stats->dirty_pages, delta);
 		return;
 
 	default:
@@ -487,29 +494,29 @@ select_lru_page(struct vdo_page_cache *cache)
 struct block_map_statistics
 get_vdo_page_cache_statistics(const struct vdo_page_cache *cache)
 {
-	const struct atomic_page_cache_statistics *stats = &cache->stats;
+	const struct block_map_statistics *stats = &cache->stats;
 	return (struct block_map_statistics) {
-		.dirty_pages = relaxedLoad64(&stats->counts.dirty_pages),
-		.clean_pages = relaxedLoad64(&stats->counts.clean_pages),
-		.free_pages = relaxedLoad64(&stats->counts.free_pages),
-		.failed_pages = relaxedLoad64(&stats->counts.failed_pages),
-		.incoming_pages = relaxedLoad64(&stats->counts.incoming_pages),
-		.outgoing_pages = relaxedLoad64(&stats->counts.outgoing_pages),
+		.dirty_pages = READ_ONCE(stats->dirty_pages),
+		.clean_pages = READ_ONCE(stats->clean_pages),
+		.free_pages = READ_ONCE(stats->free_pages),
+		.failed_pages = READ_ONCE(stats->failed_pages),
+		.incoming_pages = READ_ONCE(stats->incoming_pages),
+		.outgoing_pages = READ_ONCE(stats->outgoing_pages),
 
-		.cache_pressure = relaxedLoad64(&stats->cache_pressure),
-		.read_count = relaxedLoad64(&stats->read_count),
-		.write_count = relaxedLoad64(&stats->write_count),
-		.failed_reads = relaxedLoad64(&stats->failed_reads),
-		.failed_writes = relaxedLoad64(&stats->failed_writes),
-		.reclaimed = relaxedLoad64(&stats->reclaimed),
-		.read_outgoing = relaxedLoad64(&stats->read_outgoing),
-		.found_in_cache = relaxedLoad64(&stats->found_in_cache),
-		.discard_required = relaxedLoad64(&stats->discard_required),
-		.wait_for_page = relaxedLoad64(&stats->wait_for_page),
-		.fetch_required = relaxedLoad64(&stats->fetch_required),
-		.pages_loaded = relaxedLoad64(&stats->pages_loaded),
-		.pages_saved = relaxedLoad64(&stats->pages_saved),
-		.flush_count = relaxedLoad64(&stats->flush_count),
+		.cache_pressure = READ_ONCE(stats->cache_pressure),
+		.read_count = READ_ONCE(stats->read_count),
+		.write_count = READ_ONCE(stats->write_count),
+		.failed_reads = READ_ONCE(stats->failed_reads),
+		.failed_writes = READ_ONCE(stats->failed_writes),
+		.reclaimed = READ_ONCE(stats->reclaimed),
+		.read_outgoing = READ_ONCE(stats->read_outgoing),
+		.found_in_cache = READ_ONCE(stats->found_in_cache),
+		.discard_required = READ_ONCE(stats->discard_required),
+		.wait_for_page = READ_ONCE(stats->wait_for_page),
+		.fetch_required = READ_ONCE(stats->fetch_required),
+		.pages_loaded = READ_ONCE(stats->pages_loaded),
+		.pages_saved = READ_ONCE(stats->pages_saved),
+		.flush_count = READ_ONCE(stats->flush_count),
 	};
 }
 
@@ -766,7 +773,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	enter_read_only_mode(cache->zone->read_only_notifier, result);
-	relaxedAdd64(&cache->stats.failed_reads, 1);
+	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
 	distribute_error_over_queue(result, &info->waiting);
 	reset_page_info(info);
@@ -811,7 +818,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 
 	// We are doing a read-only rebuild, so treat this as a successful read
 	// of an uninitialized page.
-	relaxedAdd64(&cache->stats.failed_reads, 1);
+	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	reset_completion(completion);
 	if (cache->read_hook != NULL) {
@@ -847,7 +854,7 @@ launch_page_load(struct page_info *info, physical_block_number_t pbn)
 
 	set_info_state(info, PS_INCOMING);
 	cache->outstanding_reads++;
-	relaxedAdd64(&cache->stats.pages_loaded, 1);
+	ADD_ONCE(cache->stats.pages_loaded, 1);
 	launch_read_metadata_vio(info->vio,
 				 pbn,
 				 (cache->read_hook != NULL) ?
@@ -891,7 +898,7 @@ static void save_pages(struct vdo_page_cache *cache)
 		page_info_from_list_entry(cache->outgoing_list.next);
 	cache->pages_in_flush = cache->pages_to_flush;
 	cache->pages_to_flush = 0;
-	relaxedAdd64(&cache->stats.flush_count, 1);
+	ADD_ONCE(cache->stats.flush_count, 1);
 
 	struct vio *vio = info->vio;
 	PhysicalLayer *layer = vio->completion.layer;
@@ -979,9 +986,9 @@ static void allocate_free_page(struct page_info *info)
 	assert_on_cache_thread(cache, __func__);
 
 	if (!has_waiters(&cache->free_waiters)) {
-		if (relaxedLoad64(&cache->stats.cache_pressure) > 0) {
+		if (cache->stats.cache_pressure > 0) {
 			log_info("page cache pressure relieved");
-			relaxedStore64(&cache->stats.cache_pressure, 0);
+			WRITE_ONCE(cache->stats.cache_pressure, 0);
 		}
 		return;
 	}
@@ -1125,7 +1132,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	}
 
 	set_info_state(info, PS_DIRTY);
-	relaxedAdd64(&cache->stats.failed_writes, 1);
+	ADD_ONCE(cache->stats.failed_writes, 1);
 	set_persistent_error(cache, "cannot write page", result);
 
 	if (!write_has_finished(info)) {
@@ -1168,7 +1175,7 @@ static void page_is_written_out(struct vdo_completion *completion)
 
 	uint32_t reclamations = distribute_page_over_queue(info,
 							   &info->waiting);
-	relaxedAdd64(&cache->stats.reclaimed, reclamations);
+	ADD_ONCE(cache->stats.reclaimed, reclamations);
 
 	if (was_discard) {
 		cache->discard_count--;
@@ -1216,7 +1223,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 			finish_completion(completion, VDO_READ_ONLY);
 			continue;
 		}
-		relaxedAdd64(&info->cache->stats.pages_saved, 1);
+		ADD_ONCE(info->cache->stats.pages_saved, 1);
 		launch_write_metadata_vio(info->vio,
 					  info->pbn,
 					  page_is_written_out,
@@ -1303,9 +1310,9 @@ void get_vdo_page_async(struct vdo_completion *completion)
 	}
 
 	if (vdo_page_comp->writable) {
-		relaxedAdd64(&cache->stats.write_count, 1);
+		ADD_ONCE(cache->stats.write_count, 1);
 	} else {
-		relaxedAdd64(&cache->stats.read_count, 1);
+		ADD_ONCE(cache->stats.read_count, 1);
 	}
 
 	struct page_info *info = vpc_find_page(cache, vdo_page_comp->pbn);
@@ -1315,7 +1322,7 @@ void get_vdo_page_async(struct vdo_completion *completion)
 		    is_incoming(info) ||
 		    (is_outgoing(info) && vdo_page_comp->writable)) {
 			// The page is unusable until it has finished I/O.
-			relaxedAdd64(&cache->stats.wait_for_page, 1);
+			ADD_ONCE(cache->stats.wait_for_page, 1);
 			int result = enqueue_waiter(&info->waiting,
 						    &vdo_page_comp->waiter);
 			if (result != VDO_SUCCESS) {
@@ -1328,9 +1335,9 @@ void get_vdo_page_async(struct vdo_completion *completion)
 
 		if (is_valid(info)) {
 			// The page is usable.
-			relaxedAdd64(&cache->stats.found_in_cache, 1);
+			ADD_ONCE(cache->stats.found_in_cache, 1);
 			if (!is_present(info)) {
-				relaxedAdd64(&cache->stats.read_outgoing, 1);
+				ADD_ONCE(cache->stats.read_outgoing, 1);
 			}
 			update_lru(info);
 			++info->busy;
@@ -1344,13 +1351,13 @@ void get_vdo_page_async(struct vdo_completion *completion)
 	// The page must be fetched.
 	info = find_free_page(cache);
 	if (info != NULL) {
-		relaxedAdd64(&cache->stats.fetch_required, 1);
+		ADD_ONCE(cache->stats.fetch_required, 1);
 		load_page_for_completion(info, vdo_page_comp);
 		return;
 	}
 
 	// The page must wait for a page to be discarded.
-	relaxedAdd64(&cache->stats.discard_required, 1);
+	ADD_ONCE(cache->stats.discard_required, 1);
 	discard_page_for_completion(vdo_page_comp);
 }
 
