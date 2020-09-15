@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#85 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -1021,11 +1021,11 @@ get_slab_journal_statistics(const struct block_allocator *allocator)
 	const struct atomic_slab_journal_statistics *atoms =
 		&allocator->slab_journal_statistics;
 	return (struct slab_journal_statistics) {
-		.disk_full_count = atomicLoad64(&atoms->disk_full_count),
-		.flush_count = atomicLoad64(&atoms->flush_count),
-		.blocked_count = atomicLoad64(&atoms->blocked_count),
-		.blocks_written = atomicLoad64(&atoms->blocks_written),
-		.tail_busy_count = atomicLoad64(&atoms->tail_busy_count),
+		.disk_full_count = relaxedLoad64(&atoms->disk_full_count),
+		.flush_count = relaxedLoad64(&atoms->flush_count),
+		.blocked_count = relaxedLoad64(&atoms->blocked_count),
+		.blocks_written = relaxedLoad64(&atoms->blocks_written),
+		.tail_busy_count = relaxedLoad64(&atoms->tail_busy_count),
 	};
 }
 
@@ -1036,7 +1036,7 @@ get_ref_counts_statistics(const struct block_allocator *allocator)
 	const struct atomic_ref_count_statistics *atoms =
 		&allocator->ref_count_statistics;
 	return (struct ref_counts_statistics) {
-		.blocks_written = atomicLoad64(&atoms->blocks_written),
+		.blocks_written = relaxedLoad64(&atoms->blocks_written),
 	};
 }
 
