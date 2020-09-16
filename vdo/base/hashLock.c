@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#39 $
  */
 
 /**
@@ -111,7 +111,7 @@
 #include "constants.h"
 #include "dataVIO.h"
 #include "hashZone.h"
-#include "list.h"
+#include <linux/list.h>
 #include "packer.h"
 #include "pbnLock.h"
 #include "physicalZone.h"

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#12 $
  */
 
 #ifndef VIO_POOL_H
@@ -25,7 +25,7 @@
 #include "permassert.h"
 
 #include "completion.h"
-#include "list.h"
+#include <linux/list.h>
 #include "types.h"
 #include "waitQueue.h"
 

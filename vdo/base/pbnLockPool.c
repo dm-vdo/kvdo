@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#11 $
  */
 
 #include "pbnLockPool.h"
@@ -24,7 +24,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
-#include "list.h"
+#include <linux/list.h>
 
 #include "pbnLock.h"
 

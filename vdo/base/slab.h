@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#31 $
  */
 
 #ifndef VDO_SLAB_H
@@ -26,7 +26,7 @@
 
 #include "adminState.h"
 #include "fixedLayout.h"
-#include "list.h"
+#include <linux/list.h>
 #include "journalPoint.h"
 #include "referenceOperation.h"
 #include "types.h"
