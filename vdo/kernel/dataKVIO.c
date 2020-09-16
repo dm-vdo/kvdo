@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#84 $
  */
 
 #include "dataKVIO.h"
@@ -387,6 +387,8 @@ void kvdo_read_block(struct data_vio *data_vio,
 		     bio_q_action action,
 		     DataKVIOCallback callback)
 {
+	// This can be run on either a read of compressed data, or a write
+	// trying to read-verify, so we can't assert about the operation.
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
@@ -609,6 +611,8 @@ void applyPartialWrite(struct data_vio *data_vio)
 /**********************************************************************/
 void zeroDataVIO(struct data_vio *data_vio)
 {
+	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
+			"only attempt to zero non-writes");
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("zeroDataVIO;io=readData"));
 	zero_fill_bio(data_vio_as_kvio(data_vio)->bio);
@@ -617,6 +621,11 @@ void zeroDataVIO(struct data_vio *data_vio)
 /**********************************************************************/
 void copyData(struct data_vio *source, struct data_vio *destination)
 {
+	ASSERT_LOG_ONLY(is_read_vio(data_vio_as_vio(destination)),
+			"only copy to a pure read");
+	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(source)),
+			"only copy from a write");
+
 	data_vio_add_trace_record(destination, THIS_LOCATION(NULL));
 	bio_copy_data_out(data_vio_as_kvio(destination)->bio,
 			  data_vio_as_data_kvio(source)->data_block);

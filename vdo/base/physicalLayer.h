@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#32 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -419,14 +419,15 @@ void verifyDuplication(struct data_vio *dataVIO);
 void updateDedupeIndex(struct data_vio *dataVIO);
 
 /**
- * A function to zero the contents of a data_vio.
+ * A function to zero the contents of a non-write data_vio -- a read, or a RMW
+ * before becoming a write.
  *
  * @param dataVIO  The data_vio to zero
  **/
 void zeroDataVIO(struct data_vio *dataVIO);
 
 /**
- * A function to copy the contents of a data_vio into another data_vio.
+ * A function to copy the data of a write data_vio into a read data_vio.
  *
  * @param source       The dataVIO to copy from
  * @param destination  The dataVIO to copy to
