@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#55 $
  */
 
 #include "packerInternals.h"
@@ -317,19 +317,14 @@ thread_id_t get_packer_thread_id(struct packer *packer)
 /**********************************************************************/
 struct packer_statistics get_packer_statistics(const struct packer *packer)
 {
-	/*
-	 * This is called from get_vdo_statistics(), which is called from
-	 * outside the packer thread. These are just statistics with no
-	 * semantics that could rely on memory order, so unfenced reads are
-	 * sufficient.
-	 */
+	const struct packer_statistics *stats = &packer->statistics;
 	return (struct packer_statistics) {
 		.compressed_fragments_written =
-			relaxedLoad64(&packer->fragments_written),
+			READ_ONCE(stats->compressed_fragments_written),
 		.compressed_blocks_written =
-			relaxedLoad64(&packer->blocks_written),
+			READ_ONCE(stats->compressed_blocks_written),
 		.compressed_fragments_in_packer =
-			relaxedLoad64(&packer->fragments_pending),
+			READ_ONCE(stats->compressed_fragments_in_packer),
 	};
 }
 
@@ -341,8 +336,11 @@ struct packer_statistics get_packer_statistics(const struct packer *packer)
 static void abort_packing(struct data_vio *data_vio)
 {
 	set_compression_done(data_vio);
-	relaxedAdd64(&get_packer_from_data_vio(data_vio)->fragments_pending,
-		     -1);
+
+	struct packer *packer = get_packer_from_data_vio(data_vio);
+	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
+		   packer->statistics.compressed_fragments_in_packer - 1);
+
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	continue_data_vio(data_vio, VDO_SUCCESS);
 }
@@ -413,9 +411,15 @@ static void finish_output_bin(struct packer *packer, struct output_bin *bin)
 	} else {
 		// No waiters implies no error, so the compressed block was
 		// written.
-		relaxedAdd64(&packer->fragments_pending, -bin->slots_used);
-		relaxedAdd64(&packer->fragments_written, bin->slots_used);
-		relaxedAdd64(&packer->blocks_written, 1);
+		struct packer_statistics *stats = &packer->statistics;
+		WRITE_ONCE(stats->compressed_fragments_in_packer,
+			   stats->compressed_fragments_in_packer
+			   - bin->slots_used);
+		WRITE_ONCE(stats->compressed_fragments_written,
+			   stats->compressed_fragments_written
+			   + bin->slots_used);
+		WRITE_ONCE(stats->compressed_blocks_written,
+			   stats->compressed_blocks_written + 1);
 	}
 
 	bin->slots_used = 0;
@@ -834,7 +838,8 @@ void attempt_packing(struct data_vio *data_vio)
 	 * Increment whether or not this data_vio will be packed or not since
 	 * abort_packing() always decrements the counter.
 	 */
-	relaxedAdd64(&packer->fragments_pending, 1);
+	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
+		   packer->statistics.compressed_fragments_in_packer + 1);
 
 	// If packing of this data_vio is disallowed for administrative reasons,
 	// give up before making any state changes.

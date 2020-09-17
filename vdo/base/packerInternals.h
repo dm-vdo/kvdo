@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#20 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -30,6 +30,7 @@
 #include "compressedBlock.h"
 #include "header.h"
 #include <linux/list.h>
+#include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
 
@@ -119,15 +120,11 @@ struct packer {
 	/** True when writing batched data_vios */
 	bool writing_batches;
 
-	// Atomic counters corresponding to the fields of PackerStatistics:
-
-	/** Number of compressed data items written since startup */
-	Atomic64 fragments_written;
-	/** Number of blocks containing compressed items written since startup
-	 */
-	Atomic64 blocks_written;
-	/** Number of data_vios that are pending in the packer */
-	Atomic64 fragments_pending;
+	/**
+	 * Statistics are only updated on the packer thread, but are
+	 * accessed from other threads.
+	 **/
+	struct packer_statistics statistics;
 
 	/** Queue of batched data_vios waiting to be packed */
 	struct wait_queue batched_data_vios;
