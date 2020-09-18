@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#10 $
  */
 
 #include "threadConfig.h"
@@ -135,23 +135,6 @@ int make_thread_config(zone_count_t logical_zone_count,
 
 	ASSERT_LOG_ONLY(id == total, "correct number of thread IDs assigned");
 
-	*config_ptr = config;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int make_zero_thread_config(struct thread_config **config_ptr)
-{
-	struct thread_config *config;
-	int result = ALLOCATE(1, struct thread_config, __func__, &config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	config->logical_zone_count = 0;
-	config->physical_zone_count = 0;
-	config->hash_zone_count = 0;
-	config->base_thread_count = 0;
 	*config_ptr = config;
 	return VDO_SUCCESS;
 }
