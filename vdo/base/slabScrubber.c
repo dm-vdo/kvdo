@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#43 $
  */
 
 #include "slabScrubberInternals.h"
@@ -149,7 +149,7 @@ bool has_slabs_to_scrub(struct slab_scrubber *scrubber)
 /**********************************************************************/
 slab_count_t get_scrubber_slab_count(const struct slab_scrubber *scrubber)
 {
-	return relaxedLoad64(&scrubber->slab_count);
+	return READ_ONCE(scrubber->slab_count);
 }
 
 /**********************************************************************/
@@ -166,7 +166,7 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 
 	list_del_init(&slab->list_entry);
 	if (!slab->was_queued_for_scrubbing) {
-		relaxedAdd64(&scrubber->slab_count, 1);
+		WRITE_ONCE(scrubber->slab_count, scrubber->slab_count + 1);
 		slab->was_queued_for_scrubbing = true;
 	}
 
@@ -226,7 +226,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
 	finish_scrubbing_slab(scrubber->slab);
-	relaxedAdd64(&scrubber->slab_count, -1);
+	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
 }
 

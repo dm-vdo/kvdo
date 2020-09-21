@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#15 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -25,7 +25,6 @@
 #include "slabScrubber.h"
 
 #include "adminState.h"
-#include "atomic.h"
 #include "extent.h"
 #include <linux/list.h>
 
@@ -38,10 +37,12 @@ struct slab_scrubber {
 	/** The queue of VIOs waiting for a slab to be scrubbed */
 	struct wait_queue waiters;
 
-	// The number of slabs that are unrecovered or being scrubbed. This
-	// field is modified by the physical zone thread, but is queried by
-	// other threads.
-	Atomic64 slab_count;
+	/*
+	 * The number of slabs that are unrecovered or being scrubbed. This
+	 * field is modified by the physical zone thread, but is queried by
+	 * other threads.
+	 */
+	slab_count_t slab_count;
 
 	/** The administrative state of the scrubber */
 	struct admin_state admin_state;
