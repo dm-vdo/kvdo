@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#29 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
 #define BLOCK_ALLOCATOR_INTERNALS_H
 
 #include "adminState.h"
-#include "atomic.h"
 #include "blockAllocator.h"
 #include "priorityTable.h"
 #include "slabScrubber.h"
+#include "statistics.h"
 #include "vioPool.h"
 
 enum {
@@ -55,49 +55,6 @@ struct slab_actor {
 	/** The method to call when a slab action has been completed by all
 	 * slabs */
 	vdo_action *callback;
-};
-
-/**
- * These fields are only modified by the physical zone thread, but are queried
- * by other threads.
- **/
-struct atomic_allocator_statistics {
-	/** The count of allocated blocks in this zone */
-	Atomic64 allocated_blocks;
-	/** The number of slabs from which blocks have ever been allocated */
-	Atomic64 slabs_opened;
-	/** The number of times since loading that a slab been re-opened */
-	Atomic64 slabs_reopened;
-};
-
-/**
- * The statistics for all the slab journals in the slabs owned by this
- * allocator. These fields are all mutated only by the physical zone thread,
- * but are read by other threads when gathering statistics for the entire
- * depot.
- **/
-struct atomic_slab_journal_statistics {
-	/** Number of times the on-disk journal was full */
-	Atomic64 disk_full_count;
-	/** Number of times an entry was added over the flush threshold */
-	Atomic64 flush_count;
-	/** Number of times an entry was added over the block threshold */
-	Atomic64 blocked_count;
-	/** Number of times the tail block was written */
-	Atomic64 blocks_written;
-	/** Number of times we had to wait for the tail block commit */
-	Atomic64 tail_busy_count;
-};
-
-/**
- * The statistics for all the RefCounts in the slabs owned by this
- * allocator. These fields are all mutated only by the physical zone thread,
- * but are read by other threads when gathering statistics for the entire
- * depot.
- **/
-struct atomic_ref_count_statistics {
-	/** Number of blocks written */
-	Atomic64 blocks_written;
 };
 
 struct block_allocator {
@@ -133,12 +90,23 @@ struct block_allocator {
 	struct slab_scrubber *slab_scrubber;
 	/** What phase of the close operation the allocator is to perform */
 	BlockAllocatorDrainStep drain_step;
+
+	/*
+	 * These statistics are all mutated only by the physical zone thread,
+	 * but are read by other threads when gathering statistics for the
+	 * entire depot.
+	 */
+	/**
+	 * The count of allocated blocks in this zone. Not in
+	 * block_allocator_statistics for historical reasons.
+	 **/
+	uint64_t allocated_blocks;
 	/** Statistics for this block allocator */
-	struct atomic_allocator_statistics statistics;
+	struct block_allocator_statistics statistics;
 	/** Cumulative statistics for the slab journals in this zone */
-	struct atomic_slab_journal_statistics slab_journal_statistics;
+	struct slab_journal_statistics slab_journal_statistics;
 	/** Cumulative statistics for the RefCounts in this zone */
-	struct atomic_ref_count_statistics ref_count_statistics;
+	struct ref_counts_statistics ref_counts_statistics;
 
 	/**
 	 * This is the head of a queue of slab journals which have entries in

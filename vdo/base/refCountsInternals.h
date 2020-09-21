@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#19 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -129,7 +129,7 @@ struct ref_counts {
 	 * The refcount statistics, shared by all refcounts in our physical
 	 * zone
 	 */
-	struct atomic_ref_count_statistics *statistics;
+	struct ref_counts_statistics *statistics;
 	/** The layer PBN for the first struct reference_block */
 	physical_block_number_t origin;
 	/**

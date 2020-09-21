@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#67 $
  */
 
 #include "slabJournalInternals.h"
@@ -626,7 +626,8 @@ static void complete_write(struct vdo_completion *completion)
 		return;
 	}
 
-	relaxedAdd64(&journal->events->blocks_written, 1);
+	WRITE_ONCE(journal->events->blocks_written,
+		   journal->events->blocks_written + 1);
 
 	if (list_empty(&journal->uncommitted_blocks)) {
 		// If no blocks are outstanding, then the commit point is at the
@@ -927,7 +928,8 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		// If the slab journal is over the first threshold, tell the
 		// refCounts to write some reference blocks, but proceed apace.
 		if (requires_flushing(journal)) {
-			relaxedAdd64(&journal->events->flush_count, 1);
+			WRITE_ONCE(journal->events->flush_count,
+				   journal->events->flush_count + 1);
 			block_count_t journal_length =
 				(journal->tail - journal->head);
 			block_count_t blocks_to_deadline = 0;
@@ -1003,7 +1005,8 @@ static void add_entries(struct slab_journal *journal)
 			// If we are waiting for resources to write the tail
 			// block, and the tail block is full, we can't make
 			// another entry.
-			relaxedAdd64(&journal->events->tail_busy_count, 1);
+			WRITE_ONCE(journal->events->tail_busy_count,
+				   journal->events->tail_busy_count + 1);
 			break;
 		} else if (is_next_entry_a_block_map_increment(journal) &&
 			   (header->entry_count >=
@@ -1012,8 +1015,9 @@ static void add_entries(struct slab_journal *journal)
 			// increment, so commit it now.
 			commit_slab_journal_tail(journal);
 			if (journal->waiting_to_commit) {
-				relaxedAdd64(&journal->events->tail_busy_count,
-					     1);
+				WRITE_ONCE(journal->events->tail_busy_count,
+					   journal->events->tail_busy_count
+					   + 1);
 				break;
 			}
 		}
@@ -1021,7 +1025,8 @@ static void add_entries(struct slab_journal *journal)
 		// If the slab is over the blocking threshold, make the vio
 		// wait.
 		if (requires_reaping(journal)) {
-			relaxedAdd64(&journal->events->blocked_count, 1);
+			WRITE_ONCE(journal->events->blocked_count,
+				   journal->events->blocked_count + 1);
 			save_dirty_reference_blocks(journal->slab->reference_counts);
 			break;
 		}
@@ -1048,8 +1053,9 @@ static void add_entries(struct slab_journal *journal)
 						 journal->size),
 						"New block can have locks already iff blocking threshold is at the end of the journal");
 
-				relaxedAdd64(&journal->events->disk_full_count,
-					     1);
+				WRITE_ONCE(journal->events->disk_full_count,
+					   journal->events->disk_full_count
+					   + 1);
 				save_dirty_reference_blocks(journal->slab->reference_counts);
 				break;
 			}
