@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#111 $
  */
 
 #include "kernelLayer.h"
@@ -1173,6 +1173,32 @@ void stop_kernel_layer(struct kernel_layer *layer)
 	default:
 		set_kernel_layer_state(layer, LAYER_STOPPED);
 	}
+}
+
+/**
+ * Issue a flush request and wait for it to complete.
+ *
+ * @param layer The kernel layer
+ *
+ * @return VDO_SUCCESS or an error
+ */
+static int synchronous_flush(struct kernel_layer *layer)
+{
+	struct bio bio;
+	bio_init(&bio, 0, 0);
+	bio_set_dev(&bio, get_kernel_layer_bdev(layer));
+	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
+	submit_bio_wait(&bio);
+	int result = blk_status_to_errno(bio.bi_status);
+
+	atomic64_inc(&layer->flushOut);
+	if (result != 0) {
+		log_error_strerror(result, "synchronous flush failed");
+		result = -EIO;
+	}
+
+	bio_uninit(&bio);
+	return result;
 }
 
 /**********************************************************************/
