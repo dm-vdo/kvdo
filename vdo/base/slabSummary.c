@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#42 $
  */
 
 #include "slabSummary.h"
@@ -360,7 +360,7 @@ static void finish_updating_slab_summary_block(struct slab_summary_block *block)
 static void finish_update(struct vdo_completion *completion)
 {
 	struct slab_summary_block *block = completion->parent;
-	atomicAdd64(&block->zone->summary->statistics.blocks_written, 1);
+	atomic64_add(1, &block->zone->summary->statistics.blocks_written);
 	finish_updating_slab_summary_block(block);
 }
 
@@ -674,6 +674,6 @@ get_slab_summary_statistics(const struct slab_summary *summary)
 	const struct atomic_slab_summary_statistics *atoms =
 		&summary->statistics;
 	return (struct slab_summary_statistics) {
-		.blocks_written = atomicLoad64(&atoms->blocks_written),
+		.blocks_written = atomic64_read(&atoms->blocks_written),
 	};
 }
