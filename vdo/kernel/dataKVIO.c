@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#85 $
  */
 
 #include "dataKVIO.h"
@@ -402,7 +402,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	// Read the data using the read block bio, wrapping the read block
 	// buffer.
 	struct bio *bio = read_block->bio;
-	reset_bio(bio, layer);
+	reset_bio(bio);
 	bio->bi_iter.bi_sector = block_to_sector(layer, location);
 	bio->bi_opf = REQ_OP_READ;
 	bio->bi_end_io = read_bio_callback;
@@ -436,13 +436,11 @@ void readDataVIO(struct data_vio *data_vio)
 	 */
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
-		reset_bio(data_kvio->data_block_bio,
-			  get_layer_from_data_kvio(data_kvio));
+		reset_bio(data_kvio->data_block_bio);
 		data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
 	} else if (data_kvio->isPartial) {
 		// A partial read.
-		reset_bio(data_kvio->data_block_bio,
-			  get_layer_from_data_kvio(data_kvio));
+		reset_bio(data_kvio->data_block_bio);
 		data_kvio->data_block_bio->bi_opf =
 			data_kvio->external_io_request.bio->bi_opf & ~REQ_FUA;
 	} else {
@@ -515,7 +513,7 @@ void writeDataVIO(struct data_vio *data_vio)
 	// flags (except FUA).
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 
-	reset_bio(bio, kvio->layer);
+	reset_bio(bio);
 	bio->bi_opf = (REQ_OP_WRITE |
 		      ((data_kvio->external_io_request.rw & ~REQ_OP_MASK) &
 		       ~REQ_FUA));
@@ -1009,25 +1007,25 @@ void updateDedupeIndex(struct data_vio *data_vio)
 /**
  * Implements buffer_free_function.
  **/
-static void free_pooled_data_kvio(void *pool_data, void *data)
+static void free_pooled_data_kvio(void *pool_data __attribute__((unused)),
+				  void *data)
 {
 	if (data == NULL) {
 		return;
 	}
 
 	struct data_kvio *data_kvio = (struct data_kvio *) data;
-	struct kernel_layer *layer = (struct kernel_layer *) pool_data;
 
 	if (WRITE_PROTECT_FREE_POOL) {
 		set_write_protect(data_kvio, WP_DATA_KVIO_SIZE, false);
 	}
 
 	if (data_kvio->data_block_bio != NULL) {
-		free_bio(data_kvio->data_block_bio, layer);
+		free_bio(data_kvio->data_block_bio);
 	}
 
 	if (data_kvio->read_block.bio != NULL) {
-		free_bio(data_kvio->read_block.bio, layer);
+		free_bio(data_kvio->read_block.bio);
 	}
 
 	FREE(data_kvio->read_block.buffer);
@@ -1076,8 +1074,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 					  "data_kvio data allocation failure");
 	}
 
-	result = create_bio(layer,
-			    data_kvio->data_block,
+	result = create_bio(data_kvio->data_block,
 			    &data_kvio->data_block_bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);
@@ -1094,7 +1091,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 					  "data_kvio read allocation failure");
 	}
 
-	result = create_bio(layer, data_kvio->read_block.buffer,
+	result = create_bio(data_kvio->read_block.buffer,
 			    &data_kvio->read_block.bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(layer, data_kvio);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#31 $
  */
 
 #include "bio.h"
@@ -64,7 +64,7 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 }
 
 /**********************************************************************/
-void free_bio(struct bio *bio, struct kernel_layer *layer)
+void free_bio(struct bio *bio)
 {
 	bio_uninit(bio);
 	FREE(bio);
@@ -100,9 +100,8 @@ static void set_bio_size(struct bio *bio, block_size_t bio_size)
  * Initialize a bio.
  *
  * @param bio    The bio to initialize
- * @param layer  The layer to which it belongs.
  **/
-static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
+static void initialize_bio(struct bio *bio)
 {
 	// Save off important info so it can be set back later
 	unsigned short vcnt = bio->bi_vcnt;
@@ -117,7 +116,7 @@ static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-void reset_bio(struct bio *bio, struct kernel_layer *layer)
+void reset_bio(struct bio *bio)
 {
 	// VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for
 	// data). Assert that this function is called on bios with vcnt of 0
@@ -125,7 +124,7 @@ void reset_bio(struct bio *bio, struct kernel_layer *layer)
 	ASSERT_LOG_ONLY((bio->bi_vcnt == 0) || (bio->bi_vcnt == 1),
 			"initialize_bio only called on VDO-allocated bios");
 
-	initialize_bio(bio, layer);
+	initialize_bio(bio);
 
 	// All VDO bios which are reset are expected to have their data, so
 	// if they have a vcnt of 0, make it 1.
@@ -137,7 +136,7 @@ void reset_bio(struct bio *bio, struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
+int create_bio(char *data, struct bio **bio_ptr)
 {
 	int bvec_count = 0;
 
@@ -177,7 +176,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 
 	bio_init(bio, bio->bi_inline_vecs, bvec_count);
 
-	initialize_bio(bio, layer);
+	initialize_bio(bio);
 	if (data == NULL) {
 		*bio_ptr = bio;
 		return VDO_SUCCESS;
@@ -200,7 +199,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 		int bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes) {
-			free_bio(bio, layer);
+			free_bio(bio);
 			return log_error_strerror(VDO_BIO_CREATION_FAILED,
 						  "Could only add %i bytes to bio",
 						  bytes_added);

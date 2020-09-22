@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#46 $
  */
 
 #include "kvio.h"
@@ -104,7 +104,7 @@ static void free_kvio(struct kvio **kvio_ptr)
 		FREE(kvio->vio->trace);
 	}
 
-	free_bio(kvio->bio, kvio->layer);
+	free_bio(kvio->bio);
 	FREE(kvio);
 	*kvio_ptr = NULL;
 }
@@ -134,7 +134,7 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 	struct bio *bio = kvio->bio;
 
 	// Write the compressed block, using the compressed kvio's own bio.
-	reset_bio(bio, kvio->layer);
+	reset_bio(bio);
 	bio->bi_opf = REQ_OP_WRITE;
 	bio->bi_iter.bi_sector
 		= block_to_sector(kvio->layer, kvio->vio->physical);
@@ -160,7 +160,7 @@ void submitMetadataVIO(struct vio *vio)
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
 
-	reset_bio(bio, kvio->layer);
+	reset_bio(bio);
 
 	bio->bi_iter.bi_sector = block_to_sector(kvio->layer, vio->physical);
 
@@ -205,7 +205,7 @@ static void complete_flush_bio(struct bio *bio)
 	int error = get_bio_result(bio);
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	// Restore the bio's notion of its own data.
-	reset_bio(bio, kvio->layer);
+	reset_bio(bio);
 	kvdo_continue_kvio(kvio, error);
 }
 
@@ -214,10 +214,9 @@ void kvdo_flush_vio(struct vio *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
-	struct kernel_layer *layer = kvio->layer;
 
 	// Flush, using the metadata kvio's own bio.
-	reset_bio(bio, layer);
+	reset_bio(bio);
 	/*
 	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
 	 * layers of the stack don't recognize that as a flush. So do it
@@ -318,9 +317,8 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	}
 
 	struct bio *bio;
-	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 
-	result = create_bio(kernel_layer, data, &bio);
+	result = create_bio(data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -335,14 +333,15 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	result = ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata kvio allocation failure %d", result);
-		free_bio(bio, kernel_layer);
+		free_bio(bio);
 		return result;
 	}
 
 	struct kvio *kvio = &metadata_kvio->kvio;
 
 	kvio->vio = &metadata_kvio->vio;
-	initialize_kvio(kvio, kernel_layer, vio_type, priority, parent, bio);
+	initialize_kvio(kvio, as_kernel_layer(layer), vio_type, priority,
+			parent, bio);
 
 	*vio_ptr = &metadata_kvio->vio;
 	return VDO_SUCCESS;
@@ -355,8 +354,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     struct allocating_vio **allocating_vio_ptr)
 {
 	struct bio *bio;
-	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
-	int result = create_bio(kernel_layer, data, &bio);
+	int result = create_bio(data, &bio);
 
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -371,7 +369,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	if (result != VDO_SUCCESS) {
 		uds_log_error("compressed write kvio allocation failure %d",
 			      result);
-		free_bio(bio, kernel_layer);
+		free_bio(bio);
 		return result;
 	}
 
@@ -380,7 +378,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	kvio->vio =
 		allocating_vio_as_vio(&compressed_write_kvio->allocating_vio);
 	initialize_kvio(kvio,
-			kernel_layer,
+			as_kernel_layer(layer),
 			VIO_TYPE_COMPRESSED_BLOCK,
 			VIO_PRIORITY_COMPRESSED_DATA,
 			parent,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#19 $
  */
 
 #ifndef BIO_H
@@ -71,9 +71,8 @@ static inline void complete_bio(struct bio *bio, int error)
  * Frees up a bio structure
  *
  * @param bio    The bio to free
- * @param layer  The layer the bio was created in
  **/
-void free_bio(struct bio *bio, struct kernel_layer *layer);
+void free_bio(struct bio *bio);
 
 /**
  * Count the statistics for the bios.  This is used for calls into VDO and
@@ -89,19 +88,17 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
  * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned.
  *
  * @param bio    The bio to reset
- * @param layer  The physical layer
  **/
-void reset_bio(struct bio *bio, struct kernel_layer *layer);
+void reset_bio(struct bio *bio);
 
 /**
  * Create a new bio structure for kernel buffer storage.
  *
- * @param [in]  layer    The physical layer
  * @param [in]  data     The buffer (can be NULL)
  * @param [out] bio_ptr  A pointer to hold new bio
  *
  * @return VDO_SUCCESS or an error
  **/
-int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr);
+int create_bio(char *data, struct bio **bio_ptr);
 
 #endif /* BIO_H */
