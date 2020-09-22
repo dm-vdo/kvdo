@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#42 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,9 +24,10 @@
 
 #include "vdo.h"
 
+#include "atomicDefs.h"
+
 #include "adminCompletion.h"
 #include "adminState.h"
-#include "atomic.h"
 #include "header.h"
 #include "packer.h"
 #include "statistics.h"
@@ -45,9 +46,9 @@
  **/
 struct atomic_error_statistics {
 	// Dedupe path error stats
-	Atomic64 invalid_advice_pbn_count;
-	Atomic64 no_space_error_count;
-	Atomic64 read_only_error_count;
+	atomic64_t invalid_advice_pbn_count;
+	atomic64_t no_space_error_count;
+	atomic64_t read_only_error_count;
 };
 
 struct vdo {

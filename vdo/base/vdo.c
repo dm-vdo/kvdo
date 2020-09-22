@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#82 $
  */
 
 /*
@@ -340,11 +340,11 @@ static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
 	const struct atomic_error_statistics *atoms = &vdo->error_stats;
 	return (struct error_statistics) {
 		.invalid_advice_pbn_count =
-			relaxedLoad64(&atoms->invalid_advice_pbn_count),
+			atomic64_read(&atoms->invalid_advice_pbn_count),
 		.no_space_error_count =
-			relaxedLoad64(&atoms->no_space_error_count),
+			atomic64_read(&atoms->no_space_error_count),
 		.read_only_error_count =
-			relaxedLoad64(&atoms->read_only_error_count),
+			atomic64_read(&atoms->read_only_error_count),
 	};
 }
 
@@ -644,7 +644,7 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 			  advice->pbn,
 			  advice->state,
 			  lbn);
-		atomicAdd64(&vdo->error_stats.invalid_advice_pbn_count, 1);
+		atomic64_add(1, &vdo->error_stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
 
@@ -654,7 +654,7 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 		log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
 			  advice->pbn,
 			  lbn);
-		atomicAdd64(&vdo->error_stats.invalid_advice_pbn_count, 1);
+		atomic64_add(1, &vdo->error_stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
 
