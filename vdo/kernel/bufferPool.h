@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#6 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -33,9 +33,9 @@
 
 struct buffer_pool;
 
-typedef int buffer_allocate_function(void *pool_data, void **data_ptr);
-typedef void buffer_free_function(void *pool_data, void *data);
-typedef void buffer_dump_function(void *pool_data, void *data);
+typedef int buffer_allocate_function(void **data_ptr);
+typedef void buffer_free_function(void *data);
+typedef void buffer_dump_function(void *data);
 
 /**
  * Creates a generic pool of buffer data. The elements in the pool are
@@ -51,7 +51,6 @@ typedef void buffer_dump_function(void *pool_data, void *data);
  *                                 data for each element
  * @param [in]  dump_function      The function to call to dump the actual
  *                                 data for each element into the log
- * @param [in]  pool_data          A pointer to the pool's associated data
  * @param [out] pool_ptr           A pointer to hold the pool that was created
  *
  * @return a success or error code
@@ -61,7 +60,6 @@ int __must_check make_buffer_pool(const char *pool_name,
 				  buffer_allocate_function *allocate_function,
 				  buffer_free_function *free_function,
 				  buffer_dump_function *dump_function,
-				  void *pool_data,
 				  struct buffer_pool **pool_ptr);
 
 /**

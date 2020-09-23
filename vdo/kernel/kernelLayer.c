@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#112 $
  */
 
 #include "kernelLayer.h"
@@ -728,8 +728,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	BUG_ON(layer->device_config->logical_block_size <= 0);
 	BUG_ON(layer->request_limiter.limit <= 0);
 	BUG_ON(layer->device_config->owned_device == NULL);
-	result = make_data_kvio_buffer_pool(layer,
-					    layer->request_limiter.limit,
+	result = make_data_kvio_buffer_pool(layer->request_limiter.limit,
 					    &layer->data_kvio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";

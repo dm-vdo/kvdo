@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#9 $
  */
 
 #include "bufferPool.h"
@@ -46,7 +46,6 @@ struct buffer_element {
 
 struct buffer_pool {
 	const char *name; // Pool name
-	void *data; // Associated pool data
 	spinlock_t lock; // Locks this object
 	unsigned int size; // Total number of buffers
 	struct list_head free_object_list; // List of free buffers
@@ -66,7 +65,6 @@ int make_buffer_pool(const char *pool_name,
 		     buffer_allocate_function *allocate_function,
 		     buffer_free_function *free_function,
 		     buffer_dump_function *dump_function,
-		     void *pool_data,
 		     struct buffer_pool **pool_ptr)
 {
 	struct buffer_pool *pool;
@@ -99,7 +97,6 @@ int make_buffer_pool(const char *pool_name,
 	pool->alloc = allocate_function;
 	pool->free = free_function;
 	pool->dump = dump_function;
-	pool->data = pool_data;
 	pool->size = size;
 	spin_lock_init(&pool->lock);
 	INIT_LIST_HEAD(&pool->free_object_list);
@@ -108,7 +105,7 @@ int make_buffer_pool(const char *pool_name,
 	int i;
 
 	for (i = 0; i < pool->size; i++) {
-		result = pool->alloc(pool->data, &bh->data);
+		result = pool->alloc(&bh->data);
 		if (result != VDO_SUCCESS) {
 			uds_log_error("verify buffer data allocation failure %d",
 				      result);
@@ -142,7 +139,7 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 
 		for (i = 0; i < pool->size; i++) {
 			if (pool->objects[i] != NULL) {
-				pool->free(pool->data, pool->objects[i]);
+				pool->free(pool->objects[i]);
 			}
 		}
 		FREE(pool->objects);
@@ -187,7 +184,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 
 		for (i = 0; i < pool->size; i++) {
 			if (!in_free_list(pool, pool->objects[i])) {
-				pool->dump(pool->data, pool->objects[i]);
+				pool->dump(pool->objects[i]);
 				if (++dumped >= ELEMENTS_PER_BATCH) {
 					spin_unlock(&pool->lock);
 					dumped = 0;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#39 $
  */
 
 #ifndef DATA_KVIO_H
@@ -361,16 +361,13 @@ void kvdo_read_block(struct data_vio *data_vio,
 /**
  * Allocate a buffer pool of data_kvio objects.
  *
- * @param [in]  layer            The layer in which the data_kvio objects
- *                               will operate
  * @param [in]  pool_size        The number of data_kvio objects in the pool
  * @param [out] buffer_pool_ptr  A pointer to hold the new buffer pool
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-make_data_kvio_buffer_pool(struct kernel_layer *layer,
-			   uint32_t pool_size,
+make_data_kvio_buffer_pool(uint32_t pool_size,
 			   struct buffer_pool **buffer_pool_ptr);
 
 /**

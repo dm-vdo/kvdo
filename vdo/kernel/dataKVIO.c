@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#86 $
  */
 
 #include "dataKVIO.h"
@@ -40,7 +40,7 @@
 #include "ioSubmitter.h"
 #include "vdoCommon.h"
 
-static void dump_pooled_data_kvio(void *pool_data, void *data);
+static void dump_pooled_data_kvio(void *data);
 
 enum {
 	WRITE_PROTECT_FREE_POOL = 0,
@@ -1007,8 +1007,7 @@ void updateDedupeIndex(struct data_vio *data_vio)
 /**
  * Implements buffer_free_function.
  **/
-static void free_pooled_data_kvio(void *pool_data __attribute__((unused)),
-				  void *data)
+static void free_pooled_data_kvio(void *data)
 {
 	if (data == NULL) {
 		return;
@@ -1038,13 +1037,11 @@ static void free_pooled_data_kvio(void *pool_data __attribute__((unused)),
  * Allocate a data_kvio. This function is the internals of
  * makePooledDataKVIO().
  *
- * @param [in]  layer          The layer in which the data_kvio will operate
- * @param [out] data_kvio_ptr  A pointer to hold the newly allocated data_kvio
+ * @param data_kvio_ptr  A pointer to hold the newly allocated data_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocate_pooled_data_kvio(struct kernel_layer *layer,
-				     struct data_kvio **data_kvio_ptr)
+static int allocate_pooled_data_kvio(struct data_kvio **data_kvio_ptr)
 {
 	struct data_kvio *data_kvio;
 	int result;
@@ -1069,7 +1066,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio data",
 				 &data_kvio->data_block);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(layer, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio data allocation failure");
 	}
@@ -1077,7 +1074,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	result = create_bio(data_kvio->data_block,
 			    &data_kvio->data_block_bio);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(layer, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio data bio allocation failure");
 	}
@@ -1086,7 +1083,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
 				 &data_kvio->read_block.buffer);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(layer, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio read allocation failure");
 	}
@@ -1094,7 +1091,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	result = create_bio(data_kvio->read_block.buffer,
 			    &data_kvio->read_block.bio);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(layer, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio read bio allocation failure");
 	}
@@ -1104,7 +1101,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio scratch",
 				 &data_kvio->scratch_block);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(layer, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio scratch allocation failure");
 	}
@@ -1116,14 +1113,12 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 /**
  * Implements buffer_allocate_function.
  **/
-static int make_pooled_data_kvio(void *pool_data, void **data_ptr)
+static int make_pooled_data_kvio(void **data_ptr)
 {
 	struct data_kvio *data_kvio = NULL;
-	int result =
-		allocate_pooled_data_kvio((struct kernel_layer *) pool_data,
-					  &data_kvio);
+	int result = allocate_pooled_data_kvio(&data_kvio);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_kvio(pool_data, data_kvio);
+		free_pooled_data_kvio(data_kvio);
 		return result;
 	}
 
@@ -1205,11 +1200,9 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
  *
  * <p>Implements buffer_dump_function.
  *
- * @param pool_data  The pool data
- * @param data      The data_kvio to dump
+ * @param data  The data_kvio to dump
  **/
-static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
-			       void *data)
+static void dump_pooled_data_kvio(void *data)
 {
 	struct data_kvio *data_kvio = (struct data_kvio *) data;
 	struct data_vio *data_vio = &data_kvio->data_vio;
@@ -1284,8 +1277,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 }
 
 /**********************************************************************/
-int make_data_kvio_buffer_pool(struct kernel_layer *layer,
-			       uint32_t pool_size,
+int make_data_kvio_buffer_pool(uint32_t pool_size,
 			       struct buffer_pool **buffer_pool_ptr)
 {
 	return make_buffer_pool("data_kvio pool",
@@ -1293,7 +1285,6 @@ int make_data_kvio_buffer_pool(struct kernel_layer *layer,
 				make_pooled_data_kvio,
 				free_pooled_data_kvio,
 				dump_pooled_data_kvio,
-				layer,
 				buffer_pool_ptr);
 }
 

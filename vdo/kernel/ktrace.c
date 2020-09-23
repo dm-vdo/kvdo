@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#22 $
  */
 
 #include "ktrace.h"
@@ -76,7 +76,7 @@ bool sample_this_one(struct sample_counter *counter)
 }
 
 /*************************************************************************/
-static void free_trace_data_buffer(void *pool_data, void *data)
+static void free_trace_data_buffer(void *data)
 {
 	struct trace *trace = (struct trace *) data;
 
@@ -84,7 +84,7 @@ static void free_trace_data_buffer(void *pool_data, void *data)
 }
 
 /*************************************************************************/
-static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
+static int alloc_trace_data_buffer(void **data_ptr)
 {
 	struct trace *trace;
 	int result = ALLOCATE(1, struct trace, __func__, &trace);
@@ -133,7 +133,6 @@ int trace_kernel_layer_init(struct kernel_layer *layer)
 					alloc_trace_data_buffer,
 					free_trace_data_buffer,
 					NULL,
-					layer,
 					&layer->trace_buffer_pool);
 	}
 	return VDO_SUCCESS;
