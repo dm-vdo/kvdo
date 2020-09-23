@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#32 $
  */
 
 #include "bio.h"
@@ -182,6 +182,23 @@ int create_bio(char *data, struct bio **bio_ptr)
 		return VDO_SUCCESS;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+	// bio_add_page() can take any contiguous buffer on any number of
+	// pages and add it in one shot.
+	struct page *page = is_vmalloc_addr(data) ?
+				    vmalloc_to_page(data) :
+				    virt_to_page(data);
+	int bytes_added = bio_add_page(bio, page, VDO_BLOCK_SIZE,
+				       offset_in_page(data));
+
+	if (bytes_added != VDO_BLOCK_SIZE) {
+		free_bio(bio);
+		return log_error_strerror(VDO_BIO_CREATION_FAILED,
+					  "Could only add %i bytes to bio",
+					  bytes_added);
+	}
+#else
+	// On pre-5.1 kernels, we have to add one page at a time to the bio.
 	int len = VDO_BLOCK_SIZE;
 	int offset = offset_in_page(data);
 	unsigned int i;
@@ -209,6 +226,7 @@ int create_bio(char *data, struct bio **bio_ptr)
 		len -= bytes;
 		offset = 0;
 	}
+#endif // >= 5.1.0
 
 	*bio_ptr = bio;
 	return VDO_SUCCESS;
