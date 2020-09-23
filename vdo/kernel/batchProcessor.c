@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#14 $
  */
 
 #include "batchProcessor.h"
 
+#include "atomicDefs.h"
 #include "memoryAlloc.h"
 
 #include "constants.h"
@@ -100,7 +101,7 @@ static void batch_processor_work(struct kvdo_work_item *item)
 		batch->callback(batch, batch->closure);
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
-	memoryFence();
+	smp_mb();
 	bool need_reschedule = !is_funnel_queue_empty(batch->queue);
 
 	spin_unlock(&batch->consumer_lock);
@@ -221,7 +222,7 @@ void free_batch_processor(struct batch_processor **batch_ptr)
 	struct batch_processor *batch = *batch_ptr;
 
 	if (batch) {
-		memoryFence();
+		smp_mb();
 		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
 		free_funnel_queue(batch->queue);
 		FREE(batch);

@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#77 $
  */
 
 #include "slabDepot.h"
 
+#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -515,7 +516,7 @@ block_count_t get_depot_free_blocks(const struct slab_depot *depot)
 	 * in a nonsensical negative/underflow result.
 	 */
 	block_count_t allocated = get_depot_allocated_blocks(depot);
-	memoryFence();
+	smp_mb();
 	return (get_depot_data_blocks(depot) - allocated);
 }
 

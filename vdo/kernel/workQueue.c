@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#37 $
  */
 
 #include "workQueue.h"
@@ -25,7 +25,7 @@
 #include <linux/percpu.h>
 #include <linux/version.h>
 
-#include "atomic.h"
+#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
@@ -310,8 +310,7 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		 * little.)
 		 */
 		atomic_set(&queue->idle, 1);
-		memoryFence(); // store-load barrier between "idle" and funnel
-			       // queue
+		smp_mb(); // store-load barrier between "idle" and funnel queue
 
 		item = poll_for_work_item(queue);
 		if (item != NULL) {
@@ -368,7 +367,7 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		 * nanoseconds of delay covering for high-resolution clocks not
 		 * being quite in sync between CPUs, is not yet clear.
 		 */
-		loadFence();
+		smp_rmb();
 		if (first_wakeup != 0) {
 			enter_histogram_sample(
 				queue->stats.wakeup_latency_histogram,
