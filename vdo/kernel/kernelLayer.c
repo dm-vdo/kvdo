@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#113 $
  */
 
 #include "kernelLayer.h"
@@ -158,7 +158,8 @@ int map_to_system_error(int error)
 static void set_kernel_layer_state(struct kernel_layer *layer,
 				   kernel_layer_state new_state)
 {
-	atomicStore32(&layer->state, new_state);
+	smp_wmb();
+	WRITE_ONCE(layer->state, new_state);
 }
 
 /**********************************************************************/

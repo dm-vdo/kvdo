@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#44 $
  */
 
 #ifndef KERNELLAYER_H
@@ -92,8 +92,8 @@ struct kernel_layer {
 	 * identify the individual device.
 	 **/
 	unsigned int instance;
-	/** Contains the current kernel_layer_state, which rarely changes */
-	Atomic32 state;
+	/** Accessed from multiple threads */
+	kernel_layer_state state;
 	bool no_flush_suspend;
 	bool allocations_allowed;
 	AtomicBool processing_message;
@@ -326,7 +326,9 @@ int resume_kernel_layer(struct kernel_layer *layer);
 static inline kernel_layer_state
 get_kernel_layer_state(const struct kernel_layer *layer)
 {
-	return atomicLoad32(&layer->state);
+	kernel_layer_state state = READ_ONCE(layer->state);
+	smp_rmb();
+	return state;
 }
 
 /**
