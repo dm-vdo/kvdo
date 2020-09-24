@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#34 $
  */
 
 #include "bio.h"
@@ -164,6 +164,8 @@ static int reset_bio_with_buffer(struct bio *bio, char *data)
 	int offset = offset_in_page(data);
 	unsigned int i;
 
+	int bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
+			  PAGE_SIZE - 1) >> PAGE_SHIFT;
 	for (i = 0; (i < bvec_count) && (len > 0); i++) {
 		unsigned int bytes = PAGE_SIZE - offset;
 
