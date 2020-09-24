@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#33 $
  */
 
 #include "bio.h"
@@ -136,49 +136,10 @@ void reset_bio(struct bio *bio)
 }
 
 /**********************************************************************/
-int create_bio(char *data, struct bio **bio_ptr)
+static int reset_bio_with_buffer(struct bio *bio, char *data)
 {
-	int bvec_count = 0;
-
-	if (data != NULL) {
-		bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
-			      PAGE_SIZE - 1) >> PAGE_SHIFT;
-		/*
-		 * When restoring a bio after using it to flush, we don't know
-		 * what data it wraps so we just set the bvec count back to its
-		 * original value. This relies on the underlying storage not
-		 * clearing bvecs that are not in use. The original value also
-		 * needs to be a constant, since we have nowhere to store it
-		 * during the time the bio is flushing.
-		 *
-		 * Fortunately our VDO-allocated bios always wrap exactly 4k,
-		 * and the allocator always gives us 4k-aligned buffers, and
-		 * PAGE_SIZE is always a multiple of 4k. So we only need one
-		 * bvec to record the bio wrapping a buffer of our own use, the
-		 * original value is always 1, and this assertion makes sure
-		 * that stays true.
-		 */
-		int result =
-			ASSERT(bvec_count == 1,
-			       "VDO-allocated buffers lie on 1 page, not %d",
-			       bvec_count);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
-
-	struct bio *bio = NULL;
-	int result = ALLOCATE_EXTENDED(struct bio, bvec_count, struct bio_vec,
-				       "bio", &bio);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	bio_init(bio, bio->bi_inline_vecs, bvec_count);
-
 	initialize_bio(bio);
 	if (data == NULL) {
-		*bio_ptr = bio;
 		return VDO_SUCCESS;
 	}
 
@@ -227,6 +188,55 @@ int create_bio(char *data, struct bio **bio_ptr)
 		offset = 0;
 	}
 #endif // >= 5.1.0
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int create_bio(char *data, struct bio **bio_ptr)
+{
+	int bvec_count = 0;
+
+	if (data != NULL) {
+		bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
+			      PAGE_SIZE - 1) >> PAGE_SHIFT;
+		/*
+		 * When restoring a bio after using it to flush, we don't know
+		 * what data it wraps so we just set the bvec count back to its
+		 * original value. This relies on the underlying storage not
+		 * clearing bvecs that are not in use. The original value also
+		 * needs to be a constant, since we have nowhere to store it
+		 * during the time the bio is flushing.
+		 *
+		 * Fortunately our VDO-allocated bios always wrap exactly 4k,
+		 * and the allocator always gives us 4k-aligned buffers, and
+		 * PAGE_SIZE is always a multiple of 4k. So we only need one
+		 * bvec to record the bio wrapping a buffer of our own use, the
+		 * original value is always 1, and this assertion makes sure
+		 * that stays true.
+		 */
+		int result =
+			ASSERT(bvec_count == 1,
+			       "VDO-allocated buffers lie on 1 page, not %d",
+			       bvec_count);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
+
+	struct bio *bio = NULL;
+	int result = ALLOCATE_EXTENDED(struct bio, bvec_count, struct bio_vec,
+				       "bio", &bio);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	bio_init(bio, bio->bi_inline_vecs, bvec_count);
+
+	result = reset_bio_with_buffer(bio, data);
+	if (result != VDO_SUCCESS) {
+		free_bio(bio);
+		return result;
+	}
 
 	*bio_ptr = bio;
 	return VDO_SUCCESS;
