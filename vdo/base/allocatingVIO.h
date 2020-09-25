@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#24 $
  */
 
 #ifndef ALLOCATING_VIO_H
 #define ALLOCATING_VIO_H
 
-#include "atomic.h"
 #include "pbnLock.h"
 #include "physicalZone.h"
 #include "types.h"

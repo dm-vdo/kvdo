@@ -16,15 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#21 $
  */
 
 #ifndef PACKER_INTERNALS_H
 #define PACKER_INTERNALS_H
 
 #include "packer.h"
-
-#include "atomic.h"
 
 #include "adminState.h"
 #include "compressedBlock.h"
