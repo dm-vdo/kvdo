@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#46 $
  */
 
 #ifndef KERNELLAYER_H
@@ -365,13 +365,11 @@ static inline struct kernel_layer *as_kernel_layer(PhysicalLayer *layer)
  * without casting, resulting in 32-bit arithmetic that accidentally
  * produces wrong results in devices over 2TB (2**32 sectors).
  *
- * @param [in] layer         the physical layer
- * @param [in] block_number  the block number/count
+ * @param block_number  the block number/count
  *
- * @return      the sector number/count
+ * @return  the sector number/count
  **/
-static inline sector_t block_to_sector(struct kernel_layer *layer,
-				       sector_t block_number)
+static inline sector_t block_to_sector(physical_block_number_t block_number)
 {
 	return (block_number * VDO_SECTORS_PER_BLOCK);
 }
@@ -381,13 +379,11 @@ static inline sector_t block_to_sector(struct kernel_layer *layer,
  * check to make sure the sector number is an integral number of
  * blocks.
  *
- * @param [in] layer          the physical layer
- * @param [in] sector_number  the sector number/count
+ * @param sector_number  the sector number/count
  *
- * @return      the block number/count
+ * @return  the block number/count
  **/
-static inline sector_t sector_to_block(struct kernel_layer *layer,
-				       sector_t sector_number)
+static inline sector_t sector_to_block(sector_t sector_number)
 {
 	return (sector_number / VDO_SECTORS_PER_BLOCK);
 }
@@ -395,13 +391,11 @@ static inline sector_t sector_to_block(struct kernel_layer *layer,
 /**
  * Convert a sector number to an offset within a block.
  *
- * @param [in] layer          the physical layer
- * @param [in] sector_number  the sector number
+ * @param sector_number  the sector number
  *
- * @return      the offset within the block
+ * @return  the offset within the block
  **/
-static inline block_size_t sector_to_block_offset(struct kernel_layer *layer,
-						  sector_t sector_number)
+static inline block_size_t sector_to_block_offset(sector_t sector_number)
 {
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
 	return to_bytes(sector_number & sectors_per_block_mask);

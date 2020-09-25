@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#87 $
  */
 
 #include "dataKVIO.h"
@@ -393,7 +393,6 @@ void kvdo_read_block(struct data_vio *data_vio,
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct read_block *read_block = &data_kvio->read_block;
-	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 
 	read_block->callback = callback;
 	read_block->status = VDO_SUCCESS;
@@ -403,7 +402,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	// buffer.
 	struct bio *bio = read_block->bio;
 	reset_bio(bio);
-	bio->bi_iter.bi_sector = block_to_sector(layer, location);
+	bio->bi_iter.bi_sector = block_to_sector(location);
 	bio->bi_opf = REQ_OP_READ;
 	bio->bi_end_io = read_bio_callback;
 	vdo_submit_bio(bio, action);
@@ -449,8 +448,7 @@ void readDataVIO(struct data_vio *data_vio)
 	}
 
 	bio->bi_end_io = complete_async_bio;
-	bio->bi_iter.bi_sector
-		= block_to_sector(kvio->layer, data_vio->mapped.pbn);
+	bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -520,8 +518,7 @@ void writeDataVIO(struct data_vio *data_vio)
 
 	// Write the data using the data block bio, wrapping the data block
 	// buffer.
-	bio->bi_iter.bi_sector
-		= block_to_sector(kvio->layer, data_vio->new_mapped.pbn);
+	bio->bi_iter.bi_sector = block_to_sector(data_vio->new_mapped.pbn);
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -763,8 +760,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	data_kvio->external_io_request = external_io_request;
-	data_kvio->offset = sector_to_block_offset(layer,
-						   bio->bi_iter.bi_sector);
+	data_kvio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
 	data_kvio->isPartial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 			       (data_kvio->offset != 0));
 
@@ -938,7 +934,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	logical_block_number_t lbn =
-		sector_to_block(layer, bio->bi_iter.bi_sector -
+		sector_to_block(bio->bi_iter.bi_sector -
 				layer->starting_sector_offset);
 	prepare_data_vio(&data_kvio->data_vio, lbn, operation, is_trim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,

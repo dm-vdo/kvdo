@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#71 $
  */
 
 #include "dmvdo.h"
@@ -157,8 +157,7 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       void *data)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	sector_t len =
-		block_to_sector(layer, layer->device_config->physical_blocks);
+	sector_t len = block_to_sector(layer->device_config->physical_blocks);
 
 	return fn(ti, layer->device_config->owned_device, 0, len, data);
 }
