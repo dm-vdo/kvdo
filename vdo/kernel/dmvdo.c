@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#70 $
  */
 
 #include "dmvdo.h"
@@ -422,13 +422,14 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 		}
 	}
 
-	if (!compareAndSwapBool(&layer->processing_message, false, true)) {
+	if (atomic_cmpxchg(&layer->processing_message, 0, 1) != 0) {
 		return -EBUSY;
 	}
 
 	int result = process_vdo_message_locked(layer, argc, argv);
 
-	atomicStoreBool(&layer->processing_message, false);
+	smp_wmb();
+	atomic_set(&layer->processing_message, 0);
 	return result;
 }
 
