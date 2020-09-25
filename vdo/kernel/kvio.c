@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#47 $
  */
 
 #include "kvio.h"
@@ -136,8 +136,7 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 	// Write the compressed block, using the compressed kvio's own bio.
 	reset_bio(bio);
 	bio->bi_opf = REQ_OP_WRITE;
-	bio->bi_iter.bi_sector
-		= block_to_sector(kvio->layer, kvio->vio->physical);
+	bio->bi_iter.bi_sector = block_to_sector(kvio->vio->physical);
 	vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
@@ -162,7 +161,7 @@ void submitMetadataVIO(struct vio *vio)
 
 	reset_bio(bio);
 
-	bio->bi_iter.bi_sector = block_to_sector(kvio->layer, vio->physical);
+	bio->bi_iter.bi_sector = block_to_sector(vio->physical);
 
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
