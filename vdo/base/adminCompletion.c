@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#22 $
  */
 
 #include "adminCompletion.h"
 
+#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-#include "atomic.h"
 #include "completion.h"
 #include "types.h"
 #include "vdoInternal.h"
@@ -83,7 +83,7 @@ void initialize_admin_completion(struct vdo *vdo,
 
 	initialize_completion(&admin_completion->sub_task_completion,
 			      SUB_TASK_COMPLETION, vdo->layer);
-	atomicStoreBool(&admin_completion->busy, false);
+	atomic_set(&admin_completion->busy, 0);
 }
 
 /**********************************************************************/
@@ -141,7 +141,7 @@ int perform_admin_operation(struct vdo *vdo,
 			    vdo_action *error_handler)
 {
 	struct admin_completion *admin_completion = &vdo->admin_completion;
-	if (!compareAndSwapBool(&admin_completion->busy, false, true)) {
+	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0) {
 		return log_error_strerror(VDO_COMPONENT_BUSY,
 					  "Can't start admin operation of type %u, another operation is already in progress",
 					  type);
@@ -161,6 +161,7 @@ int perform_admin_operation(struct vdo *vdo,
 	layer->enqueue(&admin_completion->sub_task_completion);
 	layer->waitForAdminOperation(layer);
 	int result = admin_completion->completion.result;
-	atomicStoreBool(&admin_completion->busy, false);
+        smp_wmb();
+	atomic_set(&admin_completion->busy, 0);
 	return result;
 }

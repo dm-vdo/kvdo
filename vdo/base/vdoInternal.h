@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#43 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -26,6 +26,7 @@
 
 #include "atomicDefs.h"
 
+#include "atomic.h"
 #include "adminCompletion.h"
 #include "adminState.h"
 #include "header.h"

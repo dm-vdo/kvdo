@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#15 $
  */
 
 #ifndef ADMIN_COMPLETION_H
 #define ADMIN_COMPLETION_H
 
-#include "atomic.h"
+#include "atomicDefs.h"
+
 #include "completion.h"
 #include "types.h"
 
@@ -59,7 +60,7 @@ struct admin_completion {
 	/** The sub-task completion */
 	struct vdo_completion sub_task_completion;
 	/** Whether this completion is in use */
-	AtomicBool busy;
+	atomic_t busy;
 	/** The operation type */
 	admin_operation_type type;
 	/** Method to get the thread id for the current phase */
