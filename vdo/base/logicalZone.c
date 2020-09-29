@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#42 $
  */
 
 #include "logicalZone.h"
@@ -27,7 +27,6 @@
 #include "actionManager.h"
 #include "adminState.h"
 #include "allocationSelector.h"
-#include "atomic.h"
 #include "blockMap.h"
 #include "completion.h"
 #include "constants.h"
@@ -51,15 +50,13 @@ struct logical_zone {
 	struct block_map_zone *block_map_zone;
 	/** The current flush generation */
 	sequence_number_t flush_generation;
-	/** The oldest active generation in this zone */
+	/**
+	 * The oldest active generation in this zone. This is mutated only on
+	 * the logical zone thread but is queried from the flusher thread.
+	 **/
 	sequence_number_t oldest_active_generation;
 	/** The number of IOs in the current flush generation */
 	block_count_t ios_in_flush_generation;
-	/**
-	 * The oldest locked generation in this zone (an atomic copy of
-	 * oldest_active_generation)
-	 **/
-	Atomic64 oldest_locked_generation;
 	/** The youngest generation of the current notification */
 	sequence_number_t notification_generation;
 	/** Whether a notification is in progress */
@@ -138,7 +135,6 @@ static int initialize_zone(struct logical_zones *zones,
 					       	  zone_number);
 	zone->block_map_zone = get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
-	atomicStore64(&zone->oldest_locked_generation, 0);
 
 	return make_allocation_selector(get_thread_config(vdo)->physical_zone_count,
 					zone->thread_id, &zone->selector);
@@ -306,21 +302,7 @@ struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
 }
 
 /**
- * Convert a list entry to a data_vio.
- *
- * @param entry The entry to convert
- *
- * @return The data_vio which owns the list entry
- **/
-static inline struct data_vio *
-data_vio_from_list_entry(struct list_head *entry)
-{
-	return list_entry(entry, struct data_vio, write_entry);
-}
-
-/**
- * Update the oldest active generation. If it has changed, update the
- * atomic copy as well.
+ * Update the oldest active generation.
  *
  * @param zone  The zone
  *
@@ -328,20 +310,21 @@ data_vio_from_list_entry(struct list_head *entry)
  **/
 static bool update_oldest_active_generation(struct logical_zone *zone)
 {
-	sequence_number_t current_oldest = zone->oldest_active_generation;
+	sequence_number_t oldest;
 	if (list_empty(&zone->write_vios)) {
-		zone->oldest_active_generation = zone->flush_generation;
+		oldest = zone->flush_generation;
 	} else {
-		zone->oldest_active_generation =
-			data_vio_from_list_entry(zone->write_vios.next)->flush_generation;
+		struct data_vio *data_vio = list_entry(zone->write_vios.next,
+						       struct data_vio,
+						       write_entry);
+		oldest = data_vio->flush_generation;
 	}
 
-	if (zone->oldest_active_generation == current_oldest) {
+	if (oldest == zone->oldest_active_generation) {
 		return false;
 	}
 
-	atomicStore64(&zone->oldest_locked_generation,
-		      zone->oldest_active_generation);
+	WRITE_ONCE(zone->oldest_active_generation, oldest);
 	return true;
 }
 
@@ -363,7 +346,7 @@ void increment_flush_generation(struct logical_zone *zone,
 /**********************************************************************/
 sequence_number_t get_oldest_locked_generation(const struct logical_zone *zone)
 {
-	return (sequence_number_t) atomicLoad64(&zone->oldest_locked_generation);
+	return READ_ONCE(zone->oldest_active_generation);
 }
 
 /**********************************************************************/
@@ -460,10 +443,10 @@ struct allocation_selector *get_allocation_selector(struct logical_zone *zone)
 void dump_logical_zone(const struct logical_zone *zone)
 {
 	log_info("logical_zone %u", zone->zone_number);
-	log_info("  flush_generation=%llu oldest_active_generation=%llu oldest_locked_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",
-		 zone->flush_generation, zone->oldest_active_generation,
-		 relaxedLoad64(&zone->oldest_locked_generation),
-		 zone->notification_generation,
-		 bool_to_string(zone->notifying),
-		 zone->ios_in_flush_generation);
+	log_info("  flush_generation=%llu oldest_active_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",
+		 READ_ONCE(zone->flush_generation),
+		 READ_ONCE(zone->oldest_active_generation),
+		 READ_ONCE(zone->notification_generation),
+		 bool_to_string(READ_ONCE(zone->notifying)),
+		 READ_ONCE(zone->ios_in_flush_generation));
 }
