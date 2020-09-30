@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#56 $
  */
 
 #include "packerInternals.h"
@@ -542,7 +542,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 	set_physical_zone_callback(allocating_vio,
 				   finish_compressed_write,
 				   THIS_LOCATION("$F(meta);cb=finish_compressed_write"));
-	writeCompressedBlock(allocating_vio);
+	write_compressed_block(allocating_vio);
 }
 
 /**

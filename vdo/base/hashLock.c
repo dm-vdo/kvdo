@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#40 $
  */
 
 /**
@@ -689,7 +689,7 @@ static void start_updating(struct hash_lock *lock, struct data_vio *agent)
 
 	agent->last_async_operation = UPDATE_INDEX;
 	set_hash_zone_callback(agent, finish_updating, THIS_LOCATION(NULL));
-	updateDedupeIndex(agent);
+	update_dedupe_index(agent);
 }
 
 /**
@@ -963,7 +963,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	 */
 	agent->last_async_operation = VERIFY_DEDUPLICATION;
 	set_hash_zone_callback(agent, finish_verifying, THIS_LOCATION(NULL));
-	verifyDuplication(agent);
+	verify_duplication(agent);
 }
 
 /**
@@ -1431,7 +1431,7 @@ static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 
 	data_vio->last_async_operation = CHECK_FOR_DEDUPLICATION;
 	set_hash_zone_callback(data_vio, finish_querying, THIS_LOCATION(NULL));
-	checkForDuplication(data_vio);
+	check_for_duplication(data_vio);
 }
 
 /**
@@ -1558,7 +1558,7 @@ static bool is_hash_collision(struct hash_lock *lock,
 
 	struct data_vio *lock_holder =
 		data_vio_from_lock_entry(lock->duplicate_ring.next);
-	bool collides = !compareDataVIOs(lock_holder, candidate);
+	bool collides = !compare_data_vios(lock_holder, candidate);
 
 	if (collides) {
 		bump_hash_zone_collision_count(candidate->hash_zone);

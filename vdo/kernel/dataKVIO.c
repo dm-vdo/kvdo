@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#88 $
  */
 
 #include "dataKVIO.h"
@@ -243,11 +243,11 @@ void kvdo_complete_data_kvio(struct vdo_completion *completion)
  *   copy the data into the user bio for acknowledgement;
  *
  * - for a partial write, copy it into the data block, so that we can later
- *   copy data from the user bio atop it in applyPartialWrite and treat it as
+ *   copy data from the user bio atop it in apply_partial_write and treat it as
  *   a full-block write.
  *
  * This is called from read_data_kvio_read_block_callback, registered only in
- * readDataVIO() and therefore never called on a 4k write.
+ * read_data_vio() and therefore never called on a 4k write.
  *
  * @param work_item  The data_kvio which requested the read
  **/
@@ -274,12 +274,12 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 	// For a 4k read, copy the data to the user bio and acknowledge.
 	bio_copy_data_out(data_kvio->external_io_request.bio,
 			  data_kvio->read_block.data);
-	acknowledgeDataVIO(&data_kvio->data_vio);
+	acknowledge_data_vio(&data_kvio->data_vio);
 }
 
 /**
  * Finish reading data for a compressed block. This callback is registered
- * in readDataVIO() when trying to read compressed data for a 4k read or
+ * in read_data_vio() when trying to read compressed data for a 4k read or
  * a partial read or write.
  *
  * @param data_kvio  The data_kvio which requested the read
@@ -409,7 +409,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 }
 
 /**********************************************************************/
-void readDataVIO(struct data_vio *data_vio)
+void read_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
 			"operation set correctly for data read");
@@ -466,7 +466,7 @@ kvdo_acknowledge_data_kvio_then_continue(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void acknowledgeDataVIO(struct data_vio *data_vio)
+void acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
@@ -497,7 +497,7 @@ void acknowledgeDataVIO(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void writeDataVIO(struct data_vio *data_vio)
+void write_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(data_vio)),
 			"kvdoWriteDataVIO() called on write data_vio");
@@ -586,7 +586,7 @@ static inline bool is_zero_block(struct data_kvio *data_kvio)
 }
 
 /**********************************************************************/
-void applyPartialWrite(struct data_vio *data_vio)
+void apply_partial_write(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
@@ -604,7 +604,7 @@ void applyPartialWrite(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void zeroDataVIO(struct data_vio *data_vio)
+void zero_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
 			"only attempt to zero non-writes");
@@ -614,7 +614,7 @@ void zeroDataVIO(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void copyData(struct data_vio *source, struct data_vio *destination)
+void copy_data(struct data_vio *source, struct data_vio *destination)
 {
 	ASSERT_LOG_ONLY(is_read_vio(data_vio_as_vio(destination)),
 			"only copy to a pure read");
@@ -657,7 +657,7 @@ static void kvdo_compress_work(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void compressDataVIO(struct data_vio *data_vio)
+void compress_data_vio(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("compressDataVIO;io=compress;cb=compress"));
@@ -963,7 +963,7 @@ static void kvdo_hash_data_work(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void hashDataVIO(struct data_vio *data_vio)
+void hash_data_vio(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	launch_data_kvio_on_cpu_queue(data_vio_as_data_kvio(data_vio),
@@ -973,7 +973,7 @@ void hashDataVIO(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void checkForDuplication(struct data_vio *data_vio)
+void check_for_duplication(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("checkForDuplication;dup=post"));
@@ -995,7 +995,7 @@ void checkForDuplication(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void updateDedupeIndex(struct data_vio *data_vio)
+void update_dedupe_index(struct data_vio *data_vio)
 {
 	update_dedupe_advice(data_vio_as_data_kvio(data_vio));
 }

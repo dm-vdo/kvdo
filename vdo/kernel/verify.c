@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#19 $
  */
 
 #include "physicalLayer.h"
@@ -130,7 +130,7 @@ static void verify_read_block_callback(struct data_kvio *data_kvio)
 }
 
 /**********************************************************************/
-void verifyDuplication(struct data_vio *data_vio)
+void verify_duplication(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"advice to verify must be valid");
@@ -152,7 +152,7 @@ void verifyDuplication(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-bool compareDataVIOs(struct data_vio *first, struct data_vio *second)
+bool compare_data_vios(struct data_vio *first, struct data_vio *second)
 {
 	data_vio_add_trace_record(second, THIS_LOCATION(NULL));
 	struct data_kvio *a = data_vio_as_data_kvio(first);

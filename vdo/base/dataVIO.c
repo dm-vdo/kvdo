@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#37 $
  */
 
 #include "dataVIO.h"
@@ -281,7 +281,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	 */
 	if (is_read_data_vio(data_vio) &&
 	    atomicLoadBool(&lock_holder->has_allocation)) {
-		copyData(lock_holder, data_vio);
+		copy_data(lock_holder, data_vio);
 		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}

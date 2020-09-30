@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#33 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -34,9 +34,9 @@ enum {
 /**
  * A function to destroy a physical layer and NULL out the reference to it.
  *
- * @param layerPtr  A pointer to the layer to destroy
+ * @param layer_ptr  A pointer to the layer to destroy
  **/
-typedef void layer_destructor(PhysicalLayer **layerPtr);
+typedef void layer_destructor(PhysicalLayer **layer_ptr);
 
 /**
  * A function to report the block count of a physicalLayer.
@@ -51,17 +51,17 @@ typedef block_count_t block_count_getter(PhysicalLayer *layer);
  * A function which can allocate a buffer suitable for use in an
  * extent_reader or extent_writer.
  *
- * @param [in]  layer      The physical layer in question
- * @param [in]  bytes      The size of the buffer, in bytes.
- * @param [in]  why        The occasion for allocating the buffer
- * @param [out] bufferPtr  A pointer to hold the buffer
+ * @param [in]  layer       The physical layer in question
+ * @param [in]  bytes       The size of the buffer, in bytes.
+ * @param [in]  why         The occasion for allocating the buffer
+ * @param [out] buffer_ptr  A pointer to hold the buffer
  *
  * @return a success or error code
  **/
 typedef int buffer_allocator(PhysicalLayer *layer,
 			     size_t bytes,
 			     const char *why,
-			     char **bufferPtr);
+			     char **buffer_ptr);
 
 /**
  * A function which can read an extent from a physicalLayer.
@@ -103,7 +103,7 @@ typedef int extent_writer(PhysicalLayer *layer,
  * @param [in]  priority  The relative priority to assign to the vios
  * @param [in]  parent    The parent of this vio
  * @param [in]  data      The buffer
- * @param [out] vioPtr    A pointer to hold the new vio
+ * @param [out] vio_ptr    A pointer to hold the new vio
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -112,29 +112,29 @@ typedef int metadata_vio_creator(PhysicalLayer *layer,
 			         vio_priority priority,
 			         void *parent,
 			         char *data,
-			         struct vio **vioPtr);
+			         struct vio **vio_ptr);
 
 /**
  * A function to allocate an allocating_vio for compressed writes.
  *
- * @param [in]  layer             The physical layer
- * @param [in]  parent            The parent of this vio
- * @param [in]  data              The buffer
- * @param [out] allocatingVIOPtr  A pointer to hold the new allocating_vio
+ * @param [in]  layer               The physical layer
+ * @param [in]  parent              The parent of this vio
+ * @param [in]  data                The buffer
+ * @param [out] allocating_vio_ptr  A pointer to hold the new allocating_vio
  *
  * @return VDO_SUCCESS or an error
  **/
 typedef int compressed_write_vio_creator(PhysicalLayer *layer,
 				         void *parent,
 				         char *data,
-				         struct allocating_vio **allocatingVIOPtr);
+				         struct allocating_vio **allocating_vio_ptr);
 
 /**
  * A function to destroy a vio. The pointer to the vio will be nulled out.
  *
- * @param vioPtr  A pointer to the vio to destroy
+ * @param vio_ptr  A pointer to the vio to destroy
  **/
-typedef void vio_destructor(struct vio **vioPtr);
+typedef void vio_destructor(struct vio **vio_ptr);
 
 /**
  * A function to zero the contents of a data_vio.
@@ -367,25 +367,25 @@ update_crc32(crc32_checksum_t crc, const byte *buffer, size_t length);
 /**
  * Destroy a vio. The pointer to the vio will be nulled out.
  *
- * @param vioPtr  A pointer to the vio to destroy
+ * @param vio_ptr  A pointer to the vio to destroy
  **/
-void destroy_vio(struct vio **vioPtr);
+void destroy_vio(struct vio **vio_ptr);
 
 /**
  * Read or write a single metadata kvio.
  *
  * @param vio  The vio to read or write
  **/
-void submitMetadataVIO(struct vio *vio);
+void submit_metadata_vio(struct vio *vio);
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
  * the data_vio. This is asynchronous to allow the computation to be done on
  * different threads.
  *
- * @param dataVIO  The data_vio to hash
+ * @param data_vio  The data_vio to hash
  **/
-void hashDataVIO(struct data_vio *dataVIO);
+void hash_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to determine whether a block is a duplicate. This function
@@ -395,9 +395,9 @@ void hashDataVIO(struct data_vio *dataVIO);
  * true, and the data_vio's 'advice' field will be set to the physical block and
  * mapping state of the already stored copy of the block.
  *
- * @param dataVIO  The data_vio containing the block to check.
+ * @param data_vio  The data_vio containing the block to check.
  **/
-void checkForDuplication(struct data_vio *dataVIO);
+void check_for_duplication(struct data_vio *data_vio);
 
 /**
  * A function to verify the duplication advice by examining an already-stored
@@ -407,56 +407,56 @@ void checkForDuplication(struct data_vio *dataVIO);
  * mapping state where a copy of the data may already exist. If the block is
  * not a duplicate, the data_vio's 'isDuplicate' field will be cleared.
  *
- * @param dataVIO  The dataVIO containing the block to check.
+ * @param data_vio  The data_vio containing the block to check.
  **/
-void verifyDuplication(struct data_vio *dataVIO);
+void verify_duplication(struct data_vio *data_vio);
 
 /**
  * Update the index with new dedupe advice.
  *
- * @param dataVIO  The data_vio which needs to change the entry for its data
+ * @param data_vio  The data_vio which needs to change the entry for its data
  **/
-void updateDedupeIndex(struct data_vio *dataVIO);
+void update_dedupe_index(struct data_vio *data_vio);
 
 /**
  * A function to zero the contents of a non-write data_vio -- a read, or a RMW
  * before becoming a write.
  *
- * @param dataVIO  The data_vio to zero
+ * @param data_vio  The data_vio to zero
  **/
-void zeroDataVIO(struct data_vio *dataVIO);
+void zero_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to copy the data of a write data_vio into a read data_vio.
  *
- * @param source       The dataVIO to copy from
- * @param destination  The dataVIO to copy to
+ * @param source       The data_vio to copy from
+ * @param destination  The data_vio to copy to
  **/
-void copyData(struct data_vio *source, struct data_vio *destination);
+void copy_data(struct data_vio *source, struct data_vio *destination);
 
 /**
  * A function to apply a partial write to a data_vio which has completed the
  * read portion of a read-modify-write operation.
  *
- * @param dataVIO  The dataVIO to modify
+ * @param data_vio  The data_vio to modify
  **/
-void applyPartialWrite(struct data_vio *dataVIO);
+void apply_partial_write(struct data_vio *data_vio);
 
 /**
  * A function to inform the layer that a data_vio's related I/O request can be
  * safely acknowledged as complete, even though the data_vio itself may have
  * further processing to do.
  *
- * @param dataVIO  The data_vio to acknowledge
+ * @param data_vio  The data_vio to acknowledge
  **/
-void acknowledgeDataVIO(struct data_vio *dataVIO);
+void acknowledge_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to compress the data in a data_vio.
  *
- * @param dataVIO  The data_vio to compress
+ * @param data_vio  The data_vio to compress
  **/
-void compressDataVIO(struct data_vio *dataVIO);
+void compress_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to read a single data_vio from the layer.
@@ -465,23 +465,23 @@ void compressDataVIO(struct data_vio *dataVIO);
  * physical layer may safely acknowledge the related user I/O request
  * as complete.
  *
- * @param dataVIO  The data_vio to read
+ * @param data_vio  The data_vio to read
  **/
-void readDataVIO(struct data_vio *dataVIO);
+void read_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to write a single data_vio to the layer
  *
- * @param dataVIO  The data_vio to write
+ * @param data_vio  The data_vio to write
  **/
-void writeDataVIO(struct data_vio *dataVIO);
+void write_data_vio(struct data_vio *data_vio);
 
 /**
  * A function to write a single compressed block to the layer
  *
- * @param allocatingVIO  The allocating_vio to write
+ * @param allocating_vio  The allocating_vio to write
  **/
-void writeCompressedBlock(struct allocating_vio *allocatingVIO);
+void write_compressed_block(struct allocating_vio *allocating_vio);
 
 /**
  * A function to compare the contents of a data_vio to another data_vio.
@@ -491,6 +491,6 @@ void writeCompressedBlock(struct allocating_vio *allocatingVIO);
  *
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
-bool compareDataVIOs(struct data_vio *first, struct data_vio *second);
+bool compare_data_vios(struct data_vio *first, struct data_vio *second);
 
 #endif // PHYSICAL_LAYER_H

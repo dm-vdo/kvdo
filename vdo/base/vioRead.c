@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#16 $
  */
 
 #include "vioRead.h"
@@ -44,7 +44,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	  return;
 	}
 
-	applyPartialWrite(data_vio);
+	apply_partial_write(data_vio);
 	struct vio *vio = data_vio_as_vio(data_vio);
 	vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
 	data_vio->is_partial_write = true;
@@ -71,14 +71,14 @@ static void read_block(struct vdo_completion *completion)
 				  : modify_for_partial_write);
 
 	if (data_vio->mapped.pbn == ZERO_BLOCK) {
-		zeroDataVIO(data_vio);
+		zero_data_vio(data_vio);
 		invoke_callback(completion);
 		return;
 	}
 
 	vio->physical = data_vio->mapped.pbn;
 	data_vio->last_async_operation = READ_DATA;
-	readDataVIO(data_vio);
+	read_data_vio(data_vio);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#48 $
  */
 
 #include "kvio.h"
@@ -123,7 +123,7 @@ void free_compressed_write_kvio(
 }
 
 /**********************************************************************/
-void writeCompressedBlock(struct allocating_vio *allocating_vio)
+void write_compressed_block(struct allocating_vio *allocating_vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
@@ -154,7 +154,7 @@ static inline bio_q_action get_metadata_action(struct vio *vio)
 }
 
 /**********************************************************************/
-void submitMetadataVIO(struct vio *vio)
+void submit_metadata_vio(struct vio *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;

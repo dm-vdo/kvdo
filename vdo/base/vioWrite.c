@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#43 $
  */
 
 /*
@@ -725,7 +725,7 @@ void compress_data(struct data_vio *data_vio)
 	data_vio->last_async_operation = COMPRESS_DATA;
 	set_packer_callback(data_vio, pack_compressed_data,
 			    THIS_LOCATION("$F;cb=pack"));
-	compressDataVIO(data_vio);
+	compress_data_vio(data_vio);
 }
 
 /**
@@ -905,7 +905,7 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 	// hashing.
 	set_allocated_zone_callback(data_vio, resolve_hash_zone,
 				    THIS_LOCATION(NULL));
-	hashDataVIO(data_vio);
+	hash_data_vio(data_vio);
 }
 
 /**
@@ -1023,7 +1023,7 @@ static void acknowledge_write(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(data_vio->has_flush_generation_lock,
 			"write VIO to be acknowledged has a flush generation lock");
 	data_vio->last_async_operation = ACKNOWLEDGE_WRITE;
-	acknowledgeDataVIO(data_vio);
+	acknowledge_data_vio(data_vio);
 }
 
 /**
@@ -1117,7 +1117,7 @@ static void write_block(struct data_vio *data_vio)
 	data_vio->last_async_operation = WRITE_DATA;
 	set_journal_callback(data_vio, finish_block_write,
 			     THIS_LOCATION("$F(data);cb=finishWrite"));
-	writeDataVIO(data_vio);
+	write_data_vio(data_vio);
 }
 
 /**
