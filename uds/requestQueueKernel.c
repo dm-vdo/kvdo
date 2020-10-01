@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/requestQueueKernel.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/requestQueueKernel.c#3 $
  */
 
 #include "requestQueue.h"
@@ -128,6 +128,22 @@ static INLINE Request *pollQueues(RequestQueue *queue)
 
 /*****************************************************************************/
 /**
+ * Check if the underlying lock-free queues appear not just not to have any
+ * requests available right now, but also not to be in the intermediate state
+ * of getting requests added. Must only be called by the worker thread.
+ *
+ * @param queue  the RequestQueue being serviced
+ *
+ * @return true iff both funnel queues are idle
+ **/
+static INLINE bool areQueuesIdle(RequestQueue *queue)
+{
+  return (isFunnelQueueIdle(queue->retryQueue) &&
+          isFunnelQueueIdle(queue->mainQueue));
+}
+
+/*****************************************************************************/
+/**
  * Remove the next request to be processed from the queue.  Must only be called
  * by the worker thread.
  *
@@ -175,8 +191,32 @@ static void requestQueueWorker(void *arg)
     Request *request;
     bool waited = false;
     if (dormant) {
+      /*
+       * Sleep/wakeup protocol:
+       *
+       * The enqueue operation updates "newest" in the
+       * funnel queue via xchg which is a memory barrier,
+       * and later checks "dormant" to decide whether to do
+       * a wakeup of the worker thread.
+       *
+       * The worker thread, when deciding to go to sleep,
+       * sets "dormant" and then examines "newest" to decide
+       * if the funnel queue is idle. In dormant mode, the
+       * last examination of "newest" before going to sleep
+       * is done inside the wait_event_interruptible macro,
+       * after a point where (one or more) memory barriers
+       * have been issued. (Preparing to sleep uses spin
+       * locks.) Even if the "next" field update isn't
+       * visible yet to make the entry accessible, its
+       * existence will kick the worker thread out of
+       * dormant mode and back into timer-based mode.
+       *
+       * So the two threads should agree on the ordering of
+       * the updating of the two fields.
+       */
       wait_event_interruptible(queue->wqhead,
-                               dequeueRequest(queue, &request, &waited));
+                               dequeueRequest(queue, &request, &waited) ||
+                               !areQueuesIdle(queue));
     } else {
       wait_event_interruptible_hrtimeout(queue->wqhead,
                                          dequeueRequest(queue, &request,
@@ -184,19 +224,14 @@ static void requestQueueWorker(void *arg)
                                          ns_to_ktime(timeBatch));
     }
 
-    if (unlikely(request == NULL)) {
-      if (READ_ONCE(queue->alive)) {
-        // Must have taken an interrupt; keep polling.
-        continue;
-      } else {
-        // We got no request and we know we are shutting down.
-        break;
-      }
+    if (likely(request != NULL)) {
+      // We got a request.
+      currentBatch++;
+      queue->processOne(request);
+    } else if (!READ_ONCE(queue->alive)) {
+      // We got no request and we know we are shutting down.
+      break;
     }
-
-    // We got a request.
-    currentBatch++;
-    queue->processOne(request);
 
     if (dormant) {
       // We've been roused from dormancy. Clear the flag so enqueuers can stop

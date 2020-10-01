@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/util/funnelQueue.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/util/funnelQueue.c#2 $
  */
 
 #include "funnelQueue.h"
@@ -139,4 +139,34 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
 bool isFunnelQueueEmpty(FunnelQueue *queue)
 {
   return getOldest(queue) == NULL;
+}
+
+/**********************************************************************/
+bool isFunnelQueueIdle(FunnelQueue *queue)
+{
+  /*
+   * Oldest is not the stub, so there's another entry, though if next is
+   * NULL we can't retrieve it yet.
+   */
+  if (queue->oldest != &queue->stub) {
+    return false;
+  }
+
+  /*
+   * Oldest is the stub, but newest has been updated by _put(); either
+   * there's another, retrievable entry in the list, or the list is
+   * officially empty but in the intermediate state of having an entry
+   * added.
+   *
+   * Whether anything is retrievable depends on whether stub.next has
+   * been updated and become visible to us, but for idleness we don't
+   * care. And due to memory ordering in _put(), the update to newest
+   * would be visible to us at the same time or sooner.
+   */
+  if (queue->newest != &queue->stub) {
+    return false;
+  }
+
+  // Otherwise, we're idle.
+  return true;
 }

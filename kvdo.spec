@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.3.114
+%define kmod_driver_version	6.2.4.14
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -85,5 +85,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
 
 %changelog
-* Thu Jul 30 2020 - J. corwin Coburn <corwin@redhat.com> - 6.2.3.114-1
-HASH(0x14d09e8)
+* Thu Oct 01 2020 - Red Hat VDO Group <vdo-devel@redhat.com> - 6.2.4.14-1
+HASH(0x55c9459fe3b8)
