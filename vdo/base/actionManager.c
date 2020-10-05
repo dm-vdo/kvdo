@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#24 $
  */
 
 #include "actionManager.h"
@@ -237,7 +237,7 @@ static void prepare_for_conclusion(struct action_manager *manager)
 static void apply_to_zone(struct vdo_completion *completion)
 {
 	struct action_manager *manager = as_action_manager(completion);
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 get_acting_zone_thread_id(manager)),
 			"apply_to_zone() called on acting zones's thread");
 
@@ -382,7 +382,8 @@ bool schedule_operation_with_context(struct action_manager *manager,
 				     void *context,
 				     struct vdo_completion *parent)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiator_thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+			 manager->initiator_thread_id),
 			"action initiated from correct thread");
 	struct action *action;
 	if (!manager->current_action->in_use) {

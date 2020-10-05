@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#83 $
  */
 
 /*
@@ -543,7 +543,7 @@ bool vdo_vio_tracing_enabled(const struct vdo *vdo)
 /**********************************************************************/
 void assert_on_admin_thread(struct vdo *vdo, const char *name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 get_admin_thread(get_thread_config(vdo))),
 			"%s called on admin thread",
 			name);
@@ -554,7 +554,7 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   zone_count_t logical_zone,
 				   const char *name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 		 		get_logical_zone_thread(get_thread_config(vdo),
 		 			 		logical_zone)),
 			"%s called on logical thread",
@@ -566,7 +566,7 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    zone_count_t physical_zone,
 				    const char *name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 		 		get_physical_zone_thread(get_thread_config(vdo),
 		 			  physical_zone)),
 			"%s called on physical thread",

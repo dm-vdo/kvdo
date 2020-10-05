@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#59 $
  */
 
 /*
@@ -447,7 +447,7 @@ static void perform_vdo_action_work(struct kvdo_work_item *item)
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
 	struct vdo_action_data *data = work->data;
-	thread_id_t id = getCallbackThreadID();
+	thread_id_t id = get_callback_thread_id();
 
 	set_callback_with_parent(data->vdo_completion,
 			        finish_vdo_action,
@@ -604,7 +604,7 @@ void kvdo_enqueue(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-thread_id_t getCallbackThreadID(void)
+thread_id_t get_callback_thread_id(void)
 {
 	struct kvdo_thread *thread = get_work_queue_private_data();
 

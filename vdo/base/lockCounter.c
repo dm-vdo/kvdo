@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#15 $
  */
 
 #include "lockCounter.h"
@@ -241,7 +241,7 @@ bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
 static void assert_on_journal_thread(struct lock_counter *counter,
 				     const char *caller)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 counter->completion.callback_thread_id),
 			"%s() called from journal zone", caller);
 }

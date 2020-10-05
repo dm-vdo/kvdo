@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.h#6 $
  */
 
 #ifndef BITS_H
@@ -84,8 +84,6 @@ get_field(const byte *memory, uint64_t offset, int size)
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
 static INLINE void
 set_field(unsigned int value, byte *memory, uint64_t offset, int size)
@@ -104,8 +102,6 @@ set_field(unsigned int value, byte *memory, uint64_t offset, int size)
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
 static INLINE void set_one(byte *memory, uint64_t offset, int size)
 {
@@ -129,8 +125,6 @@ static INLINE void set_one(byte *memory, uint64_t offset, int size)
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
 static INLINE void set_zero(byte *memory, uint64_t offset, int size)
 {

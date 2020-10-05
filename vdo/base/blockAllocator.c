@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#87 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -50,7 +50,7 @@
 static inline void assert_on_allocator_thread(thread_id_t thread_id,
 					      const char *function_name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() == thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == thread_id),
 			"%s called on correct thread",
 			function_name);
 }

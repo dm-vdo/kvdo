@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#23 $
  */
 
 #include "readOnlyNotifier.h"
@@ -190,7 +190,7 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 static void assert_on_admin_thread(struct read_only_notifier *notifier,
 				   const char *caller)
 {
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((get_admin_thread(notifier->thread_config) ==
 			 thread_id),
 			"%s called on admin thread",
@@ -351,7 +351,7 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 {
 	struct thread_data *thread_data =
-		&notifier->thread_data[getCallbackThreadID()];
+		&notifier->thread_data[get_callback_thread_id()];
 	if (thread_data->is_read_only) {
 		// This thread has already gone read-only.
 		return;
@@ -377,7 +377,7 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 /**********************************************************************/
 bool is_read_only(struct read_only_notifier *notifier)
 {
-	return notifier->thread_data[getCallbackThreadID()].is_read_only;
+	return notifier->thread_data[get_callback_thread_id()].is_read_only;
 }
 
 /**********************************************************************/

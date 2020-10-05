@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#30 $
  */
 
 #include "flush.h"
@@ -125,7 +125,7 @@ static void notify_flush(struct flusher *flusher);
 static void finish_notification(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
-	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"finish_notification() called from flusher thread");
 
 	struct waiter *waiter = dequeue_next_waiter(&flusher->notifiers);
@@ -202,7 +202,7 @@ static void notify_flush(struct flusher *flusher)
 void flush(struct vdo *vdo, struct vdo_flush *flush)
 {
 	struct flusher *flusher = vdo->flusher;
-	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"flush() called from flusher thread");
 
 	flush->flush_generation = flusher->flush_generation++;
@@ -223,7 +223,7 @@ void flush(struct vdo *vdo, struct vdo_flush *flush)
 /**********************************************************************/
 void complete_flushes(struct flusher *flusher)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"complete_flushes() called from flusher thread");
 
 	sequence_number_t oldest_active_generation = UINT64_MAX;

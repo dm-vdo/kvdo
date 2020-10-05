@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#57 $
  */
 
 #include "packerInternals.h"
@@ -43,7 +43,7 @@
 static inline void assert_on_packer_thread(struct packer *packer,
 					   const char *caller)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() == packer->thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == packer->thread_id),
 			"%s() called from packer thread", caller);
 }
 

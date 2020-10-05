@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#43 $
  */
 
 #include "logicalZone.h"
@@ -204,7 +204,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 static inline void assert_on_zone_thread(struct logical_zone *zone,
 					 const char *what)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() == zone->thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() == zone->thread_id),
 			"%s() called on correct thread", what);
 }
 

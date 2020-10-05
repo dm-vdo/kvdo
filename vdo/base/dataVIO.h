@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#52 $
  */
 
 #ifndef DATA_VIO_H
@@ -567,7 +567,7 @@ enqueue_data_vio(struct wait_queue *queue,
 static inline void assert_in_hash_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected = get_hash_zone_thread_id(data_vio->hash_zone);
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	// It's odd to use the LBN, but converting the chunk name to hex is a
 	// bit clunky for an inline, and the LBN better than nothing as an
 	// identifier.
@@ -622,7 +622,7 @@ static inline void assert_in_logical_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_logical_zone_thread_id(data_vio->logical.zone);
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on thread %u",
 			data_vio->logical.lbn,
@@ -718,7 +718,7 @@ static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->duplicate.zone);
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for duplicate physical block %llu on thread %u, should be on thread %u",
 			data_vio->duplicate.pbn,
@@ -770,7 +770,7 @@ static inline void assert_in_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->mapped.zone);
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for mapped physical block %llu on thread %u, should be on thread %u",
 			data_vio->mapped.pbn,
@@ -806,7 +806,7 @@ static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_physical_zone_thread_id(data_vio->new_mapped.zone);
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for new_mapped physical block %llu on thread %u, should be on thread %u",
 			data_vio->new_mapped.pbn,
@@ -858,7 +858,7 @@ static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on journal thread %u",
 			data_vio->logical.lbn,
@@ -908,7 +908,7 @@ static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
-	thread_id_t thread_id = getCallbackThreadID();
+	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on packer thread %u",
 			data_vio->logical.lbn,

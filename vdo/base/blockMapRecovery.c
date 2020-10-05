@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#32 $
  */
 
 #include "blockMapRecovery.h"
@@ -239,11 +239,12 @@ make_recovery_completion(struct vdo *vdo,
 			sizeof(struct numbered_block_mapping));
 	build_heap(&recovery->replay_heap, entry_count);
 
-	ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logical_thread_id),
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+			 recovery->logical_thread_id),
 			"%s must be called on logical thread %u (not %u)",
 			__func__,
 			recovery->logical_thread_id,
-			getCallbackThreadID());
+			get_callback_thread_id());
 	prepare_completion(&recovery->completion,
 			   finish_block_map_recovery,
 			   finish_block_map_recovery,

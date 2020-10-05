@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#68 $
  */
 
 #include "slabJournalInternals.h"
@@ -304,7 +304,7 @@ static void abort_waiter(struct waiter *waiter,
 /**********************************************************************/
 void abort_slab_journal_waiters(struct slab_journal *journal)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"abort_slab_journal_waiters() called on correct thread");
 	notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
@@ -1177,7 +1177,7 @@ bool release_recovery_journal_lock(struct slab_journal *journal,
 /**********************************************************************/
 void drain_slab_journal(struct slab_journal *journal)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"drain_slab_journal() called on correct thread");
 	if (is_quiescing(&journal->slab->state)) {
@@ -1286,7 +1286,7 @@ static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 /**********************************************************************/
 void decode_slab_journal(struct slab_journal *journal)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"decode_slab_journal() called on correct thread");
 	struct vdo_slab *slab = journal->slab;

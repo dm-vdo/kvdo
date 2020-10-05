@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#17 $
  */
 
 #include "slabJournalEraser.h"
@@ -121,7 +121,7 @@ void erase_slab_journals(struct slab_depot *depot,
 	prepare_completion(extent_completion,
 			   erase_next_slab_journal,
 			   handle_erasing_error,
-			   getCallbackThreadID(),
+			   get_callback_thread_id(),
 			   eraser);
 	erase_next_slab_journal(extent_completion);
 }
