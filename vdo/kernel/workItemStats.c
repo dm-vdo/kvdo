@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#14 $
  */
 
 #include "workItemStats.h"
@@ -280,24 +280,24 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 						    &mean,
 						    &max);
 			current_offset +=
-				snprintf(buffer + current_offset,
-					 length - current_offset,
-					 "%-36ps %d %10llu %10llu %10llu %10llu %10llu\n",
-					 function_ids->functions[i],
-					 function_ids->priorities[i],
-					 enqueued,
-					 processed,
-					 min,
-					 max,
-					 mean);
+				scnprintf(buffer + current_offset,
+					  length - current_offset,
+					  "%-36ps %d %10llu %10llu %10llu %10llu %10llu\n",
+					  function_ids->functions[i],
+					  function_ids->priorities[i],
+					  enqueued,
+					  processed,
+					  min,
+					  max,
+					  mean);
 		} else {
-			current_offset += snprintf(buffer + current_offset,
-						   length - current_offset,
-						   "%-36ps %d %10llu %10llu\n",
-						   function_ids->functions[i],
-						   function_ids->priorities[i],
-						   enqueued,
-						   processed);
+			current_offset += scnprintf(buffer + current_offset,
+						    length - current_offset,
+						    "%-36ps %d %10llu %10llu\n",
+						    function_ids->functions[i],
+						    function_ids->priorities[i],
+						    enqueued,
+						    processed);
 		}
 		if (current_offset >= length) {
 			break;
@@ -308,13 +308,13 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 
 		get_other_work_item_counts(stats, &enqueued, &processed);
 		if (enqueued > 0) {
-			current_offset += snprintf(buffer + current_offset,
-						   length - current_offset,
-						   "%-36s %d %10llu %10llu\n",
-						   "OTHER",
-						   0,
-						   enqueued,
-						   processed);
+			current_offset += scnprintf(buffer + current_offset,
+						    length - current_offset,
+						    "%-36s %d %10llu %10llu\n",
+						    "OTHER",
+						    0,
+						    enqueued,
+						    processed);
 		}
 	}
 	return current_offset;

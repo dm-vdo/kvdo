@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#38 $
  */
 
 #include "workQueue.h"
@@ -972,11 +972,11 @@ void dump_work_item_to_buffer(struct kvdo_work_item *item,
 			      size_t length)
 {
 	size_t current_length =
-		snprintf(buffer,
-			 length,
-			 "%.*s/",
-			 TASK_COMM_LEN,
-			 item->my_queue == NULL ? "-" : item->my_queue->name);
+		scnprintf(buffer,
+			  length,
+			  "%.*s/",
+			  TASK_COMM_LEN,
+			  item->my_queue == NULL ? "-" : item->my_queue->name);
 	if (current_length < length) {
 		get_function_name(item->stats_function,
 				  buffer + current_length,

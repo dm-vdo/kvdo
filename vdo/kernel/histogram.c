@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#17 $
  */
 
 #include <linux/kobject.h>
@@ -334,25 +334,25 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 		total += atomic64_read(&h->counters[i]);
 	}
 
-	length += snprintf(buffer,
-			   buffer_size,
-			   "%s Histogram - number of %s by %s",
-			   h->label,
-			   h->counted_items,
-			   h->metric);
+	length += scnprintf(buffer,
+			    buffer_size,
+			    "%s Histogram - number of %s by %s",
+			    h->label,
+			    h->counted_items,
+			    h->metric);
 	if (length >= (buffer_size - 1)) {
 		return buffer_size - 1;
 	}
 	if (h->sample_units != NULL) {
-		length += snprintf(buffer + length,
-				   buffer_size - length,
-				   " (%s)",
-				   h->sample_units);
+		length += scnprintf(buffer + length,
+				    buffer_size - length,
+				    " (%s)",
+				    h->sample_units);
 		if (length >= (buffer_size - 1)) {
 			return buffer_size - 1;
 		}
 	}
-	length += snprintf(buffer + length, buffer_size - length, "\n");
+	length += scnprintf(buffer + length, buffer_size - length, "\n");
 	if (length >= (buffer_size - 1)) {
 		return buffer_size - 1;
 	}
@@ -377,10 +377,10 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 
 		if (h->log_flag) {
 			if (i == h->num_buckets) {
-				length += snprintf(buffer + length,
-						   buffer_size - length,
-						   "%-16s",
-						   "Bigger");
+				length += scnprintf(buffer + length,
+						    buffer_size - length,
+						    "%-16s",
+						    "Bigger");
 			} else {
 				unsigned int lower =
 					h->conversion_factor * bottom_value[i];
@@ -388,43 +388,43 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 					h->conversion_factor *
 						bottom_value[i + 1] -
 					1;
-				length += snprintf(buffer + length,
-						   buffer_size - length,
-						   "%6u - %7u",
-						   lower,
-						   upper);
+				length += scnprintf(buffer + length,
+						    buffer_size - length,
+						    "%6u - %7u",
+						    lower,
+						    upper);
 			}
 		} else {
 			if (i == h->num_buckets) {
-				length += snprintf(buffer + length,
-						   buffer_size - length,
-						   "%6s",
-						   "Bigger");
+				length += scnprintf(buffer + length,
+						    buffer_size - length,
+						    "%6s",
+						    "Bigger");
 			} else {
-				length += snprintf(buffer + length,
-						   buffer_size - length,
-						   "%6d",
-						   i);
+				length += scnprintf(buffer + length,
+						    buffer_size - length,
+						    "%6d",
+						    i);
 			}
 		}
 		if (length >= (buffer_size - 1)) {
 			return buffer_size - 1;
 		}
-		length += snprintf(buffer + length,
-				   buffer_size - length,
-				   " : %12llu%.*s\n",
-				   value,
-				   bar_length,
-				   bar);
+		length += scnprintf(buffer + length,
+				    buffer_size - length,
+				    " : %12llu%.*s\n",
+				    value,
+				    bar_length,
+				    bar);
 		if (length >= (buffer_size - 1)) {
 			return buffer_size - 1;
 		}
 	}
 
-	length += snprintf(buffer + length,
-			   buffer_size - length,
-			   "total %llu\n",
-			   total);
+	length += scnprintf(buffer + length,
+			    buffer_size - length,
+			    "total %llu\n",
+			    total);
 	return min(buffer_size - 1, length);
 }
 
