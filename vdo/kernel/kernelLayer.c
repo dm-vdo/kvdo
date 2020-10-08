@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#115 $
  */
 
 #include "kernelLayer.h"
@@ -235,9 +235,9 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	 * through the kernel page cache or roll their own.
 	 */
 	if (!limiter_poll(&layer->request_limiter)) {
-	  add_to_deadlock_queue(&layer->deadlock_queue,
-				bio,
-				arrival_time);
+		add_to_deadlock_queue(&layer->deadlock_queue,
+				      bio,
+				      arrival_time);
 		log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;

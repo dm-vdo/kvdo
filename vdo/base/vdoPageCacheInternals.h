@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#25 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -86,9 +86,9 @@ struct vdo_page_cache {
 	/** queue of waiters who want a free page */
 	struct wait_queue free_waiters;
 	/**
-         * Statistics are only updated on the logical zone thread, but are
-         * accessed from other threads.
-         ***/
+	 * Statistics are only updated on the logical zone thread, but are
+	 * accessed from other threads.
+	 **/
 	struct block_map_statistics stats;
 	/** counter for pressure reports */
 	uint32_t pressure_report;

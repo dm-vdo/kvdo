@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#2 $
  */
 
 #ifndef SLAB_SUMMARY_FORMAT_H
@@ -31,7 +31,7 @@
 typedef uint8_t TailBlockOffset;
 
 enum {
-  SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
+	SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
 };
 
 struct slab_summary_entry {

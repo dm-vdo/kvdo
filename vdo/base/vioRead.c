@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#17 $
  */
 
 #include "vioRead.h"
@@ -40,8 +40,8 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	assert_in_logical_zone(data_vio);
 
 	if (completion->result != VDO_SUCCESS) {
-	  complete_data_vio(completion);
-	  return;
+		complete_data_vio(completion);
+		return;
 	}
 
 	apply_partial_write(data_vio);

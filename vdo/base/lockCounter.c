@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#16 $
  */
 
 #include "lockCounter.h"
@@ -318,12 +318,12 @@ static uint16_t release_reference(struct lock_counter *counter,
  **/
 static void attempt_notification(struct lock_counter *counter)
 {
-  if (compareAndSwap32(&counter->state,
-                       LOCK_COUNTER_STATE_NOT_NOTIFYING,
-                       LOCK_COUNTER_STATE_NOTIFYING)) {
-	  reset_completion(&counter->completion);
-	  invoke_callback(&counter->completion);
-  }
+	if (compareAndSwap32(&counter->state,
+			     LOCK_COUNTER_STATE_NOT_NOTIFYING,
+			     LOCK_COUNTER_STATE_NOTIFYING)) {
+		reset_completion(&counter->completion);
+		invoke_callback(&counter->completion);
+	}
 }
 
 /**********************************************************************/
@@ -387,6 +387,6 @@ bool resume_lock_counter(struct lock_counter *counter)
 {
 	assert_on_journal_thread(counter, __func__);
 	return compareAndSwap32(&counter->state,
-                          LOCK_COUNTER_STATE_SUSPENDED,
-                          LOCK_COUNTER_STATE_NOT_NOTIFYING);
+				LOCK_COUNTER_STATE_SUSPENDED,
+				LOCK_COUNTER_STATE_NOT_NOTIFYING);
 }
