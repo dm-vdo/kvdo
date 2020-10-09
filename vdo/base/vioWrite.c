@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#45 $
  */
 
 /*
@@ -1143,7 +1143,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 		return;
 	}
 
-	atomicStoreBool(&data_vio->has_allocation, true);
+	atomicStoreBool(&data_vio->allocation_succeeded, true);
 	data_vio->new_mapped = (struct zoned_pbn) {
 		.zone = allocating_vio->zone,
 		.pbn = allocating_vio->allocation,

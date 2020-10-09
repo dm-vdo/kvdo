@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#53 $
  */
 
 #ifndef DATA_VIO_H
@@ -193,7 +193,7 @@ struct data_vio {
 	 * Whether this vio has received an allocation (needs to be atomic so
 	 * it can be examined from threads not in the allocation zone).
 	 */
-	AtomicBool has_allocation;
+	AtomicBool allocation_succeeded;
 
 	/*
 	 * The new partition address of this block after the vio write
