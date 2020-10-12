@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#44 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -83,7 +83,7 @@ struct vdo {
 	/* The compressed-block packer */
 	struct packer *packer;
 	/* Whether incoming data should be compressed */
-	AtomicBool compressing;
+	bool compressing;
 
 	/* The handler for flush requests */
 	struct flusher *flusher;

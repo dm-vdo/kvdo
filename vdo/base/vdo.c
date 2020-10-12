@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#84 $
  */
 
 /*
@@ -267,10 +267,9 @@ void make_vdo_read_only(struct vdo *vdo, int error_code)
 /**********************************************************************/
 bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 {
-	bool state_changed = compareAndSwapBool(&vdo->compressing,
-						!enable_compression,
-						enable_compression);
-	if (state_changed && !enable_compression) {
+	bool was_enabled = vdo->compressing;
+	WRITE_ONCE(vdo->compressing, enable_compression);
+	if (was_enabled && !enable_compression) {
 		// Flushing the packer is asynchronous, but we don't care when
 		// it finishes.
 		flush_packer(vdo->packer);
@@ -278,13 +277,13 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 
 	log_info("compression is %s",
 		 (enable_compression ? "enabled" : "disabled"));
-	return (state_changed ? !enable_compression : enable_compression);
+	return was_enabled;
 }
 
 /**********************************************************************/
 bool get_vdo_compressing(struct vdo *vdo)
 {
-	return atomicLoadBool(&vdo->compressing);
+	return READ_ONCE(vdo->compressing);
 }
 
 /**********************************************************************/
