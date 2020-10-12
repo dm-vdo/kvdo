@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#54 $
  */
 
 #ifndef DATA_VIO_H
@@ -25,7 +25,6 @@
 #include "atomicDefs.h"
 
 #include "allocatingVIO.h"
-#include "atomic.h"
 #include "blockMapEntry.h"
 #include "blockMappingState.h"
 #include "constants.h"
@@ -190,10 +189,10 @@ struct data_vio {
 	bool is_duplicate;
 
 	/*
-	 * Whether this vio has received an allocation (needs to be atomic so
-	 * it can be examined from threads not in the allocation zone).
+	 * Whether this vio has received an allocation. This field is examined
+	 * from threads not in the allocation zone.
 	 */
-	AtomicBool allocation_succeeded;
+	bool allocation_succeeded;
 
 	/*
 	 * The new partition address of this block after the vio write

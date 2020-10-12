@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#39 $
  */
 
 #include "dataVIO.h"
 
 #include "logger.h"
 
-#include "atomic.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "extent.h"
@@ -280,7 +279,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	 * blocking in the packer and wait on it.
 	 */
 	if (is_read_data_vio(data_vio) &&
-	    atomicLoadBool(&lock_holder->allocation_succeeded)) {
+	    READ_ONCE(lock_holder->allocation_succeeded)) {
 		copy_data(lock_holder, data_vio);
 		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
