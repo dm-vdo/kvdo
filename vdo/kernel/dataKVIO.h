@@ -16,15 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#40 $
  */
 
 #ifndef DATA_KVIO_H
 #define DATA_KVIO_H
 
+#include "atomicDefs.h"
+#include "uds.h"
+
 #include "dataVIO.h"
 #include "kvio.h"
-#include "uds.h"
 
 struct external_io_request {
 	/*
@@ -47,7 +49,7 @@ struct dedupe_context {
 	struct uds_request uds_request;
 	struct list_head pending_list;
 	Jiffies submission_time;
-	Atomic32 request_state;
+	atomic_t request_state;
 	int status;
 	bool is_pending;
 	/** Hash of the associated VIO (NULL if not calculated) */

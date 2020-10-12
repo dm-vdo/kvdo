@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#68 $
  */
 
 #include "dedupeIndex.h"
@@ -24,6 +24,7 @@
 #include <linux/ratelimit.h>
 #include <linux/workqueue.h>
 
+#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
@@ -112,9 +113,10 @@ struct dedupe_index {
 
 // Version 1:  user space UDS index (limited to 32 bytes)
 // Version 2:  kernel space UDS index (limited to 16 bytes)
-enum { UDS_ADVICE_VERSION = 2,
-       // version byte + state byte + 64-bit little-endian PBN
-       UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
+enum {
+	UDS_ADVICE_VERSION = 2,
+	// version byte + state byte + 64-bit little-endian PBN
+	UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
 };
 
 /*****************************************************************************/
@@ -271,7 +273,8 @@ static void finish_index_operation(struct uds_request *uds_request)
 						   dedupe_context.uds_request);
 	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
 
-	if (compareAndSwap32(&dedupe_context->request_state, UR_BUSY, UR_IDLE)) {
+	if (atomic_cmpxchg(&dedupe_context->request_state,
+			   UR_BUSY, UR_IDLE) == UR_BUSY) {
 		struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 		struct dedupe_index *index = kvio->layer->dedupe_index;
 
@@ -296,9 +299,9 @@ static void finish_index_operation(struct uds_request *uds_request)
 		invoke_dedupe_callback(data_kvio);
 		atomic_dec(&index->active);
 	} else {
-		compareAndSwap32(&dedupe_context->request_state,
-				 UR_TIMED_OUT,
-				 UR_IDLE);
+		atomic_cmpxchg(&dedupe_context->request_state,
+			       UR_TIMED_OUT,
+			       UR_IDLE);
 	}
 }
 
@@ -468,9 +471,8 @@ static void timeout_index_operations(struct timer_list *t)
 		struct dedupe_context *dedupe_context =
 			&data_kvio->dedupe_context;
 		list_del(&dedupe_context->pending_list);
-		if (compareAndSwap32(&dedupe_context->request_state,
-				     UR_BUSY,
-				     UR_TIMED_OUT)) {
+		if (atomic_cmpxchg(&dedupe_context->request_state,
+				   UR_BUSY, UR_TIMED_OUT) == UR_BUSY) {
 			dedupe_context->status = ETIMEDOUT;
 			invoke_dedupe_callback(data_kvio);
 			atomic_dec(&index->active);
@@ -490,7 +492,8 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_time = jiffies;
-	if (compareAndSwap32(&dedupe_context->request_state, UR_IDLE, UR_BUSY)) {
+	if (atomic_cmpxchg(&dedupe_context->request_state,
+			   UR_IDLE, UR_BUSY) == UR_IDLE) {
 		struct uds_request *uds_request =
 			&data_kvio->dedupe_context.uds_request;
 
@@ -520,7 +523,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 			}
 			kvio = NULL;
 		} else {
-			atomicStore32(&dedupe_context->request_state, UR_IDLE);
+			atomic_set(&dedupe_context->request_state, UR_IDLE);
 		}
 		spin_unlock(&index->state_lock);
 	} else {
@@ -798,7 +801,7 @@ void get_index_statistics(struct dedupe_index *index,
 		struct uds_context_stats context_stats;
 
 		result = uds_get_index_session_stats(index->index_session,
-					             &context_stats);
+						     &context_stats);
 		if (result == UDS_SUCCESS) {
 			stats->posts_found = context_stats.posts_found;
 			stats->posts_not_found = context_stats.posts_not_found;
