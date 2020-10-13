@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#79 $
  */
 
 #include "slabDepot.h"
@@ -575,7 +575,7 @@ void prepare_to_allocate(struct slab_depot *depot,
 			 struct vdo_completion *parent)
 {
 	depot->load_type = load_type;
-	atomicStore32(&depot->zones_to_scrub, depot->zone_count);
+	atomic_set(&depot->zones_to_scrub, depot->zone_count);
 	schedule_action(depot->action_manager,
 			NULL,
 			prepare_allocator_to_allocate,
@@ -742,7 +742,7 @@ void scrub_all_unrecovered_slabs(struct slab_depot *depot,
 void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 {
 	struct slab_depot *depot = completion->parent;
-	if (atomicAdd32(&depot->zones_to_scrub, -1) == 0) {
+	if (atomic_add_return(-1, &depot->zones_to_scrub) == 0) {
 		// We're the last!
 		if (compareAndSwap32(depot->vdo_state, VDO_RECOVERING,
 				     VDO_DIRTY)) {
