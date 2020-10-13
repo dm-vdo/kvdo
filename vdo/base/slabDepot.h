@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#38 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -411,15 +411,6 @@ get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone);
  **/
 void scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				 struct vdo_completion *parent);
-
-/**
- * Check whether there are outstanding unrecovered slabs.
- *
- * @param depot  The slab depot
- *
- * @return Whether there are outstanding unrecovered slabs
- **/
-bool has_unrecovered_slabs(struct slab_depot *depot);
 
 /**
  * Get the physical size to which this depot is prepared to grow.

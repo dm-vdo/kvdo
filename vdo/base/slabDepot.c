@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#78 $
  */
 
 #include "slabDepot.h"
@@ -760,12 +760,6 @@ void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 			log_info("VDO commencing normal operation");
 		}
 	}
-}
-
-/**********************************************************************/
-bool has_unrecovered_slabs(struct slab_depot *depot)
-{
-	return (atomicLoad32(&depot->zones_to_scrub) > 0);
 }
 
 /**********************************************************************/

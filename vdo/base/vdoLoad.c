@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#55 $
  */
 
 #include "vdoLoad.h"
@@ -153,11 +153,6 @@ static void continue_load_read_only(struct vdo_completion *completion)
 static void scrub_slabs(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	if (!has_unrecovered_slabs(vdo->depot)) {
-		finish_parent_callback(completion);
-		return;
-	}
-
 	if (requires_recovery(vdo)) {
 		enter_recovery_mode(vdo);
 	}
