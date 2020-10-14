@@ -16,14 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#39 $
  */
 
 #ifndef SLAB_DEPOT_H
 #define SLAB_DEPOT_H
 
+#include "atomicDefs.h"
+
 #include "adminState.h"
-#include "atomic.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
@@ -84,7 +85,7 @@ decode_slab_depot(struct slab_depot_state_2_0 state,
 		  struct partition *summary_partition,
 		  struct read_only_notifier *read_only_notifier,
 		  struct recovery_journal *recovery_journal,
-		  Atomic32 *vdo_state,
+		  atomic_t *vdo_state,
 		  struct slab_depot **depot_ptr);
 
 /**

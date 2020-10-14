@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#85 $
  */
 
 /*
@@ -121,13 +121,16 @@ void free_vdo(struct vdo **vdo_ptr)
 /**********************************************************************/
 VDOState get_vdo_state(const struct vdo *vdo)
 {
-	return atomicLoad32(&vdo->state);
+	VDOState state = atomic_read(&vdo->state);
+	smp_rmb();
+	return state;
 }
 
 /**********************************************************************/
 void set_vdo_state(struct vdo *vdo, VDOState state)
 {
-	atomicStore32(&vdo->state, state);
+	smp_wmb();
+	atomic_set(&vdo->state, state);
 }
 
 /**

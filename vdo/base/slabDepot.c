@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#80 $
  */
 
 #include "slabDepot.h"
@@ -285,7 +285,7 @@ int decode_slab_depot(struct slab_depot_state_2_0 state,
 		      struct partition *summary_partition,
 		      struct read_only_notifier *read_only_notifier,
 		      struct recovery_journal *recovery_journal,
-		      Atomic32 *vdo_state,
+		      atomic_t *vdo_state,
 		      struct slab_depot **depot_ptr)
 {
 	// Calculate the bit shift for efficiently mapping block numbers to
@@ -742,23 +742,27 @@ void scrub_all_unrecovered_slabs(struct slab_depot *depot,
 void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 {
 	struct slab_depot *depot = completion->parent;
-	if (atomic_add_return(-1, &depot->zones_to_scrub) == 0) {
-		// We're the last!
-		if (compareAndSwap32(depot->vdo_state, VDO_RECOVERING,
-				     VDO_DIRTY)) {
-			log_info("Exiting recovery mode");
-			return;
-		}
+	if (atomic_add_return(-1, &depot->zones_to_scrub) > 0) {
+		return;
+	}
 
-		/*
-		 * We must check the VDO state here and not the depot's
-		 * read_only_notifier since the compare-swap-above could have
-		 * failed due to a read-only entry which our own thread does not
-		 * yet know about.
-		 */
-		if (atomicLoad32(depot->vdo_state) == VDO_DIRTY) {
-			log_info("VDO commencing normal operation");
-		}
+	// We're the last!
+	VDOState prior_state = atomic_cmpxchg(depot->vdo_state,
+					      VDO_RECOVERING, VDO_DIRTY);
+	// To be safe, even if the CAS failed, ensure anything that follows is
+	// ordered with respect to whatever state change did happen.
+	smp_mb__after_atomic();
+
+	/*
+	 * We must check the VDO state here and not the depot's
+	 * read_only_notifier since the compare-swap-above could have
+	 * failed due to a read-only entry which our own thread does not
+	 * yet know about.
+	 */
+	if (prior_state == VDO_DIRTY) {
+		log_info("VDO commencing normal operation");
+	} else if (prior_state == VDO_RECOVERING) {
+		log_info("Exiting recovery mode");
 	}
 }
 

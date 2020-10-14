@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#45 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -26,7 +26,6 @@
 
 #include "atomicDefs.h"
 
-#include "atomic.h"
 #include "adminCompletion.h"
 #include "adminState.h"
 #include "header.h"
@@ -54,7 +53,7 @@ struct atomic_error_statistics {
 
 struct vdo {
 	/* The atomic version of the state of this vdo */
-	Atomic32 state;
+	atomic_t state;
 	/* The full state of all components */
 	struct vdo_component_states states;
 	/* The read-only notifier */
