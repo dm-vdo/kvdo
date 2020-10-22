@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#9 $
  */
 
 #ifndef PBN_LOCK_H
 #define PBN_LOCK_H
 
-#include "atomic.h"
+#include "atomicDefs.h"
+
 #include "types.h"
 
 /**
@@ -70,7 +71,7 @@ struct pbn_lock {
 	 * claim will first increment this counter, so it can exceed the
 	 * increment limit.
 	 **/
-	Atomic32 increments_claimed;
+	atomic_t increments_claimed;
 };
 
 /**

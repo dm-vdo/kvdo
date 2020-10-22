@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#9 $
  */
 
 #include "pbnLock.h"
@@ -120,7 +120,8 @@ bool claim_pbn_lock_increment(struct pbn_lock *lock)
 	 * time-frame, we won't overflow a 32-bit claim counter, allowing a
 	 * simple add instead of a compare-and-swap.
 	 */
-	uint32_t claim_number = atomicAdd32(&lock->increments_claimed, 1);
+	uint32_t claim_number =
+		(uint32_t) atomic_add_return(1, &lock->increments_claimed);
 	return (claim_number <= lock->increment_limit);
 }
 
