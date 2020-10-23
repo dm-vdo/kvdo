@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#24 $
  */
 
 #include "readOnlyNotifier.h"
 
-#include "atomic.h"
+#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -39,15 +39,16 @@
  * here.
  *
  * When enter_read_only_mode() is called from some base thread, a
- * compare-and-swap is done on the readOnlyError, setting it to the supplied
+ * compare-and-swap is done on read_only_error, setting it to the supplied
  * error if the value was VDO_SUCCESS. If this fails, some other thread has
- * already intiated read-only entry or scheduled a pending entry, so the call
+ * already initiated read-only entry or scheduled a pending entry, so the call
  * exits. Otherwise, a compare-and-swap is done on the state, setting it to
- * NOTIFYING if the value was MAY_NOTIFY. If this succeeds, the caller initiates
- * the notification. If this failed due to notifications being disallowed, the
- * notifier will be in the MAY_NOT_NOTIFY state but readOnlyError will not be
- * VDO_SUCCESS. This configuration will indicate to allow_read_only_mode_entry()
- * that there is a pending notification to perform.
+ * NOTIFYING if the value was MAY_NOTIFY. If this succeeds, the caller
+ * initiates the notification. If this failed due to notifications being
+ * disallowed, the notifier will be in the MAY_NOT_NOTIFY state but
+ * read_only_error will not be VDO_SUCCESS. This configuration will indicate
+ * to allow_read_only_mode_entry() that there is a pending notification to
+ * perform.
  **/
 enum {
 	/** Notifications are allowed but not in progress */
@@ -98,9 +99,9 @@ struct read_only_notifier {
 	/** A completion waiting for notifications to be drained or enabled */
 	struct vdo_completion *waiter;
 	/** The code of the error which put the VDO into read-only mode */
-	Atomic32 read_only_error;
+	atomic_t read_only_error;
 	/** The current state of the notifier (values described above) */
-	Atomic32 state;
+	atomic_t state;
 	/** The thread config of the VDO */
 	const struct thread_config *thread_config;
 	/** The array of per-thread data */
@@ -139,11 +140,10 @@ int make_read_only_notifier(bool is_read_only,
 
 	notifier->thread_config = thread_config;
 	if (is_read_only) {
-		atomicStore32(&notifier->read_only_error,
-			      (uint32_t) VDO_READ_ONLY);
-		atomicStore32(&notifier->state, NOTIFIED);
+		atomic_set(&notifier->read_only_error, VDO_READ_ONLY);
+		atomic_set(&notifier->state, NOTIFIED);
 	} else {
-		atomicStore32(&notifier->state, MAY_NOTIFY);
+		atomic_set(&notifier->state, MAY_NOTIFY);
 	}
 
 	initialize_completion(&notifier->completion, READ_ONLY_MODE_COMPLETION,
@@ -212,14 +212,20 @@ void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
 		return;
 	}
 
-	uint32_t state = atomicLoad32(&notifier->state);
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int state = atomic_cmpxchg(&notifier->state,
+				   MAY_NOTIFY, MAY_NOT_NOTIFY);
+	smp_mb__after_atomic();
+
 	if ((state == MAY_NOT_NOTIFY) || (state == NOTIFIED)) {
 		// Notifications are already done or disallowed.
 		complete_completion(parent);
 		return;
 	}
 
-	if (compareAndSwap32(&notifier->state, MAY_NOTIFY, MAY_NOT_NOTIFY)) {
+	if (state == MAY_NOTIFY) {
 		// A notification was not in progress, and now they are
 		// disallowed.
 		complete_completion(parent);
@@ -243,7 +249,8 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 {
 	struct read_only_notifier *notifier = as_notifier(completion);
 	assert_on_admin_thread(notifier, __func__);
-	atomicStore32(&notifier->state, NOTIFIED);
+	smp_wmb();
+	atomic_set(&notifier->state, NOTIFIED);
 
 	struct vdo_completion *waiter = notifier->waiter;
 	if (waiter != NULL) {
@@ -271,7 +278,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		if (thread_id == 0) {
 			// Note: This message must be recognizable by
 			// Permabit::UserMachine.
-			log_error_strerror((int) atomicLoad32(&notifier->read_only_error),
+			log_error_strerror(atomic_read(&notifier->read_only_error),
 					   "Unrecoverable error, entering read-only mode");
 		}
 	} else {
@@ -319,24 +326,40 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 		return;
 	}
 
-	if (!compareAndSwap32(&notifier->state, MAY_NOT_NOTIFY, MAY_NOTIFY)) {
-		// Notifications were already allowed or complete
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int state = atomic_cmpxchg(&notifier->state,
+				   MAY_NOT_NOTIFY, MAY_NOTIFY);
+	smp_mb__after_atomic();
+
+	if (state != MAY_NOT_NOTIFY) {
+		// Notifications were already allowed or complete.
 		complete_completion(parent);
 		return;
 	}
 
-	if ((int) atomicLoad32(&notifier->read_only_error) == VDO_SUCCESS) {
+	if (atomic_read(&notifier->read_only_error) == VDO_SUCCESS) {
+		smp_rmb();
 		// We're done
 		complete_completion(parent);
 		return;
 	}
 
 	// There may have been a pending notification
-	if (!compareAndSwap32(&notifier->state, MAY_NOTIFY, NOTIFYING)) {
+
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
+	smp_mb__after_atomic();
+
+	if (state != MAY_NOTIFY) {
 		/*
-		 * There wasn't, the error check raced with a thread calling
-		 * enter_read_only_mode() after we set the state to MAY_NOTIFY.
-		 * It has already started the notification.
+		 * There wasn't a pending notification; the error check raced
+		 * with a thread calling enter_read_only_mode() after we set
+		 * the state to MAY_NOTIFY. It has already started the
+		 * notification.
 		 */
 		complete_completion(parent);
 		return;
@@ -360,18 +383,29 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 	// Record for this thread that the VDO is read-only.
 	thread_data->is_read_only = true;
 
-	if (!compareAndSwap32(&notifier->read_only_error,
-			      (uint32_t) VDO_SUCCESS,
-			      (uint32_t) error_code)) {
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int state = atomic_cmpxchg(&notifier->read_only_error,
+				   VDO_SUCCESS, error_code);
+	smp_mb__after_atomic();
+
+	if (state != VDO_SUCCESS) {
 		// The notifier is already aware of a read-only error
 		return;
 	}
 
-	if (compareAndSwap32(&notifier->state, MAY_NOTIFY, NOTIFYING)) {
-		// Initiate a notification starting on the lowest numbered
-		// thread.
-		launch_callback(&notifier->completion, make_thread_read_only, 0);
+	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
+	// Extra barrier because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__after_atomic();
+
+	if (state != MAY_NOTIFY) {
+		return;
 	}
+
+	// Initiate a notification starting on the lowest numbered thread.
+	launch_callback(&notifier->completion, make_thread_read_only, 0);
 }
 
 /**********************************************************************/
@@ -383,8 +417,7 @@ bool is_read_only(struct read_only_notifier *notifier)
 /**********************************************************************/
 bool is_or_will_be_read_only(struct read_only_notifier *notifier)
 {
-	return (((int) relaxedLoad32(&notifier->read_only_error)) !=
-		VDO_SUCCESS);
+	return (atomic_read(&notifier->read_only_error) != VDO_SUCCESS);
 }
 
 /**********************************************************************/
