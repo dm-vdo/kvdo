@@ -34,7 +34,7 @@ Other Contributors:
     Updates for FC26/Kernel 4.13
   Vojtech Trefny <vtrefny@redhat.com>
     Getting correct size of partitions
-  Achilles Gaikwad <agaikwad@redhat.com>
+  Achilles Gaikwad <achilleg@amazon.com>
     Bash completion for the vdo and vdostats commands
   Jin-young Kwon <gc757489@gmail.com>
     Adding vdo --version command, and documentation fixes
