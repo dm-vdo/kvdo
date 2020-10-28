@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#17 $
  */
 
 #include "lockCounter.h"
 
 #include "atomic.h"
+#include "atomicDefs.h"
 #include "memoryAlloc.h"
 
 /**
@@ -57,13 +58,13 @@ struct lock_counter {
 	/** Whether the lock release notification is in flight */
 	Atomic32 state;
 	/** The number of logical zones which hold each lock */
-	Atomic32 *logical_zone_counts;
+	atomic_t *logical_zone_counts;
 	/** The number of physical zones which hold each lock */
-	Atomic32 *physical_zone_counts;
+	atomic_t *physical_zone_counts;
 	/** The per-zone, per-lock counts for the journal zone */
 	uint16_t *journal_counters;
 	/** The per-zone, per-lock decrement counts for the journal zone */
-	Atomic32 *journal_decrement_counts;
+	atomic_t *journal_decrement_counts;
 	/** The per-zone, per-lock reference counts for logical zones */
 	uint16_t *logical_counters;
 	/** The per-zone, per-lock reference counts for physical zones */
@@ -90,7 +91,7 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		return result;
 	}
 
-	result = ALLOCATE(locks, Atomic32, __func__,
+	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS) {
 		free_lock_counter(&lock_counter);
@@ -104,7 +105,7 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		return result;
 	}
 
-	result = ALLOCATE(locks, Atomic32, __func__,
+	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->logical_zone_counts);
 	if (result != VDO_SUCCESS) {
 		free_lock_counter(&lock_counter);
@@ -118,7 +119,7 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		return result;
 	}
 
-	result = ALLOCATE(locks, Atomic32, __func__,
+	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->physical_zone_counts);
 	if (result != VDO_SUCCESS) {
 		free_lock_counter(&lock_counter);
@@ -144,9 +145,9 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
 	}
 
 	struct lock_counter *lock_counter = *lock_counter_ptr;
-	free_volatile(lock_counter->physical_zone_counts);
-	free_volatile(lock_counter->logical_zone_counts);
-	free_volatile(lock_counter->journal_decrement_counts);
+	FREE(lock_counter->physical_zone_counts);
+	FREE(lock_counter->logical_zone_counts);
+	FREE(lock_counter->journal_decrement_counts);
 	FREE(lock_counter->journal_counters);
 	FREE(lock_counter->logical_counters);
 	FREE(lock_counter->physical_counters);
@@ -163,7 +164,7 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
  *
  * @return A pointer to the zone count for the given lock and zone
  **/
-static inline Atomic32 *get_zone_count_ptr(struct lock_counter *counter,
+static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
 					   block_count_t lock_number,
 					   zone_type zone_type)
 {
@@ -213,7 +214,8 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 	uint16_t journal_value =
 		*(get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0));
 	uint32_t decrements =
-		atomicLoad32(&(counter->journal_decrement_counts[lock_number]));
+		atomic_read(&(counter->journal_decrement_counts[lock_number]));
+	smp_rmb();
 	ASSERT_LOG_ONLY((decrements <= journal_value),
 			"journal zone lock counter must not underflow");
 
@@ -226,10 +228,15 @@ bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
 {
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"is_locked() called for non-journal zone");
-	return (is_journal_zone_locked(lock_counter, lock_number)
-		|| (atomicLoad32(get_zone_count_ptr(lock_counter,
-						    lock_number, zone_type))
-		    != 0));
+	if (is_journal_zone_locked(lock_counter, lock_number)) {
+		return true;
+	}
+
+	atomic_t *zone_count = get_zone_count_ptr(lock_counter, lock_number,
+						  zone_type);
+	bool locked = (atomic_read(zone_count) != 0);
+	smp_rmb();
+	return locked;
 }
 
 /**
@@ -254,13 +261,13 @@ void initialize_lock_count(struct lock_counter *counter,
 	assert_on_journal_thread(counter, __func__);
 	uint16_t *journal_value =
 		get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
-	Atomic32 *decrement_count =
+	atomic_t *decrement_count =
 		&(counter->journal_decrement_counts[lock_number]);
-	ASSERT_LOG_ONLY((*journal_value == atomicLoad32(decrement_count)),
+	ASSERT_LOG_ONLY((*journal_value == atomic_read(decrement_count)),
 			"count to be initialized not in use");
 
 	*journal_value = value;
-	atomicStore32(decrement_count, 0);
+	atomic_set(decrement_count, 0);
 }
 
 /**********************************************************************/
@@ -279,8 +286,12 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 
 	if (*current_value == 0) {
 		// This zone is acquiring this lock for the first time.
-		atomicAdd32(get_zone_count_ptr(counter, lock_number,
-					       zone_type), 1);
+		// Extra barriers because this was original developed using
+		// an atomic add operation that implicitly had them.
+		smp_mb__before_atomic();
+		atomic_add(1, get_zone_count_ptr(counter, lock_number,
+						 zone_type));
+		smp_mb__after_atomic();
 	}
 	*current_value += 1;
 }
@@ -338,8 +349,9 @@ void release_lock_count_reference(struct lock_counter *counter,
 		return;
 	}
 
-	if (atomicAdd32(get_zone_count_ptr(counter, lock_number, zone_type), -1)
-	    == 0) {
+	atomic_t *zone_count = get_zone_count_ptr(counter, lock_number,
+						  zone_type);
+	if (atomic_add_return(-1, zone_count) == 0) {
 		// This zone was the last lock holder of its type, so try to
 		// notify the owner.
 		attempt_notification(counter);
@@ -363,7 +375,11 @@ void
 release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 					       block_count_t lock_number)
 {
-	atomicAdd32(&(counter->journal_decrement_counts[lock_number]), 1);
+	// Extra barriers because this was original developed using
+	// an atomic add operation that implicitly had them.
+	smp_mb__before_atomic();
+	atomic_add(1, &(counter->journal_decrement_counts[lock_number]));
+	smp_mb__after_atomic();
 }
 
 /**********************************************************************/
