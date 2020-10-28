@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#72 $
  */
 
 #include "dmvdo.h"
@@ -639,24 +639,15 @@ static int vdo_initialize(struct dm_target *ti,
 /**********************************************************************/
 static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-	// Mild hack to avoid bumping instance number when we needn't.
-	char *pool_name;
-	int result = get_pool_name_from_argv(argc,
-					     argv,
-					     &ti->error,
-					     &pool_name);
-	if (result != VDO_SUCCESS) {
-		return -EINVAL;
-	}
+	int result = VDO_SUCCESS;
 
 	struct registered_thread allocating_thread;
-
 	register_allocating_thread(&allocating_thread, NULL);
 
+     	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
 	struct kernel_layer *old_layer = find_layer_matching(layer_is_named,
-							     pool_name);
+							     (void *)device_name);
 	unsigned int instance;
-
 	if (old_layer == NULL) {
 		result = allocate_kvdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
@@ -668,7 +659,6 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	struct registered_thread instance_thread;
-
 	register_thread_device_id(&instance_thread, &instance);
 
 	bool verbose = (old_layer == NULL);

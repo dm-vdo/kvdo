@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#116 $
  */
 
 #include "kernelLayer.h"
@@ -108,7 +108,9 @@ static block_count_t kvdo_get_block_count(PhysicalLayer *header)
 /**********************************************************************/
 bool layer_is_named(struct kernel_layer *layer, void *context)
 {
-	return (strcmp(layer->device_config->pool_name, (char *) context) == 0);
+  struct dm_target *ti = layer->device_config->owning_target;
+  const char *device_name = dm_device_name(dm_table_get_md(ti->table));
+  return (strcmp(device_name, (const char *) context) == 0);
 }
 
 /**
@@ -896,6 +898,29 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 	return VDO_SUCCESS;
 }
 
+/**********************************************************************
+ * Modify the pool name of the device.
+ *
+ * @param layer       The kernel layer
+ * @param old_name    The old pool name
+ * @param new_name    The new pool name
+ *
+ * @return  VDO_SUCCESS or an error
+ *
+ */
+int modify_pool_name(struct kernel_layer *layer, char *old_name, char *new_name)
+{
+	// We use pool name for sysfs and procfs. Rename them accordingly
+	log_info("Modify pool name from %s to %s", old_name, new_name);
+
+	int result = kobject_rename(&layer->kobj, new_name);
+	if (result != 0) {
+		return result;
+	}
+
+	return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
@@ -947,6 +972,18 @@ int modify_kernel_layer(struct kernel_layer *layer,
 	    (config->version == 0)) {
 		int result = resize_physical(layer, config->physical_blocks);
 
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+	}
+
+	if (strcmp(config->pool_name, extant_config->pool_name) != 0) {
+		log_info("Modifying device '%s' pool name from %s to %s",
+			 config->pool_name,
+			 extant_config->pool_name,
+			 config->pool_name);
+		int result = modify_pool_name(layer, extant_config->pool_name,
+					      config->pool_name);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
