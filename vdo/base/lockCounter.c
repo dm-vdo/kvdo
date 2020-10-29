@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#18 $
  */
 
 #include "lockCounter.h"
 
-#include "atomic.h"
 #include "atomicDefs.h"
 #include "memoryAlloc.h"
 
@@ -56,7 +55,7 @@ struct lock_counter {
 	/** The number of locks */
 	block_count_t locks;
 	/** Whether the lock release notification is in flight */
-	Atomic32 state;
+	atomic_t state;
 	/** The number of logical zones which hold each lock */
 	atomic_t *logical_zone_counts;
 	/** The number of physical zones which hold each lock */
@@ -329,12 +328,20 @@ static uint16_t release_reference(struct lock_counter *counter,
  **/
 static void attempt_notification(struct lock_counter *counter)
 {
-	if (compareAndSwap32(&counter->state,
-			     LOCK_COUNTER_STATE_NOT_NOTIFYING,
-			     LOCK_COUNTER_STATE_NOTIFYING)) {
-		reset_completion(&counter->completion);
-		invoke_callback(&counter->completion);
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int prior_state = atomic_cmpxchg(&counter->state,
+					 LOCK_COUNTER_STATE_NOT_NOTIFYING,
+					 LOCK_COUNTER_STATE_NOTIFYING);
+	smp_mb__after_atomic();
+
+	if (prior_state != LOCK_COUNTER_STATE_NOT_NOTIFYING) {
+		return;
 	}
+
+	reset_completion(&counter->completion);
+	invoke_callback(&counter->completion);
 }
 
 /**********************************************************************/
@@ -385,24 +392,39 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 /**********************************************************************/
 void acknowledge_unlock(struct lock_counter *counter)
 {
-	atomicStore32(&counter->state, LOCK_COUNTER_STATE_NOT_NOTIFYING);
+	smp_wmb();
+	atomic_set(&counter->state, LOCK_COUNTER_STATE_NOT_NOTIFYING);
 }
 
 /**********************************************************************/
 bool suspend_lock_counter(struct lock_counter *counter)
 {
 	assert_on_journal_thread(counter, __func__);
-	return ((atomicLoad32(&counter->state) == LOCK_COUNTER_STATE_SUSPENDED)
-		|| compareAndSwap32(&counter->state,
-				    LOCK_COUNTER_STATE_NOT_NOTIFYING,
-				    LOCK_COUNTER_STATE_SUSPENDED));
+
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int prior_state = atomic_cmpxchg(&counter->state,
+					 LOCK_COUNTER_STATE_NOT_NOTIFYING,
+					 LOCK_COUNTER_STATE_SUSPENDED);
+	smp_mb__after_atomic();
+
+	return ((prior_state == LOCK_COUNTER_STATE_SUSPENDED)
+		|| (prior_state == LOCK_COUNTER_STATE_NOT_NOTIFYING));
 }
 
 /**********************************************************************/
 bool resume_lock_counter(struct lock_counter *counter)
 {
 	assert_on_journal_thread(counter, __func__);
-	return compareAndSwap32(&counter->state,
-				LOCK_COUNTER_STATE_SUSPENDED,
-				LOCK_COUNTER_STATE_NOT_NOTIFYING);
+
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	int prior_state = atomic_cmpxchg(&counter->state,
+					 LOCK_COUNTER_STATE_SUSPENDED,
+					 LOCK_COUNTER_STATE_NOT_NOTIFYING);
+	smp_mb__after_atomic();
+
+	return (prior_state == LOCK_COUNTER_STATE_SUSPENDED);
 }
