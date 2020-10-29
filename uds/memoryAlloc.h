@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#7 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -268,20 +268,6 @@ static INLINE void free_const(const void *pointer)
 		void *not_const;
 	} u = { .const_p = pointer };
 	FREE(u.not_const);
-}
-
-/**
- * Wrapper which permits freeing a volatile pointer.
- *
- * @param pointer  the pointer to be freed
- **/
-static INLINE void free_volatile(volatile void *pointer)
-{
-	union {
-		volatile void *vol_p;
-		void *not_vol;
-	} u = { .vol_p = pointer };
-	FREE(u.not_vol);
 }
 
 /**
