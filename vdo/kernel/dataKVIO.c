@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#89 $
  */
 
 #include "dataKVIO.h"
@@ -144,7 +144,7 @@ static void kvdo_acknowledge_data_kvio(struct data_kvio *data_kvio)
 	bio->bi_opf = external_io_request->rw;
 
 	count_bios(&layer->biosAcknowledged, bio);
-	if (data_kvio->isPartial) {
+	if (data_kvio->is_partial) {
 		count_bios(&layer->biosAcknowledgedPartial, bio);
 	}
 
@@ -266,7 +266,7 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 
 	// For a partial read, the callback will copy the requested data from
 	// the read block.
-	if (data_kvio->isPartial) {
+	if (data_kvio->is_partial) {
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
 	}
@@ -437,7 +437,7 @@ void read_data_vio(struct data_vio *data_vio)
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		reset_bio(data_kvio->data_block_bio);
 		data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
-	} else if (data_kvio->isPartial) {
+	} else if (data_kvio->is_partial) {
 		// A partial read.
 		reset_bio(data_kvio->data_block_bio);
 		data_kvio->data_block_bio->bi_opf =
@@ -761,10 +761,10 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 
 	data_kvio->external_io_request = external_io_request;
 	data_kvio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
-	data_kvio->isPartial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
+	data_kvio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 			       (data_kvio->offset != 0));
 
-	if (data_kvio->isPartial) {
+	if (data_kvio->is_partial) {
 		count_bios(&layer->biosInPartial, bio);
 	} else {
 		/*
@@ -792,7 +792,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 		}
 	}
 
-	if (data_kvio->isPartial || (bio_data_dir(bio) == WRITE)) {
+	if (data_kvio->is_partial || (bio_data_dir(bio) == WRITE)) {
 		/*
 		 * kvio->bio will point at data_kvio->data_block_bio for all
 		 * writes and partial block I/O so the rest of the kernel code
@@ -834,20 +834,20 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 		    (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset));
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_kvio->remaining_discard == 0)) {
-		if (data_kvio->hasDiscardPermit) {
+		if (data_kvio->has_discard_permit) {
 			limiter_release(&layer->discard_limiter);
-			data_kvio->hasDiscardPermit = false;
+			data_kvio->has_discard_permit = false;
 		}
 		kvdo_complete_data_kvio(completion);
 		return;
 	}
 
-	data_kvio->isPartial = (data_kvio->remaining_discard < VDO_BLOCK_SIZE);
+	data_kvio->is_partial = (data_kvio->remaining_discard < VDO_BLOCK_SIZE);
 	data_kvio->offset = 0;
 
 	vio_operation operation;
 
-	if (data_kvio->isPartial) {
+	if (data_kvio->is_partial) {
 		operation = VIO_READ_MODIFY_WRITE;
 	} else {
 		operation = VIO_WRITE;
@@ -858,7 +858,7 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 	}
 
 	prepare_data_vio(data_vio, data_vio->logical.lbn + 1, operation,
-		         !data_kvio->isPartial, kvdo_continue_discard_kvio);
+		         !data_kvio->is_partial, kvdo_continue_discard_kvio);
 	enqueue_data_kvio(data_kvio, launchDataKVIOWork, completion->callback,
 			  REQ_Q_ACTION_MAP_BIO);
 }
@@ -910,15 +910,15 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	bool is_trim = false;
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		data_kvio->hasDiscardPermit = has_discard_permit;
+		data_kvio->has_discard_permit = has_discard_permit;
 		data_kvio->remaining_discard = bio->bi_iter.bi_size;
 		callback = kvdo_continue_discard_kvio;
-		if (data_kvio->isPartial) {
+		if (data_kvio->is_partial) {
 			operation = VIO_READ_MODIFY_WRITE;
 		} else {
 			is_trim = true;
 		}
-	} else if (data_kvio->isPartial) {
+	} else if (data_kvio->is_partial) {
 		if (bio_data_dir(bio) == READ) {
 			callback = kvdo_complete_partial_read;
 			operation = VIO_READ;

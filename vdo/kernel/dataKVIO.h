@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#41 $
  */
 
 #ifndef DATA_KVIO_H
@@ -98,9 +98,9 @@ struct data_kvio {
 	struct read_block read_block;
 	/* partial block support */
 	block_size_t offset;
-	bool isPartial;
+	bool is_partial;
 	/* discard support */
-	bool hasDiscardPermit;
+	bool has_discard_permit;
 	DiscardSize remaining_discard;
 	/**
 	 * A copy of user data written, so we can do additional processing
