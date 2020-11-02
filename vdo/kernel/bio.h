@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#20 $
  */
 
 #ifndef BIO_H
@@ -90,6 +90,27 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
  * @param bio    The bio to reset
  **/
 void reset_bio(struct bio *bio);
+
+/**
+ * Reset a bio wholly, preparing it to perform an IO. May only be used on a
+ * VDO-allocated bio, as it assumes the bio wraps a 4k buffer that is 4k
+ * aligned.
+ *
+ * @param bio       The bio to reset
+ * @param data      The data the bio should wrap
+ * @param kvio      The kvio to which this bio belongs (may be NULL)
+ * @param callback  The callback the bio should call when IO finishes
+ * @param bi_opf    The operation and flags for the bio
+ * @param pbn       The physical block number to write to
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int reset_bio_with_buffer(struct bio *bio,
+			  char *data,
+			  struct kvio *kvio,
+			  bio_end_io_t callback,
+			  unsigned int bi_opf,
+			  physical_block_number_t pbn);
 
 /**
  * Create a new bio structure for kernel buffer storage.

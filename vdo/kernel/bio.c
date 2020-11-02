@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#35 $
  */
 
 #include "bio.h"
@@ -91,31 +91,6 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 }
 
 /**********************************************************************/
-static void set_bio_size(struct bio *bio, block_size_t bio_size)
-{
-	bio->bi_iter.bi_size = bio_size;
-}
-
-/**
- * Initialize a bio.
- *
- * @param bio    The bio to initialize
- **/
-static void initialize_bio(struct bio *bio)
-{
-	// Save off important info so it can be set back later
-	unsigned short vcnt = bio->bi_vcnt;
-	void *pvt = bio->bi_private;
-
-	bio_reset(bio); // Memsets large portion of bio. Reset all needed
-			// fields.
-	bio->bi_private = pvt;
-	bio->bi_vcnt = vcnt;
-	bio->bi_end_io = complete_async_bio;
-	bio->bi_iter.bi_sector = (sector_t) -1; // Sector will be set later on.
-}
-
-/**********************************************************************/
 void reset_bio(struct bio *bio)
 {
 	// VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for
@@ -124,21 +99,31 @@ void reset_bio(struct bio *bio)
 	ASSERT_LOG_ONLY((bio->bi_vcnt == 0) || (bio->bi_vcnt == 1),
 			"initialize_bio only called on VDO-allocated bios");
 
-	initialize_bio(bio);
+	// Save off the attached kvio so it can be set back later
+	void *pvt = bio->bi_private;
 
-	// All VDO bios which are reset are expected to have their data, so
-	// if they have a vcnt of 0, make it 1.
-	if (bio->bi_vcnt == 0) {
-		bio->bi_vcnt = 1;
-	}
-
-	set_bio_size(bio, VDO_BLOCK_SIZE);
+	bio_reset(bio); // Memsets large portion of bio. Reset all needed
+			// fields.
+	bio->bi_private = pvt;
+	bio->bi_vcnt = 1;
+	bio->bi_end_io = complete_async_bio;
+	bio->bi_iter.bi_sector = (sector_t) -1; // Sector will be set later on.
+	bio->bi_iter.bi_size = VDO_BLOCK_SIZE;
 }
 
 /**********************************************************************/
-static int reset_bio_with_buffer(struct bio *bio, char *data)
+int reset_bio_with_buffer(struct bio *bio,
+			  char *data,
+			  struct kvio *kvio,
+			  bio_end_io_t callback,
+			  unsigned int bi_opf,
+			  physical_block_number_t pbn)
 {
-	initialize_bio(bio);
+	bio_reset(bio); // Memsets most of the bio to reset most fields.
+	bio->bi_private = kvio;
+	bio->bi_end_io = callback;
+	bio->bi_opf = bi_opf;
+	bio->bi_iter.bi_sector = block_to_sector(pbn);
 	if (data == NULL) {
 		return VDO_SUCCESS;
 	}
@@ -234,7 +219,8 @@ int create_bio(char *data, struct bio **bio_ptr)
 
 	bio_init(bio, bio->bi_inline_vecs, bvec_count);
 
-	result = reset_bio_with_buffer(bio, data);
+	result = reset_bio_with_buffer(bio, data, NULL, complete_async_bio, 0,
+				       (sector_t) -1);
 	if (result != VDO_SUCCESS) {
 		free_bio(bio);
 		return result;

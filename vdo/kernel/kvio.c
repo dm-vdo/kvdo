@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#49 $
  */
 
 #include "kvio.h"
@@ -134,9 +134,14 @@ void write_compressed_block(struct allocating_vio *allocating_vio)
 	struct bio *bio = kvio->bio;
 
 	// Write the compressed block, using the compressed kvio's own bio.
-	reset_bio(bio);
-	bio->bi_opf = REQ_OP_WRITE;
-	bio->bi_iter.bi_sector = block_to_sector(kvio->vio->physical);
+	int result = reset_bio_with_buffer(bio, compressed_write_kvio->data, 
+					   kvio, complete_async_bio,
+					   REQ_OP_WRITE, kvio->vio->physical);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
+
 	vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
@@ -156,18 +161,16 @@ static inline bio_q_action get_metadata_action(struct vio *vio)
 /**********************************************************************/
 void submit_metadata_vio(struct vio *vio)
 {
-	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
+	struct metadata_kvio *metadata_kvio = vio_as_metadata_kvio(vio);
+	struct kvio *kvio = metadata_kvio_as_kvio(metadata_kvio);
 	struct bio *bio = kvio->bio;
 
-	reset_bio(bio);
-
-	bio->bi_iter.bi_sector = block_to_sector(vio->physical);
-
+	unsigned int bi_opf;
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
 		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
-		bio->bi_opf = REQ_OP_READ;
+		bi_opf = REQ_OP_READ;
 	} else {
 		kernel_layer_state state = get_kernel_layer_state(kvio->layer);
 
@@ -176,19 +179,28 @@ void submit_metadata_vio(struct vio *vio)
 				 || (state = LAYER_STARTING)),
 				"write metadata in allowed state %d", state);
 		if (vio_requires_flush_before(vio)) {
-			bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
+			bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 			vio_add_trace_record(vio,
 					     THIS_LOCATION("$F;io=flushWriteMeta"));
 		} else {
-			bio->bi_opf = REQ_OP_WRITE;
+			bi_opf = REQ_OP_WRITE;
 			vio_add_trace_record(vio,
 					     THIS_LOCATION("$F;io=writeMeta"));
 		}
 	}
 
 	if (vio_requires_flush_after(vio)) {
-		bio->bi_opf |= REQ_FUA;
+		bi_opf |= REQ_FUA;
 	}
+
+	int result = reset_bio_with_buffer(bio, metadata_kvio->data, kvio,
+					   complete_async_bio, bi_opf,
+					   vio->physical);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
+
 	// Perform the metadata IO, using the metadata kvio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
@@ -203,8 +215,6 @@ static void complete_flush_bio(struct bio *bio)
 {
 	int error = get_bio_result(bio);
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
-	// Restore the bio's notion of its own data.
-	reset_bio(bio);
 	kvdo_continue_kvio(kvio, error);
 }
 
@@ -214,19 +224,17 @@ void kvdo_flush_vio(struct vio *vio)
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
 
-	// Flush, using the metadata kvio's own bio.
-	reset_bio(bio);
 	/*
 	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
 	 * layers of the stack don't recognize that as a flush. So do it
 	 * like blkdev_issue_flush() and make it a write+flush.
 	 */
-	bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-	bio->bi_end_io = complete_flush_bio;
-	bio->bi_private = kvio;
-	bio->bi_vcnt = 0;
-	bio->bi_iter.bi_size = 0;
-	bio->bi_iter.bi_sector = 0;
+	int result = reset_bio_with_buffer(bio, NULL, kvio, complete_flush_bio,
+					   REQ_OP_WRITE | REQ_PREFLUSH, 0);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
@@ -341,6 +349,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	kvio->vio = &metadata_kvio->vio;
 	initialize_kvio(kvio, as_kernel_layer(layer), vio_type, priority,
 			parent, bio);
+	metadata_kvio->data = data;
 
 	*vio_ptr = &metadata_kvio->vio;
 	return VDO_SUCCESS;
@@ -382,6 +391,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 			VIO_PRIORITY_COMPRESSED_DATA,
 			parent,
 			bio);
+	compressed_write_kvio->data = data;
 
 	*allocating_vio_ptr = &compressed_write_kvio->allocating_vio;
 	return VDO_SUCCESS;
