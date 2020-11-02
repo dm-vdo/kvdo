@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#37 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#38 $
  */
 
 #include "kernelLayer.h"
@@ -105,7 +105,9 @@ static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 /**********************************************************************/
 bool layerIsNamed(KernelLayer *layer, void *context)
 {
-  return (strcmp(layer->deviceConfig->poolName, (char *) context) == 0);
+  struct dm_target *ti = layer->deviceConfig->owningTarget;
+  const char *deviceName = dm_device_name(dm_table_get_md(ti->table));
+  return (strcmp(deviceName, (const char *) context) == 0);
 }
 
 /**
@@ -958,6 +960,41 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
   return VDO_SUCCESS;
 }
 
+/**********************************************************************
+ * Modify the pool name of the device.
+ *
+ * @param layer      The kernel layer
+ * @param oldName    The old pool name
+ * @param newName    The new pool name
+ *
+ * @return  VDO_SUCCESS or an error
+ *
+ */
+int modifyPoolName(KernelLayer *layer, char *oldName, char *newName)
+{
+  // We use pool name for sysfs and procfs. Rename them accordingly
+  logInfo("Modify pool name from %s to %s", oldName, newName);
+
+  void *procfsPrivate;
+  int result = vdoCreateProcfsEntry(layer, newName, &procfsPrivate);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = kobject_rename(&layer->kobj, newName);
+  if (result != 0) {
+    vdoDestroyProcfsEntry(newName, procfsPrivate);
+    return result;
+  }
+
+  void *tmpProcfs = layer->procfsPrivate;
+  layer->procfsPrivate = procfsPrivate;
+
+  vdoDestroyProcfsEntry(oldName, tmpProcfs);
+
+  return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 int modifyKernelLayer(KernelLayer  *layer,
                       DeviceConfig *config)
@@ -1010,6 +1047,16 @@ int modifyKernelLayer(KernelLayer  *layer,
     }
   }
 
+  if (strcmp(config->poolName, extantConfig->poolName) != 0) {
+    logInfo("Modifying device '%s' pool name from %s to %s",
+	    config->poolName, extantConfig->poolName, config->poolName);
+    int result = modifyPoolName(layer, extantConfig->poolName,
+				config->poolName);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  }
+    
   return VDO_SUCCESS;
 }
 

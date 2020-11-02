@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#39 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#42 $
  */
 
 #include "dmvdo.h"
@@ -582,17 +582,13 @@ static int vdoInitialize(struct dm_target *ti,
 /**********************************************************************/
 static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-  // Mild hack to avoid bumping instance number when we needn't.
-  char *poolName;
-  int result = getPoolNameFromArgv(argc, argv, &ti->error, &poolName);
-  if (result != VDO_SUCCESS) {
-    return -EINVAL;
-  }
-
+  int result = VDO_SUCCESS;
+  
   RegisteredThread allocatingThread;
   registerAllocatingThread(&allocatingThread, NULL);
 
-  KernelLayer *oldLayer = findLayerMatching(layerIsNamed, poolName);
+  const char *deviceName = dm_device_name(dm_table_get_md(ti->table));  
+  KernelLayer *oldLayer = findLayerMatching(layerIsNamed, (void *)deviceName);
   unsigned int instance;
   if (oldLayer == NULL) {
     result = allocateKVDOInstance(&instance);
@@ -727,6 +723,15 @@ static int vdoPreresume(struct dm_target *ti)
   KernelLayer *layer = getKernelLayerForTarget(ti);
   DeviceConfig *config = ti->private;
   RegisteredThread instanceThread;
+
+  BlockCount backingBlocks = getUnderlyingDeviceBlockCount(layer);
+  if (backingBlocks < config->physicalBlocks) {
+    logError("resume of device '%s' failed: backing device has %" PRIu64
+             " blocks but VDO physical size is %llu blocks",
+             config->poolName, backingBlocks, config->physicalBlocks);
+    return -EINVAL;
+  }
+
   registerThreadDevice(&instanceThread, layer);
 
   if (getKernelLayerState(layer) == LAYER_STARTING) {
@@ -786,7 +791,7 @@ static void vdoResume(struct dm_target *ti)
 static struct target_type vdoTargetBio = {
   .features        = DM_TARGET_SINGLETON,
   .name            = "vdo",
-  .version         = {6, 2, 2},
+  .version         = {6, 2, 3},
   .module          = THIS_MODULE,
   .ctr             = vdoCtr,
   .dtr             = vdoDtr,
