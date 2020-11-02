@@ -19,6 +19,17 @@ BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires:       dkms
 Requires:	kernel-devel >= %{kmod_kernel_version}
 Requires:       make
+%if 0%{?fedora}
+# Fedora requires elfutils-libelf-devel, while rhel does not.
+BuildRequires:  elfutils-libelf-devel
+%endif
+BuildRequires:	glibc
+%if 0%{?rhel}
+# Fedora doesn't have abi whitelists.
+BuildRequires:	kernel-abi-whitelists
+%endif
+BuildRequires:  libuuid-devel
+BuildRequires:  redhat-rpm-config
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
 ExcludeArch:    s390x
