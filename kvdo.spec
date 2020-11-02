@@ -7,7 +7,7 @@
 # Disable the scanning for a debug package
 %global debug_package %{nil}
 
-Source0:        kmod-%{kmod_name}-%{kmod_driver_version}.tgz
+Source0:        %{kmod_name}-%{kmod_driver_version}.tgz
 
 Name:		kmod-kvdo
 Version:	%{kmod_driver_version}
@@ -52,7 +52,7 @@ done
 /usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version}-%{kmod_driver_version} --all || :
 
 %prep
-%setup -n kmod-%{kmod_name}-%{kmod_driver_version}
+%setup -n %{kmod_name}-%{kmod_driver_version}
 
 %build
 # Nothing doing here, as we're going to build on whatever kernel we end up
@@ -85,4 +85,4 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
 
 %changelog
-* Fri Oct 30 2020 - corwin@bf30-1 - 8.1.0.0-1
+* Mon Nov 02 2020 - corwin@bf30-1 - 8.1.0.0-1
