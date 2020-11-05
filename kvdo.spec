@@ -47,9 +47,9 @@ This package provides the kernel modules for VDO.
 
 %post
 set -x
-/usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}-%{kmod_driver_version}
-/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}-%{kmod_driver_version}
-/usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}-%{kmod_driver_version}
+/usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}
+/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}
+/usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}
 
 %preun
 # Check whether kvdo or uds is loaded, and if so attempt to remove it.  A
@@ -60,7 +60,7 @@ for module in kvdo uds; do
     modprobe -r ${module}
   fi
 done
-/usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version}-%{kmod_driver_version} --all || :
+/usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version} --all || :
 
 %prep
 %setup -n %{kmod_name}-%{kmod_driver_version}
@@ -70,11 +70,11 @@ done
 # running inside.
 
 %install
-mkdir -p $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}
-cp -r * $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/
-cat > $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/dkms.conf <<EOF
+mkdir -p $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}
+cp -r * $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}/
+cat > $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}/dkms.conf <<EOF
 PACKAGE_NAME="kvdo"
-PACKAGE_VERSION="%{version}-%{kmod_driver_version}"
+PACKAGE_VERSION="%{version}"
 AUTOINSTALL="yes"
 
 BUILT_MODULE_NAME[0]="uds"
@@ -93,7 +93,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
-%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
+%{_usr}/src/%{kmod_name}-%{version}/*
 
 %changelog
-* Wed Nov 04 2020 - corwin@bf30-1 - 8.1.0.0-1
+* Thu Nov 05 2020 - corwin@bf30-1 - 8.1.0.0-1
