@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#18 $
  */
 
 #include "partitionCopy.h"
@@ -231,10 +231,10 @@ static int validate_partition_copy(struct partition *source,
 }
 
 /**********************************************************************/
-void copy_partition_async(struct vdo_completion *completion,
-			  struct partition *source,
-			  struct partition *target,
-			  struct vdo_completion *parent)
+void copy_partition(struct vdo_completion *completion,
+		    struct partition *source,
+		    struct partition *target,
+		    struct vdo_completion *parent)
 {
 	int result = validate_partition_copy(source, target);
 	if (result != VDO_SUCCESS) {

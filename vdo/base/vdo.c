@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#86 $
  */
 
 /*
@@ -148,7 +148,7 @@ static void record_vdo(struct vdo *vdo)
 }
 
 /**********************************************************************/
-void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
+void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct buffer *buffer
 		= get_super_block_codec(vdo->super_block)->component_buffer;
@@ -159,8 +159,8 @@ void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 		return;
 	}
 
-	save_super_block_async(vdo->super_block, get_first_block_offset(vdo),
-			       parent);
+	save_super_block(vdo->super_block, get_first_block_offset(vdo),
+			 parent);
 }
 
 /**
@@ -182,7 +182,7 @@ static void notify_vdo_of_read_only_mode(void *listener,
 	}
 
 	set_vdo_state(vdo, VDO_READ_ONLY_MODE);
-	save_vdo_components_async(vdo, parent);
+	save_vdo_components(vdo, parent);
 }
 
 /**********************************************************************/

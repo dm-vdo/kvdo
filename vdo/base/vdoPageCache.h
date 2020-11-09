@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#20 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -210,7 +210,7 @@ struct vdo_page_completion {
  * @param callback         The completion callback
  * @param error_handler    The handler for page errors
  *
- * @note Once a completion has occurred for the get_vdo_page_async operation,
+ * @note Once a completion has occurred for the get_vdo_page() operation,
  *       the underlying page shall be busy (stuck in memory) until the
  *       vdo_completion returned by this operation has been released.
  **/
@@ -247,7 +247,7 @@ void release_vdo_page_completion(struct vdo_completion *completion);
  * @param completion    the completion initialized by
  *                      init_vdo_page_completion().
  **/
-void get_vdo_page_async(struct vdo_completion *completion);
+void get_vdo_page(struct vdo_completion *completion);
 
 /**
  * Mark a VDO page referenced by a completed vdo_page_completion as dirty.

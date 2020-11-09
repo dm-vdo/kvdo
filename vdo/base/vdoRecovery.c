@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#70 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -549,7 +549,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 			 launch_block_map_recovery,
 			 finish_parent_callback,
 			 ZONE_TYPE_LOGICAL);
-	save_vdo_components_async(vdo, completion);
+	save_vdo_components(vdo, completion);
 }
 
 /**
@@ -1092,7 +1092,7 @@ static void launch_fetch(struct waiter *waiter, void *context)
 				 decref,
 				 process_fetched_page,
 				 handle_fetch_error);
-	get_vdo_page_async(&decref->page_completion.completion);
+	get_vdo_page(&decref->page_completion.completion);
 }
 
 /**
@@ -1367,7 +1367,7 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 			 prepare_to_apply_journal_entries,
 			 finish_parent_callback,
 			 ZONE_TYPE_ADMIN);
-	load_journal_async(vdo->recovery_journal,
-			   &recovery->sub_task_completion,
-			   &recovery->journal_data);
+	load_journal(vdo->recovery_journal,
+		     &recovery->sub_task_completion,
+		     &recovery->journal_data);
 }

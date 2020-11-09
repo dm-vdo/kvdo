@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#56 $
  */
 
 #include "vdoLoad.h"
@@ -216,7 +216,7 @@ static void make_dirty(struct vdo_completion *completion)
 	set_vdo_state(vdo, VDO_DIRTY);
 	prepare_admin_sub_task(vdo, prepare_to_come_online,
 			       continue_load_read_only);
-	save_vdo_components_async(vdo, completion);
+	save_vdo_components(vdo, completion);
 }
 
 /**
@@ -463,8 +463,8 @@ static void pre_load_callback(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	assert_on_admin_thread(vdo, __func__);
 	prepare_admin_sub_task(vdo, load_vdo_components, abort_load);
-	load_super_block_async(completion, get_first_block_offset(vdo),
-			       &vdo->super_block);
+	load_super_block(completion, get_first_block_offset(vdo),
+			 &vdo->super_block);
 }
 
 /**********************************************************************/

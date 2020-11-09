@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#24 $
  */
 
 #include "vdoResume.h"
@@ -88,7 +88,7 @@ static void write_super_block(struct vdo *vdo,
 	case VDO_CLEAN:
 	case VDO_NEW:
 		set_vdo_state(vdo, VDO_DIRTY);
-		save_vdo_components_async(vdo, completion);
+		save_vdo_components(vdo, completion);
 		return;
 
 	case VDO_DIRTY:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#77 $
  */
 
 #include "blockMap.h"
@@ -377,9 +377,9 @@ zone_count_t compute_logical_zone(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void find_block_map_slot_async(struct data_vio *data_vio,
-			       vdo_action *callback,
-			       thread_id_t thread_id)
+void find_block_map_slot(struct data_vio *data_vio,
+			 vdo_action *callback,
+			 thread_id_t thread_id)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	if (data_vio->logical.lbn >= map->entry_count) {
@@ -600,7 +600,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 				 data_vio_as_completion(data_vio),
 				 action,
 				 handle_page_error);
-	get_vdo_page_async(&data_vio->page_completion.completion);
+	get_vdo_page(&data_vio->page_completion.completion);
 }
 
 /**
@@ -653,7 +653,7 @@ set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
 }
 
 /**
- * This callback is registered in get_mapped_block_async().
+ * This callback is registered in get_mapped_block().
  **/
 static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 {
@@ -725,7 +725,7 @@ void update_block_map_page(struct block_map_page *page,
 }
 
 /**
- * This callback is registered in put_mapped_block_async().
+ * This callback is registered in put_mapped_block().
  **/
 static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 {
@@ -756,7 +756,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void get_mapped_block_async(struct data_vio *data_vio)
+void get_mapped_block(struct data_vio *data_vio)
 {
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
 	    ZERO_BLOCK) {
@@ -771,7 +771,7 @@ void get_mapped_block_async(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void put_mapped_block_async(struct data_vio *data_vio)
+void put_mapped_block(struct data_vio *data_vio)
 {
 	setup_mapped_block(data_vio, true, put_mapping_in_fetched_page);
 }

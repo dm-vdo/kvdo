@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#46 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -139,7 +139,7 @@ void set_vdo_state(struct vdo *vdo, VDOState state);
  * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete
  **/
-void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
+void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent);
 
 /**
  * Enable a vdo to enter read-only mode on errors.

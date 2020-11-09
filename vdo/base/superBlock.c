@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#26 $
  */
 
 #include "superBlock.h"
@@ -113,8 +113,8 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 
 /**
  * Finish the parent of a super block load or save operation. This
- * callback is registered in save_super_block_async() and
- * load_super_block_async.
+ * callback is registered in save_super_block() and
+ * load_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -128,7 +128,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 
 /**
  * Log a super block save error. This error handler is registered in
- * save_super_block_async().
+ * save_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -149,9 +149,9 @@ static void handle_save_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void save_super_block_async(struct vdo_super_block *super_block,
-			    physical_block_number_t super_block_offset,
-			    struct vdo_completion *parent)
+void save_super_block(struct vdo_super_block *super_block,
+		      physical_block_number_t super_block_offset,
+		      struct vdo_completion *parent)
 {
 	if (super_block->unwriteable) {
 		finish_completion(parent, VDO_READ_ONLY);
@@ -181,7 +181,7 @@ void save_super_block_async(struct vdo_super_block *super_block,
 
 /**
  * Continue after loading the super block. This callback is registered
- * in load_super_block_async().
+ * in load_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -194,9 +194,9 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void load_super_block_async(struct vdo_completion *parent,
-			    physical_block_number_t super_block_offset,
-			    struct vdo_super_block **super_block_ptr)
+void load_super_block(struct vdo_completion *parent,
+		      physical_block_number_t super_block_offset,
+		      struct vdo_super_block **super_block_ptr)
 {
 	PhysicalLayer *layer = parent->layer;
 	struct vdo_super_block *super_block = NULL;

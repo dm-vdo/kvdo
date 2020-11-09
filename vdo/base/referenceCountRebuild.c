@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#42 $
  */
 
 #include "referenceCountRebuild.h"
@@ -409,7 +409,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
 					 &rebuild->completion, page_loaded,
 					 handle_page_load_error);
 		rebuild->outstanding++;
-		get_vdo_page_async(completion);
+		get_vdo_page(completion);
 		return;
 	}
 }

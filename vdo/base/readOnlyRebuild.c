@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#40 $
  */
 
 #include "readOnlyRebuild.h"
@@ -421,7 +421,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
  *
  * @param completion    The sub task completion
  **/
-static void load_journal(struct vdo_completion *completion)
+static void load_journal_callback(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion->parent);
@@ -433,8 +433,8 @@ static void load_journal(struct vdo_completion *completion)
 			   finish_parent_callback,
 			   completion->callback_thread_id,
 			   completion->parent);
-	load_journal_async(vdo->recovery_journal, completion,
-			   &rebuild->journal_data);
+	load_journal(vdo->recovery_journal, completion,
+		     &rebuild->journal_data);
 }
 
 /**********************************************************************/
@@ -464,7 +464,7 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 
 	struct vdo_completion *sub_task_completion = &rebuild->sub_task_completion;
 	prepare_completion(sub_task_completion,
-			   load_journal,
+			   load_journal_callback,
 			   finish_parent_callback,
 			   get_logical_zone_thread(get_thread_config(vdo), 0),
 			   completion);

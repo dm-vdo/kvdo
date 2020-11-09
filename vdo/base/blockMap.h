@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#29 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -173,9 +173,9 @@ zone_count_t compute_logical_zone(struct data_vio *data_vio);
  * @param callback  The function to call once the slot has been found
  * @param thread_id The thread on which to run the callback
  **/
-void find_block_map_slot_async(struct data_vio *data_vio,
-			       vdo_action *callback,
-			       thread_id_t thread_id);
+void find_block_map_slot(struct data_vio *data_vio,
+			 vdo_action *callback,
+			 thread_id_t thread_id);
 
 /**
  * Get number of block map pages at predetermined locations.
@@ -233,7 +233,7 @@ void update_block_map_page(struct block_map_page *page,
  *
  * @param data_vio  The data_vio of the block to map
  **/
-void get_mapped_block_async(struct data_vio *data_vio);
+void get_mapped_block(struct data_vio *data_vio);
 
 /**
  * Associate the logical block number for a block represented by a data_vio
@@ -241,7 +241,7 @@ void get_mapped_block_async(struct data_vio *data_vio);
  *
  * @param data_vio  The data_vio of the block to map
  **/
-void put_mapped_block_async(struct data_vio *data_vio);
+void put_mapped_block(struct data_vio *data_vio);
 
 /**
  * Get the stats for the block map page cache.

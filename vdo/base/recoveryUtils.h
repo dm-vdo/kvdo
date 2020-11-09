@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#13 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -95,9 +95,9 @@ is_exact_recovery_journal_block(const struct recovery_journal *journal,
  *                                the caller's responsibility to free this
  *                                buffer)
  **/
-void load_journal_async(struct recovery_journal *journal,
-			struct vdo_completion *parent,
-			char **journal_data_ptr);
+void load_journal(struct recovery_journal *journal,
+		  struct vdo_completion *parent,
+		  char **journal_data_ptr);
 
 /**
  * Find the tail and the head of the journal by searching for the highest

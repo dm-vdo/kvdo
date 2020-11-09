@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#13 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -48,20 +48,20 @@ int __must_check make_super_block(PhysicalLayer *layer,
 void free_super_block(struct vdo_super_block **super_block_ptr);
 
 /**
- * Save a super block asynchronously.
+ * Save a super block.
  *
  * @param super_block         The super block to save
  * @param super_block_offset  The location at which to write the super block
  * @param parent              The object to notify when the save is complete
  **/
-void save_super_block_async(struct vdo_super_block *super_block,
-			    physical_block_number_t super_block_offset,
-			    struct vdo_completion *parent);
+void save_super_block(struct vdo_super_block *super_block,
+		      physical_block_number_t super_block_offset,
+		      struct vdo_completion *parent);
 
 /**
- * Allocate a super block and read its contents from storage asynchronously.
- * If a load error occurs before the super block's own completion can be
- * allocated, the parent will be finished with the error.
+ * Allocate a super block and read its contents from storage. If a load error
+ * occurs before the super block's own completion can be allocated, the parent
+ * will be finished with the error.
  *
  * @param [in]  parent              The completion to finish after loading the
  *                                  super block
@@ -69,9 +69,9 @@ void save_super_block_async(struct vdo_super_block *super_block,
  *                                  block
  * @param [out] super_block_ptr     A pointer to hold the super block
  **/
-void load_super_block_async(struct vdo_completion *parent,
-			    physical_block_number_t super_block_offset,
-			    struct vdo_super_block **super_block_ptr);
+void load_super_block(struct vdo_completion *parent,
+		      physical_block_number_t super_block_offset,
+		      struct vdo_super_block **super_block_ptr);
 
 /**
  * Get the super block codec from a super block.
