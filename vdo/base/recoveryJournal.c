@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#79 $
  */
 
 #include "recoveryJournal.h"
@@ -474,17 +474,9 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		return result;
 	}
 
-	result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
-			  &journal->unused_flush_vio_data);
-	if (result != VDO_SUCCESS) {
-		free_recovery_journal(&journal);
-		return result;
-	}
-
 	result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
 			    VIO_PRIORITY_HIGH, journal,
-			    journal->unused_flush_vio_data,
-			    &journal->flush_vio);
+			    NULL, &journal->flush_vio);
 	if (result != VDO_SUCCESS) {
 		free_recovery_journal(&journal);
 		return result;
@@ -515,7 +507,6 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 
 	free_lock_counter(&journal->lock_counter);
 	free_vio(&journal->flush_vio);
-	FREE(journal->unused_flush_vio_data);
 
 	// XXX: eventually, the journal should be constructed in a quiescent
 	// state

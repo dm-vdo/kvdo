@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#28 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -103,10 +103,8 @@ struct recovery_journal {
 	sequence_number_t slab_journal_reap_head;
 	/** The head block number for the slab journal replay range */
 	block_count_t slab_journal_head_block_number;
-	/** The vio on which we can call flush (less ick, but still ick) */
+	/** The data-less vio, usable only for flushing */
 	struct vio *flush_vio;
-	/** The data block which must live in the vio in the flush extent */
-	char *unused_flush_vio_data;
 	/** The number of blocks in the on-disk journal */
 	block_count_t size;
 	/** The number of logical blocks that are in-use */
