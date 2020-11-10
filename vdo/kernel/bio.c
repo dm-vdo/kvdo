@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#36 $
  */
 
 #include "bio.h"
@@ -88,27 +88,6 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 	if (bio->bi_opf & REQ_FUA) {
 		atomic64_inc(&bio_stats->fua);
 	}
-}
-
-/**********************************************************************/
-void reset_bio(struct bio *bio)
-{
-	// VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for
-	// data). Assert that this function is called on bios with vcnt of 0
-	// or 1.
-	ASSERT_LOG_ONLY((bio->bi_vcnt == 0) || (bio->bi_vcnt == 1),
-			"initialize_bio only called on VDO-allocated bios");
-
-	// Save off the attached kvio so it can be set back later
-	void *pvt = bio->bi_private;
-
-	bio_reset(bio); // Memsets large portion of bio. Reset all needed
-			// fields.
-	bio->bi_private = pvt;
-	bio->bi_vcnt = 1;
-	bio->bi_end_io = complete_async_bio;
-	bio->bi_iter.bi_sector = (sector_t) -1; // Sector will be set later on.
-	bio->bi_iter.bi_size = VDO_BLOCK_SIZE;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#90 $
  */
 
 #include "dataKVIO.h"
@@ -392,6 +392,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 	struct read_block *read_block = &data_kvio->read_block;
 
 	read_block->callback = callback;
@@ -400,12 +401,15 @@ void kvdo_read_block(struct data_vio *data_vio,
 
 	// Read the data using the read block bio, wrapping the read block
 	// buffer.
-	struct bio *bio = read_block->bio;
-	reset_bio(bio);
-	bio->bi_iter.bi_sector = block_to_sector(location);
-	bio->bi_opf = REQ_OP_READ;
-	bio->bi_end_io = read_bio_callback;
-	vdo_submit_bio(bio, action);
+	int result = reset_bio_with_buffer(read_block->bio, read_block->buffer,
+					   kvio, read_bio_callback,
+					   REQ_OP_READ, location);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
+
+	vdo_submit_bio(read_block->bio, action);
 }
 
 /**********************************************************************/
@@ -434,21 +438,31 @@ void read_data_vio(struct data_vio *data_vio)
 	 * callsites to vdo_submit_bio().
 	 */
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+	int result = VDO_SUCCESS;
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
-		reset_bio(data_kvio->data_block_bio);
-		data_kvio->data_block_bio->bi_opf = REQ_OP_READ;
+		result = reset_bio_with_buffer(data_kvio->data_block_bio,
+					       data_kvio->data_block, kvio,
+					       complete_async_bio, REQ_OP_READ,
+					       data_vio->mapped.pbn);
 	} else if (data_kvio->is_partial) {
 		// A partial read.
-		reset_bio(data_kvio->data_block_bio);
-		data_kvio->data_block_bio->bi_opf =
-			data_kvio->external_io_request.bio->bi_opf & ~REQ_FUA;
+		int opf = data_kvio->external_io_request.bio->bi_opf & ~REQ_FUA;
+		result = reset_bio_with_buffer(data_kvio->data_block_bio,
+					       data_kvio->data_block, kvio,
+					       complete_async_bio, opf,
+					       data_vio->mapped.pbn);
 	} else {
 		// A full 4k read. FUA is irrelevant to a read, so strip it out.
 		bio->bi_opf &= ~REQ_FUA;
+		bio->bi_end_io = complete_async_bio;
+		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
 	}
 
-	bio->bi_end_io = complete_async_bio;
-	bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
+
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -505,21 +519,26 @@ void write_data_vio(struct data_vio *data_vio)
 			          THIS_LOCATION("$F;io=writeData;j=normal"));
 
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
-	struct bio *bio = kvio->bio;
 
 	// Force the bio to be a write, while preserving the original bio's
 	// flags (except FUA).
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 
-	reset_bio(bio);
-	bio->bi_opf = (REQ_OP_WRITE |
+	int bi_opf = (REQ_OP_WRITE |
 		      ((data_kvio->external_io_request.rw & ~REQ_OP_MASK) &
 		       ~REQ_FUA));
 
 	// Write the data using the data block bio, wrapping the data block
 	// buffer.
-	bio->bi_iter.bi_sector = block_to_sector(data_vio->new_mapped.pbn);
-	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
+	int result = reset_bio_with_buffer(kvio->bio, data_kvio->data_block,
+					   kvio, complete_async_bio, bi_opf,
+					   data_vio->new_mapped.pbn);
+	if (result != VDO_SUCCESS) {
+		kvdo_continue_kvio(kvio, result);
+		return;
+	}
+
+	vdo_submit_bio(kvio->bio, BIO_Q_ACTION_DATA);
 }
 
 /**

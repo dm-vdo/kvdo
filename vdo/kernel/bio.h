@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#21 $
  */
 
 #ifndef BIO_H
@@ -82,14 +82,6 @@ void free_bio(struct bio *bio);
  * @param bio        The bio
  **/
 void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
-
-/**
- * Reset a bio so it can be used again. May only be used on a VDO-allocated
- * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned.
- *
- * @param bio    The bio to reset
- **/
-void reset_bio(struct bio *bio);
 
 /**
  * Reset a bio wholly, preparing it to perform an IO. May only be used on a
