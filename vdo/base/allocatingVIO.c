@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#25 $
  */
 
 #include "allocatingVIO.h"
@@ -110,7 +110,7 @@ static void allocate_block_for_write(struct vdo_completion *completion);
  **/
 static void
 retry_allocate_block_for_write(struct waiter *waiter,
-			       void *context __attribute__((unused)))
+			       void *context __always_unused)
 {
 	struct allocating_vio *allocating_vio = waiter_as_allocating_vio(waiter);
 	allocate_block_for_write(allocating_vio_as_completion(allocating_vio));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#58 $
  */
 
 #include "packerInternals.h"
@@ -353,7 +353,7 @@ static void abort_packing(struct data_vio *data_vio)
  *                from notify_all_waiters
  **/
 static void continue_vio_without_packing(struct waiter *waiter,
-					 void *unused __attribute__((unused)))
+					 void *unused __always_unused)
 {
 	abort_packing(waiter_as_data_vio(waiter));
 }
@@ -455,7 +455,7 @@ static void complete_output_bin(struct vdo_completion *completion)
  * Implements WaiterCallback. Continues the data_vio waiter.
  **/
 static void continue_waiter(struct waiter *waiter,
-			    void *context __attribute__((unused)))
+			    void *context __always_unused)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	continue_data_vio(data_vio, VDO_SUCCESS);

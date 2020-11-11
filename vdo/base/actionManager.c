@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#25 $
  */
 
 #include "actionManager.h"
@@ -98,7 +98,7 @@ as_action_manager(struct vdo_completion *completion)
  *
  * <p>Implements action_scheduler.
  **/
-static bool no_default_action(void *context __attribute__((unused)))
+static bool no_default_action(void *context __always_unused)
 {
 	return false;
 }
@@ -108,7 +108,7 @@ static bool no_default_action(void *context __attribute__((unused)))
  *
  * <p>Implements action_preamble
  **/
-static void no_preamble(void *context __attribute__((unused)),
+static void no_preamble(void *context __always_unused,
 			struct vdo_completion *completion)
 {
 	complete_completion(completion);
@@ -119,7 +119,7 @@ static void no_preamble(void *context __attribute__((unused)),
  *
  * <p>Implements action_conclusion.
  **/
-static int no_conclusion(void *context __attribute__((unused)))
+static int no_conclusion(void *context __always_unused)
 {
 	return VDO_SUCCESS;
 }

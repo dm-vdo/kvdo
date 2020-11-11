@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#92 $
  */
 
 #include "dataKVIO.h"
@@ -62,7 +62,7 @@ enum {
  **/
 static __always_inline void set_write_protect(void *address,
 					      size_t byte_count,
-					      bool mode __attribute__((unused)))
+					      bool mode __maybe_unused)
 {
 	BUG_ON((((long) address) % PAGE_SIZE) != 0);
 	BUG_ON((byte_count % PAGE_SIZE) != 0);
@@ -489,7 +489,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	// If the remaining discard work is not completely processed by this
 	// VIO, don't acknowledge it yet.
 	if ((data_kvio->external_io_request.bio != NULL) &&
-	    (bio_op(data_kvio->external_io_request.bio) == REQ_OP_DISCARD) && 
+	    (bio_op(data_kvio->external_io_request.bio) == REQ_OP_DISCARD) &&
 	    (data_kvio->remaining_discard >
 	     (VDO_BLOCK_SIZE - data_kvio->offset))) {
 		invoke_callback(data_vio_as_completion(data_vio));

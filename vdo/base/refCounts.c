@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#54 $
  */
 
 #include "refCounts.h"
@@ -1067,7 +1067,7 @@ waiter_as_reference_block(struct waiter *waiter)
  * @param context       Unused
  **/
 static void clear_dirty_reference_blocks(struct waiter *block_waiter,
-					 void *context __attribute__((unused)))
+					 void *context __always_unused)
 {
 	waiter_as_reference_block(block_waiter)->is_dirty = false;
 }

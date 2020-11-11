@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#117 $
  */
 
 #include "kernelLayer.h"
@@ -108,9 +108,9 @@ static block_count_t kvdo_get_block_count(PhysicalLayer *header)
 /**********************************************************************/
 bool layer_is_named(struct kernel_layer *layer, void *context)
 {
-  struct dm_target *ti = layer->device_config->owning_target;
-  const char *device_name = dm_device_name(dm_table_get_md(ti->table));
-  return (strcmp(device_name, (const char *) context) == 0);
+	struct dm_target *ti = layer->device_config->owning_target;
+	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
+	return (strcmp(device_name, (const char *) context) == 0);
 }
 
 /**
@@ -402,7 +402,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 /**
  * Implements buffer_allocator.
  **/
-static int kvdo_allocate_io_buffer(PhysicalLayer *layer __attribute__((unused)),
+static int kvdo_allocate_io_buffer(PhysicalLayer *layer __always_unused,
 				   size_t bytes,
 				   const char *why,
 				   char **buffer_ptr)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#24 $
  */
 
 #ifndef COMPLETION_H
@@ -224,7 +224,7 @@ void preserve_error_and_continue(struct vdo_completion *completion);
  * @param completion  The completion being called back
  **/
 static inline
-void noop_callback(struct vdo_completion *completion __attribute__((unused)))
+void noop_callback(struct vdo_completion *completion __always_unused)
 {
 }
 

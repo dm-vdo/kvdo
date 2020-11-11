@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#69 $
  */
 
 #include "slabJournalInternals.h"
@@ -295,8 +295,7 @@ static void mark_slab_journal_clean(struct slab_journal *journal)
  * Implements WaiterCallback. This callback is invoked on all vios waiting
  * to make slab journal entries after the VDO has gone into read-only mode.
  **/
-static void abort_waiter(struct waiter *waiter,
-			 void *context __attribute__((unused)))
+static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
 	continue_data_vio(waiter_as_data_vio(waiter), VDO_READ_ONLY);
 }

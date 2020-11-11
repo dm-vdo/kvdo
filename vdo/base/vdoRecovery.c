@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#71 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -330,7 +330,7 @@ int make_recovery_completion(struct vdo *vdo,
  * Implements waiter_callback.
  **/
 static void free_missing_decref(struct waiter *waiter,
-				void *context __attribute__((unused)))
+				void *context __always_unused)
 {
 	FREE(as_missing_decref(waiter));
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#80 $
  */
 
 #include "recoveryJournal.h"
@@ -1039,8 +1039,7 @@ static void handle_write_error(struct vdo_completion *completion)
 /**
  * Issue a block for writing. Implements waiter_callback.
  **/
-static void write_block(struct waiter *waiter,
-			void *context __attribute__((unused)))
+static void write_block(struct waiter *waiter, void *context __always_unused)
 {
 	struct recovery_journal_block *block
 		= container_of(waiter, struct recovery_journal_block,
