@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#17 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -39,7 +39,7 @@ struct thread_count_config {
 	int logical_zones;
 	int physical_zones;
 	int hash_zones;
-} __attribute__((packed));
+} __packed;
 
 typedef uint32_t TableVersion;
 

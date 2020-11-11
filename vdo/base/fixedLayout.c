@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#18 $
  */
 
 #include "fixedLayout.h"
@@ -52,14 +52,14 @@ struct layout_3_0 {
 	physical_block_number_t first_free;
 	physical_block_number_t last_free;
 	byte partition_count;
-} __attribute__((packed));
+} __packed;
 
 struct partition_3_0 {
 	partition_id id;
 	physical_block_number_t offset;
 	physical_block_number_t base;
 	block_count_t count;
-} __attribute__((packed));
+} __packed;
 
 static const struct header LAYOUT_HEADER_3_0 = {
 	.id = FIXED_LAYOUT,

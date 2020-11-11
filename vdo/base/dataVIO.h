@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#55 $
  */
 
 #ifndef DATA_VIO_H
@@ -43,7 +43,7 @@
 /**
  * Codes for describing the last asynchronous operation performed on a vio.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	MIN_ASYNC_OPERATION_NUMBER = 0,
 	LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
 	ACKNOWLEDGE_WRITE,

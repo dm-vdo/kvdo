@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#10 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -44,8 +44,8 @@ struct recovery_journal_entry {
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */
-typedef union __attribute__((packed)) {
-	struct __attribute__((packed)) {
+typedef union __packed {
+	struct __packed {
 		/**
 		 * In little-endian bit order:
 		 * Bits 15..12:  The four highest bits of the 36-bit physical
@@ -85,7 +85,7 @@ typedef union __attribute__((packed)) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// This view is only valid on little-endian machines and is only present
 	// for ease of directly examining packed entries in GDB.
-	struct __attribute__((packed)) {
+	struct __packed {
 		unsigned operation : 2;
 		unsigned slot : 10;
 		unsigned pbn_high_nibble : 4;

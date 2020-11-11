@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#72 $
  */
 
 #include "blockMapTree.h"
@@ -50,7 +50,7 @@ struct page_descriptor {
 	height_t height;
 	page_number_t page_index;
 	slot_number_t slot;
-} __attribute__((packed));
+} __packed;
 
 typedef union {
 	struct page_descriptor descriptor;

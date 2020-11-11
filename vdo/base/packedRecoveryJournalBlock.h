@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#15 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -46,7 +46,7 @@ struct recovery_block_header {
  * All fields are kept in little-endian byte order.
  **/
 union packed_journal_header {
-	struct __attribute__((packed)) {
+	struct __packed {
 		/** Block map head 64-bit sequence number */
 		byte block_map_head[8];
 
@@ -93,7 +93,7 @@ union packed_journal_header {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// This view is only valid on little-endian machines and is only
 	// present for ease of directly examining packed entries in GDB.
-	struct __attribute__((packed)) {
+	struct __packed {
 		sequence_number_t block_map_head;
 		sequence_number_t slab_journal_head;
 		sequence_number_t sequence_number;
@@ -106,7 +106,7 @@ union packed_journal_header {
 		uint8_t recovery_count;
 	} little_endian;
 #endif
-} __attribute__((packed));
+} __packed;
 
 struct packed_journal_sector {
 	/** The protection check byte */
@@ -120,7 +120,7 @@ struct packed_journal_sector {
 
 	/** Journal entries for this sector */
 	packed_recovery_journal_entry entries[];
-} __attribute__((packed));
+} __packed;
 
 enum {
 	// Allowing more than 311 entries in each block changes the math

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#26 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -106,7 +106,7 @@ struct vdo_page_cache {
  * @note Update the static data in vpc_page_state_name() if you change this
  * enumeration.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	/* this page buffer is not being used */
 	PS_FREE,
 	/* this page is being read from store */
@@ -126,7 +126,7 @@ typedef enum __attribute__((packed)) {
 /**
  * The write status of page
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	WRITE_STATUS_NORMAL,
 	WRITE_STATUS_DISCARD,
 	WRITE_STATUS_DEFERRED,

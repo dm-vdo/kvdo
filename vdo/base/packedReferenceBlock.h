@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedReferenceBlock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedReferenceBlock.h#3 $
  */
 
 #ifndef PACKED_REFERENCE_BLOCK_H
@@ -53,7 +53,7 @@ enum {
 struct packed_reference_sector {
 	struct packed_journal_point commit_point;
 	ReferenceCount counts[COUNTS_PER_SECTOR];
-} __attribute__((packed));
+} __packed;
 
 struct packed_reference_block {
 	struct packed_reference_sector sectors[SECTORS_PER_BLOCK];

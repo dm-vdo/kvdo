@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#63 $
  */
 
 #ifndef TYPES_H
@@ -157,7 +157,7 @@ typedef uint8_t zone_count_t;
 /**
  * The type of request a vio is performing
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	VIO_UNSPECIFIED_OPERATION = 0,
 	VIO_READ = 1,
 	VIO_WRITE = 2,
@@ -170,7 +170,7 @@ typedef enum __attribute__((packed)) {
 /**
  * vio types for statistics and instrumentation.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	VIO_TYPE_UNINITIALIZED = 0,
 	VIO_TYPE_DATA,
 	VIO_TYPE_BLOCK_ALLOCATOR,
@@ -189,7 +189,7 @@ typedef enum __attribute__((packed)) {
  * The current operation on a physical block (from the point of view of the
  * recovery journal, slab journals, and reference counts.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	DATA_DECREMENT = 0,
 	DATA_INCREMENT = 1,
 	BLOCK_MAP_DECREMENT = 2,
@@ -199,7 +199,7 @@ typedef enum __attribute__((packed)) {
 /**
  * Partition IDs are encoded in the volume layout in the super block.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	BLOCK_MAP_PARTITION = 0,
 	BLOCK_ALLOCATOR_PARTITION = 1,
 	RECOVERY_JOURNAL_PARTITION = 2,
@@ -241,7 +241,7 @@ static inline bool is_metadata_vio_type(vio_type vio_type)
 /**
  * Priority levels for asynchronous I/O operations performed on a vio.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	VIO_PRIORITY_LOW = 0,
 	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
 	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
@@ -252,7 +252,7 @@ typedef enum __attribute__((packed)) {
 /**
  * Metadata types for the vdo.
  **/
-typedef enum __attribute__((packed)) {
+typedef enum __packed {
 	VDO_METADATA_RECOVERY_JOURNAL = 1,
 	VDO_METADATA_SLAB_JOURNAL,
 } vdo_metadata_type;
@@ -336,7 +336,7 @@ struct slab_config {
 	 * online.
 	 **/
 	block_count_t slab_journal_scrubbing_threshold;
-} __attribute__((packed));
+} __packed;
 
 /**
  * The configuration of the VDO service.
@@ -347,7 +347,7 @@ struct vdo_config {
 	block_count_t slab_size; ///< number of blocks in a slab
 	block_count_t recovery_journal_size; ///< number of recovery journal blocks
 	block_count_t slab_journal_blocks; ///< number of slab journal blocks
-} __attribute__((packed));
+} __packed;
 
 /**
  * The configuration parameters of the vdo service specified at load time.

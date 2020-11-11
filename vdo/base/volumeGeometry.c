@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#28 $
  */
 
 #include "volumeGeometry.h"
@@ -44,7 +44,7 @@ struct geometry_block {
 	struct header header;
 	struct volume_geometry geometry;
 	crc32_checksum_t checksum;
-} __attribute__((packed));
+} __packed;
 
 static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 	.id = GEOMETRY_BLOCK,

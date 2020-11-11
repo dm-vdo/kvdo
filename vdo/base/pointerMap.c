@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#10 $
  */
 
 /**
@@ -93,7 +93,7 @@ enum {
  * fields near the buckets that they use them so they'll tend to share cache
  * lines.
  **/
-struct __attribute__((packed)) bucket {
+struct __packed bucket {
 	uint8_t first_hop; // the biased offset of the first entry in the hop
 			   // list of the neighborhood that hashes to this
 			   // bucket

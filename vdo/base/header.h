@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#8 $
  */
 
 #ifndef HEADER_H
@@ -42,7 +42,7 @@
 struct version_number {
 	uint32_t major_version;
 	uint32_t minor_version;
-} __attribute__((packed));
+} __packed;
 
 /**
  * A packed, machine-independent, on-disk representation of a version_number.
@@ -51,7 +51,7 @@ struct version_number {
 struct packed_version_number {
 	byte major_version[4];
 	byte minor_version[4];
-} __attribute__((packed));
+} __packed;
 
 /**
  * The registry of component ids for use in headers
@@ -72,7 +72,7 @@ struct header {
 	component_id id; // The component this is a header for
 	struct version_number version; // The version of the data format
 	size_t size; // The size of the data following this header
-} __attribute__((packed));
+} __packed;
 
 enum {
 	ENCODED_HEADER_SIZE = sizeof(struct header),

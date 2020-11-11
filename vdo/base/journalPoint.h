@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#6 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -48,7 +48,7 @@ struct packed_journal_point {
 	 * be zero, as this encoding assumes--see BZ 1523240.
 	 **/
 	byte encoded_point[8];
-} __attribute__((packed));
+} __packed;
 
 /**
  * Move the given journal point forward by one entry.

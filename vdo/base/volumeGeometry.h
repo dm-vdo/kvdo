@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#18 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -30,7 +30,7 @@ struct index_config {
 	uint32_t mem;
 	uint32_t checkpoint_frequency;
 	bool sparse;
-} __attribute__((packed));
+} __packed;
 
 typedef enum {
 	INDEX_REGION = 0,
@@ -46,7 +46,7 @@ struct volume_region {
 	 * until the next region begins.
 	 */
 	physical_block_number_t start_block;
-} __attribute__((packed));
+} __packed;
 
 /** A binary UUID is 16 bytes. */
 typedef unsigned char UUID[16];
@@ -62,7 +62,7 @@ struct volume_geometry {
 	struct volume_region regions[VOLUME_REGION_COUNT];
 	/** The index config */
 	struct index_config index_config;
-} __attribute__((packed));
+} __packed;
 
 /**
  * Get the start of the index region from a geometry.

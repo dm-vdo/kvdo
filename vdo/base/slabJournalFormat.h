@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#3 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -42,7 +42,7 @@ struct slab_journal_entry {
 
 /** A single slab journal entry in its on-disk form */
 typedef union {
-	struct __attribute__((packed)) {
+	struct __packed {
 		uint8_t offset_low8;
 		uint8_t offset_mid8;
 
@@ -61,12 +61,12 @@ typedef union {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// This view is only valid on little-endian machines and is only present
 	// for ease of directly examining packed entries in GDB.
-	struct __attribute__((packed)) {
+	struct __packed {
 		unsigned offset : 23;
 		unsigned increment : 1;
 	} little_endian;
 #endif
-} __attribute__((packed)) packed_slab_journal_entry;
+} __packed packed_slab_journal_entry;
 
 /** The unpacked representation of the header of a slab journal block */
 struct slab_journal_block_header {
@@ -90,8 +90,8 @@ struct slab_journal_block_header {
  * The packed, on-disk representation of a slab journal block header.
  * All fields are kept in little-endian byte order.
  **/
-typedef union __attribute__((packed)) {
-	struct __attribute__((packed)) {
+typedef union __packed {
+	struct __packed {
 		/** 64-bit sequence number for head of journal */
 		byte head[8];
 		/** 64-bit sequence number for this block */
@@ -119,7 +119,7 @@ typedef union __attribute__((packed)) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// This view is only valid on little-endian machines and is only present
 	// for ease of directly examining packed entries in GDB.
-	struct __attribute__((packed)) {
+	struct __packed {
 		sequence_number_t head;
 		sequence_number_t sequence_number;
 		struct packed_journal_point recovery_point;
@@ -148,7 +148,7 @@ struct full_slab_journal_entries {
 	packed_slab_journal_entry entries[SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
 	/* The bit map indicating which entries are block map increments */
 	byte entry_types[SLAB_JOURNAL_ENTRY_TYPES_SIZE];
-} __attribute__((packed));
+} __packed;
 
 typedef union {
 	/* Entries which include block map increments */
@@ -157,12 +157,12 @@ typedef union {
 	packed_slab_journal_entry entries[SLAB_JOURNAL_ENTRIES_PER_BLOCK];
 	/* Ensure the payload fills to the end of the block */
 	byte space[SLAB_JOURNAL_PAYLOAD_SIZE];
-} __attribute__((packed)) slab_journal_payload;
+} __packed slab_journal_payload;
 
 struct packed_slab_journal_block {
 	packed_slab_journal_block_header header;
 	slab_journal_payload payload;
-} __attribute__((packed));
+} __packed;
 
 /**
  * Get the physical block number of the start of the slab journal

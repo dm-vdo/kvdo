@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#13 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -31,8 +31,8 @@
 /**
  * The packed, on-disk representation of a block map page header.
  **/
-typedef union __attribute__((packed)) {
-	struct __attribute__((packed)) {
+typedef union __packed {
+	struct __packed {
 		/**
 		 * The 64-bit nonce of the current VDO, in little-endian byte
 		 * order. Used to determine whether or not a page has been
@@ -74,7 +74,7 @@ typedef union __attribute__((packed)) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// This view is only valid on little-endian machines and is only present
 	// for ease of directly examining packed entries in GDB.
-	struct __attribute__((packed)) {
+	struct __packed {
 		uint64_t nonce;
 		physical_block_number_t pbn;
 		uint64_t unused_long_word;
@@ -93,7 +93,7 @@ struct block_map_page {
 	struct packed_version_number version;
 	PageHeader header;
 	block_map_entry entries[];
-} __attribute__((packed));
+} __packed;
 
 typedef enum {
 	// A block map page is correctly initialized

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_FORMAT_H
@@ -38,7 +38,7 @@ struct recovery_journal_state_7_0 {
 	block_count_t logical_blocks_used;
 	/** Number of block map pages allocated */
 	block_count_t block_map_data_blocks;
-} __attribute__((packed));
+} __packed;
 
 extern const struct header RECOVERY_JOURNAL_HEADER_7_0;
 

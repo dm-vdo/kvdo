@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#3 $
  */
 
 #ifndef SLAB_SUMMARY_FORMAT_H
@@ -53,7 +53,7 @@ struct slab_summary_entry {
 	/** Bits 13..8: A hint about the fullness of the slab */
 	unsigned int fullness_hint : 6;
 #endif
-} __attribute__((packed));
+} __packed;
 
 // XXX: These methods shouldn't take a block_size parameter.
 

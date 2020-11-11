@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#2 $
  */
 
 #ifndef VDO_COMPONENT_H
@@ -37,7 +37,7 @@ struct vdo_component_41_0 {
 	uint64_t read_only_recoveries;
 	struct vdo_config config;
 	nonce_t nonce;
-} __attribute__((packed));
+} __packed;
 
 /**
  * Get the size of the encoded state of the vdo itself.
