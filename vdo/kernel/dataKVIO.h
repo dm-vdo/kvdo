@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#42 $
  */
 
 #ifndef DATA_KVIO_H
@@ -67,10 +67,6 @@ struct read_block {
 	 **/
 	char *buffer;
 	/**
-	 * A bio structure wrapping the buffer.
-	 **/
-	struct bio *bio;
-	/**
 	 * Callback to invoke after completing the read I/O operation.
 	 **/
 	DataKVIOCallback callback;
@@ -111,8 +107,8 @@ struct data_kvio {
 	 * emulating smaller-than-blockSize I/O operations.
 	 **/
 	char *data_block;
-	/** A bio structure describing the #data_block buffer. */
-	struct bio *data_block_bio;
+	/** A bio structure, used for all reads and writes from/to disk. */
+	struct bio *bio;
 	/** A block used as output during compression or uncompression. */
 	char *scratch_block;
 };
