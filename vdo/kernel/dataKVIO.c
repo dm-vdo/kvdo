@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#94 $
  */
 
 #include "dataKVIO.h"
@@ -431,14 +431,8 @@ void read_data_vio(struct data_vio *data_vio)
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct bio *bio = data_kvio->bio;
 
-	/*
-	 * Read directly into the user buffer (for a 4k read) or the data
-	 * block (for a partial IO).
-	 *
-	 * If using the user buffer, use the user bio, though we
-	 * we can't reset it unconditionally as we do at most other
-	 * callsites to vdo_submit_bio().
-	 */
+	// Read directly into the user buffer (for a 4k read) or the data
+	// block (for a partial IO).
 	int result = VDO_SUCCESS;
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_kvio->bio,
@@ -453,11 +447,21 @@ void read_data_vio(struct data_vio *data_vio)
 					       complete_async_bio, opf,
 					       data_vio->mapped.pbn);
 	} else {
-		bio = data_kvio->external_io_request.bio;
-		// A full 4k read. FUA is irrelevant to a read, so strip it out.
-		bio->bi_opf &= ~REQ_FUA;
-		bio->bi_end_io = complete_async_bio;
+		/*
+		 * A full 4k read. We reset with no data, then copy the biovec
+		 * and iterator from the original bio so as to read data into
+		 * the user buffer.
+		 * 
+		 * We can't use __bio_clone_fast() because we don't want
+		 * to copy over (and then need to free) the bio's cgroup.
+		 */
+		int opf = data_kvio->external_io_request.bio->bi_opf &
+				~REQ_FUA;
+		result = reset_bio_with_buffer(bio, NULL, kvio,
+					       complete_async_bio, opf, 0);
+		bio->bi_iter = data_kvio->external_io_request.bio->bi_iter;
 		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
+		bio->bi_io_vec = data_kvio->external_io_request.bio->bi_io_vec;
 	}
 
 	if (result != VDO_SUCCESS) {

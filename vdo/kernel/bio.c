@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#37 $
  */
 
 #include "bio.h"
@@ -106,6 +106,10 @@ int reset_bio_with_buffer(struct bio *bio,
 	if (data == NULL) {
 		return VDO_SUCCESS;
 	}
+
+	// Make sure we use our own inlined iovecs. The max count of them
+	// is always preserved.
+	bio->bi_io_vec = bio->bi_inline_vecs;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
 	// bio_add_page() can take any contiguous buffer on any number of
