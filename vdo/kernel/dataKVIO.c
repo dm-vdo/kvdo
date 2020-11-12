@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#93 $
  */
 
 #include "dataKVIO.h"
@@ -428,7 +428,8 @@ void read_data_vio(struct data_vio *data_vio)
 	}
 
 	struct kvio *kvio = data_vio_as_kvio(data_vio);
-	struct bio *bio = kvio->bio;
+	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+	struct bio *bio = data_kvio->bio;
 
 	/*
 	 * Read directly into the user buffer (for a 4k read) or the data
@@ -438,7 +439,6 @@ void read_data_vio(struct data_vio *data_vio)
 	 * we can't reset it unconditionally as we do at most other
 	 * callsites to vdo_submit_bio().
 	 */
-	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	int result = VDO_SUCCESS;
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_kvio->bio,
@@ -453,6 +453,7 @@ void read_data_vio(struct data_vio *data_vio)
 					       complete_async_bio, opf,
 					       data_vio->mapped.pbn);
 	} else {
+		bio = data_kvio->external_io_request.bio;
 		// A full 4k read. FUA is irrelevant to a read, so strip it out.
 		bio->bi_opf &= ~REQ_FUA;
 		bio->bi_end_io = complete_async_bio;
@@ -629,7 +630,12 @@ void zero_data_vio(struct data_vio *data_vio)
 			"only attempt to zero non-writes");
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("zeroDataVIO;io=readData"));
-	zero_fill_bio(data_vio_as_kvio(data_vio)->bio);
+	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
+	if (data_kvio->is_partial) {
+		memset(data_kvio->data_block, 0, VDO_BLOCK_SIZE);
+	} else {
+		zero_fill_bio(data_kvio->external_io_request.bio);
+	}
 }
 
 /**********************************************************************/
@@ -641,8 +647,14 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 			"only copy from a write");
 
 	data_vio_add_trace_record(destination, THIS_LOCATION(NULL));
-	bio_copy_data_out(data_vio_as_kvio(destination)->bio,
-			  data_vio_as_data_kvio(source)->data_block);
+	struct data_kvio *dest = data_vio_as_data_kvio(destination);
+	struct data_kvio *src = data_vio_as_data_kvio(source);
+	if (dest->is_partial) {
+		memcpy(dest->data_block, src->data_block, VDO_BLOCK_SIZE);
+	} else {
+		bio_copy_data_out(dest->external_io_request.bio,
+				  src->data_block);
+	}
 }
 
 /**********************************************************************/
@@ -812,15 +824,10 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	if (data_kvio->is_partial || (bio_data_dir(bio) == WRITE)) {
-		/*
-		 * kvio->bio will point at data_kvio->bio for all
-		 * writes and partial block I/O so the rest of the kernel code
-		 * doesn't need to make a decision as to what to use.
-		 */
-		data_kvio_as_kvio(data_kvio)->bio = data_kvio->bio;
 		data_kvio->read_block.data = data_kvio->data_block;
 	}
 
+	data_kvio_as_kvio(data_kvio)->bio = NULL;
 	bio->bi_end_io = complete_async_bio;
 	*data_kvio_ptr = data_kvio;
 	return VDO_SUCCESS;
