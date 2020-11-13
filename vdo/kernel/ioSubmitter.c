@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#54 $
  */
 
 #include "ioSubmitter.h"
@@ -239,21 +239,11 @@ void count_completed_bios(struct bio *bio)
 /**********************************************************************/
 void complete_async_bio(struct bio *bio)
 {
-	int error = get_bio_result(bio);
 	struct kvio *kvio = (struct kvio *) bio->bi_private;
 
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
-	if ((error == 0) && is_data(kvio) && is_read_vio(kvio->vio)) {
-		struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
-
-		if (!is_compressed(data_kvio->data_vio.mapped.state) &&
-		    !data_kvio->is_partial) {
-			acknowledge_data_vio(&data_kvio->data_vio);
-			return;
-		}
-	}
-	kvdo_continue_kvio(kvio, error);
+	kvdo_continue_kvio(kvio, get_bio_result(bio));
 }
 
 /**

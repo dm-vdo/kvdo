@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#97 $
  */
 
 #include "dataKVIO.h"
@@ -412,6 +412,22 @@ void kvdo_read_block(struct data_vio *data_vio,
 }
 
 /**********************************************************************/
+static void acknowledge_user_bio(struct bio *bio)
+{
+	int error = get_bio_result(bio);
+	struct kvio *kvio = (struct kvio *) bio->bi_private;
+
+	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
+	count_completed_bios(bio);
+	if (error == 0) {
+		struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
+		acknowledge_data_vio(&data_kvio->data_vio);
+		return;
+	}
+	kvdo_continue_kvio(kvio, error);
+}
+
+/**********************************************************************/
 void read_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
@@ -457,7 +473,7 @@ void read_data_vio(struct data_vio *data_vio)
 		__bio_clone_fast(bio, data_kvio->external_io_request.bio);
 		bio->bi_opf &= ~REQ_FUA;
 		bio->bi_private = kvio;
-		bio->bi_end_io = complete_async_bio;
+		bio->bi_end_io = acknowledge_user_bio;
 		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
 	}
 
