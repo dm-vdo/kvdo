@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#95 $
  */
 
 #include "dataKVIO.h"
@@ -1093,14 +1093,12 @@ static int allocate_pooled_data_kvio(struct data_kvio **data_kvio_ptr)
 					  "data_kvio data allocation failure");
 	}
 
-	result = create_bio(data_kvio->data_block,
-			    &data_kvio->bio);
+	result = create_bio(&data_kvio->bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(data_kvio);
 		return log_error_strerror(result,
 					  "data_kvio data bio allocation failure");
 	}
-	data_kvio->bio->bi_private = &data_kvio->kvio;
 
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
 				 &data_kvio->read_block.buffer);

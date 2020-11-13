@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#22 $
  */
 
 #ifndef BIO_H
@@ -105,13 +105,13 @@ int reset_bio_with_buffer(struct bio *bio,
 			  physical_block_number_t pbn);
 
 /**
- * Create a new bio structure for kernel buffer storage.
+ * Create a new bio structure, which is guaranteed to be able to wrap any
+ * contiguous buffer for IO.
  *
- * @param [in]  data     The buffer (can be NULL)
  * @param [out] bio_ptr  A pointer to hold new bio
  *
  * @return VDO_SUCCESS or an error
  **/
-int create_bio(char *data, struct bio **bio_ptr);
+int create_bio(struct bio **bio_ptr);
 
 #endif /* BIO_H */

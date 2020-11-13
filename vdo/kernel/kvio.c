@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#50 $
  */
 
 #include "kvio.h"
@@ -325,7 +325,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 
 	struct bio *bio;
 
-	result = create_bio(data, &bio);
+	result = create_bio(&bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -362,7 +362,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     struct allocating_vio **allocating_vio_ptr)
 {
 	struct bio *bio;
-	int result = create_bio(data, &bio);
+	int result = create_bio(&bio);
 
 	if (result != VDO_SUCCESS) {
 		return result;
