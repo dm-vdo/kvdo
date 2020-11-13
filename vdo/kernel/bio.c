@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#39 $
  */
 
 #include "bio.h"
@@ -25,10 +25,7 @@
 #include "memoryAlloc.h"
 #include "numeric.h"
 
-#include "flush.h"
-#include "recoveryJournal.h"
-
-#include "ioSubmitter.h"
+#include "kernelLayer.h"
 
 enum { INLINE_BVEC_COUNT = 2 };
 
