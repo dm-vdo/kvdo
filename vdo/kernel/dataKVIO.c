@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#96 $
  */
 
 #include "dataKVIO.h"
@@ -448,20 +448,17 @@ void read_data_vio(struct data_vio *data_vio)
 					       data_vio->mapped.pbn);
 	} else {
 		/*
-		 * A full 4k read. We reset with no data, then copy the biovec
-		 * and iterator from the original bio so as to read data into
-		 * the user buffer.
-		 * 
-		 * We can't use __bio_clone_fast() because we don't want
-		 * to copy over (and then need to free) the bio's cgroup.
+		 * A full 4k read. We reset, use __bio_clone_fast() to copy
+		 * over the original bio iovec information and opflags, then
+		 * edit what is essentially a copy of the user bio to fit our
+		 * needs.
 		 */
-		int opf = data_kvio->external_io_request.bio->bi_opf &
-				~REQ_FUA;
-		result = reset_bio_with_buffer(bio, NULL, kvio,
-					       complete_async_bio, opf, 0);
-		bio->bi_iter = data_kvio->external_io_request.bio->bi_iter;
+		bio_reset(bio);
+		__bio_clone_fast(bio, data_kvio->external_io_request.bio);
+		bio->bi_opf &= ~REQ_FUA;
+		bio->bi_private = kvio;
+		bio->bi_end_io = complete_async_bio;
 		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
-		bio->bi_io_vec = data_kvio->external_io_request.bio->bi_io_vec;
 	}
 
 	if (result != VDO_SUCCESS) {
