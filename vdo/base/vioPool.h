@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#13 $
  */
 
 #ifndef VIO_POOL_H
@@ -38,7 +38,7 @@
  * A vio_pool_entry is the pair of vio and buffer whether in use or not.
  **/
 struct vio_pool_entry {
-	struct list_head list_entry;
+	struct list_head available_entry;
 	struct vio *vio;
 	void *buffer;
 	void *parent;
@@ -116,7 +116,7 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
  **/
 static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 {
-	return container_of(entry, struct vio_pool_entry, list_entry);
+	return container_of(entry, struct vio_pool_entry, available_entry);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#70 $
  */
 
 #include "slabJournalInternals.h"
@@ -614,7 +614,7 @@ static void complete_write(struct vdo_completion *completion)
 	struct slab_journal *journal = entry->parent;
 
 	sequence_number_t committed = get_committing_sequence_number(entry);
-	list_del_init(&entry->list_entry);
+	list_del_init(&entry->available_entry);
 	return_vio(journal->slab->allocator, entry);
 
 	if (write_result != VDO_SUCCESS) {
@@ -657,7 +657,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	struct slab_journal_block_header *header = &journal->tail_header;
 
 	header->head = journal->head;
-	list_move_tail(&entry->list_entry, &journal->uncommitted_blocks);
+	list_move_tail(&entry->available_entry, &journal->uncommitted_blocks);
 	pack_slab_journal_block_header(header, &journal->block->header);
 
 	// Copy the tail block into the vio.

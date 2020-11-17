@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#19 $
  */
 
 #include "vioPool.h"
@@ -89,8 +89,8 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		}
 
 		ptr += VDO_BLOCK_SIZE;
-		INIT_LIST_HEAD(&entry->list_entry);
-		list_add_tail(&entry->list_entry, &pool->available);
+		INIT_LIST_HEAD(&entry->available_entry);
+		list_add_tail(&entry->available_entry, &pool->available);
 		pool->size++;
 	}
 
@@ -126,7 +126,7 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	size_t i;
 	for (i = 0; i < pool->size; i++) {
 		struct vio_pool_entry *entry = &pool->entries[i];
-		ASSERT_LOG_ONLY(list_empty(&entry->list_entry),
+		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
 				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
 				entry->vio->physical, entry->vio->operation);
 	}
@@ -171,7 +171,7 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 		return;
 	}
 
-	list_move_tail(&entry->list_entry, &pool->available);
+	list_move_tail(&entry->available_entry, &pool->available);
 	--pool->busy_count;
  }
 
