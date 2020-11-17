@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#47 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -116,8 +116,8 @@ static int initialize_info(struct vdo_page_cache *cache)
 				cache->zone->thread_id;
 		}
 
-		INIT_LIST_HEAD(&info->list_entry);
-		list_add_tail(&info->list_entry, &cache->free_list);
+		INIT_LIST_HEAD(&info->state_entry);
+		list_add_tail(&info->state_entry, &cache->free_list);
 		INIT_LIST_HEAD(&info->lru_entry);
 	}
 
@@ -361,18 +361,18 @@ static void set_info_state(struct page_info *info, page_state new_state)
 	switch (info->state) {
 	case PS_FREE:
 	case PS_FAILED:
-		list_move_tail(&info->list_entry, &info->cache->free_list);
+		list_move_tail(&info->state_entry, &info->cache->free_list);
 		return;
 
 	case PS_OUTGOING:
-		list_move_tail(&info->list_entry, &info->cache->outgoing_list);
+		list_move_tail(&info->state_entry, &info->cache->outgoing_list);
 		return;
 
 	case PS_DIRTY:
 		return;
 
 	default:
-		list_del_init(&info->list_entry);
+		list_del_init(&info->state_entry);
 	}
 }
 
@@ -446,7 +446,7 @@ find_free_page(struct vdo_page_cache *cache)
 	}
 	struct page_info *info =
 		page_info_from_list_entry(cache->free_list.next);
-	list_del_init(&info->list_entry);
+	list_del_init(&info->state_entry);
 	return info;
 }
 
@@ -1375,7 +1375,7 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
 	struct page_info *info = vdo_page_comp->info;
 	set_info_state(info, PS_DIRTY);
 	add_to_dirty_lists(info->cache->dirty_lists,
-			   &info->list_entry,
+			   &info->state_entry,
 			   old_dirty_period,
 			   new_dirty_period);
 }
