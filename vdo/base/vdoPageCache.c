@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#48 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -445,7 +445,7 @@ find_free_page(struct vdo_page_cache *cache)
 		return NULL;
 	}
 	struct page_info *info =
-		page_info_from_list_entry(cache->free_list.next);
+		page_info_from_state_entry(cache->free_list.next);
 	list_del_init(&info->state_entry);
 	return info;
 }
@@ -895,7 +895,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	assert_io_allowed(cache);
 
 	struct page_info *info =
-		page_info_from_list_entry(cache->outgoing_list.next);
+		page_info_from_state_entry(cache->outgoing_list.next);
 	cache->pages_in_flush = cache->pages_to_flush;
 	cache->pages_to_flush = 0;
 	ADD_ONCE(cache->stats.flush_count, 1);
@@ -943,7 +943,7 @@ static void write_dirty_pages_callback(struct list_head *expired,
 	while (!list_empty(expired)) {
 		struct list_head *entry = expired->next;
 		list_del_init(entry);
-		schedule_page_save(page_info_from_list_entry(entry));
+		schedule_page_save(page_info_from_state_entry(entry));
 	}
 
 	save_pages((struct vdo_page_cache *) context);
@@ -1213,7 +1213,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 	while (pages_in_flush-- > 0) {
 		struct list_head *entry = cache->outgoing_list.next;
 		list_del_init(entry);
-		struct page_info *info = page_info_from_list_entry(entry);
+		struct page_info *info = page_info_from_state_entry(entry);
 		if (is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
