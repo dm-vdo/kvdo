@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#51 $
  */
 
 #include "kvio.h"
@@ -292,9 +292,6 @@ void initialize_kvio(struct kvio *kvio,
 
 	kvio->bio = bio;
 	kvio->layer = layer;
-	if (bio != NULL) {
-		bio->bi_private = kvio;
-	}
 
 	initialize_vio(kvio->vio,
 		       vio_type,
