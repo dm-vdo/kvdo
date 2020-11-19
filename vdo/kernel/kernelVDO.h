@@ -16,18 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#23 $
  */
 
 #ifndef KERNEL_VDO_H
 #define KERNEL_VDO_H
 
 #include "completion.h"
+
 #include "kernelTypes.h"
 #include "threadRegistry.h"
 #include "workQueue.h"
 
-struct kvdo_thread {
+struct vdo_thread {
 	struct kvdo *kvdo;
 	thread_id_t thread_id;
 	struct kvdo_work_queue *request_queue;
@@ -35,7 +36,7 @@ struct kvdo_thread {
 };
 
 struct kvdo {
-	struct kvdo_thread *threads;
+	struct vdo_thread *threads;
 	thread_id_t initialized_thread_count;
 	struct kvdo_work_item work_item;
 	vdo_action *action;

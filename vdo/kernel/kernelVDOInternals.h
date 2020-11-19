@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDOInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDOInternals.h#6 $
  */
 
 #ifndef KERNEL_VDO_INTERNALS_H
@@ -25,13 +25,12 @@
 #include "kernelVDO.h"
 
 /**
- * Enqueue a work item to be performed in the base code in a
- * particular thread.
+ * Enqueue a work item to be performed in the base code in a particular thread.
  *
- * @param thread         The KVDO thread on which to run the work item
- * @param item           The work item to be run
+ * @param thread  The VDO thread on which to run the work item
+ * @param item    The work item to be run
  **/
-void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
+void enqueue_kvdo_thread_work(struct vdo_thread *thread,
 			      struct kvdo_work_item *item);
 
 #endif // KERNEL_VDO_INTERNALS_H

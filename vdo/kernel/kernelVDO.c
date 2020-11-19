@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#60 $
  */
 
 /*
@@ -51,7 +51,7 @@ enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 /**********************************************************************/
 static void start_kvdo_request_queue(void *ptr)
 {
-	struct kvdo_thread *thread = ptr;
+	struct vdo_thread *thread = ptr;
 	struct kvdo *kvdo = thread->kvdo;
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
@@ -97,7 +97,7 @@ int initialize_kvdo(struct kvdo *kvdo,
 {
 	unsigned int base_threads = thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
-			      struct kvdo_thread,
+			      struct vdo_thread,
 			      "request processing work queue",
 			      &kvdo->threads);
 	if (result != VDO_SUCCESS) {
@@ -110,7 +110,7 @@ int initialize_kvdo(struct kvdo *kvdo,
 	for (kvdo->initialized_thread_count = 0;
 	     kvdo->initialized_thread_count < base_threads;
 	     kvdo->initialized_thread_count++) {
-		struct kvdo_thread *thread =
+		struct vdo_thread *thread =
 			&kvdo->threads[kvdo->initialized_thread_count];
 
 		thread->kvdo = kvdo;
@@ -543,7 +543,7 @@ write_policy get_kvdo_write_policy(struct kvdo *kvdo)
 }
 
 /**********************************************************************/
-void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
+void enqueue_kvdo_thread_work(struct vdo_thread *thread,
 			      struct kvdo_work_item *item)
 {
 	enqueue_work_queue(thread->request_queue, item);
@@ -606,7 +606,7 @@ void kvdo_enqueue(struct vdo_completion *completion)
 /**********************************************************************/
 thread_id_t get_callback_thread_id(void)
 {
-	struct kvdo_thread *thread = get_work_queue_private_data();
+	struct vdo_thread *thread = get_work_queue_private_data();
 
 	if (thread == NULL) {
 		return INVALID_THREAD_ID;
