@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#45 $
  */
 
 #include "slabScrubberInternals.h"
@@ -164,7 +164,7 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 		return;
 	}
 
-	list_del_init(&slab->list_entry);
+	list_del_init(&slab->allocq_entry);
 	if (!slab->was_queued_for_scrubbing) {
 		WRITE_ONCE(scrubber->slab_count, scrubber->slab_count + 1);
 		slab->was_queued_for_scrubbing = true;
@@ -172,12 +172,12 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 
 	if (high_priority) {
 		slab->status = SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
-		list_add_tail(&slab->list_entry,
+		list_add_tail(&slab->allocq_entry,
 			      &scrubber->high_priority_slabs);
 		return;
 	}
 
-	list_add_tail(&slab->list_entry, &scrubber->slabs);
+	list_add_tail(&slab->allocq_entry, &scrubber->slabs);
 }
 
 /**
@@ -445,7 +445,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 		return;
 	}
 
-	list_del_init(&slab->list_entry);
+	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
 	struct vdo_completion *completion =
 		extent_as_completion(scrubber->extent);

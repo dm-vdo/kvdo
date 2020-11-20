@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#88 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -108,12 +108,12 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
  **/
 static void prioritize_slab(struct vdo_slab *slab)
 {
-	ASSERT_LOG_ONLY(list_empty(&slab->list_entry),
+	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a slab must not already be on a ring when prioritizing");
 	slab->priority = calculate_slab_priority(slab);
 	priority_table_enqueue(slab->allocator->prioritized_slabs,
 			       slab->priority,
-			       &slab->list_entry);
+			       &slab->allocq_entry);
 }
 
 /**********************************************************************/
@@ -360,7 +360,7 @@ block_count_t get_unrecovered_slab_count(const struct block_allocator *allocator
 /**********************************************************************/
 void queue_slab(struct vdo_slab *slab)
 {
-	ASSERT_LOG_ONLY(list_empty(&slab->list_entry),
+	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a requeued slab must not already be on a ring");
 	struct block_allocator *allocator = slab->allocator;
 	block_count_t free_blocks = get_slab_free_block_count(slab);
@@ -420,7 +420,7 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	// Reprioritize the slab to reflect the new free block count by removing
 	// it from the table and re-enqueuing it with the new priority.
 	priority_table_remove(allocator->prioritized_slabs,
-			      &slab->list_entry);
+			      &slab->allocq_entry);
 	prioritize_slab(slab);
 }
 
@@ -629,7 +629,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 	while (has_next_slab(&iterator)) {
 		struct vdo_slab *slab = next_slab(&iterator);
-		list_del_init(&slab->list_entry);
+		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
 		start_slab_action(slab,
 				  allocator->state.state,
@@ -1000,7 +1000,7 @@ void allocate_from_allocator_last_slab(struct block_allocator *allocator)
 	struct vdo_slab *last_slab =
 		allocator->depot->slabs[allocator->last_slab];
 	priority_table_remove(allocator->prioritized_slabs,
-			      &last_slab->list_entry);
+			      &last_slab->allocq_entry);
 	allocator->open_slab = last_slab;
 }
 

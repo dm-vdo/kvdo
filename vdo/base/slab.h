@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#32 $
  */
 
 #ifndef VDO_SLAB_H
@@ -47,7 +47,7 @@ typedef enum {
  **/
 struct vdo_slab {
 	/** A list entry to queue this slab in a block_allocator list */
-	struct list_head list_entry;
+	struct list_head allocq_entry;
 
 	/** The struct block_allocator that owns this slab */
 	struct block_allocator *allocator;
@@ -91,7 +91,7 @@ struct vdo_slab {
  **/
 static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
 {
-	return container_of(entry, struct vdo_slab, list_entry);
+	return container_of(entry, struct vdo_slab, allocq_entry);
 }
 
 /**

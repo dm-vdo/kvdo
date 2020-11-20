@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#43 $
  */
 
 #include "slab.h"
@@ -60,7 +60,7 @@ int make_slab(physical_block_number_t slab_origin,
 	slab->start = slab_origin;
 	slab->end = slab->start + slab_config->slab_blocks;
 	slab->slab_number = slab_number;
-	INIT_LIST_HEAD(&slab->list_entry);
+	INIT_LIST_HEAD(&slab->allocq_entry);
 
 	slab->ref_counts_origin =
 		slab_origin + slab_config->data_blocks + translation;
@@ -117,7 +117,7 @@ void free_slab(struct vdo_slab **slab_ptr)
 		return;
 	}
 
-	list_del(&slab->list_entry);
+	list_del(&slab->allocq_entry);
 	free_slab_journal(&slab->journal);
 	free_ref_counts(&slab->reference_counts);
 	FREE(slab);
