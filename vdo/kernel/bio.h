@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#23 $
  */
 
 #ifndef BIO_H
@@ -82,6 +82,26 @@ void free_bio(struct bio *bio);
  * @param bio        The bio
  **/
 void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
+
+/**
+ * Does all the appropriate accounting for bio completions
+ *
+ * @param bio  the bio to count
+ **/
+void count_completed_bios(struct bio *bio);
+
+/**
+ * Completes a bio relating to a kvio, causing the completion callback
+ * to be invoked.
+ *
+ * This is used as the bi_end_io function for most of the bios created
+ * within VDO and submitted to the storage device. Exceptions are the
+ * flush code and the read-block code, both of which need to regain
+ * control in the kernel layer after the I/O is completed.
+ *
+ * @param bio   The bio to complete
+ **/
+void complete_async_bio(struct bio *bio);
 
 /**
  * Reset a bio wholly, preparing it to perform an IO. May only be used on a

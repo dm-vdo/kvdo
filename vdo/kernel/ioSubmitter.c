@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#55 $
  */
 
 #include "ioSubmitter.h"
@@ -202,48 +202,6 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 			this_queue->queue_number,
 			computed_queue_number,
 			pbn);
-}
-
-/**
- * Increments appropriate counters for bio completions
- *
- * @param kvio the kvio associated with the bio
- * @param bio  the bio to count
- */
-static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
-{
-	struct kernel_layer *layer = kvio->layer;
-
-	if (is_data(kvio)) {
-		count_bios(&layer->biosOutCompleted, bio);
-		return;
-	}
-
-	count_bios(&layer->biosMetaCompleted, bio);
-	if (kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		count_bios(&layer->biosJournalCompleted, bio);
-	} else if (kvio->vio->type == VIO_TYPE_BLOCK_MAP) {
-		count_bios(&layer->biosPageCacheCompleted, bio);
-	}
-}
-
-/**********************************************************************/
-void count_completed_bios(struct bio *bio)
-{
-	struct kvio *kvio = (struct kvio *) bio->bi_private;
-	struct kernel_layer *layer = kvio->layer;
-	atomic64_inc(&layer->bios_completed);
-	count_all_bios_completed(kvio, bio);
-}
-
-/**********************************************************************/
-void complete_async_bio(struct bio *bio)
-{
-	struct kvio *kvio = (struct kvio *) bio->bi_private;
-
-	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
-	count_completed_bios(bio);
-	kvdo_continue_kvio(kvio, get_bio_result(bio));
 }
 
 /**
