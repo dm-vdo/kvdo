@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#59 $
  */
 
 #include "packerInternals.h"
@@ -53,7 +53,7 @@ struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin)
 	if (bin->list.next == &packer->input_bins) {
 		return NULL;
 	} else {
-		return container_of(bin->list.next, struct input_bin, list);
+		return list_entry(bin->list.next, struct input_bin, list);
 	}
 }
 
@@ -63,8 +63,8 @@ struct input_bin *get_fullest_bin(const struct packer *packer)
 	if (list_empty(&packer->input_bins)) {
 		return NULL;
 	} else {
-		return container_of(packer->input_bins.next,
-				    struct input_bin, list);
+		return list_entry(packer->input_bins.next,
+				  struct input_bin, list);
 	}
 }
 
@@ -1041,10 +1041,8 @@ void dump_packer(const struct packer *packer)
 
 	log_info("  output_bin_count=%zu idle_output_bin_count=%zu",
 		 packer->output_bin_count, packer->idle_output_bin_count);
-	struct list_head *entry;
-	list_for_each(entry, &packer->output_bins) {
-		struct output_bin *output
-			= container_of(entry, struct output_bin, list);
+	struct output_bin *output;	
+	list_for_each_entry(output, &packer->output_bins, list) {
 		dump_output_bin(output);
 	}
 }

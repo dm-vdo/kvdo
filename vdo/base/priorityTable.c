@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#11 $
  */
 
 #include "priorityTable.h"
@@ -181,8 +181,8 @@ void priority_table_remove(struct priority_table *table,
 	// If the rest of the list is now empty, the next node must be the list
 	// head in the bucket and we can use it to update the search vector.
 	if (list_empty(next_entry)) {
-		mark_bucket_empty(table, container_of(next_entry,
-						      struct bucket, queue));
+		mark_bucket_empty(table, list_entry(next_entry,
+						    struct bucket, queue));
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#32 $
  */
 
 #include "hashZone.h"
@@ -200,8 +200,8 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	struct hash_lock *new_lock = container_of(zone->lock_pool.prev,
-						  struct hash_lock, pool_node);
+	struct hash_lock *new_lock = list_entry(zone->lock_pool.prev,
+						struct hash_lock, pool_node);
 	list_del_init(&new_lock->pool_node);
 
 	// Fill in the hash of the new lock so we can map it, since we have to
