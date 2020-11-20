@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#20 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -31,7 +31,7 @@
 
 struct recovery_journal_block {
 	/** The doubly linked pointers for the free or active lists */
-	struct list_head list_entry;
+	struct list_head list_node;
 	/** The waiter for the pending full block list */
 	struct waiter write_waiter;
 	/** The journal to which this block belongs */
@@ -78,7 +78,7 @@ struct recovery_journal_block {
 static inline struct recovery_journal_block *
 block_from_list_entry(struct list_head *entry)
 {
-	return container_of(entry, struct recovery_journal_block, list_entry);
+	return container_of(entry, struct recovery_journal_block, list_node);
 }
 
 /**

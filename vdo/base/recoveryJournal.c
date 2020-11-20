@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#81 $
  */
 
 #include "recoveryJournal.h"
@@ -458,8 +458,7 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 			return result;
 		}
 
-		list_move_tail(&block->list_entry,
-			       &journal->free_tail_blocks);
+		list_move_tail(&block->list_node, &journal->free_tail_blocks);
 	}
 
 	result = make_lock_counter(layer, journal,
@@ -630,7 +629,7 @@ static bool advance_tail(struct recovery_journal *journal)
 		return false;
 	}
 
-	list_move_tail(&journal->active_block->list_entry,
+	list_move_tail(&journal->active_block->list_node,
 		       &journal->active_tail_blocks);
 	initialize_recovery_block(journal->active_block);
 	set_journal_tail(journal, journal->tail + 1);
@@ -874,7 +873,7 @@ static void assign_entries(struct recovery_journal *journal)
 static void recycle_journal_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
-	list_move_tail(&block->list_entry, &journal->free_tail_blocks);
+	list_move_tail(&block->list_node, &journal->free_tail_blocks);
 
 	// Release any unused entry locks.
 	block_count_t i;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#38 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -67,7 +67,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	}
 
 	block->vio->completion.callback_thread_id = journal->thread_id;
-	INIT_LIST_HEAD(&block->list_entry);
+	INIT_LIST_HEAD(&block->list_node);
 	block->journal = journal;
 
 	*block_ptr = block;
