@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#52 $
  */
 
 #include "kvio.h"
@@ -205,19 +205,6 @@ void submit_metadata_vio(struct vio *vio)
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
-/**
- * Handle the completion of a base-code initiated flush by continuing the flush
- * vio.
- *
- * @param bio    The bio to complete
- **/
-static void complete_flush_bio(struct bio *bio)
-{
-	int error = get_bio_result(bio);
-	struct kvio *kvio = (struct kvio *) bio->bi_private;
-	kvdo_continue_kvio(kvio, error);
-}
-
 /**********************************************************************/
 void kvdo_flush_vio(struct vio *vio)
 {
@@ -229,7 +216,7 @@ void kvdo_flush_vio(struct vio *vio)
 	 * layers of the stack don't recognize that as a flush. So do it
 	 * like blkdev_issue_flush() and make it a write+flush.
 	 */
-	int result = reset_bio_with_buffer(bio, NULL, kvio, complete_flush_bio,
+	int result = reset_bio_with_buffer(bio, NULL, kvio, complete_async_bio,
 					   REQ_OP_WRITE | REQ_PREFLUSH, 0);
 	if (result != VDO_SUCCESS) {
 		kvdo_continue_kvio(kvio, result);
