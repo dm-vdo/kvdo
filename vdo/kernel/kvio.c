@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#53 $
  */
 
 #include "kvio.h"
@@ -34,111 +34,79 @@
 #include "ioSubmitter.h"
 #include "kvdoFlush.h"
 
-/**********************************************************************/
-struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
-{
-	struct vio *vio = container_of(item, struct vio, completion.work_item);
-	if (is_metadata_vio(vio)) {
-                return &(vio_as_metadata_kvio(vio)->kvio);
-	}
-
-	if (is_compressed_write_vio(vio)) {
-		struct allocating_vio *avio = vio_as_allocating_vio(vio);
-		return &(allocating_vio_as_compressed_write_kvio(avio)->kvio);
-	}
-
-	return &(data_vio_as_data_kvio(vio_as_data_vio(vio))->kvio);
-}
-
 /**
  * A function to tell vdo that we have completed the requested async
- * operation for a vio
+ * operation for a vio.
  *
  * @param item    The work item of the vio to complete
  **/
 static void kvdo_handle_vio_callback(struct kvdo_work_item *item)
 {
-	struct kvio *kvio = work_item_as_kvio(item);
-
-	run_callback(vio_as_completion(kvio->vio));
+	run_callback(container_of(item, struct vdo_completion, work_item));
 }
 
 /**********************************************************************/
-void kvdo_enqueue_vio_callback(struct kvio *kvio)
+void kvdo_enqueue_vio_callback(struct vio *vio)
 {
-	enqueue_kvio(kvio,
-		     kvdo_handle_vio_callback,
-		     (KvdoWorkFunction) vio_as_completion(kvio->vio)->callback,
-		     REQ_Q_ACTION_VIO_CALLBACK);
+	enqueue_vio(vio,
+		    kvdo_handle_vio_callback,
+		    (KvdoWorkFunction) vio_as_completion(vio)->callback,
+		    REQ_Q_ACTION_VIO_CALLBACK);
 }
 
 /**********************************************************************/
-void kvdo_continue_kvio(struct kvio *kvio, int error)
+void kvdo_continue_vio(struct vio *vio, int error)
 {
 	if (unlikely(error != VDO_SUCCESS)) {
-		set_completion_result(vio_as_completion(kvio->vio), error);
+		set_completion_result(vio_as_completion(vio), error);
 	}
-	kvdo_enqueue_vio_callback(kvio);
+	kvdo_enqueue_vio_callback(vio);
 }
 
 /**********************************************************************/
-// noinline ensures systemtap can hook in here
-static noinline void maybe_log_kvio_trace(struct kvio *kvio)
+void maybe_log_vio_trace(struct vio *vio)
 {
-	if (kvio->layer->trace_logging) {
-		log_kvio_trace(kvio);
+	if (as_kernel_layer(vio_as_completion(vio)->layer)->trace_logging) {
+		log_vio_trace(vio);
 	}
 }
 
 /**********************************************************************/
-static void free_kvio(struct kvio **kvio_ptr)
+void destroy_vio(struct vio **vio_ptr)
 {
-	struct kvio *kvio = *kvio_ptr;
+	struct vio *vio = *vio_ptr;
 
-	if (kvio == NULL) {
+	if (vio == NULL) {
 		return;
 	}
 
-	if (unlikely(kvio->vio->trace != NULL)) {
-		maybe_log_kvio_trace(kvio);
-		FREE(kvio->vio->trace);
+	BUG_ON(is_data_vio(vio));
+
+	if (unlikely(vio->trace != NULL)) {
+		maybe_log_vio_trace(vio);
+		FREE(vio->trace);
 	}
 
-	free_bio(kvio->bio);
-	FREE(kvio);
-	*kvio_ptr = NULL;
+	free_bio(vio->bio);
+	FREE(vio);
+	*vio_ptr = NULL;
 }
 
-/**********************************************************************/
-void free_metadata_kvio(struct metadata_kvio **metadata_kvio_ptr)
-{
-	free_kvio((struct kvio **) metadata_kvio_ptr);
-}
-
-/**********************************************************************/
-void free_compressed_write_kvio(
-	struct compressed_write_kvio **compressed_write_kvio_ptr)
-{
-	free_kvio((struct kvio **) compressed_write_kvio_ptr);
-}
 
 /**********************************************************************/
 void write_compressed_block(struct allocating_vio *allocating_vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
-	struct compressed_write_kvio *compressed_write_kvio =
-		allocating_vio_as_compressed_write_kvio(allocating_vio);
-	struct kvio *kvio =
-		compressed_write_kvio_as_kvio(compressed_write_kvio);
-	struct bio *bio = kvio->bio;
+	struct vio *vio = allocating_vio_as_vio(allocating_vio);
+	struct bio *bio = vio->bio;
 
 	// Write the compressed block, using the compressed kvio's own bio.
-	int result = reset_bio_with_buffer(bio, compressed_write_kvio->data, 
-					   kvio, complete_async_bio,
-					   REQ_OP_WRITE, kvio->vio->physical);
+	int result = reset_bio_with_buffer(bio, vio->data, vio,
+					   complete_async_bio, REQ_OP_WRITE,
+					   vio->physical);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_kvio(kvio, result);
+		kvdo_continue_vio(vio, result);
 		return;
 	}
 
@@ -161,10 +129,7 @@ static inline bio_q_action get_metadata_action(struct vio *vio)
 /**********************************************************************/
 void submit_metadata_vio(struct vio *vio)
 {
-	struct metadata_kvio *metadata_kvio = vio_as_metadata_kvio(vio);
-	struct kvio *kvio = metadata_kvio_as_kvio(metadata_kvio);
-	struct bio *bio = kvio->bio;
-
+	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
@@ -172,8 +137,9 @@ void submit_metadata_vio(struct vio *vio)
 		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
 		bi_opf = REQ_OP_READ;
 	} else {
-		kernel_layer_state state = get_kernel_layer_state(kvio->layer);
-
+		struct kernel_layer *layer =
+			as_kernel_layer(vio_as_completion(vio)->layer);
+		kernel_layer_state state = get_kernel_layer_state(layer);
 		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
 				 || (state == LAYER_RESUMING)
 				 || (state = LAYER_STARTING)),
@@ -193,11 +159,11 @@ void submit_metadata_vio(struct vio *vio)
 		bi_opf |= REQ_FUA;
 	}
 
-	int result = reset_bio_with_buffer(bio, metadata_kvio->data, kvio,
+	int result = reset_bio_with_buffer(bio, vio->data, vio,
 					   complete_async_bio, bi_opf,
 					   vio->physical);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_kvio(kvio, result);
+		kvdo_continue_vio(vio, result);
 		return;
 	}
 
@@ -208,18 +174,17 @@ void submit_metadata_vio(struct vio *vio)
 /**********************************************************************/
 void kvdo_flush_vio(struct vio *vio)
 {
-	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
-	struct bio *bio = kvio->bio;
+	struct bio *bio = vio->bio;
 
 	/*
 	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
 	 * layers of the stack don't recognize that as a flush. So do it
 	 * like blkdev_issue_flush() and make it a write+flush.
 	 */
-	int result = reset_bio_with_buffer(bio, NULL, kvio, complete_async_bio,
+	int result = reset_bio_with_buffer(bio, NULL, vio, complete_async_bio,
 					   REQ_OP_WRITE | REQ_PREFLUSH, 0);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_kvio(kvio, result);
+		kvdo_continue_vio(vio, result);
 		return;
 	}
 	vdo_submit_bio(bio, get_metadata_action(vio));
@@ -236,14 +201,14 @@ void kvdo_flush_vio(struct vio *vio)
  * Must be "noinline" so that SystemTap can find the return
  * instruction and modify the return value.
  *
- * @param kvio   The kvio being initialized
+ * @param vio    The vio being initialized
  * @param layer  The kernel layer
  * @param bio    The incoming I/O request
  *
  * @return whether it's useful to track latency for vios looking like
  *         this one
  */
-static noinline bool sample_this_vio(struct kvio *kvio,
+static noinline bool sample_this_vio(struct vio *vio,
 				     struct kernel_layer *layer,
 				     struct bio *bio)
 {
@@ -252,35 +217,33 @@ static noinline bool sample_this_vio(struct kvio *kvio,
 	// SystemTap.
 	__asm__ __volatile__(""
 			     : "=g"(result)
-			     : "0"(result), "g"(kvio), "g"(layer), "g"(bio)
+			     : "0"(result), "g"(vio), "g"(layer), "g"(bio)
 			     : "memory");
 	return result;
 }
 
 /**********************************************************************/
-void initialize_kvio(struct kvio *kvio,
+void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
 		     vio_type vio_type,
 		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio)
 {
-	if (layer->vioTraceRecording && sample_this_vio(kvio, layer, bio) &&
+	if (layer->vioTraceRecording && sample_this_vio(vio, layer, bio) &&
 	    sample_this_one(&layer->trace_sample_counter)) {
 		int result =
 			(is_data_vio_type(vio_type) ?
-			 alloc_trace_from_pool(layer, &kvio->vio->trace) :
-			 ALLOCATE(1, struct trace, "trace", &kvio->vio->trace));
+			 alloc_trace_from_pool(layer, &vio->trace) :
+			 ALLOCATE(1, struct trace, "trace", &vio->trace));
 		if (result != VDO_SUCCESS) {
 			uds_log_error("trace record allocation failure %d",
 				      result);
 		}
 	}
 
-	kvio->bio = bio;
-	kvio->layer = layer;
-
-	initialize_vio(kvio->vio,
+	vio->bio = bio;
+	initialize_vio(vio,
 		       vio_type,
 		       priority,
 		       parent,
@@ -289,7 +252,7 @@ void initialize_kvio(struct kvio *kvio,
 
 	// XXX: The "init" label should be replaced depending on the
 	// write/read/flush path followed.
-	kvio_add_trace_record(kvio, THIS_LOCATION("$F;io=?init;j=normal"));
+	vio_add_trace_record(vio, THIS_LOCATION("$F;io=?init;j=normal"));
 }
 
 /**********************************************************************/
@@ -308,34 +271,29 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	}
 
 	struct bio *bio;
-
 	result = create_bio(&bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	// If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
+	// If struct vio grows past 256 bytes, we'll lose benefits of
 	// VDOSTORY-176.
-	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
+	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.
-	struct metadata_kvio *metadata_kvio;
-	result = ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
+	struct vio *vio;
+	result = ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata kvio allocation failure %d", result);
 		free_bio(bio);
 		return result;
 	}
 
-	struct kvio *kvio = &metadata_kvio->kvio;
-
-	kvio->vio = &metadata_kvio->vio;
-	initialize_kvio(kvio, as_kernel_layer(layer), vio_type, priority,
+	initialize_kvio(vio, as_kernel_layer(layer), vio_type, priority,
 			parent, bio);
-	metadata_kvio->data = data;
-
-	*vio_ptr = &metadata_kvio->vio;
+	vio->data = data;
+	*vio_ptr  = vio;
 	return VDO_SUCCESS;
 }
 
@@ -355,28 +313,24 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	// Compressed write vios should use direct allocation and not use the
 	// buffer pool, which is reserved for submissions from the linux block
 	// layer.
-	struct compressed_write_kvio *compressed_write_kvio;
-	result = ALLOCATE(1, struct compressed_write_kvio, __func__,
-			  &compressed_write_kvio);
+	struct allocating_vio *allocating_vio;
+	result = ALLOCATE(1, struct allocating_vio, __func__,
+			  &allocating_vio);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("compressed write kvio allocation failure %d",
+		uds_log_error("compressed write vio allocation failure %d",
 			      result);
 		free_bio(bio);
 		return result;
 	}
 
-	struct kvio *kvio = &compressed_write_kvio->kvio;
-
-	kvio->vio =
-		allocating_vio_as_vio(&compressed_write_kvio->allocating_vio);
-	initialize_kvio(kvio,
+	struct vio *vio = allocating_vio_as_vio(allocating_vio);
+	initialize_kvio(vio,
 			as_kernel_layer(layer),
 			VIO_TYPE_COMPRESSED_BLOCK,
 			VIO_PRIORITY_COMPRESSED_DATA,
 			parent,
 			bio);
-	compressed_write_kvio->data = data;
-
-	*allocating_vio_ptr = &compressed_write_kvio->allocating_vio;
+	vio->data = data;
+	*allocating_vio_ptr = allocating_vio;
 	return VDO_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#119 $
  */
 
 #include "kernelLayer.h"
@@ -451,30 +451,6 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 		return result;
 	}
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void destroy_vio(struct vio **vio_ptr)
-{
-	struct vio *vio = *vio_ptr;
-
-	if (vio == NULL) {
-		return;
-	}
-
-	BUG_ON(is_data_vio(vio));
-
-	if (is_compressed_write_vio(vio)) {
-		struct compressed_write_kvio *compressed_write_kvio =
-			allocating_vio_as_compressed_write_kvio(vio_as_allocating_vio(vio));
-		free_compressed_write_kvio(&compressed_write_kvio);
-	} else {
-		struct metadata_kvio *metadata_kvio = vio_as_metadata_kvio(vio);
-
-		free_metadata_kvio(&metadata_kvio);
-	}
-
-	*vio_ptr = NULL;
 }
 
 /**********************************************************************/

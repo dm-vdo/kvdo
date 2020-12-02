@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#24 $
  */
 
 #ifndef BIO_H
@@ -91,13 +91,13 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
 void count_completed_bios(struct bio *bio);
 
 /**
- * Completes a bio relating to a kvio, causing the completion callback
- * to be invoked.
+ * Completes a bio relating to a vio, causing the completion callback to be
+ * invoked.
  *
- * This is used as the bi_end_io function for most of the bios created
- * within VDO and submitted to the storage device. Exceptions are the
- * flush code and the read-block code, both of which need to regain
- * control in the kernel layer after the I/O is completed.
+ * This is used as the bi_end_io function for most of the bios created within
+ * VDO and submitted to the storage device. Exceptions are the flush code and
+ * the read-block code, both of which need to regain control in the kernel
+ * layer after the I/O is completed.
  *
  * @param bio   The bio to complete
  **/
@@ -110,7 +110,7 @@ void complete_async_bio(struct bio *bio);
  *
  * @param bio       The bio to reset
  * @param data      The data the bio should wrap
- * @param kvio      The kvio to which this bio belongs (may be NULL)
+ * @param vio       The vio to which this bio belongs (may be NULL)
  * @param callback  The callback the bio should call when IO finishes
  * @param bi_opf    The operation and flags for the bio
  * @param pbn       The physical block number to write to
@@ -119,7 +119,7 @@ void complete_async_bio(struct bio *bio);
  **/
 int reset_bio_with_buffer(struct bio *bio,
 			  char *data,
-			  struct kvio *kvio,
+			  struct vio *vio,
 			  bio_end_io_t callback,
 			  unsigned int bi_opf,
 			  physical_block_number_t pbn);

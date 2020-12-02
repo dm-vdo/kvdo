@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#56 $
  */
 
 #include "ioSubmitter.h"
@@ -207,22 +207,23 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 /**
  * Determines which bio counter to use
  *
- * @param kvio the kvio associated with the bio
+ * @param vio  the vio associated with the bio
  * @param bio  the bio to count
  */
-static void count_all_bios(struct kvio *kvio, struct bio *bio)
+static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer = kvio->layer;
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
 
-	if (is_data(kvio)) {
+	if (is_data_vio(vio)) {
 		count_bios(&layer->biosOut, bio);
 		return;
 	}
 
 	count_bios(&layer->biosMeta, bio);
-	if (kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
+	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
 		count_bios(&layer->biosJournal, bio);
-	} else if (kvio->vio->type == VIO_TYPE_BLOCK_MAP) {
+	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
 		count_bios(&layer->biosPageCache, bio);
 	}
 }
@@ -231,21 +232,22 @@ static void count_all_bios(struct kvio *kvio, struct bio *bio)
  * Update stats and tracing info, then submit the supplied bio to the
  * OS for processing.
  *
- * @param kvio      The kvio associated with the bio
+ * @param vio       The vio associated with the bio
  * @param bio       The bio to submit to the OS
  * @param location  Call site location for tracing
  **/
-static void send_bio_to_device(struct kvio *kvio,
+static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio,
 			       const struct trace_location *location)
 {
-	assert_running_in_bio_queue_for_pbn(kvio->vio->physical);
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
+	assert_running_in_bio_queue_for_pbn(vio->physical);
+	atomic64_inc(&layer->bios_submitted);
+	count_all_bios(vio, bio);
+	vio_add_trace_record(vio, location);
 
-	atomic64_inc(&kvio->layer->bios_submitted);
-	count_all_bios(kvio, bio);
-	kvio_add_trace_record(kvio, location);
-
-	bio_set_dev(bio, get_kernel_layer_bdev(kvio->layer));
+	bio_set_dev(bio, get_kernel_layer_bdev(layer));
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 	generic_make_request(bio);
 #else
@@ -263,23 +265,23 @@ static sector_t get_bio_sector(struct bio *bio)
  * Submits a bio to the underlying block device.  May block if the
  * device is busy.
  *
- * For metadata or if USE_BIOMAP is disabled, kvio->bio_to_submit holds
+ * For metadata or if USE_BIOMAP is disabled, vio->bio_to_submit holds
  * the struct bio pointer to submit to the target device. For normal
- * data when USE_BIOMAP is enabled, kvio->bios_merged is the list of
+ * data when USE_BIOMAP is enabled, vio->bios_merged is the list of
  * all bios collected together in this group; all of them get
  * submitted. In both cases, the bi_end_io callback is invoked when
  * each I/O operation completes.
  *
- * @param item  The work item in the kvio "owning" either the bio to
+ * @param item  The work item in the vio "owning" either the bio to
  *              submit, or the head of the bio_list to be submitted.
  **/
 static void process_bio_map(struct kvdo_work_item *item)
 {
 	assert_running_in_bio_queue();
-	struct kvio *kvio = work_item_as_kvio(item);
+	struct vio *vio = work_item_as_vio(item);
 	// XXX Should we call finish_bio_queue for the biomap case on old
 	// kernels?
-	if (USE_BIOMAP && is_data(kvio)) {
+	if (USE_BIOMAP && is_data_vio(vio)) {
 		// We need to make sure to do two things here:
 		// 1. Use each bio's kvio when submitting. Any other kvio is
 		// not safe
@@ -291,32 +293,33 @@ static void process_bio_map(struct kvdo_work_item *item)
 		struct bio *bio = NULL;
 
 		mutex_lock(&bio_queue_data->lock);
-		if (!bio_list_empty(&kvio->bios_merged)) {
+		if (!bio_list_empty(&vio->bios_merged)) {
 			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(kvio->bios_merged.head));
+				       get_bio_sector(vio->bios_merged.head));
 			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(kvio->bios_merged.tail));
+				       get_bio_sector(vio->bios_merged.tail));
 		}
-		bio = kvio->bios_merged.head;
-		bio_list_init(&kvio->bios_merged);
+
+		bio = vio->bios_merged.head;
+		bio_list_init(&vio->bios_merged);
 		mutex_unlock(&bio_queue_data->lock);
 		// Somewhere in the list we'll be submitting the current
-		// "kvio", so drop our handle on it now.
-		kvio = NULL;
+		// vio, so drop our handle on it now.
+		vio = NULL;
 
 		while (bio != NULL) {
-			struct kvio *kvio_bio = bio->bi_private;
+			struct vio *vio_bio = bio->bi_private;
 			struct bio *next = bio->bi_next;
 
 			bio->bi_next = NULL;
-			send_bio_to_device(kvio_bio,
+			send_bio_to_device(vio_bio,
 					   bio,
 					   THIS_LOCATION("$F($io)"));
 			bio = next;
 		}
 	} else {
-		send_bio_to_device(kvio,
-				   kvio->bio_to_submit,
+		send_bio_to_device(vio,
+				   vio->bio_to_submit,
 				   THIS_LOCATION("$F($io)"));
 	}
 }
@@ -328,16 +331,16 @@ static void process_bio_map(struct kvdo_work_item *item)
  * elevator terminology.
  *
  * @param map         The bio map to use for merging
- * @param kvio        The kvio we want to merge
+ * @param vio         The vio we want to merge
  * @param merge_type  The type of merging we want to try
  *
  * @return the kvio to merge to, NULL if no merging is possible
  */
-static struct kvio *get_mergeable_locked(struct int_map *map,
-				  struct kvio *kvio,
-				  unsigned int merge_type)
+static struct vio *get_mergeable_locked(struct int_map *map,
+					struct vio *vio,
+					unsigned int merge_type)
 {
-	struct bio *bio = kvio->bio_to_submit;
+	struct bio *bio = vio->bio_to_submit;
 	sector_t merge_sector = get_bio_sector(bio);
 
 	switch (merge_type) {
@@ -349,42 +352,42 @@ static struct kvio *get_mergeable_locked(struct int_map *map,
 		break;
 	}
 
-	struct kvio *kvio_merge = int_map_get(map, merge_sector);
+	struct vio *vio_merge = int_map_get(map, merge_sector);
 
-	if (kvio_merge == NULL) {
+	if (vio_merge == NULL) {
 		return NULL;
 	}
 
-	if (!are_work_item_actions_equal(work_item_from_kvio(kvio),
-					 work_item_from_kvio(kvio_merge))) {
+	if (!are_work_item_actions_equal(work_item_from_vio(vio),
+					 work_item_from_vio(vio_merge))) {
 		return NULL;
 	}
 
-	if (bio_data_dir(bio) != bio_data_dir(kvio_merge->bio_to_submit)) {
+	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio_to_submit)) {
 		return NULL;
 	}
 
-	if (bio_list_empty(&kvio_merge->bios_merged)) {
+	if (bio_list_empty(&vio_merge->bios_merged)) {
 		return NULL;
 	}
 
 	switch (merge_type) {
 	case ELEVATOR_BACK_MERGE:
-		if (get_bio_sector(kvio_merge->bios_merged.tail)
+		if (get_bio_sector(vio_merge->bios_merged.tail)
 		    != merge_sector) {
 			return NULL;
 		}
 		break;
 
 	case ELEVATOR_FRONT_MERGE:
-		if (get_bio_sector(kvio_merge->bios_merged.head) !=
+		if (get_bio_sector(vio_merge->bios_merged.head) !=
 		    merge_sector) {
 			return NULL;
 		}
 		break;
 	}
 
-	return kvio_merge;
+	return vio_merge;
 }
 
 /**********************************************************************/
@@ -399,43 +402,43 @@ static inline unsigned int advance_bio_rotor(struct io_submitter *bio_data)
 
 /**********************************************************************/
 static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
-			      struct kvio *kvio,
+			      struct vio *vio,
 			      struct bio *bio)
 {
 	bool merged = false;
 
 	mutex_lock(&bio_queue_data->lock);
-	struct kvio *prev_kvio = get_mergeable_locked(bio_queue_data->map,
-						      kvio,
-						      ELEVATOR_BACK_MERGE);
-	struct kvio *next_kvio = get_mergeable_locked(bio_queue_data->map,
-						      kvio,
-						      ELEVATOR_FRONT_MERGE);
-	if (prev_kvio == next_kvio) {
-		next_kvio = NULL;
+	struct vio *prev_vio = get_mergeable_locked(bio_queue_data->map,
+						    vio,
+						    ELEVATOR_BACK_MERGE);
+	struct vio *next_vio = get_mergeable_locked(bio_queue_data->map,
+						    vio,
+						    ELEVATOR_FRONT_MERGE);
+	if (prev_vio == next_vio) {
+		next_vio = NULL;
 	}
 	int result;
 
-	if ((prev_kvio == NULL) && (next_kvio == NULL)) {
+	if ((prev_vio == NULL) && (next_vio == NULL)) {
 		// no merge. just add to bio_queue
 		result = int_map_put(bio_queue_data->map, get_bio_sector(bio),
-				     kvio, true, NULL);
+				     vio, true, NULL);
 		// We don't care about failure of int_map_put in this case.
 		result = result;
 		mutex_unlock(&bio_queue_data->lock);
 	} else {
-		if (next_kvio == NULL) {
+		if (next_vio == NULL) {
 			// Only prev. merge to  prev's tail
 			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(prev_kvio->bios_merged.tail));
-			bio_list_merge(&prev_kvio->bios_merged,
-				       &kvio->bios_merged);
+				       get_bio_sector(prev_vio->bios_merged.tail));
+			bio_list_merge(&prev_vio->bios_merged,
+				       &vio->bios_merged);
 			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(prev_kvio->bios_merged.head),
-					     prev_kvio, true, NULL);
+					     get_bio_sector(prev_vio->bios_merged.head),
+					     prev_vio, true, NULL);
 			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(prev_kvio->bios_merged.tail),
-					     prev_kvio, true, NULL);
+					     get_bio_sector(prev_vio->bios_merged.tail),
+					     prev_vio, true, NULL);
 		} else {
 			// Only next. merge to next's head
 			//
@@ -444,15 +447,15 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 			// using funnel queues in work queues.  This avoids
 			// removing an existing work item.
 			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(next_kvio->bios_merged.head));
-			bio_list_merge_head(&next_kvio->bios_merged,
-					    &kvio->bios_merged);
+				       get_bio_sector(next_vio->bios_merged.head));
+			bio_list_merge_head(&next_vio->bios_merged,
+					    &vio->bios_merged);
 			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(next_kvio->bios_merged.head),
-					     next_kvio, true, NULL);
+					     get_bio_sector(next_vio->bios_merged.head),
+					     next_vio, true, NULL);
 			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(next_kvio->bios_merged.tail),
-					     next_kvio, true, NULL);
+					     get_bio_sector(next_vio->bios_merged.tail),
+					     next_vio, true, NULL);
 		}
 
 		// We don't care about failure of int_map_put in this case.
@@ -460,6 +463,7 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 		mutex_unlock(&bio_queue_data->lock);
 		merged = true;
 	}
+
 	return merged;
 }
 
@@ -476,22 +480,21 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 /**********************************************************************/
 void vdo_submit_bio(struct bio *bio, bio_q_action action)
 {
-	struct kvio *kvio = bio->bi_private;
+	struct vio *vio = bio->bi_private;
+	vio->bio_to_submit = bio;
+	setup_vio_work(vio, process_bio_map, (KvdoWorkFunction) bio->bi_end_io,
+		       action);
 
-	kvio->bio_to_submit = bio;
-	setup_kvio_work(kvio, process_bio_map, (KvdoWorkFunction) bio->bi_end_io,
-		      action);
-
-	struct kernel_layer *layer = kvio->layer;
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
 	struct bio_queue_data *bio_queue_data =
-		bio_queue_data_for_pbn(layer->io_submitter,
-				       kvio->vio->physical);
+		bio_queue_data_for_pbn(layer->io_submitter, vio->physical);
 
-	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io)"));
+	vio_add_trace_record(vio, THIS_LOCATION("$F($io)"));
 
 	bio->bi_next = NULL;
-	bio_list_init(&kvio->bios_merged);
-	bio_list_add(&kvio->bios_merged, bio);
+	bio_list_init(&vio->bios_merged);
+	bio_list_add(&vio->bios_merged, bio);
 
 	/*
 	 * Enabling of MD RAID5 mode optimizes performance for MD RAID5
@@ -510,12 +513,12 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 	 * latency on journal updates submitted to an MD RAID5 device.
 	 */
 	if (layer->device_config->md_raid5_mode_enabled) {
-		if (is_data(kvio)) {
+		if (is_data_vio(vio)) {
 			// Clear the bits for sync I/O RW flags on data block
 			// bios.
 			bio->bi_opf &= ~REQ_SYNC;
-		} else if ((kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
-			   (kvio->vio->type == VIO_TYPE_SLAB_JOURNAL)) {
+		} else if ((vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
+			   (vio->type == VIO_TYPE_SLAB_JOURNAL)) {
 			// Set the bits for sync I/O RW flags on all
 			// journal-related and slab-journal-related bios.
 			bio->bi_opf |= REQ_SYNC;
@@ -531,11 +534,11 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 
 	bool merged = false;
 
-	if (USE_BIOMAP && is_data(kvio)) {
-		merged = try_bio_map_merge(bio_queue_data, kvio, bio);
+	if (USE_BIOMAP && is_data_vio(vio)) {
+		merged = try_bio_map_merge(bio_queue_data, vio, bio);
 	}
 	if (!merged) {
-		enqueue_kvio_work(bio_queue_data->queue, kvio);
+		enqueue_vio_work(bio_queue_data->queue, vio);
 	}
 }
 

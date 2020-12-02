@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#61 $
  */
 
 /*
@@ -36,6 +36,7 @@
 #include "threadConfig.h"
 #include "vdo.h"
 #include "vdoDebug.h"
+//#include "vdoInternal.h"
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
@@ -557,18 +558,18 @@ void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
 }
 
 /**********************************************************************/
-void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
-		  void *stats_function, unsigned int action)
+void enqueue_vio(struct vio *vio, KvdoWorkFunction work,
+		 void *stats_function, unsigned int action)
 {
-	thread_id_t thread_id =
-		vio_as_completion(kvio->vio)->callback_thread_id;
-
-	BUG_ON(thread_id >= kvio->layer->kvdo.initialized_thread_count);
-	launch_kvio(kvio,
-		    work,
-		    stats_function,
-		    action,
-		    kvio->layer->kvdo.threads[thread_id].request_queue);
+	struct vdo_completion *completion = vio_as_completion(vio);
+	thread_id_t thread_id = completion->callback_thread_id;
+	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+	BUG_ON(thread_id >= layer->kvdo.initialized_thread_count);
+	launch_vio(vio,
+		   work,
+		   stats_function,
+		   action,
+		   layer->kvdo.threads[thread_id].request_queue);
 }
 
 /**********************************************************************/

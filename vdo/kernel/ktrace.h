@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#6 $
  */
 
 #ifndef KTRACE_H
@@ -28,7 +28,7 @@
 #include "trace.h"
 
 struct kernel_layer;
-struct kvio;
+struct vio;
 
 // Implement event sampling once per N.
 struct sample_counter {
@@ -86,10 +86,10 @@ int alloc_trace_from_pool(struct kernel_layer *layer,
 void free_trace_to_pool(struct kernel_layer *layer, struct trace *trace);
 
 /**
- * Log the trace at kvio freeing time
+ * Log the trace at vio freeing time
  *
- * @param kvio  The kvio structure
+ * @param vio  The vio structure
  **/
-void log_kvio_trace(struct kvio *kvio);
+void log_vio_trace(struct vio *vio);
 
 #endif /* KTRACE_H */

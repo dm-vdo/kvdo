@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#45 $
  */
 
 #ifndef DATA_KVIO_H
@@ -26,6 +26,8 @@
 #include "uds.h"
 
 #include "dataVIO.h"
+
+#include "kernelVDO.h"
 #include "kvio.h"
 
 struct external_io_request {
@@ -84,9 +86,7 @@ struct read_block {
 struct data_kvio {
 	/* The embedded base code's data_vio */
 	struct data_vio data_vio;
-	/* The embedded kvio */
-	struct kvio kvio;
-	/* The bio from the request which is being serviced by this kvio. */
+	/* The bio from the request which is being serviced by this vio. */
 	struct external_io_request external_io_request;
 	/* Dedupe */
 	struct dedupe_context dedupe_context;
@@ -114,28 +114,28 @@ struct data_kvio {
 };
 
 /**
- * Convert a kvio to a data_kvio.
+ * Convert a vio to a data_kvio.
  *
- * @param kvio  The kvio to convert
+ * @param vio  The vio to convert
  *
- * @return The kvio as a data_kvio
+ * @return The vio as a data_kvio
  **/
-static inline struct data_kvio *kvio_as_data_kvio(struct kvio *kvio)
+static inline struct data_kvio *vio_as_data_kvio(struct vio *vio)
 {
-	ASSERT_LOG_ONLY(is_data(kvio), "kvio is a data_kvio");
-	return container_of(kvio, struct data_kvio, kvio);
+	ASSERT_LOG_ONLY(is_data_vio(vio), "vio is a data_vio");
+	return container_of(vio_as_data_vio(vio), struct data_kvio, data_vio);
 }
 
 /**
- * Convert a data_kvio to a kvio.
+ * Convert a data_kvio to a vio.
  *
  * @param data_kvio  The data_kvio to convert
  *
- * @return The data_kvio as a kvio
+ * @return The data_kvio as a vio
  **/
-static inline struct kvio *data_kvio_as_kvio(struct data_kvio *data_kvio)
+static inline struct vio *data_kvio_as_vio(struct data_kvio *data_kvio)
 {
-	return &data_kvio->kvio;
+	return data_vio_as_vio(&data_kvio->data_vio);
 }
 
 /**
@@ -151,18 +151,6 @@ static inline struct data_kvio *data_vio_as_data_kvio(struct data_vio *data_vio)
 }
 
 /**
- * Returns a pointer to the kvio associated with a data_vio.
- *
- * @param data_vio  the data_vio
- *
- * @return the kvio
- **/
-static inline struct kvio *data_vio_as_kvio(struct data_vio *data_vio)
-{
-	return data_kvio_as_kvio(data_vio_as_data_kvio(data_vio));
-}
-
-/**
  * Returns a pointer to the data_kvio wrapping a work item.
  *
  * @param item  the work item
@@ -172,11 +160,11 @@ static inline struct kvio *data_vio_as_kvio(struct data_vio *data_vio)
 static inline struct data_kvio *
 work_item_as_data_kvio(struct kvdo_work_item *item)
 {
-	return kvio_as_data_kvio(work_item_as_kvio(item));
+	return vio_as_data_kvio(work_item_as_vio(item));
 }
 
 /**
- * Get the WorkItem from a data_kvio.
+ * Get the work_item from a data_kvio.
  *
  * @param data_kvio  The data_kvio
  *
@@ -185,7 +173,7 @@ work_item_as_data_kvio(struct kvdo_work_item *item)
 static inline struct kvdo_work_item *
 work_item_from_data_kvio(struct data_kvio *data_kvio)
 {
-	return work_item_from_kvio(data_kvio_as_kvio(data_kvio));
+	return work_item_from_vio(data_kvio_as_vio(data_kvio));
 }
 
 /**
@@ -198,7 +186,9 @@ work_item_from_data_kvio(struct data_kvio *data_kvio)
 static inline struct kernel_layer *
 get_layer_from_data_kvio(struct data_kvio *data_kvio)
 {
-	return data_kvio_as_kvio(data_kvio)->layer;
+	PhysicalLayer *layer =
+		vio_as_completion(data_kvio_as_vio(data_kvio))->layer;
+	return as_kernel_layer(layer);
 }
 
 /**
@@ -215,10 +205,10 @@ static inline void enqueue_data_kvio(struct data_kvio *data_kvio,
 				     void *stats_function,
 				     unsigned int action)
 {
-	enqueue_kvio(data_kvio_as_kvio(data_kvio),
-		     work,
-		     stats_function,
-		     action);
+	enqueue_vio(data_kvio_as_vio(data_kvio),
+		    work,
+		    stats_function,
+		    action);
 }
 
 /**
@@ -230,7 +220,7 @@ static inline void enqueue_data_kvio(struct data_kvio *data_kvio,
 static inline void enqueue_data_kvio_work(struct kvdo_work_queue *queue,
 					  struct data_kvio *data_kvio)
 {
-	enqueue_kvio_work(queue, data_kvio_as_kvio(data_kvio));
+	enqueue_vio_work(queue, data_kvio_as_vio(data_kvio));
 }
 
 /**
@@ -259,8 +249,9 @@ static inline void launch_data_kvio_on_cpu_queue(struct data_kvio *data_kvio,
 						 void *stats_function,
 						 unsigned int action)
 {
-	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-	launch_kvio(kvio, work, stats_function, action, kvio->layer->cpu_queue);
+	struct vio *vio = data_kvio_as_vio(data_kvio);
+	launch_vio(vio, work, stats_function, action,
+		   as_kernel_layer(vio_as_completion(vio)->layer)->cpu_queue);
 }
 
 /**
@@ -277,9 +268,10 @@ launch_data_kvio_on_bio_ack_queue(struct data_kvio *data_kvio,
 				  void *stats_function,
 				  unsigned int action)
 {
-	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-	launch_kvio(kvio, work, stats_function, action,
-		    kvio->layer->bio_ack_queue);
+	struct vio *vio = data_kvio_as_vio(data_kvio);
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
+	launch_vio(vio, work, stats_function, action, layer->bio_ack_queue);
 }
 
 /**
@@ -289,7 +281,7 @@ launch_data_kvio_on_bio_ack_queue(struct data_kvio *data_kvio,
  **/
 static inline void kvdo_enqueue_data_vio_callback(struct data_kvio *data_kvio)
 {
-	kvdo_enqueue_vio_callback(data_kvio_as_kvio(data_kvio));
+	kvdo_enqueue_vio_callback(data_kvio_as_vio(data_kvio));
 }
 
 /**

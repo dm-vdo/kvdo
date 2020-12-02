@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#19 $
  */
 
 #ifndef VIO_H
 #define VIO_H
 
 #include <stdarg.h>
+
+#include "kernelLayer.h"
 
 #include "completion.h"
 #include "trace.h"
@@ -59,6 +61,25 @@ struct vio {
 
 	/* Used for logging and debugging */
 	struct trace *trace;
+
+	struct bio *bio;
+	char * data;
+	/**
+	 * A bio pointer used in enqueueBioMap (used via vdo_submit_bio etc),
+	 * to pass information -- which bio to submit to the storage device --
+	 * across a thread switch. This may match another bio pointer in
+	 * this structure, or could point somewhere else.
+	 **/
+	struct bio *bio_to_submit;
+	/**
+	 * A list of enqueued bios with consecutive block numbers, stored by
+	 * enqueueBioMap under the first-enqueued kvio. The other KVIOs are
+	 * found via their bio entries in this list, and are not added to
+	 * the work queue as separate work items.
+	 **/
+	struct bio_list bios_merged;
+	/** A slot for an arbitrary bit of data, for use by systemtap. */
+	long debug_slot;
 };
 
 /**
@@ -75,6 +96,19 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
 }
 
 /**
+ * Returns a pointer to the vio wrapping a work item
+ *
+ * @param item  the work item
+ *
+ * @return the vio
+ **/
+static inline struct vio * __must_check
+work_item_as_vio(struct kvdo_work_item *item)
+{
+	return as_vio(container_of(item, struct vdo_completion, work_item));
+}
+
+/**
  * Convert a vio to a generic completion.
  *
  * @param vio The vio to convert
@@ -84,6 +118,18 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
 static inline struct vdo_completion *vio_as_completion(struct vio *vio)
 {
 	return &vio->completion;
+}
+
+/**
+ * Extracts the work item from a vio.
+ *
+ * @param vio  the vio
+ *
+ * @return the vio's work item
+ **/
+static inline struct kvdo_work_item *work_item_from_vio(struct vio *vio)
+{
+	return &vio_as_completion(vio)->work_item;
 }
 
 /**

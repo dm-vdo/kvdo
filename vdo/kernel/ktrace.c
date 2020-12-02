@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#23 $
  */
 
 #include "ktrace.h"
@@ -145,9 +145,10 @@ void initialize_trace_logging_once(void)
 }
 
 /*************************************************************************/
-void log_kvio_trace(struct kvio *kvio)
+void log_vio_trace(struct vio *vio)
 {
-	struct kernel_layer *layer = kvio->layer;
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
 
 	mutex_lock(&trace_logging_state.lock);
 	trace_logging_state.counter++;
@@ -157,25 +158,25 @@ void log_kvio_trace(struct kvio *kvio)
 
 	if (layer->trace_logging &&
 	    ((trace_logging_state.counter % 1024) == 37)) {
-		kvio_add_trace_record(kvio, THIS_LOCATION(NULL));
+		vio_add_trace_record(vio, THIS_LOCATION(NULL));
 		size_t trace_len = 0;
 
-		format_trace(kvio->vio->trace, trace_logging_state.buffer,
+		format_trace(vio->trace, trace_logging_state.buffer,
 			    sizeof(trace_logging_state.buffer), &trace_len);
 
-		if (is_metadata(kvio)) {
-			log_info("finishing kvio %s meta @%px %s",
-				 (is_write_vio(kvio->vio) ? "read" : "write"),
-				 kvio, trace_logging_state.buffer);
-		} else if (is_compressed_writer(kvio)) {
-			log_info("finishing kvio write comp @%px %s",
-				 kvio, trace_logging_state.buffer);
+		if (is_metadata_vio(vio)) {
+			log_info("finishing vio %s meta @%px %s",
+				 (is_write_vio(vio) ? "read" : "write"),
+				 vio, trace_logging_state.buffer);
+		} else if (is_compressed_write_vio(vio)) {
+			log_info("finishing vio write comp @%px %s",
+				 vio, trace_logging_state.buffer);
 		} else {
 			const char *dupe_label = "";
 
-			if (is_write_vio(kvio->vio)) {
+			if (is_write_vio(vio)) {
 				struct data_vio *data_vio
-					= vio_as_data_vio(kvio->vio);
+					= vio_as_data_vio(vio);
 				if (is_trim_data_vio(data_vio)) {
 					dupe_label = "trim ";
 				} else if (data_vio->is_zero_block) {
@@ -187,10 +188,10 @@ void log_kvio_trace(struct kvio *kvio)
 				}
 			}
 
-			log_info("finishing kvio %s data %s@%px %.*s",
-				 (is_write_vio(kvio->vio) ? "read" : "write"),
+			log_info("finishing vio %s data %s@%px %.*s",
+				 (is_write_vio(vio) ? "read" : "write"),
 				 dupe_label,
-				 kvio,
+				 vio,
 				 TRACE_LOG_MAX,
 				 trace_logging_state.buffer);
 			char *buf = trace_logging_state.buffer;
@@ -198,8 +199,8 @@ void log_kvio_trace(struct kvio *kvio)
 			while (trace_len > TRACE_LOG_MAX) {
 				trace_len -= TRACE_LOG_MAX;
 				buf += TRACE_LOG_MAX;
-				log_info("more kvio %px path: %.*s",
-					 kvio, TRACE_LOG_MAX, buf);
+				log_info("more vio %px path: %.*s",
+					 vio, TRACE_LOG_MAX, buf);
 			}
 		}
 	}

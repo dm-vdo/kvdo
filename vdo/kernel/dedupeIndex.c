@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#69 $
  */
 
 #include "dedupeIndex.h"
@@ -275,8 +275,10 @@ static void finish_index_operation(struct uds_request *uds_request)
 
 	if (atomic_cmpxchg(&dedupe_context->request_state,
 			   UR_BUSY, UR_IDLE) == UR_BUSY) {
-		struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-		struct dedupe_index *index = kvio->layer->dedupe_index;
+		struct vio *vio = data_kvio_as_vio(data_kvio);
+		struct kernel_layer *layer
+			= as_kernel_layer(vio_as_completion(vio)->layer);
+		struct dedupe_index *index = layer->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
 		if (dedupe_context->is_pending) {
@@ -330,9 +332,10 @@ static void start_expiration_timer_for_kvio(struct dedupe_index *index,
 /*****************************************************************************/
 static void start_index_operation(struct kvdo_work_item *item)
 {
-	struct kvio *kvio = work_item_as_kvio(item);
-	struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
-	struct dedupe_index *index = kvio->layer->dedupe_index;
+	struct vio *vio = work_item_as_vio(item);
+	struct data_kvio *data_kvio = vio_as_data_kvio(vio);
+	struct dedupe_index *index =
+		as_kernel_layer(vio_as_completion(vio)->layer)->dedupe_index;
 	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
 
 	spin_lock_bh(&index->pending_lock);
@@ -486,10 +489,11 @@ static void timeout_index_operations(struct timer_list *t)
 static void enqueue_index_operation(struct data_kvio *data_kvio,
 				    enum uds_callback_type operation)
 {
-	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
+	struct vio *vio = data_kvio_as_vio(data_kvio);
 	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
-	struct dedupe_index *index = kvio->layer->dedupe_index;
-
+	struct kernel_layer *layer
+		= as_kernel_layer(vio_as_completion(vio)->layer);
+	struct dedupe_index *index = layer->dedupe_index;
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_time = jiffies;
 	if (atomic_cmpxchg(&dedupe_context->request_state,
@@ -507,7 +511,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 					  get_dedupe_advice(dedupe_context));
 		}
 
-		setup_work_item(work_item_from_kvio(kvio),
+		setup_work_item(work_item_from_vio(vio),
 				start_index_operation,
 				NULL,
 				UDS_Q_ACTION);
@@ -515,13 +519,13 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 		spin_lock(&index->state_lock);
 		if (index->deduping) {
 			enqueue_work_queue(index->uds_queue,
-					   work_item_from_kvio(kvio));
+					   work_item_from_vio(vio));
 			unsigned int active = atomic_inc_return(&index->active);
 
 			if (active > index->maximum) {
 				index->maximum = active;
 			}
-			kvio = NULL;
+			vio = NULL;
 		} else {
 			atomic_set(&dedupe_context->request_state, UR_IDLE);
 		}
@@ -529,9 +533,10 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 	} else {
 		// A previous user of the kvio had a dedupe timeout
 		// and its request is still outstanding.
-		atomic64_inc(&kvio->layer->dedupeContextBusy);
+		atomic64_inc(&layer->dedupeContextBusy);
 	}
-	if (kvio != NULL) {
+
+	if (vio != NULL) {
 		invoke_dedupe_callback(data_kvio);
 	}
 }

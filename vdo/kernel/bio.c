@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#41 $
  */
 
 #include "bio.h"
@@ -93,22 +93,22 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 /**
  * Increments appropriate counters for bio completions
  *
- * @param kvio the kvio associated with the bio
+ * @param vio  the vio associated with the bio
  * @param bio  the bio to count
- */
-static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
+ **/
+static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer = kvio->layer;
-
-	if (is_data(kvio)) {
+	struct kernel_layer *layer
+		= as_kernel_layer(vio_as_completion(vio)->layer);
+	if (is_data_vio(vio)) {
 		count_bios(&layer->biosOutCompleted, bio);
 		return;
 	}
 
 	count_bios(&layer->biosMetaCompleted, bio);
-	if (kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
+	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
 		count_bios(&layer->biosJournalCompleted, bio);
-	} else if (kvio->vio->type == VIO_TYPE_BLOCK_MAP) {
+	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
 		count_bios(&layer->biosPageCacheCompleted, bio);
 	}
 }
@@ -116,32 +116,32 @@ static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
 /**********************************************************************/
 void count_completed_bios(struct bio *bio)
 {
-	struct kvio *kvio = (struct kvio *) bio->bi_private;
-	struct kernel_layer *layer = kvio->layer;
+	struct vio *vio = (struct vio *) bio->bi_private;
+	struct kernel_layer *layer
+		= as_kernel_layer(vio_as_completion(vio)->layer);
 	atomic64_inc(&layer->bios_completed);
-	count_all_bios_completed(kvio, bio);
+	count_all_bios_completed(vio, bio);
 }
 
 /**********************************************************************/
 void complete_async_bio(struct bio *bio)
 {
-	struct kvio *kvio = (struct kvio *) bio->bi_private;
-
-	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
+	struct vio *vio = (struct vio *) bio->bi_private;
+	vio_add_trace_record(vio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
-	kvdo_continue_kvio(kvio, get_bio_result(bio));
+	kvdo_continue_vio(vio, get_bio_result(bio));
 }
 
 /**********************************************************************/
 int reset_bio_with_buffer(struct bio *bio,
 			  char *data,
-			  struct kvio *kvio,
+			  struct vio *vio,
 			  bio_end_io_t callback,
 			  unsigned int bi_opf,
 			  physical_block_number_t pbn)
 {
 	bio_reset(bio); // Memsets most of the bio to reset most fields.
-	bio->bi_private = kvio;
+	bio->bi_private = vio;
 	bio->bi_end_io = callback;
 	bio->bi_opf = bi_opf;
 	bio->bi_iter.bi_sector = block_to_sector(pbn);
