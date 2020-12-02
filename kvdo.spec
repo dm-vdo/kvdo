@@ -96,4 +96,4 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Fri Nov 20 2020 - corwin@bf30-1 - 8.1.0.0-1
+* Wed Dec 02 2020 - corwin@bf30-1 - 8.1.0.0-1
