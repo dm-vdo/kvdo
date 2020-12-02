@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#70 $
  */
 
 #include "dedupeIndex.h"
@@ -90,7 +90,7 @@ struct dedupe_index {
 	// This spinlock protects the state fields and the starting of dedupe
 	// requests.
 	spinlock_t state_lock;
-	struct kvdo_work_item work_item; // protected by state_lock
+	struct vdo_work_item work_item; // protected by state_lock
 	struct kvdo_work_queue *uds_queue; // protected by state_lock
 	unsigned int maximum; // protected by state_lock
 	index_state index_state; // protected by state_lock
@@ -330,7 +330,7 @@ static void start_expiration_timer_for_kvio(struct dedupe_index *index,
 }
 
 /*****************************************************************************/
-static void start_index_operation(struct kvdo_work_item *item)
+static void start_index_operation(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
 	struct data_kvio *data_kvio = vio_as_data_kvio(vio);
@@ -614,7 +614,7 @@ static void open_index(struct dedupe_index *index)
 }
 
 /*****************************************************************************/
-static void change_dedupe_state(struct kvdo_work_item *item)
+static void change_dedupe_state(struct vdo_work_item *item)
 {
 	struct dedupe_index *index = container_of(item,
 						  struct dedupe_index,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#9 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -87,7 +87,7 @@ void dump_bio_work_queue(struct io_submitter *io_submitter);
  * @param work_item           The new work item to run
  **/
 void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   struct kvdo_work_item *work_item);
+			   struct vdo_work_item *work_item);
 
 /**
  * Submit bio but don't block.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#15 $
  */
 
 #include "batchProcessor.h"
@@ -74,7 +74,7 @@ enum batch_processor_state {
 struct batch_processor {
 	spinlock_t consumer_lock;
 	struct funnel_queue *queue;
-	struct kvdo_work_item work_item;
+	struct vdo_work_item work_item;
 	atomic_t state;
 	batch_processor_callback callback;
 	void *closure;
@@ -91,7 +91,7 @@ static void schedule_batch_processing(struct batch_processor *batch);
  *
  * @param [in]  item  The work item embedded in the batch_processor
  **/
-static void batch_processor_work(struct kvdo_work_item *item)
+static void batch_processor_work(struct vdo_work_item *item)
 {
 	struct batch_processor *batch =
 		container_of(item, struct batch_processor, work_item);
@@ -191,14 +191,14 @@ int make_batch_processor(struct kernel_layer *layer,
 
 /**********************************************************************/
 void add_to_batch_processor(struct batch_processor *batch,
-			    struct kvdo_work_item *item)
+			    struct vdo_work_item *item)
 {
 	funnel_queue_put(batch->queue, &item->work_queue_entry_link);
 	schedule_batch_processing(batch);
 }
 
 /**********************************************************************/
-struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
+struct vdo_work_item *next_batch_item(struct batch_processor *batch)
 {
 	struct funnel_queue_entry *fq_entry = funnel_queue_poll(batch->queue);
 
@@ -206,7 +206,7 @@ struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
 		return NULL;
 	}
 	return container_of(fq_entry,
-			    struct kvdo_work_item,
+			    struct vdo_work_item,
 			    work_queue_entry_link);
 }
 

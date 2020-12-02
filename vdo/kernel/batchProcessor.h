@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#10 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -71,7 +71,7 @@ int make_batch_processor(struct kernel_layer *layer,
  * @param [in] item   The handle on the new object to add
  **/
 void add_to_batch_processor(struct batch_processor *batch,
-                            struct kvdo_work_item *item);
+                            struct vdo_work_item *item);
 
 /**
  * Fetches the next object in the processing queue.
@@ -80,7 +80,7 @@ void add_to_batch_processor(struct batch_processor *batch,
  *
  * @return   An object pointer or NULL
  **/
-struct kvdo_work_item * __must_check
+struct vdo_work_item * __must_check
 next_batch_item(struct batch_processor *batch);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#101 $
  */
 
 #include "dataKVIO.h"
@@ -181,7 +181,7 @@ void return_data_kvio_batch_to_pool(struct batch_processor *batch,
 
 	init_free_buffer_pointers(&fbp, layer->data_kvio_pool);
 
-	struct kvdo_work_item *item;
+	struct vdo_work_item *item;
 
 	while ((item = next_batch_item(batch)) != NULL) {
 		clean_data_kvio(work_item_as_data_kvio(item), &fbp);
@@ -198,7 +198,7 @@ void return_data_kvio_batch_to_pool(struct batch_processor *batch,
 
 /**********************************************************************/
 static void
-kvdo_acknowledge_then_complete_data_kvio(struct kvdo_work_item *item)
+kvdo_acknowledge_then_complete_data_kvio(struct vdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
 	struct kernel_layer *layer
@@ -246,7 +246,7 @@ void kvdo_complete_data_kvio(struct vdo_completion *completion)
  *
  * @param work_item  The data_kvio which requested the read
  **/
-static void copy_read_block_data(struct kvdo_work_item *work_item)
+static void copy_read_block_data(struct vdo_work_item *work_item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(work_item);
 
@@ -298,7 +298,7 @@ static void read_data_kvio_read_block_callback(struct data_kvio *data_kvio)
  *
  * @param work_item  The data_kvio requesting the data
  **/
-static void uncompress_read_block(struct kvdo_work_item *work_item)
+static void uncompress_read_block(struct vdo_work_item *work_item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(work_item);
 	struct read_block *read_block = &data_kvio->read_block;
@@ -484,7 +484,7 @@ void read_data_vio(struct data_vio *data_vio)
 
 /**********************************************************************/
 static void
-kvdo_acknowledge_data_kvio_then_continue(struct kvdo_work_item *item)
+kvdo_acknowledge_data_kvio_then_continue(struct vdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
 
@@ -673,7 +673,7 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 }
 
 /**********************************************************************/
-static void kvdo_compress_work(struct kvdo_work_item *item)
+static void kvdo_compress_work(struct vdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
 
@@ -847,7 +847,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
-static void launchDataKVIOWork(struct kvdo_work_item *item)
+static void launchDataKVIOWork(struct vdo_work_item *item)
 {
 	run_callback(vio_as_completion(work_item_as_vio(item)));
 }
@@ -990,7 +990,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
  *
  * @param item  The data_kvio to be hashed
  **/
-static void kvdo_hash_data_work(struct kvdo_work_item *item)
+static void kvdo_hash_data_work(struct vdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
 	struct data_vio *data_vio = &data_kvio->data_vio;

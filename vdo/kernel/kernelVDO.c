@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#62 $
  */
 
 /*
@@ -263,7 +263,7 @@ void dump_kvdo_work_queue(struct kvdo *kvdo)
 
 /**********************************************************************/
 struct sync_queue_work {
-	struct kvdo_work_item work_item;
+	struct vdo_work_item work_item;
 	struct kvdo *kvdo;
 	void *data;
 	struct completion *completion;
@@ -312,7 +312,7 @@ struct vdo_compress_data {
  *
  * @param item  The work item
  **/
-static void set_compressing_work(struct kvdo_work_item *item)
+static void set_compressing_work(struct vdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
@@ -344,7 +344,7 @@ struct vdo_read_only_data {
 };
 
 /**********************************************************************/
-static void enter_read_only_mode_work(struct kvdo_work_item *item)
+static void enter_read_only_mode_work(struct vdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
@@ -371,7 +371,7 @@ void set_kvdo_read_only(struct kvdo *kvdo, int result)
  *
  * @param item   The work item
  **/
-static void get_vdo_statistics_work(struct kvdo_work_item *item)
+static void get_vdo_statistics_work(struct vdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
@@ -443,7 +443,7 @@ static void finish_vdo_action(struct vdo_completion *vdo_completion)
  *
  * @param item          A kvdo work queue item.
  **/
-static void perform_vdo_action_work(struct kvdo_work_item *item)
+static void perform_vdo_action_work(struct vdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
@@ -545,13 +545,13 @@ write_policy get_kvdo_write_policy(struct kvdo *kvdo)
 
 /**********************************************************************/
 void enqueue_kvdo_thread_work(struct vdo_thread *thread,
-			      struct kvdo_work_item *item)
+			      struct vdo_work_item *item)
 {
 	enqueue_work_queue(thread->request_queue, item);
 }
 
 /**********************************************************************/
-void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
+void enqueue_kvdo_work(struct kvdo *kvdo, struct vdo_work_item *item,
 		       thread_id_t thread_id)
 {
 	enqueue_kvdo_thread_work(&kvdo->threads[thread_id], item);
@@ -573,7 +573,7 @@ void enqueue_vio(struct vio *vio, KvdoWorkFunction work,
 }
 
 /**********************************************************************/
-static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
+static void kvdo_enqueue_work(struct vdo_work_item *work_item)
 {
 	run_callback(container_of(work_item, struct vdo_completion,
 				  work_item));

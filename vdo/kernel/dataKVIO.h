@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#46 $
  */
 
 #ifndef DATA_KVIO_H
@@ -158,7 +158,7 @@ static inline struct data_kvio *data_vio_as_data_kvio(struct data_vio *data_vio)
  * @return the data_kvio
  **/
 static inline struct data_kvio *
-work_item_as_data_kvio(struct kvdo_work_item *item)
+work_item_as_data_kvio(struct vdo_work_item *item)
 {
 	return vio_as_data_kvio(work_item_as_vio(item));
 }
@@ -170,7 +170,7 @@ work_item_as_data_kvio(struct kvdo_work_item *item)
  *
  * @return the data_kvio's work item
  **/
-static inline struct kvdo_work_item *
+static inline struct vdo_work_item *
 work_item_from_data_kvio(struct data_kvio *data_kvio)
 {
 	return work_item_from_vio(data_kvio_as_vio(data_kvio));

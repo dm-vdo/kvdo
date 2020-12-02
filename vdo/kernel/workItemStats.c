@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#15 $
  */
 
 #include "workItemStats.h"
@@ -71,7 +71,7 @@ scan_stat_table(const struct kvdo_work_function_table *table,
  * @return   The index of the matching slot, or NUM_WORK_QUEUE_ITEM_STATS
  *           if the table is full of non-matching entries.
  **/
-static unsigned int get_stat_table_index(struct kvdo_work_item_stats *stats,
+static unsigned int get_stat_table_index(struct vdo_work_item_stats *stats,
 					 KvdoWorkFunction work,
 					 unsigned int priority)
 {
@@ -120,7 +120,7 @@ static unsigned int get_stat_table_index(struct kvdo_work_item_stats *stats,
  * @param [out] pending_ptr    The number of work items still pending
  **/
 static void
-get_work_item_counts_by_item(const struct kvdo_work_item_stats *stats,
+get_work_item_counts_by_item(const struct vdo_work_item_stats *stats,
 			     unsigned int index,
 			     uint64_t *enqueued_ptr,
 			     uint64_t *processed_ptr,
@@ -153,7 +153,7 @@ get_work_item_counts_by_item(const struct kvdo_work_item_stats *stats,
  * @param [out] enqueued_ptr   The total work items enqueued
  * @param [out] processed_ptr  The number of work items processed
  **/
-static void get_other_work_item_counts(const struct kvdo_work_item_stats *stats,
+static void get_other_work_item_counts(const struct vdo_work_item_stats *stats,
 				       uint64_t *enqueued_ptr,
 				       uint64_t *processed_ptr)
 {
@@ -177,7 +177,7 @@ static void get_other_work_item_counts(const struct kvdo_work_item_stats *stats,
  * @param [out] max    The maximum execution time
  **/
 static void
-get_work_item_times_by_item(const struct kvdo_work_item_stats *stats,
+get_work_item_times_by_item(const struct vdo_work_item_stats *stats,
 			    unsigned int index,
 			    uint64_t *min,
 			    uint64_t *mean,
@@ -189,8 +189,8 @@ get_work_item_times_by_item(const struct kvdo_work_item_stats *stats,
 }
 
 /**********************************************************************/
-void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
-					struct kvdo_work_item *item,
+void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
+					struct vdo_work_item *item,
 					int priority)
 {
 	item->stat_table_index = get_stat_table_index(stats,
@@ -235,7 +235,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 }
 
 /**********************************************************************/
-size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
+size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 			      char *buffer,
 			      size_t length)
 {
@@ -321,7 +321,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 }
 
 /**********************************************************************/
-void log_work_item_stats(const struct kvdo_work_item_stats *stats)
+void log_work_item_stats(const struct vdo_work_item_stats *stats)
 {
 	uint64_t total_enqueued = 0;
 	uint64_t total_processed = 0;

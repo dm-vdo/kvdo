@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#57 $
  */
 
 #include "ioSubmitter.h"
@@ -275,7 +275,7 @@ static sector_t get_bio_sector(struct bio *bio)
  * @param item  The work item in the vio "owning" either the bio to
  *              submit, or the head of the bio_list to be submitted.
  **/
-static void process_bio_map(struct kvdo_work_item *item)
+static void process_bio_map(struct vdo_work_item *item)
 {
 	assert_running_in_bio_queue();
 	struct vio *vio = work_item_as_vio(item);
@@ -677,7 +677,7 @@ void dump_bio_work_queue(struct io_submitter *io_submitter)
 
 /**********************************************************************/
 void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   struct kvdo_work_item *work_item)
+			   struct vdo_work_item *work_item)
 {
 	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
 

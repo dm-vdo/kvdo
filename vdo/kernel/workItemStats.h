@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#9 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -80,7 +80,7 @@ struct kvdo_work_function_table {
 	uint8_t priorities[NUM_WORK_QUEUE_ITEM_STATS];
 };
 
-struct kvdo_work_item_stats {
+struct vdo_work_item_stats {
 	/*
 	 * Table of functions and priorities, for determining the index to
 	 * use into the counter arrays below.
@@ -166,8 +166,8 @@ static inline uint64_t get_sample_average(const struct simple_stats *stats)
  * @param  item      The work item enqueued
  * @param  priority  The work item's priority
  **/
-void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
-					struct kvdo_work_item *item,
+void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
+					struct vdo_work_item *item,
 					int priority);
 
 /**
@@ -187,8 +187,8 @@ void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
  * @param  item   The work item enqueued
  **/
 static inline void
-update_work_item_stats_for_dequeue(struct kvdo_work_item_stats *stats,
-				   struct kvdo_work_item *item)
+update_work_item_stats_for_dequeue(struct vdo_work_item_stats *stats,
+				   struct vdo_work_item *item)
 {
 	// The times[].count field is overloaded as a count of items
 	// processed.
@@ -225,7 +225,7 @@ static inline uint64_t record_start_time(unsigned int index)
  * @param  start_time  The start time as reported by recordStartTime
  **/
 static inline void
-update_work_item_stats_for_work_time(struct kvdo_work_item_stats *stats,
+update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,
 				     unsigned int index,
 				     uint64_t start_time)
 {
@@ -251,7 +251,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length);
  *
  * @param  stats  The statistics structure
  **/
-void log_work_item_stats(const struct kvdo_work_item_stats *stats);
+void log_work_item_stats(const struct vdo_work_item_stats *stats);
 
 /**
  * Format counters for per-work-function stats for reporting via /sys.
@@ -262,7 +262,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats);
  *
  * @return  The size of the string actually written
  **/
-size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
+size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 			      char *buffer,
 			      size_t length);
 

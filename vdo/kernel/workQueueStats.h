@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#16 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -46,7 +46,7 @@ struct simple_work_queue;
  */
 struct kvdo_work_queue_stats {
 	// Per-work-function counters and optional nanosecond timing data
-	struct kvdo_work_item_stats work_item_stats;
+	struct vdo_work_item_stats work_item_stats;
 	// How often we go to sleep waiting for work
 	uint64_t waits;
 
@@ -115,7 +115,7 @@ void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats);
  * @param priority  The priority of the work item
  **/
 static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
-					    struct kvdo_work_item *item,
+					    struct vdo_work_item *item,
 					    int priority)
 {
 	update_work_item_stats_for_enqueue(&stats->work_item_stats, item,
@@ -131,7 +131,7 @@ static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
  * @param item   The work item being enqueued
  **/
 static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
-					    struct kvdo_work_item *item)
+					    struct vdo_work_item *item)
 {
 	update_work_item_stats_for_dequeue(&stats->work_item_stats, item);
 	enter_histogram_sample(stats->queue_time_histogram,

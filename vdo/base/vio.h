@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#20 $
  */
 
 #ifndef VIO_H
@@ -103,7 +103,7 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
  * @return the vio
  **/
 static inline struct vio * __must_check
-work_item_as_vio(struct kvdo_work_item *item)
+work_item_as_vio(struct vdo_work_item *item)
 {
 	return as_vio(container_of(item, struct vdo_completion, work_item));
 }
@@ -127,7 +127,7 @@ static inline struct vdo_completion *vio_as_completion(struct vio *vio)
  *
  * @return the vio's work item
  **/
-static inline struct kvdo_work_item *work_item_from_vio(struct vio *vio)
+static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
 {
 	return &vio_as_completion(vio)->work_item;
 }

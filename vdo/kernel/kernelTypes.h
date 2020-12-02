@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#13 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -47,13 +47,13 @@ struct io_submitter;
 struct kernel_layer;
 struct kvdo;
 struct kvdoFlush;
-struct kvdo_work_item;
+struct vdo_work_item;
 struct kvdo_work_queue;
 struct kvio;
 
 typedef void (*KVIOCallback)(struct kvio *kvio);
 typedef void (*DataKVIOCallback)(struct data_kvio *data_kvio);
-typedef void (*KvdoWorkFunction)(struct kvdo_work_item *work_item);
+typedef void (*KvdoWorkFunction)(struct vdo_work_item *work_item);
 
 /**
  * Method type for layer matching methods.

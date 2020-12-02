@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#39 $
  */
 
 #include "workQueue.h"
@@ -122,10 +122,10 @@ pick_simple_queue(struct kvdo_work_queue *queue)
  *
  * @return  a work item pointer, or NULL
  **/
-static struct kvdo_work_item *
+static struct vdo_work_item *
 poll_for_work_item(struct simple_work_queue *queue)
 {
-	struct kvdo_work_item *item = NULL;
+	struct vdo_work_item *item = NULL;
 	int i;
 
 	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
@@ -133,7 +133,7 @@ poll_for_work_item(struct simple_work_queue *queue)
 			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
 			item = container_of(link,
-					    struct kvdo_work_item,
+					    struct vdo_work_item,
 					    work_queue_entry_link);
 			break;
 		}
@@ -156,7 +156,7 @@ poll_for_work_item(struct simple_work_queue *queue)
  **/
 static bool __must_check
 enqueue_work_queue_item(struct simple_work_queue *queue,
-			struct kvdo_work_item *item)
+			struct vdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
@@ -225,7 +225,7 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
  **/
 static unsigned int get_pending_count(struct simple_work_queue *queue)
 {
-	struct kvdo_work_item_stats *stats = &queue->stats.work_item_stats;
+	struct vdo_work_item_stats *stats = &queue->stats.work_item_stats;
 	long long pending = 0;
 	int i;
 
@@ -282,11 +282,11 @@ static void run_finish_hook(struct simple_work_queue *queue)
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static struct kvdo_work_item *
+static struct vdo_work_item *
 wait_for_next_work_item(struct simple_work_queue *queue,
 			TimeoutJiffies timeout_interval)
 {
-	struct kvdo_work_item *item = poll_for_work_item(queue);
+	struct vdo_work_item *item = poll_for_work_item(queue);
 
 	if (item != NULL) {
 		return item;
@@ -395,11 +395,11 @@ wait_for_next_work_item(struct simple_work_queue *queue,
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static struct kvdo_work_item *
+static struct vdo_work_item *
 get_next_work_item(struct simple_work_queue *queue,
 		   TimeoutJiffies timeout_interval)
 {
-	struct kvdo_work_item *item = poll_for_work_item(queue);
+	struct vdo_work_item *item = poll_for_work_item(queue);
 
 	if (item != NULL) {
 		return item;
@@ -414,7 +414,7 @@ get_next_work_item(struct simple_work_queue *queue,
  * @param [in]     item   the work item to run
  **/
 static void process_work_item(struct simple_work_queue *queue,
-			      struct kvdo_work_item *item)
+			      struct vdo_work_item *item)
 {
 	if (ASSERT(item->my_queue == &queue->common,
 		   "item %px from queue %px marked as being in this queue (%px)",
@@ -484,7 +484,7 @@ static void service_work_queue(struct simple_work_queue *queue)
 	run_start_hook(queue);
 
 	while (true) {
-		struct kvdo_work_item *item =
+		struct vdo_work_item *item =
 			get_next_work_item(queue, timeout_interval);
 		if (item == NULL) {
 			// No work items but kthread_should_stop was triggered.
@@ -534,7 +534,7 @@ static int work_queue_runner(void *ptr)
 // Preparing work items
 
 /**********************************************************************/
-void setup_work_item(struct kvdo_work_item *item,
+void setup_work_item(struct vdo_work_item *item,
 		     KvdoWorkFunction work,
 		     void *stats_function,
 		     unsigned int action)
@@ -967,7 +967,7 @@ void dump_work_queue(struct kvdo_work_queue *queue)
 }
 
 /**********************************************************************/
-void dump_work_item_to_buffer(struct kvdo_work_item *item,
+void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      char *buffer,
 			      size_t length)
 {
@@ -988,7 +988,7 @@ void dump_work_item_to_buffer(struct kvdo_work_item *item,
 
 /**********************************************************************/
 void enqueue_work_queue(struct kvdo_work_queue *kvdoWorkQueue,
-			struct kvdo_work_item *item)
+			struct vdo_work_item *item)
 {
 	struct simple_work_queue *queue = pick_simple_queue(kvdoWorkQueue);
 

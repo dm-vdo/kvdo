@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#47 $
  */
 
 #ifndef KERNELLAYER_H
@@ -451,7 +451,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer);
  * @param item  The work item to enqueue
  */
 static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
-					  struct kvdo_work_item *item)
+					  struct vdo_work_item *item)
 {
 	enqueue_work_queue(layer->cpu_queue, item);
 }

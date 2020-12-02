@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#15 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -36,7 +36,7 @@ enum {
 	WORK_QUEUE_PRIORITY_COUNT = 4,
 };
 
-struct kvdo_work_item {
+struct vdo_work_item {
 	/** Entry link for lock-free work queue */
 	struct funnel_queue_entry work_queue_entry_link;
 	/** Function to be called */
@@ -177,7 +177,7 @@ int make_work_queue(const char *thread_name_prefix,
  * @param stats_function  A function pointer to record for stats, or NULL
  * @param action          Action code, for determination of priority
  **/
-void setup_work_item(struct kvdo_work_item *item,
+void setup_work_item(struct vdo_work_item *item,
 		     KvdoWorkFunction work,
 		     void *stats_function,
 		     unsigned int action);
@@ -192,7 +192,7 @@ void setup_work_item(struct kvdo_work_item *item,
  * @param item       The work item to be processed
  **/
 void enqueue_work_queue(struct kvdo_work_queue *queue,
-			struct kvdo_work_item *item);
+			struct vdo_work_item *item);
 
 /**
  * Shut down a work queue's worker thread.
@@ -230,7 +230,7 @@ void dump_work_queue(struct kvdo_work_queue *queue);
  * @param buffer  The message buffer to fill in
  * @param length  The length of the message buffer
  **/
-void dump_work_item_to_buffer(struct kvdo_work_item *item,
+void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      char *buffer,
 			      size_t length);
 
@@ -248,8 +248,8 @@ void init_work_queue_once(void);
  *
  * @return TRUE if the actions are the same, FALSE otherwise
  */
-static inline bool are_work_item_actions_equal(struct kvdo_work_item *item1,
-					       struct kvdo_work_item *item2)
+static inline bool are_work_item_actions_equal(struct vdo_work_item *item1,
+					       struct vdo_work_item *item2)
 {
 	return item1->action == item2->action;
 }

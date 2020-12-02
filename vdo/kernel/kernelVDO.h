@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#25 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -38,7 +38,7 @@ struct vdo_thread {
 struct kvdo {
 	struct vdo_thread *threads;
 	thread_id_t initialized_thread_count;
-	struct kvdo_work_item work_item;
+	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
 	// Base-code device info
@@ -263,7 +263,7 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv);
  * @param thread_id     The thread on which to run the work item
  **/
 void enqueue_kvdo_work(struct kvdo *kvdo,
-		       struct kvdo_work_item *item,
+		       struct vdo_work_item *item,
 		       thread_id_t thread_id);
 
 /**

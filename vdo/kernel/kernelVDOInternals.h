@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDOInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDOInternals.h#7 $
  */
 
 #ifndef KERNEL_VDO_INTERNALS_H
@@ -31,6 +31,6 @@
  * @param item    The work item to be run
  **/
 void enqueue_kvdo_thread_work(struct vdo_thread *thread,
-			      struct kvdo_work_item *item);
+			      struct vdo_work_item *item);
 
 #endif // KERNEL_VDO_INTERNALS_H
