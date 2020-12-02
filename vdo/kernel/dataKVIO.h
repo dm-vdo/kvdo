@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#44 $
  */
 
 #ifndef DATA_KVIO_H
@@ -27,6 +27,22 @@
 
 #include "dataVIO.h"
 #include "kvio.h"
+
+struct external_io_request {
+	/*
+	 * The bio which was received from the device mapper to initiate an I/O
+	 * request. This field will be non-NULL only until the request is
+	 * acknowledged.
+	 */
+	struct bio *bio;
+	// Cached copies of fields from the bio which will need to be reset
+	// after we're done.
+	void *private;
+	void *end_io;
+	// This is a copy of the bi_rw field of the bio which sadly is not just
+	// a boolean read-write flag, but also includes other flag bits.
+	unsigned long rw;
+};
 
 /* Dedupe support */
 struct dedupe_context {
@@ -71,7 +87,7 @@ struct data_kvio {
 	/* The embedded kvio */
 	struct kvio kvio;
 	/* The bio from the request which is being serviced by this kvio. */
-	struct bio *user_bio;
+	struct external_io_request external_io_request;
 	/* Dedupe */
 	struct dedupe_context dedupe_context;
 	/* Read cache */
@@ -274,6 +290,18 @@ launch_data_kvio_on_bio_ack_queue(struct data_kvio *data_kvio,
 static inline void kvdo_enqueue_data_vio_callback(struct data_kvio *data_kvio)
 {
 	kvdo_enqueue_vio_callback(data_kvio_as_kvio(data_kvio));
+}
+
+/**
+ * Check whether the external request bio had FUA set.
+ *
+ * @param data_kvio  The data_kvio to check
+ *
+ * @return <code>true</code> if the external request bio had FUA set
+ **/
+static inline bool requestor_set_fua(struct data_kvio *data_kvio)
+{
+	return ((data_kvio->external_io_request.rw & REQ_FUA) == REQ_FUA);
 }
 
 /**
