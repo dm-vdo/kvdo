@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#12 $
  */
 
 #include "compressedBlock.h"
@@ -29,13 +29,20 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 	.minor_version = 0,
 };
 
+enum {
+	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * MAX_COMPRESSION_SLOTS),
+};
+
 /**********************************************************************/
 void reset_compressed_block_header(compressed_block_header *header)
 {
-	STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
+	// Make sure the block layout isn't accidentally changed by changing
+	// the length of the block header.
+	STATIC_ASSERT_SIZEOF(compressed_block_header,
+			     COMPRESSED_BLOCK_1_0_SIZE);
 
-	header->fields.version = pack_version_number(COMPRESSED_BLOCK_1_0);
-	memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
+	header->version = pack_version_number(COMPRESSED_BLOCK_1_0);
+	memset(header->sizes, 0, sizeof(header->sizes));
 }
 
 /**********************************************************************/
@@ -43,7 +50,7 @@ static uint16_t
 get_compressed_fragment_size(const compressed_block_header *header,
 			     byte slot)
 {
-	return get_unaligned_le16(header->fields.sizes[slot]);
+	return __le16_to_cpu(header->sizes[slot]);
 }
 
 /**********************************************************************/
@@ -58,8 +65,7 @@ int get_compressed_block_fragment(BlockMappingState mapping_state,
 	}
 
 	compressed_block_header *header = (compressed_block_header *) buffer;
-	struct version_number version =
-		unpack_version_number(header->fields.version);
+	struct version_number version = unpack_version_number(header->version);
 	if (!are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
 	}
@@ -95,6 +101,6 @@ void put_compressed_block_fragment(struct compressed_block *block,
 				   const char *data,
 				   uint16_t size)
 {
-	put_unaligned_le16(size, block->header.fields.sizes[fragment]);
+	block->header.sizes[fragment] = __cpu_to_le16(size);
 	memcpy(&block->data[offset], data, size);
 }
