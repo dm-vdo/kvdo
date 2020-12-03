@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#47 $
  */
 
 #ifndef DATA_KVIO_H
@@ -71,7 +71,7 @@ struct read_block {
 	/**
 	 * Callback to invoke after completing the read I/O operation.
 	 **/
-	DataKVIOCallback callback;
+	vdo_action *callback;
 	/**
 	 * Mapping state passed to kvdo_read_block(), used to determine whether
 	 * the data must be uncompressed.
@@ -346,7 +346,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 		     physical_block_number_t location,
 		     BlockMappingState mapping_state,
 		     bio_q_action action,
-		     DataKVIOCallback callback);
+		     vdo_action *callback);
 
 /**
  * Allocate a buffer pool of data_kvio objects.

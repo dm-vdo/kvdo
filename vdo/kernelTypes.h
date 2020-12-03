@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#15 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -51,7 +51,6 @@ struct vdo_work_item;
 struct kvdo_work_queue;
 struct kvio;
 
-typedef void (*DataKVIOCallback)(struct data_kvio *data_kvio);
 typedef void (*KvdoWorkFunction)(struct vdo_work_item *work_item);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#21 $
  */
 
 #include "physicalLayer.h"
@@ -109,13 +109,15 @@ static void verify_duplication_work(struct vdo_work_item *item)
  * Verify the Albireo-provided deduplication advice, and invoke a
  * callback once the answer is available.
  *
- * @param data_kvio  The data_kvio that we are looking to dedupe.
+ * @param completion  The data_kvio that we are looking to dedupe.
  **/
-static void verify_read_block_callback(struct data_kvio *data_kvio)
+static void verify_read_block_callback(struct vdo_completion *completion)
 {
-	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
+	struct vio *vio = as_vio(completion);
+	struct data_kvio *data_kvio = vio_as_data_kvio(vio);
 	int err = data_kvio->read_block.status;
 
+	vio_add_trace_record(vio, THIS_LOCATION(NULL));
 	if (unlikely(err != 0)) {
 		log_debug("%s: err %d", __func__, err);
 		data_kvio->data_vio.is_duplicate = false;

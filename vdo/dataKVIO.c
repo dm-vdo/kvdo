@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#102 $
  */
 
 #include "dataKVIO.h"
@@ -277,12 +277,14 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
  * in read_data_vio() when trying to read compressed data for a 4k read or
  * a partial read or write.
  *
- * @param data_kvio  The data_kvio which requested the read
+ * @param completion  The data_kvio which requested the read
  **/
-static void read_data_kvio_read_block_callback(struct data_kvio *data_kvio)
+static void
+read_data_kvio_read_block_callback(struct vdo_completion *completion)
 {
+	struct data_kvio *data_kvio = vio_as_data_kvio(as_vio(completion));
 	if (data_kvio->read_block.status != VDO_SUCCESS) {
-		set_completion_result(data_vio_as_completion(&data_kvio->data_vio),
+		set_completion_result(completion,
 				      data_kvio->read_block.status);
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
@@ -300,6 +302,9 @@ static void read_data_kvio_read_block_callback(struct data_kvio *data_kvio)
  **/
 static void uncompress_read_block(struct vdo_work_item *work_item)
 {
+	struct vdo_completion *completion = container_of(work_item,
+							 struct vdo_completion,
+							 work_item);
 	struct data_kvio *data_kvio = work_item_as_data_kvio(work_item);
 	struct read_block *read_block = &data_kvio->read_block;
 
@@ -315,7 +320,7 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 	if (result != VDO_SUCCESS) {
 		log_debug("%s: frag err %d", __func__, result);
 		read_block->status = result;
-		read_block->callback(data_kvio);
+		read_block->callback(completion);
 		return;
 	}
 
@@ -332,7 +337,7 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 		read_block->status = VDO_INVALID_FRAGMENT;
 	}
 
-	read_block->callback(data_kvio);
+	read_block->callback(completion);
 }
 
 /**
@@ -356,7 +361,7 @@ static void complete_read(struct data_kvio *data_kvio)
 		return;
 	}
 
-	read_block->callback(data_kvio);
+	read_block->callback(vio_as_completion(data_kvio_as_vio(data_kvio)));
 }
 
 /**
@@ -380,7 +385,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 		     physical_block_number_t location,
 		     BlockMappingState mapping_state,
 		     bio_q_action action,
-		     DataKVIOCallback callback)
+		     vdo_action *callback)
 {
 	// This can be run on either a read of compressed data, or a write
 	// trying to read-verify, so we can't assert about the operation.
