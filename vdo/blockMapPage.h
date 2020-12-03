@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#14 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -31,59 +31,40 @@
 /**
  * The packed, on-disk representation of a block map page header.
  **/
-typedef union __packed {
-	struct __packed {
-		/**
-		 * The 64-bit nonce of the current VDO, in little-endian byte
-		 * order. Used to determine whether or not a page has been
-		 * formatted.
-		 **/
-		byte nonce[8];
+typedef struct __packed {
+	/**
+	 * The 64-bit nonce of the current VDO, in little-endian byte
+	 * order. Used to determine whether or not a page has been
+	 * formatted.
+	 **/
+	__le64 nonce;
 
-		/** The 64-bit PBN of this page, in little-endian byte order */
-		byte pbn[8];
+	/** The 64-bit PBN of this page, in little-endian byte order */
+	__le64 pbn;
 
-		/** Formerly recoverySequenceNumber; may be non-zero on disk */
-		byte unused_long_word[8];
+	/** Formerly recoverySequenceNumber; may be non-zero on disk */
+	byte unused_long_word[8];
 
-		/**
-		 * Whether this page has been initialized on disk (i.e. written
-		 * twice)
-		 */
-		bool initialized;
+	/**
+	 * Whether this page has been initialized on disk (i.e. written
+	 * twice)
+	 */
+	bool initialized;
 
-		/**
-		 * Formerly entryOffset; now unused since it should always be
-		 * zero
-		 */
-		byte unused_byte1;
+	/**
+	 * Formerly entryOffset; now unused since it should always be
+	 * zero
+	 */
+	byte unused_byte1;
 
-		/** Formerly interiorTreePageWriting; may be non-zero on disk */
-		byte unused_byte2;
+	/** Formerly interiorTreePageWriting; may be non-zero on disk */
+	byte unused_byte2;
 
-		/**
-		 * Formerly generation (for dirty tree pages); may be non-zero
-		 * on disk
-		 */
-		byte unused_byte3;
-	} fields;
-
-	// A raw view of the packed encoding.
-	uint8_t raw[8 + 8 + 8 + 1 + 1 + 1 + 1];
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	// This view is only valid on little-endian machines and is only present
-	// for ease of directly examining packed entries in GDB.
-	struct __packed {
-		uint64_t nonce;
-		physical_block_number_t pbn;
-		uint64_t unused_long_word;
-		bool initialized;
-		uint8_t unused_byte1;
-		uint8_t unused_byte2;
-		uint8_t unused_byte3;
-	} little_endian;
-#endif
+	/**
+	 * Formerly generation (for dirty tree pages); may be non-zero
+	 * on disk
+	 */
+	byte unused_byte3;
 } PageHeader;
 
 /**
@@ -114,7 +95,7 @@ typedef enum {
 static inline bool __must_check
 is_block_map_page_initialized(const struct block_map_page *page)
 {
-	return page->header.fields.initialized;
+	return page->header.initialized;
 }
 
 /**
@@ -128,11 +109,11 @@ is_block_map_page_initialized(const struct block_map_page *page)
 static inline bool mark_block_map_page_initialized(struct block_map_page *page,
 						   bool initialized)
 {
-	if (initialized == page->header.fields.initialized) {
+	if (initialized == page->header.initialized) {
 		return false;
 	}
 
-	page->header.fields.initialized = initialized;
+	page->header.initialized = initialized;
 	return true;
 }
 
@@ -146,7 +127,7 @@ static inline bool mark_block_map_page_initialized(struct block_map_page *page,
 static inline physical_block_number_t __must_check
 get_block_map_page_pbn(const struct block_map_page *page)
 {
-	return get_unaligned_le64(page->header.fields.pbn);
+	return __le64_to_cpu(page->header.pbn);
 }
 
 /**
