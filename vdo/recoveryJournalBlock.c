@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#40 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -313,10 +313,9 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;
 
-	put_unaligned_le64(journal->block_map_head, header->block_map_head);
-	put_unaligned_le64(journal->slab_journal_head,
-			   header->slab_journal_head);
-	put_unaligned_le16(block->entry_count, header->entry_count);
+	header->block_map_head = __cpu_to_le64(journal->block_map_head);
+	header->slab_journal_head = __cpu_to_le64(journal->slab_journal_head);
+	header->entry_count = __cpu_to_le16(block->entry_count);
 
 	block->committing = true;
 

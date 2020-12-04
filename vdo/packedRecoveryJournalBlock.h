@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#17 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -47,16 +47,16 @@ struct recovery_block_header {
  **/
 struct packed_journal_header {
 	/** Block map head 64-bit sequence number */
-	byte block_map_head[8];
+	__le64 block_map_head;
 
 	/** Slab journal head 64-bit sequence number */
-	byte slab_journal_head[8];
+	__le64 slab_journal_head;
 
 	/** The 64-bit sequence number for this block */
-	byte sequence_number[8];
+	__le64 sequence_number;
 
 	/** A given VDO instance's 64-bit nonce */
-	byte nonce[8];
+	__le64 nonce;
 
 	/**
 	 * 8-bit metadata type (should always be one for the recovery
@@ -65,19 +65,19 @@ struct packed_journal_header {
 	uint8_t metadata_type;
 
 	/** 16-bit count of the entries encoded in the block */
-	byte entry_count[2];
+	__le16 entry_count;
 
 	/**
 	 * 64-bit count of the logical blocks used when this block was
 	 * opened
 	 */
-	byte logical_blocks_used[8];
+	__le64 logical_blocks_used;
 
 	/**
 	 * 64-bit count of the block map blocks used when this block
 	 * was opened
 	 */
-	byte block_map_data_blocks[8];
+	__le64 block_map_data_blocks;
 
 	/** The protection check byte */
 	uint8_t check_byte;
@@ -143,22 +143,20 @@ static inline void
 pack_recovery_block_header(const struct recovery_block_header *header,
 			   struct packed_journal_header *packed)
 {
-	put_unaligned_le64(header->block_map_head,
-			   packed->block_map_head);
-	put_unaligned_le64(header->slab_journal_head,
-			   packed->slab_journal_head);
-	put_unaligned_le64(header->sequence_number,
-			   packed->sequence_number);
-	put_unaligned_le64(header->nonce, packed->nonce);
-	put_unaligned_le64(header->logical_blocks_used,
-			   packed->logical_blocks_used);
-	put_unaligned_le64(header->block_map_data_blocks,
-			   packed->block_map_data_blocks);
-	put_unaligned_le16(header->entry_count, packed->entry_count);
-
-	packed->check_byte = header->check_byte;
-	packed->recovery_count = header->recovery_count;
-	packed->metadata_type = header->metadata_type;
+	*packed = (struct packed_journal_header) {
+		.block_map_head = __cpu_to_le64(header->block_map_head),
+		.slab_journal_head = __cpu_to_le64(header->slab_journal_head),
+		.sequence_number = __cpu_to_le64(header->sequence_number),
+		.nonce = __cpu_to_le64(header->nonce),
+		.logical_blocks_used =
+			__cpu_to_le64(header->logical_blocks_used),
+		.block_map_data_blocks =
+			__cpu_to_le64(header->block_map_data_blocks),
+		.entry_count = __cpu_to_le16(header->entry_count),
+		.check_byte = header->check_byte,
+		.recovery_count = header->recovery_count,
+		.metadata_type = header->metadata_type,
+	};
 }
 
 /**
@@ -172,18 +170,15 @@ unpack_recovery_block_header(const struct packed_journal_header *packed,
 			     struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {
-		.block_map_head =
-			get_unaligned_le64(packed->block_map_head),
-		.slab_journal_head =
-			get_unaligned_le64(packed->slab_journal_head),
-		.sequence_number =
-			get_unaligned_le64(packed->sequence_number),
-		.nonce = get_unaligned_le64(packed->nonce),
+		.block_map_head = __le64_to_cpu(packed->block_map_head),
+		.slab_journal_head = __le64_to_cpu(packed->slab_journal_head),
+		.sequence_number = __le64_to_cpu(packed->sequence_number),
+		.nonce = __le64_to_cpu(packed->nonce),
 		.logical_blocks_used =
-			get_unaligned_le64(packed->logical_blocks_used),
+			__le64_to_cpu(packed->logical_blocks_used),
 		.block_map_data_blocks =
-			get_unaligned_le64(packed->block_map_data_blocks),
-		.entry_count = get_unaligned_le16(packed->entry_count),
+			__le64_to_cpu(packed->block_map_data_blocks),
+		.entry_count = __le16_to_cpu(packed->entry_count),
 		.check_byte = packed->check_byte,
 		.recovery_count = packed->recovery_count,
 		.metadata_type = packed->metadata_type,
