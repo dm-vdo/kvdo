@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#9 $
  */
 
 #ifndef HEADER_H
@@ -49,8 +49,8 @@ struct version_number {
  * Both fields are stored in little-endian byte order.
  **/
 struct packed_version_number {
-	byte major_version[4];
-	byte minor_version[4];
+	__le32 major_version;
+	__le32 minor_version;
 } __packed;
 
 /**
@@ -200,10 +200,10 @@ decode_version_number(struct buffer *buffer, struct version_number *version);
 static inline struct packed_version_number
 pack_version_number(struct version_number version)
 {
-	struct packed_version_number packed;
-	put_unaligned_le32(version.major_version, packed.major_version);
-	put_unaligned_le32(version.minor_version, packed.minor_version);
-	return packed;
+	return (struct packed_version_number) {
+		.major_version = __cpu_to_le32(version.major_version),
+		.minor_version = __cpu_to_le32(version.minor_version),
+	};
 }
 
 /**
@@ -217,8 +217,8 @@ static inline struct version_number
 unpack_version_number(struct packed_version_number version)
 {
 	return (struct version_number) {
-		.major_version = get_unaligned_le32(version.major_version),
-		.minor_version = get_unaligned_le32(version.minor_version),
+		.major_version = __le32_to_cpu(version.major_version),
+		.minor_version = __le32_to_cpu(version.minor_version),
 	};
 }
 
