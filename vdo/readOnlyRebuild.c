@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#41 $
  */
 
 #include "readOnlyRebuild.h"
@@ -321,7 +321,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 	sequence_number_t i;
 	for (i = first; i <= last; i++) {
-		union packed_journal_header *packed_header =
+		struct packed_journal_header *packed_header =
 			get_journal_block_header(journal,
 						 rebuild->journal_data,
 						 i);

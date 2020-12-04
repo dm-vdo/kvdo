@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#39 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -40,7 +40,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
 		      <= ((VDO_BLOCK_SIZE
-		      	    - sizeof(union packed_journal_header))
+		      	    - sizeof(struct packed_journal_header))
 			  / sizeof(packed_recovery_journal_entry)));
 
 	struct recovery_journal_block *block;
@@ -95,10 +95,10 @@ void free_recovery_block(struct recovery_journal_block **block_ptr)
  *
  * @return The block's header
  **/
-static inline union packed_journal_header *
+static inline struct packed_journal_header *
 get_block_header(const struct recovery_journal_block *block)
 {
-	return (union packed_journal_header *) block->block;
+	return (struct packed_journal_header *) block->block;
 }
 
 /**
@@ -111,7 +111,7 @@ static void set_active_sector(struct recovery_journal_block *block,
 			      void *sector)
 {
 	block->sector = (struct packed_journal_sector *) sector;
-	block->sector->check_byte = get_block_header(block)->fields.check_byte;
+	block->sector->check_byte = get_block_header(block)->check_byte;
 	block->sector->recovery_count = block->journal->recovery_count;
 	block->sector->entry_count = 0;
 }
@@ -139,7 +139,7 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 		.check_byte = compute_recovery_check_byte(journal,
 							  journal->tail),
 	};
-	union packed_journal_header *header = get_block_header(block);
+	struct packed_journal_header *header = get_block_header(block);
 	pack_recovery_block_header(&unpacked, header);
 
 	set_active_sector(block, get_journal_block_sector(header, 1));
@@ -306,19 +306,17 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	}
 
 	struct recovery_journal *journal = block->journal;
-	union packed_journal_header *header = get_block_header(block);
+	struct packed_journal_header *header = get_block_header(block);
 
 	// Update stats to reflect the block and entries we're about to write.
 	journal->pending_write_count += 1;
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;
 
-	put_unaligned_le64(journal->block_map_head,
-			   header->fields.block_map_head);
+	put_unaligned_le64(journal->block_map_head, header->block_map_head);
 	put_unaligned_le64(journal->slab_journal_head,
-			   header->fields.slab_journal_head);
-	put_unaligned_le16(block->entry_count,
-			   header->fields.entry_count);
+			   header->slab_journal_head);
+	put_unaligned_le16(block->entry_count, header->entry_count);
 
 	block->committing = true;
 

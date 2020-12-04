@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#16 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -45,67 +45,45 @@ struct recovery_block_header {
  * The packed, on-disk representation of a recovery journal block header.
  * All fields are kept in little-endian byte order.
  **/
-union packed_journal_header {
-	struct __packed {
-		/** Block map head 64-bit sequence number */
-		byte block_map_head[8];
+struct packed_journal_header {
+	/** Block map head 64-bit sequence number */
+	byte block_map_head[8];
 
-		/** Slab journal head 64-bit sequence number */
-		byte slab_journal_head[8];
+	/** Slab journal head 64-bit sequence number */
+	byte slab_journal_head[8];
 
-		/** The 64-bit sequence number for this block */
-		byte sequence_number[8];
+	/** The 64-bit sequence number for this block */
+	byte sequence_number[8];
 
-		/** A given VDO instance's 64-bit nonce */
-		byte nonce[8];
+	/** A given VDO instance's 64-bit nonce */
+	byte nonce[8];
 
-		/**
-		 * 8-bit metadata type (should always be one for the recovery
-		 * journal)
-		 */
-		uint8_t metadata_type;
+	/**
+	 * 8-bit metadata type (should always be one for the recovery
+	 * journal)
+	 */
+	uint8_t metadata_type;
 
-		/** 16-bit count of the entries encoded in the block */
-		byte entry_count[2];
+	/** 16-bit count of the entries encoded in the block */
+	byte entry_count[2];
 
-		/**
-		 * 64-bit count of the logical blocks used when this block was
-		 * opened
-		 */
-		byte logical_blocks_used[8];
+	/**
+	 * 64-bit count of the logical blocks used when this block was
+	 * opened
+	 */
+	byte logical_blocks_used[8];
 
-		/**
-		 * 64-bit count of the block map blocks used when this block
-		 * was opened
-		 */
-		byte block_map_data_blocks[8];
+	/**
+	 * 64-bit count of the block map blocks used when this block
+	 * was opened
+	 */
+	byte block_map_data_blocks[8];
 
-		/** The protection check byte */
-		uint8_t check_byte;
+	/** The protection check byte */
+	uint8_t check_byte;
 
-		/** The number of recoveries completed */
-		uint8_t recovery_count;
-	} fields;
-
-	// A raw view of the packed encoding.
-	uint8_t raw[8 + 8 + 8 + 8 + 1 + 2 + 8 + 8 + 1 + 1];
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	// This view is only valid on little-endian machines and is only
-	// present for ease of directly examining packed entries in GDB.
-	struct __packed {
-		sequence_number_t block_map_head;
-		sequence_number_t slab_journal_head;
-		sequence_number_t sequence_number;
-		nonce_t nonce;
-		vdo_metadata_type metadata_type;
-		JournalEntryCount entry_count;
-		block_count_t logical_blocks_used;
-		block_count_t block_map_data_blocks;
-		uint8_t check_byte;
-		uint8_t recovery_count;
-	} little_endian;
-#endif
+	/** The number of recoveries completed */
+	uint8_t recovery_count;
 } __packed;
 
 struct packed_journal_sector {
@@ -147,7 +125,7 @@ enum {
  * @return A packed recovery journal sector
  **/
 static inline struct packed_journal_sector * __must_check
-get_journal_block_sector(union packed_journal_header *header,
+get_journal_block_sector(struct packed_journal_header *header,
 			 int sector_number)
 {
 	char *sector_data =
@@ -163,24 +141,24 @@ get_journal_block_sector(union packed_journal_header *header,
  **/
 static inline void
 pack_recovery_block_header(const struct recovery_block_header *header,
-			   union packed_journal_header *packed)
+			   struct packed_journal_header *packed)
 {
 	put_unaligned_le64(header->block_map_head,
-			   packed->fields.block_map_head);
+			   packed->block_map_head);
 	put_unaligned_le64(header->slab_journal_head,
-			   packed->fields.slab_journal_head);
+			   packed->slab_journal_head);
 	put_unaligned_le64(header->sequence_number,
-			   packed->fields.sequence_number);
-	put_unaligned_le64(header->nonce, packed->fields.nonce);
+			   packed->sequence_number);
+	put_unaligned_le64(header->nonce, packed->nonce);
 	put_unaligned_le64(header->logical_blocks_used,
-			   packed->fields.logical_blocks_used);
+			   packed->logical_blocks_used);
 	put_unaligned_le64(header->block_map_data_blocks,
-			   packed->fields.block_map_data_blocks);
-	put_unaligned_le16(header->entry_count, packed->fields.entry_count);
+			   packed->block_map_data_blocks);
+	put_unaligned_le16(header->entry_count, packed->entry_count);
 
-	packed->fields.check_byte = header->check_byte;
-	packed->fields.recovery_count = header->recovery_count;
-	packed->fields.metadata_type = header->metadata_type;
+	packed->check_byte = header->check_byte;
+	packed->recovery_count = header->recovery_count;
+	packed->metadata_type = header->metadata_type;
 }
 
 /**
@@ -190,25 +168,25 @@ pack_recovery_block_header(const struct recovery_block_header *header,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_recovery_block_header(const union packed_journal_header *packed,
+unpack_recovery_block_header(const struct packed_journal_header *packed,
 			     struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {
 		.block_map_head =
-			get_unaligned_le64(packed->fields.block_map_head),
+			get_unaligned_le64(packed->block_map_head),
 		.slab_journal_head =
-			get_unaligned_le64(packed->fields.slab_journal_head),
+			get_unaligned_le64(packed->slab_journal_head),
 		.sequence_number =
-			get_unaligned_le64(packed->fields.sequence_number),
-		.nonce = get_unaligned_le64(packed->fields.nonce),
+			get_unaligned_le64(packed->sequence_number),
+		.nonce = get_unaligned_le64(packed->nonce),
 		.logical_blocks_used =
-			get_unaligned_le64(packed->fields.logical_blocks_used),
+			get_unaligned_le64(packed->logical_blocks_used),
 		.block_map_data_blocks =
-			get_unaligned_le64(packed->fields.block_map_data_blocks),
-		.entry_count = get_unaligned_le16(packed->fields.entry_count),
-		.check_byte = packed->fields.check_byte,
-		.recovery_count = packed->fields.recovery_count,
-		.metadata_type = packed->fields.metadata_type,
+			get_unaligned_le64(packed->block_map_data_blocks),
+		.entry_count = get_unaligned_le16(packed->entry_count),
+		.check_byte = packed->check_byte,
+		.recovery_count = packed->recovery_count,
+		.metadata_type = packed->metadata_type,
 	};
 }
 

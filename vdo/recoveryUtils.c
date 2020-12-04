@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#29 $
  */
 
 #include "recoveryUtils.h"
@@ -112,7 +112,7 @@ bool find_head_and_tail(struct recovery_journal *journal,
 	bool found_entries = false;
 	physical_block_number_t i;
 	for (i = 0; i < journal->size; i++) {
-		union packed_journal_header *packed_header =
+		struct packed_journal_header *packed_header =
 			get_journal_block_header(journal, journal_data, i);
 		struct recovery_block_header header;
 		unpack_recovery_block_header(packed_header, &header);
