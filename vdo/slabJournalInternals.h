@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#31 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -192,17 +192,14 @@ unpack_slab_journal_block_header(const packed_slab_journal_block_header *packed,
 				 struct slab_journal_block_header *header)
 {
 	*header = (struct slab_journal_block_header) {
-		.head = get_unaligned_le64(packed->fields.head),
-		.sequence_number =
-			get_unaligned_le64(packed->fields.sequence_number),
-		.nonce = get_unaligned_le64(packed->fields.nonce),
-		.entry_count = get_unaligned_le16(packed->fields.entry_count),
-		.metadata_type = packed->fields.metadata_type,
-		.has_block_map_increments =
-			packed->fields.has_block_map_increments,
+		.head = __le64_to_cpu(packed->head),
+		.sequence_number = __le64_to_cpu(packed->sequence_number),
+		.nonce = __le64_to_cpu(packed->nonce),
+		.entry_count = __le16_to_cpu(packed->entry_count),
+		.metadata_type = packed->metadata_type,
+		.has_block_map_increments = packed->has_block_map_increments,
 	};
-	unpack_journal_point(&packed->fields.recovery_point,
-			     &header->recovery_point);
+	unpack_journal_point(&packed->recovery_point, &header->recovery_point);
 }
 
 #endif // SLAB_JOURNAL_INTERNALS_H

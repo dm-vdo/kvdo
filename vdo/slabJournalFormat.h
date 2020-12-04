@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#4 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
 #define SLAB_JOURNAL_FORMAT_H
+
+#include "numeric.h"
 
 #include "constants.h"
 #include "journalPoint.h"
@@ -90,45 +92,21 @@ struct slab_journal_block_header {
  * The packed, on-disk representation of a slab journal block header.
  * All fields are kept in little-endian byte order.
  **/
-typedef union __packed {
-	struct __packed {
-		/** 64-bit sequence number for head of journal */
-		byte head[8];
-		/** 64-bit sequence number for this block */
-		byte sequence_number[8];
-		/**
-		 * Recovery journal point for last entry, packed into 64 bits
-		 */
-		struct packed_journal_point recovery_point;
-		/** The 64-bit nonce for a given VDO instance */
-		byte nonce[8];
-		/**
-		 * 8-bit metadata type (should always be two, for the slab
-		 * journal)
-		 */
-		uint8_t metadata_type;
-		/** Whether this block contains block map increments */
-		bool has_block_map_increments;
-		/** 16-bit count of the entries encoded in the block */
-		byte entry_count[2];
-	} fields;
-
-	// A raw view of the packed encoding.
-	uint8_t raw[8 + 8 + 8 + 8 + 1 + 1 + 2];
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	// This view is only valid on little-endian machines and is only present
-	// for ease of directly examining packed entries in GDB.
-	struct __packed {
-		sequence_number_t head;
-		sequence_number_t sequence_number;
-		struct packed_journal_point recovery_point;
-		nonce_t nonce;
-		vdo_metadata_type metadata_type;
-		bool has_block_map_increments;
-		JournalEntryCount entry_count;
-	} little_endian;
-#endif
+typedef struct __packed {
+	/** 64-bit sequence number for head of journal */
+	__le64 head;
+	/** 64-bit sequence number for this block */
+	__le64 sequence_number;
+	/** Recovery journal point for the last entry, packed into 64 bits */
+	struct packed_journal_point recovery_point;
+	/** The 64-bit nonce for a given VDO instance */
+	__le64 nonce;
+	/** 8-bit metadata type (should always be two, for the slab journal) */
+	uint8_t metadata_type;
+	/** Whether this block contains block map increments */
+	bool has_block_map_increments;
+	/** 16-bit count of the entries encoded in the block */
+	__le16 entry_count;
 } packed_slab_journal_block_header;
 
 enum {
@@ -138,8 +116,8 @@ enum {
 		(SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
 	SLAB_JOURNAL_ENTRY_TYPES_SIZE =
 		((SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
-	SLAB_JOURNAL_ENTRIES_PER_BLOCK =
-		(SLAB_JOURNAL_PAYLOAD_SIZE / sizeof(packed_slab_journal_entry)),
+	SLAB_JOURNAL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE
+					  / sizeof(packed_slab_journal_entry)),
 };
 
 /** The payload of a slab journal block which has block map increments */
@@ -189,17 +167,14 @@ static inline void
 pack_slab_journal_block_header(const struct slab_journal_block_header *header,
 			       packed_slab_journal_block_header *packed)
 {
-	put_unaligned_le64(header->head, packed->fields.head);
-	put_unaligned_le64(header->sequence_number,
-			   packed->fields.sequence_number);
-	put_unaligned_le64(header->nonce, packed->fields.nonce);
-	put_unaligned_le16(header->entry_count, packed->fields.entry_count);
+	packed->head = __cpu_to_le64(header->head);
+	packed->sequence_number = __cpu_to_le64(header->sequence_number);
+	packed->nonce = __cpu_to_le64(header->nonce);
+	packed->entry_count = __cpu_to_le16(header->entry_count);
+	packed->metadata_type = header->metadata_type;
+	packed->has_block_map_increments = header->has_block_map_increments;
 
-	packed->fields.metadata_type = header->metadata_type;
-	packed->fields.has_block_map_increments = header->has_block_map_increments;
-
-	pack_journal_point(&header->recovery_point,
-			   &packed->fields.recovery_point);
+	pack_journal_point(&header->recovery_point, &packed->recovery_point);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.c#2 $
  */
 
 #include "slabJournalFormat.h"
@@ -31,7 +31,7 @@ decode_slab_journal_entry(struct packed_slab_journal_block *block,
 {
 	struct slab_journal_entry entry =
 		unpack_slab_journal_entry(&block->payload.entries[entry_count]);
-	if (block->header.fields.has_block_map_increments &&
+	if (block->header.has_block_map_increments &&
 	    ((block->payload.full_entries.entry_types[entry_count / 8] &
 	      ((byte)1 << (entry_count % 8))) != 0)) {
 		entry.operation = BLOCK_MAP_INCREMENT;
