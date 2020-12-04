@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#7 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -47,7 +47,7 @@ struct packed_journal_point {
 	 * Very long-term, the top 16 bits of the sequence number may not always
 	 * be zero, as this encoding assumes--see BZ 1523240.
 	 **/
-	byte encoded_point[8];
+	__le64 encoded_point;
 } __packed;
 
 /**
@@ -122,9 +122,8 @@ are_equivalent_journal_points(const struct journal_point *first,
 static inline void pack_journal_point(const struct journal_point *unpacked,
 				      struct packed_journal_point *packed)
 {
-	uint64_t native =
-		((unpacked->sequence_number << 16) | unpacked->entry_count);
-	put_unaligned_le64(native, packed->encoded_point);
+	packed->encoded_point = __cpu_to_le64((unpacked->sequence_number << 16)
+					      | unpacked->entry_count);
 }
 
 /**
@@ -138,7 +137,7 @@ static inline void
 unpack_journal_point(const struct packed_journal_point *packed,
 		     struct journal_point *unpacked)
 {
-	uint64_t native = get_unaligned_le64(packed->encoded_point);
+	uint64_t native = __le64_to_cpu(packed->encoded_point);
 	unpacked->sequence_number = (native >> 16);
 	unpacked->entry_count = (native & 0xffff);
 }
