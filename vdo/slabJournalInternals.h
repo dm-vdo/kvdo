@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#32 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -188,8 +188,9 @@ static inline void pack_slab_journal_entry(packed_slab_journal_entry *packed,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_slab_journal_block_header(const packed_slab_journal_block_header *packed,
-				 struct slab_journal_block_header *header)
+unpack_slab_journal_block_header(
+	const struct packed_slab_journal_block_header *packed,
+	struct slab_journal_block_header *header)
 {
 	*header = (struct slab_journal_block_header) {
 		.head = __le64_to_cpu(packed->head),

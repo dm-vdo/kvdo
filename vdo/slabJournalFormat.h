@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#5 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -92,7 +92,7 @@ struct slab_journal_block_header {
  * The packed, on-disk representation of a slab journal block header.
  * All fields are kept in little-endian byte order.
  **/
-typedef struct __packed {
+struct packed_slab_journal_block_header {
 	/** 64-bit sequence number for head of journal */
 	__le64 head;
 	/** 64-bit sequence number for this block */
@@ -107,11 +107,11 @@ typedef struct __packed {
 	bool has_block_map_increments;
 	/** 16-bit count of the entries encoded in the block */
 	__le16 entry_count;
-} packed_slab_journal_block_header;
+} __packed;
 
 enum {
 	SLAB_JOURNAL_PAYLOAD_SIZE =
-		VDO_BLOCK_SIZE - sizeof(packed_slab_journal_block_header),
+		VDO_BLOCK_SIZE - sizeof(struct packed_slab_journal_block_header),
 	SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
 		(SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
 	SLAB_JOURNAL_ENTRY_TYPES_SIZE =
@@ -138,7 +138,7 @@ typedef union {
 } __packed slab_journal_payload;
 
 struct packed_slab_journal_block {
-	packed_slab_journal_block_header header;
+	struct packed_slab_journal_block_header header;
 	slab_journal_payload payload;
 } __packed;
 
@@ -165,7 +165,7 @@ get_slab_journal_start_block(const struct slab_config *slab_config,
  **/
 static inline void
 pack_slab_journal_block_header(const struct slab_journal_block_header *header,
-			       packed_slab_journal_block_header *packed)
+			       struct packed_slab_journal_block_header *packed)
 {
 	packed->head = __cpu_to_le64(header->head);
 	packed->sequence_number = __cpu_to_le64(header->sequence_number);
