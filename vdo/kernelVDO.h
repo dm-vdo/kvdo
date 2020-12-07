@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#26 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -45,13 +45,13 @@ struct kvdo {
 	struct vdo *vdo;
 };
 
-typedef enum reqQAction {
+enum {
 	REQ_Q_ACTION_COMPLETION,
 	REQ_Q_ACTION_FLUSH,
 	REQ_Q_ACTION_MAP_BIO,
 	REQ_Q_ACTION_SYNC,
 	REQ_Q_ACTION_VIO_CALLBACK
-} ReqQAction;
+};
 
 /**
  * Initialize the base code interface.
