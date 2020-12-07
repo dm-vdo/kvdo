@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#8 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -28,7 +28,7 @@
 /**
  * The header of a compressed block.
  **/
-typedef struct __packed {
+struct compressed_block_header {
 	/**
 	 * Unsigned 32-bit major and minor versions,
 	 * in little-endian byte order
@@ -40,13 +40,13 @@ typedef struct __packed {
 	 * in little-endian order
 	 */
 	__le16 sizes[MAX_COMPRESSION_SLOTS];
-} compressed_block_header;
+} __packed;
 
 /**
  * The compressed block overlay.
  **/
 struct compressed_block {
-	compressed_block_header header;
+	struct compressed_block_header header;
 	char data[];
 } __packed;
 
@@ -58,7 +58,7 @@ struct compressed_block {
  * When done, the version number is set to the current version, and all
  * fragments are empty.
  **/
-void reset_compressed_block_header(compressed_block_header *header);
+void reset_compressed_block_header(struct compressed_block_header *header);
 
 /**
  * Get a reference to a compressed fragment from a compression block.

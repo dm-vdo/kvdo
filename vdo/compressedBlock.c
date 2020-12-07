@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#13 $
  */
 
 #include "compressedBlock.h"
@@ -34,11 +34,11 @@ enum {
 };
 
 /**********************************************************************/
-void reset_compressed_block_header(compressed_block_header *header)
+void reset_compressed_block_header(struct compressed_block_header *header)
 {
 	// Make sure the block layout isn't accidentally changed by changing
 	// the length of the block header.
-	STATIC_ASSERT_SIZEOF(compressed_block_header,
+	STATIC_ASSERT_SIZEOF(struct compressed_block_header,
 			     COMPRESSED_BLOCK_1_0_SIZE);
 
 	header->version = pack_version_number(COMPRESSED_BLOCK_1_0);
@@ -47,7 +47,7 @@ void reset_compressed_block_header(compressed_block_header *header)
 
 /**********************************************************************/
 static uint16_t
-get_compressed_fragment_size(const compressed_block_header *header,
+get_compressed_fragment_size(const struct compressed_block_header *header,
 			     byte slot)
 {
 	return __le16_to_cpu(header->sizes[slot]);
@@ -64,7 +64,8 @@ int get_compressed_block_fragment(BlockMappingState mapping_state,
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	compressed_block_header *header = (compressed_block_header *) buffer;
+	struct compressed_block_header *header =
+		(struct compressed_block_header *) buffer;
 	struct version_number version = unpack_version_number(header->version);
 	if (!are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
@@ -76,7 +77,7 @@ int get_compressed_block_fragment(BlockMappingState mapping_state,
 	}
 
 	uint16_t compressed_size = get_compressed_fragment_size(header, slot);
-	uint16_t offset = sizeof(compressed_block_header);
+	uint16_t offset = sizeof(struct compressed_block_header);
 	unsigned int i;
 	for (i = 0; i < slot; i++) {
 		offset += get_compressed_fragment_size(header, i);
