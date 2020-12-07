@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#10 $
  */
 
 #ifndef BLOCK_MAP_RECOVERY_H
@@ -35,7 +35,7 @@ struct numbered_block_mapping {
 	// Block map slot to map
 	struct block_map_slot block_map_slot;
 	// The encoded block map entry for the LBN
-	block_map_entry block_map_entry;
+	struct block_map_entry block_map_entry;
 	// The serial number to use during replay
 	uint32_t number;
 } __packed;
@@ -46,7 +46,8 @@ struct numbered_block_mapping {
  * @param vdo              The vdo
  * @param entry_count      The number of journal entries
  * @param journal_entries  An array of journal entries to process
- * @param parent           The completion to notify when the rebuild is complete
+ * @param parent           The completion to notify when the rebuild
+ *                         is complete
  **/
 void recover_block_map(struct vdo *vdo,
 		       block_count_t entry_count,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#12 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -74,7 +74,7 @@ typedef struct __packed {
 	 * Bits 87..48:  The five-byte block map entry encoding the
 	 * location that was or will be stored in the block map page slot
 	 **/
-	block_map_entry block_map_entry;
+	struct block_map_entry block_map_entry;
 } packed_recovery_journal_entry;
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#78 $
  */
 
 #include "blockMap.h"
@@ -121,8 +121,8 @@ static bool handle_page_write(void *raw_page,
  * @param layer               The physical layer on which the zone resides
  * @param read_only_notifier  The read-only context for the VDO
  * @param cache_size          The size of the page cache for the block map
- * @param maximum_age         The number of journal blocks before a dirtied page
- *                            is considered old and must be written out
+ * @param maximum_age         The number of journal blocks before a dirtied
+ *                            page is considered old and must be written out
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -270,7 +270,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 {
 	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
 		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
-		       sizeof(block_map_entry)));
+		       sizeof(struct block_map_entry)));
 	int result = ASSERT(cache_size > 0,
 			    "block map cache size is specified");
 	if (result != UDS_SUCCESS) {
@@ -614,14 +614,15 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
  *         or an error code for any other failure
  **/
 static int __must_check
-set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
+set_mapped_entry(struct data_vio *data_vio,
+		 const struct block_map_entry *entry)
 {
 	// Unpack the PBN for logging purposes even if the entry is invalid.
 	struct data_location mapped = unpack_block_map_entry(entry);
 
 	if (is_valid_location(&mapped)) {
-		int result =
-			set_mapped_location(data_vio, mapped.pbn, mapped.state);
+		int result = set_mapped_location(data_vio, mapped.pbn,
+						 mapped.state);
 		/*
 		 * Return success and all errors not specifically known to be
 		 * errors from validating the location. Yes, this expression is
@@ -673,7 +674,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_tree_slot *tree_slot =
 		&data_vio->tree_lock.tree_slots[0];
-	const block_map_entry *entry =
+	const struct block_map_entry *entry =
 		&page->entries[tree_slot->block_map_slot.slot];
 
 	result = set_mapped_entry(data_vio, entry);
@@ -734,7 +735,8 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	struct block_map_page *page = dereference_writable_vdo_page(completion);
+	struct block_map_page *page =
+		dereference_writable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		finish_processing_page(completion, result);
