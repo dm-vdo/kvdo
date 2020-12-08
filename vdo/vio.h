@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#21 $
  */
 
 #ifndef VIO_H
@@ -62,8 +62,10 @@ struct vio {
 	/* Used for logging and debugging */
 	struct trace *trace;
 
+	/* The data being read or written. */
+	char *data;
+
 	struct bio *bio;
-	char * data;
 	/**
 	 * A bio pointer used in enqueueBioMap (used via vdo_submit_bio etc),
 	 * to pass information -- which bio to submit to the storage device --
