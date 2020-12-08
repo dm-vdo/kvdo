@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#26 $
  */
 
 #include "actionManager.h"
@@ -385,11 +385,11 @@ bool schedule_operation_with_context(struct action_manager *manager,
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 manager->initiator_thread_id),
 			"action initiated from correct thread");
-	struct action *action;
+	struct action *current_action;
 	if (!manager->current_action->in_use) {
-		action = manager->current_action;
+		current_action = manager->current_action;
 	} else if (!manager->current_action->next->in_use) {
-		action = manager->current_action->next;
+		current_action = manager->current_action->next;
 	} else {
 		if (parent != NULL) {
 			finish_completion(parent, VDO_COMPONENT_BUSY);
@@ -398,7 +398,7 @@ bool schedule_operation_with_context(struct action_manager *manager,
 		return false;
 	}
 
-	*action = (struct action) {
+	*current_action = (struct action) {
 		.in_use = true,
 		.operation = operation,
 		.preamble = (preamble == NULL) ? no_preamble : preamble,
@@ -406,10 +406,10 @@ bool schedule_operation_with_context(struct action_manager *manager,
 		.conclusion = (conclusion == NULL) ? no_conclusion : conclusion,
 		.context = context,
 		.parent = parent,
-		.next = action->next,
+		.next = current_action->next,
 	};
 
-	if (action == manager->current_action) {
+	if (current_action == manager->current_action) {
 		launch_current_action(manager);
 	}
 
