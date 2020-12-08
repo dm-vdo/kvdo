@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#18 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -97,7 +97,7 @@ struct packed_journal_sector {
 	uint8_t entry_count;
 
 	/** Journal entries for this sector */
-	packed_recovery_journal_entry entries[];
+	struct packed_recovery_journal_entry entries[];
 } __packed;
 
 enum {
@@ -109,7 +109,7 @@ enum {
 	 */
 	RECOVERY_JOURNAL_ENTRIES_PER_SECTOR =
 		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector)) /
-		 sizeof(packed_recovery_journal_entry)),
+		 sizeof(struct packed_recovery_journal_entry)),
 	/** The number of entries in the last sector when a block is full */
 	RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR =
 		(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK %

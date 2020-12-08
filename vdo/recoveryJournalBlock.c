@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#41 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -41,7 +41,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
 		      <= ((VDO_BLOCK_SIZE
 		      	    - sizeof(struct packed_journal_header))
-			  / sizeof(packed_recovery_journal_entry)));
+			  / sizeof(struct packed_recovery_journal_entry)));
 
 	struct recovery_journal_block *block;
 	int result =
@@ -219,7 +219,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Compose and encode the entry.
-		packed_recovery_journal_entry *packed_entry =
+		struct packed_recovery_journal_entry *packed_entry =
 			&block->sector->entries[block->sector->entry_count++];
 		struct tree_lock *lock = &data_vio->tree_lock;
 		struct recovery_journal_entry new_entry = {

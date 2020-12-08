@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#13 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -44,7 +44,7 @@ struct recovery_journal_entry {
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */
-typedef struct __packed {
+struct packed_recovery_journal_entry {
 	/**
 	 * In little-endian bit order:
 	 * Bits 15..12:  The four highest bits of the 36-bit physical
@@ -75,7 +75,7 @@ typedef struct __packed {
 	 * location that was or will be stored in the block map page slot
 	 **/
 	struct block_map_entry block_map_entry;
-} packed_recovery_journal_entry;
+} __packed;
 
 /**
  * Return the packed, on-disk representation of a recovery journal entry.
@@ -84,10 +84,10 @@ typedef struct __packed {
  *
  * @return  The packed representation of the journal entry
  **/
-static inline packed_recovery_journal_entry
+static inline struct packed_recovery_journal_entry
 pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 {
-	return (packed_recovery_journal_entry) {
+	return (struct packed_recovery_journal_entry) {
 		.operation = entry->operation,
 		.slot_low = entry->slot.slot & 0x3F,
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
@@ -106,7 +106,7 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
  * @return  The unpacked entry
  **/
 static inline struct recovery_journal_entry
-unpack_recovery_journal_entry(const packed_recovery_journal_entry *entry)
+unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
