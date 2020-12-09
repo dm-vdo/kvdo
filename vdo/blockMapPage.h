@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#16 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -31,11 +31,10 @@
 /**
  * The packed, on-disk representation of a block map page header.
  **/
-typedef struct __packed {
+struct block_map_page_header {
 	/**
-	 * The 64-bit nonce of the current VDO, in little-endian byte
-	 * order. Used to determine whether or not a page has been
-	 * formatted.
+	 * The 64-bit nonce of the current VDO, in little-endian byte order. 
+	 * Used to determine whether or not a page has been formatted.
 	 **/
 	__le64 nonce;
 
@@ -46,14 +45,12 @@ typedef struct __packed {
 	byte unused_long_word[8];
 
 	/**
-	 * Whether this page has been initialized on disk (i.e. written
-	 * twice)
+	 * Whether this page has been initialized on disk (i.e. written twice)
 	 */
 	bool initialized;
 
 	/**
-	 * Formerly entryOffset; now unused since it should always be
-	 * zero
+	 * Formerly entryOffset; now unused since it should always be zero
 	 */
 	byte unused_byte1;
 
@@ -61,18 +58,17 @@ typedef struct __packed {
 	byte unused_byte2;
 
 	/**
-	 * Formerly generation (for dirty tree pages); may be non-zero
-	 * on disk
+	 * Formerly generation (for dirty tree pages); may be non-zero on disk
 	 */
 	byte unused_byte3;
-} PageHeader;
+} __packed;
 
 /**
  * The format of a block map page.
  **/
 struct block_map_page {
 	struct packed_version_number version;
-	PageHeader header;
+	struct block_map_page_header header;
 	struct block_map_entry entries[];
 } __packed;
 
