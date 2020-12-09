@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#14 $
  */
 
 #ifndef FOREST_H
@@ -88,14 +88,14 @@ void replace_forest(struct block_map *map);
 /**
  * Walk the entire forest of a block map.
  *
- * @param map             The block map to traverse
- * @param entry_callback  A function to call with the pbn of each allocated node
- *                        in the forest
- * @param parent          The completion to notify on each traversed PBN, and
- *                        when the traversal is complete
+ * @param map       The block map to traverse
+ * @param callback  A function to call with the pbn of each allocated node in
+ *                  the forest
+ * @param parent    The completion to notify on each traversed PBN, and when
+ *                  the traversal is complete
  **/
 void traverse_forest(struct block_map *map,
-		     entry_callback *entry_callback,
+		     entry_callback *callback,
 		     struct vdo_completion *parent);
 
 #endif // FOREST_H

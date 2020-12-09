@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#17 $
  */
 
 #include "extent.h"
@@ -33,12 +33,12 @@
 #include "vioWrite.h"
 
 /**********************************************************************/
-int create_extent(PhysicalLayer *layer, vio_type vio_type,
+int create_extent(PhysicalLayer *layer, vio_type type,
 		  vio_priority priority,
 		  block_count_t block_count, char *data,
 		  struct vdo_extent **extent_ptr)
 {
-	int result = ASSERT(is_metadata_vio_type(vio_type),
+	int result = ASSERT(is_metadata_vio_type(type),
 			    "create_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -54,7 +54,7 @@ int create_extent(PhysicalLayer *layer, vio_type vio_type,
 	initialize_completion(&extent->completion, VDO_EXTENT_COMPLETION,
 			      layer);
 	for (; extent->count < block_count; extent->count++) {
-		result = layer->createMetadataVIO(layer, vio_type, priority,
+		result = layer->createMetadataVIO(layer, type, priority,
 						  &extent->completion, data,
 						  &extent->vios[extent->count]);
 		if (result != VDO_SUCCESS) {

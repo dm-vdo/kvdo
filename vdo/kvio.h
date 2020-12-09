@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#29 $
  */
 
 #ifndef KVIO_H
@@ -104,14 +104,14 @@ void maybe_log_vio_trace(struct vio *vio);
  *
  * @param vio        The vio to initialize
  * @param layer      The physical layer
- * @param vio_type   The type of vio to create
+ * @param type       The type of vio to create
  * @param priority   The relative priority to assign to the kvio
  * @param parent     The parent of the kvio completion
  * @param bio        The bio to associate with this kvio
  **/
 void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
-		     vio_type vio_type,
+		     vio_type type,
 		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio);
@@ -122,7 +122,7 @@ void initialize_kvio(struct vio *vio,
  * <p>Implements metadata_vio_creator.
  *
  * @param [in]  layer      The physical layer
- * @param [in]  vio_type   The type of vio to create
+ * @param [in]  type       The type of vio to create
  * @param [in]  priority   The relative priority to assign to the vio
  * @param [in]  parent     The parent to assign to the vio's completion
  * @param [in]  data       The buffer
@@ -132,7 +132,7 @@ void initialize_kvio(struct vio *vio,
  **/
 int __must_check
 kvdo_create_metadata_vio(PhysicalLayer *layer,
-			 vio_type vio_type,
+			 vio_type type,
 			 vio_priority priority,
 			 void *parent,
 			 char *data,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#20 $
  */
 
 #include "vioPool.h"
@@ -55,7 +55,7 @@ struct vio_pool {
 
 /**********************************************************************/
 int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
-		  vio_constructor *vio_constructor, void *context,
+		  vio_constructor *constructor, void *context,
 		  struct vio_pool **pool_ptr)
 {
 	struct vio_pool *pool;
@@ -82,7 +82,7 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		struct vio_pool_entry *entry = &pool->entries[i];
 		entry->buffer = ptr;
 		entry->context = context;
-		result = vio_constructor(layer, entry, ptr, &entry->vio);
+		result = constructor(layer, entry, ptr, &entry->vio);
 		if (result != VDO_SUCCESS) {
 			free_vio_pool(&pool);
 			return result;

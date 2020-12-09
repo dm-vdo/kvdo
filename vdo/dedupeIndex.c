@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#71 $
  */
 
 #include "dedupeIndex.h"
@@ -698,10 +698,10 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	spin_lock(&index->state_lock);
 	index->suspended = true;
-	index_state index_state = index->index_state;
+	index_state state = index->index_state;
 
 	spin_unlock(&index->state_lock);
-	if (index_state != IS_CLOSED) {
+	if (state != IS_CLOSED) {
 		int result = uds_suspend_index_session(index->index_session,
 						       save_flag);
 		if (result != UDS_SUCCESS) {
@@ -788,12 +788,12 @@ void get_index_statistics(struct dedupe_index *index,
 			  struct index_statistics *stats)
 {
 	spin_lock(&index->state_lock);
-	index_state index_state = index->index_state;
+	index_state state = index->index_state;
 
 	stats->max_dedupe_queries = index->maximum;
 	spin_unlock(&index->state_lock);
 	stats->curr_dedupe_queries = atomic_read(&index->active);
-	if (index_state == IS_OPENED) {
+	if (state == IS_OPENED) {
 		struct uds_index_stats index_stats;
 		int result = uds_get_index_stats(index->index_session,
 						 &index_stats);

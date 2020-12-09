@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#12 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -79,13 +79,13 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr);
  *
  * @param lock_counter  The set of locks to check
  * @param lock_number   The lock to check
- * @param zone_type     The type of the zone
+ * @param type          The type of the zone
  *
  * @return <code>true</code> if the specified lock has references (is locked)
  **/
 bool __must_check is_locked(struct lock_counter *lock_counter,
 			    block_count_t lock_number,
-			    zone_type zone_type);
+			    zone_type type);
 
 /**
  * Initialize the value of the journal zone's counter for a given lock. This
@@ -105,12 +105,12 @@ void initialize_lock_count(struct lock_counter *counter,
  *
  * @param counter      The lock_counter
  * @param lock_number  Which lock to increment
- * @param zone_type    The type of the zone acquiring the reference
+ * @param type         The type of the zone acquiring the reference
  * @param zone_id      The ID of the zone acquiring the reference
  **/
 void acquire_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
-				  zone_type zone_type,
+				  zone_type type,
 				  zone_count_t zone_id);
 
 /**
@@ -119,12 +119,12 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  *
  * @param counter      The lock_counter
  * @param lock_number  Which lock to increment
- * @param zone_type    The type of the zone releasing the reference
+ * @param type         The type of the zone releasing the reference
  * @param zone_id      The ID of the zone releasing the reference
  **/
 void release_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
-				  zone_type zone_type,
+				  zone_type type,
 				  zone_count_t zone_id);
 
 /**

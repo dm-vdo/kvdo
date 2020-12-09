@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#13 $
  */
 
 #ifndef EXTENT_H
@@ -76,7 +76,7 @@ extent_as_completion(struct vdo_extent *extent)
  * Create vdo_extent.
  *
  * @param [in]  layer        The layer
- * @param [in]  vio_type     The usage type to assign to the vios in the extent
+ * @param [in]  type         The usage type to assign to the vios in the extent
  *                           (data / block map / journal)
  * @param [in]  priority     The relative priority to assign to the vios
  * @param [in]  block_count  The number of blocks in the buffer
@@ -86,7 +86,7 @@ extent_as_completion(struct vdo_extent *extent)
  * @return VDO_SUCCESS or an error
  **/
 int __must_check create_extent(PhysicalLayer *layer,
-			       vio_type vio_type,
+			       vio_type type,
 			       vio_priority priority,
 			       block_count_t block_count,
 			       char *data,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#27 $
  */
 
 #include "actionManager.h"
@@ -344,14 +344,14 @@ static void finish_action_callback(struct vdo_completion *completion)
 /**********************************************************************/
 bool schedule_action(struct action_manager *manager,
 		     action_preamble *preamble,
-		     zone_action *zone_action,
+		     zone_action *action,
 		     action_conclusion *conclusion,
 		     struct vdo_completion *parent)
 {
 	return schedule_operation(manager,
 				  ADMIN_STATE_OPERATING,
 				  preamble,
-				  zone_action,
+				  action,
 				  conclusion,
 				  parent);
 }
@@ -360,14 +360,14 @@ bool schedule_action(struct action_manager *manager,
 bool schedule_operation(struct action_manager *manager,
 			AdminStateCode operation,
 			action_preamble *preamble,
-			zone_action *zone_action,
+			zone_action *action,
 			action_conclusion *conclusion,
 			struct vdo_completion *parent)
 {
 	return schedule_operation_with_context(manager,
 					       operation,
 					       preamble,
-					       zone_action,
+					       action,
 					       conclusion,
 					       NULL,
 					       parent);
@@ -377,7 +377,7 @@ bool schedule_operation(struct action_manager *manager,
 bool schedule_operation_with_context(struct action_manager *manager,
 				     AdminStateCode operation,
 				     action_preamble *preamble,
-				     zone_action *zone_action,
+				     zone_action *action,
 				     action_conclusion *conclusion,
 				     void *context,
 				     struct vdo_completion *parent)
@@ -402,7 +402,7 @@ bool schedule_operation_with_context(struct action_manager *manager,
 		.in_use = true,
 		.operation = operation,
 		.preamble = (preamble == NULL) ? no_preamble : preamble,
-		.zone_action = zone_action,
+		.zone_action = action,
 		.conclusion = (conclusion == NULL) ? no_conclusion : conclusion,
 		.context = context,
 		.parent = parent,

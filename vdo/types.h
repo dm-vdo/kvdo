@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#64 $
  */
 
 #ifndef TYPES_H
@@ -209,33 +209,33 @@ typedef enum __packed {
 /**
  * Check whether a vio_type is for servicing an external data request.
  *
- * @param vio_type  The vio_type to check
+ * @param type  The vio_type to check
  **/
-static inline bool is_data_vio_type(vio_type vio_type)
+static inline bool is_data_vio_type(vio_type type)
 {
-	return (vio_type == VIO_TYPE_DATA);
+	return (type == VIO_TYPE_DATA);
 }
 
 /**
  * Check whether a vio_type is for compressed block writes
  *
- * @param vio_type  The vio_type to check
+ * @param type  The vio_type to check
  **/
-static inline bool is_compressed_write_vio_type(vio_type vio_type)
+static inline bool is_compressed_write_vio_type(vio_type type)
 {
-	return (vio_type == VIO_TYPE_COMPRESSED_BLOCK);
+	return (type == VIO_TYPE_COMPRESSED_BLOCK);
 }
 
 /**
  * Check whether a vio_type is for metadata
  *
- * @param vio_type  The vio_type to check
+ * @param type  The vio_type to check
  **/
-static inline bool is_metadata_vio_type(vio_type vio_type)
+static inline bool is_metadata_vio_type(vio_type type)
 {
-	return ((vio_type != VIO_TYPE_UNINITIALIZED) &&
-		!is_data_vio_type(vio_type) &&
-		!is_compressed_write_vio_type(vio_type));
+	return ((type != VIO_TYPE_UNINITIALIZED) &&
+		!is_data_vio_type(type) &&
+		!is_compressed_write_vio_type(type));
 }
 
 /**

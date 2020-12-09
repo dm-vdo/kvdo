@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#18 $
  */
 
 #include "vdoLayout.h"
@@ -46,16 +46,16 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
 /**
  * Get the offset of a given partition.
  *
- * @param layout        The layout containing the partition
- * @param partition_id  The ID of the partition whose offset is desired
+ * @param layout  The layout containing the partition
+ * @param id      The ID of the partition whose offset is desired
  *
  * @return The offset of the partition (in blocks)
  **/
 static block_count_t __must_check
-get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
+get_partition_offset(struct vdo_layout *layout, partition_id id)
 {
 	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
-								   partition_id));
+								   id));
 }
 
 /**********************************************************************/
@@ -154,16 +154,15 @@ get_partition_from_next_layout(struct vdo_layout *vdo_layout, partition_id id)
 /**
  * Get the size of a given partition.
  *
- * @param layout        The layout containing the partition
- * @param partition_id  The partition ID whose size to find
+ * @param layout  The layout containing the partition
+ * @param id      The partition ID whose size to find
  *
  * @return The size of the partition (in blocks)
  **/
 static block_count_t __must_check
-get_partition_size(struct vdo_layout *layout, partition_id partition_id)
+get_partition_size(struct vdo_layout *layout, partition_id id)
 {
-	return get_fixed_layout_partition_size(get_vdo_partition(layout,
-								 partition_id));
+	return get_fixed_layout_partition_size(get_vdo_partition(layout, id));
 }
 
 /**********************************************************************/
@@ -308,13 +307,12 @@ void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 
 /**********************************************************************/
 void copy_vdo_layout_partition(struct vdo_layout *layout,
-			       partition_id partition_id,
+			       partition_id id,
 			       struct vdo_completion *parent)
 {
 	copy_partition(layout->copy_completion,
-		       get_vdo_partition(layout, partition_id),
-		       get_partition_from_next_layout(layout,
-						      partition_id),
+		       get_vdo_partition(layout, id),
+		       get_partition_from_next_layout(layout, id),
 		       parent);
 }
 

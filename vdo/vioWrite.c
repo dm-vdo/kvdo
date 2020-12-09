@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#48 $
  */
 
 /*
@@ -366,23 +366,23 @@ static void finish_write_data_vio_with_error(struct vdo_completion *completion)
  * Check whether a result is an error, and if so abort the data_vio associated
  * with the error.
  *
- * @param result              The result to check
- * @param data_vio            The data_vio
- * @param read_only_action    The conditions under which the VDO should be put
- *                            into read-only mode if the result is an error
+ * @param result    The result to check
+ * @param data_vio  The data_vio
+ * @param action    The conditions under which the VDO should be put into
+ *                  read-only mode if the result is an error
  *
  * @return <code>true</code> if the result is an error
  **/
 static bool abort_on_error(int result,
 			   struct data_vio *data_vio,
-			   read_only_action read_only_action)
+			   read_only_action action)
 {
 	if (result == VDO_SUCCESS) {
 		return false;
 	}
 
-	if ((result == VDO_READ_ONLY) || (read_only_action == READ_ONLY) ||
-	    ((read_only_action == READ_ONLY_IF_ASYNC) && is_async(data_vio))) {
+	if ((result == VDO_READ_ONLY) || (action == READ_ONLY) ||
+	    ((action == READ_ONLY_IF_ASYNC) && is_async(data_vio))) {
 		struct read_only_notifier *notifier =
 			data_vio_as_vio(data_vio)->vdo->read_only_notifier;
 		if (!is_read_only(notifier)) {

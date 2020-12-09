@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#55 $
  */
 
 #include "refCounts.h"
@@ -369,7 +369,7 @@ uint8_t get_available_references(struct ref_counts *ref_counts,
  * @param [in]     ref_counts           The ref_counts responsible for the block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
- * @param [in]     slab_block_number    The block to update
+ * @param [in]     block_number         The block to update
  * @param [in]     old_status           The reference status of the data block
  *                                      before this increment
  * @param [in]     lock                 The pbn_lock associated with this
@@ -384,7 +384,7 @@ uint8_t get_available_references(struct ref_counts *ref_counts,
  **/
 static int increment_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
-			      slab_block_number slab_block_number,
+			      slab_block_number block_number,
 			      reference_status old_status,
 			      struct pbn_lock *lock,
 			      ReferenceCount *counter_ptr,
@@ -409,7 +409,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 			return log_error_strerror(VDO_REF_COUNT_INVALID,
 						  "Incrementing a block already having 254 references (slab %u, offset %u)",
 						  ref_counts->slab->slab_number,
-						  slab_block_number);
+						  block_number);
 		}
 		(*counter_ptr)++;
 		*free_status_changed = false;
@@ -427,7 +427,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
  * @param [in]     ref_counts           The ref_counts responsible for the block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
- * @param [in]     slab_block_number    The block to update
+ * @param [in]     block_number         The block to update
  * @param [in]     old_status           The reference status of the data block
  *                                      before this decrement
  * @param [in]     lock                 The pbn_lock associated with the block
@@ -442,7 +442,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
  **/
 static int decrement_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
-			      slab_block_number slab_block_number,
+			      slab_block_number block_number,
 			      reference_status old_status,
 			      struct pbn_lock *lock,
 			      ReferenceCount *counter_ptr,
@@ -452,7 +452,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 	case RS_FREE:
 		return log_error_strerror(VDO_REF_COUNT_INVALID,
 					  "Decrementing free block at offset %u in slab %u",
-					  slab_block_number,
+					  block_number,
 					  ref_counts->slab->slab_number);
 
 	case RS_PROVISIONAL:
@@ -490,7 +490,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
  * @param [in]     ref_counts           The ref_counts responsible for the block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
- * @param [in]     slab_block_number    The block to update
+ * @param [in]     block_number         The block to update
  * @param [in]     old_status           The reference status of the block
  *                                      before this increment
  * @param [in]     lock                 The pbn_lock associated with this
@@ -506,7 +506,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
  **/
 static int increment_for_block_map(struct ref_counts *ref_counts,
 				   struct reference_block *block,
-				   slab_block_number slab_block_number,
+				   slab_block_number block_number,
 				   reference_status old_status,
 				   struct pbn_lock *lock,
 				   bool normal_operation,
@@ -519,7 +519,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 			return log_error_strerror(VDO_REF_COUNT_INVALID,
 						  "Incrementing unallocated block map block (slab %u, offset %u)",
 						  ref_counts->slab->slab_number,
-						  slab_block_number);
+						  block_number);
 		}
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
@@ -533,7 +533,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 			return log_error_strerror(VDO_REF_COUNT_INVALID,
 						  "Block map block had provisional reference during replay (slab %u, offset %u)",
 						  ref_counts->slab->slab_number,
-						  slab_block_number);
+						  block_number);
 		}
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
@@ -548,7 +548,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 					  "Incrementing a block map block which is already referenced %u times (slab %u, offset %u)",
 					  *counter_ptr,
 					  ref_counts->slab->slab_number,
-					  slab_block_number);
+					  block_number);
 	}
 }
 
@@ -559,7 +559,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
  *                                         block
  * @param [in]  block                      The reference block which contains
  *                                         the block being updated
- * @param [in]  slab_block_number          The block to update
+ * @param [in]  block_number               The block to update
  * @param [in]  slab_journal_point         The slab journal point at which this
  *                                         update is journaled
  * @param [in]  operation                  How to update the count
@@ -577,14 +577,14 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 static int
 update_reference_count(struct ref_counts *ref_counts,
 		       struct reference_block *block,
-		       slab_block_number slab_block_number,
+		       slab_block_number block_number,
 		       const struct journal_point *slab_journal_point,
 		       struct reference_operation operation,
 		       bool normal_operation,
 		       bool *free_status_changed,
 		       bool *provisional_decrement_ptr)
 {
-	ReferenceCount *counter_ptr = &ref_counts->counters[slab_block_number];
+	ReferenceCount *counter_ptr = &ref_counts->counters[block_number];
 	reference_status old_status = reference_count_to_status(*counter_ptr);
 	struct pbn_lock *lock = get_reference_operation_pbn_lock(operation);
 	int result;
@@ -593,7 +593,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	case DATA_INCREMENT:
 		result = increment_for_data(ref_counts,
 					    block,
-					    slab_block_number,
+					    block_number,
 					    old_status,
 					    lock,
 					    counter_ptr,
@@ -603,7 +603,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	case DATA_DECREMENT:
 		result = decrement_for_data(ref_counts,
 					    block,
-					    slab_block_number,
+					    block_number,
 					    old_status,
 					    lock,
 					    counter_ptr,
@@ -619,7 +619,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	case BLOCK_MAP_INCREMENT:
 		result = increment_for_block_map(ref_counts,
 						 block,
-						 slab_block_number,
+						 block_number,
 						 old_status,
 						 lock,
 						 normal_operation,
@@ -655,20 +655,20 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	slab_block_number slab_block_number;
+	slab_block_number block_number;
 	int result = slab_block_number_from_pbn(ref_counts->slab,
 						operation.pbn,
-						&slab_block_number);
+						&block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	struct reference_block *block =
-		get_reference_block(ref_counts, slab_block_number);
+		get_reference_block(ref_counts, block_number);
 	bool provisional_decrement = false;
 	result = update_reference_count(ref_counts,
 					block,
-					slab_block_number,
+					block_number,
 					slab_journal_point,
 					operation,
 					NORMAL_OPERATION,
@@ -719,23 +719,23 @@ int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 				       physical_block_number_t pbn,
 				       journal_operation operation)
 {
-	slab_block_number slab_block_number;
+	slab_block_number block_number;
 	int result = slab_block_number_from_pbn(ref_counts->slab,
 						pbn,
-						&slab_block_number);
+						&block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	struct reference_block *block =
-		get_reference_block(ref_counts, slab_block_number);
+		get_reference_block(ref_counts, block_number);
 	bool unused_free_status;
 	struct reference_operation physical_operation = {
 		.type = operation,
 	};
 	result = update_reference_count(ref_counts,
 					block,
-					slab_block_number,
+					block_number,
 					NULL,
 					physical_operation,
 					!NORMAL_OPERATION,
@@ -958,19 +958,19 @@ static bool search_reference_blocks(struct ref_counts *ref_counts,
 /**
  * Do the bookkeeping for making a provisional reference.
  *
- * @param ref_counts         The ref_counts
- * @param slab_block_number  The block to reference
+ * @param ref_counts    The ref_counts
+ * @param block_number  The block to reference
  **/
 static void make_provisional_reference(struct ref_counts *ref_counts,
-				       slab_block_number slab_block_number)
+				       slab_block_number block_number)
 {
 	// Make the initial transition from an unreferenced block to a
 	// provisionally allocated block.
-	ref_counts->counters[slab_block_number] = PROVISIONAL_REFERENCE_COUNT;
+	ref_counts->counters[block_number] = PROVISIONAL_REFERENCE_COUNT;
 
 	// Account for the allocation.
 	struct reference_block *block =
-		get_reference_block(ref_counts, slab_block_number);
+		get_reference_block(ref_counts, block_number);
 	block->allocated_count++;
 	ref_counts->free_blocks--;
 }
@@ -1010,16 +1010,16 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	slab_block_number slab_block_number;
+	slab_block_number block_number;
 	int result = slab_block_number_from_pbn(ref_counts->slab,
 						pbn,
-						&slab_block_number);
+						&block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	if (ref_counts->counters[slab_block_number] == EMPTY_REFERENCE_COUNT) {
-		make_provisional_reference(ref_counts, slab_block_number);
+	if (ref_counts->counters[block_number] == EMPTY_REFERENCE_COUNT) {
+		make_provisional_reference(ref_counts, block_number);
 		if (lock != NULL) {
 			assign_provisional_reference(lock);
 		}

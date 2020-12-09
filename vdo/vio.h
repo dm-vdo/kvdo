@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#22 $
  */
 
 #ifndef VIO_H
@@ -138,7 +138,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  * Create a vio.
  *
  * @param [in]  layer      The physical layer
- * @param [in]  vio_type   The type of vio to create
+ * @param [in]  type       The type of vio to create
  * @param [in]  priority   The relative priority to assign to the vio
  * @param [in]  parent     The parent of the vio
  * @param [in]  data       The buffer
@@ -147,13 +147,13 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  * @return VDO_SUCCESS or an error
  **/
 static inline int create_vio(PhysicalLayer *layer,
-			     vio_type vio_type,
+			     vio_type type,
 			     vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr)
 {
-	return layer->createMetadataVIO(layer, vio_type, priority, parent,
+	return layer->createMetadataVIO(layer, type, priority, parent,
 					data, vio_ptr);
 }
 

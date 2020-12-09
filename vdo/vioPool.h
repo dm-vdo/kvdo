@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#15 $
  */
 
 #ifndef VIO_POOL_H
@@ -59,19 +59,19 @@ typedef int vio_constructor(PhysicalLayer *layer, void *parent, void *buffer,
 /**
  * Create a new vio pool.
  *
- * @param [in]  layer            the physical layer to write to and read from
- * @param [in]  pool_size        the number of vios in the pool
- * @param [in]  thread_id        the ID of the thread using this pool
- * @param [in]  vio_constructor  the constructor for vios in the pool
- * @param [in]  context          the context that each entry will have
- * @param [out] pool_ptr         the resulting pool
+ * @param [in]  layer        the physical layer to write to and read from
+ * @param [in]  pool_size    the number of vios in the pool
+ * @param [in]  thread_id    the ID of the thread using this pool
+ * @param [in]  constructor  the constructor for vios in the pool
+ * @param [in]  context      the context that each entry will have
+ * @param [out] pool_ptr     the resulting pool
  *
  * @return a success or error code
  **/
 int __must_check make_vio_pool(PhysicalLayer *layer,
 			       size_t pool_size,
 			       thread_id_t thread_id,
-			       vio_constructor *vio_constructor,
+			       vio_constructor *constructor,
 			       void *context,
 			       struct vio_pool **pool_ptr);
 

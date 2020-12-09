@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#37 $
  */
 
 #include "forest.h"
@@ -521,7 +521,7 @@ static struct boundary compute_boundary(struct block_map *map,
 
 /**********************************************************************/
 void traverse_forest(struct block_map *map,
-		     entry_callback *entry_callback,
+		     entry_callback *callback,
 		     struct vdo_completion *parent)
 {
 	struct cursors *cursors;
@@ -538,7 +538,7 @@ void traverse_forest(struct block_map *map,
 	cursors->map = map;
 	cursors->zone = &(get_block_map_zone(map, 0)->tree_zone);
 	cursors->pool = cursors->zone->vio_pool;
-	cursors->entry_callback = entry_callback;
+	cursors->entry_callback = callback;
 	cursors->parent = parent;
 	cursors->active_roots = map->root_count;
 	root_count_t root;

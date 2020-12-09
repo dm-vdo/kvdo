@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#55 $
  */
 
 #include "kvio.h"
@@ -225,7 +225,7 @@ static noinline bool sample_this_vio(struct vio *vio,
 /**********************************************************************/
 void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
-		     vio_type vio_type,
+		     vio_type type,
 		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio)
@@ -233,7 +233,7 @@ void initialize_kvio(struct vio *vio,
 	if (layer->vioTraceRecording && sample_this_vio(vio, layer, bio) &&
 	    sample_this_one(&layer->trace_sample_counter)) {
 		int result =
-			(is_data_vio_type(vio_type) ?
+			(is_data_vio_type(type) ?
 			 alloc_trace_from_pool(layer, &vio->trace) :
 			 ALLOCATE(1, struct trace, "trace", &vio->trace));
 		if (result != VDO_SUCCESS) {
@@ -244,7 +244,7 @@ void initialize_kvio(struct vio *vio,
 
 	vio->bio = bio;
 	initialize_vio(vio,
-		       vio_type,
+		       type,
 		       priority,
 		       parent,
 		       get_vdo(&layer->kvdo),
@@ -257,15 +257,15 @@ void initialize_kvio(struct vio *vio,
 
 /**********************************************************************/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     vio_type vio_type,
+			     vio_type type,
 			     vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr)
 {
-	int result = ASSERT(is_metadata_vio_type(vio_type),
+	int result = ASSERT(is_metadata_vio_type(type),
 			    "%d is a metadata type",
-			    vio_type);
+			    type);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -290,7 +290,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	initialize_kvio(vio, as_kernel_layer(layer), vio_type, priority,
+	initialize_kvio(vio, as_kernel_layer(layer), type, priority,
 			parent, bio);
 	vio->data = data;
 	*vio_ptr  = vio;
