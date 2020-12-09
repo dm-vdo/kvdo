@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#103 $
  */
 
 #include "dataKVIO.h"
@@ -636,8 +636,8 @@ void apply_partial_write(struct data_vio *data_vio)
 		bio_copy_data_in(bio, data_kvio->data_block + data_kvio->offset);
 	} else {
 		memset(data_kvio->data_block + data_kvio->offset, '\0',
-		       min(data_kvio->remaining_discard,
-			   (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset)));
+		       min_t(uint32_t, data_kvio->remaining_discard,
+			     VDO_BLOCK_SIZE - data_kvio->offset));
 	}
 
 	data_vio->is_zero_block = is_zero_block(data_kvio);
@@ -874,8 +874,8 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 
 	data_kvio->remaining_discard -=
-		min(data_kvio->remaining_discard,
-		    (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset));
+		min_t(uint32_t, data_kvio->remaining_discard,
+		      VDO_BLOCK_SIZE - data_kvio->offset);
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_kvio->remaining_discard == 0)) {
 		if (data_kvio->has_discard_permit) {

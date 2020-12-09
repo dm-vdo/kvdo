@@ -16,18 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#16 $
  */
 
 #ifndef KERNEL_TYPES_H
 #define KERNEL_TYPES_H
 
 #include "types.h"
-
-/**
- * The size of a discard request in bytes.
- **/
-typedef uint32_t DiscardSize;
 
 /**
  * A time in jiffies.
