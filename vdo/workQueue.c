@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#40 $
  */
 
 #include "workQueue.h"
@@ -277,15 +277,15 @@ static void run_finish_hook(struct simple_work_queue *queue)
  *
  * Update statistics relating to scheduler interactions.
  *
- * @param [in]     queue             The work queue to wait on
- * @param [in]     timeout_interval  How long to wait each iteration
+ * @param queue  The work queue to wait on
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct vdo_work_item *
-wait_for_next_work_item(struct simple_work_queue *queue,
-			TimeoutJiffies timeout_interval)
+wait_for_next_work_item(struct simple_work_queue *queue)
 {
+	const long TIMEOUT_JIFFIES =
+		max(2UL, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 	struct vdo_work_item *item = poll_for_work_item(queue);
 
 	if (item != NULL) {
@@ -338,7 +338,7 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
 		// Wake up often, to address the missed-wakeup race.
-		schedule_timeout(timeout_interval);
+		schedule_timeout(TIMEOUT_JIFFIES);
 		queue->most_recent_wakeup = ktime_get_ns();
 		uint64_t call_duration_ns =
 			queue->most_recent_wakeup - time_before_schedule;
@@ -390,28 +390,26 @@ wait_for_next_work_item(struct simple_work_queue *queue,
  * If kthread_should_stop says it's time to stop but we have pending work
  * items, return a work item.
  *
- * @param [in]     queue             The work queue to wait on
- * @param [in]     timeout_interval  How long to wait each iteration
+ * @param queue  The work queue to wait on
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct vdo_work_item *
-get_next_work_item(struct simple_work_queue *queue,
-		   TimeoutJiffies timeout_interval)
+get_next_work_item(struct simple_work_queue *queue)
 {
 	struct vdo_work_item *item = poll_for_work_item(queue);
-
 	if (item != NULL) {
 		return item;
 	}
-	return wait_for_next_work_item(queue, timeout_interval);
+
+	return wait_for_next_work_item(queue);
 }
 
 /**
  * Execute a work item from a work queue, and do associated bookkeeping.
  *
- * @param [in]     queue  the work queue the item is from
- * @param [in]     item   the work item to run
+ * @param queue  the work queue the item is from
+ * @param item   the work item to run
  **/
 static void process_work_item(struct simple_work_queue *queue,
 			      struct vdo_work_item *item)
@@ -479,18 +477,15 @@ static void process_work_item(struct simple_work_queue *queue,
  **/
 static void service_work_queue(struct simple_work_queue *queue)
 {
-	TimeoutJiffies timeout_interval =
-		max(2UL, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 	run_start_hook(queue);
 
 	while (true) {
-		struct vdo_work_item *item =
-			get_next_work_item(queue, timeout_interval);
+		struct vdo_work_item *item = get_next_work_item(queue);
 		if (item == NULL) {
 			// No work items but kthread_should_stop was triggered.
 			break;
 		}
-		// Process the work item
+
 		process_work_item(queue, item);
 	}
 

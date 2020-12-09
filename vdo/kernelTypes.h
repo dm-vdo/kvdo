@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#17 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -28,11 +28,6 @@
  * A time in jiffies.
  **/
 typedef uint64_t Jiffies;
-
-/**
- * A timeout in jiffies.
- **/
-typedef int64_t TimeoutJiffies;
 
 struct atomic_bio_stats;
 struct data_kvio;
