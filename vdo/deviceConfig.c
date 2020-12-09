@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#24 $
  */
 
 #include "deviceConfig.h"
@@ -67,7 +67,7 @@ static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 static int get_version_number(int argc,
 			      char **argv,
 			      char **error_ptr,
-			      TableVersion *version_ptr)
+			      unsigned int *version_ptr)
 {
 	// version, if it exists, is in a form of V<n>
 	if (sscanf(argv[0], "V%u", version_ptr) == 1) {
@@ -111,7 +111,7 @@ int get_pool_name_from_argv(int argc,
 			    char **error_ptr,
 			    char **pool_name_ptr)
 {
-	TableVersion version;
+	unsigned int version;
 	int result = get_version_number(argc, argv, error_ptr, &version);
 
 	if (result != VDO_SUCCESS) {

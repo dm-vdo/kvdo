@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#18 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -27,9 +27,8 @@
 #include "kernelTypes.h"
 
 /*
- * This structure is memcmp'd for equality. Keep it packed and don't
- * add any fields that are not properly set in both extant and parsed
- * configs.
+ * This structure is memcmp'd for equality. Keep it packed and don't add any
+ * fields that are not properly set in both extant and parsed configs.
  */
 struct thread_count_config {
 	int bio_ack_threads;
@@ -41,8 +40,6 @@ struct thread_count_config {
 	int hash_zones;
 } __packed;
 
-typedef uint32_t TableVersion;
-
 struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
@@ -50,7 +47,7 @@ struct device_config {
 	/** All configs referencing a layer are kept on a list in the layer */
 	struct list_head config_list;
 	char *original_string;
-	TableVersion version;
+	unsigned int version;
 	char *parent_device_name;
 	block_count_t physical_blocks;
 	unsigned int logical_block_size;
