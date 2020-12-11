@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#18 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -42,12 +42,5 @@ struct kvdo_work_queue;
 struct kvio;
 
 typedef void (*KvdoWorkFunction)(struct vdo_work_item *work_item);
-
-/**
- * Method type for layer matching methods.
- *
- * A LayerFilter method returns false if the layer doesn't match.
- **/
-typedef bool LayerFilter(struct kernel_layer *layer, void *context);
 
 #endif /* KERNEL_TYPES_H */

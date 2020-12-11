@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#120 $
  */
 
 #include "kernelLayer.h"
@@ -114,7 +114,7 @@ bool layer_is_named(struct kernel_layer *layer, void *context)
 }
 
 /**
- * Implements LayerFilter.
+ * Implements layer_filter_t.
  **/
 static bool layer_uses_device(struct kernel_layer *layer, void *context)
 {

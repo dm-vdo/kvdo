@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#13 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -461,13 +461,13 @@ static INLINE void begin_pending_search(struct page_cache *cache,
 static INLINE void end_pending_search(struct page_cache *cache,
 				      unsigned int zone_number)
 {
+	invalidate_counter_t invalidate_counter;
 	// This memory barrier ensures that this thread completes reads of the
 	// cached page before other threads see the write to the invalidate
 	// counter.
 	smp_mb();
 
-	invalidate_counter_t invalidate_counter =
-		get_invalidate_counter(cache, zone_number);
+	invalidate_counter = get_invalidate_counter(cache, zone_number);
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
 			"Search is pending for zone %u",
 			zone_number);

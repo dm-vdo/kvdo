@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#48 $
  */
 
 #ifndef KERNELLAYER_H
@@ -204,7 +204,7 @@ typedef enum {
 typedef void (*dedupe_shutdown_callback_function)(struct kernel_layer *layer);
 
 /**
- * Implements LayerFilter.
+ * Implements layer_filter_t.
  **/
 bool __must_check layer_is_named(struct kernel_layer *layer, void *context);
 

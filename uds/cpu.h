@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cpu.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cpu.h#4 $
  */
 
 #ifndef CPU_H
@@ -76,9 +76,7 @@ prefetch_range(const void *start, unsigned int size, bool for_write)
 	// range to span an extra cache line boundary due to address alignment.
 	const char *address = (const char *) start;
 	unsigned int offset = ((uintptr_t) address % CACHE_LINE_BYTES);
-	size += offset;
-
-	unsigned int cache_lines = (1 + (size / CACHE_LINE_BYTES));
+	unsigned int cache_lines = (1 + ((size + offset) / CACHE_LINE_BYTES));
 	while (cache_lines-- > 0) {
 		prefetch_address(address, for_write);
 		address += CACHE_LINE_BYTES;

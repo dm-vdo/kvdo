@@ -16,13 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#6 $
  */
 
 #ifndef DEVICE_REGISTRY_H
 #define DEVICE_REGISTRY_H
 
 #include "kernelTypes.h"
+
+/**
+ * Method type for layer matching methods.
+ *
+ * A filter function returns false if the layer doesn't match.
+ **/
+typedef bool layer_filter_t(struct kernel_layer *layer, void *context);
 
 /**
  * Initialize the necessary structures for the device registry.
@@ -50,9 +57,9 @@ void remove_layer_from_device_registry(struct kernel_layer *layer);
  * Find and return the first (if any) layer matching a given filter function.
  *
  * @param filter   The filter function to apply to layers
- * @param context  A bit of context to provide the filter.
+ * @param context  A bit of context to provide the filter
  **/
 struct kernel_layer * __must_check
-find_layer_matching(LayerFilter *filter, void *context);
+find_layer_matching(layer_filter_t *filter, void *context);
 
 #endif // DEVICE_REGISTRY_H

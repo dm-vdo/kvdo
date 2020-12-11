@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#6 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -127,6 +127,7 @@ void free_funnel_queue(struct funnel_queue *queue);
 static INLINE void funnel_queue_put(struct funnel_queue *queue,
 				    struct funnel_queue_entry *entry)
 {
+	struct funnel_queue_entry *previous;
 	/*
 	 * Barrier requirements: All stores relating to the entry ("next"
 	 * pointer, containing data structure fields) must happen before the
@@ -147,7 +148,7 @@ static INLINE void funnel_queue_put(struct funnel_queue *queue,
 #if __GNUC__ >= 5
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
 #endif
-	struct funnel_queue_entry *previous = xchg(&queue->newest, entry);
+	previous = xchg(&queue->newest, entry);
 #pragma GCC diagnostic pop
 	// Pre-empts between these two statements hide the rest of the queue
 	// from the consumer, preventing consumption until the following

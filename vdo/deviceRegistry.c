@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#11 $
  */
 
 #include "deviceRegistry.h"
@@ -51,7 +51,7 @@ void initialize_device_registry_once(void)
 }
 
 /**
- * Implements LayerFilter.
+ * Implements layer_filter_t.
  **/
 static bool layer_is_equal(struct kernel_layer *layer, void *context)
 {
@@ -68,7 +68,7 @@ static bool layer_is_equal(struct kernel_layer *layer, void *context)
  * @return the layer object found, if any
  **/
 static struct kernel_layer * __must_check
-filter_layers_locked(LayerFilter *filter, void *context)
+filter_layers_locked(layer_filter_t *filter, void *context)
 {
 	struct registered_device *device;
 
@@ -122,7 +122,7 @@ void remove_layer_from_device_registry(struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-struct kernel_layer *find_layer_matching(LayerFilter *filter, void *context)
+struct kernel_layer *find_layer_matching(layer_filter_t *filter, void *context)
 {
 	read_lock(&registry.lock);
 	struct kernel_layer *layer = filter_layers_locked(filter, context);
