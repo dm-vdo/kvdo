@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#59 $
  */
 
 #include "ioSubmitter.h"
@@ -66,7 +66,7 @@ enum {
  * request merging in the request queue underneath.
  */
 struct bio_queue_data {
-	struct kvdo_work_queue *queue;
+	struct vdo_work_queue *queue;
 	struct blk_plug plug;
 	struct int_map *map;
 	struct mutex lock;

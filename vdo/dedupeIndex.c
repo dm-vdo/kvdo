@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#73 $
  */
 
 #include "dedupeIndex.h"
@@ -91,7 +91,7 @@ struct dedupe_index {
 	// requests.
 	spinlock_t state_lock;
 	struct vdo_work_item work_item; // protected by state_lock
-	struct kvdo_work_queue *uds_queue; // protected by state_lock
+	struct vdo_work_queue *uds_queue; // protected by state_lock
 	unsigned int maximum; // protected by state_lock
 	index_state index_state; // protected by state_lock
 	index_state index_target; // protected by state_lock

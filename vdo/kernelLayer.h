@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#50 $
  */
 
 #ifndef KERNELLAYER_H
@@ -119,11 +119,11 @@ struct kernel_layer {
 	 * Work queue (possibly with multiple threads) for miscellaneous
 	 * CPU-intensive, non-blocking work.
 	 **/
-	struct kvdo_work_queue *cpu_queue;
+	struct vdo_work_queue *cpu_queue;
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compressionContext;
 	/** Optional work queue for calling bio_endio. */
-	struct kvdo_work_queue *bio_ack_queue;
+	struct vdo_work_queue *bio_ack_queue;
 	/** Underlying block device info. */
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;

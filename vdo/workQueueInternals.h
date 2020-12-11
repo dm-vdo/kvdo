@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#12 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -44,7 +44,7 @@ struct vdo_work_item_list {
  * represented via the same common sub-structure, though there's actually not a
  * great deal of overlap between the two types internally.
  **/
-struct kvdo_work_queue {
+struct vdo_work_queue {
 	/** Name of just the work queue (e.g., "cpuQ12") */
 	char *name;
 	/**
@@ -60,7 +60,7 @@ struct kvdo_work_queue {
 
 struct simple_work_queue {
 	/** Common work queue bits */
-	struct kvdo_work_queue common;
+	struct vdo_work_queue common;
 	/** A copy of .thread->pid, for safety in the sysfs support */
 	atomic_t thread_id;
 	/**
@@ -85,9 +85,9 @@ struct simple_work_queue {
 	void *private;
 	/** In a subordinate work queue, a link back to the round-robin parent
 	 */
-	struct kvdo_work_queue *parent_queue;
+	struct vdo_work_queue *parent_queue;
 	/** Padding for cache line separation */
-	char pad[CACHE_LINE_BYTES - sizeof(struct kvdo_work_queue *)];
+	char pad[CACHE_LINE_BYTES - sizeof(struct vdo_work_queue *)];
 	/**
 	 * Lock protecting priority_map, num_priority_lists, started
 	 */
@@ -146,7 +146,7 @@ struct simple_work_queue {
 
 struct round_robin_work_queue {
 	/** Common work queue bits */
-	struct kvdo_work_queue common;
+	struct vdo_work_queue common;
 	/** Simple work queues, for actually getting stuff done */
 	struct simple_work_queue **service_queues;
 	/** Number of subordinate work queues */
@@ -154,7 +154,7 @@ struct round_robin_work_queue {
 };
 
 static inline struct simple_work_queue *
-as_simple_work_queue(struct kvdo_work_queue *queue)
+as_simple_work_queue(struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :
@@ -162,7 +162,7 @@ as_simple_work_queue(struct kvdo_work_queue *queue)
 }
 
 static inline const struct simple_work_queue *
-as_const_simple_work_queue(const struct kvdo_work_queue *queue)
+as_const_simple_work_queue(const struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :
@@ -170,7 +170,7 @@ as_const_simple_work_queue(const struct kvdo_work_queue *queue)
 }
 
 static inline struct round_robin_work_queue *
-as_round_robin_work_queue(struct kvdo_work_queue *queue)
+as_round_robin_work_queue(struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :

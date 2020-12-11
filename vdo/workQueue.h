@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#16 $
  */
 
-#ifndef ALBIREO_WORK_QUEUE_H
-#define ALBIREO_WORK_QUEUE_H
+#ifndef VDO_WORK_QUEUE_H
+#define VDO_WORK_QUEUE_H
 
 #include <linux/kobject.h>
 #include <linux/sched.h> /* for TASK_COMM_LEN */
@@ -56,7 +56,7 @@ struct vdo_work_item {
 	 * The work queue in which the item is enqueued, or NULL if not
 	 * enqueued.
 	 */
-	struct kvdo_work_queue *my_queue;
+	struct vdo_work_queue *my_queue;
 	/**
 	 * Time of enqueueing, in ns, for recording queue (waiting) time stats
 	 */
@@ -160,7 +160,7 @@ int make_work_queue(const char *thread_name_prefix,
 		    const struct kvdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
-		    struct kvdo_work_queue **queue_ptr);
+		    struct vdo_work_queue **queue_ptr);
 
 /**
  * Set up the fields of a work queue item.
@@ -191,7 +191,7 @@ void setup_work_item(struct vdo_work_item *item,
  * @param queue      The queue handle
  * @param item       The work item to be processed
  **/
-void enqueue_work_queue(struct kvdo_work_queue *queue,
+void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item);
 
 /**
@@ -205,21 +205,21 @@ void enqueue_work_queue(struct kvdo_work_queue *queue,
  *
  * @param queue  The work queue to shut down
  **/
-void finish_work_queue(struct kvdo_work_queue *queue);
+void finish_work_queue(struct vdo_work_queue *queue);
 
 /**
  * Free a work queue and null out the reference to it.
  *
  * @param queue_ptr  Where the queue handle is found
  **/
-void free_work_queue(struct kvdo_work_queue **queue_ptr);
+void free_work_queue(struct vdo_work_queue **queue_ptr);
 
 /**
  * Print work queue state and statistics to the kernel log.
  *
  * @param queue  The work queue to examine
  **/
-void dump_work_queue(struct kvdo_work_queue *queue);
+void dump_work_queue(struct vdo_work_queue *queue);
 
 /**
  * Write to the buffer some info about the work item, for logging.
@@ -267,7 +267,7 @@ void *get_work_queue_private_data(void);
  *
  * @return   The work queue pointer or NULL
  **/
-struct kvdo_work_queue *get_current_work_queue(void);
+struct vdo_work_queue *get_current_work_queue(void);
 
 /**
  * Returns the kernel layer that owns the work queue.
@@ -276,6 +276,6 @@ struct kvdo_work_queue *get_current_work_queue(void);
  *
  * @return   The owner pointer supplied at work queue creation
  **/
-struct kernel_layer *get_work_queue_owner(struct kvdo_work_queue *queue);
+struct kernel_layer *get_work_queue_owner(struct vdo_work_queue *queue);
 
-#endif /* ALBIREO_WORK_QUEUE_H */
+#endif /* VDO_WORK_QUEUE_H */

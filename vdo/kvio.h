@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#30 $
  */
 
 #ifndef KVIO_H
@@ -33,7 +33,7 @@
  * @param queue  The queue
  * @param vio    The vio
  **/
-static inline void enqueue_vio_work(struct kvdo_work_queue *queue,
+static inline void enqueue_vio_work(struct vdo_work_queue *queue,
 				    struct vio *vio)
 {
 	enqueue_work_queue(queue, work_item_from_vio(vio));
@@ -71,7 +71,7 @@ static inline void launch_vio(struct vio *vio,
 			      KvdoWorkFunction work,
 			      void *stats_function,
 			      unsigned int action,
-			      struct kvdo_work_queue *queue)
+			      struct vdo_work_queue *queue)
 {
 	setup_vio_work(vio, work, stats_function, action);
 	enqueue_vio_work(queue, vio);
