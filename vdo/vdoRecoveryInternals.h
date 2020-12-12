@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#18 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -37,7 +37,7 @@
 struct recovery_point {
 	sequence_number_t sequence_number; // Block sequence number
 	uint8_t sector_count; // Sector number
-	JournalEntryCount entry_count; // Entry number
+	journal_entry_count_t entry_count; // Entry number
 };
 
 struct recovery_completion {

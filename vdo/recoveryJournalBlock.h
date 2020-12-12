@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#22 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -57,11 +57,11 @@ struct recovery_journal_block {
 	 */
 	bool has_fua_entry;
 	/** The total number of entries in this block */
-	JournalEntryCount entry_count;
+	journal_entry_count_t entry_count;
 	/** The total number of uncommitted entries (queued or committing) */
-	JournalEntryCount uncommitted_entry_count;
+	journal_entry_count_t uncommitted_entry_count;
 	/** The number of new entries in the current commit */
-	JournalEntryCount entries_in_commit;
+	journal_entry_count_t entries_in_commit;
 	/** The queue of vios which will make entries for the next commit */
 	struct wait_queue entry_waiters;
 	/** The queue of vios waiting for the current commit */

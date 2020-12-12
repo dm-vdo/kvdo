@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#72 $
  */
 
 #include "slabJournalInternals.h"
@@ -158,7 +158,7 @@ static void initialize_journal_state(struct slab_journal *journal)
  **/
 static bool __must_check block_is_full(struct slab_journal *journal)
 {
-	JournalEntryCount count = journal->tail_header.entry_count;
+	journal_entry_count_t count = journal->tail_header.entry_count;
 	return (journal->tail_header.has_block_map_increments ?
 			(journal->full_entries_per_block == count) :
 			(journal->entries_per_block == count));
@@ -745,7 +745,7 @@ void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			       slab_block_number sbn,
 			       journal_operation operation)
 {
-	JournalEntryCount entry_number = tail_header->entry_count++;
+	journal_entry_count_t entry_number = tail_header->entry_count++;
 	if (operation == BLOCK_MAP_INCREMENT) {
 		if (!tail_header->has_block_map_increments) {
 			memset(payload->full_entries.entry_types,

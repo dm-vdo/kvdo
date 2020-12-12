@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#33 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -81,12 +81,12 @@ struct slab_journal {
 	 * The number of entries which fit in a single block. Can't use the
 	 * constant because unit tests change this number.
 	 **/
-	JournalEntryCount entries_per_block;
+	journal_entry_count_t entries_per_block;
 	/**
 	 * The number of full entries which fit in a single block. Can't use the
 	 * constant because unit tests change this number.
 	 **/
-	JournalEntryCount full_entries_per_block;
+	journal_entry_count_t full_entries_per_block;
 
 	/** The recovery journal of the VDO (slab journal holds locks on it) */
 	struct recovery_journal *recovery_journal;

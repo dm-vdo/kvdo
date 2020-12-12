@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#74 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -703,7 +703,7 @@ static int compute_usages(struct recovery_completion *recovery)
  * @param entries_per_block  The number of entries in a recovery journal block
  **/
 static void advance_points(struct recovery_completion *recovery,
-			   JournalEntryCount entries_per_block)
+			   journal_entry_count_t entries_per_block)
 {
 	increment_recovery_point(&recovery->next_recovery_point);
 	advance_journal_point(&recovery->next_journal_point, entries_per_block);
@@ -1174,7 +1174,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			break;
 		}
 
-		JournalEntryCount block_entries = header.entry_count;
+		journal_entry_count_t block_entries = header.entry_count;
 		// Examine each sector in turn to determine the last valid
 		// sector.
 		uint8_t j;
@@ -1188,7 +1188,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 				break;
 			}
 
-			JournalEntryCount sector_entries =
+			journal_entry_count_t sector_entries =
 				min_block(sector->entry_count, block_entries);
 			if (sector_entries > 0) {
 				found_entries = true;

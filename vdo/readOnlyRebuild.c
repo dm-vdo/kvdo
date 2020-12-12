@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#42 $
  */
 
 #include "readOnlyRebuild.h"
@@ -261,9 +261,9 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
  **/
 static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 				  struct packed_journal_sector *sector,
-				  JournalEntryCount entry_count)
+				  journal_entry_count_t entry_count)
 {
-	JournalEntryCount i;
+	journal_entry_count_t i;
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
 			unpack_recovery_journal_entry(&sector->entries[i]);
@@ -335,7 +335,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 		// Don't extract more than the expected maximum entries per
 		// block.
-		JournalEntryCount block_entries =
+		journal_entry_count_t block_entries =
 			min_block(journal->entries_per_block, header.entry_count);
 		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
@@ -355,7 +355,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 			// Don't extract more than the expected maximum entries
 			// per sector.
-			JournalEntryCount sector_entries =
+			journal_entry_count_t sector_entries =
 				min_block(sector->entry_count,
 					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 			// Only extract as many as the block header calls for.
