@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#104 $
  */
 
 #include "dataKVIO.h"
@@ -781,17 +781,17 @@ static int __must_check make_data_kvio(struct kernel_layer *layer,
  * creates a wrapping data_kvio structure that is used when we want to
  * physically read or write the data associated with the struct data_vio.
  *
- * @param [in]  layer          The physical layer
- * @param [in]  bio            The bio from the request the new data_kvio will
- *                             service
- * @param [in]  arrival_time   The arrival time of the bio
- * @param [out] data_kvio_ptr  A pointer to hold the new data_kvio
+ * @param [in]  layer            The physical layer
+ * @param [in]  bio              The bio from the request the new data_kvio
+ *                               will service
+ * @param [in]  arrival_jiffies  The arrival time of the bio
+ * @param [out] data_kvio_ptr    A pointer to hold the new data_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 				     struct bio *bio,
-				     Jiffies arrival_time,
+				     uint64_t arrival_jiffies,
 				     struct data_kvio **data_kvio_ptr)
 {
 	struct external_io_request external_io_request = {
@@ -927,12 +927,12 @@ static void kvdo_complete_partial_read(struct vdo_completion *completion)
 /**********************************************************************/
 int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 				   struct bio *bio,
-				   uint64_t arrival_time,
+				   uint64_t arrival_jiffies,
 				   bool has_discard_permit)
 {
 
 	struct data_kvio *data_kvio = NULL;
-	int result = kvdo_create_kvio_from_bio(layer, bio, arrival_time,
+	int result = kvdo_create_kvio_from_bio(layer, bio, arrival_jiffies,
 					       &data_kvio);
 
 	if (unlikely(result != VDO_SUCCESS)) {

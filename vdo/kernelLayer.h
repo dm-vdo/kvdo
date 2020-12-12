@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#49 $
  */
 
 #ifndef KERNELLAYER_H
@@ -109,7 +109,7 @@ struct kernel_layer {
 	struct bio_list waiting_flushes;
 	struct kvdo_flush *spare_kvdo_flush;
 	spinlock_t flush_lock;
-	Jiffies flush_arrival_time;
+	uint64_t flush_arrival_jiffies;
 	/**
 	 * Bio submission manager used for sending bios to the storage
 	 * device.

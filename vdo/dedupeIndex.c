@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#72 $
  */
 
 #include "dedupeIndex.h"
@@ -138,8 +138,8 @@ unsigned int albireo_timeout_interval = 5000;
 unsigned int min_albireo_timer_interval = 100;
 
 // These times are in jiffies
-static Jiffies albireo_timeout_jiffies;
-static Jiffies min_albireo_timer_jiffies;
+static uint64_t albireo_timeout_jiffies;
+static uint64_t min_albireo_timer_jiffies;
 
 /*****************************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
@@ -221,7 +221,7 @@ static bool decode_uds_advice(const struct uds_request *request,
  *
  * @return the absolute end time for the timer, in jiffies
  **/
-static Jiffies get_albireo_timeout(Jiffies start_jiffies)
+static uint64_t get_albireo_timeout(uint64_t start_jiffies)
 {
 	return max(start_jiffies + albireo_timeout_jiffies,
 		   jiffies + min_albireo_timer_jiffies);
@@ -235,7 +235,7 @@ void set_albireo_timeout_interval(unsigned int value)
 		value = 120000;
 	}
 	// Arbitrary minimum value is 2 jiffies
-	Jiffies alb_jiffies = msecs_to_jiffies(value);
+	uint64_t alb_jiffies = msecs_to_jiffies(value);
 
 	if (alb_jiffies < 2) {
 		alb_jiffies = 2;
@@ -254,7 +254,7 @@ void set_min_albireo_timer_interval(unsigned int value)
 	}
 
 	// Arbitrary minimum value is 2 jiffies
-	Jiffies min_jiffies = msecs_to_jiffies(value);
+	uint64_t min_jiffies = msecs_to_jiffies(value);
 
 	if (min_jiffies < 2) {
 		min_jiffies = 2;
@@ -326,7 +326,7 @@ static void start_expiration_timer_for_kvio(struct dedupe_index *index,
 					    struct data_kvio *data_kvio)
 {
 	start_expiration_timer(index, get_albireo_timeout(
-		data_kvio->dedupe_context.submission_time));
+		data_kvio->dedupe_context.submission_jiffies));
 }
 
 /*****************************************************************************/
@@ -456,7 +456,7 @@ static void timeout_index_operations(struct timer_list *t)
 		struct dedupe_context *dedupe_context =
 			&data_kvio->dedupe_context;
 		if (earliest_submission_allowed <=
-		    dedupe_context->submission_time) {
+		    dedupe_context->submission_jiffies) {
 			start_expiration_timer_for_kvio(index, data_kvio);
 			break;
 		}
@@ -495,7 +495,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 		= as_kernel_layer(vio_as_completion(vio)->layer);
 	struct dedupe_index *index = layer->dedupe_index;
 	dedupe_context->status = UDS_SUCCESS;
-	dedupe_context->submission_time = jiffies;
+	dedupe_context->submission_jiffies = jiffies;
 	if (atomic_cmpxchg(&dedupe_context->request_state,
 			   UR_IDLE, UR_BUSY) == UR_IDLE) {
 		struct uds_request *uds_request =

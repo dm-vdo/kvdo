@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#49 $
  */
 
 #ifndef DATA_KVIO_H
@@ -50,7 +50,7 @@ struct external_io_request {
 struct dedupe_context {
 	struct uds_request uds_request;
 	struct list_head pending_list;
-	Jiffies submission_time;
+	uint64_t submission_jiffies;
 	atomic_t request_state;
 	int status;
 	bool is_pending;
@@ -306,7 +306,7 @@ static inline bool requestor_set_fua(struct data_kvio *data_kvio)
  *
  * @param layer                 The physical layer
  * @param bio                   The bio for which to create kvio
- * @param arrival_time          The time (in jiffies) when the external request
+ * @param arrival_jiffies       The time (in jiffies) when the external request
  *                              entered the device mapbio function
  * @param has_discard_permit    Whether we got a permit from the discardLimiter
  *                              of the kernel layer
@@ -316,7 +316,7 @@ static inline bool requestor_set_fua(struct data_kvio *data_kvio)
 int __must_check
 kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 			       struct bio *bio,
-			       Jiffies arrival_time,
+			       uint64_t arrival_jiffies,
 			       bool has_discard_permit);
 
 /**

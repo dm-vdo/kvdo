@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#28 $
  */
 
 #include "kvdoFlush.h"
@@ -46,7 +46,7 @@ struct kvdo_flush {
 	struct vdo_work_item work_item;
 	struct kernel_layer *layer;
 	struct bio_list bios;
-	Jiffies arrival_time; // Time when earliest bio appeared
+	uint64_t arrival_jiffies; // Time when earliest bio appeared
 	struct vdo_flush vdo_flush;
 };
 
@@ -90,7 +90,7 @@ static void initialize_kvdo_flush(struct kvdo_flush *kvdo_flush,
 	bio_list_init(&kvdo_flush->bios);
 	bio_list_merge(&kvdo_flush->bios, &layer->waiting_flushes);
 	bio_list_init(&layer->waiting_flushes);
-	kvdo_flush->arrival_time = layer->flush_arrival_time;
+	kvdo_flush->arrival_jiffies = layer->flush_arrival_jiffies;
 }
 
 /**********************************************************************/
@@ -120,7 +120,7 @@ void launch_kvdo_flush(struct kernel_layer *layer, struct bio *bio)
 	// We have a new bio to start.  Add it to the list.  If it becomes the
 	// only entry on the list, record the time.
 	if (bio_list_empty(&layer->waiting_flushes)) {
-		layer->flush_arrival_time = jiffies;
+		layer->flush_arrival_jiffies = jiffies;
 	}
 	bio_list_add(&layer->waiting_flushes, bio);
 

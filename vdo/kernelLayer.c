@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#121 $
  */
 
 #include "kernelLayer.h"
@@ -201,15 +201,15 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
  * function will not block, and will take responsibility for processing the
  * bio.
  *
- * @param layer         The kernel layer
- * @param bio           The bio to launch
- * @param arrival_time  The arrival time of the bio
+ * @param layer            The kernel layer
+ * @param bio              The bio to launch
+ * @param arrival_jiffies  The arrival time of the bio
  *
  * @return  DM_MAPIO_SUBMITTED or a system error code
  **/
 static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 					    struct bio *bio,
-					    Jiffies arrival_time)
+					    uint64_t arrival_jiffies)
 {
 	log_warning("kvdo_map_bio called from within a VDO thread!");
 	/*
@@ -239,7 +239,7 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	if (!limiter_poll(&layer->request_limiter)) {
 		add_to_deadlock_queue(&layer->deadlock_queue,
 				      bio,
-				      arrival_time);
+				      arrival_jiffies);
 		log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
@@ -250,7 +250,7 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 		 limiter_poll(&layer->discard_limiter));
 	int result = kvdo_launch_data_kvio_from_bio(layer,
 						    bio,
-						    arrival_time,
+						    arrival_jiffies,
 						    has_discard_permit);
 	// Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s)
 	// now.
@@ -296,7 +296,7 @@ static int __must_check check_bio_validity(struct bio *bio)
 /**********************************************************************/
 int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 {
-	Jiffies arrival_time = jiffies;
+	uint64_t arrival_jiffies = jiffies;
 	kernel_layer_state state = get_kernel_layer_state(layer);
 
 	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
@@ -341,7 +341,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 		 */
 		return launch_data_kvio_from_vdo_thread(layer,
 							bio,
-							arrival_time);
+							arrival_jiffies);
 	}
 	bool has_discard_permit = false;
 
@@ -351,7 +351,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	limiter_wait_for_one_free(&layer->request_limiter);
 
-	result = kvdo_launch_data_kvio_from_bio(layer, bio, arrival_time,
+	result = kvdo_launch_data_kvio_from_bio(layer, bio, arrival_jiffies,
 						has_discard_permit);
 	// Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s)
 	// now.
@@ -374,9 +374,9 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	// If we had to buffer some requests to avoid deadlock, release them
 	// now.
 	while (count > 0) {
-		Jiffies arrival_time = 0;
+		uint64_t arrival_jiffies = 0;
 		struct bio *bio = poll_deadlock_queue(&layer->deadlock_queue,
-						      &arrival_time);
+						      &arrival_jiffies);
 		if (likely(bio == NULL)) {
 			break;
 		}
@@ -385,7 +385,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 			((bio_op(bio) == REQ_OP_DISCARD) &&
 			 limiter_poll(&layer->discard_limiter));
 		int result = kvdo_launch_data_kvio_from_bio(
-			layer, bio, arrival_time, has_discard_permit);
+			layer, bio, arrival_jiffies, has_discard_permit);
 		if (result != VDO_SUCCESS) {
 			complete_bio(bio, result);
 		}
