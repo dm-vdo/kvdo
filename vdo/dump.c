@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#21 $
  */
 
 #include "dump.h"
@@ -34,14 +34,14 @@
 #include "ioSubmitter.h"
 #include "logger.h"
 
-enum dumpOptions {
-	// WorkQueues
-	SHOW_ALBIREO_QUEUE,
+enum dump_options {
+	// Work queues
 	SHOW_BIO_ACK_QUEUE,
 	SHOW_BIO_QUEUE,
 	SHOW_CPU_QUEUES,
+	SHOW_INDEX_QUEUE,
 	SHOW_REQUEST_QUEUE,
-	// MemoryPools
+	// Memory pools
 	SHOW_VIO_POOL,
 	// Others
 	SHOW_VDO_STATUS,
@@ -51,13 +51,13 @@ enum dumpOptions {
 };
 
 enum dump_option_flags {
-	// WorkQueues
-	FLAG_SHOW_ALBIREO_QUEUE = (1 << SHOW_ALBIREO_QUEUE),
+	// Work queues
 	FLAG_SHOW_BIO_ACK_QUEUE = (1 << SHOW_BIO_ACK_QUEUE),
 	FLAG_SHOW_BIO_QUEUE = (1 << SHOW_BIO_QUEUE),
 	FLAG_SHOW_CPU_QUEUES = (1 << SHOW_CPU_QUEUES),
+	FLAG_SHOW_INDEX_QUEUE = (1 << SHOW_INDEX_QUEUE),
 	FLAG_SHOW_REQUEST_QUEUE = (1 << SHOW_REQUEST_QUEUE),
-	// MemoryPools
+	// Memory pools
 	FLAG_SHOW_VIO_POOL = (1 << SHOW_VIO_POOL),
 	// Others
 	FLAG_SHOW_VDO_STATUS = (1 << SHOW_VDO_STATUS),
@@ -66,12 +66,12 @@ enum dump_option_flags {
 };
 
 enum {
-       FLAGS_ALL_POOLS = (FLAG_SHOW_VIO_POOL),
-       FLAGS_ALL_QUEUES = (FLAG_SHOW_REQUEST_QUEUE | FLAG_SHOW_ALBIREO_QUEUE |
-			     FLAG_SHOW_BIO_ACK_QUEUE | FLAG_SHOW_BIO_QUEUE |
-			     FLAG_SHOW_CPU_QUEUES),
-       FLAGS_ALL_THREADS = (FLAGS_ALL_QUEUES),
-       DEFAULT_DUMP_FLAGS = (FLAGS_ALL_THREADS | FLAG_SHOW_VDO_STATUS)
+	FLAGS_ALL_POOLS = (FLAG_SHOW_VIO_POOL),
+	FLAGS_ALL_QUEUES = (FLAG_SHOW_REQUEST_QUEUE | FLAG_SHOW_INDEX_QUEUE |
+			    FLAG_SHOW_BIO_ACK_QUEUE | FLAG_SHOW_BIO_QUEUE |
+			    FLAG_SHOW_CPU_QUEUES),
+	FLAGS_ALL_THREADS = (FLAGS_ALL_QUEUES),
+	DEFAULT_DUMP_FLAGS = (FLAGS_ALL_THREADS | FLAG_SHOW_VDO_STATUS)
 };
 
 /**********************************************************************/
@@ -114,7 +114,7 @@ static void do_dump(struct kernel_layer *layer,
 		dump_work_queue(layer->cpu_queue);
 	}
 	dump_dedupe_index(layer->dedupe_index,
-			  (dump_options_requested & FLAG_SHOW_ALBIREO_QUEUE) !=
+			  (dump_options_requested & FLAG_SHOW_INDEX_QUEUE) !=
 				  0);
 	dump_buffer_pool(layer->data_kvio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
@@ -138,11 +138,6 @@ static int parse_dump_options(unsigned int argc,
 		const char *name;
 		unsigned int flags;
 	} option_names[] = {
-		// Should "albireo" mean sending queue + receiving thread +
-		// outstanding?
-		{ "dedupe", FLAG_SKIP_DEFAULT | FLAG_SHOW_ALBIREO_QUEUE },
-		{ "dedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_ALBIREO_QUEUE },
-		{ "kvdodedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_ALBIREO_QUEUE },
 		{ "bioack", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
 		{ "kvdobioackq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
 		{ "bioackq", FLAG_SKIP_DEFAULT | FLAG_SHOW_BIO_ACK_QUEUE },
@@ -152,6 +147,11 @@ static int parse_dump_options(unsigned int argc,
 		{ "cpu", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
 		{ "kvdocpuq", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
 		{ "cpuq", FLAG_SKIP_DEFAULT | FLAG_SHOW_CPU_QUEUES },
+		// Should "index" mean sending queue + receiving thread +
+		// outstanding?
+		{ "dedupe", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
+		{ "dedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
+		{ "kvdodedupeq", FLAG_SKIP_DEFAULT | FLAG_SHOW_INDEX_QUEUE },
 		{ "request", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
 		{ "kvdoreqq", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
 		{ "reqq", FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },

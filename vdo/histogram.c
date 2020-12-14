@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#18 $
  */
 
 #include <linux/kobject.h>
@@ -47,7 +47,7 @@ enum {
  * practice of implementing the "customer" requirements, and no more.  We can
  * support other requirements after we know what they are.
  *
- * The code was originally borrowed from Albireo, and includes both linear and
+ * The code was originally borrowed from UDS, and includes both linear and
  * logarithmic histograms.  VDO only uses the logarithmic histograms.
  *
  * All samples are uint64_t values.
