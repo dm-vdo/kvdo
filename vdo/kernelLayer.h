@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#51 $
  */
 
 #ifndef KERNELLAYER_H
@@ -51,7 +51,7 @@ enum {
 	VDO_SECTORS_PER_BLOCK = (VDO_BLOCK_SIZE >> SECTOR_SHIFT)
 };
 
-typedef enum {
+enum kernel_layer_state {
 	LAYER_SIMPLE_THINGS_INITIALIZED,
 	LAYER_BUFFER_POOLS_INITIALIZED,
 	LAYER_REQUEST_QUEUE_INITIALIZED,
@@ -64,7 +64,7 @@ typedef enum {
 	LAYER_STOPPING,
 	LAYER_STOPPED,
 	LAYER_RESUMING,
-} kernel_layer_state;
+};
 
 /* Keep struct bio statistics atomically */
 struct atomic_bio_stats {
@@ -94,7 +94,7 @@ struct kernel_layer {
 	 **/
 	unsigned int instance;
 	/** Accessed from multiple threads */
-	kernel_layer_state state;
+	enum kernel_layer_state state;
 	bool no_flush_suspend;
 	bool allocations_allowed;
 	atomic_t processing_message;
@@ -324,10 +324,10 @@ int resume_kernel_layer(struct kernel_layer *layer);
  *
  * @return the instantaneously correct kernel layer state
  **/
-static inline kernel_layer_state
+static inline enum kernel_layer_state
 get_kernel_layer_state(const struct kernel_layer *layer)
 {
-	kernel_layer_state state = READ_ONCE(layer->state);
+	enum kernel_layer_state state = READ_ONCE(layer->state);
 	smp_rmb();
 	return state;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#123 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#124 $
  */
 
 #include "kernelLayer.h"
@@ -158,7 +158,7 @@ int map_to_system_error(int error)
 
 /**********************************************************************/
 static void set_kernel_layer_state(struct kernel_layer *layer,
-				   kernel_layer_state new_state)
+				   enum kernel_layer_state new_state)
 {
 	smp_wmb();
 	WRITE_ONCE(layer->state, new_state);
@@ -297,7 +297,7 @@ static int __must_check check_bio_validity(struct bio *bio)
 int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 {
 	uint64_t arrival_jiffies = jiffies;
-	kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
 			"kvdo_map_bio should not be called while in state %d",
@@ -908,7 +908,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
 {
 	struct device_config *extant_config = layer->device_config;
-	kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	if (state == LAYER_RUNNING) {
 		return VDO_SUCCESS;
@@ -988,7 +988,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	bool used_kvdo = false;
 	bool release_instance = false;
 
-	kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	switch (state) {
 	case LAYER_STOPPING:
@@ -1228,7 +1228,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	if (state == LAYER_SUSPENDED) {
 		return VDO_SUCCESS;

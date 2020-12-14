@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#56 $
  */
 
 #include "kvio.h"
@@ -139,7 +139,7 @@ void submit_metadata_vio(struct vio *vio)
 	} else {
 		struct kernel_layer *layer =
 			as_kernel_layer(vio_as_completion(vio)->layer);
-		kernel_layer_state state = get_kernel_layer_state(layer);
+		enum kernel_layer_state state = get_kernel_layer_state(layer);
 		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
 				 || (state == LAYER_RESUMING)
 				 || (state = LAYER_STARTING)),
