@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#56 $
  */
 
 #ifndef DATA_VIO_H
@@ -154,6 +154,59 @@ struct compression_state {
 	struct data_vio *lock_holder;
 };
 
+struct external_io_request {
+	/*
+	 * The bio which was received from the device mapper to initiate an I/O
+	 * request. This field will be non-NULL only until the request is
+	 * acknowledged.
+	 */
+	struct bio *bio;
+	// Cached copies of fields from the bio which will need to be reset
+	// after we're done.
+	void *private;
+	void *end_io;
+	// This is a copy of the bi_rw field of the bio which sadly is not just
+	// a boolean read-write flag, but also includes other flag bits.
+	unsigned long rw;
+};
+
+/* Dedupe support */
+struct dedupe_context {
+	struct uds_request uds_request;
+	struct list_head pending_list;
+	uint64_t submission_jiffies;
+	atomic_t request_state;
+	int status;
+	bool is_pending;
+	/** Hash of the associated VIO (NULL if not calculated) */
+	const struct uds_chunk_name *chunk_name;
+};
+
+struct read_block {
+	/**
+	 * A pointer to a block that holds the data from the last read
+	 * operation.
+	 **/
+	char *data;
+	/**
+	 * Temporary storage for doing reads from the underlying device.
+	 **/
+	char *buffer;
+	/**
+	 * Callback to invoke after completing the read I/O operation.
+	 **/
+	vdo_action *callback;
+	/**
+	 * Mapping state passed to kvdo_read_block(), used to determine whether
+	 * the data must be uncompressed.
+	 **/
+	BlockMappingState mapping_state;
+	/**
+	 * The result code of the read attempt.
+	 **/
+	int status;
+};
+
 /**
  * A vio for processing user data requests.
  **/
@@ -249,6 +302,39 @@ struct data_vio {
 
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
+
+	/* The bio from the request which is being serviced by this vio */
+	struct external_io_request external_io_request;
+
+	/* Dedupe */
+	struct dedupe_context dedupe_context;
+
+	/* partial block support */
+	block_size_t offset;
+	bool is_partial;
+
+	/* discard support */
+	bool has_discard_permit;
+	uint32_t remaining_discard;
+
+	// Fields beyond this point will not be reset when a pooled DataVIO
+	// is reused.
+
+	/**
+	 * A copy of user data written, so we can do additional processing
+	 * (dedupe, compression) after acknowledging the I/O operation and
+	 * thus losing access to the original data.
+	 *
+	 * Also used as buffer space for read-modify-write cycles when
+	 * emulating smaller-than-blockSize I/O operations.
+	 **/
+	char *data_block;
+	/** A bio structure, used for all reads and writes from/to disk */
+	struct bio *bio;
+	/** A block used as output during compression or uncompression */
+	char *scratch_block;
+	/* For data and verification reads */
+	struct read_block read_block;
 };
 
 /**

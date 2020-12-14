@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#22 $
  */
 
 #include "physicalLayer.h"
@@ -89,46 +89,44 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
  **/
 static void verify_duplication_work(struct vdo_work_item *item)
 {
-	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
+	struct data_vio *data_vio = work_item_as_data_vio(item);
 
-	data_kvio_add_trace_record(data_kvio,
+	data_vio_add_trace_record(data_vio,
 				   THIS_LOCATION("$F;j=dedupe;cb=verify"));
-
-	if (likely(memory_equal(data_kvio->data_block,
-				data_kvio->read_block.data,
+	if (likely(memory_equal(data_vio->data_block,
+				data_vio->read_block.data,
 				VDO_BLOCK_SIZE))) {
-		// Leave data_kvio->data_vio.is_duplicate set to true.
+		// Leave data_vio->is_duplicate set to true.
 	} else {
-		data_kvio->data_vio.is_duplicate = false;
+		data_vio->is_duplicate = false;
 	}
 
-	kvdo_enqueue_data_vio_callback(data_kvio);
+	kvdo_enqueue_data_vio_callback(data_vio);
 }
 
 /**
  * Verify the Albireo-provided deduplication advice, and invoke a
  * callback once the answer is available.
  *
- * @param completion  The data_kvio that we are looking to dedupe.
+ * @param completion  The data_vio that we are looking to dedupe.
  **/
 static void verify_read_block_callback(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	struct data_kvio *data_kvio = vio_as_data_kvio(vio);
-	int err = data_kvio->read_block.status;
+	struct data_vio *data_vio = as_data_vio(completion);
+	int err = data_vio->read_block.status;
 
-	vio_add_trace_record(vio, THIS_LOCATION(NULL));
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	if (unlikely(err != 0)) {
 		log_debug("%s: err %d", __func__, err);
-		data_kvio->data_vio.is_duplicate = false;
-		kvdo_enqueue_data_vio_callback(data_kvio);
+		data_vio->is_duplicate = false;
+		kvdo_enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
-	launch_data_kvio_on_cpu_queue(data_kvio,
-				      verify_duplication_work,
-				      NULL,
-				      CPU_Q_ACTION_COMPRESS_BLOCK);
+	launch_data_vio_on_cpu_queue(data_vio,
+				     verify_duplication_work,
+				     NULL,
+				     CPU_Q_ACTION_COMPRESS_BLOCK);
 }
 
 /**********************************************************************/
@@ -157,8 +155,6 @@ void verify_duplication(struct data_vio *data_vio)
 bool compare_data_vios(struct data_vio *first, struct data_vio *second)
 {
 	data_vio_add_trace_record(second, THIS_LOCATION(NULL));
-	struct data_kvio *a = data_vio_as_data_kvio(first);
-	struct data_kvio *b = data_vio_as_data_kvio(second);
-
-	return memory_equal(a->data_block, b->data_block, VDO_BLOCK_SIZE);
+	return memory_equal(first->data_block, second->data_block,
+			    VDO_BLOCK_SIZE);
 }
