@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#4 $
  */
 
 #include "threadRegistry.h"
@@ -37,12 +37,12 @@ void register_thread(struct thread_registry *registry,
 		     struct registered_thread *new_thread,
 		     const void *pointer)
 {
+	struct registered_thread *thread;
+	bool found_it = false;
 	INIT_LIST_HEAD(&new_thread->links);
 	new_thread->pointer = pointer;
 	new_thread->task = current;
 
-	bool found_it = false;
-	struct registered_thread *thread;
 	write_lock(&registry->lock);
 	list_for_each_entry (thread, &registry->links, links) {
 		if (thread->task == current) {
@@ -85,9 +85,9 @@ void initialize_thread_registry(struct thread_registry *registry)
 /*****************************************************************************/
 const void *lookup_thread(struct thread_registry *registry)
 {
+	struct registered_thread *thread;
 	const void *result = NULL;
 	read_lock(&registry->lock);
-	struct registered_thread *thread;
 	list_for_each_entry (thread, &registry->links, links) {
 		if (thread->task == current) {
 			result = thread->pointer;

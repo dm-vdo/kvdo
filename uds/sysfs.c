@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#8 $
  */
 
 #include "sysfs.h"
@@ -128,12 +128,13 @@ static ssize_t parameter_store(struct kobject *kobj,
 			       const char *buf,
 			       size_t length)
 {
+	char *string;
 	struct parameter_attribute *pa =
 		container_of(attr, struct parameter_attribute, attr);
 	if (pa->store_string == NULL) {
 		return -EINVAL;
 	}
-	char *string = buffer_to_string(buf, length);
+	string = buffer_to_string(buf, length);
 	if (string == NULL) {
 		return -ENOMEM;
 	}
@@ -183,9 +184,10 @@ static struct kobj_type parameter_object_type = {
 /**********************************************************************/
 int init_sysfs(void)
 {
+	int result;
 	memset(&object_root, 0, sizeof(object_root));
 	kobject_init(&object_root.kobj, &empty_object_type);
-	int result = kobject_add(&object_root.kobj, NULL, THIS_MODULE->name);
+	result = kobject_add(&object_root.kobj, NULL, THIS_MODULE->name);
 	if (result == 0) {
 		object_root.flag = true;
 		kobject_init(&object_root.parameter_kobj,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#10 $
  */
 
 #include <linux/delay.h>
@@ -211,15 +211,6 @@ static INLINE bool use_kmalloc(size_t size)
 /*****************************************************************************/
 int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
-	if (ptr == NULL) {
-		return UDS_INVALID_ARGUMENT;
-	}
-	if (size == 0) {
-		*((void **) ptr) = NULL;
-		return UDS_SUCCESS;
-	}
-
-
 	/*
 	 * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry
 	 * memory reclaim procedures that have previously failed if there is
@@ -236,15 +227,25 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	 * much less efficient manner.
 	 */
 	const gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
-
-	bool allocations_restricted = !allocations_allowed();
 	unsigned int noio_flags;
+	bool allocations_restricted = !allocations_allowed();
+	unsigned long start_time;
+	void *p = NULL;
+
+	if (ptr == NULL) {
+		return UDS_INVALID_ARGUMENT;
+	}
+	if (size == 0) {
+		*((void **) ptr) = NULL;
+		return UDS_SUCCESS;
+	}
+
+
 	if (allocations_restricted) {
 		noio_flags = memalloc_noio_save();
 	}
 
-	unsigned long start_time = jiffies;
-	void *p = NULL;
+	start_time = jiffies;
 	if (use_kmalloc(size) && (align < PAGE_SIZE)) {
 		p = kmalloc(size, gfp_flags | __GFP_NOWARN);
 		if (p == NULL) {
@@ -373,6 +374,7 @@ int reallocate_memory(void *ptr,
 		      const char *what,
 		      void *new_ptr)
 {
+	int result;
 	// Handle special case of zero sized result
 	if (size == 0) {
 		FREE(ptr);
@@ -380,7 +382,7 @@ int reallocate_memory(void *ptr,
 		return UDS_SUCCESS;
 	}
 
-	int result = ALLOCATE(size, char, what, new_ptr);
+	result = ALLOCATE(size, char, what, new_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -434,14 +436,16 @@ void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 void report_memory_usage()
 {
 	unsigned long flags;
+	uint64_t kmalloc_blocks, kmalloc_bytes, vmalloc_blocks, vmalloc_bytes;
+	uint64_t peak_usage, total_bytes;
 	spin_lock_irqsave(&memory_stats.lock, flags);
-	uint64_t kmalloc_blocks = memory_stats.kmalloc_blocks;
-	uint64_t kmalloc_bytes = memory_stats.kmalloc_bytes;
-	uint64_t vmalloc_blocks = memory_stats.vmalloc_blocks;
-	uint64_t vmalloc_bytes = memory_stats.vmalloc_bytes;
-	uint64_t peak_usage = memory_stats.peak_bytes;
+	kmalloc_blocks = memory_stats.kmalloc_blocks;
+	kmalloc_bytes = memory_stats.kmalloc_bytes;
+	vmalloc_blocks = memory_stats.vmalloc_blocks;
+	vmalloc_bytes = memory_stats.vmalloc_bytes;
+	peak_usage = memory_stats.peak_bytes;
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
-	uint64_t total_bytes = kmalloc_bytes + vmalloc_bytes;
+	total_bytes = kmalloc_bytes + vmalloc_bytes;
 	log_info("current module memory tracking (actual allocation sizes, not requested):");
 	log_info("  %llu bytes in %llu kmalloc blocks",
 		 kmalloc_bytes,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#9 $
  */
 
 #include "indexLayout.h"
@@ -32,6 +32,10 @@ int make_index_layout(const char *name,
 	char *dev = NULL;
 	uint64_t offset = 0;
 	uint64_t size = 0;
+	char *params = NULL;
+	struct io_factory *factory = NULL;
+	struct index_layout *layout;
+	int result;
 
 	struct layout_parameter parameter_table[] = {
 		{ "dev", LP_STRING | LP_DEFAULT, { .str = &dev } },
@@ -41,8 +45,7 @@ int make_index_layout(const char *name,
 	size_t num_parameters =
 		sizeof(parameter_table) / sizeof(*parameter_table);
 
-	char *params = NULL;
-	int result = duplicate_string(name, "make_index_layout parameters",
+	result = duplicate_string(name, "make_index_layout parameters",
 				      &params);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -55,13 +58,11 @@ int make_index_layout(const char *name,
 		return result;
 	}
 
-	struct io_factory *factory = NULL;
 	result = make_io_factory(dev, &factory);
 	FREE(params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	struct index_layout *layout;
 	result = make_index_layout_from_factory(
 		factory, offset, size, new_layout, config, &layout);
 	put_io_factory(factory);

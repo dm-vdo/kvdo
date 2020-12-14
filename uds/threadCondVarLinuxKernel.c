@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#7 $
  */
 
 #include "threads.h"
@@ -59,9 +59,10 @@ int timed_wait_cond(struct cond_var *cv,
 		    struct mutex *mutex,
 		    ktime_t timeout)
 {
+	bool happened;
 	event_token_t token = event_count_prepare(cv->event_count);
 	unlock_mutex(mutex);
-	bool happened = event_count_wait(cv->event_count, token, &timeout);
+	happened = event_count_wait(cv->event_count, token, &timeout);
 	lock_mutex(mutex);
 	return happened ? UDS_SUCCESS : ETIMEDOUT;
 }

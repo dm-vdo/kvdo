@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#29 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -344,8 +344,6 @@ void drain_recovery_journal(struct recovery_journal *journal,
  *
  * @param journal  The journal to resume
  * @param parent   The completion to finish once the journal is resumed
- *
- * @return VDO_SUCCESS or an error
  **/
 void resume_recovery_journal(struct recovery_journal *journal,
 			     struct vdo_completion *parent);

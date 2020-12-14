@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#12 $
  */
 
 #include "requestQueue.h"
@@ -385,12 +385,13 @@ void request_queue_finish(RequestQueue *queue)
 	WRITE_ONCE(queue->alive, false);
 
 	if (queue->started) {
+		int result;
 		// Wake the worker so it notices that it should exit.
 		wake_up_worker(queue);
 
 		// Wait for the worker thread to finish processing any
 		// additional pending work and exit.
-		int result = join_threads(queue->thread);
+		result = join_threads(queue->thread);
 		if (result != UDS_SUCCESS) {
 			log_warning_strerror(result,
 					     "Failed to join worker thread");

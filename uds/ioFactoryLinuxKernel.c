@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#8 $
  */
 
 #include <linux/blkdev.h>
@@ -47,7 +47,9 @@ void get_io_factory(struct io_factory *factory)
 /*****************************************************************************/
 int make_io_factory(const char *path, struct io_factory **factory_ptr)
 {
+	int result;
 	struct block_device *bdev;
+	struct io_factory *factory;
 	dev_t device = name_to_dev_t(path);
 	if (device != 0) {
 		bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
@@ -60,8 +62,7 @@ int make_io_factory(const char *path, struct io_factory **factory_ptr)
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	struct io_factory *factory;
-	int result = ALLOCATE(1, struct io_factory, __func__, &factory);
+	result = ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS) {
 		blkdev_put(bdev, BLK_FMODE);
 		return result;
@@ -96,6 +97,7 @@ int make_bufio(struct io_factory *factory,
 	       unsigned int reserved_buffers,
 	       struct dm_bufio_client **client_ptr)
 {
+	struct dm_bufio_client *client;
 	if (offset % SECTOR_SIZE != 0) {
 		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					  "offset %zd not multiple of %d",
@@ -110,7 +112,7 @@ int make_bufio(struct io_factory *factory,
 			UDS_BLOCK_SIZE);
 	}
 
-	struct dm_bufio_client *client = dm_bufio_client_create(
+	client = dm_bufio_client_create(
 		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL);
 	if (IS_ERR(client)) {
 		return -PTR_ERR(client);
@@ -127,6 +129,8 @@ int open_buffered_reader(struct io_factory *factory,
 			 size_t size,
 			 struct buffered_reader **reader_ptr)
 {
+	int result;
+	struct dm_bufio_client *client = NULL;
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
@@ -135,8 +139,7 @@ int open_buffered_reader(struct io_factory *factory,
 			UDS_BLOCK_SIZE);
 	}
 
-	struct dm_bufio_client *client = NULL;
-	int result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
+	result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -155,6 +158,8 @@ int open_buffered_writer(struct io_factory *factory,
 			 size_t size,
 			 struct buffered_writer **writer_ptr)
 {
+	int result;
+	struct dm_bufio_client *client = NULL;
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					  "region size %zd is not multiple of %d",
@@ -162,8 +167,7 @@ int open_buffered_writer(struct io_factory *factory,
 					  UDS_BLOCK_SIZE);
 	}
 
-	struct dm_bufio_client *client = NULL;
-	int result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
+	result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#10 $
  */
 
 #include <linux/completion.h>
@@ -49,13 +49,13 @@ static void kernel_thread_init(void)
 /**********************************************************************/
 static int thread_starter(void *arg)
 {
+	struct registered_thread allocating_thread;
 	struct thread *kt = arg;
 	kt->thread_task = current;
 	perform_once(&kernel_thread_once, kernel_thread_init);
 	mutex_lock(&kernel_thread_mutex);
 	hlist_add_head(&kt->thread_links, &kernel_thread_list);
 	mutex_unlock(&kernel_thread_mutex);
-	struct registered_thread allocating_thread;
 	register_allocating_thread(&allocating_thread, NULL);
 	kt->thread_func(kt->thread_data);
 	unregister_allocating_thread();
@@ -71,8 +71,11 @@ int create_thread(void (*thread_func)(void *),
 {
 	char *name_colon = strchr(name, ':');
 	char *my_name_colon = strchr(current->comm, ':');
+	struct task_struct *thread;
 	struct thread *kt;
-	int result = ALLOCATE(1, struct thread, __func__, &kt);
+	int result;
+
+	result = ALLOCATE(1, struct thread, __func__, &kt);
 	if (result != UDS_SUCCESS) {
 		log_warning("Error allocating memory for %s", name);
 		return result;
@@ -80,7 +83,6 @@ int create_thread(void (*thread_func)(void *),
 	kt->thread_func = thread_func;
 	kt->thread_data = thread_data;
 	init_completion(&kt->thread_done);
-	struct task_struct *thread;
 	/*
 	 * Start the thread, with an appropriate thread name.
 	 *
@@ -172,12 +174,12 @@ unsigned int get_num_cores(void)
 /**********************************************************************/
 int initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
-	barrier->arrived = 0;
-	barrier->thread_count = thread_count;
 	int result = initialize_semaphore(&barrier->mutex, 1);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+	barrier->arrived = 0;
+	barrier->thread_count = thread_count;
 	return initialize_semaphore(&barrier->wait, 0);
 }
 
@@ -194,8 +196,9 @@ int destroy_barrier(struct barrier *barrier)
 /**********************************************************************/
 int enter_barrier(struct barrier *barrier, bool *winner)
 {
+	bool last_thread;
 	acquire_semaphore(&barrier->mutex);
-	bool last_thread = ++barrier->arrived == barrier->thread_count;
+	last_thread = ++barrier->arrived == barrier->thread_count;
 	if (last_thread) {
 		// This is the last thread to arrive, so wake up the others
 		int i;
