@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#76 $
  */
 
 #include "dmvdo.h"
@@ -44,7 +44,7 @@
 #include "threadDevice.h"
 #include "threadRegistry.h"
 
-struct kvdo_module_globals kvdoGlobals;
+struct vdo_module_globals vdo_globals;
 
 /*
  * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
@@ -588,7 +588,7 @@ static int vdo_initialize(struct dm_target *ti,
 	int result = make_kernel_layer(ti->begin,
 				       instance,
 				       config,
-				       &kvdoGlobals.kobj,
+				       &vdo_globals.kobj,
 				       &load_config.thread_config,
 				       &failure_reason,
 				       &layer);
@@ -644,7 +644,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	struct registered_thread allocating_thread;
 	register_allocating_thread(&allocating_thread, NULL);
 
-     	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
+	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
 	struct kernel_layer *old_layer = find_layer_matching(layer_is_named,
 							     (void *)device_name);
 	unsigned int instance;
@@ -890,13 +890,13 @@ static void vdo_destroy(void)
 {
 	log_debug("in %s", __func__);
 
-	kvdoGlobals.status = SHUTTING_DOWN;
+	vdo_globals.status = VDO_MODULE_SHUTTING_DOWN;
 
 	if (sysfs_initialized) {
-		vdo_put_sysfs(&kvdoGlobals.kobj);
+		vdo_put_sysfs(&vdo_globals.kobj);
 	}
 
-	kvdoGlobals.status = UNINITIALIZED;
+	vdo_globals.status = VDO_MODULE_UNINITIALIZED;
 
 	if (dm_registered) {
 		dm_unregister_target(&vdo_target_bio);
@@ -932,9 +932,9 @@ static int __init vdo_init(void)
 	}
 	dm_registered = true;
 
-	kvdoGlobals.status = UNINITIALIZED;
+	vdo_globals.status = VDO_MODULE_UNINITIALIZED;
 
-	result = vdo_init_sysfs(&kvdoGlobals.kobj);
+	result = vdo_init_sysfs(&vdo_globals.kobj);
 	if (result < 0) {
 		uds_log_error("sysfs initialization failed %d", result);
 		vdo_destroy();
@@ -947,7 +947,7 @@ static int __init vdo_init(void)
 	initialize_trace_logging_once();
 	initialize_instance_number_tracking();
 
-	kvdoGlobals.status = READY;
+	vdo_globals.status = VDO_MODULE_READY;
 	return result;
 }
 

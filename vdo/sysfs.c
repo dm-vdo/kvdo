@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#12 $
  */
 
 #include "sysfs.h"
@@ -32,10 +32,10 @@ extern int default_max_requests_active;
 
 struct vdo_attribute {
 	struct attribute attr;
-	ssize_t (*show)(struct kvdo_module_globals *kvdo_globals,
+	ssize_t (*show)(struct vdo_module_globals *vdo_globals,
 			struct attribute *attr,
 			char *buf);
-	ssize_t (*store)(struct kvdo_module_globals *kvdo_globals,
+	ssize_t (*store)(struct vdo_module_globals *vdo_globals,
 			 const char *value,
 			 size_t count);
 	// Location of value, if .show == show_int or show_uint or show_bool.
@@ -49,15 +49,15 @@ static char *status_strings[] = {
 };
 
 /**********************************************************************/
-static ssize_t vdo_status_show(struct kvdo_module_globals *kvdo_globals,
+static ssize_t vdo_status_show(struct vdo_module_globals *vdo_globals,
 			       struct attribute *attr,
 			       char *buf)
 {
-	return sprintf(buf, "%s\n", status_strings[kvdo_globals->status]);
+	return sprintf(buf, "%s\n", status_strings[vdo_globals->status]);
 }
 
 /**********************************************************************/
-static ssize_t vdo_log_level_show(struct kvdo_module_globals *kvdo_globals,
+static ssize_t vdo_log_level_show(struct vdo_module_globals *vdo_globals,
 				  struct attribute *attr,
 				  char *buf)
 {
@@ -65,7 +65,8 @@ static ssize_t vdo_log_level_show(struct kvdo_module_globals *kvdo_globals,
 }
 
 /**********************************************************************/
-static ssize_t vdo_log_level_store(struct kvdo_module_globals *kvdo_globals,
+static ssize_t vdo_log_level_store(struct vdo_module_globals *vdo_globals
+				   __always_unused,
 				   const char *buf,
 				   size_t n)
 {
@@ -109,7 +110,7 @@ static ssize_t scan_int(const char *buf,
 }
 
 /**********************************************************************/
-static ssize_t show_int(struct kvdo_module_globals *kvdo_globals,
+static ssize_t show_int(struct vdo_module_globals *vdo_globals __always_unused,
 			struct attribute *attr,
 			char *buf)
 {
@@ -145,7 +146,8 @@ static ssize_t scan_uint(const char *buf,
 }
 
 /**********************************************************************/
-static ssize_t show_uint(struct kvdo_module_globals *kvdo_globals,
+static ssize_t show_uint(struct vdo_module_globals *vdo_globals
+			 __always_unused,
 			 struct attribute *attr,
 			 char *buf)
 {
@@ -169,7 +171,8 @@ static ssize_t scan_bool(const char *buf, size_t n, bool *value_ptr)
 }
 
 /**********************************************************************/
-static ssize_t show_bool(struct kvdo_module_globals *kvdo_globals,
+static ssize_t show_bool(struct vdo_module_globals *vdo_globals
+			 __always_unused,
 			 struct attribute *attr,
 			 char *buf)
 {
@@ -182,7 +185,8 @@ static ssize_t show_bool(struct kvdo_module_globals *kvdo_globals,
 
 /**********************************************************************/
 static ssize_t
-vdo_trace_recording_store(struct kvdo_module_globals *kvdo_globals,
+vdo_trace_recording_store(struct vdo_module_globals *vdo_globals
+			  __always_unused,
 			  const char *buf,
 			  size_t n)
 {
@@ -191,7 +195,8 @@ vdo_trace_recording_store(struct kvdo_module_globals *kvdo_globals,
 
 /**********************************************************************/
 static ssize_t
-vdo_max_req_active_store(struct kvdo_module_globals *kvdo_globals,
+vdo_max_req_active_store(struct vdo_module_globals *vdo_globals
+			  __always_unused,
 			 const char *buf,
 			 size_t n)
 {
@@ -210,7 +215,8 @@ vdo_max_req_active_store(struct kvdo_module_globals *kvdo_globals,
 
 /**********************************************************************/
 static ssize_t
-vdo_albireo_timeout_interval_store(struct kvdo_module_globals *kvdo_globals,
+vdo_albireo_timeout_interval_store(struct vdo_module_globals *vdo_globals
+				   __always_unused,
 				   const char *buf,
 				   size_t n)
 {
@@ -225,7 +231,8 @@ vdo_albireo_timeout_interval_store(struct kvdo_module_globals *kvdo_globals,
 
 /**********************************************************************/
 static ssize_t
-vdo_min_albireo_timer_interval_store(struct kvdo_module_globals *kvdo_globals,
+vdo_min_albireo_timer_interval_store(struct vdo_module_globals *vdo_globals
+				     __always_unused,
 				     const char *buf,
 				     size_t n)
 {
@@ -239,7 +246,8 @@ vdo_min_albireo_timer_interval_store(struct kvdo_module_globals *kvdo_globals,
 }
 
 /**********************************************************************/
-static ssize_t vdo_version_show(struct kvdo_module_globals *kvdo_globals,
+static ssize_t vdo_version_show(struct vdo_module_globals *vdo_globals
+				__always_unused,
 				struct attribute *attr,
 				char *buf)
 {
@@ -257,10 +265,10 @@ vdo_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 		return -EINVAL;
 	}
 
-	struct kvdo_module_globals *kvdo_globals;
+	struct vdo_module_globals *vdo_globals;
 
-	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
-	return (*vdo_attr->show)(kvdo_globals, attr, buf);
+	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
+	return (*vdo_attr->show)(vdo_globals, attr, buf);
 }
 
 /**********************************************************************/
@@ -275,10 +283,10 @@ static ssize_t vdo_attr_store(struct kobject *kobj,
 		return -EINVAL;
 	}
 
-	struct kvdo_module_globals *kvdo_globals;
+	struct vdo_module_globals *vdo_globals;
 
-	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
-	return (*vdo_attr->store)(kvdo_globals, buf, length);
+	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
+	return (*vdo_attr->store)(vdo_globals, buf, length);
 }
 
 static struct vdo_attribute vdo_status_attr = {
