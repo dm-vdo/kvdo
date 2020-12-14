@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#75 $
  */
 
 #include "dedupeIndex.h"
@@ -57,14 +57,14 @@ enum {
 
 /*****************************************************************************/
 
-typedef enum {
+enum index_state {
 	// The UDS index is closed
 	IS_CLOSED = 0,
 	// The UDS index session is opening or closing
 	IS_CHANGING = 1,
 	// The UDS index is open.
 	IS_OPENED = 2,
-} index_state;
+};
 
 // Data managing the reporting of UDS timeouts
 struct periodic_event_reporter {
@@ -93,8 +93,8 @@ struct dedupe_index {
 	struct vdo_work_item work_item; // protected by state_lock
 	struct vdo_work_queue *uds_queue; // protected by state_lock
 	unsigned int maximum; // protected by state_lock
-	index_state index_state; // protected by state_lock
-	index_state index_target; // protected by state_lock
+	enum index_state index_state; // protected by state_lock
+	enum index_state index_target; // protected by state_lock
 	bool changing; // protected by state_lock
 	bool create_flag; // protected by state_lock
 	bool dedupe_flag; // protected by state_lock
@@ -143,7 +143,7 @@ static uint64_t min_albireo_timer_jiffies;
 
 /*****************************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
-					 index_state state)
+					 enum index_state state)
 {
 	if (index->suspended) {
 		return SUSPENDED;
@@ -671,7 +671,7 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 
 /*****************************************************************************/
 static void set_target_state(struct dedupe_index *index,
-			     index_state target,
+			     enum index_state target,
 			     bool change_dedupe,
 			     bool dedupe,
 			     bool set_create)
@@ -700,7 +700,7 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	spin_lock(&index->state_lock);
 	index->suspended = true;
-	index_state state = index->index_state;
+	enum index_state state = index->index_state;
 
 	spin_unlock(&index->state_lock);
 	if (state != IS_CLOSED) {
@@ -790,7 +790,7 @@ void get_index_statistics(struct dedupe_index *index,
 			  struct index_statistics *stats)
 {
 	spin_lock(&index->state_lock);
-	index_state state = index->index_state;
+	enum index_state state = index->index_state;
 
 	stats->max_dedupe_queries = index->maximum;
 	spin_unlock(&index->state_lock);
