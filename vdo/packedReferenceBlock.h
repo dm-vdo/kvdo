@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedReferenceBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedReferenceBlock.h#4 $
  */
 
 #ifndef PACKED_REFERENCE_BLOCK_H
@@ -27,12 +27,12 @@
 #include "types.h"
 
 /**
- * A type representing a reference count.
+ * A type representing a reference count of a block.
  **/
-typedef uint8_t ReferenceCount;
+typedef uint8_t vdo_refcount_t;
 
 /**
- * Special ReferenceCount values.
+ * Special vdo_refcount_t values.
  **/
 enum {
 	EMPTY_REFERENCE_COUNT = 0,
@@ -43,16 +43,16 @@ enum {
 enum {
 	COUNTS_PER_SECTOR =
 		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point))
-		 / sizeof(ReferenceCount)),
+		 / sizeof(vdo_refcount_t)),
 	COUNTS_PER_BLOCK = COUNTS_PER_SECTOR * SECTORS_PER_BLOCK,
 };
 
 /**
- * The format of a ReferenceSector on disk.
+ * The format of each sector of a reference_block on disk.
  **/
 struct packed_reference_sector {
 	struct packed_journal_point commit_point;
-	ReferenceCount counts[COUNTS_PER_SECTOR];
+	vdo_refcount_t counts[COUNTS_PER_SECTOR];
 } __packed;
 
 struct packed_reference_block {

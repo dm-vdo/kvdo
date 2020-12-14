@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#20 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -106,7 +106,7 @@ struct ref_counts {
 	/** The number of free blocks */
 	uint32_t free_blocks;
 	/** The array of reference counts */
-	ReferenceCount *counters; // use ALLOCATE to align data ptr
+	vdo_refcount_t *counters; // use ALLOCATE to align data ptr
 
 	/**
 	 * The saved block pointer and array indexes for the free block search
@@ -150,7 +150,7 @@ struct ref_counts {
  *
  * @return  The appropriate reference status
  **/
-reference_status __must_check reference_count_to_status(ReferenceCount count);
+reference_status __must_check reference_count_to_status(vdo_refcount_t count);
 
 /**
  * Convert a generic vdo_completion to a ref_counts object.
@@ -179,7 +179,7 @@ get_reference_block(struct ref_counts *ref_counts, slab_block_number index);
  *
  * @return A pointer to the reference counters for this block
  **/
-ReferenceCount * __must_check
+vdo_refcount_t * __must_check
 get_reference_counters_for_block(struct reference_block *block);
 
 /**

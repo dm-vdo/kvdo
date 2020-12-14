@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#56 $
  */
 
 #include "refCounts.h"
@@ -105,7 +105,7 @@ static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-reference_status reference_count_to_status(ReferenceCount count)
+reference_status reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT) {
 		return RS_FREE;
@@ -193,7 +193,7 @@ int make_ref_counts(block_count_t block_count,
 	size_t bytes =
 		((ref_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
 	result = ALLOCATE(bytes,
-			  ReferenceCount,
+			  vdo_refcount_t,
 			  "ref counts array",
 			  &ref_counts->counters);
 	if (result != UDS_SUCCESS) {
@@ -333,7 +333,7 @@ struct reference_block *get_reference_block(struct ref_counts *ref_counts,
  **/
 static int get_reference_counter(struct ref_counts *ref_counts,
 				 physical_block_number_t pbn,
-				 ReferenceCount **counter_ptr)
+				 vdo_refcount_t **counter_ptr)
 {
 	slab_block_number index;
 	int result = slab_block_number_from_pbn(ref_counts->slab, pbn, &index);
@@ -350,7 +350,7 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 uint8_t get_available_references(struct ref_counts *ref_counts,
 				 physical_block_number_t pbn)
 {
-	ReferenceCount *counter_ptr = NULL;
+	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
 	if (result != VDO_SUCCESS) {
 		return 0;
@@ -387,7 +387,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 			      slab_block_number block_number,
 			      reference_status old_status,
 			      struct pbn_lock *lock,
-			      ReferenceCount *counter_ptr,
+			      vdo_refcount_t *counter_ptr,
 			      bool *free_status_changed)
 {
 	switch (old_status) {
@@ -445,7 +445,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 			      slab_block_number block_number,
 			      reference_status old_status,
 			      struct pbn_lock *lock,
-			      ReferenceCount *counter_ptr,
+			      vdo_refcount_t *counter_ptr,
 			      bool *free_status_changed)
 {
 	switch (old_status) {
@@ -510,7 +510,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 				   reference_status old_status,
 				   struct pbn_lock *lock,
 				   bool normal_operation,
-				   ReferenceCount *counter_ptr,
+				   vdo_refcount_t *counter_ptr,
 				   bool *free_status_changed)
 {
 	switch (old_status) {
@@ -584,7 +584,7 @@ update_reference_count(struct ref_counts *ref_counts,
 		       bool *free_status_changed,
 		       bool *provisional_decrement_ptr)
 {
-	ReferenceCount *counter_ptr = &ref_counts->counters[block_number];
+	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
 	reference_status old_status = reference_count_to_status(*counter_ptr);
 	struct pbn_lock *lock = get_reference_operation_pbn_lock(operation);
 	int result;
@@ -788,7 +788,7 @@ int get_reference_status(struct ref_counts *ref_counts,
 			 physical_block_number_t pbn,
 			 reference_status *status_ptr)
 {
-	ReferenceCount *counter_ptr = NULL;
+	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -820,7 +820,7 @@ bool are_equivalent_reference_counters(struct ref_counts *counter_a,
 
 	return (memcmp(counter_a->counters,
 		       counter_b->counters,
-		       sizeof(ReferenceCount) * counter_a->block_count) == 0);
+		       sizeof(vdo_refcount_t) * counter_a->block_count) == 0);
 }
 
 /**
@@ -1075,12 +1075,10 @@ static void clear_dirty_reference_blocks(struct waiter *block_waiter,
 /**********************************************************************/
 void reset_reference_counts(struct ref_counts *ref_counts)
 {
-	// We can just use memset() since each ReferenceCount is exactly one
-	// byte.
-	STATIC_ASSERT(sizeof(ReferenceCount) == 1);
-	memset(ref_counts->counters, 0, ref_counts->block_count);
+	memset(ref_counts->counters, 0,
+	       ref_counts->block_count * sizeof(vdo_refcount_t));
 	ref_counts->free_blocks = ref_counts->block_count;
-	ref_counts->slab_journal_point = (struct journal_point){
+	ref_counts->slab_journal_point = (struct journal_point) {
 		.sequence_number = 0,
 		.entry_count = 0,
 	};
@@ -1208,7 +1206,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-ReferenceCount *get_reference_counters_for_block(struct reference_block *block)
+vdo_refcount_t *get_reference_counters_for_block(struct reference_block *block)
 {
 	size_t block_index = block - block->ref_counts->blocks;
 	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
@@ -1222,13 +1220,13 @@ void pack_reference_block(struct reference_block *block, void *buffer)
 			   &commit_point);
 
 	struct packed_reference_block *packed = buffer;
-	ReferenceCount *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	sector_count_t i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
 		packed->sectors[i].commit_point = commit_point;
 		memcpy(packed->sectors[i].counts,
 		       counters + (i * COUNTS_PER_SECTOR),
-		       (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
+		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
 	}
 }
 
@@ -1356,7 +1354,7 @@ void dirty_all_reference_blocks(struct ref_counts *ref_counts)
  **/
 static void clear_provisional_references(struct reference_block *block)
 {
-	ReferenceCount *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	block_count_t j;
 	for (j = 0; j < COUNTS_PER_BLOCK; j++) {
 		if (counters[j] == PROVISIONAL_REFERENCE_COUNT) {
@@ -1376,7 +1374,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 				   struct reference_block *block)
 {
 	struct ref_counts *ref_counts = block->ref_counts;
-	ReferenceCount *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	sector_count_t i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
@@ -1384,7 +1382,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 				     &block->commit_points[i]);
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
 		       sector->counts,
-		       (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
+		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
 		// The slab_journal_point must be the latest point found in any
 		// sector.
 		if (before_journal_point(&ref_counts->slab_journal_point,
