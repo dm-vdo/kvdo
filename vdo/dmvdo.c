@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#77 $
  */
 
 #include "dmvdo.h"
@@ -184,7 +184,7 @@ static void vdo_status(struct dm_target *ti,
 	switch (status_type) {
 	case STATUSTYPE_INFO:
 		// Report info for dmsetup status
-		mutex_lock(&layer->statsMutex);
+		mutex_lock(&layer->stats_mutex);
 		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
 		struct vdo_statistics *stats = &layer->vdo_stats_storage;
 
@@ -197,7 +197,7 @@ static void vdo_status(struct dm_target *ti,
 							    "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
-		mutex_unlock(&layer->statsMutex);
+		mutex_unlock(&layer->stats_mutex);
 		break;
 
 	case STATUSTYPE_TABLE:

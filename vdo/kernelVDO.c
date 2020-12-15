@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#63 $
  */
 
 /*
@@ -156,7 +156,7 @@ int preload_kvdo(struct kvdo *kvdo,
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	int result = prepare_to_load_vdo(kvdo->vdo, load_config);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -173,7 +173,7 @@ int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	int result = perform_vdo_load(kvdo->vdo);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -193,7 +193,7 @@ int suspend_kvdo(struct kvdo *kvdo)
 
 	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
 						  kvdo);
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	int result = perform_vdo_suspend(kvdo->vdo, !layer->no_flush_suspend);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -223,7 +223,7 @@ int resume_kvdo(struct kvdo *kvdo)
 
 	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
 						  kvdo);
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	return perform_vdo_resume(kvdo->vdo);
 }
 
@@ -501,7 +501,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, block_count_t physical_count)
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
 						  kvdo);
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	int result = perform_grow_physical(kvdo->vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
@@ -526,7 +526,7 @@ int kvdo_resize_logical(struct kvdo *kvdo, block_count_t logical_count)
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
 						  kvdo);
-	init_completion(&layer->callbackSync);
+	init_completion(&layer->callback_sync);
 	int result = perform_grow_logical(kvdo->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {

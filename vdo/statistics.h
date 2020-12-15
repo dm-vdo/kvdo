@@ -116,9 +116,9 @@ struct block_map_statistics {
 	uint32_t outgoing_pages;
 	/** how many times free page not avail */
 	uint32_t cache_pressure;
-	/** number of getVDOPageAsync() for read */
+	/** number of get_vdo_page() calls for read */
 	uint64_t read_count;
-	/** number or getVDOPageAsync() for write */
+	/** number of get_vdo_page() calls for write */
 	uint64_t write_count;
 	/** number of times pages failed to read */
 	uint64_t failed_reads;

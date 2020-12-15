@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#54 $
  */
 
 #ifndef KERNELLAYER_H
@@ -87,7 +87,7 @@ struct kernel_layer {
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
 	struct kobject wq_directory;
-	struct kobject statsDirectory;
+	struct kobject stats_directory;
 	/**
 	 * A counter value to attach to thread names and log messages to
 	 * identify the individual device.
@@ -121,7 +121,7 @@ struct kernel_layer {
 	 **/
 	struct vdo_work_queue *cpu_queue;
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
-	char **compressionContext;
+	char **compression_context;
 	/** Optional work queue for calling bio_endio. */
 	struct vdo_work_queue *bio_ack_queue;
 	/** Underlying block device info. */
@@ -155,7 +155,7 @@ struct kernel_layer {
 	 * Whether we should collect tracing info. (Actually, this controls
 	 * allocations; non-null record pointers cause recording.)
 	 **/
-	bool vioTraceRecording;
+	bool vio_trace_recording;
 	struct sample_counter trace_sample_counter;
 	/* Should we log tracing info? */
 	bool trace_logging;
@@ -166,11 +166,11 @@ struct kernel_layer {
 
 	// Administrative operations
 	/* The object used to wait for administrative operations to complete */
-	struct completion callbackSync;
+	struct completion callback_sync;
 
 	// Statistics reporting
-	/* Protects the *statsStorage structs */
-	struct mutex statsMutex;
+	/* Protects the *_stats_storage structs */
+	struct mutex stats_mutex;
 	/* Used when shutting down the sysfs statistics */
 	struct completion stats_shutdown;
 
@@ -216,7 +216,7 @@ bool __must_check layer_is_named(struct kernel_layer *layer, void *context);
  * @param instance               Device instantiation counter
  * @param parent_kobject         The parent sysfs node
  * @param config                 The device configuration
- * @param thread_config_pointer  Where to store the new threadConfig handle
+ * @param thread_config_pointer  Where to store the new thread_config handle
  * @param reason                 The reason for any failure during this call
  * @param layer_ptr              A pointer to hold the created layer
  *
@@ -339,7 +339,7 @@ get_kernel_layer_state(const struct kernel_layer *layer)
  * @param bio    The bio from the block layer
  *
  * @return value to return from the VDO map function.  Either an error code
- *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdoMapBio for
+ *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see kvdo_map_bio for
  *         details).
  **/
 int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);

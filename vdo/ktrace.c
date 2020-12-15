@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#24 $
  */
 
 #include "ktrace.h"
@@ -119,12 +119,12 @@ void free_trace_to_pool(struct kernel_layer *layer, struct trace *trace)
 /*************************************************************************/
 int trace_kernel_layer_init(struct kernel_layer *layer)
 {
-	layer->vioTraceRecording = trace_recording;
+	layer->vio_trace_recording = trace_recording;
 	initialize_sample_counter(&layer->trace_sample_counter,
 				  TRACE_SAMPLE_INTERVAL);
 	unsigned int trace_records_needed = 0;
 
-	if (layer->vioTraceRecording) {
+	if (layer->vio_trace_recording) {
 		trace_records_needed += layer->request_limiter.limit;
 	}
 	if (trace_records_needed > 0) {

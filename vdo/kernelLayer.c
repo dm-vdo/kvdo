@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#127 $
  */
 
 #include "kernelLayer.h"
@@ -439,7 +439,7 @@ static void kvdo_complete_sync_operation(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 
-	complete(&layer->callbackSync);
+	complete(&layer->callback_sync);
 }
 
 /**
@@ -454,7 +454,7 @@ static void wait_for_sync_operation(PhysicalLayer *common)
 	struct kernel_layer *layer = as_kernel_layer(common);
 	// Using the "interruptible" interface means that Linux will not log a
 	// message when we wait for more than 120 seconds.
-	while (wait_for_completion_interruptible(&layer->callbackSync) != 0) {
+	while (wait_for_completion_interruptible(&layer->callback_sync) != 0) {
 		// However, if we get a signal in a user-mode process, we could
 		// spin...
 		msleep(1);
@@ -563,7 +563,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->common.completeAdminOperation = kvdo_complete_sync_operation;
 	layer->common.flush = kvdo_flush_vio;
 	spin_lock_init(&layer->flush_lock);
-	mutex_init(&layer->statsMutex);
+	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
 
 	result = add_layer_to_device_registry(layer);
@@ -637,7 +637,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	result = ALLOCATE(config->thread_counts.cpu_threads,
 			  char *,
 			  "LZ4 context",
-			  &layer->compressionContext);
+			  &layer->compression_context);
 	if (result != VDO_SUCCESS) {
 		*reason = "cannot allocate LZ4 context";
 		free_kernel_layer(layer);
@@ -650,7 +650,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		result = ALLOCATE(LZ4_MEM_COMPRESS,
 				  char,
 				  "LZ4 context",
-				  &layer->compressionContext[i]);
+				  &layer->compression_context[i]);
 		if (result != VDO_SUCCESS) {
 			*reason = "cannot allocate LZ4 context";
 			free_kernel_layer(layer);
@@ -746,7 +746,7 @@ int make_kernel_layer(uint64_t starting_sector,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) layer->compressionContext,
+				 (void **) layer->compression_context,
 				 &layer->cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
@@ -1000,15 +1000,15 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
-		if (layer->compressionContext != NULL) {
+		if (layer->compression_context != NULL) {
 			int i;
 
 			for (i = 0;
 			     i < layer->device_config->thread_counts.cpu_threads;
 			     i++) {
-				FREE(layer->compressionContext[i]);
+				FREE(layer->compression_context[i]);
 			}
-			FREE(layer->compressionContext);
+			FREE(layer->compression_context);
 		}
 		if (layer->dedupe_index != NULL) {
 			finish_dedupe_index(layer->dedupe_index);
@@ -1055,7 +1055,7 @@ static void pool_stats_release(struct kobject *kobj)
 {
 	struct kernel_layer *layer = container_of(kobj,
 						  struct kernel_layer,
-						  statsDirectory);
+						  stats_directory);
 	complete(&layer->stats_shutdown);
 }
 
@@ -1073,7 +1073,7 @@ int preload_kernel_layer(struct kernel_layer *layer,
 	int result = preload_kvdo(&layer->kvdo,
 				  &layer->common,
 				  load_config,
-				  layer->vioTraceRecording,
+				  layer->vio_trace_recording,
 				  reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
@@ -1105,8 +1105,8 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		.sysfs_ops = &pool_stats_sysfs_ops,
 		.default_attrs = pool_stats_attrs,
 	};
-	kobject_init(&layer->statsDirectory, &stats_directory_kobj_type);
-	result = kobject_add(&layer->statsDirectory,
+	kobject_init(&layer->stats_directory, &stats_directory_kobj_type);
+	result = kobject_add(&layer->stats_directory,
 			     &layer->kobj,
 			     "statistics");
 	if (result != 0) {
@@ -1139,7 +1139,7 @@ void stop_kernel_layer(struct kernel_layer *layer)
 	if (layer->stats_added) {
 		layer->stats_added = false;
 		init_completion(&layer->stats_shutdown);
-		kobject_put(&layer->statsDirectory);
+		kobject_put(&layer->stats_directory);
 		wait_for_completion(&layer->stats_shutdown);
 	}
 

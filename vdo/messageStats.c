@@ -33,10 +33,10 @@ int write_uint64_t(char *prefix,
 		   char **buf,
 		   unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%llu%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%llu%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -52,10 +52,10 @@ int write_uint32_t(char *prefix,
 		   char **buf,
 		   unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -71,10 +71,10 @@ int write_block_count_t(char *prefix,
 			char **buf,
 			unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%llu%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%llu%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -90,10 +90,10 @@ int write_string(char *prefix,
 		 char **buf,
 		 unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%s%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%s%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -109,10 +109,10 @@ int write_bool(char *prefix,
 	       char **buf,
 	       unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%d%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%d%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -128,10 +128,10 @@ int write_uint8_t(char *prefix,
 		  char **buf,
 		  unsigned int *maxlen)
 {
-	int count = snprintf(*buf, *maxlen, "%s%u%s",
-			     prefix == NULL ? "" : prefix,
-			     value,
-			     suffix == NULL ? "" : suffix);
+	int count = scnprintf(*buf, *maxlen, "%s%u%s",
+			      prefix == NULL ? "" : prefix,
+			      value,
+			      suffix == NULL ? "" : suffix);
 	*buf += count;
 	*maxlen -= count;
 	if (count >= *maxlen) {
@@ -520,7 +520,7 @@ int write_block_map_statistics(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** number of getVDOPageAsync() for read */
+	/** number of get_vdo_page() calls for read */
 	result = write_uint64_t("readCount : ",
 				stats->read_count,
 				", ",
@@ -529,7 +529,7 @@ int write_block_map_statistics(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** number or getVDOPageAsync() for write */
+	/** number of get_vdo_page() calls for write */
 	result = write_uint64_t("writeCount : ",
 				stats->write_count,
 				", ",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#57 $
  */
 
 #include "kvio.h"
@@ -230,7 +230,7 @@ void initialize_kvio(struct vio *vio,
 		     void *parent,
 		     struct bio *bio)
 {
-	if (layer->vioTraceRecording && sample_this_vio(vio, layer, bio) &&
+	if (layer->vio_trace_recording && sample_this_vio(vio, layer, bio) &&
 	    sample_this_one(&layer->trace_sample_counter)) {
 		int result =
 			(is_data_vio_type(type) ?
