@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#126 $
  */
 
 #include "kernelLayer.h"
@@ -27,6 +27,7 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/lz4.h>
+#include <linux/ratelimit.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -261,41 +262,11 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	return DM_MAPIO_SUBMITTED;
 }
 
-/**
- * Check that bios match up with what we expect.
- *
- * @param bio  The bio to check
- *
- * @return UDS_SUCCESS or -EINVAL.
- **/
-static int __must_check check_bio_validity(struct bio *bio)
-{
-	if ((bio_op(bio) != REQ_OP_READ) &&
-	    (bio_op(bio) != REQ_OP_WRITE) &&
-	    (bio_op(bio) != REQ_OP_FLUSH) &&
-	    (bio_op(bio) != REQ_OP_DISCARD)) {
-		// We should never get any other types of bio.
-		uds_log_error("Received unexpected bio of type %d",
-			      bio_op(bio));
-		return -EINVAL;
-	}
-
-	bool is_empty = (bio->bi_iter.bi_size == 0);
-	// Is this a flush? It must be empty.
-	if ((bio_op(bio) == REQ_OP_FLUSH) ||
-	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		return ASSERT_WITH_ERROR_CODE(is_empty, -EINVAL,
-					      "flush bios must be empty");
-	}
-
-	// Is this anything else? It must not be empty.
-	return ASSERT_WITH_ERROR_CODE(!is_empty, -EINVAL,
-				      "data bios must not be empty");
-}
 
 /**********************************************************************/
 int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 {
+	int result;
 	uint64_t arrival_jiffies = jiffies;
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
@@ -306,11 +277,6 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	// Count all incoming bios.
 	count_bios(&layer->biosIn, bio);
 
-	// Check for invalid bios.
-	int result = check_bio_validity(bio);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
