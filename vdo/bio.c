@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#43 $
  */
 
 #include "bio.h"
@@ -101,15 +101,15 @@ static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 	struct kernel_layer *layer
 		= as_kernel_layer(vio_as_completion(vio)->layer);
 	if (is_data_vio(vio)) {
-		count_bios(&layer->biosOutCompleted, bio);
+		count_bios(&layer->bios_out_completed, bio);
 		return;
 	}
 
-	count_bios(&layer->biosMetaCompleted, bio);
+	count_bios(&layer->bios_meta_completed, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		count_bios(&layer->biosJournalCompleted, bio);
+		count_bios(&layer->bios_journal_completed, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		count_bios(&layer->biosPageCacheCompleted, bio);
+		count_bios(&layer->bios_page_cache_completed, bio);
 	}
 }
 

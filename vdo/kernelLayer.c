@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#127 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#128 $
  */
 
 #include "kernelLayer.h"
@@ -275,7 +275,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			state);
 
 	// Count all incoming bios.
-	count_bios(&layer->biosIn, bio);
+	count_bios(&layer->bios_in, bio);
 
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
@@ -290,7 +290,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			 * never touch it again, so this is the last chance to
 			 * account for it.
 			 */
-			count_bios(&layer->biosAcknowledged, bio);
+			count_bios(&layer->bios_acknowledged, bio);
 			atomic64_inc(&layer->flush_out);
 			bio_set_dev(bio, get_kernel_layer_bdev(layer));
 			return DM_MAPIO_REMAPPED;

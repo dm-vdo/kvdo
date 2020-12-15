@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#55 $
  */
 
 #ifndef KERNELLAYER_H
@@ -136,18 +136,18 @@ struct kernel_layer {
 	atomic64_t bios_completed;
 	atomic64_t dedupe_context_busy;
 	atomic64_t flush_out;
-	struct atomic_bio_stats biosIn;
-	struct atomic_bio_stats biosInPartial;
-	struct atomic_bio_stats biosOut;
-	struct atomic_bio_stats biosOutCompleted;
-	struct atomic_bio_stats biosAcknowledged;
-	struct atomic_bio_stats biosAcknowledgedPartial;
-	struct atomic_bio_stats biosMeta;
-	struct atomic_bio_stats biosMetaCompleted;
-	struct atomic_bio_stats biosJournal;
-	struct atomic_bio_stats biosPageCache;
-	struct atomic_bio_stats biosJournalCompleted;
-	struct atomic_bio_stats biosPageCacheCompleted;
+	struct atomic_bio_stats bios_in;
+	struct atomic_bio_stats bios_in_partial;
+	struct atomic_bio_stats bios_out;
+	struct atomic_bio_stats bios_out_completed;
+	struct atomic_bio_stats bios_acknowledged;
+	struct atomic_bio_stats bios_acknowledged_partial;
+	struct atomic_bio_stats bios_meta;
+	struct atomic_bio_stats bios_meta_completed;
+	struct atomic_bio_stats bios_journal;
+	struct atomic_bio_stats bios_journal_completed;
+	struct atomic_bio_stats bios_page_cache;
+	struct atomic_bio_stats bios_page_cache_completed;
 	// Debugging
 	/* Whether to dump VDO state on shutdown */
 	bool dump_on_shutdown;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#8 $
  *
  * Common stat functions
  *
@@ -75,21 +75,22 @@ void get_kernel_statistics(struct kernel_layer *layer,
 		 atomic64_read(&layer->dedupe_context_busy));
 	stats->flush_out = atomic64_read(&layer->flush_out);
 	stats->logical_block_size = layer->device_config->logical_block_size;
-	copy_bio_stat(&stats->bios_in, &layer->biosIn);
-	copy_bio_stat(&stats->bios_in_partial, &layer->biosInPartial);
-	copy_bio_stat(&stats->bios_out, &layer->biosOut);
-	copy_bio_stat(&stats->bios_meta, &layer->biosMeta);
-	copy_bio_stat(&stats->bios_journal, &layer->biosJournal);
-	copy_bio_stat(&stats->bios_page_cache, &layer->biosPageCache);
-	copy_bio_stat(&stats->bios_out_completed, &layer->biosOutCompleted);
-	copy_bio_stat(&stats->bios_meta_completed, &layer->biosMetaCompleted);
+	copy_bio_stat(&stats->bios_in, &layer->bios_in);
+	copy_bio_stat(&stats->bios_in_partial, &layer->bios_in_partial);
+	copy_bio_stat(&stats->bios_out, &layer->bios_out);
+	copy_bio_stat(&stats->bios_meta, &layer->bios_meta);
+	copy_bio_stat(&stats->bios_journal, &layer->bios_journal);
+	copy_bio_stat(&stats->bios_page_cache, &layer->bios_page_cache);
+	copy_bio_stat(&stats->bios_out_completed, &layer->bios_out_completed);
+	copy_bio_stat(&stats->bios_meta_completed,
+		      &layer->bios_meta_completed);
 	copy_bio_stat(&stats->bios_journal_completed,
-		      &layer->biosJournalCompleted);
+		      &layer->bios_journal_completed);
 	copy_bio_stat(&stats->bios_page_cache_completed,
-		      &layer->biosPageCacheCompleted);
-	copy_bio_stat(&stats->bios_acknowledged, &layer->biosAcknowledged);
+		      &layer->bios_page_cache_completed);
+	copy_bio_stat(&stats->bios_acknowledged, &layer->bios_acknowledged);
 	copy_bio_stat(&stats->bios_acknowledged_partial,
-		      &layer->biosAcknowledgedPartial);
+		      &layer->bios_acknowledged_partial);
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 	stats->memory_usage = get_memory_usage();

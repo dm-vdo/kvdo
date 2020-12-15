@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#107 $
  */
 
 #include "dataKVIO.h"
@@ -171,9 +171,9 @@ static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 	bio->bi_private = external_io_request->private;
 	bio->bi_opf = external_io_request->rw;
 
-	count_bios(&layer->biosAcknowledged, bio);
+	count_bios(&layer->bios_acknowledged, bio);
 	if (data_vio->is_partial) {
-		count_bios(&layer->biosAcknowledgedPartial, bio);
+		count_bios(&layer->bios_acknowledged_partial, bio);
 	}
 
 
@@ -838,7 +838,7 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 				(data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
-		count_bios(&layer->biosInPartial, bio);
+		count_bios(&layer->bios_in_partial, bio);
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array
