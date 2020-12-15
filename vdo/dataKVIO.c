@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#106 $
  */
 
 #include "dataKVIO.h"
@@ -41,6 +41,41 @@
 #include "vdoCommon.h"
 
 static void dump_pooled_data_vio(void *data);
+
+/**
+ * For certain flags set on user bios, if the user bio has not yet been
+ * acknowledged, setting those flags on our own bio(s) for that request may
+ * help underlying layers better fulfill the user bio's needs. This constant
+ * contains the aggregate of those flags; VDO strips all the other flags, as
+ * they convey incorrect information.
+ *
+ * These flags are always irrelevant if we have already finished the user bio
+ * as they are only hints on IO importance. If VDO has finished the user bio,
+ * any remaining IO done doesn't care how important finishing the finished bio
+ * was.
+ *
+ * Note that kernelLayer.c contains the complete list of flags we believe may
+ * be set; the following list explains the action taken with each of those
+ * flags VDO could receive:
+ *
+ * REQ_SYNC: Passed down if the user bio is not yet completed, since it
+ * indicates the user bio completion is required for further work to be
+ * done by the issuer.
+ * REQ_META: Passed down if the user bio is not yet completed, since it may
+ * mean the lower layer treats it as more urgent, similar to REQ_SYNC.
+ * REQ_PRIO: Passed down if the user bio is not yet completed, since it
+ * indicates the user bio is important.
+ * REQ_NOMERGE: Set only if the incoming bio was split; irrelevant to VDO IO.
+ * REQ_IDLE: Set if the incoming bio had more IO quickly following; VDO's IO
+ * pattern doesn't match incoming IO, so this flag is incorrect for it.
+ * REQ_FUA: Handled separately, and irrelevant to VDO IO otherwise.
+ * REQ_RAHEAD: Passed down, as, for reads, it indicates trivial importance.
+ * REQ_BACKGROUND: Not passed down, as VIOs are a limited resource and VDO
+ * needs them recycled ASAP to service heavy load, which is the only place
+ * where REQ_BACKGROUND might aid in load prioritization.
+ **/
+static unsigned int PASSTHROUGH_FLAGS =
+	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
 enum {
 	WRITE_PROTECT_FREE_POOL = 0,
@@ -443,17 +478,20 @@ void read_data_vio(struct data_vio *data_vio)
 	// Read directly into the user buffer (for a 4k read) or the data
 	// block (for a partial IO).
 	int result = VDO_SUCCESS;
+	int opf = (data_vio->external_io_request.bio->bi_opf &
+		   ~PASSTHROUGH_FLAGS);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_vio->bio,
 					       data_vio->data_block, vio,
-					       complete_async_bio, REQ_OP_READ,
+					       complete_async_bio,
+					       REQ_OP_READ | opf,
 					       data_vio->mapped.pbn);
 	} else if (data_vio->is_partial) {
 		// A partial read.
-		int opf = data_vio->external_io_request.bio->bi_opf & ~REQ_FUA;
 		result = reset_bio_with_buffer(data_vio->bio,
 					       data_vio->data_block, vio,
-					       complete_async_bio, opf,
+					       complete_async_bio,
+					       REQ_OP_READ | opf,
 					       data_vio->mapped.pbn);
 	} else {
 		/*
@@ -464,7 +502,7 @@ void read_data_vio(struct data_vio *data_vio)
 		 */
 		bio_reset(bio);
 		__bio_clone_fast(bio, data_vio->external_io_request.bio);
-		bio->bi_opf &= ~REQ_FUA;
+		bio->bi_opf = REQ_OP_READ | opf;
 		bio->bi_private = vio;
 		bio->bi_end_io = acknowledge_user_bio;
 		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
@@ -532,16 +570,19 @@ void write_data_vio(struct data_vio *data_vio)
 
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	// Force the bio to be a write, while preserving the original bio's
-	// flags (except FUA).
-	int bi_opf = (REQ_OP_WRITE |
-		      ((data_vio->external_io_request.rw & ~REQ_OP_MASK) &
-		       ~REQ_FUA));
+	// In sync mode, we still have the original bio, and the hints are
+	// appropriate for lower layers' fast completion of IO. In async,
+	// we don't, and the hints don't matter anymore.
+	unsigned int opf = 0;
+	if (data_vio->external_io_request.bio != NULL) {
+		opf = data_vio->external_io_request.rw & PASSTHROUGH_FLAGS;
+	}
 
 	// Write the data from the data block buffer.
 	int result = reset_bio_with_buffer(data_vio->bio,
 					   data_vio->data_block,
-					   vio, complete_async_bio, bi_opf,
+					   vio, complete_async_bio,
+					   REQ_OP_WRITE | opf,
 					   data_vio->new_mapped.pbn);
 	if (result != VDO_SUCCESS) {
 		kvdo_continue_vio(vio, result);
