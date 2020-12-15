@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#53 $
  */
 
 #ifndef KERNELLAYER_H
@@ -134,8 +134,8 @@ struct kernel_layer {
 	// Statistics
 	atomic64_t bios_submitted;
 	atomic64_t bios_completed;
-	atomic64_t dedupeContextBusy;
-	atomic64_t flushOut;
+	atomic64_t dedupe_context_busy;
+	atomic64_t flush_out;
 	struct atomic_bio_stats biosIn;
 	struct atomic_bio_stats biosInPartial;
 	struct atomic_bio_stats biosOut;

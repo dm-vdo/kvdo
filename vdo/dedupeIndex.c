@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#76 $
  */
 
 #include "dedupeIndex.h"
@@ -535,7 +535,7 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 	} else {
 		// A previous user of the vio had a dedupe timeout
 		// and its request is still outstanding.
-		atomic64_inc(&layer->dedupeContextBusy);
+		atomic64_inc(&layer->dedupe_context_busy);
 	}
 
 	if (vio != NULL) {

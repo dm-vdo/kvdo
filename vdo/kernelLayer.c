@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#124 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#125 $
  */
 
 #include "kernelLayer.h"
@@ -325,7 +325,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			 * account for it.
 			 */
 			count_bios(&layer->biosAcknowledged, bio);
-			atomic64_inc(&layer->flushOut);
+			atomic64_inc(&layer->flush_out);
 			bio_set_dev(bio, get_kernel_layer_bdev(layer));
 			return DM_MAPIO_REMAPPED;
 		}
@@ -1210,7 +1210,7 @@ static int synchronous_flush(struct kernel_layer *layer)
 	submit_bio_wait(&bio);
 	int result = blk_status_to_errno(bio.bi_status);
 
-	atomic64_inc(&layer->flushOut);
+	atomic64_inc(&layer->flush_out);
 	if (result != 0) {
 		log_error_strerror(result, "synchronous flush failed");
 		result = -EIO;

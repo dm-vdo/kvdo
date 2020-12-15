@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#7 $
  *
  * Common stat functions
  *
@@ -67,13 +67,13 @@ void get_kernel_statistics(struct kernel_layer *layer,
 	get_limiter_values_atomically(&layer->request_limiter,
 				      &stats->current_vios_in_progress,
 				      &stats->max_vios);
-	// albireoTimeoutReport gives the number of timeouts, and
-	// dedupeContextBusy gives the number of queries not made because of
+	// get_dedupe_timeout_count() gives the number of timeouts, and
+	// dedupe_context_busy gives the number of queries not made because of
 	// earlier timeouts.
 	stats->dedupe_advice_timeouts =
 		(get_dedupe_timeout_count(layer->dedupe_index) +
-		 atomic64_read(&layer->dedupeContextBusy));
-	stats->flush_out = atomic64_read(&layer->flushOut);
+		 atomic64_read(&layer->dedupe_context_busy));
+	stats->flush_out = atomic64_read(&layer->flush_out);
 	stats->logical_block_size = layer->device_config->logical_block_size;
 	copy_bio_stat(&stats->bios_in, &layer->biosIn);
 	copy_bio_stat(&stats->bios_in_partial, &layer->biosInPartial);
