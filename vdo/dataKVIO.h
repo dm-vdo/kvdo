@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#52 $
  */
 
 #ifndef DATA_KVIO_H
@@ -140,8 +140,8 @@ static inline bool requestor_set_fua(struct data_vio *data_vio)
  * @param bio                   The bio for which to create vio
  * @param arrival_jiffies       The time (in jiffies) when the external request
  *                              entered the device mapbio function
- * @param has_discard_permit    Whether we got a permit from the discardLimiter
- *                              of the kernel layer
+ * @param has_discard_permit    Whether we got a permit from the discard
+ *                              limiter of the kernel layer
  *
  * @return VDO_SUCCESS or a system error code
  **/
@@ -176,7 +176,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 void kvdo_read_block(struct data_vio *data_vio,
 		     physical_block_number_t location,
 		     BlockMappingState mapping_state,
-		     bio_q_action action,
+		     enum bio_q_action action,
 		     vdo_action *callback);
 
 /**

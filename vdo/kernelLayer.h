@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#56 $
  */
 
 #ifndef KERNELLAYER_H
@@ -161,7 +161,7 @@ struct kernel_layer {
 	bool trace_logging;
 	/* Storage for trace data. */
 	struct buffer_pool *trace_buffer_pool;
-	/* For returning batches of DataKVIOs to their pool */
+	/* For returning batches of data_kvios to their pool */
 	struct batch_processor *data_kvio_releaser;
 
 	// Administrative operations
@@ -181,27 +181,25 @@ struct kernel_layer {
 	struct kernel_statistics kernel_stats_storage;
 };
 
-typedef enum {
+enum bio_q_action {
 	BIO_Q_ACTION_COMPRESSED_DATA,
 	BIO_Q_ACTION_DATA,
 	BIO_Q_ACTION_FLUSH,
 	BIO_Q_ACTION_HIGH,
 	BIO_Q_ACTION_METADATA,
 	BIO_Q_ACTION_VERIFY
-} bio_q_action;
+};
 
-typedef enum {
+enum cpu_q_action {
 	CPU_Q_ACTION_COMPLETE_KVIO,
 	CPU_Q_ACTION_COMPRESS_BLOCK,
 	CPU_Q_ACTION_EVENT_REPORTER,
 	CPU_Q_ACTION_HASH_BLOCK,
-} cpu_q_action;
+};
 
-typedef enum {
+enum bio_ack_q_action {
 	BIO_ACK_Q_ACTION_ACK,
-} bio_ack_q_action;
-
-typedef void (*dedupe_shutdown_callback_function)(struct kernel_layer *layer);
+};
 
 /**
  * Implements layer_filter_t.

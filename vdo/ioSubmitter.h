@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#10 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -104,6 +104,6 @@ void enqueue_bio_work_item(struct io_submitter *io_submitter,
  * @param bio      the block I/O operation descriptor to submit
  * @param action   the action code specifying the priority for the operation
  **/
-void vdo_submit_bio(struct bio *bio, bio_q_action action);
+void vdo_submit_bio(struct bio *bio, enum bio_q_action action);
 
 #endif // IOSUBMITTER_H

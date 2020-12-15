@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#108 $
  */
 
 #include "dataKVIO.h"
@@ -108,7 +108,7 @@ static __always_inline void set_write_protect(void *address,
  * First tracing hook for VIO completion.
  *
  * If the SystemTap script vdotrace.stp is in use, it does stage 1 of
- * its processing here. We must not call addTraceRecord between the
+ * its processing here. We must not call add_trace_record between the
  * two tap functions.
  *
  * @param data_vio  The VIO we're finishing up
@@ -415,7 +415,7 @@ static void read_bio_callback(struct bio *bio)
 void kvdo_read_block(struct data_vio *data_vio,
 		     physical_block_number_t location,
 		     BlockMappingState mapping_state,
-		     bio_q_action action,
+		     enum bio_q_action action,
 		     vdo_action *callback)
 {
 	// This can be run on either a read of compressed data, or a write
@@ -842,7 +842,7 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array
-		 * for non-read operations. There are places like kvdoCopyVIO
+		 * for non-read operations. There are places like kvdo_copy_vio
 		 * that may look at vio->data_block for a zero block (and maybe
 		 * for discards?). We could skip filling in data_block for such
 		 * cases, but only once we're sure all such places are fixed to

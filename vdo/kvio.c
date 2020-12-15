@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#58 $
  */
 
 #include "kvio.h"
@@ -114,13 +114,13 @@ void write_compressed_block(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Get the BioQueue action for a metadata vio based on that vio's priority.
+ * Get the bio queue action for a metadata vio based on that vio's priority.
  *
  * @param vio  The vio
  *
  * @return The action with which to submit the vio's bio.
  **/
-static inline bio_q_action get_metadata_action(struct vio *vio)
+static inline enum bio_q_action get_metadata_action(struct vio *vio)
 {
 	return ((vio->priority == VIO_PRIORITY_HIGH) ? BIO_Q_ACTION_HIGH :
 						       BIO_Q_ACTION_METADATA);
