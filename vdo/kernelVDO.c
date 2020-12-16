@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#64 $
  */
 
 /*
@@ -281,11 +281,11 @@ struct sync_queue_work {
  * @param thread_id   The thread on which to perform the operation
  * @param completion  The completion to wait on
  **/
-static void performKVDOOperation(struct kvdo *kvdo,
-				 KvdoWorkFunction action,
-				 void *data,
-				 thread_id_t thread_id,
-				 struct completion *completion)
+static void perform_kvdo_operation(struct kvdo *kvdo,
+				   KvdoWorkFunction action,
+				   void *data,
+				   thread_id_t thread_id,
+				   struct completion *completion)
 {
 	struct sync_queue_work sync;
 
@@ -330,11 +330,11 @@ bool set_kvdo_compressing(struct kvdo *kvdo, bool enable_compression)
 	struct vdo_compress_data data;
 
 	data.enable = enable_compression;
-	performKVDOOperation(kvdo,
-			     set_compressing_work,
-			     &data,
-			     get_packer_zone_thread(get_thread_config(kvdo->vdo)),
-			     &compress_wait);
+	perform_kvdo_operation(kvdo,
+			       set_compressing_work,
+			       &data,
+			       get_packer_zone_thread(get_thread_config(kvdo->vdo)),
+			       &compress_wait);
 	return data.was_enabled;
 }
 
@@ -361,9 +361,9 @@ void set_kvdo_read_only(struct kvdo *kvdo, int result)
 	struct vdo_read_only_data data;
 
 	data.result = result;
-	performKVDOOperation(kvdo, enter_read_only_mode_work, &data,
-			     get_admin_thread(get_thread_config(kvdo->vdo)),
-			     &read_only_wait);
+	perform_kvdo_operation(kvdo, enter_read_only_mode_work, &data,
+			       get_admin_thread(get_thread_config(kvdo->vdo)),
+			       &read_only_wait);
 }
 
 /**
@@ -387,11 +387,11 @@ void get_kvdo_statistics(struct kvdo *kvdo, struct vdo_statistics *stats)
 	struct completion stats_wait;
 
 	memset(stats, 0, sizeof(struct vdo_statistics));
-	performKVDOOperation(kvdo,
-			     get_vdo_statistics_work,
-			     stats,
-			     get_admin_thread(get_thread_config(kvdo->vdo)),
-			     &stats_wait);
+	perform_kvdo_operation(kvdo,
+			       get_vdo_statistics_work,
+			       stats,
+			       get_admin_thread(get_thread_config(kvdo->vdo)),
+			       &stats_wait);
 }
 
 /**
@@ -466,11 +466,11 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv)
 	initialize_vdo_action_data(&data,
 				   execute_vdo_extended_command,
 				   &cmd.completion);
-	performKVDOOperation(kvdo,
-			     perform_vdo_action_work,
-			     &data,
-			     get_admin_thread(get_thread_config(kvdo->vdo)),
-			     &data.waiter);
+	perform_kvdo_operation(kvdo,
+			       perform_vdo_action_work,
+			       &data,
+			       get_admin_thread(get_thread_config(kvdo->vdo)),
+			       &data.waiter);
 	return cmd.completion.result;
 }
 

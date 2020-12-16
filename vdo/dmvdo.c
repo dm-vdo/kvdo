@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#78 $
  */
 
 #include "dmvdo.h"
@@ -227,7 +227,8 @@ get_underlying_device_block_count(struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
+static int
+vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 {
 	block_count_t logical_count;
 
@@ -498,7 +499,7 @@ static void configure_target_capabilities(struct dm_target *ti,
 	ti->num_flush_bios = 1;
 
 	// If this value changes, please make sure to update the
-	// value for maxDiscardSectors accordingly.
+	// value for max_discard_sectors accordingly.
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 
 /*

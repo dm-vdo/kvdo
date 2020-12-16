@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#128 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#129 $
  */
 
 #include "kernelLayer.h"
@@ -421,7 +421,7 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 }
 
 /**********************************************************************/
-static write_policy kvdoGetWritePolicy(PhysicalLayer *common)
+static write_policy kvdo_get_write_policy(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 	return get_kvdo_write_policy(&layer->kvdo);
@@ -553,7 +553,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	INIT_LIST_HEAD(&layer->device_config_list);
 
 	layer->common.getBlockCount = kvdo_get_block_count;
-	layer->common.getWritePolicy = kvdoGetWritePolicy;
+	layer->common.getWritePolicy = kvdo_get_write_policy;
 	layer->common.createMetadataVIO = kvdo_create_metadata_vio;
 	layer->common.createCompressedWriteVIO =
 		kvdo_create_compressed_write_vio;

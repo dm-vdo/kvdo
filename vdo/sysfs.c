@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#13 $
  */
 
 #include "sysfs.h"
@@ -361,7 +361,7 @@ static struct vdo_attribute vdo_version_attr = {
 	.show = vdo_version_show,
 };
 
-static struct attribute *defaultAttrs[] = {
+static struct attribute *default_attrs[] = {
 	&vdo_status_attr.attr,
 	&vdo_log_level_attr.attr,
 	&vdo_max_req_active_attr.attr,
@@ -386,7 +386,7 @@ static void vdo_release(struct kobject *kobj)
 struct kobj_type vdo_ktype = {
 	.release = vdo_release,
 	.sysfs_ops = &vdo_sysfs_ops,
-	.default_attrs = defaultAttrs,
+	.default_attrs = default_attrs,
 };
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#10 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -222,7 +222,7 @@ static inline uint64_t record_start_time(unsigned int index)
  *
  * @param  stats       The statistics structure
  * @param  index       The work item's index into the internal array
- * @param  start_time  The start time as reported by recordStartTime
+ * @param  start_time  The start time as reported by record_start_time
  **/
 static inline void
 update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,

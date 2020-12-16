@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#5 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -55,7 +55,7 @@ split_string(const char *string, char separator, char ***substring_array_ptr);
  *
  * @param [in]  substring_array  The NULL-terminated substring array
  * @param [in]  array_length     A bound on the number of valid elements
- *                               in substringArray, in case it is not
+ *                               in substring_array, in case it is not
  *                               NULL-terminated.
  * @param [in]  separator        The separator character
  * @param [out] string_ptr       A pointer to hold the joined string

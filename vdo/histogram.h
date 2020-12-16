@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#4 $
  */
 
 #ifndef HISTOGRAM_H
@@ -34,7 +34,7 @@
  * flushes grouped by latency (milliseconds)". Thus counted_items and
  * sample_units should be plural.
  *
- * The sampleUnits string will also be reported separately via another
+ * The sample_units string will also be reported separately via another
  * /sys entry to aid in programmatic processing of the results, so the
  * strings used should be consistent (e.g., always "milliseconds" and
  * not "ms" for milliseconds).

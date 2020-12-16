@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#25 $
  */
 
 #include "deviceConfig.h"
@@ -712,7 +712,7 @@ int parse_device_config(int argc,
 	}
 
 	// Get the address where the albserver is running. Check for validation
-	// is done in dedupe.c code during startKernelLayer call
+	// is done in dedupe.c code during start_kernel_layer call.
 	result = duplicate_string(dm_shift_arg(&arg_set),
 				  "pool name",
 				  &config->pool_name);
