@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#112 $
  */
 
 #include "dataKVIO.h"
@@ -288,14 +288,14 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		memcpy(data_vio->data_block, data_vio->read_block.data,
 		       VDO_BLOCK_SIZE);
-		kvdo_enqueue_data_vio_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
 	// For a partial read, the callback will copy the requested data from
 	// the read block.
 	if (data_vio->is_partial) {
-		kvdo_enqueue_data_vio_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
@@ -319,7 +319,7 @@ read_data_vio_read_block_callback(struct vdo_completion *completion)
 	if (data_vio->read_block.status != VDO_SUCCESS) {
 		set_completion_result(completion,
 				      data_vio->read_block.status);
-		kvdo_enqueue_data_vio_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
@@ -433,7 +433,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 					   vio, read_bio_callback, REQ_OP_READ,
 					   location);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 
@@ -453,7 +453,7 @@ static void acknowledge_user_bio(struct bio *bio)
 		return;
 	}
 
-	kvdo_continue_vio(vio, error);
+	continue_vio(vio, error);
 }
 
 /**********************************************************************/
@@ -509,7 +509,7 @@ void read_data_vio(struct data_vio *data_vio)
 	}
 
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 
@@ -526,7 +526,7 @@ kvdo_acknowledge_data_vio_then_continue(struct vdo_work_item *item)
 	kvdo_acknowledge_data_vio(data_vio);
 	// Even if we're not using bio-ack threads, we may be in the wrong
 	// base-code thread.
-	kvdo_enqueue_data_vio_callback(data_vio);
+	enqueue_data_vio_callback(data_vio);
 }
 
 /**********************************************************************/
@@ -585,7 +585,7 @@ void write_data_vio(struct data_vio *data_vio)
 					   REQ_OP_WRITE | opf,
 					   data_vio->new_mapped.pbn);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 
@@ -729,7 +729,7 @@ static void kvdo_compress_work(struct vdo_work_item *item)
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 	}
 
-	kvdo_enqueue_data_vio_callback(data_vio);
+	enqueue_data_vio_callback(data_vio);
 }
 
 /**********************************************************************/
@@ -748,7 +748,7 @@ void compress_data_vio(struct data_vio *data_vio)
 	    (bio_op(data_vio->external_io_request.bio) == REQ_OP_DISCARD) &&
 	    (data_vio->remaining_discard > 0)) {
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
-		kvdo_enqueue_data_vio_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		return;
 	}
 
@@ -1021,7 +1021,7 @@ static void kvdo_hash_data_work(struct vdo_work_item *item)
 			    &data_vio->chunk_name);
 	data_vio->dedupe_context.chunk_name = &data_vio->chunk_name;
 
-	kvdo_enqueue_data_vio_callback(data_vio);
+	enqueue_data_vio_callback(data_vio);
 }
 
 /**********************************************************************/

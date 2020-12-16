@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#44 $
  */
 
 #include "bio.h"
@@ -129,7 +129,7 @@ void complete_async_bio(struct bio *bio)
 	struct vio *vio = (struct vio *) bio->bi_private;
 	vio_add_trace_record(vio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
-	kvdo_continue_vio(vio, get_bio_result(bio));
+	continue_vio(vio, get_bio_result(bio));
 }
 
 /**********************************************************************/

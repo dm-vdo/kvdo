@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#31 $
  */
 
 #ifndef KVIO_H
@@ -80,17 +80,17 @@ static inline void launch_vio(struct vio *vio,
 /**
  * Move a vio back to the base threads.
  *
- * @param vio The vio to enqueue
+ * @param vio  The vio to enqueue
  **/
-void kvdo_enqueue_vio_callback(struct vio *vio);
+void enqueue_vio_callback(struct vio *vio);
 
 /**
- * Handles kvio-related I/O post-processing.
+ * Handles vio-related I/O post-processing.
  *
- * @param vio   The vio to finalize
- * @param error Possible error
+ * @param vio    The vio to finalize
+ * @param error  Possible error
  **/
-void kvdo_continue_vio(struct vio *vio, int error);
+void continue_vio(struct vio *vio, int error);
 
 /**
  * Log the trace for a vio if tracing is enabled.

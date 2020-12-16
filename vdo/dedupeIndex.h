@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#23 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -88,7 +88,7 @@ static inline void invoke_dedupe_callback(struct data_vio *data_vio)
 
 	data_vio_add_trace_record(data_vio,
 				  THIS_LOCATION("$F($dup);cb=dedupe($dup)"));
-	kvdo_enqueue_data_vio_callback(data_vio);
+	enqueue_data_vio_callback(data_vio);
 }
 
 /**

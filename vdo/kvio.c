@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#59 $
  */
 
 #include "kvio.h"
@@ -46,7 +46,7 @@ static void kvdo_handle_vio_callback(struct vdo_work_item *item)
 }
 
 /**********************************************************************/
-void kvdo_enqueue_vio_callback(struct vio *vio)
+void enqueue_vio_callback(struct vio *vio)
 {
 	enqueue_vio(vio,
 		    kvdo_handle_vio_callback,
@@ -55,12 +55,13 @@ void kvdo_enqueue_vio_callback(struct vio *vio)
 }
 
 /**********************************************************************/
-void kvdo_continue_vio(struct vio *vio, int error)
+void continue_vio(struct vio *vio, int error)
 {
 	if (unlikely(error != VDO_SUCCESS)) {
 		set_completion_result(vio_as_completion(vio), error);
 	}
-	kvdo_enqueue_vio_callback(vio);
+
+	enqueue_vio_callback(vio);
 }
 
 /**********************************************************************/
@@ -106,7 +107,7 @@ void write_compressed_block(struct allocating_vio *allocating_vio)
 					   complete_async_bio, REQ_OP_WRITE,
 					   vio->physical);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 
@@ -163,7 +164,7 @@ void submit_metadata_vio(struct vio *vio)
 					   complete_async_bio, bi_opf,
 					   vio->physical);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 
@@ -184,7 +185,7 @@ void kvdo_flush_vio(struct vio *vio)
 	int result = reset_bio_with_buffer(bio, NULL, vio, complete_async_bio,
 					   REQ_OP_WRITE | REQ_PREFLUSH, 0);
 	if (result != VDO_SUCCESS) {
-		kvdo_continue_vio(vio, result);
+		continue_vio(vio, result);
 		return;
 	}
 	vdo_submit_bio(bio, get_metadata_action(vio));
