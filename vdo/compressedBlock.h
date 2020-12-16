@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#9 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -73,7 +73,7 @@ void reset_compressed_block_header(struct compressed_block_header *header);
  * @return If a valid compressed fragment is found, VDO_SUCCESS;
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
  **/
-int get_compressed_block_fragment(BlockMappingState mapping_state,
+int get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				  char *buffer,
 				  block_size_t block_size,
 				  uint16_t *fragment_offset,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#79 $
  */
 
 #include "blockMap.h"
@@ -685,7 +685,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 void update_block_map_page(struct block_map_page *page,
 			   struct data_vio *data_vio,
 			   physical_block_number_t pbn,
-			   BlockMappingState mapping_state,
+			   enum block_mapping_state mapping_state,
 			   sequence_number_t *recovery_lock)
 {
 	// Encode the new mapping.

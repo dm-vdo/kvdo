@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#65 $
  */
 
 #ifndef TYPES_H
@@ -416,12 +416,12 @@ struct vio_pool;
 
 struct data_location {
 	physical_block_number_t pbn;
-	BlockMappingState state;
+	enum block_mapping_state state;
 };
 
 struct zoned_pbn {
 	physical_block_number_t pbn;
-	BlockMappingState state;
+	enum block_mapping_state state;
 	struct physical_zone *zone;
 };
 

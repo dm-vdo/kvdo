@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#57 $
  */
 
 #ifndef DATA_VIO_H
@@ -200,7 +200,7 @@ struct read_block {
 	 * Mapping state passed to kvdo_read_block(), used to determine whether
 	 * the data must be uncompressed.
 	 **/
-	BlockMappingState mapping_state;
+	enum block_mapping_state mapping_state;
 	/**
 	 * The result code of the read attempt.
 	 **/
@@ -1076,7 +1076,7 @@ void clear_mapped_location(struct data_vio *data_vio);
  **/
 int __must_check set_mapped_location(struct data_vio *data_vio,
 				     physical_block_number_t pbn,
-				     BlockMappingState state);
+				     enum block_mapping_state state);
 
 /**
  * Attempt to acquire the lock on a logical block. This is the start of the

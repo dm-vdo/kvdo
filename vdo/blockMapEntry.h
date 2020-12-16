@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#11 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -32,13 +32,13 @@
  * bytes, which saves space in both the on-disk and in-memory layouts. It
  * consists of the 36 low-order bits of a physical_block_number_t
  * (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of a
- * BlockMappingState.
+ * block_mapping_state.
  **/
 struct block_map_entry {
 	/**
 	 * Bits 7..4: The four highest bits of the 36-bit physical block
 	 * number
-	 * Bits 3..0: The 4-bit BlockMappingState
+	 * Bits 3..0: The 4-bit block_mapping_state
 	 **/
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	unsigned mapping_state : 4;
@@ -101,7 +101,7 @@ static inline bool is_valid_location(const struct data_location *location)
  * @note unrepresentable high bits of the unpacked PBN are silently truncated
  **/
 static inline struct block_map_entry
-pack_pbn(physical_block_number_t pbn, BlockMappingState mapping_state)
+pack_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
 {
 	return (struct block_map_entry) {
 		.mapping_state = (mapping_state & 0x0F),
