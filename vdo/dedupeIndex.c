@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#77 $
  */
 
 #include "dedupeIndex.h"
@@ -32,18 +32,12 @@
 #include "stringUtils.h"
 #include "uds.h"
 
-/*****************************************************************************/
-
 struct uds_attribute {
 	struct attribute attr;
 	const char *(*show_string)(struct dedupe_index *);
 };
 
-/*****************************************************************************/
-
 enum { UDS_Q_ACTION };
-
-/*****************************************************************************/
 
 // These are the values in the atomic dedupe_context.request_state field
 enum {
@@ -54,8 +48,6 @@ enum {
 	// The uds_request object is in use, but has timed out.
 	UR_TIMED_OUT = 2,
 };
-
-/*****************************************************************************/
 
 enum index_state {
 	// The UDS index is closed
@@ -74,8 +66,6 @@ struct periodic_event_reporter {
 	struct work_struct work;
 	struct kernel_layer *layer;
 };
-
-/*****************************************************************************/
 
 struct dedupe_index {
 	struct kobject dedupe_object;
@@ -109,8 +99,6 @@ struct dedupe_index {
 	bool started_timer; // protected by pending_lock
 };
 
-/*****************************************************************************/
-
 // Version 1:  user space UDS index (limited to 32 bytes)
 // Version 2:  kernel space UDS index (limited to 16 bytes)
 enum {
@@ -118,8 +106,6 @@ enum {
 	// version byte + state byte + 64-bit little-endian PBN
 	UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
 };
-
-/*****************************************************************************/
 
 // We want to ensure that there is only one copy of the following constants.
 static const char *CLOSED = "closed";
@@ -131,8 +117,6 @@ static const char *OPENING = "opening";
 static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
-/*****************************************************************************/
-
 // These times are in milliseconds, and these are the default values.
 unsigned int albireo_timeout_interval = 5000;
 unsigned int min_albireo_timer_interval = 100;
@@ -141,7 +125,7 @@ unsigned int min_albireo_timer_interval = 100;
 static uint64_t albireo_timeout_jiffies;
 static uint64_t min_albireo_timer_jiffies;
 
-/*****************************************************************************/
+/**********************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
 					 enum index_state state)
 {
@@ -151,14 +135,14 @@ static const char *index_state_to_string(struct dedupe_index *index,
 
 	switch (state) {
 	case IS_CLOSED:
-		// Closed.  The error_flag tells if it is because of an error.
+		// Closed. The error_flag tells if it is because of an error.
 		return index->error_flag ? ERROR : CLOSED;
 	case IS_CHANGING:
 		// The index_target tells if we are opening or closing the
 		// index.
 		return index->index_target == IS_OPENED ? OPENING : CLOSING;
 	case IS_OPENED:
-		// Opened.  The dedupe_flag tells if we are online or offline.
+		// Opened. The dedupe_flag tells if we are online or offline.
 		return index->dedupe_flag ? ONLINE : OFFLINE;
 	default:
 		return UNKNOWN;
@@ -166,7 +150,7 @@ static const char *index_state_to_string(struct dedupe_index *index,
 }
 
 /**
- * Encode VDO duplicate advice into the newMetadata field of a UDS request.
+ * Encode VDO duplicate advice into the new_metadata field of a UDS request.
  *
  * @param request  The UDS request to receive the encoding
  * @param advice   The advice to encode
@@ -184,7 +168,7 @@ static void encode_uds_advice(struct uds_request *request,
 }
 
 /**
- * Decode VDO duplicate advice from the oldMetadata field of a UDS request.
+ * Decode VDO duplicate advice from the old_metadata field of a UDS request.
  *
  * @param request  The UDS request containing the encoding
  * @param advice   The data_location to receive the decoded advice
@@ -227,7 +211,7 @@ static uint64_t get_albireo_timeout(uint64_t start_jiffies)
 		   jiffies + min_albireo_timer_jiffies);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void set_albireo_timeout_interval(unsigned int value)
 {
 	// Arbitrary maximum value is two minutes
@@ -245,7 +229,7 @@ void set_albireo_timeout_interval(unsigned int value)
 	albireo_timeout_jiffies = alb_jiffies;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void set_min_albireo_timer_interval(unsigned int value)
 {
 	// Arbitrary maximum value is one second
@@ -265,7 +249,7 @@ void set_min_albireo_timer_interval(unsigned int value)
 	min_albireo_timer_jiffies = min_jiffies;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void finish_index_operation(struct uds_request *uds_request)
 {
 	struct data_vio *data_vio = container_of(uds_request,
@@ -331,7 +315,7 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 			       get_albireo_timeout(context->submission_jiffies));
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void start_index_operation(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
@@ -440,7 +424,7 @@ stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 	ratelimit_state_exit(&reporter->ratelimiter);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void timeout_index_operations(struct timer_list *t)
 {
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
@@ -487,7 +471,7 @@ static void timeout_index_operations(struct timer_list *t)
 	report_dedupe_timeouts(&index->timeout_reporter, timed_out);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void enqueue_index_operation(struct data_vio *data_vio,
 				    enum uds_callback_type operation)
 {
@@ -543,7 +527,7 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void close_index(struct dedupe_index *index)
 {
 	// Change the index state so that get_index_statistics will not try to
@@ -564,7 +548,7 @@ static void close_index(struct dedupe_index *index)
 	// ASSERTION: We leave in IS_CLOSED state.
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void open_index(struct dedupe_index *index)
 {
 	// ASSERTION: We enter in IS_CLOSED state.
@@ -615,7 +599,7 @@ static void open_index(struct dedupe_index *index)
 	// ASSERTION: On failure, we leave in IS_CLOSED state.
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void change_dedupe_state(struct vdo_work_item *item)
 {
 	struct dedupe_index *index = container_of(item,
@@ -640,7 +624,7 @@ static void change_dedupe_state(struct vdo_work_item *item)
 	spin_unlock(&index->state_lock);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void launch_dedupe_state_change(struct dedupe_index *index)
 {
 	// ASSERTION: We enter with the state_lock held.
@@ -669,7 +653,7 @@ static void launch_dedupe_state_change(struct dedupe_index *index)
 	// ASSERTION: We exit with the state_lock held.
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void set_target_state(struct dedupe_index *index,
 			     enum index_state target,
 			     bool change_dedupe,
@@ -695,14 +679,14 @@ static void set_target_state(struct dedupe_index *index,
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	spin_lock(&index->state_lock);
 	index->suspended = true;
 	enum index_state state = index->index_state;
-
 	spin_unlock(&index->state_lock);
+
 	if (state != IS_CLOSED) {
 		int result = uds_suspend_index_session(index->index_session,
 						       save_flag);
@@ -713,23 +697,22 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void resume_dedupe_index(struct dedupe_index *index)
 {
 	int result = uds_resume_index_session(index->index_session);
-
 	if (result != UDS_SUCCESS) {
 		log_error_strerror(result, "Error resuming dedupe index");
 	}
+
 	spin_lock(&index->state_lock);
 	index->suspended = false;
 	launch_dedupe_state_change(index);
 	spin_unlock(&index->state_lock);
 }
 
-/*****************************************************************************/
 
-/*****************************************************************************/
+/**********************************************************************/
 void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 {
 	spin_lock(&index->state_lock);
@@ -748,7 +731,7 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void finish_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
@@ -756,7 +739,7 @@ void finish_dedupe_index(struct dedupe_index *index)
 	finish_work_queue(index->uds_queue);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void free_dedupe_index(struct dedupe_index **index_ptr)
 {
 	if (*index_ptr == NULL) {
@@ -775,7 +758,7 @@ void free_dedupe_index(struct dedupe_index **index_ptr)
 	kobject_put(&index->dedupe_object);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 const char *get_dedupe_state_name(struct dedupe_index *index)
 {
 	spin_lock(&index->state_lock);
@@ -785,7 +768,7 @@ const char *get_dedupe_state_name(struct dedupe_index *index)
 	return state;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void get_index_statistics(struct dedupe_index *index,
 			  struct index_statistics *stats)
 {
@@ -826,7 +809,7 @@ void get_index_statistics(struct dedupe_index *index,
 }
 
 
-/*****************************************************************************/
+/**********************************************************************/
 int message_dedupe_index(struct dedupe_index *index, const char *name)
 {
 	if (strcasecmp(name, "index-close") == 0) {
@@ -845,37 +828,37 @@ int message_dedupe_index(struct dedupe_index *index, const char *name)
 	return -EINVAL;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void post_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_index_operation(data_vio, UDS_POST);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void query_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_index_operation(data_vio, UDS_QUERY);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void start_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void stop_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void update_dedupe_advice(struct data_vio *data_vio)
 {
 	enqueue_index_operation(data_vio, UDS_UPDATE);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void dedupe_kobj_release(struct kobject *kobj)
 {
 	struct dedupe_index *index = container_of(kobj,
@@ -886,7 +869,7 @@ static void dedupe_kobj_release(struct kobject *kobj)
 	FREE(index);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static ssize_t dedupe_status_show(struct kobject *kobj,
 				  struct attribute *attr,
 				  char *buf)
@@ -902,7 +885,7 @@ static ssize_t dedupe_status_show(struct kobject *kobj,
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static ssize_t dedupe_status_store(struct kobject *kobj,
 				   struct attribute *attr,
 				   const char *buf,
@@ -911,51 +894,51 @@ static ssize_t dedupe_status_store(struct kobject *kobj,
 	return -EINVAL;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 
-static struct sysfs_ops dedupeSysfsOps = {
+static struct sysfs_ops dedupe_sysfs_ops = {
 	.show = dedupe_status_show,
 	.store = dedupe_status_store,
 };
 
-static struct uds_attribute dedupeStatusAttribute = {
+static struct uds_attribute dedupe_status_attribute = {
 	.attr = {.name = "status", .mode = 0444, },
 	.show_string = get_dedupe_state_name,
 };
 
-static struct attribute *dedupeAttributes[] = {
-	&dedupeStatusAttribute.attr,
+static struct attribute *dedupe_attributes[] = {
+	&dedupe_status_attribute.attr,
 	NULL,
 };
 
-static struct kobj_type dedupeKobjType = {
+static struct kobj_type dedupe_kobj_type = {
 	.release = dedupe_kobj_release,
-	.sysfs_ops = &dedupeSysfsOps,
-	.default_attrs = dedupeAttributes,
+	.sysfs_ops = &dedupe_sysfs_ops,
+	.default_attrs = dedupe_attributes,
 };
 
-/*****************************************************************************/
+/**********************************************************************/
 static void start_uds_queue(void *ptr)
 {
 	/*
-	 * Allow the UDS dedupe worker thread to do memory allocations.  It will
-	 * only do allocations during the UDS calls that open or close an index,
-	 * but those allocations can safely sleep while reserving a large amount
-	 * of memory.  We could use an allocationsAllowed boolean (like the base
-	 * threads do), but it would be an unnecessary embellishment.
+	 * Allow the UDS dedupe worker thread to do memory allocations. It
+	 * will only do allocations during the UDS calls that open or close an
+	 * index, but those allocations can safely sleep while reserving a
+	 * large amount of memory. We could use an allocations_allowed boolean
+	 * (like the base threads do), but it would be an unnecessary
+	 * embellishment.
 	 */
 	struct dedupe_index *index = ptr;
-
 	register_allocating_thread(&index->allocating_thread, NULL);
 }
 
-/*****************************************************************************/
-static void finish_uds_queue(void *ptr)
+/**********************************************************************/
+static void finish_uds_queue(void *ptr __always_unused)
 {
 	unregister_allocating_thread();
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_dedupe_index(struct dedupe_index **index_ptr,
 		      struct kernel_layer *layer)
 {
@@ -1029,7 +1012,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	kobject_init(&index->dedupe_object, &dedupeKobjType);
+	kobject_init(&index->dedupe_object, &dedupe_kobj_type);
 	result = kobject_add(&index->dedupe_object, &layer->kobj, "dedupe");
 	if (result != VDO_SUCCESS) {
 		free_work_queue(&index->uds_queue);
