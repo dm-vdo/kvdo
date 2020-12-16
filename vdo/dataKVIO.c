@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#110 $
  */
 
 #include "dataKVIO.h"
@@ -713,12 +713,11 @@ static void kvdo_compress_work(struct vdo_work_item *item)
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	char *context = get_work_queue_private_data();
-	int size =
-		LZ4_compress_default(data_vio->data_block,
-				     data_vio->scratch_block,
-				     VDO_BLOCK_SIZE,
-				     VDO_BLOCK_SIZE,
-				     context);
+	int size = LZ4_compress_default(data_vio->data_block,
+					data_vio->scratch_block,
+					VDO_BLOCK_SIZE,
+					VDO_BLOCK_SIZE,
+					context);
 	if (size > 0) {
 		// The scratch block will be used to contain the compressed
 		// data.
@@ -965,8 +964,8 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	}
 
 	/*
-	 * Discards behave very differently than other requests when coming
-	 * in from device-mapper. We have to be able to handle any size discards
+	 * Discards behave very differently than other requests when coming in
+	 * from device-mapper. We have to be able to handle any size discards
 	 * and with various sector offsets within a block.
 	 */
 	vdo_action *callback = kvdo_complete_data_vio;
@@ -1168,7 +1167,7 @@ static int make_pooled_data_vio(void **data_ptr)
 }
 
 /**
- * Dump out the waiters on each struct data_vio in the struct data_vio buffer pool.
+ * Dump out the waiters on each data_vio in the data_vio buffer pool.
  *
  * @param queue    The queue to check (logical or physical)
  * @param wait_on  The label to print for queue (logical or physical)
@@ -1267,31 +1266,30 @@ static void dump_pooled_data_vio(void *data)
 				 sizeof(vio_work_item_dump_buffer));
 	// Another static buffer...
 	// log10(256) = 2.408+, round up:
-	enum { DECIMAL_DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t))
-	};
-	static char vio_block_number_dump_buffer[sizeof("P L D") +
-						 3 *
-						 DECIMAL_DIGITS_PER_UINT64_T];
+	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
+	static char vio_block_number_dump_buffer[sizeof("P L D")
+						 + 3 * DIGITS_PER_UINT64_T];
 	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu D%llu",
-			 get_data_vio_allocation(data_vio), data_vio->logical.lbn,
+			 get_data_vio_allocation(data_vio),
+			 data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
 	} else if (has_allocation(data_vio)) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu",
-			 get_data_vio_allocation(data_vio), data_vio->logical.lbn);
+			 get_data_vio_allocation(data_vio),
+			 data_vio->logical.lbn);
 	} else {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer), "L%llu",
 			 data_vio->logical.lbn);
 	}
 
-	static char vio_flush_generation_buffer[sizeof(" FG") +
-						DECIMAL_DIGITS_PER_UINT64_T] =
-		"";
+	static char vio_flush_generation_buffer[sizeof(" FG")
+						+ DIGITS_PER_UINT64_T] = "";
 	if (data_vio->flush_generation != 0) {
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer), " FG%llu",
@@ -1301,7 +1299,6 @@ static void dump_pooled_data_vio(void *data)
 	// Encode VIO attributes as a string of one-character flags, usually
 	// empty.
 	static char flags_dump_buffer[8];
-
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
 	log_info("  vio %px %s%s %s %s%s", data_vio,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#3 $
  */
 
 #ifndef BLOCK_MAPPING_STATE_H
@@ -40,8 +40,9 @@ typedef enum {
 /**
  * The total number of compressed blocks that can live in a physical block.
  **/
-enum { MAX_COMPRESSION_SLOTS =
-	MAPPING_STATE_COMPRESSED_MAX - MAPPING_STATE_COMPRESSED_BASE + 1,
+enum {
+	MAX_COMPRESSION_SLOTS = (MAPPING_STATE_COMPRESSED_MAX
+				 - MAPPING_STATE_COMPRESSED_BASE + 1),
 };
 
 /**********************************************************************/
