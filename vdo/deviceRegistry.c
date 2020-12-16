@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#12 $
  */
 
 #include "deviceRegistry.h"
@@ -29,7 +29,7 @@
 
 /*
  * We don't expect this set to ever get really large, so a linked list
- * is adequate. We can use a PointerMap if we need to later.
+ * is adequate. We can use a pointer_map if we need to later.
  */
 struct device_registry {
 	struct list_head links;

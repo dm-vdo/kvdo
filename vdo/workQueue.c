@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#42 $
  */
 
 #include "workQueue.h"
@@ -982,13 +982,13 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 // Work submission
 
 /**********************************************************************/
-void enqueue_work_queue(struct vdo_work_queue *kvdoWorkQueue,
+void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item)
 {
-	struct simple_work_queue *queue = pick_simple_queue(kvdoWorkQueue);
+	struct simple_work_queue *simple_queue = pick_simple_queue(queue);
 
-	if (enqueue_work_queue_item(queue, item)) {
-		wake_worker_thread(queue);
+	if (enqueue_work_queue_item(simple_queue, item)) {
+		wake_worker_thread(simple_queue);
 	}
 }
 

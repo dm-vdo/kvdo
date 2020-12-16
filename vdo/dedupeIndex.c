@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#78 $
  */
 
 #include "dedupeIndex.h"
@@ -428,7 +428,7 @@ stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 static void timeout_index_operations(struct timer_list *t)
 {
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
-	LIST_HEAD(expiredHead);
+	LIST_HEAD(expired_head);
 	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
 
@@ -448,13 +448,13 @@ static void timeout_index_operations(struct timer_list *t)
 		}
 		list_del(&dedupe_context->pending_list);
 		dedupe_context->is_pending = false;
-		list_add_tail(&dedupe_context->pending_list, &expiredHead);
+		list_add_tail(&dedupe_context->pending_list, &expired_head);
 	}
 	spin_unlock_bh(&index->pending_lock);
 	unsigned int timed_out = 0;
-	while (!list_empty(&expiredHead)) {
+	while (!list_empty(&expired_head)) {
 		struct data_vio *data_vio =
-			list_first_entry(&expiredHead,
+			list_first_entry(&expired_head,
 					 struct data_vio,
 					 dedupe_context.pending_list);
 		struct dedupe_context *dedupe_context =

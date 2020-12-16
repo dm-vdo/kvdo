@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#5 $
  */
 
 #ifndef HISTOGRAM_H
@@ -76,7 +76,7 @@ struct histogram *make_linear_histogram(struct kobject *parent,
  * @param sample_units  The unit (plural) for the metric, or NULL if it's a
  *                      simple counter.
  * @param log_size      The number of buckets.  There are buckets for a range
- *                      of sizes up to 10^logSize, and an extra bucket for
+ *                      of sizes up to 10^log_size, and an extra bucket for
  *                      larger samples.
  *
  * @return the histogram
@@ -102,7 +102,7 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent,
  * @param counted_items A name (plural) for the things being counted.
  * @param metric        The measure being used to divide samples into buckets.
  * @param log_size      The number of buckets.  There are buckets for a range
- *                      of sizes up to 10^logSize, and an extra bucket for
+ *                      of sizes up to 10^log_size, and an extra bucket for
  *                      larger samples.
  *
  * @return the histogram
