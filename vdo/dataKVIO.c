@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#109 $
  */
 
 #include "dataKVIO.h"
@@ -479,7 +479,7 @@ void read_data_vio(struct data_vio *data_vio)
 	// block (for a partial IO).
 	int result = VDO_SUCCESS;
 	int opf = (data_vio->external_io_request.bio->bi_opf &
-		   ~PASSTHROUGH_FLAGS);
+		   PASSTHROUGH_FLAGS);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_vio->bio,
 					       data_vio->data_block, vio,
