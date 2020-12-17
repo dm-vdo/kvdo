@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#23 $
  */
 
 #include "adminState.h"
@@ -210,14 +210,16 @@ static bool check_code(bool valid,
 		       const char *what,
 		       struct vdo_completion *waiter)
 {
+	int result;
+
 	if (valid) {
 		return true;
 	}
 
-	int result = log_error_strerror(VDO_INVALID_ADMIN_STATE,
-					"%s is not a %s",
-					get_admin_state_code_name(code),
-					what);
+	result = log_error_strerror(VDO_INVALID_ADMIN_STATE,
+				    "%s is not a %s",
+				    get_admin_state_code_name(code),
+				    what);
 	if (waiter != NULL) {
 		finish_completion(waiter, result);
 	}

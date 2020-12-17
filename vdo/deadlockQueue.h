@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#6 $
  */
 
 #ifndef DEADLOCK_QUEUE_H
@@ -82,8 +82,10 @@ void add_to_deadlock_queue(struct deadlock_queue *queue,
 static inline struct bio *poll_deadlock_queue(struct deadlock_queue *queue,
 					      uint64_t *arrival_jiffies)
 {
+	struct bio *bio;
+
 	spin_lock(&queue->lock);
-	struct bio *bio = bio_list_pop(&queue->list);
+	bio = bio_list_pop(&queue->list);
 	if (unlikely(bio != NULL)) {
 		*arrival_jiffies = queue->arrival_jiffies;
 	}

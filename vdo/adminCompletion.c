@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#25 $
  */
 
 #include "adminCompletion.h"
@@ -44,8 +44,8 @@ void assert_admin_operation_type(struct admin_completion *completion,
 struct admin_completion *
 admin_completion_from_sub_task(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, SUB_TASK_COMPLETION);
 	struct vdo_completion *parent = completion->parent;
+	assert_completion_type(completion->type, SUB_TASK_COMPLETION);
 	assert_completion_type(parent->type, ADMIN_COMPLETION);
 	return container_of(parent, struct admin_completion, completion);
 }
@@ -140,6 +140,8 @@ int perform_admin_operation(struct vdo *vdo,
 			    vdo_action *action,
 			    vdo_action *error_handler)
 {
+	int result;
+	PhysicalLayer *layer = vdo->layer;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
 	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0) {
 		return log_error_strerror(VDO_COMPONENT_BUSY,
@@ -157,10 +159,9 @@ int perform_admin_operation(struct vdo *vdo,
 	admin_completion->phase = 0;
 	prepare_admin_sub_task(vdo, action, error_handler);
 
-	PhysicalLayer *layer = vdo->layer;
 	layer->enqueue(&admin_completion->sub_task_completion);
 	layer->waitForAdminOperation(layer);
-	int result = admin_completion->completion.result;
+	result = admin_completion->completion.result;
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);
 	return result;
