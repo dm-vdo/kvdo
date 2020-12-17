@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#60 $
  */
 
 #include "kvio.h"
@@ -132,14 +132,14 @@ void submit_metadata_vio(struct vio *vio)
 {
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
+	struct kernel_layer *layer =
+		as_kernel_layer(vio_as_completion(vio)->layer);
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
 		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
 		bi_opf = REQ_OP_READ;
 	} else {
-		struct kernel_layer *layer =
-			as_kernel_layer(vio_as_completion(vio)->layer);
 		enum kernel_layer_state state = get_kernel_layer_state(layer);
 		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
 				 || (state == LAYER_RESUMING)
@@ -158,6 +158,28 @@ void submit_metadata_vio(struct vio *vio)
 
 	if (vio_requires_flush_after(vio)) {
 		bi_opf |= REQ_FUA;
+	}
+
+	/*
+	 * Everything coming through this function is metadata, so flag it as
+	 * REQ_META in case the lower layers benefit from that information.
+	 *
+	 * We believe all recovery journal and block map IO is important for
+	 * throughput relative to other IO, so we tag them with REQ_PRIO to
+	 * convey this to lower layers, if they care. 
+	 *
+	 * Additionally, recovery journal IO is directly critical to user
+	 * bio latency, so we tag them with REQ_SYNC.
+	 **/
+	bi_opf |= REQ_META;
+	if ((vio->type == VIO_TYPE_BLOCK_MAP_INTERIOR) ||
+	    (vio->type == VIO_TYPE_BLOCK_MAP) ||
+	    (vio->type == VIO_TYPE_RECOVERY_JOURNAL)) {
+		bi_opf |= REQ_PRIO;
+	}
+
+	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
+		bi_opf |= REQ_SYNC;
 	}
 
 	int result = reset_bio_with_buffer(bio, vio->data, vio,
