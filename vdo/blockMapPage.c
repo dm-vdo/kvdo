@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#26 $
  */
 
 #include "blockMapPage.h"
@@ -49,8 +49,8 @@ struct block_map_page *format_block_map_page(void *buffer,
 					     physical_block_number_t pbn,
 					     bool initialized)
 {
-	memset(buffer, 0, VDO_BLOCK_SIZE);
 	struct block_map_page *page = (struct block_map_page *) buffer;
+	memset(buffer, 0, VDO_BLOCK_SIZE);
 	page->version = pack_version_number(BLOCK_MAP_4_1);
 	page->header.nonce = __cpu_to_le64(nonce);
 	page->header.pbn = __cpu_to_le64(pbn);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#34 $
  */
 
 #include "blockMapRecovery.h"
@@ -200,6 +200,7 @@ make_recovery_completion(struct vdo *vdo,
 			 struct vdo_completion *parent,
 			 struct block_map_recovery_completion **recovery_ptr)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
 		min_page_count(get_configured_cache_size(vdo) >> 1,
@@ -224,7 +225,6 @@ make_recovery_completion(struct vdo *vdo,
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
 	recovery->admin_thread = get_admin_thread(thread_config);
 	recovery->logical_thread_id = get_logical_zone_thread(thread_config, 0);
 
@@ -262,9 +262,9 @@ make_recovery_completion(struct vdo *vdo,
 /**********************************************************************/
 static void flush_block_map(struct vdo_completion *completion)
 {
-	log_info("Flushing block map changes");
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion->parent);
+	log_info("Flushing block map changes");
 	ASSERT_LOG_ONLY((completion->callback_thread_id ==
 			 recovery->admin_thread),
 			"flush_block_map() called on admin thread");
@@ -350,11 +350,12 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 			      struct numbered_block_mapping *current_entry,
 			      bool needs_sort)
 {
+	size_t current_page;
 	// If current_entry is invalid, return immediately.
 	if (current_entry < recovery->journal_entries) {
 		return current_entry;
 	}
-	size_t current_page = current_entry->block_map_slot.pbn;
+	current_page = current_entry->block_map_slot.pbn;
 
 	// Decrement current_entry until it's out of bounds or on a different
 	// page.
@@ -433,14 +434,14 @@ static void handle_page_load_error(struct vdo_completion *completion)
 static void fetch_page(struct block_map_recovery_completion *recovery,
 		       struct vdo_completion *completion)
 {
+	physical_block_number_t new_pbn;
 	if (recovery->current_unfetched_entry < recovery->journal_entries) {
 		// Nothing left to fetch.
 		return;
 	}
 
 	// Fetch the next page we haven't yet requested.
-	physical_block_number_t new_pbn =
-		recovery->current_unfetched_entry->block_map_slot.pbn;
+	new_pbn = recovery->current_unfetched_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery,
 					      recovery->current_unfetched_entry,
@@ -485,17 +486,19 @@ get_next_page_completion(struct block_map_recovery_completion *recovery,
 static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 				struct vdo_completion *completion)
 {
+	struct vdo_page_completion *page_completion =
+		(struct vdo_page_completion *) completion;
+
 	if (finish_if_done(recovery)) {
 		return;
 	}
 
-	struct vdo_page_completion *page_completion =
-		(struct vdo_page_completion *) completion;
 	if (recovery->pbn != page_completion->pbn) {
 		return;
 	}
 
 	while (page_completion->ready) {
+		struct numbered_block_mapping *start_of_next_page;
 		struct block_map_page *page =
 			dereference_writable_vdo_page(completion);
 		int result = ASSERT(page != NULL, "page available");
@@ -504,7 +507,7 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 			return;
 		}
 
-		struct numbered_block_mapping *start_of_next_page =
+		start_of_next_page =
 			find_entry_starting_next_page(recovery,
 						      recovery->current_entry,
 						      false);
@@ -533,7 +536,10 @@ void recover_block_map(struct vdo *vdo,
 		       struct numbered_block_mapping *journal_entries,
 		       struct vdo_completion *parent)
 {
+	struct numbered_block_mapping *first_sorted_entry;
+	page_count_t i;
 	struct block_map_recovery_completion *recovery;
+
 	int result = make_recovery_completion(vdo, entry_count,
 					      journal_entries, parent,
 					      &recovery);
@@ -547,8 +553,7 @@ void recover_block_map(struct vdo *vdo,
 		return;
 	}
 
-	struct numbered_block_mapping *first_sorted_entry =
-		sort_next_heap_element(&recovery->replay_heap);
+	first_sorted_entry = sort_next_heap_element(&recovery->replay_heap);
 	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
 			"heap is returning elements in an unexpected order");
 
@@ -557,7 +562,6 @@ void recover_block_map(struct vdo *vdo,
 	recovery->launching = true;
 	recovery->pbn = recovery->current_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry = recovery->current_entry;
-	page_count_t i;
 	for (i = 0; i < recovery->page_count; i++) {
 		if (recovery->current_unfetched_entry <
 		    recovery->journal_entries) {
