@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#62 $
  */
 
 #include "ioSubmitter.h"
@@ -498,29 +498,13 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 
 	/*
 	 * Enabling of MD RAID5 mode optimizes performance for MD RAID5
-	 * storage configurations. It clears the bits for sync I/O RW flags on
-	 * data block bios and sets the bits for sync I/O RW flags on all
-	 * journal-related bios.
-	 *
-	 * This increases the frequency of full-stripe writes by altering
-	 * flags of submitted bios. For workloads with write requests this
-	 * increases the likelihood that the MD RAID5 device will update a
-	 * full stripe instead of a partial stripe, thereby avoiding making
-	 * read requests to the underlying physical storage for purposes of
-	 * parity chunk calculations.
-	 *
-	 * Setting the sync-flag on journal-related bios is expected to reduce
-	 * latency on journal updates submitted to an MD RAID5 device.
+	 * storage configurations. It sets the bits for sync I/O RW flags on
+	 * all journal-related bios, which is expected to reduce latency on
+	 * journal updates submitted to an MD RAID5 device.
 	 */
 	if (layer->device_config->md_raid5_mode_enabled) {
-		if (is_data_vio(vio)) {
-			// Clear the bits for sync I/O RW flags on data block
-			// bios.
-			bio->bi_opf &= ~REQ_SYNC;
-		} else if ((vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
-			   (vio->type == VIO_TYPE_SLAB_JOURNAL)) {
-			// Set the bits for sync I/O RW flags on all
-			// journal-related and slab-journal-related bios.
+		if ((vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
+		    (vio->type == VIO_TYPE_SLAB_JOURNAL)) {
 			bio->bi_opf |= REQ_SYNC;
 		}
 	}
