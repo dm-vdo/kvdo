@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#42 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -59,8 +59,9 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 		return result;
 	}
 
-	result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
-			    block, block->block, &block->vio);
+	result = kvdo_create_metadata_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
+					  VIO_PRIORITY_HIGH, block,
+					  block->block, &block->vio);
 	if (result != VDO_SUCCESS) {
 		free_recovery_block(&block);
 		return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#45 $
  */
 
 #include "slabSummary.h"
@@ -116,10 +116,10 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = create_vio(layer, VIO_TYPE_SLAB_SUMMARY, VIO_PRIORITY_METADATA,
-			    slab_summary_block,
-			    slab_summary_block->outgoing_entries,
-			    &slab_summary_block->vio);
+	result = kvdo_create_metadata_vio(layer, VIO_TYPE_SLAB_SUMMARY,
+					  VIO_PRIORITY_METADATA, slab_summary_block,
+					  slab_summary_block->outgoing_entries,
+					  &slab_summary_block->vio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

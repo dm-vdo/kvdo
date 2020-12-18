@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#50 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -96,16 +96,15 @@ static int initialize_info(struct vdo_page_cache *cache)
 	struct page_info *info;
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     ++info) {
+		int result;
 		info->cache = cache;
 		info->state = PS_FREE;
 		info->pbn = NO_PAGE;
 
-		int result = create_vio(cache->layer,
-					VIO_TYPE_BLOCK_MAP,
-					VIO_PRIORITY_METADATA,
-					info,
-					get_page_buffer(info),
-					&info->vio);
+		result = kvdo_create_metadata_vio(cache->layer, VIO_TYPE_BLOCK_MAP,
+						  VIO_PRIORITY_METADATA, info,
+						  get_page_buffer(info),
+						  &info->vio);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

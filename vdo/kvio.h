@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#32 $
  */
 
 #ifndef KVIO_H
@@ -115,28 +115,6 @@ void initialize_kvio(struct vio *vio,
 		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio);
-
-/**
- * Create a new vio for metadata operations.
- *
- * <p>Implements metadata_vio_creator.
- *
- * @param [in]  layer      The physical layer
- * @param [in]  type       The type of vio to create
- * @param [in]  priority   The relative priority to assign to the vio
- * @param [in]  parent     The parent to assign to the vio's completion
- * @param [in]  data       The buffer
- * @param [out] vio_ptr    A pointer to hold new vio
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-kvdo_create_metadata_vio(PhysicalLayer *layer,
-			 vio_type type,
-			 vio_priority priority,
-			 void *parent,
-			 char *data,
-			 struct vio **vio_ptr);
 
 /**
  * Create a new allocating_vio for compressed writes.

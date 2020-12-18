@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#74 $
  */
 
 #include "blockMapTree.h"
@@ -96,8 +96,9 @@ make_block_map_vios(PhysicalLayer *layer,
 		    void *buffer,
 		    struct vio **vio_ptr)
 {
-	return create_vio(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
-			  VIO_PRIORITY_METADATA, parent, buffer, vio_ptr);
+	return kvdo_create_metadata_vio(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
+					VIO_PRIORITY_METADATA, parent,
+					buffer, vio_ptr);
 }
 
 /**********************************************************************/

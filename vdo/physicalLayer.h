@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#35 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -94,25 +94,6 @@ typedef int extent_writer(PhysicalLayer *layer,
 			  physical_block_number_t startBlock,
 			  size_t blockCount,
 			  char *buffer);
-
-/**
- * A function to allocate a metadata vio.
- *
- * @param [in]  layer     The physical layer
- * @param [in]  vioType   The type of vio to create
- * @param [in]  priority  The relative priority to assign to the vios
- * @param [in]  parent    The parent of this vio
- * @param [in]  data      The buffer
- * @param [out] vio_ptr    A pointer to hold the new vio
- *
- * @return VDO_SUCCESS or an error
- **/
-typedef int metadata_vio_creator(PhysicalLayer *layer,
-			         vio_type vioType,
-			         vio_priority priority,
-			         void *parent,
-			         char *data,
-			         struct vio **vio_ptr);
 
 /**
  * A function to allocate an allocating_vio for compressed writes.
@@ -316,7 +297,6 @@ struct physicalLayer {
 	write_policy_getter *getWritePolicy;
 
 	// Synchronous interfaces (vio-based)
-	metadata_vio_creator *createMetadataVIO;
 	compressed_write_vio_creator *createCompressedWriteVIO;
 	data_vio_zeroer *zeroDataVIO;
 	data_copier *copyData;
