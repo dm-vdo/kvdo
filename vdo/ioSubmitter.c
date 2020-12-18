@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#64 $
  */
 
 #include "ioSubmitter.h"
@@ -283,9 +283,9 @@ static void process_bio_map(struct vdo_work_item *item)
 	// kernels?
 	if (USE_BIOMAP && is_data_vio(vio)) {
 		// We need to make sure to do two things here:
-		// 1. Use each bio's kvio when submitting. Any other kvio is
+		// 1. Use each bio's vio when submitting. Any other vio is
 		// not safe
-		// 2. Detach the bio list from the kvio before submitting,
+		// 2. Detach the bio list from the vio before submitting,
 		// because it could get reused/free'd up before all bios
 		// are submitted.
 		struct bio_queue_data *bio_queue_data =
@@ -334,7 +334,7 @@ static void process_bio_map(struct vdo_work_item *item)
  * @param vio         The vio we want to merge
  * @param merge_type  The type of merging we want to try
  *
- * @return the kvio to merge to, NULL if no merging is possible
+ * @return the vio to merge to, NULL if no merging is possible
  */
 static struct vio *get_mergeable_locked(struct int_map *map,
 					struct vio *vio,

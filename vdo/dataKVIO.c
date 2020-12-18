@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#113 $
  */
 
 #include "dataKVIO.h"
@@ -105,18 +105,18 @@ static __always_inline void set_write_protect(void *address,
 }
 
 /**
- * First tracing hook for VIO completion.
+ * First tracing hook for data_vio completion.
  *
  * If the SystemTap script vdotrace.stp is in use, it does stage 1 of
  * its processing here. We must not call add_trace_record between the
  * two tap functions.
  *
- * @param data_vio  The VIO we're finishing up
+ * @param data_vio  The data_vio we're finishing up
  **/
-static void kvio_completion_tap1(struct data_vio *data_vio)
+static void vio_completion_tap1(struct data_vio *data_vio)
 {
 	/*
-	 * Ensure that data_kvio doesn't get optimized out, even under inline
+	 * Ensure that data_vio doesn't get optimized out, even under inline
 	 * expansion. Also, make sure the compiler has to emit debug info
 	 * for base_trace_location, which some of our SystemTap scripts will
 	 * use here.
@@ -124,7 +124,7 @@ static void kvio_completion_tap1(struct data_vio *data_vio)
 	 * First, make it look as though all memory could be clobbered; then
 	 * require that a value be read into a register. That'll force at
 	 * least one instruction to exist (so SystemTap can hook in) where
-	 * data_kvio is live. We use a field that the caller would've
+	 * data_vio is live. We use a field that the caller would've
 	 * accessed recently anyway, so it may be cached.
 	 */
 	barrier();
@@ -135,15 +135,15 @@ static void kvio_completion_tap1(struct data_vio *data_vio)
 }
 
 /**
- * Second tracing hook for VIO completion.
+ * Second tracing hook for data_vio completion.
  *
- * The SystemTap script vdotrace.stp splits its VIO-completion work
+ * The SystemTap script vdotrace.stp splits its vio-completion work
  * into two stages, to reduce lock contention for script variables.
  * Hence, it needs two hooks in the code.
  *
- * @param data_vio  The VIO we're finishing up
+ * @param data_vio  The data_vio we're finishing up
  **/
-static void kvio_completion_tap2(struct data_vio *data_vio)
+static void vio_completion_tap2(struct data_vio *data_vio)
 {
 	// Hack to ensure variable doesn't get optimized out.
 	barrier();
@@ -192,8 +192,8 @@ static noinline void clean_data_vio(struct data_vio *data_vio,
 
 	if (unlikely(vio->trace != NULL)) {
 		maybe_log_vio_trace(vio);
-		kvio_completion_tap1(data_vio);
-		kvio_completion_tap2(data_vio);
+		vio_completion_tap1(data_vio);
+		vio_completion_tap2(data_vio);
 		free_trace_to_pool(as_kernel_layer(vio_as_completion(vio)->layer),
 				   vio->trace);
 	}
@@ -213,7 +213,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 
 	struct free_buffer_pointers fbp;
 
-	init_free_buffer_pointers(&fbp, layer->data_kvio_pool);
+	init_free_buffer_pointers(&fbp, layer->data_vio_pool);
 
 	struct vdo_work_item *item;
 
@@ -239,7 +239,7 @@ kvdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
 		= as_kernel_layer(container_of(item, struct vdo_completion,
 					       work_item)->layer);
 	kvdo_acknowledge_data_vio(data_vio);
-	add_to_batch_processor(layer->data_kvio_releaser, item);
+	add_to_batch_processor(layer->data_vio_releaser, item);
 }
 
 /**********************************************************************/
@@ -258,7 +258,7 @@ void kvdo_complete_data_vio(struct vdo_completion *completion)
 			NULL,
 			BIO_ACK_Q_ACTION_ACK);
 	} else {
-		add_to_batch_processor(layer->data_kvio_releaser,
+		add_to_batch_processor(layer->data_vio_releaser,
 				       &completion->work_item);
 	}
 }
@@ -536,7 +536,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 		as_kernel_layer(vio_as_completion(data_vio_as_vio(data_vio))->layer);
 
 	// If the remaining discard work is not completely processed by this
-	// VIO, don't acknowledge it yet.
+	// data_vio, don't acknowledge it yet.
 	if ((data_vio->external_io_request.bio != NULL) &&
 	    (bio_op(data_vio->external_io_request.bio) == REQ_OP_DISCARD) &&
 	    (data_vio->remaining_discard >
@@ -564,7 +564,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 void write_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(data_vio)),
-			"kvdoWriteDataVIO() called on write data_vio");
+			"write_data_vio must be passed a write data_vio");
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("$F;io=writeData;j=normal"));
 
@@ -741,7 +741,7 @@ void compress_data_vio(struct data_vio *data_vio)
 	/*
 	 * If the orignal bio was a discard, but we got this far because the
 	 * discard was a partial one (r/m/w), and it is part of a larger
-	 * discard, we cannot compress this VIO. We need to make sure the VIO
+	 * discard, we cannot compress this vio. We need to make sure the vio
 	 * completes ASAP.
 	 */
 	if ((data_vio->external_io_request.bio != NULL) &&
@@ -771,7 +771,7 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 				      struct data_vio **data_vio_ptr)
 {
 	struct data_vio *data_vio;
-	int result = alloc_buffer_from_pool(layer->data_kvio_pool,
+	int result = alloc_buffer_from_pool(layer->data_vio_pool,
 					    (void **) &data_vio);
 	if (result != VDO_SUCCESS) {
 		return log_error_strerror(result,
@@ -805,7 +805,7 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
  * physically read or write the data associated with the struct data_vio.
  *
  * @param [in]  layer            The physical layer
- * @param [in]  bio              The bio from the request the new data_kvio
+ * @param [in]  bio              The bio from the request the new data_vio
  *                               will service
  * @param [in]  arrival_jiffies  The arrival time of the bio
  * @param [out] data_vio_ptr  A pointer to hold the new data_vio
@@ -1008,9 +1008,9 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 }
 
 /**
- * Hash a data_kvio and set its chunk name.
+ * Hash a data_vio and set its chunk name.
  *
- * @param item  The data_kvio to be hashed
+ * @param item  The data_vio to be hashed
  **/
 static void kvdo_hash_data_work(struct vdo_work_item *item)
 {
@@ -1182,7 +1182,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct data_vio *data_vio = waiter_as_data_vio(first);
 
-	log_info("      %s is locked. Waited on by: VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+	log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 		 wait_on, data_vio, get_data_vio_allocation(data_vio),
 		 data_vio->logical.lbn, data_vio->duplicate.pbn,
 		 get_operation_name(data_vio));
@@ -1192,7 +1192,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		log_info("     ... and : VIO %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 			 data_vio, get_data_vio_allocation(data_vio),
 			 data_vio->logical.lbn, data_vio->duplicate.pbn,
 			 get_operation_name(data_vio));
@@ -1200,18 +1200,18 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 }
 
 /**
- * Encode various attributes of a VIO as a string of one-character flags for
- * dump logging. This encoding is for logging brevity:
+ * Encode various attributes of a data_vio as a string of one-character flags
+ * for dump logging. This encoding is for logging brevity:
  *
- * R => VIO completion result not VDO_SUCCESS
- * W => VIO is on a wait queue
- * D => VIO is a duplicate
+ * R => vio completion result not VDO_SUCCESS
+ * W => vio is on a wait queue
+ * D => vio is a duplicate
  *
  * <p>The common case of no flags set will result in an empty, null-terminated
  * buffer. If any flags are encoded, the first character in the string will be
  * a space character.
  *
- * @param data_vio  The VIO to encode
+ * @param data_vio  The vio to encode
  * @param buffer    The buffer to receive a null-terminated string of encoded
  *                  flag character
  **/
@@ -1296,7 +1296,7 @@ static void dump_pooled_data_vio(void *data)
 			 data_vio->flush_generation);
 	}
 
-	// Encode VIO attributes as a string of one-character flags, usually
+	// Encode vio attributes as a string of one-character flags, usually
 	// empty.
 	static char flags_dump_buffer[8];
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
@@ -1310,7 +1310,7 @@ static void dump_pooled_data_vio(void *data)
 
 	dump_vio_waiters(&data_vio->logical.waiters, "lbn");
 
-	// might want to dump more info from VIO here
+	// might want to dump more info from vio here
 }
 
 /**********************************************************************/

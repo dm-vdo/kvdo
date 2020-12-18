@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#11 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -97,7 +97,7 @@ void enqueue_bio_work_item(struct io_submitter *io_submitter,
  * is busy, which is why we don't want to do the submission in the
  * original calling thread.
  *
- * The bi_private field of the bio must point to a KVIO associated
+ * The bi_private field of the bio must point to a vio associated
  * with the operation. The bi_end_io callback is invoked when the I/O
  * operation completes.
  *

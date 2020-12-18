@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#55 $
  */
 
 #ifndef DATA_KVIO_H
@@ -31,11 +31,11 @@
 #include "kvio.h"
 
 /**
- * Returns a pointer to the data_kvio wrapping a work item.
+ * Returns a pointer to the data_vio wrapping a work item.
  *
  * @param item  the work item
  *
- * @return the data_kvio
+ * @return the data_vio
  **/
 static inline struct data_vio *
 work_item_as_data_vio(struct vdo_work_item *item)
@@ -180,9 +180,9 @@ void kvdo_read_block(struct data_vio *data_vio,
 		     vdo_action *callback);
 
 /**
- * Allocate a buffer pool of data_kvio objects.
+ * Allocate a buffer pool of data_vio objects.
  *
- * @param [in]  pool_size        The number of data_kvio objects in the pool
+ * @param [in]  pool_size        The number of data_vio objects in the pool
  * @param [out] buffer_pool_ptr  A pointer to hold the new buffer pool
  *
  * @return VDO_SUCCESS or an error
@@ -192,7 +192,7 @@ make_data_vio_buffer_pool(uint32_t pool_size,
 			  struct buffer_pool **buffer_pool_ptr);
 
 /**
- * Get the state needed to generate UDS metadata from the data_kvio
+ * Get the state needed to generate UDS metadata from the data_vio
  * associated with a dedupe_context.
  *
  * @param context  The dedupe_context
@@ -203,7 +203,7 @@ struct data_location __must_check
 get_dedupe_advice(const struct dedupe_context *context);
 
 /**
- * Set the result of a dedupe query for the data_kvio associated with a
+ * Set the result of a dedupe query for the data_vio associated with a
  * dedupe_context.
  *
  * @param context  The context receiving advice

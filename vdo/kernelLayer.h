@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#57 $
  */
 
 #ifndef KERNELLAYER_H
@@ -128,7 +128,7 @@ struct kernel_layer {
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;
 	// Memory allocation
-	struct buffer_pool *data_kvio_pool;
+	struct buffer_pool *data_vio_pool;
 	// UDS index info
 	struct dedupe_index *dedupe_index;
 	// Statistics
@@ -161,8 +161,8 @@ struct kernel_layer {
 	bool trace_logging;
 	/* Storage for trace data. */
 	struct buffer_pool *trace_buffer_pool;
-	/* For returning batches of data_kvios to their pool */
-	struct batch_processor *data_kvio_releaser;
+	/* For returning batches of data_vios to their pool */
+	struct batch_processor *data_vio_releaser;
 
 	// Administrative operations
 	/* The object used to wait for administrative operations to complete */
@@ -191,7 +191,7 @@ enum bio_q_action {
 };
 
 enum cpu_q_action {
-	CPU_Q_ACTION_COMPLETE_KVIO,
+	CPU_Q_ACTION_COMPLETE_VIO,
 	CPU_Q_ACTION_COMPRESS_BLOCK,
 	CPU_Q_ACTION_EVENT_REPORTER,
 	CPU_Q_ACTION_HASH_BLOCK,

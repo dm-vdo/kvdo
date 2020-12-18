@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#61 $
  */
 
 #include "kvio.h"
@@ -102,7 +102,7 @@ void write_compressed_block(struct allocating_vio *allocating_vio)
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 	struct bio *bio = vio->bio;
 
-	// Write the compressed block, using the compressed kvio's own bio.
+	// Write the compressed block, using the compressed vio's own bio.
 	int result = reset_bio_with_buffer(bio, vio->data, vio,
 					   complete_async_bio, REQ_OP_WRITE,
 					   vio->physical);
@@ -190,7 +190,7 @@ void submit_metadata_vio(struct vio *vio)
 		return;
 	}
 
-	// Perform the metadata IO, using the metadata kvio's own bio.
+	// Perform the metadata IO, using the metadata vio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
@@ -308,7 +308,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	struct vio *vio;
 	result = ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("metadata kvio allocation failure %d", result);
+		uds_log_error("metadata vio allocation failure %d", result);
 		free_bio(bio);
 		return result;
 	}

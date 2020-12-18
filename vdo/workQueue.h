@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#17 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -72,7 +72,7 @@ struct vdo_work_item {
  * enumerator defined per kind of work queue -- bio submission work queue
  * actions use bio_q_action, cpu actions use cpu_q_action, etc. For example,
  * for the CPU work queues, data compression can be prioritized separately
- * from final cleanup processing of a KVIO or from dedupe verification; base
+ * from final cleanup processing of a vio or from dedupe verification; base
  * code threads prioritize all VIO callback invocation the same, but separate
  * from sync or heartbeat operations. The bio acknowledgement work queue, on
  * the other hand, only does one thing, so it only defines one action code.

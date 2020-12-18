@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#130 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#131 $
  */
 
 #include "kernelLayer.h"
@@ -63,8 +63,8 @@ static const struct kvdo_work_queue_type bio_ack_q_type = {
 static const struct kvdo_work_queue_type cpu_q_type = {
 	.action_table = {
 		{
-			.name = "cpu_complete_kvio",
-			.code = CPU_Q_ACTION_COMPLETE_KVIO,
+			.name = "cpu_complete_vio",
+			.code = CPU_Q_ACTION_COMPLETE_VIO,
 			.priority = 0
 		},
 		{
@@ -187,7 +187,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
 }
 
 /**
- * Start processing a new data KVIO based on the supplied bio, but from within
+ * Start processing a new data vio based on the supplied bio, but from within
  * a VDO thread context, when we're not allowed to block. Using this path at
  * all suggests a bug or erroneous usage, but we special-case it to avoid a
  * deadlock that can apparently result. Message will be logged to alert the
@@ -208,9 +208,9 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
  *
  * @return  DM_MAPIO_SUBMITTED or a system error code
  **/
-static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
-					    struct bio *bio,
-					    uint64_t arrival_jiffies)
+static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
+					   struct bio *bio,
+					   uint64_t arrival_jiffies)
 {
 	log_warning("kvdo_map_bio called from within a VDO thread!");
 	/*
@@ -229,7 +229,7 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	 *
 	 * To side-step this case, if the limiter says we're busy *and* we're
 	 * running on one of VDO's own threads, we'll drop the I/O request in a
-	 * special queue for processing as soon as KVIOs become free.
+	 * special queue for processing as soon as vios become free.
 	 *
 	 * We don't want to do this in general because it leads to unbounded
 	 * buffering, arbitrarily high latencies, inability to push back in a
@@ -305,9 +305,8 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 		 * This prohibits sleeping during I/O submission to VDO from
 		 * its own thread.
 		 */
-		return launch_data_kvio_from_vdo_thread(layer,
-							bio,
-							arrival_jiffies);
+		return launch_data_vio_from_vdo_thread(layer, bio,
+						       arrival_jiffies);
 	}
 	bool has_discard_permit = false;
 
@@ -597,9 +596,9 @@ int make_kernel_layer(uint64_t starting_sector,
 	result = make_batch_processor(layer,
 				      return_data_vio_batch_to_pool,
 				      layer,
-				      &layer->data_kvio_releaser);
+				      &layer->data_vio_releaser);
 	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate KVIO-freeing batch processor";
+		*reason = "Cannot allocate vio-freeing batch processor";
 		free_kernel_layer(layer);
 		return result;
 	}
@@ -674,12 +673,12 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	// KVIO and vio pool
+	// Data vio pool
 	BUG_ON(layer->device_config->logical_block_size <= 0);
 	BUG_ON(layer->request_limiter.limit <= 0);
 	BUG_ON(layer->device_config->owned_device == NULL);
 	result = make_data_vio_buffer_pool(layer->request_limiter.limit,
-					   &layer->data_kvio_pool);
+					   &layer->data_vio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
 		free_kernel_layer(layer);
@@ -994,7 +993,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(&layer->data_kvio_pool);
+		free_buffer_pool(&layer->data_vio_pool);
 		free_buffer_pool(&layer->trace_buffer_pool);
 		// fall through
 
@@ -1014,7 +1013,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		}
 		FREE(layer->spare_kvdo_flush);
 		layer->spare_kvdo_flush = NULL;
-		free_batch_processor(&layer->data_kvio_releaser);
+		free_batch_processor(&layer->data_vio_releaser);
 		remove_layer_from_device_registry(layer);
 		break;
 
