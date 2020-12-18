@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#79 $
  */
 
 #include "dmvdo.h"
@@ -568,8 +568,6 @@ static int vdo_initialize(struct dm_target *ti,
 	log_debug("Block map cache blocks = %u", config->cache_size);
 	log_debug("Block map maximum age  = %u",
 		  config->block_map_maximum_age);
-	log_debug("MD RAID5 mode          = %s",
-		  (config->md_raid5_mode_enabled ? "on" : "off"));
 	log_debug("Write policy           = %s",
 		  get_config_write_policy_string(config));
 	log_debug("Deduplication          = %s",

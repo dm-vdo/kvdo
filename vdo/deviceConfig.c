@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#26 $
  */
 
 #include "deviceConfig.h"
@@ -34,7 +34,7 @@
 
 enum {
 	// If we bump this, update the arrays below
-	TABLE_VERSION = 2,
+	TABLE_VERSION = 3,
 	// Limits used when parsing thread-count config spec strings
 	BIO_ROTATION_INTERVAL_LIMIT = 1024,
 	LOGICAL_THREAD_COUNT_LIMIT = 60,
@@ -51,8 +51,8 @@ enum {
 };
 
 // arrays for handling different table versions
-static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9 };
-static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
+static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 8};
+static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8, 7};
 
 /**
  * Decide the version number from argv.
@@ -677,14 +677,9 @@ int parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Get the MD RAID5 optimization mode and validate
-	result = parse_bool(dm_shift_arg(&arg_set),
-			    "on",
-			    "off",
-			    &config->md_raid5_mode_enabled);
-	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config, error_ptr, "Invalid MD RAID5 mode");
-		return VDO_BAD_CONFIGURATION;
+	// Skip pastt the no longer used MD RAID5 optimization mode
+	if (config->version <= 2) {
+		dm_consume_args(&arg_set, 1);
 	}
 
 	// Get the write policy and validate.

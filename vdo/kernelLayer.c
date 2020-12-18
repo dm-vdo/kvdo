@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#131 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#132 $
  */
 
 #include "kernelLayer.h"
@@ -790,12 +790,6 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 	if (config->block_map_maximum_age !=
 	    extant_config->block_map_maximum_age) {
 		*error_ptr = "Block map maximum age cannot change";
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	if (config->md_raid5_mode_enabled !=
-	    extant_config->md_raid5_mode_enabled) {
-		*error_ptr = "mdRaid5Mode cannot change";
 		return VDO_PARAMETER_MISMATCH;
 	}
 

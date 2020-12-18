@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#19 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -54,7 +54,6 @@ struct device_config {
 	write_policy write_policy;
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
-	bool md_raid5_mode_enabled;
 	bool deduplication;
 	char *pool_name;
 	struct thread_count_config thread_counts;
