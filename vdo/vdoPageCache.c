@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#49 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -100,21 +100,19 @@ static int initialize_info(struct vdo_page_cache *cache)
 		info->state = PS_FREE;
 		info->pbn = NO_PAGE;
 
-		if (cache->layer->createMetadataVIO != NULL) {
-			int result = create_vio(cache->layer,
-						VIO_TYPE_BLOCK_MAP,
-						VIO_PRIORITY_METADATA,
-						info,
-						get_page_buffer(info),
-						&info->vio);
-			if (result != VDO_SUCCESS) {
-				return result;
-			}
-
-			// The thread ID should never change.
-			info->vio->completion.callback_thread_id =
-				cache->zone->thread_id;
+		int result = create_vio(cache->layer,
+					VIO_TYPE_BLOCK_MAP,
+					VIO_PRIORITY_METADATA,
+					info,
+					get_page_buffer(info),
+					&info->vio);
+		if (result != VDO_SUCCESS) {
+			return result;
 		}
+
+		// The thread ID should never change.
+		info->vio->completion.callback_thread_id =
+			cache->zone->thread_id;
 
 		INIT_LIST_HEAD(&info->state_entry);
 		list_add_tail(&info->state_entry, &cache->free_list);

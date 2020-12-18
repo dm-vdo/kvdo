@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#91 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -202,16 +202,6 @@ static int allocate_components(struct block_allocator *allocator,
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	int result;
-
-	/*
-	 * If create_vio is NULL, the block allocator is only being used to
-	 * format or audit the VDO. These only require the SuperBlock component,
-	 * so we can just skip allocating all the memory needed for runtime
-	 * components.
-	 */
-	if (layer->createMetadataVIO == NULL) {
-		return VDO_SUCCESS;
-	}
 
 	result = register_read_only_listener(allocator->read_only_notifier,
 					     allocator,

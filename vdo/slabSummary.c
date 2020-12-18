@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#44 $
  */
 
 #include "slabSummary.h"
@@ -160,12 +160,6 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	summary_zone->summary = summary;
 	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
-
-	if (layer->createMetadataVIO == NULL) {
-		// Blocks are only used for writing, and without a create_vio()
-		// call, we'll never be writing anything.
-		return VDO_SUCCESS;
-	}
 
 	// Initialize each block.
 	block_count_t i;
