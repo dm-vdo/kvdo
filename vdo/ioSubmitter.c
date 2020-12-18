@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#63 $
  */
 
 #include "ioSubmitter.h"
@@ -495,19 +495,6 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);
 	bio_list_add(&vio->bios_merged, bio);
-
-	/*
-	 * Enabling of MD RAID5 mode optimizes performance for MD RAID5
-	 * storage configurations. It sets the bits for sync I/O RW flags on
-	 * all journal-related bios, which is expected to reduce latency on
-	 * journal updates submitted to an MD RAID5 device.
-	 */
-	if (layer->device_config->md_raid5_mode_enabled) {
-		if ((vio->type == VIO_TYPE_RECOVERY_JOURNAL) ||
-		    (vio->type == VIO_TYPE_SLAB_JOURNAL)) {
-			bio->bi_opf |= REQ_SYNC;
-		}
-	}
 
 	/*
 	 * Try to use the bio map to submit this bio earlier if we're already
