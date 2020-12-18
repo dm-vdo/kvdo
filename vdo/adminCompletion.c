@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#26 $
  */
 
 #include "adminCompletion.h"
@@ -32,7 +32,7 @@
 
 /**********************************************************************/
 void assert_admin_operation_type(struct admin_completion *completion,
-				 admin_operation_type expected)
+				 enum admin_operation_type expected)
 {
 	ASSERT_LOG_ONLY(completion->type == expected,
 			"admin operation type is %u instead of %u",
@@ -65,7 +65,7 @@ void assert_admin_phase_thread(struct admin_completion *admin_completion,
 
 /**********************************************************************/
 struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
-				    admin_operation_type expected)
+				    enum admin_operation_type expected)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
@@ -135,8 +135,8 @@ static void admin_operation_callback(struct vdo_completion *completion)
 
 /**********************************************************************/
 int perform_admin_operation(struct vdo *vdo,
-			    admin_operation_type type,
-			    ThreadIDGetterForPhase *thread_id_getter,
+			    enum admin_operation_type type,
+			    thread_id_getter_for_phase *thread_id_getter,
 			    vdo_action *action,
 			    vdo_action *error_handler)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#16 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -27,7 +27,7 @@
 #include "completion.h"
 #include "types.h"
 
-typedef enum {
+enum admin_operation_type {
 	ADMIN_OPERATION_UNKNOWN = 0,
 	ADMIN_OPERATION_GROW_LOGICAL,
 	ADMIN_OPERATION_GROW_PHYSICAL,
@@ -36,7 +36,7 @@ typedef enum {
 	ADMIN_OPERATION_RESUME,
 	ADMIN_OPERATION_SAVE,
 	ADMIN_OPERATION_SUSPEND,
-} admin_operation_type;
+};
 
 struct admin_completion;
 
@@ -49,7 +49,7 @@ struct admin_completion;
  * @return The ID of the thread on which the current phase should be performed
  **/
 typedef thread_id_t
-ThreadIDGetterForPhase(struct admin_completion *admin_completion);
+thread_id_getter_for_phase(struct admin_completion *admin_completion);
 
 struct admin_completion {
 	// XXX should be replaced by container_of() when enqueuables go away
@@ -62,9 +62,9 @@ struct admin_completion {
 	/** Whether this completion is in use */
 	atomic_t busy;
 	/** The operation type */
-	admin_operation_type type;
+	enum admin_operation_type type;
 	/** Method to get the thread id for the current phase */
-	ThreadIDGetterForPhase *get_thread_id;
+	thread_id_getter_for_phase *get_thread_id;
 	/** The current phase of the operation */
 	uint32_t phase;
 };
@@ -76,7 +76,7 @@ struct admin_completion {
  * @param expected    The expected type
  **/
 void assert_admin_operation_type(struct admin_completion *completion,
-				 admin_operation_type expected);
+				 enum admin_operation_type expected);
 
 /**
  * Convert the sub-task completion of an admin_completion to an
@@ -110,7 +110,7 @@ void assert_admin_phase_thread(struct admin_completion *admin_completion,
  **/
 struct vdo * __must_check
 vdo_from_admin_sub_task(struct vdo_completion *completion,
-			admin_operation_type expected);
+			enum admin_operation_type expected);
 
 /**
  * Initialize an admin completion.
@@ -172,8 +172,8 @@ void prepare_admin_sub_task(struct vdo *vdo,
  **/
 int __must_check
 perform_admin_operation(struct vdo *vdo,
-			admin_operation_type type,
-			ThreadIDGetterForPhase *thread_id_getter,
+			enum admin_operation_type type,
+			thread_id_getter_for_phase *thread_id_getter,
 			vdo_action *action,
 			vdo_action *error_handler);
 
