@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#49 $
  */
 
 #include "slabScrubberInternals.h"
@@ -326,14 +326,14 @@ static void apply_journal_entries(struct vdo_completion *completion)
 
 	// Find the boundaries of the useful part of the journal.
 	sequence_number_t tail = journal->tail;
-	TailBlockOffset end_index = get_slab_journal_block_offset(journal,
-								  tail - 1);
+	tail_block_offset_t end_index =
+		get_slab_journal_block_offset(journal, tail - 1);
 	char *end_data = scrubber->journal_data + (end_index * VDO_BLOCK_SIZE);
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
 	sequence_number_t head = __le64_to_cpu(end_block->header.head);
-	TailBlockOffset head_index =
+	tail_block_offset_t head_index =
 		get_slab_journal_block_offset(journal, head);
 	block_count_t index = head_index;
 

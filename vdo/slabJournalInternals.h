@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#34 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -144,7 +144,7 @@ struct slab_journal {
  *
  * @return the offset corresponding to the sequence number
  **/
-static inline TailBlockOffset __must_check
+static inline tail_block_offset_t __must_check
 get_slab_journal_block_offset(struct slab_journal *journal,
 			      sequence_number_t sequence)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#23 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -139,7 +139,7 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
  **/
 void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 			       struct waiter *waiter, slab_count_t slab_number,
-			       TailBlockOffset tail_block_offset,
+			       tail_block_offset_t tail_block_offset,
 			       bool load_ref_counts, bool is_clean,
 			       block_count_t free_blocks);
 
@@ -151,7 +151,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
  *
  * @return The tail block offset for the slab
  **/
-TailBlockOffset __must_check
+tail_block_offset_t __must_check
 get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
 				 slab_count_t slab_number);
 

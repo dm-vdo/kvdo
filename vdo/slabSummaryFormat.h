@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#4 $
  */
 
 #ifndef SLAB_SUMMARY_FORMAT_H
@@ -28,7 +28,7 @@
 /**
  * The offset of a slab journal tail block.
  **/
-typedef uint8_t TailBlockOffset;
+typedef uint8_t tail_block_offset_t;
 
 enum {
 	SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
@@ -36,7 +36,7 @@ enum {
 
 struct slab_summary_entry {
 	/** Bits 7..0: The offset of the tail block within the slab journal */
-	TailBlockOffset tail_block_offset;
+	tail_block_offset_t tail_block_offset;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	/** Bits 13..8: A hint about the fullness of the slab */

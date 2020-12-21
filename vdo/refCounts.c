@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#57 $
  */
 
 #include "refCounts.h"
@@ -1125,7 +1125,7 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 	}
 
 	// Update the slab summary to indicate this ref_counts is clean.
-	TailBlockOffset offset =
+	tail_block_offset_t offset =
 		get_summarized_tail_block_offset(summary,
 						 ref_counts->slab->slab_number);
 	ref_counts->updating_slab_summary = true;
