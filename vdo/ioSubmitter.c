@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#65 $
  */
 
 #include "ioSubmitter.h"
@@ -482,8 +482,7 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 {
 	struct vio *vio = bio->bi_private;
 	vio->bio_to_submit = bio;
-	setup_vio_work(vio, process_bio_map, (KvdoWorkFunction) bio->bi_end_io,
-		       action);
+	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
 
 	struct kernel_layer *layer =
 		as_kernel_layer(vio_as_completion(vio)->layer);

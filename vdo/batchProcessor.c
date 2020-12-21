@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#17 $
  */
 
 #include "batchProcessor.h"
@@ -178,7 +178,7 @@ int make_batch_processor(struct kernel_layer *layer,
 	spin_lock_init(&batch->consumer_lock);
 	setup_work_item(&batch->work_item,
 			batch_processor_work,
-			(KvdoWorkFunction) callback,
+			callback,
 			CPU_Q_ACTION_COMPLETE_VIO);
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	batch->callback = callback;

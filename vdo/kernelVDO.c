@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#65 $
  */
 
 /*
@@ -598,7 +598,7 @@ void kvdo_enqueue(struct vdo_completion *completion)
 				     THIS_LOCATION("$F($cb)"));
 	}
 	setup_work_item(&completion->work_item, kvdo_enqueue_work,
-			(KvdoWorkFunction) completion->callback,
+			completion->callback,
 			REQ_Q_ACTION_COMPLETION);
 	enqueue_kvdo_thread_work(&layer->kvdo.threads[thread_id],
 				 &completion->work_item);
