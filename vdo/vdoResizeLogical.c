@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#29 $
  */
 
 #include "vdoResizeLogical.h"
@@ -60,12 +60,13 @@ static void grow_logical_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
+	struct vdo *vdo = admin_completion->vdo;
+
 	assert_admin_operation_type(admin_completion,
 				    ADMIN_OPERATION_GROW_LOGICAL);
 	assert_admin_phase_thread(admin_completion, __func__,
 				  GROW_LOGICAL_PHASE_NAMES);
 
-	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case GROW_LOGICAL_PHASE_START:
 		if (is_read_only(vdo->read_only_notifier)) {
@@ -148,15 +149,16 @@ int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 /**********************************************************************/
 int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
+	const char *message;
 	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;
 	if (new_logical_blocks > logical_blocks) {
 		return prepare_to_grow_block_map(get_block_map(vdo),
 						 new_logical_blocks);
 	}
 
-	const char *message = ((new_logical_blocks < logical_blocks)
-			       ? "Can't shrink VDO logical size from its current value of "
-			       : "Can't grow VDO logical size to its current value of ");
+	message = ((new_logical_blocks < logical_blocks)
+	           ? "Can't shrink VDO logical size from its current value of "
+	           : "Can't grow VDO logical size to its current value of ");
 	return log_error_strerror(VDO_PARAMETER_MISMATCH,
 				  "%s%llu",
 				  message,

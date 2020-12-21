@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#87 $
  */
 
 /*
@@ -53,12 +53,13 @@
 /**********************************************************************/
 int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 {
+	struct vdo *vdo;
+
 	int result = register_status_codes();
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	struct vdo *vdo;
 	result = ALLOCATE(1, struct vdo, __func__, &vdo);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -73,6 +74,8 @@ int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 /**********************************************************************/
 void destroy_vdo(struct vdo *vdo)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
+
 	free_flusher(&vdo->flusher);
 	free_packer(&vdo->packer);
 	free_recovery_journal(&vdo->recovery_journal);
@@ -81,7 +84,6 @@ void destroy_vdo(struct vdo *vdo)
 	free_super_block(&vdo->super_block);
 	free_block_map(&vdo->block_map);
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
 	if (vdo->hash_zones != NULL) {
 		zone_count_t zone;
 		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
@@ -150,10 +152,12 @@ static void record_vdo(struct vdo *vdo)
 /**********************************************************************/
 void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 {
+	int result;
+
 	struct buffer *buffer
 		= get_super_block_codec(vdo->super_block)->component_buffer;
 	record_vdo(vdo);
-	int result = encode_component_states(buffer, &vdo->states);
+	result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
@@ -305,11 +309,11 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
 static struct hash_lock_statistics
 get_hash_lock_statistics(const struct vdo *vdo)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	zone_count_t zone;
 	struct hash_lock_statistics totals;
 	memset(&totals, 0, sizeof(totals));
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
-	zone_count_t zone;
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		struct hash_lock_statistics stats =
 			get_hash_zone_statistics(vdo->hash_zones[zone]);
@@ -369,6 +373,9 @@ static const char *describe_write_policy(write_policy policy)
 void get_vdo_statistics(const struct vdo *vdo,
 			struct vdo_statistics *stats)
 {
+	VDOState state;
+	slab_count_t slab_total;
+
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.
 	struct recovery_journal *journal = vdo->recovery_journal;
@@ -403,12 +410,12 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->block_map = get_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
-	slab_count_t slab_total = get_depot_slab_count(depot);
+	slab_total = get_depot_slab_count(depot);
 	stats->recovery_percentage =
 		(slab_total - get_depot_unrecovered_slab_count(depot)) * 100 /
 		slab_total;
 
-	VDOState state = get_vdo_state(vdo);
+	state = get_vdo_state(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
 		 sizeof(stats->mode),
@@ -510,13 +517,14 @@ struct recovery_journal *get_recovery_journal(struct vdo *vdo)
 /**********************************************************************/
 void dump_vdo_status(const struct vdo *vdo)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	zone_count_t zone;
+
 	dump_flusher(vdo->flusher);
 	dump_recovery_journal_statistics(vdo->recovery_journal);
 	dump_packer(vdo->packer);
 	dump_slab_depot(vdo->depot);
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
-	zone_count_t zone;
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		dump_logical_zone(get_logical_zone(vdo->logical_zones, zone));
 	}
@@ -604,6 +612,9 @@ int get_physical_zone(const struct vdo *vdo,
 		      physical_block_number_t pbn,
 		      struct physical_zone **zone_ptr)
 {
+	struct vdo_slab *slab;
+	int result;
+
 	if (pbn == ZERO_BLOCK) {
 		*zone_ptr = NULL;
 		return VDO_SUCCESS;
@@ -618,8 +629,8 @@ int get_physical_zone(const struct vdo *vdo,
 
 	// With the PBN already checked, we should always succeed in finding a
 	// slab.
-	struct vdo_slab *slab = get_slab(vdo->depot, pbn);
-	int result =
+	slab = get_slab(vdo->depot, pbn);
+	result =
 		ASSERT(slab != NULL, "get_slab must succeed on all valid PBNs");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -635,6 +646,9 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 					logical_block_number_t lbn)
 {
 	struct zoned_pbn no_advice = { .pbn = ZERO_BLOCK };
+	struct physical_zone *zone;
+	int result;
+
 	if (advice == NULL) {
 		return no_advice;
 	}
@@ -650,8 +664,7 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 		return no_advice;
 	}
 
-	struct physical_zone *zone;
-	int result = get_physical_zone(vdo, advice->pbn, &zone);
+	result = get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
 		log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
 			  advice->pbn,

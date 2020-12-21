@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#10 $
  */
 
 #include "statusCodes.h"
@@ -74,14 +74,15 @@ static int status_code_registration_result;
 /**********************************************************************/
 static void do_status_code_registration(void)
 {
+	int result;
 	STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) ==
 		      COUNT_OF(vdo_status_list));
 
-	int result = register_error_block("VDO Status",
-					  VDO_STATUS_CODE_BASE,
-					  VDO_STATUS_CODE_BLOCK_END,
-					  vdo_status_list,
-					  sizeof(vdo_status_list));
+	result = register_error_block("VDO Status",
+				      VDO_STATUS_CODE_BASE,
+				      VDO_STATUS_CODE_BLOCK_END,
+				      vdo_status_list,
+				      sizeof(vdo_status_list));
 	/*
 	 *  The following test handles cases where libvdo is statically linked
 	 *  against both the test modules and the test driver (because multiple

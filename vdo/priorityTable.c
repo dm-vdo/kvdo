@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#12 $
  */
 
 #include "priorityTable.h"
@@ -65,18 +65,20 @@ struct priority_table {
 int make_priority_table(unsigned int max_priority,
 			struct priority_table **table_ptr)
 {
+	struct priority_table *table;
+	int result;
+	unsigned int priority;
+
 	if (max_priority > MAX_PRIORITY) {
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	struct priority_table *table;
-	int result = ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
-				       struct bucket, __func__, &table);
+	result = ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
+				   struct bucket, __func__, &table);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	unsigned int priority;
 	for (priority = 0; priority <= max_priority; priority++) {
 		struct bucket *bucket = &table->buckets[priority];
 		bucket->priority = priority;
@@ -109,8 +111,8 @@ void free_priority_table(struct priority_table **table_ptr)
 /**********************************************************************/
 void reset_priority_table(struct priority_table *table)
 {
-	table->search_vector = 0;
 	unsigned int priority;
+	table->search_vector = 0;
 	for (priority = 0; priority <= table->max_priority; priority++) {
 		list_del_init(&table->buckets[priority].queue);
 	}
@@ -140,6 +142,9 @@ static inline void mark_bucket_empty(struct priority_table *table,
 /**********************************************************************/
 struct list_head *priority_table_dequeue(struct priority_table *table)
 {
+	struct bucket *bucket;
+	struct list_head *entry;
+
 	// Find the highest priority non-empty bucket by finding the
 	// highest-order non-zero bit in the search vector.
 	int top_priority = log_base_two(table->search_vector);
@@ -150,8 +155,8 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 	}
 
 	// Dequeue the first entry in the bucket.
-	struct bucket *bucket = &table->buckets[top_priority];
-	struct list_head *entry = (bucket->queue.next);
+	bucket = &table->buckets[top_priority];
+	entry = (bucket->queue.next);
 	list_del_init(entry);
 
 	// Clear the bit in the search vector if the bucket has been emptied.
@@ -166,6 +171,8 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 void priority_table_remove(struct priority_table *table,
 			   struct list_head *entry)
 {
+	struct list_head *next_entry;
+
 	// We can't guard against calls where the entry is on a list for a
 	// different table, but it's easy to deal with an entry not in any table
 	// or list.
@@ -175,7 +182,7 @@ void priority_table_remove(struct priority_table *table,
 
 	// Remove the entry from the bucket list, remembering a pointer to
 	// another entry in the ring.
-	struct list_head *next_entry = entry->next;
+	next_entry = entry->next;
 	list_del_init(entry);
 
 	// If the rest of the list is now empty, the next node must be the list

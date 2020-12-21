@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#11 $
  */
 
 /**
@@ -153,6 +153,10 @@ int make_pointer_map(size_t initial_capacity,
 		     pointer_key_hasher hasher,
 		     struct pointer_map **map_ptr)
 {
+	int result;
+	struct pointer_map *map;
+	size_t capacity;
+
 	// Use the default initial load if the caller did not specify one.
 	if (initial_load == 0) {
 		initial_load = DEFAULT_LOAD;
@@ -161,8 +165,7 @@ int make_pointer_map(size_t initial_capacity,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	struct pointer_map *map;
-	int result = ALLOCATE(1, struct pointer_map, "pointer_map", &map);
+	result = ALLOCATE(1, struct pointer_map, "pointer_map", &map);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -171,7 +174,7 @@ int make_pointer_map(size_t initial_capacity,
 	map->comparator = comparator;
 
 	// Use the default capacity if the caller did not specify one.
-	size_t capacity =
+	capacity =
 		(initial_capacity > 0) ? initial_capacity : DEFAULT_CAPACITY;
 
 	// Scale up the capacity by the specified initial load factor.
@@ -346,6 +349,9 @@ void *pointer_map_get(struct pointer_map *map, const void *key)
  **/
 static int resize_buckets(struct pointer_map *map)
 {
+	int result;
+	size_t i;
+
 	// Copy the top-level map data to the stack.
 	struct pointer_map old_map = *map;
 
@@ -356,14 +362,13 @@ static int resize_buckets(struct pointer_map *map)
 		 map->capacity,
 		 new_capacity,
 		 map->size);
-	int result = allocate_buckets(map, new_capacity);
+	result = allocate_buckets(map, new_capacity);
 	if (result != UDS_SUCCESS) {
 		*map = old_map;
 		return result;
 	}
 
 	// Populate the new hash table from the entries in the old bucket array.
-	size_t i;
 	for (i = 0; i < old_map.bucket_count; i++) {
 		struct bucket *entry = &old_map.buckets[i];
 		if (entry->value == NULL) {
@@ -579,13 +584,15 @@ int pointer_map_put(struct pointer_map *map,
 		    bool update,
 		    void **old_value_ptr)
 {
+	struct bucket *neighborhood, *bucket;
+
 	if (new_value == NULL) {
 		return UDS_INVALID_ARGUMENT;
 	}
 
 	// Select the bucket at the start of the neighborhood that must contain
 	// any entry for the provided key.
-	struct bucket *neighborhood = select_bucket(map, key);
+	neighborhood = select_bucket(map, key);
 
 	// Check whether the neighborhood already contains an entry for the key,
 	// in which case we optionally update it, returning the old value.
@@ -600,7 +607,6 @@ int pointer_map_put(struct pointer_map *map,
 	 * operation will usually succeed; the loop body will only be executed
 	 * on the rare occasions that we have to resize the map.
 	 */
-	struct bucket *bucket;
 	while ((bucket = find_or_make_vacancy(map, neighborhood)) == NULL) {
 		/*
 		 * There is no empty bucket in which to put the new entry in the
@@ -636,6 +642,8 @@ int pointer_map_put(struct pointer_map *map,
 /**********************************************************************/
 void *pointer_map_remove(struct pointer_map *map, const void *key)
 {
+	void *value;
+
 	// Select the bucket to search and search it for an existing entry.
 	struct bucket *bucket = select_bucket(map, key);
 	struct bucket *previous;
@@ -649,7 +657,7 @@ void *pointer_map_remove(struct pointer_map *map, const void *key)
 	// We found an entry to remove. Save the mapped value to return later
 	// and empty the bucket.
 	map->size -= 1;
-	void *value = victim->value;
+	value = victim->value;
 	victim->value = NULL;
 	victim->key = 0;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#19 $
  */
 
 #include "extent.h"
@@ -38,13 +38,13 @@ int create_extent(PhysicalLayer *layer, vio_type type,
 		  block_count_t block_count, char *data,
 		  struct vdo_extent **extent_ptr)
 {
+	struct vdo_extent *extent;
 	int result = ASSERT(is_metadata_vio_type(type),
 			    "create_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	struct vdo_extent *extent;
 	result = ALLOCATE_EXTENDED(struct vdo_extent, block_count, struct vio *,
 				   __func__, &extent);
 	if (result != VDO_SUCCESS) {
@@ -72,12 +72,12 @@ int create_extent(PhysicalLayer *layer, vio_type type,
 /**********************************************************************/
 void free_extent(struct vdo_extent **extent_ptr)
 {
+	block_count_t i;
 	struct vdo_extent *extent = *extent_ptr;
 	if (extent == NULL) {
 		return;
 	}
 
-	block_count_t i;
 	for (i = 0; i < extent->count; i++) {
 		free_vio(&extent->vios[i]);
 	}
@@ -100,6 +100,8 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 				   block_count_t count,
 				   vio_operation operation)
 {
+	block_count_t i;
+
 	reset_completion(&extent->completion);
 	if (count > extent->count) {
 		finish_completion(&extent->completion, VDO_OUT_OF_RANGE);
@@ -107,7 +109,6 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 	}
 
 	extent->complete_count = extent->count - count;
-	block_count_t i;
 	for (i = 0; i < count; i++) {
 		struct vio *vio = extent->vios[i];
 		vio->completion.callback_thread_id =

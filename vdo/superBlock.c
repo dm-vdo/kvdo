@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#29 $
  */
 
 #include "superBlock.h"
@@ -60,13 +60,15 @@ static int __must_check
 allocate_super_block(PhysicalLayer *layer,
 		     struct vdo_super_block **super_block_ptr)
 {
+	struct vdo_super_block *super_block;
+
 	int result =
 		ALLOCATE(1, struct vdo_super_block, __func__, super_block_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct vdo_super_block *super_block = *super_block_ptr;
+	super_block = *super_block_ptr;
 	result = initialize_super_block_codec(layer, &super_block->codec);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -96,11 +98,12 @@ int make_super_block(PhysicalLayer *layer,
 /**********************************************************************/
 void free_super_block(struct vdo_super_block **super_block_ptr)
 {
+	struct vdo_super_block *super_block;
 	if (*super_block_ptr == NULL) {
 		return;
 	}
 
-	struct vdo_super_block *super_block = *super_block_ptr;
+	super_block = *super_block_ptr;
 	free_vio(&super_block->vio);
 	destroy_super_block_codec(&super_block->codec);
 	FREE(super_block);
@@ -149,6 +152,8 @@ void save_super_block(struct vdo_super_block *super_block,
 		      physical_block_number_t super_block_offset,
 		      struct vdo_completion *parent)
 {
+	int result;
+
 	if (super_block->unwriteable) {
 		finish_completion(parent, VDO_READ_ONLY);
 		return;
@@ -159,7 +164,7 @@ void save_super_block(struct vdo_super_block *super_block,
 		return;
 	}
 
-	int result = encode_super_block(&super_block->codec);
+	result = encode_super_block(&super_block->codec);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;

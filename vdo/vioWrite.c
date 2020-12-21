@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#49 $
  */
 
 /*
@@ -556,13 +556,14 @@ static void update_reference_count(struct data_vio *data_vio)
 static void decrement_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	struct allocating_vio *allocating_vio =
+		data_vio_as_allocating_vio(data_vio);
+
 	assert_in_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	struct allocating_vio *allocating_vio =
-		data_vio_as_allocating_vio(data_vio);
 	if (allocating_vio->allocation == data_vio->mapped.pbn) {
 		/*
 		 * If we are about to release the reference on the allocated
@@ -820,13 +821,15 @@ void share_block(struct vdo_completion *completion)
 static void lock_hash_in_zone(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	int result;
+
 	assert_in_hash_zone(data_vio);
 	// Shouldn't have had any errors since all we did was switch threads.
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	int result = acquire_hash_lock(data_vio);
+	result = acquire_hash_lock(data_vio);
 	if (abort_on_error(result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -1214,13 +1217,15 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 /**********************************************************************/
 void launch_write_data_vio(struct data_vio *data_vio)
 {
+	int result;
+
 	if (is_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier)) {
 		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
 
 	// Write requests join the current flush generation.
-	int result = acquire_flush_generation_lock(data_vio);
+	result = acquire_flush_generation_lock(data_vio);
 	if (abort_on_error(result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}

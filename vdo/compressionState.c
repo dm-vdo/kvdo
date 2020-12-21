@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#16 $
  */
 
 #include "compressionStateInternals.h"
@@ -57,14 +57,15 @@ bool set_compression_state(struct data_vio *data_vio,
 			   struct vio_compression_state state,
 			   struct vio_compression_state new_state)
 {
+	uint32_t actual;
 	uint32_t expected = pack_state(state);
 	uint32_t replacement = pack_state(new_state);
 
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	uint32_t actual = atomic_cmpxchg(&data_vio->compression.state,
-					 expected, replacement);
+	actual = atomic_cmpxchg(&data_vio->compression.state,
+				expected, replacement);
 	smp_mb__after_atomic();
 	return (expected == actual);
 }
@@ -81,12 +82,12 @@ static vio_compression_status advance_status(struct data_vio *data_vio)
 	for (;;) {
 		struct vio_compression_state state =
 			get_compression_state(data_vio);
+		struct vio_compression_state new_state = state;
 		if (state.status == VIO_POST_PACKER) {
 			// We're already in the last state.
 			return state.status;
 		}
 
-		struct vio_compression_state new_state = state;
 		if (state.may_not_compress) {
 			// Compression has been dis-allowed for this VIO, so
 			// skip the rest of the path and go to the end.
@@ -165,18 +166,19 @@ bool may_write_compressed_data_vio(struct data_vio *data_vio)
 void set_compression_done(struct data_vio *data_vio)
 {
 	for (;;) {
+		struct vio_compression_state new_state = {
+			.status = VIO_POST_PACKER,
+			.may_not_compress = true,
+		};
 		struct vio_compression_state state =
 			get_compression_state(data_vio);
+
 		if (state.status == VIO_POST_PACKER) {
 			// The VIO is already done.
 			return;
 		}
 
 		// If compression was cancelled on this VIO, preserve that fact.
-		struct vio_compression_state new_state = {
-			.status = VIO_POST_PACKER,
-			.may_not_compress = true,
-		};
 		if (set_compression_state(data_vio, state, new_state)) {
 			return;
 		}
@@ -186,7 +188,7 @@ void set_compression_done(struct data_vio *data_vio)
 /**********************************************************************/
 bool cancel_compression(struct data_vio *data_vio)
 {
-	struct vio_compression_state state;
+	struct vio_compression_state state, new_state;
 	for (;;) {
 		state = get_compression_state(data_vio);
 		if (state.may_not_compress ||
@@ -196,10 +198,9 @@ bool cancel_compression(struct data_vio *data_vio)
 			break;
 		}
 
-		struct vio_compression_state new_state = {
-			.status = state.status,
-			.may_not_compress = true,
-		};
+		new_state.status = state.status;
+		new_state.may_not_compress = true;
+
 		if (set_compression_state(data_vio, state, new_state)) {
 			break;
 		}

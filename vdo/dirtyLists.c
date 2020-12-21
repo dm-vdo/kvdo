@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#8 $
  */
 
 #include "dirtyLists.h"
@@ -50,6 +50,7 @@ struct dirty_lists {
 int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 		     void *context, struct dirty_lists **dirty_lists_ptr)
 {
+	block_count_t i;
 	struct dirty_lists *dirty_lists;
 	int result = ALLOCATE_EXTENDED(struct dirty_lists, maximum_age,
 				       struct list_head, __func__,
@@ -63,7 +64,6 @@ int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 	dirty_lists->context = context;
 
 	INIT_LIST_HEAD(&dirty_lists->expired);
-	block_count_t i;
 	for (i = 0; i < maximum_age; i++) {
 		INIT_LIST_HEAD(&dirty_lists->lists[i]);
 	}
@@ -101,9 +101,10 @@ void set_current_period(struct dirty_lists *dirty_lists,
  **/
 static void expire_oldest_list(struct dirty_lists *dirty_lists)
 {
-	dirty_lists->oldest_period++;
 	struct list_head *dirty_list =
 		&(dirty_lists->lists[dirty_lists->offset++]);
+	dirty_lists->oldest_period++;
+
 	if (!list_empty(dirty_list)) {
 		list_splice_tail(dirty_list, &dirty_lists->expired);
 		INIT_LIST_HEAD(dirty_list);

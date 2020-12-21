@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#8 $
  */
 
 #include "slabDepotFormat.h"
@@ -108,12 +108,14 @@ static int encode_slab_config(const struct slab_config *config,
 int encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 				struct buffer *buffer)
 {
+	size_t initial_length, encoded_size;
+
 	int result = encode_header(&SLAB_DEPOT_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t initial_length = content_length(buffer);
+	initial_length = content_length(buffer);
 
 	result = encode_slab_config(&state.slab_config, buffer);
 	if (result != UDS_SUCCESS) {
@@ -135,7 +137,7 @@ int encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 		return result;
 	}
 
-	size_t encoded_size = content_length(buffer) - initial_length;
+	encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(SLAB_DEPOT_HEADER_2_0.size == encoded_size,
 		      "encoded block map component size must match header size");
 }
@@ -202,7 +204,13 @@ int decode_slab_depot_state_2_0(struct buffer *buffer,
 				struct slab_depot_state_2_0 *state)
 {
 	struct header header;
-	int result = decode_header(buffer, &header);
+	int result;
+	size_t initial_length, decoded_size;
+	struct slab_config slab_config;
+	physical_block_number_t first_block, last_block;
+	zone_count_t zone_count;
+
+	result = decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -213,33 +221,29 @@ int decode_slab_depot_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	size_t initial_length = content_length(buffer);
+	initial_length = content_length(buffer);
 
-	struct slab_config slab_config;
 	result = decode_slab_config(buffer, &slab_config);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	physical_block_number_t first_block;
 	result = get_uint64_le_from_buffer(buffer, &first_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	physical_block_number_t last_block;
 	result = get_uint64_le_from_buffer(buffer, &last_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	zone_count_t zone_count;
 	result = get_byte(buffer, &zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t decoded_size = initial_length - content_length(buffer);
+	decoded_size = initial_length - content_length(buffer);
 	result = ASSERT(SLAB_DEPOT_HEADER_2_0.size == decoded_size,
 			"decoded slab depot component size must match header size");
 	if (result != UDS_SUCCESS) {
@@ -263,7 +267,11 @@ int configure_slab_depot(block_count_t block_count,
 			 zone_count_t zone_count,
 			 struct slab_depot_state_2_0 *state)
 {
+	block_count_t total_slab_blocks, total_data_blocks;
+	size_t slab_count;
+	physical_block_number_t last_block;
 	block_count_t slab_size = slab_config.slab_blocks;
+
 	log_debug("slabDepot configure_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
 		  block_count,
 		  first_block,
@@ -271,7 +279,7 @@ int configure_slab_depot(block_count_t block_count,
 		  zone_count);
 
 	// We do not allow runt slabs, so we waste up to a slab's worth.
-	size_t slab_count = (block_count / slab_size);
+	slab_count = (block_count / slab_size);
 	if (slab_count == 0) {
 		return VDO_NO_SPACE;
 	}
@@ -280,9 +288,9 @@ int configure_slab_depot(block_count_t block_count,
 		return VDO_TOO_MANY_SLABS;
 	}
 
-	block_count_t total_slab_blocks = slab_count * slab_config.slab_blocks;
-	block_count_t total_data_blocks = slab_count * slab_config.data_blocks;
-	physical_block_number_t last_block = first_block + total_slab_blocks;
+	total_slab_blocks = slab_count * slab_config.slab_blocks;
+	total_data_blocks = slab_count * slab_config.data_blocks;
+	last_block = first_block + total_slab_blocks;
 
 	*state = (struct slab_depot_state_2_0) {
 		.slab_config = slab_config,
@@ -304,6 +312,10 @@ int configure_slab_depot(block_count_t block_count,
 int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 		   struct slab_config *slab_config)
 {
+	block_count_t ref_blocks, meta_blocks, data_blocks;
+	block_count_t flushing_threshold, remaining, blocking_threshold;
+	block_count_t minimal_extra_space, scrubbing_threshold;
+
 	if (slab_journal_blocks >= slab_size) {
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -314,9 +326,9 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 	 * refCounts, so we'd gain at most one data block in each slab with more
 	 * iteration.
 	 */
-	block_count_t ref_blocks =
+	ref_blocks =
 		get_saved_reference_count_size(slab_size - slab_journal_blocks);
-	block_count_t meta_blocks = (ref_blocks + slab_journal_blocks);
+	meta_blocks = (ref_blocks + slab_journal_blocks);
 
 	// Make sure test code hasn't configured slabs to be too small.
 	if (meta_blocks >= slab_size) {
@@ -336,7 +348,7 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 	 * tests so this hack isn't needed without having to edit several unit
 	 * tests every time the metadata size changes by one block.
 	 */
-	block_count_t data_blocks = slab_size - meta_blocks;
+	data_blocks = slab_size - meta_blocks;
 	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {
 		data_blocks = ((block_count_t) 1 << log_base_two(data_blocks));
 	}
@@ -346,22 +358,22 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 	 * 224 blocks in production, or 3/4ths, so we use this ratio for all
 	 * sizes.
 	 */
-	block_count_t flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
+	flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
 	/*
 	 * The blocking threshold should be far enough from the the flushing
 	 * threshold to not produce delays, but far enough from the end of the
 	 * journal to allow multiple successive recovery failures.
 	 */
-	block_count_t remaining = slab_journal_blocks - flushing_threshold;
-	block_count_t blocking_threshold =
+	remaining = slab_journal_blocks - flushing_threshold;
+	blocking_threshold =
 		flushing_threshold + ((remaining * 5) / 7);
 	/*
 	 * The scrubbing threshold should be at least 2048 entries before the
 	 * end of the journal.
 	 */
-	block_count_t minimal_extra_space =
+	minimal_extra_space =
 		1 + (MAXIMUM_USER_VIOS / SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
-	block_count_t scrubbing_threshold = blocking_threshold;
+	scrubbing_threshold = blocking_threshold;
 	if (slab_journal_blocks > minimal_extra_space) {
 		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;
 	}

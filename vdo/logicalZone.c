@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#44 $
  */
 
 #include "logicalZone.h"
@@ -120,16 +120,16 @@ static thread_id_t get_thread_id_for_zone(void *context,
 static int initialize_zone(struct logical_zones *zones,
 			   zone_count_t zone_number)
 {
+	struct vdo *vdo = zones->vdo;
 	struct logical_zone *zone = &zones->zones[zone_number];
-	zone->zones = zones;
 	int result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->lbn_operations);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	struct vdo *vdo = zones->vdo;
 	initialize_completion(&zone->completion, GENERATION_FLUSHED_COMPLETION,
 			      vdo->layer);
+	zone->zones = zones;
 	zone->zone_number = zone_number;
 	zone->thread_id = get_logical_zone_thread(get_thread_config(vdo),
 					       	  zone_number);
@@ -143,22 +143,24 @@ static int initialize_zone(struct logical_zones *zones,
 /**********************************************************************/
 int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
+	struct logical_zones *zones;
+	int result;
+	zone_count_t zone;
+
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	if (thread_config->logical_zone_count == 0) {
 		return VDO_SUCCESS;
 	}
 
-	struct logical_zones *zones;
-	int result = ALLOCATE_EXTENDED(struct logical_zones,
-				       thread_config->logical_zone_count,
-				       struct logical_zone, __func__, &zones);
+	result = ALLOCATE_EXTENDED(struct logical_zones,
+				   thread_config->logical_zone_count,
+				   struct logical_zone, __func__, &zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	zones->vdo = vdo;
 	zones->zone_count = thread_config->logical_zone_count;
-	zone_count_t zone;
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		result = initialize_zone(zones, zone);
 		if (result != VDO_SUCCESS) {
@@ -182,6 +184,7 @@ int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 /**********************************************************************/
 void free_logical_zones(struct logical_zones **zones_ptr)
 {
+	zone_count_t index;
 	struct logical_zones *zones = *zones_ptr;
 	if (zones == NULL) {
 		return;
@@ -189,7 +192,6 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 
 	free_action_manager(&zones->manager);
 
-	zone_count_t index;
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
 		free_allocation_selector(&zone->selector);

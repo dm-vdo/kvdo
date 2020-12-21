@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#57 $
  */
 
 #include "vdoLoad.h"
@@ -121,9 +121,9 @@ static void abort_load(struct vdo_completion *completion)
  **/
 static void wait_for_read_only_mode(struct vdo_completion *completion)
 {
+	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_to_finish_parent(completion, completion->parent);
 	set_completion_result(completion, VDO_READ_ONLY);
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 					       completion);
 }
@@ -280,6 +280,7 @@ int perform_vdo_load(struct vdo *vdo)
  **/
 static int __must_check decode_from_super_block(struct vdo *vdo)
 {
+	block_count_t block_count;
 	struct super_block_codec *codec
 		= get_super_block_codec(vdo->super_block);
 	int result = decode_component_states(codec->component_buffer,
@@ -292,7 +293,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	set_vdo_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
 
-	block_count_t block_count = vdo->layer->getBlockCount(vdo->layer);
+	block_count = vdo->layer->getBlockCount(vdo->layer);
 	result = validate_component_states(&vdo->states,
 					   vdo->load_config.nonce,
 					   block_count);
@@ -316,20 +317,22 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
  **/
 static int __must_check decode_vdo(struct vdo *vdo)
 {
+	block_count_t maximum_age, journal_length;
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	zone_count_t zone;
 	int result = decode_from_super_block(vdo);
 	if (result != VDO_SUCCESS) {
 		destroy_component_states(&vdo->states);
 		return result;
 	}
 
-	block_count_t maximum_age = get_configured_block_map_maximum_age(vdo);
-	block_count_t journal_length =
+	maximum_age = get_configured_block_map_maximum_age(vdo);
+	journal_length =
 		get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
 	result = make_read_only_notifier(in_read_only_mode(vdo),
 					 thread_config,
 					 vdo->layer,
@@ -399,7 +402,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	zone_count_t zone;
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		result = make_hash_zone(vdo, zone, &vdo->hash_zones[zone]);
 		if (result != VDO_SUCCESS) {

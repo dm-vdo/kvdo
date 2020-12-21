@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#15 $
  */
 
 #include "compressedBlock.h"
@@ -60,25 +60,29 @@ int get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				  uint16_t *fragment_offset,
 				  uint16_t *fragment_size)
 {
+	uint16_t compressed_size, offset;
+	unsigned int i;
+	byte slot;
+	struct version_number version;
+	struct compressed_block_header *header =
+		(struct compressed_block_header *) buffer;
+
 	if (!is_compressed(mapping_state)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	struct compressed_block_header *header =
-		(struct compressed_block_header *) buffer;
-	struct version_number version = unpack_version_number(header->version);
+	version = unpack_version_number(header->version);
 	if (!are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	byte slot = get_slot_from_state(mapping_state);
+	slot = get_slot_from_state(mapping_state);
 	if (slot >= MAX_COMPRESSION_SLOTS) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	uint16_t compressed_size = get_compressed_fragment_size(header, slot);
-	uint16_t offset = sizeof(struct compressed_block_header);
-	unsigned int i;
+	compressed_size = get_compressed_fragment_size(header, slot);
+	offset = sizeof(struct compressed_block_header);
 	for (i = 0; i < slot; i++) {
 		offset += get_compressed_fragment_size(header, i);
 		if (offset >= block_size) {

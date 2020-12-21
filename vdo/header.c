@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#8 $
  */
 
 #include "header.h"
@@ -48,6 +48,7 @@ int validate_header(const struct header *expected_header,
 		    bool exact_size,
 		    const char *component_name)
 {
+	int result;
 	if (expected_header->id != actual_header->id) {
 		return log_error_strerror(VDO_INCORRECT_COMPONENT,
 					  "%s ID mismatch, expected %d, got %d",
@@ -56,8 +57,8 @@ int validate_header(const struct header *expected_header,
 					  actual_header->id);
 	}
 
-	int result = validate_version(expected_header->version,
-				      actual_header->version, component_name);
+	result = validate_version(expected_header->version,
+				  actual_header->version, component_name);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -77,11 +78,13 @@ int validate_header(const struct header *expected_header,
 /**********************************************************************/
 int encode_header(const struct header *header, struct buffer *buffer)
 {
+	int result;
+
 	if (!ensure_available_space(buffer, ENCODED_HEADER_SIZE)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	int result = put_uint32_le_into_buffer(buffer, header->id);
+	result = put_uint32_le_into_buffer(buffer, header->id);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -105,18 +108,19 @@ int encode_version_number(struct version_number version, struct buffer *buffer)
 int decode_header(struct buffer *buffer, struct header *header)
 {
 	component_id id;
+	uint64_t size;
+	struct version_number version;
+
 	int result = get_uint32_le_from_buffer(buffer, &id);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct version_number version;
 	result = decode_version_number(buffer, &version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	uint64_t size;
 	result = get_uint64_le_from_buffer(buffer, &size);
 	if (result != UDS_SUCCESS) {
 		return result;

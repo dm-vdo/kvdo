@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#33 $
  */
 
 #include "hashZone.h"
@@ -91,6 +91,7 @@ static uint32_t hash_key(const void *key)
 int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		   struct hash_zone **zone_ptr)
 {
+	vio_count_t i;
 	struct hash_zone *zone;
 	int result = ALLOCATE(1, struct hash_zone, __func__, &zone);
 	if (result != VDO_SUCCESS) {
@@ -116,7 +117,6 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		return result;
 	}
 
-	vio_count_t i;
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		struct hash_lock *lock = &zone->lock_array[i];
 		initialize_hash_lock(lock);
@@ -130,11 +130,12 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 /**********************************************************************/
 void free_hash_zone(struct hash_zone **zone_ptr)
 {
+	struct hash_zone *zone;
 	if (*zone_ptr == NULL) {
 		return;
 	}
 
-	struct hash_zone *zone = *zone_ptr;
+	zone = *zone_ptr;
 	free_pointer_map(&zone->hash_lock_map);
 	FREE(zone->lock_array);
 	FREE(zone);
@@ -193,6 +194,8 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 				struct hash_lock *replace_lock,
 				struct hash_lock **lock_ptr)
 {
+	struct hash_lock *lock, *new_lock;
+
 	// Borrow and prepare a lock from the pool so we don't have to do two
 	// pointer_map accesses in the common case of no lock contention.
 	int result = ASSERT(!list_empty(&zone->lock_pool),
@@ -200,15 +203,14 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	struct hash_lock *new_lock = list_entry(zone->lock_pool.prev,
-						struct hash_lock, pool_node);
+	new_lock = list_entry(zone->lock_pool.prev, struct hash_lock,
+			      pool_node);
 	list_del_init(&new_lock->pool_node);
 
 	// Fill in the hash of the new lock so we can map it, since we have to
 	// use the hash as the map key.
 	new_lock->hash = *hash;
 
-	struct hash_lock *lock;
 	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
 				 (replace_lock != NULL), (void **) &lock);
 	if (result != VDO_SUCCESS) {
@@ -281,6 +283,8 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
  **/
 static void dump_hash_lock(const struct hash_lock *lock)
 {
+	const char *state;
+
 	if (!list_empty(&lock->pool_node)) {
 		// This lock is on the free list.
 		return;
@@ -289,7 +293,7 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	// Necessarily cryptic since we can log a lot of these. First three
 	// chars of state is unambiguous. 'U' indicates a lock not registered in
 	// the map.
-	const char *state = get_hash_lock_state_name(lock->state);
+	state = get_hash_lock_state_name(lock->state);
 	log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		 (const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		 lock->duplicate.pbn, lock->duplicate.state,
@@ -336,6 +340,7 @@ void bump_hash_zone_collision_count(struct hash_zone *zone)
 /**********************************************************************/
 void dump_hash_zone(const struct hash_zone *zone)
 {
+	vio_count_t i;
 	if (zone->hash_lock_map == NULL) {
 		log_info("struct hash_zone %u: NULL map", zone->zone_number);
 		return;
@@ -343,7 +348,6 @@ void dump_hash_zone(const struct hash_zone *zone)
 
 	log_info("struct hash_zone %u: mapSize=%zu", zone->zone_number,
 		 pointer_map_size(zone->hash_lock_map));
-	vio_count_t i;
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		dump_hash_lock(&zone->lock_array[i]);
 	}

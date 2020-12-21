@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#25 $
  */
 
 #include "readOnlyNotifier.h"
@@ -129,6 +129,7 @@ int make_read_only_notifier(bool is_read_only,
 			    struct read_only_notifier **notifier_ptr)
 {
 	struct read_only_notifier *notifier;
+	thread_count_t id;
 	int result = ALLOCATE_EXTENDED(struct read_only_notifier,
 				       thread_config->base_thread_count,
 				       struct thread_data,
@@ -149,7 +150,6 @@ int make_read_only_notifier(bool is_read_only,
 	initialize_completion(&notifier->completion, READ_ONLY_MODE_COMPLETION,
 			      layer);
 
-	thread_count_t id;
 	for (id = 0; id < thread_config->base_thread_count; id++) {
 		notifier->thread_data[id].is_read_only = is_read_only;
 	}
@@ -161,12 +161,12 @@ int make_read_only_notifier(bool is_read_only,
 /**********************************************************************/
 void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 {
+	thread_count_t id;
 	struct read_only_notifier *notifier = *notifier_ptr;
 	if (notifier == NULL) {
 		return;
 	}
 
-	thread_count_t id;
 	for (id = 0; id < notifier->thread_config->base_thread_count; id++) {
 		struct thread_data *thread_data = &notifier->thread_data[id];
 		struct read_only_listener *listener = thread_data->listeners;
@@ -201,6 +201,7 @@ static void assert_on_admin_thread(struct read_only_notifier *notifier,
 void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
 					    struct vdo_completion *parent)
 {
+	int state;
 	if (notifier == NULL) {
 		finish_completion(parent, VDO_SUCCESS);
 		return;
@@ -215,8 +216,8 @@ void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int state = atomic_cmpxchg(&notifier->state,
-				   MAY_NOTIFY, MAY_NOT_NOTIFY);
+	state = atomic_cmpxchg(&notifier->state,
+			       MAY_NOTIFY, MAY_NOT_NOTIFY);
 	smp_mb__after_atomic();
 
 	if ((state == MAY_NOT_NOTIFY) || (state == NOTIFIED)) {
@@ -248,11 +249,12 @@ void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
 static void finish_entering_read_only_mode(struct vdo_completion *completion)
 {
 	struct read_only_notifier *notifier = as_notifier(completion);
+	struct vdo_completion *waiter = notifier->waiter;
+
 	assert_on_admin_thread(notifier, __func__);
 	smp_wmb();
 	atomic_set(&notifier->state, NOTIFIED);
 
-	struct vdo_completion *waiter = notifier->waiter;
 	if (waiter != NULL) {
 		notifier->waiter = NULL;
 		finish_completion(waiter, completion->result);
@@ -320,6 +322,8 @@ static void make_thread_read_only(struct vdo_completion *completion)
 void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 				struct vdo_completion *parent)
 {
+	int state;
+
 	assert_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
 		finish_completion(parent, VDO_COMPONENT_BUSY);
@@ -329,8 +333,8 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int state = atomic_cmpxchg(&notifier->state,
-				   MAY_NOT_NOTIFY, MAY_NOTIFY);
+	state = atomic_cmpxchg(&notifier->state,
+			       MAY_NOT_NOTIFY, MAY_NOTIFY);
 	smp_mb__after_atomic();
 
 	if (state != MAY_NOT_NOTIFY) {
@@ -373,6 +377,7 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 /**********************************************************************/
 void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 {
+	int state;
 	struct thread_data *thread_data =
 		&notifier->thread_data[get_callback_thread_id()];
 	if (thread_data->is_read_only) {
@@ -386,8 +391,8 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int state = atomic_cmpxchg(&notifier->read_only_error,
-				   VDO_SUCCESS, error_code);
+	state = atomic_cmpxchg(&notifier->read_only_error,
+			       VDO_SUCCESS, error_code);
 	smp_mb__after_atomic();
 
 	if (state != VDO_SUCCESS) {
@@ -426,6 +431,7 @@ int register_read_only_listener(struct read_only_notifier *notifier,
 				read_only_notification *notification,
 				thread_id_t thread_id)
 {
+	struct thread_data *thread_data = &notifier->thread_data[thread_id];
 	struct read_only_listener *read_only_listener;
 	int result = ALLOCATE(1,
 			      struct read_only_listener,
@@ -435,7 +441,6 @@ int register_read_only_listener(struct read_only_notifier *notifier,
 		return result;
 	}
 
-	struct thread_data *thread_data = &notifier->thread_data[thread_id];
 	*read_only_listener = (struct read_only_listener) {
 		     .listener = listener,
 		     .notify = notification,

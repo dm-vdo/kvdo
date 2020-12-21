@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#37 $
  */
 
 #include "vdoResize.h"
@@ -67,12 +67,13 @@ static void grow_physical_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
+	struct vdo *vdo = admin_completion->vdo;
+
 	assert_admin_operation_type(admin_completion,
 				    ADMIN_OPERATION_GROW_PHYSICAL);
 	assert_admin_phase_thread(admin_completion, __func__,
 	                          GROW_PHYSICAL_PHASE_NAMES);
 
-	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case GROW_PHYSICAL_PHASE_START:
 		if (is_read_only(vdo->read_only_notifier)) {
@@ -148,6 +149,9 @@ static void handle_growth_error(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
+	int result;
+	block_count_t new_depot_size, prepared_depot_size;
+
 	block_count_t old_physical_blocks =
 		vdo->states.vdo.config.physical_blocks;
 
@@ -169,18 +173,17 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 	}
 
 	// Validate that we are prepared to grow appropriately.
-	block_count_t new_depot_size =
+	new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
-	block_count_t prepared_depot_size = get_new_depot_size(vdo->depot);
+	prepared_depot_size = get_new_depot_size(vdo->depot);
 	if (prepared_depot_size != new_depot_size) {
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	int result = perform_admin_operation(vdo,
-					     ADMIN_OPERATION_GROW_PHYSICAL,
-					     get_thread_id_for_phase,
-					     grow_physical_callback,
-					     handle_growth_error);
+	result = perform_admin_operation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
+					 get_thread_id_for_phase,
+					 grow_physical_callback,
+					 handle_growth_error);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -201,10 +204,10 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
+	struct vdo *vdo = admin_completion->vdo;
+
 	assert_admin_operation_type(admin_completion,
 				    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
-
-	struct vdo *vdo = admin_completion->vdo;
 	assert_on_admin_thread(vdo, __func__);
 
 	reset_admin_sub_task(completion);
@@ -227,6 +230,9 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 /**********************************************************************/
 int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
+	int result;
+	block_count_t new_depot_size;
+
 	block_count_t current_physical_blocks =
 		vdo->states.vdo.config.physical_blocks;
 	if (new_physical_blocks < current_physical_blocks) {
@@ -243,7 +249,7 @@ int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	int result =
+	result =
 		perform_admin_operation(vdo,
 					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
 					get_thread_id_for_phase,
@@ -261,7 +267,7 @@ int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 		return result;
 	}
 
-	block_count_t new_depot_size =
+	new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
 	result = prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
 	if (result != VDO_SUCCESS) {

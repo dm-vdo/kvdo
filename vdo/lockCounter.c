@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#20 $
  */
 
 #include "lockCounter.h"
@@ -139,11 +139,12 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 /**********************************************************************/
 void free_lock_counter(struct lock_counter **lock_counter_ptr)
 {
+	struct lock_counter *lock_counter;
 	if (*lock_counter_ptr == NULL) {
 		return;
 	}
 
-	struct lock_counter *lock_counter = *lock_counter_ptr;
+	lock_counter = *lock_counter_ptr;
 	FREE(lock_counter->physical_zone_counts);
 	FREE(lock_counter->logical_zone_counts);
 	FREE(lock_counter->journal_decrement_counts);
@@ -225,15 +226,17 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
 	       zone_type type)
 {
+	atomic_t *zone_count;
+	bool locked;
+
 	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
 			"is_locked() called for non-journal zone");
 	if (is_journal_zone_locked(lock_counter, lock_number)) {
 		return true;
 	}
 
-	atomic_t *zone_count = get_zone_count_ptr(lock_counter, lock_number,
-						  type);
-	bool locked = (atomic_read(zone_count) != 0);
+	zone_count = get_zone_count_ptr(lock_counter, lock_number, type);
+	locked = (atomic_read(zone_count) != 0);
 	smp_rmb();
 	return locked;
 }
@@ -257,11 +260,13 @@ void initialize_lock_count(struct lock_counter *counter,
 			   block_count_t lock_number,
 			   uint16_t value)
 {
+	uint16_t *journal_value;
+	atomic_t *decrement_count;
+
 	assert_on_journal_thread(counter, __func__);
-	uint16_t *journal_value =
+	journal_value =
 		get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
-	atomic_t *decrement_count =
-		&(counter->journal_decrement_counts[lock_number]);
+	decrement_count = &(counter->journal_decrement_counts[lock_number]);
 	ASSERT_LOG_ONLY((*journal_value == atomic_read(decrement_count)),
 			"count to be initialized not in use");
 
@@ -275,11 +280,11 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 				  zone_type type,
 				  zone_count_t zone_id)
 {
+	uint16_t *current_value;
 	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
 			"invalid lock count increment from journal zone");
 
-	uint16_t *current_value =
-		get_counter(counter, lock_number, type, zone_id);
+	current_value = get_counter(counter, lock_number, type, zone_id);
 	ASSERT_LOG_ONLY(*current_value < UINT16_MAX,
 			"increment of lock counter must not overflow");
 
@@ -327,12 +332,14 @@ static uint16_t release_reference(struct lock_counter *counter,
  **/
 static void attempt_notification(struct lock_counter *counter)
 {
+	int prior_state;
+
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int prior_state = atomic_cmpxchg(&counter->state,
-					 LOCK_COUNTER_STATE_NOT_NOTIFYING,
-					 LOCK_COUNTER_STATE_NOTIFYING);
+	prior_state = atomic_cmpxchg(&counter->state,
+				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
+				     LOCK_COUNTER_STATE_NOTIFYING);
 	smp_mb__after_atomic();
 
 	if (prior_state != LOCK_COUNTER_STATE_NOT_NOTIFYING) {
@@ -349,13 +356,15 @@ void release_lock_count_reference(struct lock_counter *counter,
 				  zone_type type,
 				  zone_count_t zone_id)
 {
+	atomic_t *zone_count;
+
 	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
 			"invalid lock count decrement from journal zone");
 	if (release_reference(counter, lock_number, type, zone_id) != 0) {
 		return;
 	}
 
-	atomic_t *zone_count = get_zone_count_ptr(counter, lock_number, type);
+	zone_count = get_zone_count_ptr(counter, lock_number, type);
 	if (atomic_add_return(-1, zone_count) == 0) {
 		// This zone was the last lock holder of its type, so try to
 		// notify the owner.
@@ -397,14 +406,16 @@ void acknowledge_unlock(struct lock_counter *counter)
 /**********************************************************************/
 bool suspend_lock_counter(struct lock_counter *counter)
 {
+	int prior_state;
+
 	assert_on_journal_thread(counter, __func__);
 
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int prior_state = atomic_cmpxchg(&counter->state,
-					 LOCK_COUNTER_STATE_NOT_NOTIFYING,
-					 LOCK_COUNTER_STATE_SUSPENDED);
+	prior_state = atomic_cmpxchg(&counter->state,
+				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
+				     LOCK_COUNTER_STATE_SUSPENDED);
 	smp_mb__after_atomic();
 
 	return ((prior_state == LOCK_COUNTER_STATE_SUSPENDED)
@@ -414,14 +425,16 @@ bool suspend_lock_counter(struct lock_counter *counter)
 /**********************************************************************/
 bool resume_lock_counter(struct lock_counter *counter)
 {
+	int prior_state;
+
 	assert_on_journal_thread(counter, __func__);
 
 	// Extra barriers because this was original developed using
 	// a CAS operation that implicitly had them.
 	smp_mb__before_atomic();
-	int prior_state = atomic_cmpxchg(&counter->state,
-					 LOCK_COUNTER_STATE_SUSPENDED,
-					 LOCK_COUNTER_STATE_NOT_NOTIFYING);
+	prior_state = atomic_cmpxchg(&counter->state,
+				     LOCK_COUNTER_STATE_SUSPENDED,
+				     LOCK_COUNTER_STATE_NOT_NOTIFYING);
 	smp_mb__after_atomic();
 
 	return (prior_state == LOCK_COUNTER_STATE_SUSPENDED);

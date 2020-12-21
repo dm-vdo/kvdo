@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#26 $
  */
 
 #include "vdoResume.h"
@@ -115,11 +115,11 @@ static void resume_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
+	struct vdo *vdo = admin_completion->vdo;
 	assert_admin_operation_type(admin_completion, ADMIN_OPERATION_RESUME);
 	assert_admin_phase_thread(admin_completion, __func__,
 				  RESUME_PHASE_NAMES);
 
-	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case RESUME_PHASE_START:
 		if (start_resuming(&vdo->admin_state,

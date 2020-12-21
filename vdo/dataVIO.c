@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#41 $
  */
 
 #include "dataVIO.h"
@@ -77,12 +77,13 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 static void initialize_lbn_lock(struct data_vio *data_vio,
 				logical_block_number_t lbn)
 {
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct lbn_lock *lock = &data_vio->logical;
+
 	lock->lbn = lbn;
 	lock->locked = false;
 	initialize_wait_queue(&lock->waiters);
 
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	lock->zone = get_logical_zone(vdo->logical_zones,
 				      compute_logical_zone(data_vio));
 }
@@ -94,6 +95,8 @@ void prepare_data_vio(struct data_vio *data_vio,
 		      bool is_trim,
 		      vdo_action *callback)
 {
+	struct vio *vio = data_vio_as_vio(data_vio);
+
 	// Clearing the tree lock must happen before initializing the LBN lock,
 	// which also adds information to the tree lock.
 	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
@@ -108,7 +111,6 @@ void prepare_data_vio(struct data_vio *data_vio,
 	memset(&data_vio->chunk_name, 0, sizeof(data_vio->chunk_name));
 	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
 
-	struct vio *vio = data_vio_as_vio(data_vio);
 	vio->operation = operation;
 	vio->callback = callback;
 
@@ -236,21 +238,20 @@ static void launch_locked_request(struct data_vio *data_vio)
 void attempt_logical_block_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	struct lbn_lock *lock = &data_vio->logical;
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct data_vio *lock_holder;
+	int result;
+
 	assert_in_logical_zone(data_vio);
 
-	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
 		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
 		return;
 	}
 
-	struct data_vio *lock_holder;
-	struct lbn_lock *lock = &data_vio->logical;
-	int result = int_map_put(get_lbn_lock_map(lock->zone),
-				 lock->lbn,
-				 data_vio,
-				 false,
-				 (void **) &lock_holder);
+	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
+			     data_vio, false, (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
@@ -315,6 +316,8 @@ static void release_lock(struct data_vio *data_vio)
 {
 	struct lbn_lock *lock = &data_vio->logical;
 	struct int_map *lock_map = get_lbn_lock_map(lock->zone);
+	struct data_vio *lock_holder;
+
 	if (!lock->locked) {
 		// The lock is not locked, so it had better not be registered
 		// in the lock map.
@@ -326,7 +329,7 @@ static void release_lock(struct data_vio *data_vio)
 	}
 
 	// Remove the lock from the logical block lock map, releasing the lock.
-	struct data_vio *lock_holder = int_map_remove(lock_map, lock->lbn);
+	lock_holder = int_map_remove(lock_map, lock->lbn);
 	ASSERT_LOG_ONLY((data_vio == lock_holder),
 			"logical block lock mismatch for block %llu",
 			lock->lbn);
@@ -337,30 +340,29 @@ static void release_lock(struct data_vio *data_vio)
 /**********************************************************************/
 void release_logical_block_lock(struct data_vio *data_vio)
 {
+	struct data_vio *lock_holder, *next_lock_holder;
+	struct lbn_lock *lock = &data_vio->logical;
+	int result;
+
 	assert_in_logical_zone(data_vio);
 	if (!has_waiters(&data_vio->logical.waiters)) {
 		release_lock(data_vio);
 		return;
 	}
 
-	struct lbn_lock *lock = &data_vio->logical;
 	ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
 
 	// Another data_vio is waiting for the lock, so just transfer it in a
 	// single lock map operation
-	struct data_vio *next_lock_holder =
+	next_lock_holder =
 		waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
 
 	// Transfer the remaining lock waiters to the next lock holder.
 	transfer_all_waiters(&lock->waiters,
 			     &next_lock_holder->logical.waiters);
 
-	struct data_vio *lock_holder;
-	int result = int_map_put(get_lbn_lock_map(lock->zone),
-				 lock->lbn,
-				 next_lock_holder,
-				 true,
-				 (void **) &lock_holder);
+	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
+			     next_lock_holder, true, (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(next_lock_holder, result);
 		return;

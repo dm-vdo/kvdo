@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#46 $
  */
 
 #include "slabSummary.h"
@@ -55,6 +55,7 @@
 static uint8_t __must_check
 compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 {
+	block_count_t hint;
 	ASSERT_LOG_ONLY((free_blocks < (1 << 23)),
 			"free blocks must be less than 2^23");
 
@@ -62,7 +63,7 @@ compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 		return 0;
 	}
 
-	block_count_t hint = free_blocks >> summary->hint_shift;
+	hint = free_blocks >> summary->hint_shift;
 	return ((hint == 0) ? 1 : hint);
 }
 
@@ -148,6 +149,8 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 				  thread_id_t thread_id,
 				  struct slab_summary_entry *entries)
 {
+	struct slab_summary_zone *summary_zone;
+	block_count_t i;
 	int result = ALLOCATE_EXTENDED(struct slab_summary_zone,
 				       summary->blocks_per_zone,
 				       struct slab_summary_block, __func__,
@@ -156,13 +159,12 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 		return result;
 	}
 
-	struct slab_summary_zone *summary_zone = summary->zones[zone_number];
+	summary_zone = summary->zones[zone_number];
 	summary_zone->summary = summary;
 	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
 
 	// Initialize each block.
-	block_count_t i;
 	for (i = 0; i < summary->blocks_per_zone; i++) {
 		result = initialize_slab_summary_block(layer, summary_zone,
 						       thread_id, entries, i,
@@ -184,6 +186,10 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 		      struct read_only_notifier *read_only_notifier,
 		      struct slab_summary **slab_summary_ptr)
 {
+	struct slab_summary *summary;
+	size_t total_entries, entry_bytes, i;
+	uint8_t hint;
+	zone_count_t zone;
 	block_count_t blocks_per_zone =
 		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	slab_count_t entries_per_block = MAX_SLABS / blocks_per_zone;
@@ -199,7 +205,6 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 		return VDO_SUCCESS;
 	}
 
-	struct slab_summary *summary;
 	result = ALLOCATE_EXTENDED(struct slab_summary,
 				   thread_config->physical_zone_count,
 				   struct slab_summary_zone *,
@@ -215,8 +220,8 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
-	size_t total_entries = MAX_SLABS * MAX_PHYSICAL_ZONES;
-	size_t entry_bytes = total_entries * sizeof(struct slab_summary_entry);
+	total_entries = MAX_SLABS * MAX_PHYSICAL_ZONES;
+	entry_bytes = total_entries * sizeof(struct slab_summary_entry);
 	result = layer->allocateIOBuffer(layer, entry_bytes, "summary entries",
 					 (char **)&summary->entries);
 	if (result != VDO_SUCCESS) {
@@ -225,9 +230,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	}
 
 	// Initialize all the entries.
-	uint8_t hint = compute_fullness_hint(summary,
-					     maximum_free_blocks_per_slab);
-	size_t i;
+	hint = compute_fullness_hint(summary, maximum_free_blocks_per_slab);
 	for (i = 0; i < total_entries; i++) {
 		// This default tail block offset must be reflected in
 		// slabJournal.c::readSlabJournalTail().
@@ -240,7 +243,6 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	}
 
 	set_slab_summary_origin(summary, partition);
-	zone_count_t zone;
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, layer, zone,
@@ -261,12 +263,14 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 /**********************************************************************/
 void free_slab_summary(struct slab_summary **slab_summary_ptr)
 {
+	struct slab_summary *summary;
+	zone_count_t zone;
+
 	if (*slab_summary_ptr == NULL) {
 		return;
 	}
 
-	struct slab_summary *summary = *slab_summary_ptr;
-	zone_count_t zone;
+	summary = *slab_summary_ptr;
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		struct slab_summary_zone *summary_zone = summary->zones[zone];
 		if (summary_zone != NULL) {
@@ -378,17 +382,19 @@ static void handle_write_error(struct vdo_completion *completion)
  **/
 static void launch_write(struct slab_summary_block *block)
 {
+	struct slab_summary_zone *zone = block->zone;
+	struct slab_summary *summary = zone->summary;
+	physical_block_number_t pbn;
+
 	if (block->writing) {
 		return;
 	}
 
-	struct slab_summary_zone *zone = block->zone;
 	zone->write_count++;
 	transfer_all_waiters(&block->next_update_waiters,
 			     &block->current_update_waiters);
 	block->writing = true;
 
-	struct slab_summary *summary = zone->summary;
 	if (is_read_only(summary->read_only_notifier)) {
 		finish_updating_slab_summary_block(block);
 		return;
@@ -400,9 +406,8 @@ static void launch_write(struct slab_summary_block *block)
 	// Flush before writing to ensure that the slab journal tail blocks and
 	// reference updates covered by this summary update are stable
 	// (VDO-2332).
-	physical_block_number_t pbn =
-		(summary->origin + (summary->blocks_per_zone *
-				    zone->zone_number) + block->index);
+	pbn = summary->origin +
+	      (summary->blocks_per_zone * zone->zone_number) + block->index;
 	launch_write_metadata_vio_with_flush(block->vio, pbn, finish_update,
 					     handle_write_error, true, false);
 }
@@ -632,16 +637,19 @@ void load_slab_summary(struct slab_summary *summary,
 		       zone_count_t zones_to_combine,
 		       struct vdo_completion *parent)
 {
+	struct vdo_extent *extent;
+	block_count_t blocks;
+	int result;
+
 	struct slab_summary_zone *zone = summary->zones[0];
 	if (!start_loading(&zone->state, operation, parent, NULL)) {
 		return;
 	}
 
-	struct vdo_extent *extent;
-	block_count_t blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
-	int result = create_extent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
-				   VIO_PRIORITY_METADATA, blocks,
-				   (char *)summary->entries, &extent);
+	blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
+	result = create_extent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
+			       VIO_PRIORITY_METADATA, blocks,
+			       (char *)summary->entries, &extent);
 	if (result != VDO_SUCCESS) {
 		finish_loading_with_result(&zone->state, result);
 		return;

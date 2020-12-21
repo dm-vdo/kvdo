@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#43 $
  */
 
 #include "readOnlyRebuild.h"
@@ -299,6 +299,8 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
  **/
 static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 {
+	sequence_number_t i;
+
 	struct vdo *vdo = rebuild->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	sequence_number_t first = rebuild->head;
@@ -319,13 +321,15 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		return result;
 	}
 
-	sequence_number_t i;
 	for (i = first; i <= last; i++) {
 		struct packed_journal_header *packed_header =
 			get_journal_block_header(journal,
 						 rebuild->journal_data,
 						 i);
 		struct recovery_block_header header;
+		journal_entry_count_t block_entries;
+		uint8_t j;
+
 		unpack_recovery_block_header(packed_header, &header);
 
 		if (!is_exact_recovery_journal_block(journal, &header, i)) {
@@ -335,18 +339,19 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 		// Don't extract more than the expected maximum entries per
 		// block.
-		journal_entry_count_t block_entries =
+		block_entries =
 			min_block(journal->entries_per_block, header.entry_count);
-		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
+			journal_entry_count_t sector_entries;
+
+			struct packed_journal_sector *sector =
+				get_journal_block_sector(packed_header, j);
 			// Stop when all entries counted in the header are
 			// applied or skipped.
 			if (block_entries == 0) {
 				break;
 			}
 
-			struct packed_journal_sector *sector =
-				get_journal_block_sector(packed_header, j);
 			if (!is_valid_recovery_journal_sector(&header, sector)) {
 				block_entries -= min_block(block_entries,
 							   RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
@@ -355,7 +360,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 			// Don't extract more than the expected maximum entries
 			// per sector.
-			journal_entry_count_t sector_entries =
+			sector_entries =
 				min_block(sector->entry_count,
 					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 			// Only extract as many as the block header calls for.
@@ -383,6 +388,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
  **/
 static void apply_journal_entries(struct vdo_completion *completion)
 {
+	bool found_entries;
+
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
@@ -390,11 +397,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	log_info("Finished reading recovery journal");
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
-	bool found_entries = find_head_and_tail(vdo->recovery_journal,
-						rebuild->journal_data,
-						&rebuild->tail,
-						&rebuild->head,
-						NULL);
+	found_entries = find_head_and_tail(vdo->recovery_journal,
+					   rebuild->journal_data,
+					   &rebuild->tail,
+					   &rebuild->head,
+					   NULL);
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
 		if (abort_rebuild_on_error(result, rebuild)) {
@@ -440,6 +447,10 @@ static void load_journal_callback(struct vdo_completion *completion)
 /**********************************************************************/
 void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
+	struct read_only_rebuild_completion *rebuild;
+	struct vdo_completion *completion, *sub_task_completion;
+	int result;
+
 	// Note: These messages must be recognizable by Permabit::VDODeviceBase.
 	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
 		log_warning("Rebuilding reference counts for upgrade");
@@ -448,21 +459,20 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 		vdo->states.vdo.read_only_recoveries++;
 	}
 
-	struct read_only_rebuild_completion *rebuild;
-	int result = make_rebuild_completion(vdo, &rebuild);
+	result = make_rebuild_completion(vdo, &rebuild);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
 	}
 
-	struct vdo_completion *completion = &rebuild->completion;
+	completion = &rebuild->completion;
 	prepare_completion(completion,
 			   finish_rebuild,
 			   abort_rebuild,
 			   parent->callback_thread_id,
 			   parent);
 
-	struct vdo_completion *sub_task_completion = &rebuild->sub_task_completion;
+	sub_task_completion = &rebuild->sub_task_completion;
 	prepare_completion(sub_task_completion,
 			   load_journal_callback,
 			   finish_parent_callback,

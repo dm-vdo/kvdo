@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#8 $
  */
 
 #include "heap.h"
@@ -88,6 +88,8 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 /**********************************************************************/
 void build_heap(struct heap *heap, size_t count)
 {
+	size_t size, last_parent, last_node, top_node;
+
 	heap->count = min(count, heap->capacity);
 
 	if ((heap->count < 2) || (heap->element_size == 0)) {
@@ -112,10 +114,9 @@ void build_heap(struct heap *heap, size_t count)
 	 * constant, so restoring a heap from the bottom-up like this has only
 	 * O(N) complexity.
 	 */
-	size_t size = heap->element_size;
-	size_t last_parent = size * (heap->count / 2);
-	size_t last_node = size * heap->count;
-	size_t top_node;
+	size = heap->element_size;
+	last_parent = size * (heap->count / 2);
+	last_node = size * heap->count;
 	for (top_node = last_parent; top_node > 0; top_node -= size) {
 		sift_heap_down(heap, top_node, last_node);
 	}
@@ -124,12 +125,14 @@ void build_heap(struct heap *heap, size_t count)
 /**********************************************************************/
 bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 {
+	size_t root_node, last_node;
+
 	if (heap->count == 0) {
 		return false;
 	}
 
-	size_t root_node = (heap->element_size * 1);
-	size_t last_node = (heap->element_size * heap->count);
+	root_node = (heap->element_size * 1);
+	last_node = (heap->element_size * heap->count);
 
 	// Return the maximum element (the root of the heap) if the caller
 	// wanted it.
@@ -177,6 +180,8 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node,
 /**********************************************************************/
 size_t sort_heap(struct heap *heap)
 {
+	size_t root_node, last_node, count;
+
 	// All zero-length records are identical and therefore already sorted,
 	// as are empty or singleton arrays.
 	if ((heap->count < 2) || (heap->element_size == 0)) {
@@ -185,14 +190,14 @@ size_t sort_heap(struct heap *heap)
 
 	// Get the byte array offset of the root node, and the right-most leaf
 	// node in the 1-based array of records that will form the heap.
-	size_t root_node = (heap->element_size * 1);
-	size_t last_node = (heap->element_size * heap->count);
+	root_node = (heap->element_size * 1);
+	last_node = (heap->element_size * heap->count);
 
 	while (last_node > root_node) {
 		last_node = sift_and_sort(heap, root_node, last_node);
 	}
 
-	size_t count = heap->count;
+	count = heap->count;
 	heap->count = 0;
 	return count;
 }
@@ -200,14 +205,16 @@ size_t sort_heap(struct heap *heap)
 /**********************************************************************/
 void *sort_next_heap_element(struct heap *heap)
 {
+	size_t root_node, last_node;
+
 	if ((heap->count == 0) || (heap->element_size == 0)) {
 		return NULL;
 	}
 
 	// Get the byte array offset of the root node, and the right-most leaf
 	// node in the 1-based array of records that will form the heap.
-	size_t root_node = (heap->element_size * 1);
-	size_t last_node = (heap->element_size * heap->count);
+	root_node = (heap->element_size * 1);
+	last_node = (heap->element_size * heap->count);
 	if (heap->count > 1) {
 		sift_and_sort(heap, root_node, last_node);
 	}

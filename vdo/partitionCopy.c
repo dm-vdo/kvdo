@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#19 $
  */
 
 #include "partitionCopy.h"
@@ -107,11 +107,13 @@ int make_copy_completion(PhysicalLayer *layer,
 /**********************************************************************/
 void free_copy_completion(struct vdo_completion **completion_ptr)
 {
+	struct copy_completion *copy;
+
 	if (*completion_ptr == NULL) {
 		return;
 	}
 
-	struct copy_completion *copy = as_copy_completion(*completion_ptr);
+	copy = as_copy_completion(*completion_ptr);
 	free_extent(&copy->extent);
 	FREE(copy->data);
 	FREE(copy);
@@ -236,13 +238,14 @@ void copy_partition(struct vdo_completion *completion,
 		    struct partition *target,
 		    struct vdo_completion *parent)
 {
+	struct copy_completion *copy = as_copy_completion(completion);
+
 	int result = validate_partition_copy(source, target);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
 	}
 
-	struct copy_completion *copy = as_copy_completion(completion);
 	prepare_to_finish_parent(&copy->completion, parent);
 	copy->source = source;
 	copy->target = target;

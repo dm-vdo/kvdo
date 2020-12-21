@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#26 $
  */
 
 #include "vio.h"
@@ -47,11 +47,12 @@ void initialize_vio(struct vio *vio,
 		    struct vdo *vdo,
 		    PhysicalLayer *layer)
 {
+	struct vdo_completion *completion = vio_as_completion(vio);
+
 	vio->vdo = vdo;
 	vio->type = type;
 	vio->priority = priority;
 
-	struct vdo_completion *completion = vio_as_completion(vio);
 	initialize_completion(completion, VIO_COMPLETION, layer);
 	completion->parent = parent;
 }
@@ -77,7 +78,13 @@ const char *get_vio_read_write_flavor(const struct vio *vio)
 /**********************************************************************/
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
+	static DEFINE_RATELIMIT_STATE(errorLimiter,
+				      DEFAULT_RATELIMIT_INTERVAL,
+				      DEFAULT_RATELIMIT_BURST);
+
+	va_list args;
 	int priority;
+
 	int result = vio_as_completion(vio)->result;
 	switch (result) {
 	case VDO_READ_ONLY:
@@ -93,15 +100,10 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 		priority = LOG_ERR;
 	}
 
-	static DEFINE_RATELIMIT_STATE(errorLimiter,
-				      DEFAULT_RATELIMIT_INTERVAL,
-				      DEFAULT_RATELIMIT_BURST);
-
 	if (!__ratelimit(&errorLimiter)) {
 		return;
 	}
 
-	va_list args;
 	va_start(args, format);
 	vlog_strerror(priority, result, format, args);
 	va_end(args);
@@ -130,12 +132,13 @@ void launch_metadata_vio(struct vio *vio,
 			 vdo_action *error_handler,
 			 vio_operation operation)
 {
+	struct vdo_completion *completion = vio_as_completion(vio);
+
 	vio->operation = operation;
 	vio->physical = physical;
 	vio->callback = callback;
 	vio->error_handler = error_handler;
 
-	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
 	completion->callback = vio_done_callback;
 	completion->error_handler = handle_metadata_io_error;
@@ -160,10 +163,11 @@ void launch_flush(struct vio *vio,
 		  vdo_action *callback,
 		  vdo_action *error_handler)
 {
+	struct vdo_completion *completion = vio_as_completion(vio);
+
 	ASSERT_LOG_ONLY(get_write_policy(vio->vdo) != WRITE_POLICY_SYNC,
 			"pure flushes should not currently be issued in sync mode");
 
-	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
 	completion->callback = callback;
 	completion->error_handler = handle_flush_error;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#30 $
  */
 
 #include "recoveryUtils.h"
@@ -54,6 +54,7 @@ void load_journal(struct recovery_journal *journal,
 		  struct vdo_completion *parent,
 		  char **journal_data_ptr)
 {
+	struct vdo_extent *extent;
 	int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,
 			      journal_data_ptr);
 	if (result != VDO_SUCCESS) {
@@ -61,7 +62,6 @@ void load_journal(struct recovery_journal *journal,
 		return;
 	}
 
-	struct vdo_extent *extent;
 	result = create_extent(parent->layer, VIO_TYPE_RECOVERY_JOURNAL,
 			       VIO_PRIORITY_METADATA, journal->size,
 			       *journal_data_ptr, &extent);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#48 $
  */
 
 #include "slabScrubberInternals.h"
@@ -110,11 +110,12 @@ static void free_extent_and_buffer(struct slab_scrubber *scrubber)
 /**********************************************************************/
 void free_slab_scrubber(struct slab_scrubber **scrubber_ptr)
 {
+	struct slab_scrubber *scrubber;
 	if (*scrubber_ptr == NULL) {
 		return;
 	}
 
-	struct slab_scrubber *scrubber = *scrubber_ptr;
+	scrubber = *scrubber_ptr;
 	free_extent_and_buffer(scrubber);
 	FREE(scrubber);
 	*scrubber_ptr = NULL;
@@ -188,6 +189,8 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
  **/
 static void finish_scrubbing(struct slab_scrubber *scrubber)
 {
+	bool notify;
+
 	if (!has_slabs_to_scrub(scrubber)) {
 		free_extent_and_buffer(scrubber);
 	}
@@ -195,7 +198,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	// Inform whoever is waiting that scrubbing has completed.
 	complete_completion(&scrubber->completion);
 
-	bool notify = has_waiters(&scrubber->waiters);
+	notify = has_waiters(&scrubber->waiters);
 
 	// Note that the scrubber has stopped, and inform anyone who might be
 	// waiting for that to happen.
@@ -272,6 +275,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 		.sequence_number = block_number,
 		.entry_count = 0,
 	};
+	int result;
 
 	slab_block_number max_sbn = slab->end - slab->start;
 	while (entry_point.entry_count < entry_count) {
@@ -288,9 +292,8 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 						  max_sbn);
 		}
 
-		int result =
-			replay_reference_count_change(slab->reference_counts,
-						      &entry_point, entry);
+		result = replay_reference_count_change(slab->reference_counts,
+						       &entry_point, entry);
 		if (result != VDO_SUCCESS) {
 			log_error_strerror(result,
 					   "vdo_slab journal entry (%llu, %u) (%s of offset %u) could not be applied in slab %u",
@@ -315,6 +318,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
  **/
 static void apply_journal_entries(struct vdo_completion *completion)
 {
+	int result;
 	struct slab_scrubber *scrubber = completion->parent;
 	struct vdo_slab *slab = scrubber->slab;
 	struct slab_journal *journal = slab->journal;
@@ -358,8 +362,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			return;
 		}
 
-		int result = apply_block_entries(block, header.entry_count,
-						 sequence, slab);
+		result = apply_block_entries(block, header.entry_count,
+					     sequence, slab);
 		if (result != VDO_SUCCESS) {
 			abort_scrubbing(scrubber, result);
 			return;
@@ -375,9 +379,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
 
 	// At the end of rebuild, the refCounts should be accurate to the end
 	// of the journal we just applied.
-	int result = ASSERT(!before_journal_point(&last_entry_applied,
-						  &ref_counts_point),
-			    "Refcounts are not more accurate than the slab journal");
+	result = ASSERT(!before_journal_point(&last_entry_applied,
+					      &ref_counts_point),
+			"Refcounts are not more accurate than the slab journal");
 	if (result != VDO_SUCCESS) {
 		abort_scrubbing(scrubber, result);
 		return;
@@ -423,6 +427,9 @@ static void start_scrubbing(struct vdo_completion *completion)
  **/
 static void scrub_next_slab(struct slab_scrubber *scrubber)
 {
+	struct vdo_completion *completion;
+	struct vdo_slab *slab;
+
 	// Note: this notify call is always safe only because scrubbing can only
 	// be started when the VDO is quiescent.
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
@@ -432,7 +439,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 		return;
 	}
 
-	struct vdo_slab *slab = get_next_slab(scrubber);
+	slab = get_next_slab(scrubber);
 	if ((slab == NULL) || (scrubber->high_priority_only &&
 			       list_empty(&scrubber->high_priority_slabs))) {
 		scrubber->high_priority_only = false;
@@ -446,8 +453,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
-	struct vdo_completion *completion =
-		extent_as_completion(scrubber->extent);
+	completion = extent_as_completion(scrubber->extent);
 	prepare_completion(completion,
 			   start_scrubbing,
 			   handle_scrubber_error,
@@ -462,8 +468,8 @@ void scrub_slabs(struct slab_scrubber *scrubber,
 		 vdo_action *callback,
 		 vdo_action *error_handler)
 {
-	resume_if_quiescent(&scrubber->admin_state);
 	thread_id_t thread_id = get_callback_thread_id();
+	resume_if_quiescent(&scrubber->admin_state);
 	prepare_completion(&scrubber->completion,
 			   callback,
 			   error_handler,
@@ -512,12 +518,14 @@ void stop_scrubbing(struct slab_scrubber *scrubber,
 void resume_scrubbing(struct slab_scrubber *scrubber,
 		      struct vdo_completion *parent)
 {
+	int result;
+
 	if (!has_slabs_to_scrub(scrubber)) {
 		complete_completion(parent);
 		return;
 	}
 
-	int result = resume_if_quiescent(&scrubber->admin_state);
+	result = resume_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;

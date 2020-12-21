@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#19 $
  */
 
 #include "vdoLayout.h"
@@ -63,6 +63,7 @@ int decode_vdo_layout(struct fixed_layout *layout,
 		      struct vdo_layout **vdo_layout_ptr)
 {
 	// Check that all the expected partitions exist
+	struct vdo_layout *vdo_layout;
 	struct partition *partition;
 	uint8_t i;
 	int result;
@@ -76,7 +77,6 @@ int decode_vdo_layout(struct fixed_layout *layout,
 		}
 	}
 
-	struct vdo_layout *vdo_layout;
 	result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -171,6 +171,10 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 			       block_count_t new_physical_blocks,
 			       PhysicalLayer *layer)
 {
+	int result;
+	struct partition *slab_summary_partition, *recovery_journal_partition;
+	block_count_t min_new_size;
+
 	if (get_next_vdo_layout_size(vdo_layout) == new_physical_blocks) {
 		// We are already prepared to grow to the new size, so we're
 		// done.
@@ -191,12 +195,12 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 
 	// Make a new layout with the existing partition sizes for everything
 	// but the block allocator partition.
-	int result = make_vdo_fixed_layout(new_physical_blocks,
-					   vdo_layout->starting_offset,
-					   get_partition_size(vdo_layout, BLOCK_MAP_PARTITION),
-					   get_partition_size(vdo_layout, RECOVERY_JOURNAL_PARTITION),
-					   get_partition_size(vdo_layout, SLAB_SUMMARY_PARTITION),
-					   &vdo_layout->next_layout);
+	result = make_vdo_fixed_layout(new_physical_blocks,
+				       vdo_layout->starting_offset,
+				       get_partition_size(vdo_layout, BLOCK_MAP_PARTITION),
+				       get_partition_size(vdo_layout, RECOVERY_JOURNAL_PARTITION),
+				       get_partition_size(vdo_layout, SLAB_SUMMARY_PARTITION),
+				       &vdo_layout->next_layout);
 	if (result != VDO_SUCCESS) {
 		free_copy_completion(&vdo_layout->copy_completion);
 		return result;
@@ -204,13 +208,13 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 
 	// Ensure the new journal and summary are entirely within the added
 	// blocks.
-	struct partition *slab_summary_partition =
+	slab_summary_partition =
 		get_partition_from_next_layout(vdo_layout,
 					       SLAB_SUMMARY_PARTITION);
-	struct partition *recovery_journal_partition =
+	recovery_journal_partition =
 		get_partition_from_next_layout(vdo_layout,
 					       RECOVERY_JOURNAL_PARTITION);
-	block_count_t min_new_size =
+	min_new_size =
 		(old_physical_blocks +
 		 get_fixed_layout_partition_size(slab_summary_partition) +
 		 get_fixed_layout_partition_size(recovery_journal_partition));
@@ -255,13 +259,13 @@ block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 block_count_t
 get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 {
+	struct partition *partition;
 	if (vdo_layout->next_layout == NULL) {
 		return 0;
 	}
 
-	struct partition *partition =
-		get_partition_from_next_layout(vdo_layout,
-					       BLOCK_ALLOCATOR_PARTITION);
+	partition = get_partition_from_next_layout(vdo_layout,
+					           BLOCK_ALLOCATOR_PARTITION);
 	return get_fixed_layout_partition_size(partition);
 }
 

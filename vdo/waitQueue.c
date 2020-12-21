@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#6 $
  */
 
 #include "waitQueue.h"
@@ -111,10 +111,9 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 			     void *match_context,
 			     struct wait_queue *matched_queue)
 {
-	struct wait_queue matched_waiters;
+	struct wait_queue matched_waiters, iteration_queue;
 	initialize_wait_queue(&matched_waiters);
 
-	struct wait_queue iteration_queue;
 	initialize_wait_queue(&iteration_queue);
 	transfer_all_waiters(queue, &iteration_queue);
 	while (has_waiters(&iteration_queue)) {
@@ -140,11 +139,11 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
+	struct waiter *last_waiter = queue->last_waiter;
 	if (first_waiter == NULL) {
 		return NULL;
 	}
 
-	struct waiter *last_waiter = queue->last_waiter;
 	if (first_waiter == last_waiter) {
 		// The queue has a single entry, so just empty it out by nulling
 		// the tail.

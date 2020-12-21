@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#4 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -48,12 +48,14 @@ size_t get_recovery_journal_encoded_size(void)
 int encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 				      struct buffer *buffer)
 {
+	size_t initial_length, encoded_size;
+
 	int result = encode_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t initial_length = content_length(buffer);
+	initial_length = content_length(buffer);
 
 	result = put_uint64_le_into_buffer(buffer, state.journal_start);
 	if (result != UDS_SUCCESS) {
@@ -71,7 +73,7 @@ int encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 		return result;
 	}
 
-	size_t encoded_size = content_length(buffer) - initial_length;
+	encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
 		      "encoded recovery journal component size must match header size");
 }
@@ -82,7 +84,12 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 				  struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
-	int result = decode_header(buffer, &header);
+	int result;
+	size_t initial_length, decoded_size;
+	sequence_number_t journal_start;
+	block_count_t logical_blocks_used, block_map_data_blocks;
+
+	result = decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -93,27 +100,24 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 		return result;
 	}
 
-	size_t initial_length = content_length(buffer);
+	initial_length = content_length(buffer);
 
-	sequence_number_t journal_start;
 	result = get_uint64_le_from_buffer(buffer, &journal_start);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	block_count_t logical_blocks_used;
 	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	block_count_t block_map_data_blocks;
 	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	size_t decoded_size = initial_length - content_length(buffer);
+	decoded_size = initial_length - content_length(buffer);
 	result = ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
 			"decoded recovery journal component size must match header size");
 	if (result != UDS_SUCCESS) {

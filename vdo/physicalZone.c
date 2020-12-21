@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#21 $
  */
 
 #include "physicalZone.h"
@@ -91,11 +91,12 @@ int make_physical_zone(struct vdo *vdo,
 /**********************************************************************/
 void free_physical_zone(struct physical_zone **zone_ptr)
 {
+	struct physical_zone *zone;
+
 	if (*zone_ptr == NULL) {
 		return;
 	}
-
-	struct physical_zone *zone = *zone_ptr;
+	zone = *zone_ptr;
 	free_pbn_lock_pool(&zone->lock_pool);
 	free_int_map(&zone->pbn_operations);
 	FREE(zone);
@@ -135,7 +136,7 @@ int attempt_pbn_lock(struct physical_zone *zone,
 {
 	// Borrow and prepare a lock from the pool so we don't have to do two
 	// int_map accesses in the common case of no lock contention.
-	struct pbn_lock *new_lock;
+	struct pbn_lock *lock, *new_lock;
 	int result = borrow_pbn_lock_from_pool(zone->lock_pool, type,
 					       &new_lock);
 	if (result != VDO_SUCCESS) {
@@ -144,7 +145,6 @@ int attempt_pbn_lock(struct physical_zone *zone,
 		return result;
 	}
 
-	struct pbn_lock *lock;
 	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
 			     (void **) &lock);
 	if (result != VDO_SUCCESS) {
@@ -174,7 +174,7 @@ void release_pbn_lock(struct physical_zone *zone,
 		      physical_block_number_t locked_pbn,
 		      struct pbn_lock **lock_ptr)
 {
-	struct pbn_lock *lock = *lock_ptr;
+	struct pbn_lock *holder, *lock = *lock_ptr;
 	if (lock == NULL) {
 		return;
 	}
@@ -190,8 +190,7 @@ void release_pbn_lock(struct physical_zone *zone,
 		return;
 	}
 
-	struct pbn_lock *holder =
-		int_map_remove(zone->pbn_operations, locked_pbn);
+	holder = int_map_remove(zone->pbn_operations, locked_pbn);
 	ASSERT_LOG_ONLY((lock == holder),
 			"physical block lock mismatch for block %llu",
 			locked_pbn);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#11 $
  */
 
 #include "threadConfig.h"
@@ -94,6 +94,11 @@ int make_thread_config(zone_count_t logical_zone_count,
 		       zone_count_t hash_zone_count,
 		       struct thread_config **config_ptr)
 {
+	struct thread_config *config;
+	thread_count_t total;
+	int result;
+	thread_id_t id = 0;
+
 	if ((logical_zone_count == 0) && (physical_zone_count == 0) &&
 	    (hash_zone_count == 0)) {
 		return make_one_thread_config(config_ptr);
@@ -113,19 +118,16 @@ int make_thread_config(zone_count_t logical_zone_count,
 					  MAX_LOGICAL_ZONES);
 	}
 
-	struct thread_config *config;
-	thread_count_t total =
-		logical_zone_count + physical_zone_count + hash_zone_count + 2;
-	int result = allocate_thread_config(logical_zone_count,
-					    physical_zone_count,
-					    hash_zone_count,
-					    total,
-					    &config);
+	total = logical_zone_count + physical_zone_count + hash_zone_count + 2;
+	result = allocate_thread_config(logical_zone_count,
+					physical_zone_count,
+					hash_zone_count,
+					total,
+					&config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	thread_id_t id = 0;
 	config->admin_thread = id;
 	config->journal_thread = id++;
 	config->packer_thread = id++;
@@ -159,6 +161,7 @@ int make_one_thread_config(struct thread_config **config_ptr)
 int copy_thread_config(const struct thread_config *old_config,
 		       struct thread_config **config_ptr)
 {
+	zone_count_t i;
 	struct thread_config *config;
 	int result = allocate_thread_config(old_config->logical_zone_count,
 					    old_config->physical_zone_count,
@@ -172,7 +175,6 @@ int copy_thread_config(const struct thread_config *old_config,
 	config->admin_thread = old_config->admin_thread;
 	config->journal_thread = old_config->journal_thread;
 	config->packer_thread = old_config->packer_thread;
-	zone_count_t i;
 	for (i = 0; i < config->logical_zone_count; i++) {
 		config->logical_threads[i] = old_config->logical_threads[i];
 	}
@@ -190,11 +192,12 @@ int copy_thread_config(const struct thread_config *old_config,
 /**********************************************************************/
 void free_thread_config(struct thread_config **config_ptr)
 {
+	struct thread_config *config;
 	if (*config_ptr == NULL) {
 		return;
 	}
 
-	struct thread_config *config = *config_ptr;
+	config = *config_ptr;
 	*config_ptr = NULL;
 
 	FREE(config->logical_threads);

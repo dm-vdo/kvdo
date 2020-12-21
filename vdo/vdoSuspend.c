@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#28 $
  */
 
 #include "vdoSuspend.h"
@@ -115,6 +115,8 @@ static void suspend_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		admin_completion_from_sub_task(completion);
+	struct vdo *vdo = admin_completion->vdo;
+
 	ASSERT_LOG_ONLY(((admin_completion->type == ADMIN_OPERATION_SUSPEND) ||
 			 (admin_completion->type == ADMIN_OPERATION_SAVE)),
 			"unexpected admin operation type %u is neither suspend nor save",
@@ -122,7 +124,6 @@ static void suspend_callback(struct vdo_completion *completion)
 	assert_admin_phase_thread(admin_completion, __func__,
 				  SUSPEND_PHASE_NAMES);
 
-	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
 		if (!start_draining(&vdo->admin_state,

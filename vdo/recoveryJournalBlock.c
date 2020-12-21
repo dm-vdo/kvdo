@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#43 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -36,6 +36,9 @@
 int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 			struct recovery_journal_block **block_ptr)
 {
+	struct recovery_journal_block *block;
+	int result;
+
 	// Ensure that a block is large enough to store
 	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
@@ -43,9 +46,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 		      	    - sizeof(struct packed_journal_header))
 			  / sizeof(struct packed_recovery_journal_entry)));
 
-	struct recovery_journal_block *block;
-	int result =
-		ALLOCATE(1, struct recovery_journal_block, __func__, &block);
+	result = ALLOCATE(1, struct recovery_journal_block, __func__, &block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -120,16 +121,7 @@ static void set_active_sector(struct recovery_journal_block *block,
 /**********************************************************************/
 void initialize_recovery_block(struct recovery_journal_block *block)
 {
-	memset(block->block, 0x0, VDO_BLOCK_SIZE);
-
 	struct recovery_journal *journal = block->journal;
-	block->sequence_number = journal->tail;
-	block->entry_count = 0;
-	block->uncommitted_entry_count = 0;
-
-	block->block_number =
-		get_recovery_journal_block_number(journal, journal->tail);
-
 	struct recovery_block_header unpacked = {
 		.metadata_type = VDO_METADATA_RECOVERY_JOURNAL,
 		.block_map_data_blocks = journal->block_map_data_blocks,
@@ -141,6 +133,15 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 							  journal->tail),
 	};
 	struct packed_journal_header *header = get_block_header(block);
+
+	memset(block->block, 0x0, VDO_BLOCK_SIZE);
+	block->sequence_number = journal->tail;
+	block->entry_count = 0;
+	block->uncommitted_entry_count = 0;
+
+	block->block_number =
+		get_recovery_journal_block_number(journal, journal->tail);
+
 	pack_recovery_block_header(&unpacked, header);
 
 	set_active_sector(block, get_journal_block_sector(header, 1));
@@ -201,6 +202,11 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 	while (has_waiters(&block->entry_waiters)) {
 		struct data_vio *data_vio =
 			waiter_as_data_vio(dequeue_next_waiter(&block->entry_waiters));
+		struct tree_lock *lock = &data_vio->tree_lock;
+		struct packed_recovery_journal_entry *packed_entry;
+		struct recovery_journal_entry new_entry;
+		int result;
+
 		if (data_vio->operation.type == DATA_INCREMENT) {
 			// In order to not lose committed sectors of this
 			// partial write, we must flush before the partial write
@@ -220,10 +226,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Compose and encode the entry.
-		struct packed_recovery_journal_entry *packed_entry =
+		packed_entry =
 			&block->sector->entries[block->sector->entry_count++];
-		struct tree_lock *lock = &data_vio->tree_lock;
-		struct recovery_journal_entry new_entry = {
+		new_entry = (struct recovery_journal_entry) {
 			.mapping =
 				{
 					.pbn = data_vio->operation.pbn,
@@ -240,8 +245,8 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Enqueue the data_vio to wait for its entry to commit.
-		int result = enqueue_data_vio(&block->commit_waiters, data_vio,
-					      THIS_LOCATION("$F($j-$js)"));
+		result = enqueue_data_vio(&block->commit_waiters, data_vio,
+					  THIS_LOCATION("$F($j-$js)"));
 		if (result != VDO_SUCCESS) {
 			continue_data_vio(data_vio, result);
 			return result;
@@ -287,6 +292,12 @@ bool can_commit_recovery_block(struct recovery_journal_block *block)
 int commit_recovery_block(struct recovery_journal_block *block,
 			  vdo_action *callback, vdo_action *error_handler)
 {
+	PhysicalLayer *layer = vio_as_completion(block->vio)->layer;
+	struct recovery_journal *journal = block->journal;
+	struct packed_journal_header *header = get_block_header(block);
+	physical_block_number_t block_pbn;
+	bool fua, flush;
+
 	int result = ASSERT(can_commit_recovery_block(block),
 			    "should never call %s when the block can't be committed",
 			    __func__);
@@ -294,7 +305,6 @@ int commit_recovery_block(struct recovery_journal_block *block,
 		return result;
 	}
 
-	physical_block_number_t block_pbn;
 	result = get_recovery_block_pbn(block, &block_pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -305,9 +315,6 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-
-	struct recovery_journal *journal = block->journal;
-	struct packed_journal_header *header = get_block_header(block);
 
 	// Update stats to reflect the block and entries we're about to write.
 	journal->pending_write_count += 1;
@@ -330,13 +337,12 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 * In sync mode, and for FUA, we also need to make sure that the write
 	 * we are doing is stable, so we issue the write with FUA.
 	 */
-	PhysicalLayer *layer = vio_as_completion(block->vio)->layer;
-	bool fua = (block->has_fua_entry
-		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
-	bool flush = (block->has_fua_entry
-		      || (layer->getWritePolicy(layer) !=
-			  WRITE_POLICY_ASYNC_UNSAFE)
-		      || block->has_partial_write_entry);
+	fua = (block->has_fua_entry
+	       || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+	flush = (block->has_fua_entry
+		 || (layer->getWritePolicy(layer) !=
+		     WRITE_POLICY_ASYNC_UNSAFE)
+		 || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
 	launch_write_metadata_vio_with_flush(block->vio, block_pbn, callback,

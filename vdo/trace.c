@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#9 $
  */
 
 #include "trace.h"
@@ -58,13 +58,15 @@ void format_trace(struct trace *trace,
 		  size_t buffer_length,
 		  size_t *msg_len)
 {
+	char *buf = buffer;
+	char *buffer_end = buffer + buffer_length - 1;
+
 	if (trace == NULL) {
 		return;
 	}
 	memset(buffer, 0, buffer_length);
-	char *buf = buffer;
-	char *buffer_end = buffer + buffer_length - 1;
 	if (trace->used > 0) {
+		unsigned int i;
 		struct trace_record *record = &trace->records[0];
 		const struct trace_location *location =
 			base_trace_location + record->location;
@@ -76,8 +78,8 @@ void format_trace(struct trace *trace,
 			 record->when % 1000000);
 		buf += strlen(buf);
 
-		unsigned int i;
 		for (i = 1; i < trace->used; i++) {
+			unsigned long time_diff;
 			struct trace_record *prev = record;
 			record++;
 
@@ -85,7 +87,7 @@ void format_trace(struct trace *trace,
 			buf += strlen(buf);
 
 			location = base_trace_location + record->location;
-			unsigned long time_diff = record->when - prev->when;
+			time_diff = record->when - prev->when;
 			snprintf(buf,
 				 buffer_end - buf,
 				 "%s+%lu",

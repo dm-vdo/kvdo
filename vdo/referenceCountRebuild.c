@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#43 $
  */
 
 #include "referenceCountRebuild.h"
@@ -98,12 +98,13 @@ as_rebuild_completion(struct vdo_completion *completion)
  **/
 static void free_rebuild_completion(struct vdo_completion **completion_ptr)
 {
+	struct rebuild_completion *rebuild;
 	struct vdo_completion *completion = *completion_ptr;
 	if (completion == NULL) {
 		return;
 	}
 
-	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
+	rebuild = as_rebuild_completion(completion);
 	FREE(rebuild);
 	*completion_ptr = NULL;
 }
@@ -140,6 +141,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 				   struct vdo_completion *parent,
 				   struct rebuild_completion **rebuild_ptr)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
 		min_page_count(get_configured_cache_size(vdo) >> 1,
@@ -171,7 +173,6 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->leaf_pages =
 		compute_block_map_page_count(block_map->entry_count);
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
 	rebuild->logical_thread_id = get_logical_zone_thread(thread_config, 0);
 	rebuild->admin_thread_id = get_admin_thread(thread_config);
 
@@ -272,6 +273,7 @@ static int
 rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 				   struct vdo_completion *completion)
 {
+	slot_number_t slot;
 	struct block_map_page *page = dereference_writable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
@@ -300,8 +302,9 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	}
 
 	// Inform the slab depot of all entries on this page.
-	slot_number_t slot;
 	for (slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
+		struct vdo_slab *slab;
+		int result;
 		struct data_location mapping =
 			unpack_block_map_entry(&page->entries[slot]);
 		if (!is_valid_location(&mapping)) {
@@ -330,8 +333,8 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		struct vdo_slab *slab = get_slab(rebuild->depot, mapping.pbn);
-		int result = adjust_reference_count_for_rebuild(
+		slab = get_slab(rebuild->depot, mapping.pbn);
+		result = adjust_reference_count_for_rebuild(
 			slab->reference_counts, mapping.pbn, DATA_INCREMENT);
 		if (result != VDO_SUCCESS) {
 			log_error_strerror(result,
@@ -359,11 +362,13 @@ static void fetch_page(struct rebuild_completion *rebuild,
  **/
 static void page_loaded(struct vdo_completion *completion)
 {
+	int result;
+
 	struct rebuild_completion *rebuild =
 		as_rebuild_completion(completion->parent);
 	rebuild->outstanding--;
 
-	int result = rebuild_reference_counts_from_page(rebuild, completion);
+	result = rebuild_reference_counts_from_page(rebuild, completion);
 	if (result != VDO_SUCCESS) {
 		abort_rebuild(rebuild, result);
 	}
@@ -424,6 +429,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
  **/
 static void rebuild_from_leaves(struct vdo_completion *completion)
 {
+	page_count_t i;
 	struct rebuild_completion *rebuild =
 		as_rebuild_completion(completion->parent);
 	*rebuild->logical_blocks_used = 0;
@@ -440,7 +446,6 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	// Prevent any page from being processed until all pages have been
 	// launched.
 	rebuild->launching = true;
-	page_count_t i;
 	for (i = 0; i < rebuild->page_count; i++) {
 		fetch_page(rebuild, &rebuild->page_completions[i].completion);
 	}
@@ -463,6 +468,9 @@ static int process_entry(physical_block_number_t pbn,
 {
 	struct rebuild_completion *rebuild =
 		as_rebuild_completion(completion->parent);
+	struct vdo_slab *slab;
+	int result;
+
 	if ((pbn == ZERO_BLOCK)
 	    || !is_physical_data_block(rebuild->depot, pbn)) {
 		return log_error_strerror(VDO_BAD_CONFIGURATION,
@@ -470,8 +478,8 @@ static int process_entry(physical_block_number_t pbn,
 					  pbn);
 	}
 
-	struct vdo_slab *slab = get_slab(rebuild->depot, pbn);
-	int result = adjust_reference_count_for_rebuild(
+	slab = get_slab(rebuild->depot, pbn);
+	result = adjust_reference_count_for_rebuild(
 		slab->reference_counts, pbn, BLOCK_MAP_INCREMENT);
 	if (result != VDO_SUCCESS) {
 		return log_error_strerror(result,
@@ -490,6 +498,8 @@ void rebuild_reference_counts(struct vdo *vdo,
 			      block_count_t *block_map_data_blocks)
 {
 	struct rebuild_completion *rebuild;
+	struct vdo_completion *completion;
+
 	int result = make_rebuild_completion(vdo, logical_blocks_used,
 					     block_map_data_blocks, parent,
 					     &rebuild);
@@ -509,7 +519,7 @@ void rebuild_reference_counts(struct vdo *vdo,
 
 	// First traverse the block map trees.
 	*rebuild->block_map_data_blocks = 0;
-	struct vdo_completion *completion = &rebuild->sub_task_completion;
+	completion = &rebuild->sub_task_completion;
 	prepare_completion(completion, rebuild_from_leaves, finish_parent_callback,
 			   rebuild->logical_thread_id, &rebuild->completion);
 	traverse_forest(rebuild->block_map, process_entry, completion);

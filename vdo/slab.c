@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#44 $
  */
 
 #include "slab.h"
@@ -47,14 +47,14 @@ int make_slab(physical_block_number_t slab_origin,
 	      bool is_new,
 	      struct vdo_slab **slab_ptr)
 {
+	const struct slab_config *slab_config =
+		get_slab_config(allocator->depot);
+
 	struct vdo_slab *slab;
 	int result = ALLOCATE(1, struct vdo_slab, __func__, &slab);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-
-	const struct slab_config *slab_config =
-		get_slab_config(allocator->depot);
 
 	slab->allocator = allocator;
 	slab->start = slab_origin;
@@ -155,6 +155,9 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 				const struct journal_point *journal_point,
 				struct reference_operation operation)
 {
+	bool free_status_changed;
+	int result;
+
 	if (slab == NULL) {
 		return VDO_SUCCESS;
 	}
@@ -172,11 +175,8 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 		return VDO_SUCCESS;
 	}
 
-	bool free_status_changed;
-	int result = adjust_reference_count(slab->reference_counts,
-					    operation,
-					    journal_point,
-					    &free_status_changed);
+	result = adjust_reference_count(slab->reference_counts, operation,
+					journal_point, &free_status_changed);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -194,11 +194,13 @@ int acquire_provisional_reference(struct vdo_slab *slab,
 				  physical_block_number_t pbn,
 				  struct pbn_lock *lock)
 {
+	int result;
+
 	if (has_provisional_reference(lock)) {
 		return VDO_SUCCESS;
 	}
 
-	int result =
+	result =
 		provisionally_reference_block(slab->reference_counts, pbn, lock);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -216,11 +218,12 @@ int slab_block_number_from_pbn(struct vdo_slab *slab,
 			       physical_block_number_t physical_block_number,
 			       slab_block_number *slab_block_number_ptr)
 {
+	uint64_t slab_block_number;
 	if (physical_block_number < slab->start) {
 		return VDO_OUT_OF_RANGE;
 	}
 
-	uint64_t slab_block_number = physical_block_number - slab->start;
+	slab_block_number = physical_block_number - slab->start;
 	if (slab_block_number
 	    >= get_slab_config(slab->allocator->depot)->data_blocks) {
 		return VDO_OUT_OF_RANGE;

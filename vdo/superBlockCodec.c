@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#4 $
  */
 
 #include "superBlockCodec.h"
@@ -84,16 +84,18 @@ void destroy_super_block_codec(struct super_block_codec *codec)
 /**********************************************************************/
 int encode_super_block(struct super_block_codec *codec)
 {
+	size_t component_data_size;
+	struct header header = SUPER_BLOCK_HEADER_12_0;
+	crc32_checksum_t checksum;
 	struct buffer *buffer = codec->block_buffer;
 	int result = reset_buffer_end(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	size_t component_data_size = content_length(codec->component_buffer);
+	component_data_size = content_length(codec->component_buffer);
 
 	// Encode the header.
-	struct header header = SUPER_BLOCK_HEADER_12_0;
 	header.size += component_data_size;
 	result = encode_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
@@ -108,9 +110,8 @@ int encode_super_block(struct super_block_codec *codec)
 	}
 
 	// Compute and encode the checksum.
-	crc32_checksum_t checksum =
-		update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
-			     content_length(buffer));
+	checksum = update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
+			        content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -122,13 +123,17 @@ int encode_super_block(struct super_block_codec *codec)
 /**********************************************************************/
 int decode_super_block(struct super_block_codec *codec)
 {
+	struct header header;
+	int result;
+	size_t component_data_size;
+	crc32_checksum_t checksum, saved_checksum;
+
 	// Reset the block buffer to start decoding the entire first sector.
 	struct buffer *buffer = codec->block_buffer;
 	clear_buffer(buffer);
 
 	// Decode and validate the header.
-	struct header header;
-	int result = decode_header(buffer, &header);
+	result = decode_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -156,7 +161,7 @@ int decode_super_block(struct super_block_codec *codec)
 	}
 
 	// The component data is all the rest, except for the checksum.
-	size_t component_data_size =
+	component_data_size =
 		content_length(buffer) - sizeof(crc32_checksum_t);
 	result = put_buffer(codec->component_buffer, buffer,
 			    component_data_size);
@@ -166,12 +171,10 @@ int decode_super_block(struct super_block_codec *codec)
 
 	// Checksum everything up to but not including the saved checksum
 	// itself.
-	crc32_checksum_t checksum =
-		update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
-			     uncompacted_amount(buffer));
+	checksum = update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
+			        uncompacted_amount(buffer));
 
 	// Decode and verify the saved checksum.
-	crc32_checksum_t saved_checksum;
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		return result;

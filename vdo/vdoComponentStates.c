@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#6 $
  */
 
 #include "vdoComponentStates.h"
@@ -169,6 +169,7 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 int encode_component_states(struct buffer *buffer,
 			    const struct vdo_component_states *states)
 {
+	size_t expected_size;
 	int result = reset_buffer_end(buffer, 0);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -210,7 +211,7 @@ int encode_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	size_t expected_size = get_component_data_size(states->layout);
+	expected_size = get_component_data_size(states->layout);
 	ASSERT_LOG_ONLY((content_length(buffer) == expected_size),
 			"All super block component data was encoded");
 	return VDO_SUCCESS;

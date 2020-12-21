@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#31 $
  */
 
 #include "flush.h"
@@ -96,11 +96,13 @@ int make_flusher(struct vdo *vdo)
 /**********************************************************************/
 void free_flusher(struct flusher **flusher_ptr)
 {
+	struct flusher *flusher;
+
 	if (*flusher_ptr == NULL) {
 		return;
 	}
 
-	struct flusher *flusher = *flusher_ptr;
+	flusher = *flusher_ptr;
 	FREE(flusher);
 	*flusher_ptr = NULL;
 }
@@ -124,15 +126,18 @@ static void notify_flush(struct flusher *flusher);
  **/
 static void finish_notification(struct vdo_completion *completion)
 {
+	struct waiter *waiter;
+	int result;
+
 	struct flusher *flusher = as_flusher(completion);
 	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"finish_notification() called from flusher thread");
 
-	struct waiter *waiter = dequeue_next_waiter(&flusher->notifiers);
-	int result = enqueue_waiter(&flusher->pending_flushes, waiter);
+	waiter = dequeue_next_waiter(&flusher->notifiers);
+	result = enqueue_waiter(&flusher->pending_flushes, waiter);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(flusher->vdo->read_only_notifier, result);
 		struct vdo_flush *flush = waiter_as_flush(waiter);
+		enter_read_only_mode(flusher->vdo->read_only_notifier, result);
 		completion->layer->completeFlush(&flush);
 		return;
 	}
@@ -202,13 +207,16 @@ static void notify_flush(struct flusher *flusher)
 void flush(struct vdo *vdo, struct vdo_flush *flush)
 {
 	struct flusher *flusher = vdo->flusher;
+	bool may_notify;
+	int result;
+
 	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"flush() called from flusher thread");
 
 	flush->flush_generation = flusher->flush_generation++;
-	bool may_notify = !has_waiters(&flusher->notifiers);
+	may_notify = !has_waiters(&flusher->notifiers);
 
-	int result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
+	result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (result != VDO_SUCCESS) {
 		enter_read_only_mode(vdo->read_only_notifier, result);
 		flusher->completion.layer->completeFlush(&flush);
@@ -223,11 +231,12 @@ void flush(struct vdo *vdo, struct vdo_flush *flush)
 /**********************************************************************/
 void complete_flushes(struct flusher *flusher)
 {
+	sequence_number_t oldest_active_generation = UINT64_MAX;
+	struct logical_zone *zone;
+
 	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"complete_flushes() called from flusher thread");
 
-	sequence_number_t oldest_active_generation = UINT64_MAX;
-	struct logical_zone *zone;
 	for (zone = get_logical_zone(flusher->vdo->logical_zones, 0);
 	     zone != NULL; zone = get_next_logical_zone(zone)) {
 		sequence_number_t oldest_in_zone =

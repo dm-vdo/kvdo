@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#21 $
  */
 
 #include "vioPool.h"
@@ -59,6 +59,9 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		  struct vio_pool **pool_ptr)
 {
 	struct vio_pool *pool;
+	char *ptr;
+	size_t i;
+
 	int result = ALLOCATE_EXTENDED(struct vio_pool, pool_size,
 				       struct vio_pool_entry, __func__, &pool);
 	if (result != VDO_SUCCESS) {
@@ -76,8 +79,7 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 		return result;
 	}
 
-	char *ptr = pool->buffer;
-	size_t i;
+	ptr = pool->buffer;
 	for (i = 0; i < pool_size; i++) {
 		struct vio_pool_entry *entry = &pool->entries[i];
 		entry->buffer = ptr;
@@ -101,12 +103,15 @@ int make_vio_pool(PhysicalLayer *layer, size_t pool_size, thread_id_t thread_id,
 /**********************************************************************/
 void free_vio_pool(struct vio_pool **pool_ptr)
 {
+	struct vio_pool *pool;
+	struct vio_pool_entry *entry;
+	size_t i;
 	if (*pool_ptr == NULL) {
 		return;
 	}
 
 	// Remove all available entries from the object pool.
-	struct vio_pool *pool = *pool_ptr;
+	pool = *pool_ptr;
 	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
 			"VIO pool must not have any waiters when being freed");
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
@@ -115,7 +120,6 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	ASSERT_LOG_ONLY(list_empty(&pool->busy),
 			"VIO pool must not have busy entries when being freed");
 
-	struct vio_pool_entry *entry;
 	while (!list_empty(&pool->available)) {
 		entry = as_vio_pool_entry(pool->available.next);
 		list_del_init(pool->available.next);
@@ -123,7 +127,6 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	}
 
 	// Make sure every vio_pool_entry has been removed.
-	size_t i;
 	for (i = 0; i < pool->size; i++) {
 		struct vio_pool_entry *entry = &pool->entries[i];
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
@@ -145,6 +148,8 @@ bool is_vio_pool_busy(struct vio_pool *pool)
 /**********************************************************************/
 int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 {
+	struct list_head *entry;
+
 	ASSERT_LOG_ONLY((pool->thread_id == get_callback_thread_id()),
 			"acquire from active vio_pool called from correct thread");
 
@@ -154,7 +159,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 	}
 
 	pool->busy_count++;
-	struct list_head *entry = pool->available.next;
+	entry = pool->available.next;
 	list_move_tail(entry, &pool->busy);
 	(*waiter->callback)(waiter, as_vio_pool_entry(entry));
 	return VDO_SUCCESS;
