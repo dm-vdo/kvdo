@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#132 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#133 $
  */
 
 #include "kernelLayer.h"
@@ -603,10 +603,10 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	// Spare KVDOFlush, so that we will always have at least one available
+	// Spare kvdo_flush, so that we will always have at least one available
 	result = make_kvdo_flush(&layer->spare_kvdo_flush);
 	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate KVDOFlush record";
+		*reason = "Cannot allocate kvdo_flush record";
 		free_kernel_layer(layer);
 		return result;
 	}

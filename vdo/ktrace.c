@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#25 $
  */
 
 #include "ktrace.h"
@@ -128,7 +128,7 @@ int trace_kernel_layer_init(struct kernel_layer *layer)
 		trace_records_needed += layer->request_limiter.limit;
 	}
 	if (trace_records_needed > 0) {
-		return make_buffer_pool("KVDO Trace Data Pool",
+		return make_buffer_pool("VDO Trace Data Pool",
 					trace_records_needed,
 					alloc_trace_data_buffer,
 					free_trace_data_buffer,
