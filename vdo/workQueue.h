@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#18 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -40,7 +40,7 @@ struct vdo_work_item {
 	/** Entry link for lock-free work queue */
 	struct funnel_queue_entry work_queue_entry_link;
 	/** Function to be called */
-	KvdoWorkFunction work;
+	vdo_work_function work;
 	/** Optional alternate function for display in queue stats */
 	void *stats_function;
 	/**
@@ -178,7 +178,7 @@ int make_work_queue(const char *thread_name_prefix,
  * @param action          Action code, for determination of priority
  **/
 void setup_work_item(struct vdo_work_item *item,
-		     KvdoWorkFunction work,
+		     vdo_work_function work,
 		     void *stats_function,
 		     unsigned int action);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#57 $
  */
 
 #ifndef DATA_KVIO_H
@@ -77,7 +77,7 @@ static inline void enqueue_data_vio_work(struct vdo_work_queue *queue,
  * @param action          Action code, mapping to a relative priority
  **/
 static inline void launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
-						KvdoWorkFunction work,
+						vdo_work_function work,
 						void *stats_function,
 						unsigned int action)
 {
@@ -96,7 +96,7 @@ static inline void launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
  **/
 static inline void
 launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
-				 KvdoWorkFunction work,
+				 vdo_work_function work,
 				 void *stats_function,
 				 unsigned int action)
 {

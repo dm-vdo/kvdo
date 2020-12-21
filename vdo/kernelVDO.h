@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#28 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -275,8 +275,10 @@ void enqueue_kvdo_work(struct kvdo *kvdo,
  * @param stats_function  A function pointer to record for stats, or NULL
  * @param action          Action code, mapping to a relative priority
  **/
-void enqueue_vio(struct vio *vio, KvdoWorkFunction work,
-		 void *stats_function, unsigned int action);
+void enqueue_vio(struct vio *vio,
+		 vdo_work_function work,
+		 void *stats_function,
+		 unsigned int action);
 
 /**
  * Enqueue an arbitrary completion for execution on its indicated thread.

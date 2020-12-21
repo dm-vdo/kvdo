@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#66 $
  */
 
 /*
@@ -282,7 +282,7 @@ struct sync_queue_work {
  * @param completion  The completion to wait on
  **/
 static void perform_kvdo_operation(struct kvdo *kvdo,
-				   KvdoWorkFunction action,
+				   vdo_work_function action,
 				   void *data,
 				   thread_id_t thread_id,
 				   struct completion *completion)
@@ -558,8 +558,10 @@ void enqueue_kvdo_work(struct kvdo *kvdo, struct vdo_work_item *item,
 }
 
 /**********************************************************************/
-void enqueue_vio(struct vio *vio, KvdoWorkFunction work,
-		 void *stats_function, unsigned int action)
+void enqueue_vio(struct vio *vio,
+		 vdo_work_function work,
+		 void *stats_function,
+		 unsigned int action)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
 	thread_id_t thread_id = completion->callback_thread_id;

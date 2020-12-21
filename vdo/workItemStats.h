@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#11 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -76,7 +76,7 @@ struct kvdo_work_function_table {
 	 * are read by producers very frequently.
 	 */
 	spinlock_t lock;
-	KvdoWorkFunction functions[NUM_WORK_QUEUE_ITEM_STATS];
+	vdo_work_function functions[NUM_WORK_QUEUE_ITEM_STATS];
 	uint8_t priorities[NUM_WORK_QUEUE_ITEM_STATS];
 };
 

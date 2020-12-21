@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#43 $
  */
 
 #include "workQueue.h"
@@ -530,7 +530,7 @@ static int work_queue_runner(void *ptr)
 
 /**********************************************************************/
 void setup_work_item(struct vdo_work_item *item,
-		     KvdoWorkFunction work,
+		     vdo_work_function work,
 		     void *stats_function,
 		     unsigned int action)
 {

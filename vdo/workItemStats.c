@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#16 $
  */
 
 #include "workItemStats.h"
@@ -39,7 +39,7 @@
  **/
 static inline unsigned int
 scan_stat_table(const struct kvdo_work_function_table *table,
-		KvdoWorkFunction work,
+		vdo_work_function work,
 		unsigned int priority)
 {
 	unsigned int i;
@@ -72,7 +72,7 @@ scan_stat_table(const struct kvdo_work_function_table *table,
  *           if the table is full of non-matching entries.
  **/
 static unsigned int get_stat_table_index(struct vdo_work_item_stats *stats,
-					 KvdoWorkFunction work,
+					 vdo_work_function work,
 					 unsigned int priority)
 {
 	struct kvdo_work_function_table *function_table =
