@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#12 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -68,7 +68,7 @@ struct simple_stats {
  * statistics, it can be approximated by looking at the other fields.
  * Do not rely on them being precise and synchronized, though.
  */
-struct kvdo_work_function_table {
+struct vdo_work_function_table {
 	/*
 	 * The spin lock is used to protect .functions and .priorities
 	 * during updates. All three are modified by producers (enqueueing
@@ -90,7 +90,7 @@ struct vdo_work_item_stats {
 	 * by producers, and only the first time a new (work-function,
 	 * priority) combination is seen.
 	 */
-	struct kvdo_work_function_table function_table;
+	struct vdo_work_function_table function_table;
 	// Skip to (somewhere on) the next cache line
 	char pad[CACHE_LINE_BYTES - sizeof(atomic64_t)];
 	/*

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#44 $
  */
 
 #include "workQueue.h"
@@ -591,7 +591,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 				  struct kobject *parent_kobject,
 				  struct kernel_layer *owner,
 				  void *private,
-				  const struct kvdo_work_queue_type *type,
+				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
 {
 	struct simple_work_queue *queue;
@@ -611,7 +611,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	int i;
 
 	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
-		const struct kvdo_work_queue_action *action =
+		const struct vdo_work_queue_action *action =
 			&queue->type->action_table[i];
 		if (action->name == NULL) {
 			break;
@@ -711,7 +711,7 @@ int make_work_queue(const char *thread_name_prefix,
 		    struct kobject *parent_kobject,
 		    struct kernel_layer *owner,
 		    void *private,
-		    const struct kvdo_work_queue_type *type,
+		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
 		    struct vdo_work_queue **queue_ptr)

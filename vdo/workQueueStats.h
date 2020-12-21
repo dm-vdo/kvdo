@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#17 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -44,7 +44,7 @@ struct simple_work_queue;
  * worker thread. The trailing fields here are updated only by the
  * worker thread.
  */
-struct kvdo_work_queue_stats {
+struct vdo_work_queue_stats {
 	// Per-work-function counters and optional nanosecond timing data
 	struct vdo_work_item_stats work_item_stats;
 	// How often we go to sleep waiting for work
@@ -96,7 +96,7 @@ struct kvdo_work_queue_stats {
  * @return  0 or a kernel error code
  **/
 int __must_check
-initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
+initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 			    struct kobject *queue_kobject);
 
 /**
@@ -104,7 +104,7 @@ initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
  *
  * @param stats  The statistics structure
  **/
-void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats);
+void cleanup_work_queue_stats(struct vdo_work_queue_stats *stats);
 
 /**
  * Update the work queue statistics tracking to note the enqueueing of
@@ -114,7 +114,7 @@ void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats);
  * @param item      The work item being enqueued
  * @param priority  The priority of the work item
  **/
-static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
+static inline void update_stats_for_enqueue(struct vdo_work_queue_stats *stats,
 					    struct vdo_work_item *item,
 					    int priority)
 {
@@ -130,7 +130,7 @@ static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
  * @param stats  The statistics structure
  * @param item   The work item being enqueued
  **/
-static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
+static inline void update_stats_for_dequeue(struct vdo_work_queue_stats *stats,
 					    struct vdo_work_item *item)
 {
 	update_work_item_stats_for_dequeue(&stats->work_item_stats, item);
@@ -156,7 +156,7 @@ void log_work_queue_stats(const struct simple_work_queue *queue);
  * @param [in]  stats   The stats structure containing the run-time info
  * @param [out] buffer  The buffer in which to report the info
  **/
-ssize_t format_run_time_stats(const struct kvdo_work_queue_stats *stats,
+ssize_t format_run_time_stats(const struct vdo_work_queue_stats *stats,
 			      char *buffer);
 
 #endif // WORK_QUEUE_STATS_H

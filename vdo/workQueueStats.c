@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#20 $
  */
 
 #include "workQueueStats.h"
@@ -27,7 +27,7 @@
 #include "workQueueInternals.h"
 
 /**********************************************************************/
-int initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
+int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 				struct kobject *queue_kobject)
 {
 	spin_lock_init(&stats->work_item_stats.function_table.lock);
@@ -102,7 +102,7 @@ int initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
 }
 
 /**********************************************************************/
-void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats)
+void cleanup_work_queue_stats(struct vdo_work_queue_stats *stats)
 {
 	free_histogram(&stats->queue_time_histogram);
 	free_histogram(&stats->reschedule_queue_length_histogram);
@@ -150,7 +150,7 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 }
 
 /**********************************************************************/
-ssize_t format_run_time_stats(const struct kvdo_work_queue_stats *stats,
+ssize_t format_run_time_stats(const struct vdo_work_queue_stats *stats,
 			      char *buffer)
 {
 	// Get snapshots of all three at approximately the same time.

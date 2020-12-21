@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#19 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -80,8 +80,8 @@ struct vdo_work_item {
  * Action codes values must be small integers, 0 through
  * WORK_QUEUE_ACTION_COUNT-1, and should not be duplicated for a queue type.
  *
- * A table of kvdo_work_queue_action entries embedded in struct
- * kvdo_work_queue_type specifies the name, code, and priority for each type
+ * A table of vdo_work_queue_action entries embedded in struct
+ * vdo_work_queue_type specifies the name, code, and priority for each type
  * of action in the work queue. The table can have at most
  * WORK_QUEUE_ACTION_COUNT entries, but a NULL name indicates an earlier end
  * to the table.
@@ -99,7 +99,7 @@ struct vdo_work_item {
  * identified by name, in a running VDO device. Doing so does not affect the
  * priorities for other devices, or for future VDO device creation.
  **/
-struct kvdo_work_queue_action {
+struct vdo_work_queue_action {
 	/** Name of the action */
 	char *name;
 
@@ -110,22 +110,20 @@ struct kvdo_work_queue_action {
 	unsigned int priority;
 };
 
-typedef void (*kvdo_work_queue_function)(void *);
-
 /**
  * Static attributes of a work queue that are fixed at compile time
  * for a given call site. (Attributes that may be computed at run time
  * are passed as separate arguments.)
  **/
-struct kvdo_work_queue_type {
+struct vdo_work_queue_type {
 	/** A function to call in the new thread before servicing requests */
-	kvdo_work_queue_function start;
+	void (*start)(void *);
 
 	/** A function to call in the new thread when shutting down */
-	kvdo_work_queue_function finish;
+	void (*finish)(void *);
 
 	/** Table of actions for this work queue */
-	struct kvdo_work_queue_action action_table[WORK_QUEUE_ACTION_COUNT];
+	struct vdo_work_queue_action action_table[WORK_QUEUE_ACTION_COUNT];
 };
 
 /**
@@ -157,7 +155,7 @@ int make_work_queue(const char *thread_name_prefix,
 		    struct kobject *parent_kobject,
 		    struct kernel_layer *owner,
 		    void *private,
-		    const struct kvdo_work_queue_type *type,
+		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
 		    void *thread_privates[],
 		    struct vdo_work_queue **queue_ptr);
@@ -170,7 +168,7 @@ int make_work_queue(const char *thread_name_prefix,
  * item does not require another memset.
  *
  * The action code is typically defined in a work-queue-type-specific
- * enumeration; see the description of struct kvdo_work_queue_action.
+ * enumeration; see the description of struct vdo_work_queue_action.
  *
  * @param item            The work item to initialize
  * @param work            The function pointer to execute

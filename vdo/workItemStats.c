@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#17 $
  */
 
 #include "workItemStats.h"
@@ -38,7 +38,7 @@
  *           non-matching entries.
  **/
 static inline unsigned int
-scan_stat_table(const struct kvdo_work_function_table *table,
+scan_stat_table(const struct vdo_work_function_table *table,
 		vdo_work_function work,
 		unsigned int priority)
 {
@@ -75,7 +75,7 @@ static unsigned int get_stat_table_index(struct vdo_work_item_stats *stats,
 					 vdo_work_function work,
 					 unsigned int priority)
 {
-	struct kvdo_work_function_table *function_table =
+	struct vdo_work_function_table *function_table =
 		&stats->function_table;
 
 	unsigned int index = scan_stat_table(function_table, work, priority);
@@ -239,7 +239,7 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 			      char *buffer,
 			      size_t length)
 {
-	const struct kvdo_work_function_table *function_ids =
+	const struct vdo_work_function_table *function_ids =
 		&stats->function_table;
 	size_t current_offset = 0;
 
@@ -326,7 +326,7 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 	uint64_t total_enqueued = 0;
 	uint64_t total_processed = 0;
 
-	const struct kvdo_work_function_table *function_ids =
+	const struct vdo_work_function_table *function_ids =
 		&stats->function_table;
 
 	int i;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#13 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -80,7 +80,7 @@ struct simple_work_queue {
 	/** The kernel thread */
 	struct task_struct *thread;
 	/** Life cycle functions, etc */
-	const struct kvdo_work_queue_type *type;
+	const struct vdo_work_queue_type *type;
 	/** Opaque private data pointer, defined by higher level code */
 	void *private;
 	/** In a subordinate work queue, a link back to the round-robin parent
@@ -139,7 +139,7 @@ struct simple_work_queue {
 	/** Padding for cache line separation */
 	char pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
 	/** Scheduling and work-function statistics */
-	struct kvdo_work_queue_stats stats;
+	struct vdo_work_queue_stats stats;
 	/** Last time (ns) the scheduler actually woke us up */
 	uint64_t most_recent_wakeup;
 };
