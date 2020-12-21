@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#115 $
  */
 
 #include "dataKVIO.h"
@@ -156,20 +156,14 @@ static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
-	struct external_io_request *external_io_request =
-		&data_vio->external_io_request;
-	struct bio *bio = external_io_request->bio;
+	struct bio *bio = data_vio->user_bio;
 
 	if (bio == NULL) {
 		return;
 	}
-
-	external_io_request->bio = NULL;
+	data_vio->user_bio = NULL;
 
 	int error = map_to_system_error(completion->result);
-	bio->bi_end_io = external_io_request->end_io;
-	bio->bi_private = external_io_request->private;
-	bio->bi_opf = external_io_request->rw;
 
 	count_bios(&layer->bios_acknowledged, bio);
 	if (data_vio->is_partial) {
@@ -251,7 +245,7 @@ void kvdo_complete_data_vio(struct vdo_completion *completion)
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
 
 	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
-	    (data_vio->external_io_request.bio != NULL)) {
+	    (data_vio->user_bio != NULL)) {
 		launch_data_vio_on_bio_ack_queue(
 			data_vio,
 			kvdo_acknowledge_then_complete_data_vio,
@@ -300,8 +294,7 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 	}
 
 	// For a 4k read, copy the data to the user bio and acknowledge.
-	bio_copy_data_out(data_vio->external_io_request.bio,
-			  data_vio->read_block.data);
+	bio_copy_data_out(data_vio->user_bio, data_vio->read_block.data);
 	acknowledge_data_vio(data_vio);
 }
 
@@ -478,7 +471,7 @@ void read_data_vio(struct data_vio *data_vio)
 	// Read directly into the user buffer (for a 4k read) or the data
 	// block (for a partial IO).
 	int result = VDO_SUCCESS;
-	int opf = (data_vio->external_io_request.bio->bi_opf &
+	int opf = (data_vio->user_bio->bi_opf &
 		   PASSTHROUGH_FLAGS);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_vio->bio,
@@ -501,7 +494,7 @@ void read_data_vio(struct data_vio *data_vio)
 		 * needs.
 		 */
 		bio_reset(bio);
-		__bio_clone_fast(bio, data_vio->external_io_request.bio);
+		__bio_clone_fast(bio, data_vio->user_bio);
 		bio->bi_opf = REQ_OP_READ | opf;
 		bio->bi_private = vio;
 		bio->bi_end_io = acknowledge_user_bio;
@@ -537,8 +530,8 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 
 	// If the remaining discard work is not completely processed by this
 	// data_vio, don't acknowledge it yet.
-	if ((data_vio->external_io_request.bio != NULL) &&
-	    (bio_op(data_vio->external_io_request.bio) == REQ_OP_DISCARD) &&
+	if ((data_vio->user_bio != NULL) &&
+	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
 	    (data_vio->remaining_discard >
 	     (VDO_BLOCK_SIZE - data_vio->offset))) {
 		invoke_callback(data_vio_as_completion(data_vio));
@@ -574,8 +567,8 @@ void write_data_vio(struct data_vio *data_vio)
 	// appropriate for lower layers' fast completion of IO. In async,
 	// we don't, and the hints don't matter anymore.
 	unsigned int opf = 0;
-	if (data_vio->external_io_request.bio != NULL) {
-		opf = data_vio->external_io_request.rw & PASSTHROUGH_FLAGS;
+	if (data_vio->user_bio != NULL) {
+		opf = data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS;
 	}
 
 	// Write the data from the data block buffer.
@@ -659,7 +652,7 @@ static inline bool is_zero_block(struct data_vio *data_vio)
 void apply_partial_write(struct data_vio *data_vio)
 {
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
-	struct bio *bio = data_vio->external_io_request.bio;
+	struct bio *bio = data_vio->user_bio;
 
 	if (bio_op(bio) != REQ_OP_DISCARD) {
 		bio_copy_data_in(bio, data_vio->data_block + data_vio->offset);
@@ -683,7 +676,7 @@ void zero_data_vio(struct data_vio *data_vio)
 	if (data_vio->is_partial) {
 		memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
 	} else {
-		zero_fill_bio(data_vio->external_io_request.bio);
+		zero_fill_bio(data_vio->user_bio);
 	}
 }
 
@@ -700,7 +693,7 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 		memcpy(destination->data_block, source->data_block,
 		       VDO_BLOCK_SIZE);
 	} else {
-		bio_copy_data_out(destination->external_io_request.bio,
+		bio_copy_data_out(destination->user_bio,
 				  source->data_block);
 	}
 }
@@ -744,8 +737,8 @@ void compress_data_vio(struct data_vio *data_vio)
 	 * discard, we cannot compress this vio. We need to make sure the vio
 	 * completes ASAP.
 	 */
-	if ((data_vio->external_io_request.bio != NULL) &&
-	    (bio_op(data_vio->external_io_request.bio) == REQ_OP_DISCARD) &&
+	if ((data_vio->user_bio != NULL) &&
+	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
 	    (data_vio->remaining_discard > 0)) {
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 		enqueue_data_vio_callback(data_vio);
@@ -817,13 +810,6 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 				     uint64_t arrival_jiffies,
 				     struct data_vio **data_vio_ptr)
 {
-	struct external_io_request external_io_request = {
-		.bio = bio,
-		.private = bio->bi_private,
-		.end_io = bio->bi_end_io,
-		.rw = bio->bi_opf,
-	};
-
 	struct data_vio *data_vio = NULL;
 	int result = make_data_vio(layer, bio, &data_vio);
 
@@ -831,10 +817,10 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 		return result;
 	}
 
-	data_vio->external_io_request = external_io_request;
+	data_vio->user_bio = bio;
 	data_vio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
 	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
-				(data_vio->offset != 0));
+			        (data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
 		count_bios(&layer->bios_in_partial, bio);
@@ -917,7 +903,7 @@ static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 		operation = VIO_WRITE;
 	}
 
-	if (requestor_set_fua(data_vio)) {
+	if (data_vio->user_bio->bi_opf & REQ_FUA) {
 		operation |= VIO_FLUSH_AFTER;
 	}
 
@@ -937,7 +923,7 @@ static void kvdo_complete_partial_read(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
-	bio_copy_data_out(data_vio->external_io_request.bio,
+	bio_copy_data_out(data_vio->user_bio,
 			  data_vio->read_block.data + data_vio->offset);
 	kvdo_complete_data_vio(completion);
 	return;
@@ -990,7 +976,7 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 		operation = VIO_READ;
 	}
 
-	if (requestor_set_fua(data_vio)) {
+	if (data_vio->user_bio->bi_opf & REQ_FUA) {
 		operation |= VIO_FLUSH_AFTER;
 	}
 

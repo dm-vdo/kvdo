@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#56 $
  */
 
 #ifndef DATA_KVIO_H
@@ -114,18 +114,6 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 static inline void enqueue_data_vio_callback(struct data_vio *data_vio)
 {
 	enqueue_vio_callback(data_vio_as_vio(data_vio));
-}
-
-/**
- * Check whether the external request bio had FUA set.
- *
- * @param data_vio  The data_vio to check
- *
- * @return <code>true</code> if the external request bio had FUA set
- **/
-static inline bool requestor_set_fua(struct data_vio *data_vio)
-{
-	return ((data_vio->external_io_request.rw & REQ_FUA) == REQ_FUA);
 }
 
 /**

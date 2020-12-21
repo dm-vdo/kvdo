@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#59 $
  */
 
 #ifndef DATA_VIO_H
@@ -154,22 +154,6 @@ struct compression_state {
 	struct data_vio *lock_holder;
 };
 
-struct external_io_request {
-	/*
-	 * The bio which was received from the device mapper to initiate an I/O
-	 * request. This field will be non-NULL only until the request is
-	 * acknowledged.
-	 */
-	struct bio *bio;
-	// Cached copies of fields from the bio which will need to be reset
-	// after we're done.
-	void *private;
-	void *end_io;
-	// This is a copy of the bi_rw field of the bio which sadly is not just
-	// a boolean read-write flag, but also includes other flag bits.
-	unsigned long rw;
-};
-
 /* Dedupe support */
 struct dedupe_context {
 	struct uds_request uds_request;
@@ -303,8 +287,8 @@ struct data_vio {
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
 
-	/* The bio from the request which is being serviced by this vio */
-	struct external_io_request external_io_request;
+	/* The user bio that initiated this VIO */
+	struct bio *user_bio;
 
 	/* Dedupe */
 	struct dedupe_context dedupe_context;
