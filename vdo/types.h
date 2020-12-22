@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#68 $
  */
 
 #ifndef TYPES_H
@@ -252,10 +252,10 @@ typedef enum __packed {
 /**
  * Metadata types for the vdo.
  **/
-typedef enum __packed {
+enum vdo_metadata_type {
 	VDO_METADATA_RECOVERY_JOURNAL = 1,
 	VDO_METADATA_SLAB_JOURNAL,
-} vdo_metadata_type;
+} __packed;
 
 /**
  * The possible write policy values.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#7 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -81,7 +81,7 @@ struct slab_journal_block_header {
 	/** Recovery journal point for last entry */
 	struct journal_point recovery_point;
 	/** Metadata type */
-	vdo_metadata_type metadata_type;
+	enum vdo_metadata_type metadata_type;
 	/** Whether this block contains block map increments */
 	bool has_block_map_increments;
 	/** The number of entries in the block */
