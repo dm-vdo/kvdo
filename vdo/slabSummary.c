@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#50 $
  */
 
 #include "slabSummary.h"
@@ -187,7 +187,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 		      struct slab_summary **slab_summary_ptr)
 {
 	struct slab_summary *summary;
-	size_t total_entries, entry_bytes, i;
+	size_t total_entries, i;
 	uint8_t hint;
 	zone_count_t zone;
 	block_count_t blocks_per_zone =
@@ -221,9 +221,8 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	summary->entries_per_block = entries_per_block;
 
 	total_entries = MAX_SLABS * MAX_PHYSICAL_ZONES;
-	entry_bytes = total_entries * sizeof(struct slab_summary_entry);
-	result = layer->allocateIOBuffer(layer, entry_bytes, "summary entries",
-					 (char **)&summary->entries);
+	result = ALLOCATE(total_entries, struct slab_summary_entry,
+			  "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
 		free_slab_summary(&summary);
 		return result;
