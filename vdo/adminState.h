@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#26 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -28,7 +28,7 @@
 /**
  * The list of state types.
  **/
-typedef enum {
+enum admin_type {
 	/** Normal operation, DataVIOs may be active */
 	ADMIN_TYPE_NORMAL = 0,
 	/**
@@ -62,14 +62,15 @@ typedef enum {
 	 * Resume: return to normal from a quiescent state
 	 **/
 	ADMIN_TYPE_RESUME,
-	/** The mask for extracting the AdminType from and AdminStateCode */
+
+	/** The mask for extracting the admin_type from an admin_state_code */
 	ADMIN_TYPE_MASK = 0xff,
-} AdminType;
+};
 
 /**
  * The bit position of flags used to categorize states.
  **/
-typedef enum {
+enum admin_flag_bit {
 	ADMIN_FLAG_BIT_START = 8,
 	/** Flag indicating that I/O is draining */
 	ADMIN_FLAG_BIT_DRAINING = ADMIN_FLAG_BIT_START,
@@ -84,29 +85,31 @@ typedef enum {
 	 * operation may be started.
 	 **/
 	ADMIN_FLAG_BIT_OPERATING,
-} AdminFlagBit;
+};
 
 /**
  * The flags themselves.
  **/
-typedef enum {
+enum admin_flag {
 	ADMIN_FLAG_DRAINING = (uint32_t) (1 << ADMIN_FLAG_BIT_DRAINING),
 	ADMIN_FLAG_LOADING = (uint32_t) (1 << ADMIN_FLAG_BIT_LOADING),
 	ADMIN_FLAG_QUIESCING = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCING),
 	ADMIN_FLAG_QUIESCENT = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCENT),
 	ADMIN_FLAG_OPERATING = (uint32_t) (1 << ADMIN_FLAG_BIT_OPERATING),
-} AdminFlag;
+};
 
 /**
  * The state codes.
  **/
-typedef enum {
+enum admin_state_code {
 	ADMIN_STATE_NORMAL_OPERATION = ADMIN_TYPE_NORMAL,
 	ADMIN_STATE_OPERATING = (ADMIN_TYPE_NORMAL | ADMIN_FLAG_OPERATING),
 	ADMIN_STATE_FORMATTING =
-		(ADMIN_TYPE_FORMAT | ADMIN_FLAG_OPERATING | ADMIN_FLAG_LOADING),
+		(ADMIN_TYPE_FORMAT | ADMIN_FLAG_OPERATING |
+		 ADMIN_FLAG_LOADING),
 	ADMIN_STATE_LOADING =
-		(ADMIN_TYPE_NORMAL | ADMIN_FLAG_OPERATING | ADMIN_FLAG_LOADING),
+		(ADMIN_TYPE_NORMAL | ADMIN_FLAG_OPERATING |
+		 ADMIN_FLAG_LOADING),
 	ADMIN_STATE_LOADING_FOR_RECOVERY =
 		(ADMIN_TYPE_RECOVER | ADMIN_FLAG_OPERATING |
 		 ADMIN_FLAG_LOADING),
@@ -126,7 +129,8 @@ typedef enum {
 	ADMIN_STATE_SCRUBBING = (ADMIN_TYPE_SCRUB | ADMIN_FLAG_OPERATING |
 				  ADMIN_FLAG_DRAINING | ADMIN_FLAG_LOADING),
 	ADMIN_STATE_SAVE_FOR_SCRUBBING =
-		(ADMIN_TYPE_SCRUB | ADMIN_FLAG_OPERATING | ADMIN_FLAG_DRAINING),
+		(ADMIN_TYPE_SCRUB | ADMIN_FLAG_OPERATING |
+		 ADMIN_FLAG_DRAINING),
 	ADMIN_STATE_SUSPENDING = (ADMIN_TYPE_SUSPEND | ADMIN_FLAG_OPERATING |
 				  ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING),
 	ADMIN_STATE_SUSPENDED = (ADMIN_TYPE_SUSPEND | ADMIN_FLAG_QUIESCENT),
@@ -135,13 +139,15 @@ typedef enum {
 		 ADMIN_FLAG_QUIESCENT),
 	ADMIN_STATE_RESUMING = (ADMIN_TYPE_RESUME | ADMIN_FLAG_OPERATING |
 				ADMIN_FLAG_QUIESCENT),
-} AdminStateCode;
+};
 
 struct admin_state {
 	/** The current administrative state */
-	AdminStateCode state;
-	/** The next administrative state (when the current operation finishes */
-	AdminStateCode next_state;
+	enum admin_state_code state;
+	/**
+	 * The next administrative state (when the current operation finishes)
+	 */
+	enum admin_state_code next_state;
 	/** A completion waiting on a state change */
 	struct vdo_completion *waiter;
 	/** Whether an operation is being initiated */
@@ -156,13 +162,14 @@ struct admin_state {
 typedef void admin_initiator(struct admin_state *state);
 
 /**
- * Get the name of an AdminStateCode for logging purposes.
+ * Get the name of an enum admin_state_code for logging purposes.
  *
- * @param code  The AdminStateCode
+ * @param code  The enum admin_state_code
  *
  * @return The name of the state's code
  **/
-const char * __must_check get_admin_state_code_name(AdminStateCode code);
+const char * __must_check
+get_admin_state_code_name(enum admin_state_code code);
 
 /**
  * Get the name of an admin_state's code for logging purposes.
@@ -171,7 +178,8 @@ const char * __must_check get_admin_state_code_name(AdminStateCode code);
  *
  * @return The name of the state's code
  **/
-const char * __must_check get_admin_state_name(const struct admin_state *state);
+const char * __must_check
+get_admin_state_name(const struct admin_state *state);
 
 /**
  * Check whether an admin_state is in normal operation.
@@ -186,13 +194,13 @@ static inline bool __must_check is_normal(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is an operation.
+ * Check whether an enum admin_state_code is an operation.
  *
  * @param code  The code to check
  *
  * @return <code>true</code> if the code is an operation
  **/
-static inline bool __must_check is_operation(AdminStateCode code)
+static inline bool __must_check is_operation(enum admin_state_code code)
 {
 	return ((code & ADMIN_FLAG_OPERATING) == ADMIN_FLAG_OPERATING);
 }
@@ -258,13 +266,13 @@ static inline bool __must_check is_saved(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is a drain operation.
+ * Check whether an enum admin_state_code is a drain operation.
  *
- * @param code  The AdminStateCode to check
+ * @param code  The enum admin_state_code to check
  *
  * @return <code>true</code> if the code is for a drain operation
  **/
-static inline bool __must_check is_drain_operation(AdminStateCode code)
+static inline bool __must_check is_drain_operation(enum admin_state_code code)
 {
 	return ((code & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
 }
@@ -282,13 +290,13 @@ static inline bool __must_check is_draining(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is a load operation.
+ * Check whether an enum admin_state_code is a load operation.
  *
- * @param code  The AdminStateCode to check
+ * @param code  The enum admin_state_code to check
  *
  * @return <code>true</code> if the code is for a load operation
  **/
-static inline bool __must_check is_load_operation(AdminStateCode code)
+static inline bool __must_check is_load_operation(enum admin_state_code code)
 {
 	return ((code & ADMIN_FLAG_LOADING) == ADMIN_FLAG_LOADING);
 }
@@ -306,13 +314,13 @@ static inline bool __must_check is_loading(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is a resume operation.
+ * Check whether an enum admin_state_code is a resume operation.
  *
- * @param code  The AdminStateCode to check
+ * @param code  The enum admin_state_code to check
  *
  * @return <code>true</code> if the code is for a resume operation
  **/
-static inline bool __must_check is_resume_operation(AdminStateCode code)
+static inline bool __must_check is_resume_operation(enum admin_state_code code)
 {
 	return ((code & ADMIN_TYPE_MASK) == ADMIN_TYPE_RESUME);
 }
@@ -343,13 +351,13 @@ static inline bool __must_check is_clean_load(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is quiescing.
+ * Check whether an enum admin_state_code is quiescing.
  *
- * param code  The AdminStateCode to check
+ * param code  The enum admin_state_code to check
  *
  * @return <code>true</code> is the state is quiescing
  **/
-static inline bool __must_check is_quiescing_code(AdminStateCode code)
+static inline bool __must_check is_quiescing_code(enum admin_state_code code)
 {
 	return ((code & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
 }
@@ -367,13 +375,13 @@ static inline bool __must_check is_quiescing(const struct admin_state *state)
 }
 
 /**
- * Check where an AdminStateCode is quiescent.
+ * Check where an enum admin_state_code is quiescent.
  *
- * param code  The AdminStateCode to check
+ * param code  The enum admin_state_code to check
  *
  * @return <code>true</code> is the state is quiescent
  **/
-static inline bool __must_check is_quiescent_code(AdminStateCode code)
+static inline bool __must_check is_quiescent_code(enum admin_state_code code)
 {
 	return ((code & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
 }
@@ -391,13 +399,14 @@ static inline bool __must_check is_quiescent(const struct admin_state *state)
 }
 
 /**
- * Check whether an AdminStateCode is a quiescent operation.
+ * Check whether an enum admin_state_code is a quiescent operation.
  *
  * @param code  The code to check
  *
  * @return <code>true</code> if the code is a quiescent operation
  **/
-static inline bool __must_check is_quiescent_operation(AdminStateCode code)
+static inline bool __must_check
+is_quiescent_operation(enum admin_state_code code)
 {
 	return (is_quiescent_code(code) && is_operation(code));
 }
@@ -411,24 +420,24 @@ static inline bool __must_check is_quiescent_operation(AdminStateCode code)
  *
  * @return <code>true</code> if the specified operation is a drain
  **/
-bool __must_check
-assert_drain_operation(AdminStateCode operation, struct vdo_completion *waiter);
+bool __must_check assert_drain_operation(enum admin_state_code operation,
+					 struct vdo_completion *waiter);
 
 /**
  * Initiate a drain operation if the current state permits it.
  *
  * @param state      The admin_state
  * @param operation  The type of drain to initiate
- * @param waiter     The completion to notify when the drain is complete (may be
- *                   NULL)
- * @param initiator  The admin_initiator to call if the operation may begin; may
- *                   be NULL
+ * @param waiter     The completion to notify when the drain is complete (may
+ *                   be NULL)
+ * @param initiator  The admin_initiator to call if the operation may begin;
+ *                   may be NULL
  *
  * @return <code>true</code> if the drain was initiated, if not the waiter
  *         will be notified
  **/
 bool start_draining(struct admin_state *state,
-		    AdminStateCode operation,
+		    enum admin_state_code operation,
 		    struct vdo_completion *waiter,
 		    admin_initiator *initiator);
 
@@ -462,8 +471,8 @@ bool finish_draining_with_result(struct admin_state *state, int result);
  *
  * @return <code>true</code> if the specified operation is a load
  **/
-bool __must_check
-assert_load_operation(AdminStateCode operation, struct vdo_completion *waiter);
+bool __must_check assert_load_operation(enum admin_state_code operation,
+					struct vdo_completion *waiter);
 
 /**
  * Initiate a load operation if the current state permits it.
@@ -472,14 +481,14 @@ assert_load_operation(AdminStateCode operation, struct vdo_completion *waiter);
  * @param operation  The type of load to initiate
  * @param waiter     The completion to notify when the load is complete (may be
  *                   NULL)
- * @param initiator  The admin_initiator to call if the operation may begin; may
- *                   be NULL
+ * @param initiator  The admin_initiator to call if the operation may begin;
+ *                   may be NULL
  *
  * @return <code>true</code> if the load was initiated, if not the waiter
  *         will be notified
  **/
 bool start_loading(struct admin_state *state,
-		   AdminStateCode operation,
+		   enum admin_state_code operation,
 		   struct vdo_completion *waiter,
 		   admin_initiator *initiator);
 
@@ -505,7 +514,7 @@ bool finish_loading(struct admin_state *state);
 bool finish_loading_with_result(struct admin_state *state, int result);
 
 /**
- * Check whether an AdminStateCode is a resume operation.
+ * Check whether an enum admin_state_code is a resume operation.
  *
  * @param operation  The operation to check
  * @param waiter     The completion to notify if the operation is not a resume
@@ -513,7 +522,7 @@ bool finish_loading_with_result(struct admin_state *state, int result);
  *
  * @return <code>true</code> if the code is a resume operation
  **/
-bool assert_resume_operation(AdminStateCode operation,
+bool assert_resume_operation(enum admin_state_code operation,
 			     struct vdo_completion *waiter);
 
 /**
@@ -523,14 +532,14 @@ bool assert_resume_operation(AdminStateCode operation,
  * @param operation  The type of resume to start
  * @param waiter     The completion to notify when the resume is complete (may
  *                   be NULL)
- * @param initiator  The admin_initiator to call if the operation may begin; may
- *                   be NULL
+ * @param initiator  The admin_initiator to call if the operation may begin;
+ *                   may be NULL
  *
  * @return <code>true</code> if the resume was initiated, if not the waiter
  *         will be notified
  **/
 bool start_resuming(struct admin_state *state,
-		    AdminStateCode operation,
+		    enum admin_state_code operation,
 		    struct vdo_completion *waiter,
 		    admin_initiator *initiator);
 
@@ -573,7 +582,8 @@ int resume_if_quiescent(struct admin_state *state);
  * @return VDO_SUCCESS             if the operation was started
  *         VDO_INVALID_ADMIN_STATE if not
  **/
-int start_operation(struct admin_state *state, AdminStateCode operation);
+int start_operation(struct admin_state *state,
+		    enum admin_state_code operation);
 
 /**
  * Attempt to start an operation.
@@ -582,13 +592,13 @@ int start_operation(struct admin_state *state, AdminStateCode operation);
  * @param operation  the operation to start
  * @param waiter     the completion to notify when the operation completes or
  *                   fails to start; may be NULL
- * @param initiator  The admin_initiator to call if the operation may begin; may
- *                   be NULL
+ * @param initiator  The admin_initiator to call if the operation may begin;
+ *                   may be NULL
  *
  * @return <code>true</code> if the operation was started
  **/
 bool start_operation_with_waiter(struct admin_state *state,
-				 AdminStateCode operation,
+				 enum admin_state_code operation,
 				 struct vdo_completion *waiter,
 				 admin_initiator *initiator);
 

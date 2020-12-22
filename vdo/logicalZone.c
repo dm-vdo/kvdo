@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#46 $
  */
 
 #include "logicalZone.h"
@@ -252,7 +252,8 @@ static void drain_logical_zone(void *context, zone_count_t zone_number,
 }
 
 /**********************************************************************/
-void drain_logical_zones(struct logical_zones *zones, AdminStateCode operation,
+void drain_logical_zones(struct logical_zones *zones,
+			 enum admin_state_code operation,
 			 struct vdo_completion *parent)
 {
 	schedule_operation(zones->manager, operation, NULL, drain_logical_zone,

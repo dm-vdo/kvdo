@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#59 $
  */
 
 #include "refCounts.h"
@@ -254,7 +254,7 @@ static bool __must_check has_active_io(struct ref_counts *ref_counts)
 /**********************************************************************/
 bool are_ref_counts_active(struct ref_counts *ref_counts)
 {
-	AdminStateCode code = ref_counts->slab->state.state;
+	enum admin_state_code code = ref_counts->slab->state.state;
 	if (has_active_io(ref_counts)) {
 		return true;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#16 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -62,7 +62,8 @@ void free_logical_zones(struct logical_zones **zone_ptr);
  * @param operation   The type of drain to perform
  * @param completion  The object to notify when the zones are suspended
  **/
-void drain_logical_zones(struct logical_zones *zones, AdminStateCode operation,
+void drain_logical_zones(struct logical_zones *zones,
+			 enum admin_state_code operation,
 			 struct vdo_completion *completion);
 
 /**

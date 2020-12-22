@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#86 $
  */
 
 #include "recoveryJournal.h"
@@ -1277,7 +1277,7 @@ static void initiate_drain(struct admin_state *state)
 
 /**********************************************************************/
 void drain_recovery_journal(struct recovery_journal *journal,
-			    AdminStateCode operation,
+			    enum admin_state_code operation,
 			    struct vdo_completion *parent)
 {
 	assert_on_journal_thread(journal, __func__);

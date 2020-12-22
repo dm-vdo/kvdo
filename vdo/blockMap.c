@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#82 $
  */
 
 #include "blockMap.h"
@@ -469,7 +469,7 @@ drain_zone(void *context, zone_count_t zone_number,
 
 /**********************************************************************/
 void drain_block_map(struct block_map *map,
-		     AdminStateCode operation,
+		     enum admin_state_code operation,
 		     struct vdo_completion *parent)
 {
 	schedule_operation(map->action_manager, operation, NULL, drain_zone,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#82 $
  */
 
 #include "slabDepot.h"
@@ -564,7 +564,7 @@ static void start_depot_load(void *context, struct vdo_completion *parent)
 
 /**********************************************************************/
 void load_slab_depot(struct slab_depot *depot,
-		     AdminStateCode operation,
+		     enum admin_state_code operation,
 		     struct vdo_completion *parent,
 		     void *context)
 {
@@ -675,7 +675,7 @@ void use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
 
 /**********************************************************************/
 void drain_slab_depot(struct slab_depot *depot,
-		      AdminStateCode operation,
+		      enum admin_state_code operation,
 		      struct vdo_completion *parent)
 {
 	schedule_operation(depot->action_manager,

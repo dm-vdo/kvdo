@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#30 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -336,7 +336,7 @@ void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
  * @param parent     The completion to finish once the journal is drained
  **/
 void drain_recovery_journal(struct recovery_journal *journal,
-			    AdminStateCode operation,
+			    enum admin_state_code operation,
 			    struct vdo_completion *parent);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#16 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -136,7 +136,7 @@ void free_action_manager(struct action_manager **manager_ptr);
  *
  * @return The manager's current operation
  **/
-AdminStateCode __must_check
+enum admin_state_code __must_check
 get_current_manager_operation(struct action_manager *manager);
 
 /**
@@ -207,7 +207,7 @@ bool schedule_action(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_operation(struct action_manager *manager,
-			AdminStateCode operation,
+			enum admin_state_code operation,
 			action_preamble *preamble,
 			zone_action *action,
 			action_conclusion *conclusion,
@@ -237,7 +237,7 @@ bool schedule_operation(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_operation_with_context(struct action_manager *manager,
-				     AdminStateCode operation,
+				     enum admin_state_code operation,
 				     action_preamble *preamble,
 				     zone_action *action,
 				     action_conclusion *conclusion,

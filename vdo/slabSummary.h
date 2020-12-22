@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#24 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -113,7 +113,7 @@ get_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
  * @param parent        The object to notify when the suspend is complete
  **/
 void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
-			     AdminStateCode operation,
+			     enum admin_state_code operation,
 			     struct vdo_completion *parent);
 
 /**
@@ -236,7 +236,7 @@ void set_slab_summary_origin(struct slab_summary *summary,
  * @param parent            The parent of this operation
  **/
 void load_slab_summary(struct slab_summary *summary,
-		       AdminStateCode operation,
+		       enum admin_state_code operation,
 		       zone_count_t zones_to_combine,
 		       struct vdo_completion *parent);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#46 $
  */
 
 #include "slab.h"
@@ -285,7 +285,8 @@ static void initiate_slab_action(struct admin_state *state)
 }
 
 /**********************************************************************/
-void start_slab_action(struct vdo_slab *slab, AdminStateCode operation,
+void start_slab_action(struct vdo_slab *slab,
+		       enum admin_state_code operation,
 		       struct vdo_completion *parent)
 {
 	start_operation_with_waiter(&slab->state, operation, parent,
