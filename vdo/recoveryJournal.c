@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#84 $
  */
 
 #include "recoveryJournal.h"
@@ -60,10 +60,11 @@ enum {
 static struct recovery_journal_block *
 pop_free_list(struct recovery_journal *journal)
 {
+	struct list_head *entry;
 	if (list_empty(&journal->free_tail_blocks)) {
 		return NULL;
 	}
-	struct list_head *entry = journal->free_tail_blocks.prev;
+	entry = journal->free_tail_blocks.prev;
 	list_del_init(entry);
 	return block_from_list_entry(entry);
 }
@@ -78,10 +79,11 @@ pop_free_list(struct recovery_journal *journal)
 static struct recovery_journal_block *
 pop_active_list(struct recovery_journal *journal)
 {
+	struct list_head *entry;
 	if (list_empty(&journal->active_tail_blocks)) {
 		return NULL;
 	}
-	struct list_head *entry = journal->active_tail_blocks.prev;
+	entry = journal->active_tail_blocks.prev;
 	list_del_init(entry);
 	return block_from_list_entry(entry);
 }
@@ -107,9 +109,10 @@ static void assert_on_journal_thread(struct recovery_journal *journal,
 static void continue_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+	int wait_result = *((int *)context);
+
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("$F($j-$js);cb=continueJournalWaiter($j-$js)"));
-	int wait_result = *((int *)context);
 	continue_data_vio(data_vio, wait_result);
 }
 
@@ -122,14 +125,15 @@ static void continue_waiter(struct waiter *waiter, void *context)
  **/
 static inline bool has_block_waiters(struct recovery_journal *journal)
 {
+	struct recovery_journal_block *block;
+
 	// Either the first active tail block (if it exists) has waiters,
 	// or no active tail block has waiters.
 	if (list_empty(&journal->active_tail_blocks)) {
 		return false;
 	}
 
-	struct recovery_journal_block *block =
-		block_from_list_entry(journal->active_tail_blocks.next);
+	block = block_from_list_entry(journal->active_tail_blocks.next);
 	return (has_waiters(&block->entry_waiters)
 		|| has_waiters(&block->commit_waiters));
 }
@@ -285,11 +289,11 @@ static void assign_entries(struct recovery_journal *journal);
  **/
 static void finish_reaping(struct recovery_journal *journal)
 {
+	block_count_t blocks_reaped;
 	sequence_number_t old_head = get_recovery_journal_head(journal);
 	journal->block_map_head = journal->block_map_reap_head;
 	journal->slab_journal_head = journal->slab_journal_reap_head;
-	block_count_t blocks_reaped =
-		get_recovery_journal_head(journal) - old_head;
+	blocks_reaped = get_recovery_journal_head(journal) - old_head;
 	journal->available_space += blocks_reaped * journal->entries_per_block;
 	journal->reaping = false;
 	check_slab_journal_commit_threshold(journal);
@@ -418,6 +422,8 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 			    const struct thread_config *thread_config,
 			    struct recovery_journal **journal_ptr)
 {
+	block_count_t journal_length;
+	block_count_t i;
 	struct recovery_journal *journal;
 	int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
 	if (result != VDO_SUCCESS) {
@@ -445,11 +451,9 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	journal->state.state = ADMIN_STATE_SUSPENDED;
 
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
-	block_count_t journal_length =
-		get_recovery_journal_length(journal_size);
+	journal_length = get_recovery_journal_length(journal_size);
 	journal->available_space = journal->entries_per_block * journal_length;
 
-	block_count_t i;
 	for (i = 0; i < tail_buffer_size; i++) {
 		struct recovery_journal_block *block;
 		result = make_recovery_block(layer, journal, &block);
@@ -499,6 +503,7 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 /**********************************************************************/
 void free_recovery_journal(struct recovery_journal **journal_ptr)
 {
+	struct recovery_journal_block *block;
 	struct recovery_journal *journal = *journal_ptr;
 	if (journal == NULL) {
 		return;
@@ -518,7 +523,6 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 		log_warning("journal being freed has uncommited entries");
 	}
 
-	struct recovery_journal_block *block;
 	while ((block = pop_active_list(journal)) != NULL) {
 		free_recovery_block(&block);
 	}
@@ -726,18 +730,20 @@ static void write_blocks(struct recovery_journal *journal);
 static void schedule_block_write(struct recovery_journal *journal,
 				 struct recovery_journal_block *block)
 {
+	int result;
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
+
 	if (block->committing) {
 		return;
 	}
 
-	int result = enqueue_waiter(&journal->pending_writes,
-				    &block->write_waiter);
+	result = enqueue_waiter(&journal->pending_writes,
+			        &block->write_waiter);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		return;
 	}
 
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if ((layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC)) {
 		/*
 		 * At the end of adding entries, or discovering this partial
@@ -765,6 +771,7 @@ static void release_journal_block_reference(struct recovery_journal_block *block
  **/
 static void assign_entry(struct waiter *waiter, void *context)
 {
+	int result;
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal_block *block =
 		(struct recovery_journal_block *)context;
@@ -811,7 +818,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	}
 
 	journal->available_space--;
-	int result = enqueue_recovery_block_entry(block, data_vio);
+	result = enqueue_recovery_block_entry(block, data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		continue_data_vio(data_vio, result);
@@ -873,10 +880,10 @@ static void assign_entries(struct recovery_journal *journal)
 static void recycle_journal_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
+	block_count_t i;
 	list_move_tail(&block->list_node, &journal->free_tail_blocks);
 
 	// Release any unused entry locks.
-	block_count_t i;
 	for (i = block->entry_count; i < journal->entries_per_block; i++) {
 		release_journal_block_reference(block);
 	}
@@ -900,6 +907,8 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
+	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
+							      : VDO_SUCCESS);
 	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
 					     &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
@@ -909,8 +918,6 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 			data_vio->recovery_journal_point.entry_count);
 	journal->commit_point = data_vio->recovery_journal_point;
 
-	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
-							      : VDO_SUCCESS);
 	continue_waiter(waiter, &result);
 }
 
@@ -921,11 +928,11 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
  **/
 static void notify_commit_waiters(struct recovery_journal *journal)
 {
+	struct list_head *entry;
 	if (list_empty(&journal->active_tail_blocks)) {
 		return;
 	}
 
-	struct list_head *entry;
 	list_for_each(entry, &journal->active_tail_blocks) {
 		struct recovery_journal_block *block
 			= block_from_list_entry(entry);
@@ -988,6 +995,7 @@ static void complete_write(struct vdo_completion *completion)
 {
 	struct recovery_journal_block *block = completion->parent;
 	struct recovery_journal *journal = block->journal;
+	struct recovery_journal_block *last_active_block;
 	assert_on_journal_thread(journal, __func__);
 
 	journal->pending_write_count -= 1;
@@ -1003,7 +1011,7 @@ static void complete_write(struct vdo_completion *completion)
 		journal->last_write_acknowledged = block->sequence_number;
 	}
 
-	struct recovery_journal_block *last_active_block =
+	last_active_block =
 		block_from_list_entry(journal->active_tail_blocks.next);
 	ASSERT_LOG_ONLY((block->sequence_number >=
 			 last_active_block->sequence_number),
@@ -1040,6 +1048,7 @@ static void handle_write_error(struct vdo_completion *completion)
  **/
 static void write_block(struct waiter *waiter, void *context __always_unused)
 {
+	int result;
 	struct recovery_journal_block *block
 		= container_of(waiter, struct recovery_journal_block,
 			       write_waiter);
@@ -1048,9 +1057,8 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 		return;
 	}
 
-	int result = commit_recovery_block(block,
-					   complete_write,
-					   handle_write_error);
+	result = commit_recovery_block(block, complete_write,
+				       handle_write_error);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(block->journal, result);
 	}
@@ -1063,6 +1071,8 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
  **/
 static void write_blocks(struct recovery_journal *journal)
 {
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
+
 	assert_on_journal_thread(journal, __func__);
 	/*
 	 * In sync and async-unsafe modes, we call this function each time we
@@ -1081,7 +1091,6 @@ static void write_blocks(struct recovery_journal *journal)
 	 * no pending writes.
 	 */
 
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if ((layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC)
 	    || (journal->pending_write_count == 0)) {
 		// Write all the full blocks.
@@ -1100,6 +1109,9 @@ static void write_blocks(struct recovery_journal *journal)
 void add_recovery_journal_entry(struct recovery_journal *journal,
 				struct data_vio *data_vio)
 {
+	bool increment;
+	int result;
+
 	assert_on_journal_thread(journal, __func__);
 	if (!is_normal(&journal->state)) {
 		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
@@ -1111,16 +1123,16 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 		return;
 	}
 
-	bool increment = is_increment_operation(data_vio->operation.type);
+	increment = is_increment_operation(data_vio->operation.type);
 	ASSERT_LOG_ONLY((!increment ||
 			 (data_vio->recovery_sequence_number == 0)),
 			"journal lock not held for increment");
 
 	advance_journal_point(&journal->append_point, journal->entries_per_block);
-	int result = enqueue_data_vio((increment ? &journal->increment_waiters
-				     	: &journal->decrement_waiters),
-				      data_vio,
-				      THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
+	result = enqueue_data_vio((increment ? &journal->increment_waiters
+				  : &journal->decrement_waiters),
+				  data_vio,
+				  THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		continue_data_vio(data_vio, result);
@@ -1137,6 +1149,8 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
  **/
 static void reap_recovery_journal(struct recovery_journal *journal)
 {
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
+
 	if (journal->reaping) {
 		// We already have an outstanding reap in progress. We need to
 		// wait for it to finish.
@@ -1176,7 +1190,6 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
 		/*
 		 * If the block map head will advance, we must flush any block
@@ -1206,11 +1219,12 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      zone_type type,
 					      zone_count_t zone_id)
 {
+	block_count_t block_number;
 	if (sequence_number == 0) {
 		return;
 	}
 
-	block_count_t block_number =
+	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	acquire_lock_count_reference(journal->lock_counter, block_number,
 				     type, zone_id);
@@ -1222,11 +1236,13 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      zone_type type,
 					      zone_count_t zone_id)
 {
+	block_count_t block_number;
+
 	if (sequence_number == 0) {
 		return;
 	}
 
-	block_count_t block_number =
+	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	release_lock_count_reference(journal->lock_counter, block_number,
 				     type, zone_id);
@@ -1236,11 +1252,12 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 					    sequence_number_t sequence_number)
 {
+	block_count_t block_number;
 	if (sequence_number == 0) {
 		return;
 	}
 
-	block_count_t block_number =
+	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	release_journal_zone_reference_from_other_zone(journal->lock_counter,
 						       block_number);
@@ -1271,8 +1288,10 @@ void drain_recovery_journal(struct recovery_journal *journal,
 void resume_recovery_journal(struct recovery_journal *journal,
 			     struct vdo_completion *parent)
 {
+	bool saved;
+
 	assert_on_journal_thread(journal, __func__);
-	bool saved = is_saved(&journal->state);
+	saved = is_saved(&journal->state);
 	set_completion_result(parent, resume_if_quiescent(&journal->state));
 
 	if (is_read_only(journal->read_only_notifier)) {
@@ -1309,6 +1328,9 @@ get_recovery_journal_statistics(const struct recovery_journal *journal)
 /**********************************************************************/
 void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 {
+	const struct list_head *head;
+	struct list_head *entry;
+
 	struct recovery_journal_statistics stats =
 		get_recovery_journal_statistics(journal);
 	log_info("Recovery Journal");
@@ -1327,8 +1349,7 @@ void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 		 stats.blocks.committed);
 
 	log_info("  active blocks:");
-	const struct list_head *head = &journal->active_tail_blocks;
-	struct list_head *entry;
+	head = &journal->active_tail_blocks;
 	list_for_each(entry, head) {
 		dump_recovery_block(block_from_list_entry(entry));
 	}

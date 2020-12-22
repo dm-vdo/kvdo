@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#75 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -294,6 +294,7 @@ int make_recovery_completion(struct vdo *vdo,
 {
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct recovery_completion *recovery;
+	zone_count_t z;
 	int result = ALLOCATE_EXTENDED(struct recovery_completion,
 				       thread_config->physical_zone_count,
 				       struct list_head,
@@ -304,7 +305,6 @@ int make_recovery_completion(struct vdo *vdo,
 	}
 
 	recovery->vdo = vdo;
-	zone_count_t z;
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		initialize_wait_queue(&recovery->missing_decrefs[z]);
 	}
@@ -338,15 +338,16 @@ static void free_missing_decref(struct waiter *waiter,
 /**********************************************************************/
 void free_recovery_completion(struct recovery_completion **recovery_ptr)
 {
+	const struct thread_config *thread_config;
+	zone_count_t z;
+
 	struct recovery_completion *recovery = *recovery_ptr;
 	if (recovery == NULL) {
 		return;
 	}
 
 	free_int_map(&recovery->slot_entry_map);
-	const struct thread_config *thread_config =
-		get_thread_config(recovery->vdo);
-	zone_count_t z;
+	thread_config = get_thread_config(recovery->vdo);
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],
 				   free_missing_decref, NULL);
@@ -365,6 +366,7 @@ void free_recovery_completion(struct recovery_completion **recovery_ptr)
  **/
 static void finish_recovery(struct vdo_completion *completion)
 {
+	int result;
 	struct vdo_completion *parent = completion->parent;
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion);
@@ -378,7 +380,7 @@ static void finish_recovery(struct vdo_completion *completion)
 
 	// Now that we've freed the recovery completion and its vast array of
 	// journal entries, we can allocate refcounts.
-	int result = allocate_slab_ref_counts(vdo->depot);
+	result = allocate_slab_ref_counts(vdo->depot);
 	finish_completion(parent, result);
 }
 
@@ -450,6 +452,11 @@ get_entry(const struct recovery_completion *recovery,
  **/
 static int extract_journal_entries(struct recovery_completion *recovery)
 {
+	struct recovery_point recovery_point = {
+		.sequence_number = recovery->block_map_head,
+		.sector_count = 1,
+		.entry_count = 0,
+	};
 	/*
 	 * Allocate an array of numbered_block_mapping structs just large
 	 * enough to transcribe every increment PackedRecoveryJournalEntry
@@ -463,11 +470,6 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 		return result;
 	}
 
-	struct recovery_point recovery_point = {
-		.sequence_number = recovery->block_map_head,
-		.sector_count = 1,
-		.entry_count = 0,
-	};
 	while (before_recovery_point(&recovery_point,
 				     &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry =
@@ -511,13 +513,14 @@ static int extract_journal_entries(struct recovery_completion *recovery)
  **/
 static void launch_block_map_recovery(struct vdo_completion *completion)
 {
+	int result;
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	// Extract the journal entries for the block map recovery.
-	int result = extract_journal_entries(recovery);
+	result = extract_journal_entries(recovery);
 	if (abort_recovery_on_error(result, recovery)) {
 		return;
 	}
@@ -608,6 +611,8 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
+	struct wait_queue *missing_decrefs =
+		&recovery->missing_decrefs[recovery->allocator->zone_number];
 
 	// Get ready in case we need to enqueue again
 	prepare_completion(completion,
@@ -615,8 +620,6 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 			   handle_add_slab_journal_entry_error,
 			   completion->callback_thread_id,
 			   &recovery->completion);
-	struct wait_queue *missing_decrefs =
-		&recovery->missing_decrefs[recovery->allocator->zone_number];
 	while (has_waiters(missing_decrefs)) {
 		struct missing_decref *decref =
 			as_missing_decref(get_first_waiter(missing_decrefs));
@@ -646,6 +649,11 @@ static void add_synthesized_entries(struct vdo_completion *completion)
  **/
 static int compute_usages(struct recovery_completion *recovery)
 {
+	struct recovery_point recovery_point = {
+		.sequence_number = recovery->tail,
+		.sector_count = 1,
+		.entry_count = 0,
+	};
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
 	struct packed_journal_header *tail_header =
 		get_journal_block_header(journal, recovery->journal_data,
@@ -656,11 +664,6 @@ static int compute_usages(struct recovery_completion *recovery)
 	recovery->logical_blocks_used = unpacked.logical_blocks_used;
 	recovery->block_map_data_blocks = unpacked.block_map_data_blocks;
 
-	struct recovery_point recovery_point = {
-		.sequence_number = recovery->tail,
-		.sector_count = 1,
-		.entry_count = 0,
-	};
 	while (before_recovery_point(&recovery_point,
 				     &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry =
@@ -718,6 +721,7 @@ static void advance_points(struct recovery_completion *recovery,
  **/
 static void add_slab_journal_entries(struct vdo_completion *completion)
 {
+	struct recovery_point *recovery_point;
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
@@ -729,11 +733,11 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			   handle_add_slab_journal_entry_error,
 			   completion->callback_thread_id,
 			   &recovery->completion);
-	struct recovery_point *recovery_point;
 	for (recovery_point = &recovery->next_recovery_point;
 	     before_recovery_point(recovery_point,
 				   &recovery->tail_recovery_point);
 	     advance_points(recovery, journal->entries_per_block)) {
+		struct vdo_slab *slab;
 		struct recovery_journal_entry entry =
 			get_entry(recovery, recovery_point);
 		int result = validate_recovery_journal_entry(vdo, &entry);
@@ -748,7 +752,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			continue;
 		}
 
-		struct vdo_slab *slab = get_slab(vdo->depot, entry.mapping.pbn);
+		slab = get_slab(vdo->depot, entry.mapping.pbn);
 		if (slab->allocator != recovery->allocator) {
 			continue;
 		}
@@ -809,6 +813,7 @@ void replay_into_slab_journals(struct block_allocator *allocator,
  **/
 static void queue_on_physical_zone(struct waiter *waiter, void *context)
 {
+	zone_count_t zone_number;
 	struct missing_decref *decref = as_missing_decref(waiter);
 	struct data_location mapping = decref->penultimate_mapping;
 	if (is_mapped_location(&mapping)) {
@@ -823,8 +828,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 
 	decref->slab_journal =
 		get_slab_journal((struct slab_depot *) context, mapping.pbn);
-	zone_count_t zone_number =
-		decref->slab_journal->slab->allocator->zone_number;
+	zone_number = decref->slab_journal->slab->allocator->zone_number;
 	enqueue_missing_decref(&decref->recovery->missing_decrefs[zone_number],
 			     decref);
 }
@@ -840,13 +844,13 @@ static void apply_to_depot(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
+	struct slab_depot *depot = get_slab_depot(recovery->vdo);
 	assert_on_admin_thread(recovery->vdo, __func__);
 	prepare_sub_task(recovery,
 			 finish_recovering_depot,
 			 finish_parent_callback,
 			 ZONE_TYPE_ADMIN);
 
-	struct slab_depot *depot = get_slab_depot(recovery->vdo);
 	notify_all_waiters(&recovery->missing_decrefs[0],
 			   queue_on_physical_zone, depot);
 	if (abort_recovery_on_error(recovery->completion.result, recovery)) {
@@ -909,12 +913,17 @@ static int record_missing_decref(struct missing_decref *decref,
 static int __must_check
 find_missing_decrefs(struct recovery_completion *recovery)
 {
-	struct int_map *slot_entry_map = recovery->slot_entry_map;
 	// This placeholder decref is used to mark lbns for which we have
 	// observed a decref but not the paired incref (going backwards through
 	// the journal).
 	struct missing_decref found_decref;
 
+	int result;
+	struct recovery_journal_entry entry;
+	struct missing_decref *decref;
+	struct recovery_point recovery_point;
+
+	struct int_map *slot_entry_map = recovery->slot_entry_map;
 	// A buffer is allocated based on the number of incref entries found, so
 	// use the earliest head.
 	sequence_number_t head =
@@ -934,21 +943,20 @@ find_missing_decrefs(struct recovery_completion *recovery)
 			recovery->vdo->recovery_journal->entries_per_block,
 	};
 
-	struct recovery_point recovery_point = recovery->tail_recovery_point;
+	recovery_point = recovery->tail_recovery_point;
 	while (before_recovery_point(&head_point, &recovery_point)) {
 		decrement_recovery_point(&recovery_point);
-		struct recovery_journal_entry entry =
-			get_entry(recovery, &recovery_point);
+		entry = get_entry(recovery, &recovery_point);
 
 		if (!is_increment_operation(entry.operation)) {
 			// Observe that we've seen a decref before its incref,
 			// but only if the int_map does not contain an unpaired
 			// incref for this lbn.
-			int result = int_map_put(slot_entry_map,
-						 slot_as_number(entry.slot),
-						 &found_decref,
-						 false,
-						 NULL);
+			result = int_map_put(slot_entry_map,
+					     slot_as_number(entry.slot),
+					     &found_decref,
+					     false,
+					     NULL);
 			if (result != VDO_SUCCESS) {
 				return result;
 			}
@@ -958,9 +966,8 @@ find_missing_decrefs(struct recovery_completion *recovery)
 
 		recovery->incref_count++;
 
-		struct missing_decref *decref =
-			int_map_remove(slot_entry_map,
-				       slot_as_number(entry.slot));
+		decref = int_map_remove(slot_entry_map,
+				        slot_as_number(entry.slot));
 		if (entry.operation == BLOCK_MAP_INCREMENT) {
 			if (decref != NULL) {
 				return log_error_strerror(VDO_CORRUPT_JOURNAL,
@@ -983,8 +990,7 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		if (decref == NULL) {
 			// This incref is missing a decref. Add a missing decref
 			// object.
-			int result =
-				make_missing_decref(recovery, entry, &decref);
+			result = make_missing_decref(recovery, entry, &decref);
 			if (result != VDO_SUCCESS) {
 				return result;
 			}
@@ -1007,8 +1013,8 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		 * entries before here in the journal are paired, decref before
 		 * incref, so we needn't remember it in the intmap any longer.
 		 */
-		int result = record_missing_decref(decref, entry.mapping,
-						   VDO_CORRUPT_JOURNAL);
+		result = record_missing_decref(decref, entry.mapping,
+					       VDO_CORRUPT_JOURNAL);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -1027,11 +1033,12 @@ static void process_fetched_page(struct vdo_completion *completion)
 {
 	struct missing_decref *current_decref = completion->parent;
 	struct recovery_completion *recovery = current_decref->recovery;
+	const struct block_map_page *page;
+	struct data_location location;
 	assert_on_logical_zone_thread(recovery->vdo, 0, __func__);
 
-	const struct block_map_page *page =
-		dereference_readable_vdo_page(completion);
-	struct data_location location =
+	page = dereference_readable_vdo_page(completion);
+	location =
 		unpack_block_map_entry(&page->entries[current_decref->slot.slot]);
 	release_vdo_page_completion(completion);
 	record_missing_decref(current_decref, location, VDO_BAD_MAPPING);
@@ -1073,6 +1080,8 @@ static void launch_fetch(struct waiter *waiter, void *context)
 {
 	struct missing_decref *decref = as_missing_decref(waiter);
 	struct recovery_completion *recovery = decref->recovery;
+	struct block_map_zone *zone = context;
+
 	if (enqueue_missing_decref(&recovery->missing_decrefs[0], decref) !=
 	    VDO_SUCCESS) {
 		return;
@@ -1084,7 +1093,6 @@ static void launch_fetch(struct waiter *waiter, void *context)
 		return;
 	}
 
-	struct block_map_zone *zone = context;
 	init_vdo_page_completion(&decref->page_completion,
 				 zone->page_cache,
 				 decref->slot.pbn,
@@ -1102,6 +1110,7 @@ static void launch_fetch(struct waiter *waiter, void *context)
  **/
 static void find_slab_journal_entries(struct vdo_completion *completion)
 {
+	int result;
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
@@ -1109,7 +1118,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 	// We need to be on logical zone 0's thread since we are going to use
 	// its page cache.
 	assert_on_logical_zone_thread(vdo, 0, __func__);
-	int result = find_missing_decrefs(recovery);
+	result = find_missing_decrefs(recovery);
 	if (abort_recovery_on_error(result, recovery)) {
 		return;
 	}
@@ -1154,6 +1163,11 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 	bool found_entries = false;
 	sequence_number_t i;
 	for (i = head; i <= recovery->highest_tail; i++) {
+		struct packed_journal_header *packed_header;
+		struct recovery_block_header header;
+		journal_entry_count_t block_entries;
+		uint8_t j;
+
 		recovery->tail = i;
 		recovery->tail_recovery_point = (struct recovery_point) {
 			.sequence_number = i,
@@ -1161,10 +1175,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			.entry_count = 0,
 		};
 
-		struct packed_journal_header *packed_header =
-			get_journal_block_header(journal,
-						 recovery->journal_data, i);
-		struct recovery_block_header header;
+		packed_header = get_journal_block_header(journal,
+							 recovery->journal_data, i);
 		unpack_recovery_block_header(packed_header, &header);
 
 		if (!is_exact_recovery_journal_block(journal, &header, i) ||
@@ -1174,13 +1186,14 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			break;
 		}
 
-		journal_entry_count_t block_entries = header.entry_count;
+		block_entries = header.entry_count;
 		// Examine each sector in turn to determine the last valid
 		// sector.
-		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
 				get_journal_block_sector(packed_header, j);
+			journal_entry_count_t sector_entries =
+				min_block(sector->entry_count, block_entries);
 
 			// A bad sector means that this block was torn.
 			if (!is_valid_recovery_journal_sector(&header,
@@ -1188,8 +1201,6 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 				break;
 			}
 
-			journal_entry_count_t sector_entries =
-				min_block(sector->entry_count, block_entries);
 			if (sector_entries > 0) {
 				found_entries = true;
 				recovery->tail_recovery_point.sector_count++;
@@ -1264,16 +1275,18 @@ static int count_increment_entries(struct recovery_completion *recovery)
  **/
 static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 {
+	bool found_entries;
+	int result;
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	log_info("Finished reading recovery journal");
-	bool found_entries = find_head_and_tail(journal,
-					       recovery->journal_data,
-					       &recovery->highest_tail,
-					       &recovery->block_map_head,
-					       &recovery->slab_journal_head);
+	found_entries = find_head_and_tail(journal,
+					   recovery->journal_data,
+					   &recovery->highest_tail,
+					   &recovery->block_map_head,
+					   &recovery->slab_journal_head);
 	if (found_entries) {
 		found_entries = find_contiguous_range(recovery);
 	}
@@ -1281,12 +1294,11 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	// Both reap heads must be behind the tail.
 	if ((recovery->block_map_head > recovery->tail) ||
 	    (recovery->slab_journal_head > recovery->tail)) {
-		int result =
-			log_error_strerror(VDO_CORRUPT_JOURNAL,
-					   "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
-					   recovery->block_map_head,
-					   recovery->slab_journal_head,
-					   recovery->tail);
+		result = log_error_strerror(VDO_CORRUPT_JOURNAL,
+					    "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
+					    recovery->block_map_head,
+					    recovery->slab_journal_head,
+					    recovery->tail);
 		finish_completion(&recovery->completion, result);
 		return;
 	}
@@ -1315,7 +1327,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	if (is_replaying(vdo)) {
 		// We need to know how many entries the block map rebuild
 		// completion will need to hold.
-		int result = count_increment_entries(recovery);
+		result = count_increment_entries(recovery);
 		if (result != VDO_SUCCESS) {
 			finish_completion(&recovery->completion, result);
 			return;
@@ -1333,7 +1345,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		return;
 	}
 
-	int result = compute_usages(recovery);
+	result = compute_usages(recovery);
 	if (abort_recovery_on_error(result, recovery)) {
 		return;
 	}
@@ -1348,11 +1360,13 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 /**********************************************************************/
 void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 {
+	struct recovery_completion *recovery;
+	int result;
+
 	// Note: This message must be recognizable by Permabit::VDODeviceBase.
 	log_warning("Device was dirty, rebuilding reference counts");
 
-	struct recovery_completion *recovery;
-	int result = make_recovery_completion(vdo, &recovery);
+	result = make_recovery_completion(vdo, &recovery);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
