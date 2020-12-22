@@ -27,7 +27,8 @@
 
 struct pool_stats_attribute {
 	struct attribute attr;
-	ssize_t (*show)(struct kernel_layer *layer, char *buf);
+	bool from_vdo;
+	ssize_t (*print)(struct kernel_layer *layer, char *buf);
 };
 
 static ssize_t pool_stats_attr_show(struct kobject *kobj,
@@ -36,14 +37,24 @@ static ssize_t pool_stats_attr_show(struct kobject *kobj,
 {
 	struct pool_stats_attribute *pool_stats_attr =
 		container_of(attr, struct pool_stats_attribute, attr);
+	struct kernel_layer *layer =
+		container_of(kobj, struct kernel_layer, stats_directory);
 
-	if (pool_stats_attr->show == NULL) {
+	if (pool_stats_attr->print == NULL) {
 		return -EINVAL;
 	}
 
-	struct kernel_layer *layer =
-		container_of(kobj, struct kernel_layer, stats_directory);
-	return pool_stats_attr->show(layer, buf);
+	mutex_lock(&layer->stats_mutex);
+	if (pool_stats_attr->from_vdo) {
+		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
+	} else {
+		get_kernel_statistics(layer, &layer->kernel_stats_storage);
+	}
+
+	ssize_t size = pool_stats_attr->print(layer, buf);
+	mutex_unlock(&layer->stats_mutex);
+
+	return size;
 }
 
 struct sysfs_ops pool_stats_sysfs_ops = {
@@ -53,2578 +64,2006 @@ struct sysfs_ops pool_stats_sysfs_ops = {
 
 /**********************************************************************/
 /** Number of blocks used for data */
-static ssize_t pool_stats_data_blocks_used_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_data_blocks_used(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.data_blocks_used);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.data_blocks_used);
 }
 
-static struct pool_stats_attribute pool_stats_data_blocks_used_attr = {
+static struct pool_stats_attribute pool_stats_attr_data_blocks_used = {
 	.attr = { .name = "data_blocks_used", .mode = 0444, },
-	.show = pool_stats_data_blocks_used_show,
+	.from_vdo = true,
+	.print = pool_stats_print_data_blocks_used,
 };
 
 /**********************************************************************/
 /** Number of blocks used for VDO metadata */
-static ssize_t pool_stats_overhead_blocks_used_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_overhead_blocks_used(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.overhead_blocks_used);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.overhead_blocks_used);
 }
 
-static struct pool_stats_attribute pool_stats_overhead_blocks_used_attr = {
+static struct pool_stats_attribute pool_stats_attr_overhead_blocks_used = {
 	.attr = { .name = "overhead_blocks_used", .mode = 0444, },
-	.show = pool_stats_overhead_blocks_used_show,
+	.from_vdo = true,
+	.print = pool_stats_print_overhead_blocks_used,
 };
 
 /**********************************************************************/
 /** Number of logical blocks that are currently mapped to physical blocks */
-static ssize_t pool_stats_logical_blocks_used_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_logical_blocks_used(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks_used);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks_used);
 }
 
-static struct pool_stats_attribute pool_stats_logical_blocks_used_attr = {
+static struct pool_stats_attribute pool_stats_attr_logical_blocks_used = {
 	.attr = { .name = "logical_blocks_used", .mode = 0444, },
-	.show = pool_stats_logical_blocks_used_show,
+	.from_vdo = true,
+	.print = pool_stats_print_logical_blocks_used,
 };
 
 /**********************************************************************/
 /** number of physical blocks */
-static ssize_t pool_stats_physical_blocks_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_physical_blocks(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.physical_blocks);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.physical_blocks);
 }
 
-static struct pool_stats_attribute pool_stats_physical_blocks_attr = {
+static struct pool_stats_attribute pool_stats_attr_physical_blocks = {
 	.attr = { .name = "physical_blocks", .mode = 0444, },
-	.show = pool_stats_physical_blocks_show,
+	.from_vdo = true,
+	.print = pool_stats_print_physical_blocks,
 };
 
 /**********************************************************************/
 /** number of logical blocks */
-static ssize_t pool_stats_logical_blocks_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_logical_blocks(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks);
 }
 
-static struct pool_stats_attribute pool_stats_logical_blocks_attr = {
+static struct pool_stats_attribute pool_stats_attr_logical_blocks = {
 	.attr = { .name = "logical_blocks", .mode = 0444, },
-	.show = pool_stats_logical_blocks_show,
+	.from_vdo = true,
+	.print = pool_stats_print_logical_blocks,
 };
 
 /**********************************************************************/
 /** Size of the block map page cache, in bytes */
-static ssize_t pool_stats_block_map_cache_size_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_cache_size(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map_cache_size);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map_cache_size);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_cache_size_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_cache_size = {
 	.attr = { .name = "block_map_cache_size", .mode = 0444, },
-	.show = pool_stats_block_map_cache_size_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_cache_size,
 };
 
 /**********************************************************************/
 /** String describing the active write policy of the VDO */
-static ssize_t pool_stats_write_policy_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_write_policy(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%s\n", layer->vdo_stats_storage.write_policy);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%s\n", layer->vdo_stats_storage.write_policy);
 }
 
-static struct pool_stats_attribute pool_stats_write_policy_attr = {
+static struct pool_stats_attribute pool_stats_attr_write_policy = {
 	.attr = { .name = "write_policy", .mode = 0444, },
-	.show = pool_stats_write_policy_show,
+	.from_vdo = true,
+	.print = pool_stats_print_write_policy,
 };
 
 /**********************************************************************/
 /** The physical block size */
-static ssize_t pool_stats_block_size_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_size(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_size);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_size);
 }
 
-static struct pool_stats_attribute pool_stats_block_size_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_size = {
 	.attr = { .name = "block_size", .mode = 0444, },
-	.show = pool_stats_block_size_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_size,
 };
 
 /**********************************************************************/
 /** Number of times the VDO has successfully recovered */
-static ssize_t pool_stats_complete_recoveries_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_complete_recoveries(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.complete_recoveries);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.complete_recoveries);
 }
 
-static struct pool_stats_attribute pool_stats_complete_recoveries_attr = {
+static struct pool_stats_attribute pool_stats_attr_complete_recoveries = {
 	.attr = { .name = "complete_recoveries", .mode = 0444, },
-	.show = pool_stats_complete_recoveries_show,
+	.from_vdo = true,
+	.print = pool_stats_print_complete_recoveries,
 };
 
 /**********************************************************************/
 /** Number of times the VDO has recovered from read-only mode */
-static ssize_t pool_stats_read_only_recoveries_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_read_only_recoveries(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.read_only_recoveries);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.read_only_recoveries);
 }
 
-static struct pool_stats_attribute pool_stats_read_only_recoveries_attr = {
+static struct pool_stats_attribute pool_stats_attr_read_only_recoveries = {
 	.attr = { .name = "read_only_recoveries", .mode = 0444, },
-	.show = pool_stats_read_only_recoveries_show,
+	.from_vdo = true,
+	.print = pool_stats_print_read_only_recoveries,
 };
 
 /**********************************************************************/
 /** String describing the operating mode of the VDO */
-static ssize_t pool_stats_mode_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_mode(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%s\n", layer->vdo_stats_storage.mode);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%s\n", layer->vdo_stats_storage.mode);
 }
 
-static struct pool_stats_attribute pool_stats_mode_attr = {
+static struct pool_stats_attribute pool_stats_attr_mode = {
 	.attr = { .name = "mode", .mode = 0444, },
-	.show = pool_stats_mode_show,
+	.from_vdo = true,
+	.print = pool_stats_print_mode,
 };
 
 /**********************************************************************/
 /** Whether the VDO is in recovery mode */
-static ssize_t pool_stats_in_recovery_mode_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_in_recovery_mode(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%d\n", layer->vdo_stats_storage.in_recovery_mode);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%d\n", layer->vdo_stats_storage.in_recovery_mode);
 }
 
-static struct pool_stats_attribute pool_stats_in_recovery_mode_attr = {
+static struct pool_stats_attribute pool_stats_attr_in_recovery_mode = {
 	.attr = { .name = "in_recovery_mode", .mode = 0444, },
-	.show = pool_stats_in_recovery_mode_show,
+	.from_vdo = true,
+	.print = pool_stats_print_in_recovery_mode,
 };
 
 /**********************************************************************/
 /** What percentage of recovery mode work has been completed */
-static ssize_t pool_stats_recovery_percentage_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_recovery_percentage(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%u\n", layer->vdo_stats_storage.recovery_percentage);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%u\n", layer->vdo_stats_storage.recovery_percentage);
 }
 
-static struct pool_stats_attribute pool_stats_recovery_percentage_attr = {
+static struct pool_stats_attribute pool_stats_attr_recovery_percentage = {
 	.attr = { .name = "recovery_percentage", .mode = 0444, },
-	.show = pool_stats_recovery_percentage_show,
+	.from_vdo = true,
+	.print = pool_stats_print_recovery_percentage,
 };
 
 /**********************************************************************/
 /** Number of compressed data items written since startup */
-static ssize_t pool_stats_packer_compressed_fragments_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_packer_compressed_fragments_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_written);
 }
 
-static struct pool_stats_attribute pool_stats_packer_compressed_fragments_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_packer_compressed_fragments_written = {
 	.attr = { .name = "packer_compressed_fragments_written", .mode = 0444, },
-	.show = pool_stats_packer_compressed_fragments_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_packer_compressed_fragments_written,
 };
 
 /**********************************************************************/
 /** Number of blocks containing compressed items written since startup */
-static ssize_t pool_stats_packer_compressed_blocks_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_packer_compressed_blocks_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_blocks_written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_blocks_written);
 }
 
-static struct pool_stats_attribute pool_stats_packer_compressed_blocks_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_packer_compressed_blocks_written = {
 	.attr = { .name = "packer_compressed_blocks_written", .mode = 0444, },
-	.show = pool_stats_packer_compressed_blocks_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_packer_compressed_blocks_written,
 };
 
 /**********************************************************************/
 /** Number of VIOs that are pending in the packer */
-static ssize_t pool_stats_packer_compressed_fragments_in_packer_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_packer_compressed_fragments_in_packer(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_in_packer);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_in_packer);
 }
 
-static struct pool_stats_attribute pool_stats_packer_compressed_fragments_in_packer_attr = {
+static struct pool_stats_attribute pool_stats_attr_packer_compressed_fragments_in_packer = {
 	.attr = { .name = "packer_compressed_fragments_in_packer", .mode = 0444, },
-	.show = pool_stats_packer_compressed_fragments_in_packer_show,
+	.from_vdo = true,
+	.print = pool_stats_print_packer_compressed_fragments_in_packer,
 };
 
 /**********************************************************************/
 /** The total number of slabs from which blocks may be allocated */
-static ssize_t pool_stats_allocator_slab_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_allocator_slab_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slab_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slab_count);
 }
 
-static struct pool_stats_attribute pool_stats_allocator_slab_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_allocator_slab_count = {
 	.attr = { .name = "allocator_slab_count", .mode = 0444, },
-	.show = pool_stats_allocator_slab_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_allocator_slab_count,
 };
 
 /**********************************************************************/
 /** The total number of slabs from which blocks have ever been allocated */
-static ssize_t pool_stats_allocator_slabs_opened_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_allocator_slabs_opened(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_opened);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_opened);
 }
 
-static struct pool_stats_attribute pool_stats_allocator_slabs_opened_attr = {
+static struct pool_stats_attribute pool_stats_attr_allocator_slabs_opened = {
 	.attr = { .name = "allocator_slabs_opened", .mode = 0444, },
-	.show = pool_stats_allocator_slabs_opened_show,
+	.from_vdo = true,
+	.print = pool_stats_print_allocator_slabs_opened,
 };
 
 /**********************************************************************/
 /** The number of times since loading that a slab has been re-opened */
-static ssize_t pool_stats_allocator_slabs_reopened_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_allocator_slabs_reopened(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_reopened);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_reopened);
 }
 
-static struct pool_stats_attribute pool_stats_allocator_slabs_reopened_attr = {
+static struct pool_stats_attribute pool_stats_attr_allocator_slabs_reopened = {
 	.attr = { .name = "allocator_slabs_reopened", .mode = 0444, },
-	.show = pool_stats_allocator_slabs_reopened_show,
+	.from_vdo = true,
+	.print = pool_stats_print_allocator_slabs_reopened,
 };
 
 /**********************************************************************/
 /** Number of times the on-disk journal was full */
-static ssize_t pool_stats_journal_disk_full_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_disk_full(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.disk_full);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.disk_full);
 }
 
-static struct pool_stats_attribute pool_stats_journal_disk_full_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_disk_full = {
 	.attr = { .name = "journal_disk_full", .mode = 0444, },
-	.show = pool_stats_journal_disk_full_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_disk_full,
 };
 
 /**********************************************************************/
 /** Number of times the recovery journal requested slab journal commits. */
-static ssize_t pool_stats_journal_slab_journal_commits_requested_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_slab_journal_commits_requested(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.slab_journal_commits_requested);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.slab_journal_commits_requested);
 }
 
-static struct pool_stats_attribute pool_stats_journal_slab_journal_commits_requested_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_slab_journal_commits_requested = {
 	.attr = { .name = "journal_slab_journal_commits_requested", .mode = 0444, },
-	.show = pool_stats_journal_slab_journal_commits_requested_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_slab_journal_commits_requested,
 };
 
 /**********************************************************************/
 /** The total number of items on which processing has started */
-static ssize_t pool_stats_journal_entries_started_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_entries_started(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.started);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.started);
 }
 
-static struct pool_stats_attribute pool_stats_journal_entries_started_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_entries_started = {
 	.attr = { .name = "journal_entries_started", .mode = 0444, },
-	.show = pool_stats_journal_entries_started_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_entries_started,
 };
 
 /**********************************************************************/
 /** The total number of items for which a write operation has been issued */
-static ssize_t pool_stats_journal_entries_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_entries_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.written);
 }
 
-static struct pool_stats_attribute pool_stats_journal_entries_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_entries_written = {
 	.attr = { .name = "journal_entries_written", .mode = 0444, },
-	.show = pool_stats_journal_entries_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_entries_written,
 };
 
 /**********************************************************************/
 /** The total number of items for which a write operation has completed */
-static ssize_t pool_stats_journal_entries_committed_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_entries_committed(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.committed);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.entries.committed);
 }
 
-static struct pool_stats_attribute pool_stats_journal_entries_committed_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_entries_committed = {
 	.attr = { .name = "journal_entries_committed", .mode = 0444, },
-	.show = pool_stats_journal_entries_committed_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_entries_committed,
 };
 
 /**********************************************************************/
 /** The total number of items on which processing has started */
-static ssize_t pool_stats_journal_blocks_started_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_blocks_started(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.started);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.started);
 }
 
-static struct pool_stats_attribute pool_stats_journal_blocks_started_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_blocks_started = {
 	.attr = { .name = "journal_blocks_started", .mode = 0444, },
-	.show = pool_stats_journal_blocks_started_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_blocks_started,
 };
 
 /**********************************************************************/
 /** The total number of items for which a write operation has been issued */
-static ssize_t pool_stats_journal_blocks_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_blocks_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.written);
 }
 
-static struct pool_stats_attribute pool_stats_journal_blocks_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_blocks_written = {
 	.attr = { .name = "journal_blocks_written", .mode = 0444, },
-	.show = pool_stats_journal_blocks_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_blocks_written,
 };
 
 /**********************************************************************/
 /** The total number of items for which a write operation has completed */
-static ssize_t pool_stats_journal_blocks_committed_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_journal_blocks_committed(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.committed);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.blocks.committed);
 }
 
-static struct pool_stats_attribute pool_stats_journal_blocks_committed_attr = {
+static struct pool_stats_attribute pool_stats_attr_journal_blocks_committed = {
 	.attr = { .name = "journal_blocks_committed", .mode = 0444, },
-	.show = pool_stats_journal_blocks_committed_show,
+	.from_vdo = true,
+	.print = pool_stats_print_journal_blocks_committed,
 };
 
 /**********************************************************************/
 /** Number of times the on-disk journal was full */
-static ssize_t pool_stats_slab_journal_disk_full_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_journal_disk_full_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.disk_full_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.disk_full_count);
 }
 
-static struct pool_stats_attribute pool_stats_slab_journal_disk_full_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_journal_disk_full_count = {
 	.attr = { .name = "slab_journal_disk_full_count", .mode = 0444, },
-	.show = pool_stats_slab_journal_disk_full_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_journal_disk_full_count,
 };
 
 /**********************************************************************/
 /** Number of times an entry was added over the flush threshold */
-static ssize_t pool_stats_slab_journal_flush_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_journal_flush_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.flush_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.flush_count);
 }
 
-static struct pool_stats_attribute pool_stats_slab_journal_flush_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_journal_flush_count = {
 	.attr = { .name = "slab_journal_flush_count", .mode = 0444, },
-	.show = pool_stats_slab_journal_flush_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_journal_flush_count,
 };
 
 /**********************************************************************/
 /** Number of times an entry was added over the block threshold */
-static ssize_t pool_stats_slab_journal_blocked_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_journal_blocked_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocked_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocked_count);
 }
 
-static struct pool_stats_attribute pool_stats_slab_journal_blocked_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_journal_blocked_count = {
 	.attr = { .name = "slab_journal_blocked_count", .mode = 0444, },
-	.show = pool_stats_slab_journal_blocked_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_journal_blocked_count,
 };
 
 /**********************************************************************/
 /** Number of times a tail block was written */
-static ssize_t pool_stats_slab_journal_blocks_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_journal_blocks_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocks_written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocks_written);
 }
 
-static struct pool_stats_attribute pool_stats_slab_journal_blocks_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_journal_blocks_written = {
 	.attr = { .name = "slab_journal_blocks_written", .mode = 0444, },
-	.show = pool_stats_slab_journal_blocks_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_journal_blocks_written,
 };
 
 /**********************************************************************/
 /** Number of times we had to wait for the tail to write */
-static ssize_t pool_stats_slab_journal_tail_busy_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_journal_tail_busy_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.tail_busy_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.tail_busy_count);
 }
 
-static struct pool_stats_attribute pool_stats_slab_journal_tail_busy_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_journal_tail_busy_count = {
 	.attr = { .name = "slab_journal_tail_busy_count", .mode = 0444, },
-	.show = pool_stats_slab_journal_tail_busy_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_journal_tail_busy_count,
 };
 
 /**********************************************************************/
 /** Number of blocks written */
-static ssize_t pool_stats_slab_summary_blocks_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_slab_summary_blocks_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_summary.blocks_written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_summary.blocks_written);
 }
 
-static struct pool_stats_attribute pool_stats_slab_summary_blocks_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_slab_summary_blocks_written = {
 	.attr = { .name = "slab_summary_blocks_written", .mode = 0444, },
-	.show = pool_stats_slab_summary_blocks_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_slab_summary_blocks_written,
 };
 
 /**********************************************************************/
 /** Number of reference blocks written */
-static ssize_t pool_stats_ref_counts_blocks_written_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_ref_counts_blocks_written(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.ref_counts.blocks_written);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.ref_counts.blocks_written);
 }
 
-static struct pool_stats_attribute pool_stats_ref_counts_blocks_written_attr = {
+static struct pool_stats_attribute pool_stats_attr_ref_counts_blocks_written = {
 	.attr = { .name = "ref_counts_blocks_written", .mode = 0444, },
-	.show = pool_stats_ref_counts_blocks_written_show,
+	.from_vdo = true,
+	.print = pool_stats_print_ref_counts_blocks_written,
 };
 
 /**********************************************************************/
 /** number of dirty (resident) pages */
-static ssize_t pool_stats_block_map_dirty_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_dirty_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.dirty_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.dirty_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_dirty_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_dirty_pages = {
 	.attr = { .name = "block_map_dirty_pages", .mode = 0444, },
-	.show = pool_stats_block_map_dirty_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_dirty_pages,
 };
 
 /**********************************************************************/
 /** number of clean (resident) pages */
-static ssize_t pool_stats_block_map_clean_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_clean_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.clean_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.clean_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_clean_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_clean_pages = {
 	.attr = { .name = "block_map_clean_pages", .mode = 0444, },
-	.show = pool_stats_block_map_clean_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_clean_pages,
 };
 
 /**********************************************************************/
 /** number of free pages */
-static ssize_t pool_stats_block_map_free_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_free_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.free_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.free_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_free_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_free_pages = {
 	.attr = { .name = "block_map_free_pages", .mode = 0444, },
-	.show = pool_stats_block_map_free_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_free_pages,
 };
 
 /**********************************************************************/
 /** number of pages in failed state */
-static ssize_t pool_stats_block_map_failed_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_failed_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.failed_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.failed_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_failed_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_failed_pages = {
 	.attr = { .name = "block_map_failed_pages", .mode = 0444, },
-	.show = pool_stats_block_map_failed_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_failed_pages,
 };
 
 /**********************************************************************/
 /** number of pages incoming */
-static ssize_t pool_stats_block_map_incoming_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_incoming_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.incoming_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.incoming_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_incoming_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_incoming_pages = {
 	.attr = { .name = "block_map_incoming_pages", .mode = 0444, },
-	.show = pool_stats_block_map_incoming_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_incoming_pages,
 };
 
 /**********************************************************************/
 /** number of pages outgoing */
-static ssize_t pool_stats_block_map_outgoing_pages_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_outgoing_pages(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.outgoing_pages);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.outgoing_pages);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_outgoing_pages_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_outgoing_pages = {
 	.attr = { .name = "block_map_outgoing_pages", .mode = 0444, },
-	.show = pool_stats_block_map_outgoing_pages_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_outgoing_pages,
 };
 
 /**********************************************************************/
 /** how many times free page not avail */
-static ssize_t pool_stats_block_map_cache_pressure_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_cache_pressure(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.cache_pressure);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.cache_pressure);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_cache_pressure_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_cache_pressure = {
 	.attr = { .name = "block_map_cache_pressure", .mode = 0444, },
-	.show = pool_stats_block_map_cache_pressure_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_cache_pressure,
 };
 
 /**********************************************************************/
 /** number of get_vdo_page() calls for read */
-static ssize_t pool_stats_block_map_read_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_read_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_count);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_read_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_read_count = {
 	.attr = { .name = "block_map_read_count", .mode = 0444, },
-	.show = pool_stats_block_map_read_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_read_count,
 };
 
 /**********************************************************************/
 /** number of get_vdo_page() calls for write */
-static ssize_t pool_stats_block_map_write_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_write_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.write_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.write_count);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_write_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_write_count = {
 	.attr = { .name = "block_map_write_count", .mode = 0444, },
-	.show = pool_stats_block_map_write_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_write_count,
 };
 
 /**********************************************************************/
 /** number of times pages failed to read */
-static ssize_t pool_stats_block_map_failed_reads_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_failed_reads(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_reads);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_reads);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_failed_reads_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_failed_reads = {
 	.attr = { .name = "block_map_failed_reads", .mode = 0444, },
-	.show = pool_stats_block_map_failed_reads_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_failed_reads,
 };
 
 /**********************************************************************/
 /** number of times pages failed to write */
-static ssize_t pool_stats_block_map_failed_writes_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_failed_writes(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_writes);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_writes);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_failed_writes_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_failed_writes = {
 	.attr = { .name = "block_map_failed_writes", .mode = 0444, },
-	.show = pool_stats_block_map_failed_writes_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_failed_writes,
 };
 
 /**********************************************************************/
 /** number of gets that are reclaimed */
-static ssize_t pool_stats_block_map_reclaimed_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_reclaimed(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.reclaimed);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.reclaimed);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_reclaimed_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_reclaimed = {
 	.attr = { .name = "block_map_reclaimed", .mode = 0444, },
-	.show = pool_stats_block_map_reclaimed_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_reclaimed,
 };
 
 /**********************************************************************/
 /** number of gets for outgoing pages */
-static ssize_t pool_stats_block_map_read_outgoing_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_read_outgoing(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_outgoing);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_outgoing);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_read_outgoing_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_read_outgoing = {
 	.attr = { .name = "block_map_read_outgoing", .mode = 0444, },
-	.show = pool_stats_block_map_read_outgoing_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_read_outgoing,
 };
 
 /**********************************************************************/
 /** number of gets that were already there */
-static ssize_t pool_stats_block_map_found_in_cache_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_found_in_cache(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.found_in_cache);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.found_in_cache);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_found_in_cache_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_found_in_cache = {
 	.attr = { .name = "block_map_found_in_cache", .mode = 0444, },
-	.show = pool_stats_block_map_found_in_cache_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_found_in_cache,
 };
 
 /**********************************************************************/
 /** number of gets requiring discard */
-static ssize_t pool_stats_block_map_discard_required_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_discard_required(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.discard_required);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.discard_required);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_discard_required_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_discard_required = {
 	.attr = { .name = "block_map_discard_required", .mode = 0444, },
-	.show = pool_stats_block_map_discard_required_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_discard_required,
 };
 
 /**********************************************************************/
 /** number of gets enqueued for their page */
-static ssize_t pool_stats_block_map_wait_for_page_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_wait_for_page(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.wait_for_page);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.wait_for_page);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_wait_for_page_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_wait_for_page = {
 	.attr = { .name = "block_map_wait_for_page", .mode = 0444, },
-	.show = pool_stats_block_map_wait_for_page_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_wait_for_page,
 };
 
 /**********************************************************************/
 /** number of gets that have to fetch */
-static ssize_t pool_stats_block_map_fetch_required_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_fetch_required(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.fetch_required);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.fetch_required);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_fetch_required_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_fetch_required = {
 	.attr = { .name = "block_map_fetch_required", .mode = 0444, },
-	.show = pool_stats_block_map_fetch_required_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_fetch_required,
 };
 
 /**********************************************************************/
 /** number of page fetches */
-static ssize_t pool_stats_block_map_pages_loaded_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_pages_loaded(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_loaded);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_loaded);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_pages_loaded_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_pages_loaded = {
 	.attr = { .name = "block_map_pages_loaded", .mode = 0444, },
-	.show = pool_stats_block_map_pages_loaded_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_pages_loaded,
 };
 
 /**********************************************************************/
 /** number of page saves */
-static ssize_t pool_stats_block_map_pages_saved_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_pages_saved(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_saved);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_saved);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_pages_saved_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_pages_saved = {
 	.attr = { .name = "block_map_pages_saved", .mode = 0444, },
-	.show = pool_stats_block_map_pages_saved_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_pages_saved,
 };
 
 /**********************************************************************/
 /** the number of flushes issued */
-static ssize_t pool_stats_block_map_flush_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_block_map_flush_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.flush_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.flush_count);
 }
 
-static struct pool_stats_attribute pool_stats_block_map_flush_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_block_map_flush_count = {
 	.attr = { .name = "block_map_flush_count", .mode = 0444, },
-	.show = pool_stats_block_map_flush_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_block_map_flush_count,
 };
 
 /**********************************************************************/
 /** Number of times the UDS advice proved correct */
-static ssize_t pool_stats_hash_lock_dedupe_advice_valid_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_hash_lock_dedupe_advice_valid(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_valid);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_valid);
 }
 
-static struct pool_stats_attribute pool_stats_hash_lock_dedupe_advice_valid_attr = {
+static struct pool_stats_attribute pool_stats_attr_hash_lock_dedupe_advice_valid = {
 	.attr = { .name = "hash_lock_dedupe_advice_valid", .mode = 0444, },
-	.show = pool_stats_hash_lock_dedupe_advice_valid_show,
+	.from_vdo = true,
+	.print = pool_stats_print_hash_lock_dedupe_advice_valid,
 };
 
 /**********************************************************************/
 /** Number of times the UDS advice proved incorrect */
-static ssize_t pool_stats_hash_lock_dedupe_advice_stale_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_hash_lock_dedupe_advice_stale(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_stale);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_stale);
 }
 
-static struct pool_stats_attribute pool_stats_hash_lock_dedupe_advice_stale_attr = {
+static struct pool_stats_attribute pool_stats_attr_hash_lock_dedupe_advice_stale = {
 	.attr = { .name = "hash_lock_dedupe_advice_stale", .mode = 0444, },
-	.show = pool_stats_hash_lock_dedupe_advice_stale_show,
+	.from_vdo = true,
+	.print = pool_stats_print_hash_lock_dedupe_advice_stale,
 };
 
 /**********************************************************************/
 /** Number of writes with the same data as another in-flight write */
-static ssize_t pool_stats_hash_lock_concurrent_data_matches_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_hash_lock_concurrent_data_matches(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_data_matches);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_data_matches);
 }
 
-static struct pool_stats_attribute pool_stats_hash_lock_concurrent_data_matches_attr = {
+static struct pool_stats_attribute pool_stats_attr_hash_lock_concurrent_data_matches = {
 	.attr = { .name = "hash_lock_concurrent_data_matches", .mode = 0444, },
-	.show = pool_stats_hash_lock_concurrent_data_matches_show,
+	.from_vdo = true,
+	.print = pool_stats_print_hash_lock_concurrent_data_matches,
 };
 
 /**********************************************************************/
 /** Number of writes whose hash collided with an in-flight write */
-static ssize_t pool_stats_hash_lock_concurrent_hash_collisions_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_hash_lock_concurrent_hash_collisions(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_hash_collisions);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_hash_collisions);
 }
 
-static struct pool_stats_attribute pool_stats_hash_lock_concurrent_hash_collisions_attr = {
+static struct pool_stats_attribute pool_stats_attr_hash_lock_concurrent_hash_collisions = {
 	.attr = { .name = "hash_lock_concurrent_hash_collisions", .mode = 0444, },
-	.show = pool_stats_hash_lock_concurrent_hash_collisions_show,
+	.from_vdo = true,
+	.print = pool_stats_print_hash_lock_concurrent_hash_collisions,
 };
 
 /**********************************************************************/
 /** number of times VDO got an invalid dedupe advice PBN from UDS */
-static ssize_t pool_stats_errors_invalid_advice_pbn_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_errors_invalid_advice_pbn_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.invalid_advice_pbn_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.invalid_advice_pbn_count);
 }
 
-static struct pool_stats_attribute pool_stats_errors_invalid_advice_pbn_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_errors_invalid_advice_pbn_count = {
 	.attr = { .name = "errors_invalid_advice_pbn_count", .mode = 0444, },
-	.show = pool_stats_errors_invalid_advice_pbn_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_errors_invalid_advice_pbn_count,
 };
 
 /**********************************************************************/
 /** number of times a VIO completed with a VDO_NO_SPACE error */
-static ssize_t pool_stats_errors_no_space_error_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_errors_no_space_error_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.no_space_error_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.no_space_error_count);
 }
 
-static struct pool_stats_attribute pool_stats_errors_no_space_error_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_errors_no_space_error_count = {
 	.attr = { .name = "errors_no_space_error_count", .mode = 0444, },
-	.show = pool_stats_errors_no_space_error_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_errors_no_space_error_count,
 };
 
 /**********************************************************************/
 /** number of times a VIO completed with a VDO_READ_ONLY error */
-static ssize_t pool_stats_errors_read_only_error_count_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_errors_read_only_error_count(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.read_only_error_count);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.read_only_error_count);
 }
 
-static struct pool_stats_attribute pool_stats_errors_read_only_error_count_attr = {
+static struct pool_stats_attribute pool_stats_attr_errors_read_only_error_count = {
 	.attr = { .name = "errors_read_only_error_count", .mode = 0444, },
-	.show = pool_stats_errors_read_only_error_count_show,
+	.from_vdo = true,
+	.print = pool_stats_print_errors_read_only_error_count,
 };
 
 /**********************************************************************/
 /** The VDO instance */
-static ssize_t pool_stats_instance_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_instance(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.instance);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.instance);
 }
 
-static struct pool_stats_attribute pool_stats_instance_attr = {
+static struct pool_stats_attribute pool_stats_attr_instance = {
 	.attr = { .name = "instance", .mode = 0444, },
-	.show = pool_stats_instance_show,
+	.from_vdo = false,
+	.print = pool_stats_print_instance,
 };
 
 /**********************************************************************/
 /** Current number of active VIOs */
-static ssize_t pool_stats_current_vios_in_progress_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_current_vios_in_progress(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.current_vios_in_progress);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.current_vios_in_progress);
 }
 
-static struct pool_stats_attribute pool_stats_current_vios_in_progress_attr = {
+static struct pool_stats_attribute pool_stats_attr_current_vios_in_progress = {
 	.attr = { .name = "current_vios_in_progress", .mode = 0444, },
-	.show = pool_stats_current_vios_in_progress_show,
+	.from_vdo = false,
+	.print = pool_stats_print_current_vios_in_progress,
 };
 
 /**********************************************************************/
 /** Maximum number of active VIOs */
-static ssize_t pool_stats_max_vios_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_max_vios(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.max_vios);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.max_vios);
 }
 
-static struct pool_stats_attribute pool_stats_max_vios_attr = {
+static struct pool_stats_attribute pool_stats_attr_max_vios = {
 	.attr = { .name = "max_vios", .mode = 0444, },
-	.show = pool_stats_max_vios_show,
+	.from_vdo = false,
+	.print = pool_stats_print_max_vios,
 };
 
 /**********************************************************************/
 /** Number of times the UDS index was too slow in responding */
-static ssize_t pool_stats_dedupe_advice_timeouts_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_dedupe_advice_timeouts(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.dedupe_advice_timeouts);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.dedupe_advice_timeouts);
 }
 
-static struct pool_stats_attribute pool_stats_dedupe_advice_timeouts_attr = {
+static struct pool_stats_attribute pool_stats_attr_dedupe_advice_timeouts = {
 	.attr = { .name = "dedupe_advice_timeouts", .mode = 0444, },
-	.show = pool_stats_dedupe_advice_timeouts_show,
+	.from_vdo = false,
+	.print = pool_stats_print_dedupe_advice_timeouts,
 };
 
 /**********************************************************************/
 /** Number of flush requests submitted to the storage device */
-static ssize_t pool_stats_flush_out_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_flush_out(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.flush_out);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.flush_out);
 }
 
-static struct pool_stats_attribute pool_stats_flush_out_attr = {
+static struct pool_stats_attribute pool_stats_attr_flush_out = {
 	.attr = { .name = "flush_out", .mode = 0444, },
-	.show = pool_stats_flush_out_show,
+	.from_vdo = false,
+	.print = pool_stats_print_flush_out,
 };
 
 /**********************************************************************/
 /** Logical block size */
-static ssize_t pool_stats_logical_block_size_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_logical_block_size(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.logical_block_size);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.logical_block_size);
 }
 
-static struct pool_stats_attribute pool_stats_logical_block_size_attr = {
+static struct pool_stats_attribute pool_stats_attr_logical_block_size = {
 	.attr = { .name = "logical_block_size", .mode = 0444, },
-	.show = pool_stats_logical_block_size_show,
+	.from_vdo = false,
+	.print = pool_stats_print_logical_block_size,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_read = {
 	.attr = { .name = "bios_in_read", .mode = 0444, },
-	.show = pool_stats_bios_in_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_write = {
 	.attr = { .name = "bios_in_write", .mode = 0444, },
-	.show = pool_stats_bios_in_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_in_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_discard = {
 	.attr = { .name = "bios_in_discard", .mode = 0444, },
-	.show = pool_stats_bios_in_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_in_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_flush = {
 	.attr = { .name = "bios_in_flush", .mode = 0444, },
-	.show = pool_stats_bios_in_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_in_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_fua = {
 	.attr = { .name = "bios_in_fua", .mode = 0444, },
-	.show = pool_stats_bios_in_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_partial_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_partial_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_partial_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_read = {
 	.attr = { .name = "bios_in_partial_read", .mode = 0444, },
-	.show = pool_stats_bios_in_partial_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_partial_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_partial_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_partial_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_write = {
 	.attr = { .name = "bios_in_partial_write", .mode = 0444, },
-	.show = pool_stats_bios_in_partial_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_in_partial_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_partial_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_partial_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_discard = {
 	.attr = { .name = "bios_in_partial_discard", .mode = 0444, },
-	.show = pool_stats_bios_in_partial_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_in_partial_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_partial_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_partial_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_flush = {
 	.attr = { .name = "bios_in_partial_flush", .mode = 0444, },
-	.show = pool_stats_bios_in_partial_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_in_partial_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_partial_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_partial_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_fua = {
 	.attr = { .name = "bios_in_partial_fua", .mode = 0444, },
-	.show = pool_stats_bios_in_partial_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_out_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_read = {
 	.attr = { .name = "bios_out_read", .mode = 0444, },
-	.show = pool_stats_bios_out_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_out_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_write = {
 	.attr = { .name = "bios_out_write", .mode = 0444, },
-	.show = pool_stats_bios_out_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_out_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_discard = {
 	.attr = { .name = "bios_out_discard", .mode = 0444, },
-	.show = pool_stats_bios_out_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_out_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_flush = {
 	.attr = { .name = "bios_out_flush", .mode = 0444, },
-	.show = pool_stats_bios_out_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_out_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_fua = {
 	.attr = { .name = "bios_out_fua", .mode = 0444, },
-	.show = pool_stats_bios_out_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_meta_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_read = {
 	.attr = { .name = "bios_meta_read", .mode = 0444, },
-	.show = pool_stats_bios_meta_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_meta_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_write = {
 	.attr = { .name = "bios_meta_write", .mode = 0444, },
-	.show = pool_stats_bios_meta_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_meta_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_discard = {
 	.attr = { .name = "bios_meta_discard", .mode = 0444, },
-	.show = pool_stats_bios_meta_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_meta_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_flush = {
 	.attr = { .name = "bios_meta_flush", .mode = 0444, },
-	.show = pool_stats_bios_meta_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_meta_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_fua = {
 	.attr = { .name = "bios_meta_fua", .mode = 0444, },
-	.show = pool_stats_bios_meta_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_journal_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_read = {
 	.attr = { .name = "bios_journal_read", .mode = 0444, },
-	.show = pool_stats_bios_journal_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_journal_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_write = {
 	.attr = { .name = "bios_journal_write", .mode = 0444, },
-	.show = pool_stats_bios_journal_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_journal_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_discard = {
 	.attr = { .name = "bios_journal_discard", .mode = 0444, },
-	.show = pool_stats_bios_journal_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_journal_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_flush = {
 	.attr = { .name = "bios_journal_flush", .mode = 0444, },
-	.show = pool_stats_bios_journal_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_journal_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_fua = {
 	.attr = { .name = "bios_journal_fua", .mode = 0444, },
-	.show = pool_stats_bios_journal_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_page_cache_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_read = {
 	.attr = { .name = "bios_page_cache_read", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_page_cache_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_write = {
 	.attr = { .name = "bios_page_cache_write", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_page_cache_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_discard = {
 	.attr = { .name = "bios_page_cache_discard", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_page_cache_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_flush = {
 	.attr = { .name = "bios_page_cache_flush", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_page_cache_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_fua = {
 	.attr = { .name = "bios_page_cache_fua", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_out_completed_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_completed_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_completed_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_read = {
 	.attr = { .name = "bios_out_completed_read", .mode = 0444, },
-	.show = pool_stats_bios_out_completed_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_out_completed_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_completed_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_completed_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_write = {
 	.attr = { .name = "bios_out_completed_write", .mode = 0444, },
-	.show = pool_stats_bios_out_completed_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_out_completed_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_completed_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_discard = {
 	.attr = { .name = "bios_out_completed_discard", .mode = 0444, },
-	.show = pool_stats_bios_out_completed_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_out_completed_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_completed_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_flush = {
 	.attr = { .name = "bios_out_completed_flush", .mode = 0444, },
-	.show = pool_stats_bios_out_completed_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_out_completed_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_out_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_out_completed_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_fua = {
 	.attr = { .name = "bios_out_completed_fua", .mode = 0444, },
-	.show = pool_stats_bios_out_completed_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_meta_completed_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_completed_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_completed_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_read = {
 	.attr = { .name = "bios_meta_completed_read", .mode = 0444, },
-	.show = pool_stats_bios_meta_completed_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_meta_completed_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_completed_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_completed_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_write = {
 	.attr = { .name = "bios_meta_completed_write", .mode = 0444, },
-	.show = pool_stats_bios_meta_completed_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_meta_completed_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_completed_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_discard = {
 	.attr = { .name = "bios_meta_completed_discard", .mode = 0444, },
-	.show = pool_stats_bios_meta_completed_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_meta_completed_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_completed_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_flush = {
 	.attr = { .name = "bios_meta_completed_flush", .mode = 0444, },
-	.show = pool_stats_bios_meta_completed_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_meta_completed_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_meta_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_meta_completed_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_fua = {
 	.attr = { .name = "bios_meta_completed_fua", .mode = 0444, },
-	.show = pool_stats_bios_meta_completed_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_journal_completed_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_completed_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_completed_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_read = {
 	.attr = { .name = "bios_journal_completed_read", .mode = 0444, },
-	.show = pool_stats_bios_journal_completed_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_journal_completed_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_completed_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_completed_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_write = {
 	.attr = { .name = "bios_journal_completed_write", .mode = 0444, },
-	.show = pool_stats_bios_journal_completed_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_journal_completed_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_completed_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_discard = {
 	.attr = { .name = "bios_journal_completed_discard", .mode = 0444, },
-	.show = pool_stats_bios_journal_completed_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_journal_completed_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_completed_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_flush = {
 	.attr = { .name = "bios_journal_completed_flush", .mode = 0444, },
-	.show = pool_stats_bios_journal_completed_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_journal_completed_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_journal_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_journal_completed_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_fua = {
 	.attr = { .name = "bios_journal_completed_fua", .mode = 0444, },
-	.show = pool_stats_bios_journal_completed_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_page_cache_completed_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_completed_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_completed_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_read = {
 	.attr = { .name = "bios_page_cache_completed_read", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_completed_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_page_cache_completed_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_completed_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_completed_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_write = {
 	.attr = { .name = "bios_page_cache_completed_write", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_completed_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_page_cache_completed_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_completed_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_discard = {
 	.attr = { .name = "bios_page_cache_completed_discard", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_completed_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_page_cache_completed_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_completed_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_flush = {
 	.attr = { .name = "bios_page_cache_completed_flush", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_completed_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_page_cache_completed_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_page_cache_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_page_cache_completed_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_fua = {
 	.attr = { .name = "bios_page_cache_completed_fua", .mode = 0444, },
-	.show = pool_stats_bios_page_cache_completed_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_acknowledged_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_read = {
 	.attr = { .name = "bios_acknowledged_read", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_acknowledged_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_write = {
 	.attr = { .name = "bios_acknowledged_write", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_acknowledged_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_discard = {
 	.attr = { .name = "bios_acknowledged_discard", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_acknowledged_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_flush = {
 	.attr = { .name = "bios_acknowledged_flush", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_acknowledged_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_fua = {
 	.attr = { .name = "bios_acknowledged_fua", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_acknowledged_partial_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_partial_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_read = {
 	.attr = { .name = "bios_acknowledged_partial_read", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_partial_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_acknowledged_partial_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_partial_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_write = {
 	.attr = { .name = "bios_acknowledged_partial_write", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_partial_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_acknowledged_partial_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_partial_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_discard = {
 	.attr = { .name = "bios_acknowledged_partial_discard", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_partial_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_acknowledged_partial_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_partial_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_flush = {
 	.attr = { .name = "bios_acknowledged_partial_flush", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_partial_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_acknowledged_partial_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_acknowledged_partial_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_acknowledged_partial_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_fua = {
 	.attr = { .name = "bios_acknowledged_partial_fua", .mode = 0444, },
-	.show = pool_stats_bios_acknowledged_partial_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_fua,
 };
 
 /**********************************************************************/
 /** Number of not REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_progress_read_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_progress_read(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.read);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.read);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_progress_read_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_read = {
 	.attr = { .name = "bios_in_progress_read", .mode = 0444, },
-	.show = pool_stats_bios_in_progress_read_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_read,
 };
 
 /**********************************************************************/
 /** Number of REQ_WRITE bios */
-static ssize_t pool_stats_bios_in_progress_write_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_progress_write(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.write);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.write);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_progress_write_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_write = {
 	.attr = { .name = "bios_in_progress_write", .mode = 0444, },
-	.show = pool_stats_bios_in_progress_write_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_write,
 };
 
 /**********************************************************************/
 /** Number of REQ_DISCARD bios */
-static ssize_t pool_stats_bios_in_progress_discard_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_progress_discard(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.discard);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.discard);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_progress_discard_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_discard = {
 	.attr = { .name = "bios_in_progress_discard", .mode = 0444, },
-	.show = pool_stats_bios_in_progress_discard_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_discard,
 };
 
 /**********************************************************************/
 /** Number of REQ_FLUSH bios */
-static ssize_t pool_stats_bios_in_progress_flush_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_progress_flush(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.flush);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.flush);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_progress_flush_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_flush = {
 	.attr = { .name = "bios_in_progress_flush", .mode = 0444, },
-	.show = pool_stats_bios_in_progress_flush_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_flush,
 };
 
 /**********************************************************************/
 /** Number of REQ_FUA bios */
-static ssize_t pool_stats_bios_in_progress_fua_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_bios_in_progress_fua(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.fua);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.fua);
 }
 
-static struct pool_stats_attribute pool_stats_bios_in_progress_fua_attr = {
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_fua = {
 	.attr = { .name = "bios_in_progress_fua", .mode = 0444, },
-	.show = pool_stats_bios_in_progress_fua_show,
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_fua,
 };
 
 /**********************************************************************/
 /** Tracked bytes currently allocated. */
-static ssize_t pool_stats_memory_usage_bytes_used_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_memory_usage_bytes_used(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.bytes_used);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.bytes_used);
 }
 
-static struct pool_stats_attribute pool_stats_memory_usage_bytes_used_attr = {
+static struct pool_stats_attribute pool_stats_attr_memory_usage_bytes_used = {
 	.attr = { .name = "memory_usage_bytes_used", .mode = 0444, },
-	.show = pool_stats_memory_usage_bytes_used_show,
+	.from_vdo = false,
+	.print = pool_stats_print_memory_usage_bytes_used,
 };
 
 /**********************************************************************/
 /** Maximum tracked bytes allocated. */
-static ssize_t pool_stats_memory_usage_peak_bytes_used_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_memory_usage_peak_bytes_used(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.peak_bytes_used);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.peak_bytes_used);
 }
 
-static struct pool_stats_attribute pool_stats_memory_usage_peak_bytes_used_attr = {
+static struct pool_stats_attribute pool_stats_attr_memory_usage_peak_bytes_used = {
 	.attr = { .name = "memory_usage_peak_bytes_used", .mode = 0444, },
-	.show = pool_stats_memory_usage_peak_bytes_used_show,
+	.from_vdo = false,
+	.print = pool_stats_print_memory_usage_peak_bytes_used,
 };
 
 /**********************************************************************/
 /** Number of chunk names stored in the index */
-static ssize_t pool_stats_index_entries_indexed_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_entries_indexed(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.entries_indexed);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.entries_indexed);
 }
 
-static struct pool_stats_attribute pool_stats_index_entries_indexed_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_entries_indexed = {
 	.attr = { .name = "index_entries_indexed", .mode = 0444, },
-	.show = pool_stats_index_entries_indexed_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_entries_indexed,
 };
 
 /**********************************************************************/
 /** Number of post calls that found an existing entry */
-static ssize_t pool_stats_index_posts_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_posts_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_posts_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_posts_found = {
 	.attr = { .name = "index_posts_found", .mode = 0444, },
-	.show = pool_stats_index_posts_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_posts_found,
 };
 
 /**********************************************************************/
 /** Number of post calls that added a new entry */
-static ssize_t pool_stats_index_posts_not_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_posts_not_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_not_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_not_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_posts_not_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_posts_not_found = {
 	.attr = { .name = "index_posts_not_found", .mode = 0444, },
-	.show = pool_stats_index_posts_not_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_posts_not_found,
 };
 
 /**********************************************************************/
 /** Number of query calls that found an existing entry */
-static ssize_t pool_stats_index_queries_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_queries_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_queries_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_queries_found = {
 	.attr = { .name = "index_queries_found", .mode = 0444, },
-	.show = pool_stats_index_queries_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_queries_found,
 };
 
 /**********************************************************************/
 /** Number of query calls that added a new entry */
-static ssize_t pool_stats_index_queries_not_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_queries_not_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_not_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_not_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_queries_not_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_queries_not_found = {
 	.attr = { .name = "index_queries_not_found", .mode = 0444, },
-	.show = pool_stats_index_queries_not_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_queries_not_found,
 };
 
 /**********************************************************************/
 /** Number of update calls that found an existing entry */
-static ssize_t pool_stats_index_updates_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_updates_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_updates_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_updates_found = {
 	.attr = { .name = "index_updates_found", .mode = 0444, },
-	.show = pool_stats_index_updates_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_updates_found,
 };
 
 /**********************************************************************/
 /** Number of update calls that added a new entry */
-static ssize_t pool_stats_index_updates_not_found_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_updates_not_found(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_not_found);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_not_found);
 }
 
-static struct pool_stats_attribute pool_stats_index_updates_not_found_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_updates_not_found = {
 	.attr = { .name = "index_updates_not_found", .mode = 0444, },
-	.show = pool_stats_index_updates_not_found_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_updates_not_found,
 };
 
 /**********************************************************************/
 /** Current number of dedupe queries that are in flight */
-static ssize_t pool_stats_index_curr_dedupe_queries_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_curr_dedupe_queries(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.curr_dedupe_queries);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.curr_dedupe_queries);
 }
 
-static struct pool_stats_attribute pool_stats_index_curr_dedupe_queries_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
 	.attr = { .name = "index_curr_dedupe_queries", .mode = 0444, },
-	.show = pool_stats_index_curr_dedupe_queries_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_curr_dedupe_queries,
 };
 
 /**********************************************************************/
 /** Maximum number of dedupe queries that have been in flight */
-static ssize_t pool_stats_index_max_dedupe_queries_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_stats_print_index_max_dedupe_queries(struct kernel_layer *layer, char *buf)
 {
-	ssize_t retval;
-	mutex_lock(&layer->stats_mutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.max_dedupe_queries);
-	mutex_unlock(&layer->stats_mutex);
-	return retval;
+	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.max_dedupe_queries);
 }
 
-static struct pool_stats_attribute pool_stats_index_max_dedupe_queries_attr = {
+static struct pool_stats_attribute pool_stats_attr_index_max_dedupe_queries = {
 	.attr = { .name = "index_max_dedupe_queries", .mode = 0444, },
-	.show = pool_stats_index_max_dedupe_queries_show,
+	.from_vdo = false,
+	.print = pool_stats_print_index_max_dedupe_queries,
 };
 
 struct attribute *pool_stats_attrs[] = {
-	&pool_stats_data_blocks_used_attr.attr,
-	&pool_stats_overhead_blocks_used_attr.attr,
-	&pool_stats_logical_blocks_used_attr.attr,
-	&pool_stats_physical_blocks_attr.attr,
-	&pool_stats_logical_blocks_attr.attr,
-	&pool_stats_block_map_cache_size_attr.attr,
-	&pool_stats_write_policy_attr.attr,
-	&pool_stats_block_size_attr.attr,
-	&pool_stats_complete_recoveries_attr.attr,
-	&pool_stats_read_only_recoveries_attr.attr,
-	&pool_stats_mode_attr.attr,
-	&pool_stats_in_recovery_mode_attr.attr,
-	&pool_stats_recovery_percentage_attr.attr,
-	&pool_stats_packer_compressed_fragments_written_attr.attr,
-	&pool_stats_packer_compressed_blocks_written_attr.attr,
-	&pool_stats_packer_compressed_fragments_in_packer_attr.attr,
-	&pool_stats_allocator_slab_count_attr.attr,
-	&pool_stats_allocator_slabs_opened_attr.attr,
-	&pool_stats_allocator_slabs_reopened_attr.attr,
-	&pool_stats_journal_disk_full_attr.attr,
-	&pool_stats_journal_slab_journal_commits_requested_attr.attr,
-	&pool_stats_journal_entries_started_attr.attr,
-	&pool_stats_journal_entries_written_attr.attr,
-	&pool_stats_journal_entries_committed_attr.attr,
-	&pool_stats_journal_blocks_started_attr.attr,
-	&pool_stats_journal_blocks_written_attr.attr,
-	&pool_stats_journal_blocks_committed_attr.attr,
-	&pool_stats_slab_journal_disk_full_count_attr.attr,
-	&pool_stats_slab_journal_flush_count_attr.attr,
-	&pool_stats_slab_journal_blocked_count_attr.attr,
-	&pool_stats_slab_journal_blocks_written_attr.attr,
-	&pool_stats_slab_journal_tail_busy_count_attr.attr,
-	&pool_stats_slab_summary_blocks_written_attr.attr,
-	&pool_stats_ref_counts_blocks_written_attr.attr,
-	&pool_stats_block_map_dirty_pages_attr.attr,
-	&pool_stats_block_map_clean_pages_attr.attr,
-	&pool_stats_block_map_free_pages_attr.attr,
-	&pool_stats_block_map_failed_pages_attr.attr,
-	&pool_stats_block_map_incoming_pages_attr.attr,
-	&pool_stats_block_map_outgoing_pages_attr.attr,
-	&pool_stats_block_map_cache_pressure_attr.attr,
-	&pool_stats_block_map_read_count_attr.attr,
-	&pool_stats_block_map_write_count_attr.attr,
-	&pool_stats_block_map_failed_reads_attr.attr,
-	&pool_stats_block_map_failed_writes_attr.attr,
-	&pool_stats_block_map_reclaimed_attr.attr,
-	&pool_stats_block_map_read_outgoing_attr.attr,
-	&pool_stats_block_map_found_in_cache_attr.attr,
-	&pool_stats_block_map_discard_required_attr.attr,
-	&pool_stats_block_map_wait_for_page_attr.attr,
-	&pool_stats_block_map_fetch_required_attr.attr,
-	&pool_stats_block_map_pages_loaded_attr.attr,
-	&pool_stats_block_map_pages_saved_attr.attr,
-	&pool_stats_block_map_flush_count_attr.attr,
-	&pool_stats_hash_lock_dedupe_advice_valid_attr.attr,
-	&pool_stats_hash_lock_dedupe_advice_stale_attr.attr,
-	&pool_stats_hash_lock_concurrent_data_matches_attr.attr,
-	&pool_stats_hash_lock_concurrent_hash_collisions_attr.attr,
-	&pool_stats_errors_invalid_advice_pbn_count_attr.attr,
-	&pool_stats_errors_no_space_error_count_attr.attr,
-	&pool_stats_errors_read_only_error_count_attr.attr,
-	&pool_stats_instance_attr.attr,
-	&pool_stats_current_vios_in_progress_attr.attr,
-	&pool_stats_max_vios_attr.attr,
-	&pool_stats_dedupe_advice_timeouts_attr.attr,
-	&pool_stats_flush_out_attr.attr,
-	&pool_stats_logical_block_size_attr.attr,
-	&pool_stats_bios_in_read_attr.attr,
-	&pool_stats_bios_in_write_attr.attr,
-	&pool_stats_bios_in_discard_attr.attr,
-	&pool_stats_bios_in_flush_attr.attr,
-	&pool_stats_bios_in_fua_attr.attr,
-	&pool_stats_bios_in_partial_read_attr.attr,
-	&pool_stats_bios_in_partial_write_attr.attr,
-	&pool_stats_bios_in_partial_discard_attr.attr,
-	&pool_stats_bios_in_partial_flush_attr.attr,
-	&pool_stats_bios_in_partial_fua_attr.attr,
-	&pool_stats_bios_out_read_attr.attr,
-	&pool_stats_bios_out_write_attr.attr,
-	&pool_stats_bios_out_discard_attr.attr,
-	&pool_stats_bios_out_flush_attr.attr,
-	&pool_stats_bios_out_fua_attr.attr,
-	&pool_stats_bios_meta_read_attr.attr,
-	&pool_stats_bios_meta_write_attr.attr,
-	&pool_stats_bios_meta_discard_attr.attr,
-	&pool_stats_bios_meta_flush_attr.attr,
-	&pool_stats_bios_meta_fua_attr.attr,
-	&pool_stats_bios_journal_read_attr.attr,
-	&pool_stats_bios_journal_write_attr.attr,
-	&pool_stats_bios_journal_discard_attr.attr,
-	&pool_stats_bios_journal_flush_attr.attr,
-	&pool_stats_bios_journal_fua_attr.attr,
-	&pool_stats_bios_page_cache_read_attr.attr,
-	&pool_stats_bios_page_cache_write_attr.attr,
-	&pool_stats_bios_page_cache_discard_attr.attr,
-	&pool_stats_bios_page_cache_flush_attr.attr,
-	&pool_stats_bios_page_cache_fua_attr.attr,
-	&pool_stats_bios_out_completed_read_attr.attr,
-	&pool_stats_bios_out_completed_write_attr.attr,
-	&pool_stats_bios_out_completed_discard_attr.attr,
-	&pool_stats_bios_out_completed_flush_attr.attr,
-	&pool_stats_bios_out_completed_fua_attr.attr,
-	&pool_stats_bios_meta_completed_read_attr.attr,
-	&pool_stats_bios_meta_completed_write_attr.attr,
-	&pool_stats_bios_meta_completed_discard_attr.attr,
-	&pool_stats_bios_meta_completed_flush_attr.attr,
-	&pool_stats_bios_meta_completed_fua_attr.attr,
-	&pool_stats_bios_journal_completed_read_attr.attr,
-	&pool_stats_bios_journal_completed_write_attr.attr,
-	&pool_stats_bios_journal_completed_discard_attr.attr,
-	&pool_stats_bios_journal_completed_flush_attr.attr,
-	&pool_stats_bios_journal_completed_fua_attr.attr,
-	&pool_stats_bios_page_cache_completed_read_attr.attr,
-	&pool_stats_bios_page_cache_completed_write_attr.attr,
-	&pool_stats_bios_page_cache_completed_discard_attr.attr,
-	&pool_stats_bios_page_cache_completed_flush_attr.attr,
-	&pool_stats_bios_page_cache_completed_fua_attr.attr,
-	&pool_stats_bios_acknowledged_read_attr.attr,
-	&pool_stats_bios_acknowledged_write_attr.attr,
-	&pool_stats_bios_acknowledged_discard_attr.attr,
-	&pool_stats_bios_acknowledged_flush_attr.attr,
-	&pool_stats_bios_acknowledged_fua_attr.attr,
-	&pool_stats_bios_acknowledged_partial_read_attr.attr,
-	&pool_stats_bios_acknowledged_partial_write_attr.attr,
-	&pool_stats_bios_acknowledged_partial_discard_attr.attr,
-	&pool_stats_bios_acknowledged_partial_flush_attr.attr,
-	&pool_stats_bios_acknowledged_partial_fua_attr.attr,
-	&pool_stats_bios_in_progress_read_attr.attr,
-	&pool_stats_bios_in_progress_write_attr.attr,
-	&pool_stats_bios_in_progress_discard_attr.attr,
-	&pool_stats_bios_in_progress_flush_attr.attr,
-	&pool_stats_bios_in_progress_fua_attr.attr,
-	&pool_stats_memory_usage_bytes_used_attr.attr,
-	&pool_stats_memory_usage_peak_bytes_used_attr.attr,
-	&pool_stats_index_entries_indexed_attr.attr,
-	&pool_stats_index_posts_found_attr.attr,
-	&pool_stats_index_posts_not_found_attr.attr,
-	&pool_stats_index_queries_found_attr.attr,
-	&pool_stats_index_queries_not_found_attr.attr,
-	&pool_stats_index_updates_found_attr.attr,
-	&pool_stats_index_updates_not_found_attr.attr,
-	&pool_stats_index_curr_dedupe_queries_attr.attr,
-	&pool_stats_index_max_dedupe_queries_attr.attr,
+	&pool_stats_attr_data_blocks_used.attr,
+	&pool_stats_attr_overhead_blocks_used.attr,
+	&pool_stats_attr_logical_blocks_used.attr,
+	&pool_stats_attr_physical_blocks.attr,
+	&pool_stats_attr_logical_blocks.attr,
+	&pool_stats_attr_block_map_cache_size.attr,
+	&pool_stats_attr_write_policy.attr,
+	&pool_stats_attr_block_size.attr,
+	&pool_stats_attr_complete_recoveries.attr,
+	&pool_stats_attr_read_only_recoveries.attr,
+	&pool_stats_attr_mode.attr,
+	&pool_stats_attr_in_recovery_mode.attr,
+	&pool_stats_attr_recovery_percentage.attr,
+	&pool_stats_attr_packer_compressed_fragments_written.attr,
+	&pool_stats_attr_packer_compressed_blocks_written.attr,
+	&pool_stats_attr_packer_compressed_fragments_in_packer.attr,
+	&pool_stats_attr_allocator_slab_count.attr,
+	&pool_stats_attr_allocator_slabs_opened.attr,
+	&pool_stats_attr_allocator_slabs_reopened.attr,
+	&pool_stats_attr_journal_disk_full.attr,
+	&pool_stats_attr_journal_slab_journal_commits_requested.attr,
+	&pool_stats_attr_journal_entries_started.attr,
+	&pool_stats_attr_journal_entries_written.attr,
+	&pool_stats_attr_journal_entries_committed.attr,
+	&pool_stats_attr_journal_blocks_started.attr,
+	&pool_stats_attr_journal_blocks_written.attr,
+	&pool_stats_attr_journal_blocks_committed.attr,
+	&pool_stats_attr_slab_journal_disk_full_count.attr,
+	&pool_stats_attr_slab_journal_flush_count.attr,
+	&pool_stats_attr_slab_journal_blocked_count.attr,
+	&pool_stats_attr_slab_journal_blocks_written.attr,
+	&pool_stats_attr_slab_journal_tail_busy_count.attr,
+	&pool_stats_attr_slab_summary_blocks_written.attr,
+	&pool_stats_attr_ref_counts_blocks_written.attr,
+	&pool_stats_attr_block_map_dirty_pages.attr,
+	&pool_stats_attr_block_map_clean_pages.attr,
+	&pool_stats_attr_block_map_free_pages.attr,
+	&pool_stats_attr_block_map_failed_pages.attr,
+	&pool_stats_attr_block_map_incoming_pages.attr,
+	&pool_stats_attr_block_map_outgoing_pages.attr,
+	&pool_stats_attr_block_map_cache_pressure.attr,
+	&pool_stats_attr_block_map_read_count.attr,
+	&pool_stats_attr_block_map_write_count.attr,
+	&pool_stats_attr_block_map_failed_reads.attr,
+	&pool_stats_attr_block_map_failed_writes.attr,
+	&pool_stats_attr_block_map_reclaimed.attr,
+	&pool_stats_attr_block_map_read_outgoing.attr,
+	&pool_stats_attr_block_map_found_in_cache.attr,
+	&pool_stats_attr_block_map_discard_required.attr,
+	&pool_stats_attr_block_map_wait_for_page.attr,
+	&pool_stats_attr_block_map_fetch_required.attr,
+	&pool_stats_attr_block_map_pages_loaded.attr,
+	&pool_stats_attr_block_map_pages_saved.attr,
+	&pool_stats_attr_block_map_flush_count.attr,
+	&pool_stats_attr_hash_lock_dedupe_advice_valid.attr,
+	&pool_stats_attr_hash_lock_dedupe_advice_stale.attr,
+	&pool_stats_attr_hash_lock_concurrent_data_matches.attr,
+	&pool_stats_attr_hash_lock_concurrent_hash_collisions.attr,
+	&pool_stats_attr_errors_invalid_advice_pbn_count.attr,
+	&pool_stats_attr_errors_no_space_error_count.attr,
+	&pool_stats_attr_errors_read_only_error_count.attr,
+	&pool_stats_attr_instance.attr,
+	&pool_stats_attr_current_vios_in_progress.attr,
+	&pool_stats_attr_max_vios.attr,
+	&pool_stats_attr_dedupe_advice_timeouts.attr,
+	&pool_stats_attr_flush_out.attr,
+	&pool_stats_attr_logical_block_size.attr,
+	&pool_stats_attr_bios_in_read.attr,
+	&pool_stats_attr_bios_in_write.attr,
+	&pool_stats_attr_bios_in_discard.attr,
+	&pool_stats_attr_bios_in_flush.attr,
+	&pool_stats_attr_bios_in_fua.attr,
+	&pool_stats_attr_bios_in_partial_read.attr,
+	&pool_stats_attr_bios_in_partial_write.attr,
+	&pool_stats_attr_bios_in_partial_discard.attr,
+	&pool_stats_attr_bios_in_partial_flush.attr,
+	&pool_stats_attr_bios_in_partial_fua.attr,
+	&pool_stats_attr_bios_out_read.attr,
+	&pool_stats_attr_bios_out_write.attr,
+	&pool_stats_attr_bios_out_discard.attr,
+	&pool_stats_attr_bios_out_flush.attr,
+	&pool_stats_attr_bios_out_fua.attr,
+	&pool_stats_attr_bios_meta_read.attr,
+	&pool_stats_attr_bios_meta_write.attr,
+	&pool_stats_attr_bios_meta_discard.attr,
+	&pool_stats_attr_bios_meta_flush.attr,
+	&pool_stats_attr_bios_meta_fua.attr,
+	&pool_stats_attr_bios_journal_read.attr,
+	&pool_stats_attr_bios_journal_write.attr,
+	&pool_stats_attr_bios_journal_discard.attr,
+	&pool_stats_attr_bios_journal_flush.attr,
+	&pool_stats_attr_bios_journal_fua.attr,
+	&pool_stats_attr_bios_page_cache_read.attr,
+	&pool_stats_attr_bios_page_cache_write.attr,
+	&pool_stats_attr_bios_page_cache_discard.attr,
+	&pool_stats_attr_bios_page_cache_flush.attr,
+	&pool_stats_attr_bios_page_cache_fua.attr,
+	&pool_stats_attr_bios_out_completed_read.attr,
+	&pool_stats_attr_bios_out_completed_write.attr,
+	&pool_stats_attr_bios_out_completed_discard.attr,
+	&pool_stats_attr_bios_out_completed_flush.attr,
+	&pool_stats_attr_bios_out_completed_fua.attr,
+	&pool_stats_attr_bios_meta_completed_read.attr,
+	&pool_stats_attr_bios_meta_completed_write.attr,
+	&pool_stats_attr_bios_meta_completed_discard.attr,
+	&pool_stats_attr_bios_meta_completed_flush.attr,
+	&pool_stats_attr_bios_meta_completed_fua.attr,
+	&pool_stats_attr_bios_journal_completed_read.attr,
+	&pool_stats_attr_bios_journal_completed_write.attr,
+	&pool_stats_attr_bios_journal_completed_discard.attr,
+	&pool_stats_attr_bios_journal_completed_flush.attr,
+	&pool_stats_attr_bios_journal_completed_fua.attr,
+	&pool_stats_attr_bios_page_cache_completed_read.attr,
+	&pool_stats_attr_bios_page_cache_completed_write.attr,
+	&pool_stats_attr_bios_page_cache_completed_discard.attr,
+	&pool_stats_attr_bios_page_cache_completed_flush.attr,
+	&pool_stats_attr_bios_page_cache_completed_fua.attr,
+	&pool_stats_attr_bios_acknowledged_read.attr,
+	&pool_stats_attr_bios_acknowledged_write.attr,
+	&pool_stats_attr_bios_acknowledged_discard.attr,
+	&pool_stats_attr_bios_acknowledged_flush.attr,
+	&pool_stats_attr_bios_acknowledged_fua.attr,
+	&pool_stats_attr_bios_acknowledged_partial_read.attr,
+	&pool_stats_attr_bios_acknowledged_partial_write.attr,
+	&pool_stats_attr_bios_acknowledged_partial_discard.attr,
+	&pool_stats_attr_bios_acknowledged_partial_flush.attr,
+	&pool_stats_attr_bios_acknowledged_partial_fua.attr,
+	&pool_stats_attr_bios_in_progress_read.attr,
+	&pool_stats_attr_bios_in_progress_write.attr,
+	&pool_stats_attr_bios_in_progress_discard.attr,
+	&pool_stats_attr_bios_in_progress_flush.attr,
+	&pool_stats_attr_bios_in_progress_fua.attr,
+	&pool_stats_attr_memory_usage_bytes_used.attr,
+	&pool_stats_attr_memory_usage_peak_bytes_used.attr,
+	&pool_stats_attr_index_entries_indexed.attr,
+	&pool_stats_attr_index_posts_found.attr,
+	&pool_stats_attr_index_posts_not_found.attr,
+	&pool_stats_attr_index_queries_found.attr,
+	&pool_stats_attr_index_queries_not_found.attr,
+	&pool_stats_attr_index_updates_found.attr,
+	&pool_stats_attr_index_updates_not_found.attr,
+	&pool_stats_attr_index_curr_dedupe_queries.attr,
+	&pool_stats_attr_index_max_dedupe_queries.attr,
 	NULL,
 };
