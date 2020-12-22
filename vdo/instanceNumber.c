@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#11 $
  */
 
 #include "instanceNumber.h"
@@ -97,7 +97,7 @@ static int grow_bit_array(void)
 }
 
 /**********************************************************************/
-static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
+static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 {
 	unsigned int instance;
 	// If there are no unallocated instances, grow the bit array.
@@ -132,18 +132,18 @@ static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 }
 
 /**********************************************************************/
-int allocate_kvdo_instance(unsigned int *instance_ptr)
+int allocate_vdo_instance(unsigned int *instance_ptr)
 {
 	int result;
 	mutex_lock(&instance_number_lock);
-	result = allocate_kvdo_instance_locked(instance_ptr);
+	result = allocate_vdo_instance_locked(instance_ptr);
 
 	mutex_unlock(&instance_number_lock);
 	return result;
 }
 
 /**********************************************************************/
-void release_kvdo_instance(unsigned int instance)
+void release_vdo_instance(unsigned int instance)
 {
 	mutex_lock(&instance_number_lock);
 	if (instance >= bit_count) {

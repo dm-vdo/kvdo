@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#81 $
  */
 
 #include "dmvdo.h"
@@ -539,7 +539,7 @@ static void cleanup_initialize(struct dm_target *ti,
 	} else {
 		// With no kernel_layer taking ownership we have to release
 		// explicitly.
-		release_kvdo_instance(instance);
+		release_vdo_instance(instance);
 	}
 
 	ti->error = why;
@@ -657,7 +657,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	device_name = dm_device_name(dm_table_get_md(ti->table));
 	old_layer = find_layer_matching(layer_is_named, (void *)device_name);
 	if (old_layer == NULL) {
-		result = allocate_kvdo_instance(&instance);
+		result = allocate_vdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
 			unregister_allocating_thread();
 			return -ENOMEM;
@@ -675,7 +675,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		unregister_thread_device_id();
 		unregister_allocating_thread();
 		if (old_layer == NULL) {
-			release_kvdo_instance(instance);
+			release_vdo_instance(instance);
 		}
 		return -EINVAL;
 	}

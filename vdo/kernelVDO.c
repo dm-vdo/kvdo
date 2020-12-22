@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#69 $
  */
 
 /*
@@ -257,7 +257,7 @@ void destroy_kvdo(struct kvdo *kvdo)
 
 
 /**********************************************************************/
-void dump_kvdo_work_queue(struct kvdo *kvdo)
+void dump_vdo_work_queue(struct kvdo *kvdo)
 {
 	int i;
 
@@ -301,7 +301,7 @@ static void perform_kvdo_operation(struct kvdo *kvdo,
 	sync.completion = completion;
 
 	init_completion(completion);
-	enqueue_kvdo_work(kvdo, &sync.work_item, thread_id);
+	enqueue_vdo_work(kvdo, &sync.work_item, thread_id);
 	wait_for_completion(completion);
 }
 
@@ -560,7 +560,7 @@ void enqueue_kvdo_thread_work(struct vdo_thread *thread,
 }
 
 /**********************************************************************/
-void enqueue_kvdo_work(struct kvdo *kvdo, struct vdo_work_item *item,
+void enqueue_vdo_work(struct kvdo *kvdo, struct vdo_work_item *item,
 		       thread_id_t thread_id)
 {
 	enqueue_kvdo_thread_work(&kvdo->threads[thread_id], item);

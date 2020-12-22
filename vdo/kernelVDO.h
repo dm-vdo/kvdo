@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#29 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -136,7 +136,7 @@ void destroy_kvdo(struct kvdo *kvdo);
  *
  * @param kvdo     The kvdo object to be examined
  **/
-void dump_kvdo_work_queue(struct kvdo *kvdo);
+void dump_vdo_work_queue(struct kvdo *kvdo);
 
 /**
  * Get the VDO pointer for a kvdo object
@@ -262,7 +262,7 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv);
  * @param item          The work item to be run
  * @param thread_id     The thread on which to run the work item
  **/
-void enqueue_kvdo_work(struct kvdo *kvdo,
+void enqueue_vdo_work(struct kvdo *kvdo,
 		       struct vdo_work_item *item,
 		       thread_id_t thread_id);
 
