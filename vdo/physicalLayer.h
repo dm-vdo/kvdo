@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#36 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -254,7 +254,7 @@ typedef void flush_complete(struct vdo_flush **vdoFlush);
  *
  * @return the write policy of the layer
  **/
-typedef write_policy write_policy_getter(PhysicalLayer *layer);
+typedef enum write_policy write_policy_getter(PhysicalLayer *layer);
 
 /**
  * A function to enqueue a vdo_completion to run on the thread specified by its

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#88 $
  */
 
 /*
@@ -355,7 +355,7 @@ static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-static const char *describe_write_policy(write_policy policy)
+static const char *describe_write_policy(enum write_policy policy)
 {
 	switch (policy) {
 	case WRITE_POLICY_ASYNC:
@@ -455,13 +455,13 @@ block_count_t get_total_block_map_blocks(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-write_policy get_write_policy(const struct vdo *vdo)
+enum write_policy get_write_policy(const struct vdo *vdo)
 {
 	return vdo->load_config.write_policy;
 }
 
 /**********************************************************************/
-void set_write_policy(struct vdo *vdo, write_policy new)
+void set_write_policy(struct vdo *vdo, enum write_policy new)
 {
 	vdo->load_config.write_policy = new;
 }

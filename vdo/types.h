@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#66 $
  */
 
 #ifndef TYPES_H
@@ -260,7 +260,7 @@ typedef enum __packed {
 /**
  * The possible write policy values.
  **/
-typedef enum {
+enum write_policy {
 	/**
 	 * All writes are synchronous, i. e., they are acknowledged
 	 * only when the data is written to stable storage.
@@ -283,7 +283,7 @@ typedef enum {
 	 * The appropriate policy is chosen based on the underlying device.
 	 */
 	WRITE_POLICY_AUTO,
-} write_policy;
+};
 
 typedef enum {
 	ZONE_TYPE_ADMIN,
@@ -364,7 +364,7 @@ struct vdo_load_config {
 	/** the page cache size, in pages */
 	page_count_t cache_size;
 	/** whether writes are synchronous */
-	write_policy write_policy;
+	enum write_policy write_policy;
 	/**
 	 * the maximum age of a dirty block map page in recovery journal blocks
 	 */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#136 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#137 $
  */
 
 #include "kernelLayer.h"
@@ -428,10 +428,10 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 }
 
 /**********************************************************************/
-static write_policy kvdo_get_write_policy(PhysicalLayer *common)
+static enum write_policy kvdo_get_write_policy(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
-	return get_kvdo_write_policy(&layer->kvdo);
+	return get_write_policy(layer->kvdo.vdo);
 }
 
 /**

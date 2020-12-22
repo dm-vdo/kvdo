@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#33 $
  */
 
 #include "kvdoFlush.h"
@@ -59,7 +59,7 @@ int make_kvdo_flush(struct kvdo_flush **flush_ptr)
 /**********************************************************************/
 bool should_process_flush(struct kernel_layer *layer)
 {
-	return (get_kvdo_write_policy(&layer->kvdo) != WRITE_POLICY_SYNC);
+	return (get_write_policy(layer->kvdo.vdo) != WRITE_POLICY_SYNC);
 }
 
 /**
