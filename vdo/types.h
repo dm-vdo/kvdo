@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#67 $
  */
 
 #ifndef TYPES_H
@@ -285,12 +285,12 @@ enum write_policy {
 	WRITE_POLICY_AUTO,
 };
 
-typedef enum {
+enum vdo_zone_type {
 	ZONE_TYPE_ADMIN,
 	ZONE_TYPE_JOURNAL,
 	ZONE_TYPE_LOGICAL,
 	ZONE_TYPE_PHYSICAL,
-} zone_type;
+};
 
 /**
  * A position in the block map where a block map entry is stored.

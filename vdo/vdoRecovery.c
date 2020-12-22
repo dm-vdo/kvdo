@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#76 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -254,18 +254,18 @@ before_recovery_point(const struct recovery_point *first,
  *                       be prepared
  * @param callback       The callback to register for the next sub-task
  * @param error_handler  The error handler for the next sub-task
- * @param type           The type of zone on which the callback or error_handler
+ * @param zone_type      The type of zone on which the callback or error_handler
  *                       should run
  **/
 static void prepare_sub_task(struct recovery_completion *recovery,
 			     vdo_action callback,
 			     vdo_action error_handler,
-			     zone_type type)
+			     enum vdo_zone_type zone_type)
 {
 	const struct thread_config *thread_config =
 		get_thread_config(recovery->vdo);
 	thread_id_t thread_id;
-	switch (type) {
+	switch (zone_type) {
 	case ZONE_TYPE_LOGICAL:
 		// All blockmap access is done on single thread, so use logical
 		// zone 0.

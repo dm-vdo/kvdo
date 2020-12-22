@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#87 $
  */
 
 #include "recoveryJournal.h"
@@ -1216,7 +1216,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 /**********************************************************************/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
-					      zone_type type,
+					      enum vdo_zone_type zone_type,
 					      zone_count_t zone_id)
 {
 	block_count_t block_number;
@@ -1227,13 +1227,13 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	acquire_lock_count_reference(journal->lock_counter, block_number,
-				     type, zone_id);
+				     zone_type, zone_id);
 }
 
 /**********************************************************************/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
-					      zone_type type,
+					      enum vdo_zone_type zone_type,
 					      zone_count_t zone_id)
 {
 	block_count_t block_number;
@@ -1245,7 +1245,7 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
 	release_lock_count_reference(journal->lock_counter, block_number,
-				     type, zone_id);
+				     zone_type, zone_id);
 }
 
 /**********************************************************************/

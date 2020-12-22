@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#31 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -293,12 +293,12 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
  *
  * @param journal          The recovery journal
  * @param sequence_number  The journal sequence number of the referenced block
- * @param type             The type of the zone making the adjustment
+ * @param zone_type        The type of the zone making the adjustment
  * @param zone_id          The ID of the zone making the adjustment
  **/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
-					      zone_type type,
+					      enum vdo_zone_type zone_type,
 					      zone_count_t zone_id);
 
 
@@ -309,12 +309,12 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
  *
  * @param journal          The recovery journal
  * @param sequence_number  The journal sequence number of the referenced block
- * @param type             The type of the zone making the adjustment
+ * @param zone_type        The type of the zone making the adjustment
  * @param zone_id          The ID of the zone making the adjustment
  **/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      sequence_number_t sequence_number,
-					      zone_type type,
+					      enum vdo_zone_type zone_type,
 					      zone_count_t zone_id);
 
 /**

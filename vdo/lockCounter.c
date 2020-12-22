@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#21 $
  */
 
 #include "lockCounter.h"
@@ -160,17 +160,17 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
  *
  * @param counter      The lock counter
  * @param lock_number  The lock to get
- * @param type         The zone type whose count is desired
+ * @param zone_type    The zone type whose count is desired
  *
  * @return A pointer to the zone count for the given lock and zone
  **/
 static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
 					   block_count_t lock_number,
-					   zone_type type)
+					   enum vdo_zone_type zone_type)
 {
-	return ((type == ZONE_TYPE_LOGICAL)
-			? &counter->logical_zone_counts[lock_number]
-			: &counter->physical_zone_counts[lock_number]);
+	return ((zone_type == ZONE_TYPE_LOGICAL)
+		? &counter->logical_zone_counts[lock_number]
+		: &counter->physical_zone_counts[lock_number]);
 }
 
 /**
@@ -178,22 +178,22 @@ static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
  *
  * @param counter      The lock counter
  * @param lock_number  The lock to get
- * @param type         The zone type whose count is desired
+ * @param zone_type    The zone type whose count is desired
  * @param zone_id      The zone index whose count is desired
  *
  * @return The counter for the given lock and zone
  **/
 static inline uint16_t *get_counter(struct lock_counter *counter,
 				    block_count_t lock_number,
-				    zone_type type,
+				    enum vdo_zone_type zone_type,
 				    zone_count_t zone_id)
 {
 	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
-	if (type == ZONE_TYPE_JOURNAL) {
+	if (zone_type == ZONE_TYPE_JOURNAL) {
 		return &counter->journal_counters[zone_counter];
 	}
 
-	if (type == ZONE_TYPE_LOGICAL) {
+	if (zone_type == ZONE_TYPE_LOGICAL) {
 		return &counter->logical_counters[zone_counter];
 	}
 
@@ -223,19 +223,20 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-bool is_locked(struct lock_counter *lock_counter, block_count_t lock_number,
-	       zone_type type)
+bool is_locked(struct lock_counter *lock_counter,
+	       block_count_t lock_number,
+	       enum vdo_zone_type zone_type)
 {
 	atomic_t *zone_count;
 	bool locked;
 
-	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"is_locked() called for non-journal zone");
 	if (is_journal_zone_locked(lock_counter, lock_number)) {
 		return true;
 	}
 
-	zone_count = get_zone_count_ptr(lock_counter, lock_number, type);
+	zone_count = get_zone_count_ptr(lock_counter, lock_number, zone_type);
 	locked = (atomic_read(zone_count) != 0);
 	smp_rmb();
 	return locked;
@@ -277,14 +278,14 @@ void initialize_lock_count(struct lock_counter *counter,
 /**********************************************************************/
 void acquire_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
-				  zone_type type,
+				  enum vdo_zone_type zone_type,
 				  zone_count_t zone_id)
 {
 	uint16_t *current_value;
-	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"invalid lock count increment from journal zone");
 
-	current_value = get_counter(counter, lock_number, type, zone_id);
+	current_value = get_counter(counter, lock_number, zone_type, zone_id);
 	ASSERT_LOG_ONLY(*current_value < UINT16_MAX,
 			"increment of lock counter must not overflow");
 
@@ -293,7 +294,8 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 		// Extra barriers because this was original developed using
 		// an atomic add operation that implicitly had them.
 		smp_mb__before_atomic();
-		atomic_add(1, get_zone_count_ptr(counter, lock_number, type));
+		atomic_add(1, get_zone_count_ptr(counter, lock_number,
+						 zone_type));
 		smp_mb__after_atomic();
 	}
 	*current_value += 1;
@@ -304,18 +306,18 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  *
  * @param counter      The lock_counter
  * @param lock_number  Which lock to decrement
- * @param type         The type of the zone releasing the reference
+ * @param zone_type    The type of the zone releasing the reference
  * @param zone_id      The ID of the zone releasing the reference
  *
  * @return The new value of the counter
  **/
 static uint16_t release_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
-				  zone_type type,
+				  enum vdo_zone_type zone_type,
 				  zone_count_t zone_id)
 {
 	uint16_t *current_value =
-		get_counter(counter, lock_number, type, zone_id);
+		get_counter(counter, lock_number, zone_type, zone_id);
 	ASSERT_LOG_ONLY((*current_value >= 1),
 			"decrement of lock counter must not underflow");
 
@@ -353,18 +355,18 @@ static void attempt_notification(struct lock_counter *counter)
 /**********************************************************************/
 void release_lock_count_reference(struct lock_counter *counter,
 				  block_count_t lock_number,
-				  zone_type type,
+				  enum vdo_zone_type zone_type,
 				  zone_count_t zone_id)
 {
 	atomic_t *zone_count;
 
-	ASSERT_LOG_ONLY((type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
 			"invalid lock count decrement from journal zone");
-	if (release_reference(counter, lock_number, type, zone_id) != 0) {
+	if (release_reference(counter, lock_number, zone_type, zone_id) != 0) {
 		return;
 	}
 
-	zone_count = get_zone_count_ptr(counter, lock_number, type);
+	zone_count = get_zone_count_ptr(counter, lock_number, zone_type);
 	if (atomic_add_return(-1, zone_count) == 0) {
 		// This zone was the last lock holder of its type, so try to
 		// notify the owner.
