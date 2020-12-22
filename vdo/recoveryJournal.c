@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#85 $
  */
 
 #include "recoveryJournal.h"
@@ -1266,7 +1266,7 @@ void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 /**
  * Initiate a drain.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {

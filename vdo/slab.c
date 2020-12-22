@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#45 $
  */
 
 #include "slab.h"
@@ -250,7 +250,7 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 /**
  * Initiate a slab action.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_slab_action(struct admin_state *state)
 {

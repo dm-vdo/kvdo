@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#45 $
  */
 
 #include "logicalZone.h"
@@ -228,7 +228,7 @@ static void check_for_drain_complete(struct logical_zone *zone)
 /**
  * Initiate a drain.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {

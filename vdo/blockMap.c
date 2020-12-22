@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#81 $
  */
 
 #include "blockMap.h"
@@ -440,7 +440,7 @@ void check_for_drain_complete(struct block_map_zone *zone)
 /**
  * Initiate a drain of the trees and page cache of a block map zone.
  *
- * Implements AdminInitiator
+ * Implements admin_initiator
  **/
 static void initiate_drain(struct admin_state *state)
 {

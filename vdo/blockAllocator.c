@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#93 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -656,7 +656,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 /**
  * Initiate a load.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_load(struct admin_state *state)
 {
@@ -838,7 +838,7 @@ static void do_drain_step(struct vdo_completion *completion)
 /**
  * Initiate a drain.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -902,7 +902,7 @@ static void do_resume_step(struct vdo_completion *completion)
 /**
  * Initiate a resume.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_resume(struct admin_state *state)
 {

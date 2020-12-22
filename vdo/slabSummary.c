@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#48 $
  */
 
 #include "slabSummary.h"
@@ -415,7 +415,7 @@ static void launch_write(struct slab_summary_block *block)
 /**
  * Initiate a drain.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {

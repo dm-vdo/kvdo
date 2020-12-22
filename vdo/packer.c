@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#62 $
  */
 
 #include "packerInternals.h"
@@ -971,7 +971,7 @@ void increment_packer_flush_generation(struct packer *packer)
 /**
  * Initiate a drain.
  *
- * Implements AdminInitiator.
+ * Implements admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
