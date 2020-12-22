@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#116 $
  */
 
 #include "dataKVIO.h"
@@ -156,14 +156,14 @@ static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+	int error = map_to_system_error(completion->result);
 	struct bio *bio = data_vio->user_bio;
+
 
 	if (bio == NULL) {
 		return;
 	}
 	data_vio->user_bio = NULL;
-
-	int error = map_to_system_error(completion->result);
 
 	count_bios(&layer->bios_acknowledged, bio);
 	if (data_vio->is_partial) {
@@ -199,17 +199,16 @@ static noinline void clean_data_vio(struct data_vio *data_vio,
 void return_data_vio_batch_to_pool(struct batch_processor *batch,
 				   void *closure)
 {
+	struct free_buffer_pointers fbp;
+	struct vdo_work_item *item;
 	struct kernel_layer *layer = closure;
 	uint32_t count = 0;
 
 	ASSERT_LOG_ONLY(batch != NULL, "batch not null");
 	ASSERT_LOG_ONLY(layer != NULL, "layer not null");
 
-	struct free_buffer_pointers fbp;
 
 	init_free_buffer_pointers(&fbp, layer->data_vio_pool);
-
-	struct vdo_work_item *item;
 
 	while ((item = next_batch_item(batch)) != NULL) {
 		clean_data_vio(work_item_as_data_vio(item), &fbp);
@@ -240,9 +239,9 @@ kvdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
 void kvdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
-
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
@@ -333,6 +332,7 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 							 work_item);
 	struct data_vio *data_vio = work_item_as_data_vio(work_item);
 	struct read_block *read_block = &data_vio->read_block;
+	int size;
 
 	// The data_vio's scratch block will be used to contain the
 	// uncompressed data.
@@ -350,12 +350,9 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 		return;
 	}
 
-	char *fragment = compressed_data + fragment_offset;
-	int size =
-		LZ4_decompress_safe(fragment,
-				    data_vio->scratch_block,
-				    fragment_size,
-				    VDO_BLOCK_SIZE);
+	size = LZ4_decompress_safe((compressed_data + fragment_offset),
+				   data_vio->scratch_block, fragment_size,
+				   VDO_BLOCK_SIZE);
 	if (size == VDO_BLOCK_SIZE) {
 		read_block->data = data_vio->scratch_block;
 	} else {
@@ -411,20 +408,22 @@ void kvdo_read_block(struct data_vio *data_vio,
 		     enum bio_q_action action,
 		     vdo_action *callback)
 {
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct read_block *read_block = &data_vio->read_block;
+	int result;
+
 	// This can be run on either a read of compressed data, or a write
 	// trying to read-verify, so we can't assert about the operation.
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
-	struct read_block *read_block = &data_vio->read_block;
 
 	read_block->callback = callback;
 	read_block->status = VDO_SUCCESS;
 	read_block->mapping_state = mapping_state;
 
 	// Read the data using the read block buffer.
-	struct vio *vio = data_vio_as_vio(data_vio);
-	int result = reset_bio_with_buffer(data_vio->bio, read_block->buffer,
-					   vio, read_bio_callback, REQ_OP_READ,
-					   location);
+	result = reset_bio_with_buffer(data_vio->bio, read_block->buffer,
+				       vio, read_bio_callback, REQ_OP_READ,
+				       location);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -452,7 +451,13 @@ static void acknowledge_user_bio(struct bio *bio)
 /**********************************************************************/
 void read_data_vio(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct bio *bio = data_vio->bio;
+	int result = VDO_SUCCESS;
+	int opf = (data_vio->user_bio->bi_opf &
+		   PASSTHROUGH_FLAGS);
+
+	ASSERT_LOG_ONLY(!is_write_vio(vio),
 			"operation set correctly for data read");
 	data_vio_add_trace_record(data_vio, THIS_LOCATION("$F;io=readData"));
 
@@ -465,14 +470,8 @@ void read_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct bio *bio = data_vio->bio;
-
 	// Read directly into the user buffer (for a 4k read) or the data
 	// block (for a partial IO).
-	int result = VDO_SUCCESS;
-	int opf = (data_vio->user_bio->bi_opf &
-		   PASSTHROUGH_FLAGS);
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
 		result = reset_bio_with_buffer(data_vio->bio,
 					       data_vio->data_block, vio,
@@ -556,27 +555,28 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 /**********************************************************************/
 void write_data_vio(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(data_vio)),
+	struct vio *vio = data_vio_as_vio(data_vio);
+	unsigned int opf = 0;
+	int result;
+
+	ASSERT_LOG_ONLY(is_write_vio(vio),
 			"write_data_vio must be passed a write data_vio");
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("$F;io=writeData;j=normal"));
 
-	struct vio *vio = data_vio_as_vio(data_vio);
 
 	// In sync mode, we still have the original bio, and the hints are
 	// appropriate for lower layers' fast completion of IO. In async,
 	// we don't, and the hints don't matter anymore.
-	unsigned int opf = 0;
 	if (data_vio->user_bio != NULL) {
 		opf = data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS;
 	}
 
 	// Write the data from the data block buffer.
-	int result = reset_bio_with_buffer(data_vio->bio,
-					   data_vio->data_block,
-					   vio, complete_async_bio,
-					   REQ_OP_WRITE | opf,
-					   data_vio->new_mapped.pbn);
+	result = reset_bio_with_buffer(data_vio->bio, data_vio->data_block,
+				       vio, complete_async_bio,
+				       REQ_OP_WRITE | opf,
+				       data_vio->new_mapped.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -594,6 +594,8 @@ void write_data_vio(struct data_vio *data_vio)
  **/
 static inline bool is_zero_block(struct data_vio *data_vio)
 {
+	unsigned int word_count = VDO_BLOCK_SIZE / sizeof(uint64_t);
+	unsigned int chunk_count = word_count / 8;
 	const char *buffer = data_vio->data_block;
 	/*
 	 * Handle expected common case of even the first word being nonzero,
@@ -605,11 +607,8 @@ static inline bool is_zero_block(struct data_vio *data_vio)
 	}
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
-	unsigned int word_count = VDO_BLOCK_SIZE / sizeof(uint64_t);
 
 	// Unroll to process 64 bytes at a time
-	unsigned int chunk_count = word_count / 8;
-
 	while (chunk_count-- > 0) {
 		uint64_t word0 = get_unaligned((u64 *) buffer);
 		uint64_t word1 =
@@ -651,8 +650,8 @@ static inline bool is_zero_block(struct data_vio *data_vio)
 /**********************************************************************/
 void apply_partial_write(struct data_vio *data_vio)
 {
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	struct bio *bio = data_vio->user_bio;
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	if (bio_op(bio) != REQ_OP_DISCARD) {
 		bio_copy_data_in(bio, data_vio->data_block + data_vio->offset);
@@ -702,15 +701,16 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 static void kvdo_compress_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
+	char *context = get_work_queue_private_data();
+	int size;
 
 	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
-	char *context = get_work_queue_private_data();
-	int size = LZ4_compress_default(data_vio->data_block,
-					data_vio->scratch_block,
-					VDO_BLOCK_SIZE,
-					VDO_BLOCK_SIZE,
-					context);
+	size = LZ4_compress_default(data_vio->data_block,
+				    data_vio->scratch_block,
+				    VDO_BLOCK_SIZE,
+				    VDO_BLOCK_SIZE,
+				    context);
 	if (size > 0) {
 		// The scratch block will be used to contain the compressed
 		// data.
@@ -764,6 +764,7 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 				      struct data_vio **data_vio_ptr)
 {
 	struct data_vio *data_vio;
+	struct vio *vio;
 	int result = alloc_buffer_from_pool(layer->data_vio_pool,
 					    (void **) &data_vio);
 	if (result != VDO_SUCCESS) {
@@ -779,7 +780,7 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, data_block));
 
-	struct vio *vio = data_vio_as_vio(data_vio);
+	vio = data_vio_as_vio(data_vio);
 	vio->bio_to_submit = NULL;
 	initialize_kvio(vio,
 			layer,
@@ -876,6 +877,7 @@ static void launch_data_vio_work(struct vdo_work_item *item)
  **/
 static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 {
+	vio_operation operation;
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
 
@@ -894,8 +896,6 @@ static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 
 	data_vio->is_partial = (data_vio->remaining_discard < VDO_BLOCK_SIZE);
 	data_vio->offset = 0;
-
-	vio_operation operation;
 
 	if (data_vio->is_partial) {
 		operation = VIO_READ_MODIFY_WRITE;
@@ -935,10 +935,19 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 				  uint64_t arrival_jiffies,
 				  bool has_discard_permit)
 {
-
 	struct data_vio *data_vio = NULL;
-	int result = kvdo_create_vio_from_bio(layer, bio, arrival_jiffies,
-					      &data_vio);
+	int result;
+	vdo_action *callback = kvdo_complete_data_vio;
+	vio_operation operation = VIO_WRITE;
+	bool is_trim = false;
+	logical_block_number_t lbn =
+		sector_to_block(bio->bi_iter.bi_sector -
+				layer->starting_sector_offset);
+	struct vio *vio;
+
+
+	result = kvdo_create_vio_from_bio(layer, bio, arrival_jiffies,
+					  &data_vio);
 	if (unlikely(result != VDO_SUCCESS)) {
 		log_info("%s: vio allocation failure", __func__);
 		if (has_discard_permit) {
@@ -953,9 +962,6 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	 * from device-mapper. We have to be able to handle any size discards
 	 * and with various sector offsets within a block.
 	 */
-	vdo_action *callback = kvdo_complete_data_vio;
-	vio_operation operation = VIO_WRITE;
-	bool is_trim = false;
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_vio->has_discard_permit = has_discard_permit;
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
@@ -980,12 +986,9 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 		operation |= VIO_FLUSH_AFTER;
 	}
 
-	logical_block_number_t lbn =
-		sector_to_block(bio->bi_iter.bi_sector -
-				layer->starting_sector_offset);
 	prepare_data_vio(data_vio, lbn, operation, is_trim, callback);
 
-	struct vio *vio = data_vio_as_vio(data_vio);
+	vio = data_vio_as_vio(data_vio);
 	enqueue_vio(vio, launch_data_vio_work,
 		    vio_as_completion(vio)->callback, REQ_Q_ACTION_MAP_BIO);
 
@@ -1050,11 +1053,13 @@ void update_dedupe_index(struct data_vio *data_vio)
  **/
 static void free_pooled_data_vio(void *data)
 {
+	struct data_vio *data_vio;
+
 	if (data == NULL) {
 		return;
 	}
 
-	struct data_vio *data_vio = (struct data_vio *) data;
+	data_vio = data;
 
 	if (WRITE_PROTECT_FREE_POOL) {
 		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
@@ -1159,20 +1164,20 @@ static int make_pooled_data_vio(void **data_ptr)
  **/
 static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 {
-	struct waiter *first = get_first_waiter(queue);
+	struct waiter *waiter, *first = get_first_waiter(queue);
+	struct data_vio *data_vio;
 
 	if (first == NULL) {
 		return;
 	}
 
-	struct data_vio *data_vio = waiter_as_data_vio(first);
+	data_vio = waiter_as_data_vio(first);
 
 	log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 		 wait_on, data_vio, get_data_vio_allocation(data_vio),
 		 data_vio->logical.lbn, data_vio->duplicate.pbn,
 		 get_operation_name(data_vio));
 
-	struct waiter *waiter;
 
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
@@ -1241,6 +1246,15 @@ static void dump_pooled_data_vio(void *data)
 	 * anyway.
 	 */
 	static char vio_work_item_dump_buffer[100 + MAX_QUEUE_NAME_LEN];
+	// Another static buffer...
+	// log10(256) = 2.408+, round up:
+	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
+	static char vio_block_number_dump_buffer[sizeof("P L D")
+						 + 3 * DIGITS_PER_UINT64_T];
+	static char vio_flush_generation_buffer[sizeof(" FG")
+						+ DIGITS_PER_UINT64_T] = "";
+	static char flags_dump_buffer[8];
+
 	/*
 	 * We're likely to be logging a couple thousand of these lines, and
 	 * in some circumstances syslogd may have trouble keeping up, so
@@ -1249,11 +1263,6 @@ static void dump_pooled_data_vio(void *data)
 	dump_work_item_to_buffer(work_item_from_data_vio(data_vio),
 				 vio_work_item_dump_buffer,
 				 sizeof(vio_work_item_dump_buffer));
-	// Another static buffer...
-	// log10(256) = 2.408+, round up:
-	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
-	static char vio_block_number_dump_buffer[sizeof("P L D")
-						 + 3 * DIGITS_PER_UINT64_T];
 	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
@@ -1273,8 +1282,6 @@ static void dump_pooled_data_vio(void *data)
 			 data_vio->logical.lbn);
 	}
 
-	static char vio_flush_generation_buffer[sizeof(" FG")
-						+ DIGITS_PER_UINT64_T] = "";
 	if (data_vio->flush_generation != 0) {
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer), " FG%llu",
@@ -1283,7 +1290,6 @@ static void dump_pooled_data_vio(void *data)
 
 	// Encode vio attributes as a string of one-character flags, usually
 	// empty.
-	static char flags_dump_buffer[8];
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
 	log_info("  vio %px %s%s %s %s%s", data_vio,

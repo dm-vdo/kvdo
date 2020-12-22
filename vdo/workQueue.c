@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#45 $
  */
 
 #include "workQueue.h"
@@ -158,6 +158,8 @@ static bool __must_check
 enqueue_work_queue_item(struct simple_work_queue *queue,
 			struct vdo_work_item *item)
 {
+	unsigned int priority;
+
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
 			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
 			item, item->work, item->stats_function, queue,
@@ -166,7 +168,7 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 		   "action is in range for queue") != VDO_SUCCESS) {
 		item->action = 0;
 	}
-	unsigned int priority = READ_ONCE(queue->priority_map[item->action]);
+	priority = READ_ONCE(queue->priority_map[item->action]);
 
 	// Update statistics.
 	update_stats_for_enqueue(&queue->stats, item, priority);
@@ -287,14 +289,14 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 	const long TIMEOUT_JIFFIES =
 		max(2UL, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 	struct vdo_work_item *item = poll_for_work_item(queue);
+	DEFINE_WAIT(wait);
 
 	if (item != NULL) {
 		return item;
 	}
 
-	DEFINE_WAIT(wait);
-
 	while (true) {
+		uint64_t time_before_schedule, call_duration_ns;
 		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
@@ -333,14 +335,14 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		 * involved.
 		 */
 		queue->stats.waits++;
-		uint64_t time_before_schedule = ktime_get_ns();
+		time_before_schedule = ktime_get_ns();
 
 		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
 		// Wake up often, to address the missed-wakeup race.
 		schedule_timeout(TIMEOUT_JIFFIES);
 		queue->most_recent_wakeup = ktime_get_ns();
-		uint64_t call_duration_ns =
+		call_duration_ns =
 			queue->most_recent_wakeup - time_before_schedule;
 		enter_histogram_sample(queue->stats.schedule_time_histogram,
 				       call_duration_ns / 1000);
@@ -414,6 +416,9 @@ get_next_work_item(struct simple_work_queue *queue)
 static void process_work_item(struct simple_work_queue *queue,
 			      struct vdo_work_item *item)
 {
+	unsigned int index;
+	uint64_t work_start_time;
+
 	if (ASSERT(item->my_queue == &queue->common,
 		   "item %px from queue %px marked as being in this queue (%px)",
 		   item, queue, item->my_queue) == UDS_SUCCESS) {
@@ -422,8 +427,8 @@ static void process_work_item(struct simple_work_queue *queue,
 	}
 
 	// Save the index, so we can use it after the work function.
-	unsigned int index = item->stat_table_index;
-	uint64_t work_start_time = record_start_time(index);
+	index = item->stat_table_index;
+	work_start_time = record_start_time(index);
 
 	item->work(item);
 	// We just surrendered control of the work item; no more access.
@@ -443,24 +448,23 @@ static void process_work_item(struct simple_work_queue *queue,
 	 * atomic operations.
 	 */
 	if (need_resched()) {
+		uint64_t time_after_reschedule, run_time_ns, call_time_ns;
 		uint64_t time_before_reschedule = ktime_get_ns();
 		// Record the queue length we have *before* rescheduling.
 		unsigned int queue_len = get_pending_count(queue);
 
 		cond_resched();
-		uint64_t time_after_reschedule = ktime_get_ns();
+		time_after_reschedule = ktime_get_ns();
 
 		enter_histogram_sample(
 			queue->stats.reschedule_queue_length_histogram,
 			queue_len);
-		uint64_t run_time_ns =
-			time_before_reschedule - queue->most_recent_wakeup;
+		run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
 		enter_histogram_sample(
 			queue->stats.run_time_before_reschedule_histogram,
 			run_time_ns / 1000);
 		atomic64_add(run_time_ns, &queue->stats.run_time);
-		uint64_t call_time_ns =
-			time_after_reschedule - time_before_reschedule;
+		call_time_ns = time_after_reschedule - time_before_reschedule;
 		enter_histogram_sample(queue->stats.reschedule_time_histogram,
 				       call_time_ns / 1000);
 		atomic64_add(call_time_ns, &queue->stats.reschedule_time);
@@ -503,19 +507,18 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
+	struct work_queue_stack_handle queue_handle;
+	unsigned long flags;
 
 	kobject_get(&queue->common.kobj);
-
-	struct work_queue_stack_handle queue_handle;
 
 	initialize_work_queue_stack_handle(&queue_handle, queue);
 	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
 
-	unsigned long flags;
-
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
 	spin_unlock_irqrestore(&queue->lock, flags);
+
 	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
 
@@ -561,11 +564,12 @@ static inline void wake_worker_thread(struct simple_work_queue *queue)
 static bool queue_started(struct simple_work_queue *queue)
 {
 	unsigned long flags;
+	bool started;
 
 	spin_lock_irqsave(&queue->lock, flags);
-	bool started = queue->started;
-
+	started = queue->started;
 	spin_unlock_irqrestore(&queue->lock, flags);
+
 	return started;
 }
 
@@ -595,6 +599,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 				  struct simple_work_queue **queue_ptr)
 {
 	struct simple_work_queue *queue;
+	unsigned int num_priority_lists = 1;
+	int i;
+	struct task_struct *thread = NULL;
+
 	int result = ALLOCATE(1,
 			      struct simple_work_queue,
 			      "simple work queue",
@@ -607,17 +615,15 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	queue->private = private;
 	queue->common.owner = owner;
 
-	unsigned int num_priority_lists = 1;
-	int i;
-
 	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
 		const struct vdo_work_queue_action *action =
 			&queue->type->action_table[i];
+		unsigned int code, priority;
 		if (action->name == NULL) {
 			break;
 		}
-		unsigned int code = action->code;
-		unsigned int priority = action->priority;
+		code = action->code;
+		priority = action->priority;
 
 		result = ASSERT(
 			code < WORK_QUEUE_ACTION_COUNT,
@@ -678,7 +684,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	}
 
 	queue->started = false;
-	struct task_struct *thread = NULL;
 
 	thread = kthread_run(work_queue_runner,
 			     queue,
@@ -716,29 +721,30 @@ int make_work_queue(const char *thread_name_prefix,
 		    void *thread_privates[],
 		    struct vdo_work_queue **queue_ptr)
 {
+	struct round_robin_work_queue *queue;
+	int result;
+	char thread_name[TASK_COMM_LEN];
+	unsigned int i;
+
 	if (thread_count == 1) {
+		struct simple_work_queue *simple_queue;
 		void *context = (thread_privates != NULL) ? thread_privates[0] :
 							    private;
-		struct simple_work_queue *simple_queue;
-		int result =
-			make_simple_work_queue(thread_name_prefix,
-					       name,
-					       parent_kobject,
-					       owner,
-					       context,
-					       type,
-					       &simple_queue);
+		result = make_simple_work_queue(thread_name_prefix,
+					        name,
+					        parent_kobject,
+					        owner,
+					        context,
+					        type,
+					        &simple_queue);
 		if (result == VDO_SUCCESS) {
 			*queue_ptr = &simple_queue->common;
 		}
 		return result;
 	}
 
-	struct round_robin_work_queue *queue;
-	int result = ALLOCATE(1,
-			      struct round_robin_work_queue,
-			      "round-robin work queue",
-			      &queue);
+	result = ALLOCATE(1, struct round_robin_work_queue,
+			  "round-robin work queue", &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -776,13 +782,10 @@ int make_work_queue(const char *thread_name_prefix,
 
 	*queue_ptr = &queue->common;
 
-	char thread_name[TASK_COMM_LEN];
-	unsigned int i;
-
 	for (i = 0; i < thread_count; i++) {
-		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		void *context = (thread_privates != NULL) ? thread_privates[i] :
 							    private;
+		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
 						thread_name,
 						&queue->common.kobj,
@@ -874,9 +877,9 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 {
 	struct simple_work_queue **queue_table = queue->service_queues;
 	unsigned int count = queue->num_service_queues;
+	unsigned int i;
 
 	queue->service_queues = NULL;
-	unsigned int i;
 
 	for (i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
@@ -909,17 +912,15 @@ void free_work_queue(struct vdo_work_queue **queue_ptr)
 /**********************************************************************/
 static void dump_simple_work_queue(struct simple_work_queue *queue)
 {
+	const char *thread_status;
+	char task_state_report = '-';
+
 	mutex_lock(&queue_data_lock);
 	// Take a snapshot to reduce inconsistency in logged numbers.
 	queue_data = *queue;
-	const char *thread_status;
-
-	char task_state_report = '-';
-
 	if (queue_data.thread != NULL) {
 		task_state_report = task_state_to_char(queue->thread);
 	}
-
 	if (queue_data.thread == NULL) {
 		thread_status = "no threads";
 	} else if (atomic_read(&queue_data.idle)) {

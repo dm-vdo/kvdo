@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#80 $
  */
 
 #include "dedupeIndex.h"
@@ -178,14 +178,15 @@ static void encode_uds_advice(struct uds_request *request,
 static bool decode_uds_advice(const struct uds_request *request,
 			      struct data_location *advice)
 {
+	size_t offset = 0;
+	const struct uds_chunk_data *encoding = &request->old_metadata;
+	byte version;
+
 	if ((request->status != UDS_SUCCESS) || !request->found) {
 		return false;
 	}
 
-	size_t offset = 0;
-	const struct uds_chunk_data *encoding = &request->old_metadata;
-	byte version = encoding->data[offset++];
-
+	version = encoding->data[offset++];
 	if (version != UDS_ADVICE_VERSION) {
 		uds_log_error("invalid UDS advice version code %u", version);
 		return false;
@@ -214,12 +215,14 @@ static uint64_t get_albireo_timeout(uint64_t start_jiffies)
 /**********************************************************************/
 void set_albireo_timeout_interval(unsigned int value)
 {
+	uint64_t alb_jiffies;
+
 	// Arbitrary maximum value is two minutes
 	if (value > 120000) {
 		value = 120000;
 	}
 	// Arbitrary minimum value is 2 jiffies
-	uint64_t alb_jiffies = msecs_to_jiffies(value);
+	alb_jiffies = msecs_to_jiffies(value);
 
 	if (alb_jiffies < 2) {
 		alb_jiffies = 2;
@@ -232,13 +235,15 @@ void set_albireo_timeout_interval(unsigned int value)
 /**********************************************************************/
 void set_min_albireo_timer_interval(unsigned int value)
 {
+	uint64_t min_jiffies;
+
 	// Arbitrary maximum value is one second
 	if (value > 1000) {
 		value = 1000;
 	}
 
 	// Arbitrary minimum value is 2 jiffies
-	uint64_t min_jiffies = msecs_to_jiffies(value);
+	min_jiffies = msecs_to_jiffies(value);
 
 	if (min_jiffies < 2) {
 		min_jiffies = 2;
@@ -323,6 +328,8 @@ static void start_index_operation(struct vdo_work_item *item)
 	struct dedupe_index *index =
 		as_kernel_layer(vio_as_completion(vio)->layer)->dedupe_index;
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
+	struct uds_request *uds_request = &dedupe_context->uds_request;
+	int status;
 
 	spin_lock_bh(&index->pending_lock);
 	list_add_tail(&dedupe_context->pending_list, &index->pending_head);
@@ -330,9 +337,7 @@ static void start_index_operation(struct vdo_work_item *item)
 	start_expiration_timer_for_vio(index, data_vio);
 	spin_unlock_bh(&index->pending_lock);
 
-	struct uds_request *uds_request = &dedupe_context->uds_request;
-	int status = uds_start_chunk_operation(uds_request);
-
+	status = uds_start_chunk_operation(uds_request);
 	if (status != UDS_SUCCESS) {
 		uds_request->status = status;
 		finish_index_operation(uds_request);
@@ -431,6 +436,7 @@ static void timeout_index_operations(struct timer_list *t)
 	LIST_HEAD(expired_head);
 	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
+	unsigned int timed_out = 0;
 
 	spin_lock_bh(&index->pending_lock);
 	index->started_timer = false;
@@ -451,7 +457,6 @@ static void timeout_index_operations(struct timer_list *t)
 		list_add_tail(&dedupe_context->pending_list, &expired_head);
 	}
 	spin_unlock_bh(&index->pending_lock);
-	unsigned int timed_out = 0;
 	while (!list_empty(&expired_head)) {
 		struct data_vio *data_vio =
 			list_first_entry(&expired_head,
@@ -504,10 +509,12 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 
 		spin_lock(&index->state_lock);
 		if (index->deduping) {
+			unsigned int active;
+
 			enqueue_work_queue(index->uds_queue,
 					   work_item_from_vio(vio));
-			unsigned int active = atomic_inc_return(&index->active);
 
+			active = atomic_inc_return(&index->active);
 			if (active > index->maximum) {
 				index->maximum = active;
 			}
@@ -530,12 +537,14 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 /**********************************************************************/
 static void close_index(struct dedupe_index *index)
 {
+	int result;
+
 	// Change the index state so that get_index_statistics will not try to
 	// use the index session we are closing.
 	index->index_state = IS_CHANGING;
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
-	int result = uds_close_index(index->index_session);
+	result = uds_close_index(index->index_session);
 
 	if (result != UDS_SUCCESS) {
 		log_error_strerror(result,
@@ -552,6 +561,7 @@ static void close_index(struct dedupe_index *index)
 static void open_index(struct dedupe_index *index)
 {
 	// ASSERTION: We enter in IS_CLOSED state.
+	int result;
 	bool create_flag = index->create_flag;
 
 	index->create_flag = false;
@@ -561,10 +571,9 @@ static void open_index(struct dedupe_index *index)
 	index->error_flag = false;
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
-	int result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
-				    index->index_name, &index->uds_params,
-				    index->configuration,
-				    index->index_session);
+	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
+				index->index_name, &index->uds_params,
+				index->configuration, index->index_session);
 	if (result != UDS_SUCCESS) {
 		log_error_strerror(result,
 				   "Error opening index %s",
@@ -660,9 +669,10 @@ static void set_target_state(struct dedupe_index *index,
 			     bool dedupe,
 			     bool set_create)
 {
+	const char *old_state, *new_state;
+
 	spin_lock(&index->state_lock);
-	const char *old_state = index_state_to_string(index,
-						      index->index_target);
+	old_state = index_state_to_string(index, index->index_target);
 	if (change_dedupe) {
 		index->dedupe_flag = dedupe;
 	}
@@ -671,9 +681,9 @@ static void set_target_state(struct dedupe_index *index,
 	}
 	index->index_target = target;
 	launch_dedupe_state_change(index);
-	const char *new_state =
-		index_state_to_string(index, index->index_target);
+	new_state = index_state_to_string(index, index->index_target);
 	spin_unlock(&index->state_lock);
+
 	if (old_state != new_state) {
 		log_info("Setting UDS index target state to %s", new_state);
 	}
@@ -682,9 +692,11 @@ static void set_target_state(struct dedupe_index *index,
 /**********************************************************************/
 void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
+	enum index_state state;
+
 	spin_lock(&index->state_lock);
 	index->suspended = true;
-	enum index_state state = index->index_state;
+	state = index->index_state;
 	spin_unlock(&index->state_lock);
 
 	if (state != IS_CLOSED) {
@@ -715,13 +727,15 @@ void resume_dedupe_index(struct dedupe_index *index)
 /**********************************************************************/
 void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 {
+	const char *state, *target;
+
 	spin_lock(&index->state_lock);
-	const char *state = index_state_to_string(index, index->index_state);
-	const char *target =
-		(index->changing ?
+	state = index_state_to_string(index, index->index_state);
+	target = (index->changing ?
 			 index_state_to_string(index, index->index_target) :
 			 NULL);
 	spin_unlock(&index->state_lock);
+
 	log_info("UDS index: state: %s", state);
 	if (target != NULL) {
 		log_info("UDS index: changing to state: %s", target);
@@ -742,10 +756,11 @@ void finish_dedupe_index(struct dedupe_index *index)
 /**********************************************************************/
 void free_dedupe_index(struct dedupe_index **index_ptr)
 {
+	struct dedupe_index *index;
 	if (*index_ptr == NULL) {
 		return;
 	}
-	struct dedupe_index *index = *index_ptr;
+	index = *index_ptr;
 	*index_ptr = NULL;
 
 	free_work_queue(&index->uds_queue);
@@ -761,10 +776,12 @@ void free_dedupe_index(struct dedupe_index **index_ptr)
 /**********************************************************************/
 const char *get_dedupe_state_name(struct dedupe_index *index)
 {
-	spin_lock(&index->state_lock);
-	const char *state = index_state_to_string(index, index->index_state);
+	const char *state;
 
+	spin_lock(&index->state_lock);
+	state = index_state_to_string(index, index->index_state);
 	spin_unlock(&index->state_lock);
+
 	return state;
 }
 
@@ -772,13 +789,16 @@ const char *get_dedupe_state_name(struct dedupe_index *index)
 void get_index_statistics(struct dedupe_index *index,
 			  struct index_statistics *stats)
 {
-	spin_lock(&index->state_lock);
-	enum index_state state = index->index_state;
+	enum index_state state;
 
+	spin_lock(&index->state_lock);
+	state = index->index_state;
 	stats->max_dedupe_queries = index->maximum;
 	spin_unlock(&index->state_lock);
+
 	stats->curr_dedupe_queries = atomic_read(&index->active);
 	if (state == IS_OPENED) {
+		struct uds_context_stats context_stats;
 		struct uds_index_stats index_stats;
 		int result = uds_get_index_stats(index->index_session,
 						 &index_stats);
@@ -788,7 +808,6 @@ void get_index_statistics(struct dedupe_index *index,
 			log_error_strerror(result,
 					   "Error reading index stats");
 		}
-		struct uds_context_stats context_stats;
 
 		result = uds_get_index_session_stats(index->index_session,
 						     &context_stats);
@@ -942,11 +961,21 @@ static void finish_uds_queue(void *ptr __always_unused)
 int make_dedupe_index(struct dedupe_index **index_ptr,
 		      struct kernel_layer *layer)
 {
+	int result;
+	struct dedupe_index *index;
+	static const struct vdo_work_queue_type uds_queue_type = {
+		.start = start_uds_queue,
+		.finish = finish_uds_queue,
+		.action_table = {
+			{ .name = "uds_action",
+			  .code = UDS_Q_ACTION,
+			  .priority = 0 },
+		},
+	};
 	set_albireo_timeout_interval(albireo_timeout_interval);
 	set_min_albireo_timer_interval(min_albireo_timer_interval);
 
-	struct dedupe_index *index;
-	int result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
+	result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -984,15 +1013,6 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	static const struct vdo_work_queue_type uds_queue_type = {
-		.start = start_uds_queue,
-		.finish = finish_uds_queue,
-		.action_table = {
-			{ .name = "uds_action",
-			  .code = UDS_Q_ACTION,
-			  .priority = 0 },
-		},
-	};
 	result = make_work_queue(layer->thread_name_prefix,
 				 "dedupeQ",
 				 &layer->wq_directory,

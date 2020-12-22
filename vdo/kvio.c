@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#63 $
  */
 
 #include "kvio.h"
@@ -130,6 +130,7 @@ static inline enum bio_q_action get_metadata_action(struct vio *vio)
 /**********************************************************************/
 void submit_metadata_vio(struct vio *vio)
 {
+	int result;
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
 	struct kernel_layer *layer =
@@ -182,9 +183,9 @@ void submit_metadata_vio(struct vio *vio)
 		bi_opf |= REQ_SYNC;
 	}
 
-	int result = reset_bio_with_buffer(bio, vio->data, vio,
-					   complete_async_bio, bi_opf,
-					   vio->physical);
+	result = reset_bio_with_buffer(bio, vio->data, vio,
+				       complete_async_bio, bi_opf,
+				       vio->physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -286,6 +287,9 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     char *data,
 			     struct vio **vio_ptr)
 {
+	struct bio *bio;
+	struct vio *vio;
+
 	int result = ASSERT(is_metadata_vio_type(type),
 			    "%d is a metadata type",
 			    type);
@@ -293,7 +297,6 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	struct bio *bio;
 	result = create_bio(&bio);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -305,7 +308,6 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.
-	struct vio *vio;
 	result = ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata vio allocation failure %d", result);
@@ -327,6 +329,8 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     struct allocating_vio **allocating_vio_ptr)
 {
 	struct bio *bio;
+	struct allocating_vio *allocating_vio;
+	struct vio *vio;
 	int result = create_bio(&bio);
 
 	if (result != VDO_SUCCESS) {
@@ -336,7 +340,6 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	// Compressed write vios should use direct allocation and not use the
 	// buffer pool, which is reserved for submissions from the linux block
 	// layer.
-	struct allocating_vio *allocating_vio;
 	result = ALLOCATE(1, struct allocating_vio, __func__,
 			  &allocating_vio);
 	if (result != VDO_SUCCESS) {
@@ -346,7 +349,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	struct vio *vio = allocating_vio_as_vio(allocating_vio);
+	vio = allocating_vio_as_vio(allocating_vio);
 	initialize_kvio(vio,
 			as_kernel_layer(layer),
 			VIO_TYPE_COMPRESSED_BLOCK,

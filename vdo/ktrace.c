@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#26 $
  */
 
 #include "ktrace.h"
@@ -119,10 +119,10 @@ void free_trace_to_pool(struct kernel_layer *layer, struct trace *trace)
 /*************************************************************************/
 int trace_kernel_layer_init(struct kernel_layer *layer)
 {
+	unsigned int trace_records_needed = 0;
 	layer->vio_trace_recording = trace_recording;
 	initialize_sample_counter(&layer->trace_sample_counter,
 				  TRACE_SAMPLE_INTERVAL);
-	unsigned int trace_records_needed = 0;
 
 	if (layer->vio_trace_recording) {
 		trace_records_needed += layer->request_limiter.limit;
@@ -158,8 +158,8 @@ void log_vio_trace(struct vio *vio)
 
 	if (layer->trace_logging &&
 	    ((trace_logging_state.counter % 1024) == 37)) {
-		vio_add_trace_record(vio, THIS_LOCATION(NULL));
 		size_t trace_len = 0;
+		vio_add_trace_record(vio, THIS_LOCATION(NULL));
 
 		format_trace(vio->trace, trace_logging_state.buffer,
 			    sizeof(trace_logging_state.buffer), &trace_len);
@@ -173,6 +173,7 @@ void log_vio_trace(struct vio *vio)
 				 vio, trace_logging_state.buffer);
 		} else {
 			const char *dupe_label = "";
+			char *buf = trace_logging_state.buffer;
 
 			if (is_write_vio(vio)) {
 				struct data_vio *data_vio
@@ -194,8 +195,6 @@ void log_vio_trace(struct vio *vio)
 				 vio,
 				 TRACE_LOG_MAX,
 				 trace_logging_state.buffer);
-			char *buf = trace_logging_state.buffer;
-
 			while (trace_len > TRACE_LOG_MAX) {
 				trace_len -= TRACE_LOG_MAX;
 				buf += TRACE_LOG_MAX;
