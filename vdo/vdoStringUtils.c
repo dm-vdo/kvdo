@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#7 $
  */
 
 #include "vdoStringUtils.h"
@@ -44,8 +44,11 @@ int split_string(const char *string,
 		 char separator,
 		 char ***substring_array_ptr)
 {
-	unsigned int substring_count = 1;
+	unsigned int current_substring = 0, substring_count = 1;
 	const char *s;
+	char **substrings;
+	int result;
+	ptrdiff_t length;
 
 	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
@@ -53,15 +56,13 @@ int split_string(const char *string,
 		}
 	}
 
-	char **substrings;
-	int result = ALLOCATE(substring_count + 1,
-			      char *,
-			      "string-splitting array",
-			      &substrings);
+	result = ALLOCATE(substring_count + 1,
+			  char *,
+			  "string-splitting array",
+			  &substrings);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	unsigned int current_substring = 0;
 
 	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
@@ -90,7 +91,7 @@ int split_string(const char *string,
 	}
 	// Process final string, with no trailing separator.
 	BUG_ON(current_substring != (substring_count - 1));
-	ptrdiff_t length = strlen(string);
+	length = strlen(string);
 
 	result = ALLOCATE(length + 1,
 			  char,
@@ -113,19 +114,20 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 {
 	size_t string_length = 0;
 	size_t i;
+	int result;
+	char *output, *current_position;
 
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		string_length += strlen(substring_array[i]) + 1;
 	}
 
-	char *output;
-	int result = ALLOCATE(string_length, char, __func__, &output);
+	result = ALLOCATE(string_length, char, __func__, &output);
 
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	char *current_position = &output[0];
+	current_position = &output[0];
 
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		current_position = append_to_buffer(current_position,

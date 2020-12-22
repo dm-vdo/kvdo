@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#45 $
  */
 
 #include "bio.h"
@@ -140,6 +140,16 @@ int reset_bio_with_buffer(struct bio *bio,
 			  unsigned int bi_opf,
 			  physical_block_number_t pbn)
 {
+	int bvec_count, result;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+	struct page *page;
+	int bytes_added;
+#else
+	int len = VDO_BLOCK_SIZE;
+	int offset = offset_in_page(data);
+	unsigned int i;
+#endif // >= 5.1.0
+
 	bio_reset(bio); // Memsets most of the bio to reset most fields.
 	bio->bi_private = vio;
 	bio->bi_end_io = callback;
@@ -153,11 +163,11 @@ int reset_bio_with_buffer(struct bio *bio,
 	bio->bi_io_vec = bio->bi_inline_vecs;
 	bio->bi_max_vecs = INLINE_BVEC_COUNT;
 
-	int bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
-			  PAGE_SIZE - 1) >> PAGE_SHIFT;
-	int result = ASSERT(bvec_count <= INLINE_BVEC_COUNT,
-			    "VDO-allocated buffers lie on max %d pages, not %d",
-			    INLINE_BVEC_COUNT, bvec_count);
+	bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
+		      PAGE_SIZE - 1) >> PAGE_SHIFT;
+	result = ASSERT(bvec_count <= INLINE_BVEC_COUNT,
+			"VDO-allocated buffers lie on max %d pages, not %d",
+			INLINE_BVEC_COUNT, bvec_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -166,11 +176,10 @@ int reset_bio_with_buffer(struct bio *bio,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
 	// bio_add_page() can take any contiguous buffer on any number of
 	// pages and add it in one shot.
-	struct page *page = is_vmalloc_addr(data) ?
-				    vmalloc_to_page(data) :
-				    virt_to_page(data);
-	int bytes_added = bio_add_page(bio, page, VDO_BLOCK_SIZE,
-				       offset_in_page(data));
+	page = is_vmalloc_addr(data) ?  vmalloc_to_page(data) :
+				        virt_to_page(data);
+	bytes_added = bio_add_page(bio, page, VDO_BLOCK_SIZE,
+				   offset_in_page(data));
 
 	if (bytes_added != VDO_BLOCK_SIZE) {
 		free_bio(bio);
@@ -180,21 +189,18 @@ int reset_bio_with_buffer(struct bio *bio,
 	}
 #else
 	// On pre-5.1 kernels, we have to add one page at a time to the bio.
-	int len = VDO_BLOCK_SIZE;
-	int offset = offset_in_page(data);
-	unsigned int i;
-
 	for (i = 0; (i < bvec_count) && (len > 0); i++) {
 		unsigned int bytes = PAGE_SIZE - offset;
+		struct page *page;
+		int bytes_added;
 
 		if (bytes > len) {
 			bytes = len;
 		}
 
-		struct page *page = is_vmalloc_addr(data) ?
-					    vmalloc_to_page(data) :
-					    virt_to_page(data);
-		int bytes_added = bio_add_page(bio, page, bytes, offset);
+		page = is_vmalloc_addr(data) ?  vmalloc_to_page(data) :
+						virt_to_page(data);
+		bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes) {
 			free_bio(bio);

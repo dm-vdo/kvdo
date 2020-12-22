@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#68 $
  */
 
 /*
@@ -96,6 +96,9 @@ int initialize_kvdo(struct kvdo *kvdo,
 		    const struct thread_config *thread_config,
 		    char **reason)
 {
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	unsigned int base_threads = thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
 			      struct vdo_thread,
@@ -105,31 +108,29 @@ int initialize_kvdo(struct kvdo *kvdo,
 		*reason = "Cannot allocation thread structures";
 		return result;
 	}
-	struct kernel_layer *layer = container_of(kvdo,
-						  struct kernel_layer,
-						  kvdo);
 	for (kvdo->initialized_thread_count = 0;
 	     kvdo->initialized_thread_count < base_threads;
 	     kvdo->initialized_thread_count++) {
+		int result;
 		struct vdo_thread *thread =
 			&kvdo->threads[kvdo->initialized_thread_count];
+		char queue_name[MAX_QUEUE_NAME_LEN];
 
 		thread->kvdo = kvdo;
 		thread->thread_id = kvdo->initialized_thread_count;
 
-		char queue_name[MAX_QUEUE_NAME_LEN];
 		// Copy only LEN - 1 bytes and ensure NULL termination.
 		get_vdo_thread_name(thread_config, kvdo->initialized_thread_count,
 				 queue_name, sizeof(queue_name));
-		int result = make_work_queue(layer->thread_name_prefix,
-					     queue_name,
-					     &layer->wq_directory,
-					     layer,
-					     thread,
-					     &request_queue_type,
-					     1,
-					     NULL,
-					     &thread->request_queue);
+		result = make_work_queue(layer->thread_name_prefix,
+					 queue_name,
+					 &layer->wq_directory,
+					 layer,
+					 thread,
+					 &request_queue_type,
+					 1,
+					 NULL,
+					 &thread->request_queue);
 		if (result != VDO_SUCCESS) {
 			*reason = "Cannot initialize request queue";
 			while (kvdo->initialized_thread_count > 0) {
@@ -154,10 +155,11 @@ int preload_kvdo(struct kvdo *kvdo,
 		 bool vio_trace_recording,
 		 char **reason)
 {
+	int result;
 	struct kernel_layer *layer = as_kernel_layer(common);
 
 	init_completion(&layer->callback_sync);
-	int result = prepare_to_load_vdo(kvdo->vdo, load_config);
+	result = prepare_to_load_vdo(kvdo->vdo, load_config);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
@@ -171,10 +173,11 @@ int preload_kvdo(struct kvdo *kvdo,
 /**********************************************************************/
 int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason)
 {
+	int result;
 	struct kernel_layer *layer = as_kernel_layer(common);
 
 	init_completion(&layer->callback_sync);
-	int result = perform_vdo_load(kvdo->vdo);
+	result = perform_vdo_load(kvdo->vdo);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
@@ -187,14 +190,16 @@ int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason)
 /**********************************************************************/
 int suspend_kvdo(struct kvdo *kvdo)
 {
+	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
+						  kvdo);
+	int result;
+
 	if (kvdo->vdo == NULL) {
 		return VDO_SUCCESS;
 	}
 
-	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
-						  kvdo);
 	init_completion(&layer->callback_sync);
-	int result = perform_vdo_suspend(kvdo->vdo, !layer->no_flush_suspend);
+	result = perform_vdo_suspend(kvdo->vdo, !layer->no_flush_suspend);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		char error_name[80] = "";
@@ -217,12 +222,12 @@ int suspend_kvdo(struct kvdo *kvdo)
 /**********************************************************************/
 int resume_kvdo(struct kvdo *kvdo)
 {
+	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
+						  kvdo);
 	if (kvdo->vdo == NULL) {
 		return VDO_SUCCESS;
 	}
 
-	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
-						  kvdo);
 	init_completion(&layer->callback_sync);
 	return perform_vdo_resume(kvdo->vdo);
 }
@@ -240,8 +245,8 @@ void finish_kvdo(struct kvdo *kvdo)
 /**********************************************************************/
 void destroy_kvdo(struct kvdo *kvdo)
 {
-	destroy_vdo(kvdo->vdo);
 	int i;
+	destroy_vdo(kvdo->vdo);
 
 	for (i = 0; i < kvdo->initialized_thread_count; i++) {
 		free_work_queue(&kvdo->threads[i].request_queue);
@@ -498,11 +503,13 @@ int kvdo_prepare_to_grow_physical(struct kvdo *kvdo,
 /**********************************************************************/
 int kvdo_resize_physical(struct kvdo *kvdo, block_count_t physical_count)
 {
+	int result;
+
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callback_sync);
-	int result = perform_grow_physical(kvdo->vdo, physical_count);
+	result = perform_grow_physical(kvdo->vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
 		uds_log_error("resize operation failed, result = %d", result);
@@ -523,11 +530,13 @@ int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, block_count_t logical_count)
 /**********************************************************************/
 int kvdo_resize_logical(struct kvdo *kvdo, block_count_t logical_count)
 {
+	int result;
+
 	struct kernel_layer *layer = container_of(kvdo,
 						  struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callback_sync);
-	int result = perform_grow_logical(kvdo->vdo, logical_count);
+	result = perform_grow_logical(kvdo->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
 		uds_log_error("grow logical operation failed, result = %d",
@@ -610,12 +619,13 @@ void kvdo_enqueue(struct vdo_completion *completion)
 thread_id_t get_callback_thread_id(void)
 {
 	struct vdo_thread *thread = get_work_queue_private_data();
+	thread_id_t thread_id;
 
 	if (thread == NULL) {
 		return INVALID_THREAD_ID;
 	}
 
-	thread_id_t thread_id = thread->thread_id;
+	thread_id = thread->thread_id;
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct kvdo *kvdo = thread->kvdo;

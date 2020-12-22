@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#18 $
  */
 
 #include "workItemStats.h"
@@ -77,15 +77,15 @@ static unsigned int get_stat_table_index(struct vdo_work_item_stats *stats,
 {
 	struct vdo_work_function_table *function_table =
 		&stats->function_table;
-
 	unsigned int index = scan_stat_table(function_table, work, priority);
+
+	unsigned long flags = 0;
 
 	if (unlikely(index == NUM_WORK_QUEUE_ITEM_STATS) ||
 	    likely(function_table->functions[index] != NULL)) {
 		return index;
 	}
 
-	unsigned long flags = 0;
 	spin_lock_irqsave(&function_table->lock, flags);
 	// Recheck now that we've got the lock...
 	index = scan_stat_table(function_table, work, priority);
@@ -217,6 +217,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 		 * code.
 		 */
 		static char truncated_function_name_format_string[] = "%.*ps";
+		char *space;
 
 		snprintf(buffer,
 			 buffer_length,
@@ -224,7 +225,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 			 buffer_length - 1,
 			 pointer);
 
-		char *space = strchr(buffer, ' ');
+		space = strchr(buffer, ' ');
 
 		if (space != NULL) {
 			*space = '\0';
@@ -247,6 +248,7 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 	int i;
 
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		unsigned int pending;
 		if (function_ids->functions[i] == NULL) {
 			break;
 		}
@@ -262,7 +264,6 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 		 * debugging, so we'll go ahead and print the
 		 * not-necessarily-redundant values.
 		 */
-		unsigned int pending;
 
 		get_work_item_counts_by_item(stats,
 					     i,
@@ -332,6 +333,10 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 	int i;
 
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		uint64_t enqueued, processed;
+		unsigned int pending;
+		static char work[256]; // arbitrary size
+
 		if (function_ids->functions[i] == NULL) {
 			break;
 		}
@@ -347,9 +352,6 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 		 * debugging, so we'll go ahead and print the
 		 * not-necessarily-redundant values.
 		 */
-		uint64_t enqueued, processed;
-		unsigned int pending;
-
 		get_work_item_counts_by_item(stats,
 					     i,
 					     &enqueued,
@@ -357,8 +359,6 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 					     &pending);
 		total_enqueued += enqueued;
 		total_processed += processed;
-
-		static char work[256]; // arbitrary size
 
 		get_function_name(function_ids->functions[i],
 				  work,

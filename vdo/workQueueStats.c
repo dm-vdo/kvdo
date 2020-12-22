@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#21 $
  */
 
 #include "workQueueStats.h"
@@ -128,19 +128,19 @@ static uint64_t get_total_processed(const struct simple_work_queue *queue)
 /**********************************************************************/
 void log_work_queue_stats(const struct simple_work_queue *queue)
 {
-	uint64_t runtime_ns = 0;
+	uint64_t total_processed, runtime_ns = 0;
+	unsigned long runtime_ms, ns_per_work_item = 0;
 
 	if (queue->thread != NULL) {
 		runtime_ns += queue->thread->se.sum_exec_runtime;
 	}
 
-	unsigned long ns_per_work_item = 0;
-	uint64_t total_processed = get_total_processed(queue);
+	total_processed = get_total_processed(queue);
 
 	if (total_processed > 0) {
 		ns_per_work_item = runtime_ns / total_processed;
 	}
-	unsigned long runtime_ms = runtime_ns / 1000;
+	runtime_ms = runtime_ns / 1000;
 
 	log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
 		 queue, queue->common.name, runtime_ms / 1000000,
@@ -157,10 +157,11 @@ ssize_t format_run_time_stats(const struct vdo_work_queue_stats *stats,
 	uint64_t start_time = stats->start_time;
 	uint64_t run_time = atomic64_read(&stats->run_time);
 	uint64_t reschedule_time = atomic64_read(&stats->reschedule_time);
+	uint64_t now, lifetime;
 
 	smp_rmb(); // rdtsc barrier
-	uint64_t now = ktime_get_ns();
-	uint64_t lifetime = now - start_time;
+	now = ktime_get_ns();
+	lifetime = now - start_time;
 
 	return sprintf(buffer, "%llu %llu %llu\n",
 		       lifetime, run_time, reschedule_time);

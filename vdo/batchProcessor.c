@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#18 $
  */
 
 #include "batchProcessor.h"
@@ -95,6 +95,7 @@ static void batch_processor_work(struct vdo_work_item *item)
 {
 	struct batch_processor *batch =
 		container_of(item, struct batch_processor, work_item);
+	bool need_reschedule;
 
 	spin_lock(&batch->consumer_lock);
 	while (!is_funnel_queue_empty(batch->queue)) {
@@ -102,7 +103,7 @@ static void batch_processor_work(struct vdo_work_item *item)
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	smp_mb();
-	bool need_reschedule = !is_funnel_queue_empty(batch->queue);
+	need_reschedule = !is_funnel_queue_empty(batch->queue);
 
 	spin_unlock(&batch->consumer_lock);
 	if (need_reschedule) {
@@ -122,6 +123,9 @@ static void batch_processor_work(struct vdo_work_item *item)
  **/
 static void schedule_batch_processing(struct batch_processor *batch)
 {
+	enum batch_processor_state old_state;
+	bool do_schedule;
+
 	/*
 	 * We want this to be very fast in the common cases.
 	 *
@@ -147,9 +151,9 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	 */
 
 	smp_mb();
-	enum batch_processor_state old_state = atomic_cmpxchg(
-		&batch->state, BATCH_PROCESSOR_IDLE, BATCH_PROCESSOR_ENQUEUED);
-	bool do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
+	old_state = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
+				   BATCH_PROCESSOR_ENQUEUED);
+	do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
 
 	if (do_schedule) {
 		enqueue_cpu_work_queue(batch->layer, &batch->work_item);

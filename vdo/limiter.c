@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#7 $
  */
 
 #include "limiter.h"
@@ -47,8 +47,9 @@ void initialize_limiter(struct limiter *limiter, uint32_t limit)
 /**********************************************************************/
 bool limiter_is_idle(struct limiter *limiter)
 {
+	bool idle;
 	spin_lock(&limiter->lock);
-	bool idle = limiter->active == 0;
+	idle = limiter->active == 0;
 
 	spin_unlock(&limiter->lock);
 	return idle;
@@ -126,8 +127,9 @@ void limiter_wait_for_one_free(struct limiter *limiter)
 /**********************************************************************/
 bool limiter_poll(struct limiter *limiter)
 {
+	bool acquired;
 	spin_lock(&limiter->lock);
-	bool acquired = take_permit_locked(limiter);
+	acquired = take_permit_locked(limiter);
 
 	spin_unlock(&limiter->lock);
 	return acquired;

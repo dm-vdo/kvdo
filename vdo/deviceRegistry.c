@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#13 $
  */
 
 #include "deviceRegistry.h"
@@ -83,6 +83,7 @@ filter_layers_locked(layer_filter_t *filter, void *context)
 /**********************************************************************/
 int add_layer_to_device_registry(struct kernel_layer *layer)
 {
+	struct kernel_layer *old_layer;
 	struct registered_device *new_device;
 	int result =
 		ALLOCATE(1, struct registered_device, __func__, &new_device);
@@ -94,8 +95,7 @@ int add_layer_to_device_registry(struct kernel_layer *layer)
 	new_device->layer = layer;
 
 	write_lock(&registry.lock);
-	struct kernel_layer *old_layer = filter_layers_locked(layer_is_equal,
-							      layer);
+	old_layer = filter_layers_locked(layer_is_equal, layer);
 	result = ASSERT(old_layer == NULL, "Layer not already registered");
 	if (result == VDO_SUCCESS) {
 		list_add_tail(&new_device->links, &registry.links);
@@ -108,8 +108,8 @@ int add_layer_to_device_registry(struct kernel_layer *layer)
 /**********************************************************************/
 void remove_layer_from_device_registry(struct kernel_layer *layer)
 {
-	write_lock(&registry.lock);
 	struct registered_device *device = NULL;
+	write_lock(&registry.lock);
 
 	list_for_each_entry(device, &registry.links, links) {
 		if (device->layer == layer) {
@@ -124,8 +124,9 @@ void remove_layer_from_device_registry(struct kernel_layer *layer)
 /**********************************************************************/
 struct kernel_layer *find_layer_matching(layer_filter_t *filter, void *context)
 {
+	struct kernel_layer *layer;
 	read_lock(&registry.lock);
-	struct kernel_layer *layer = filter_layers_locked(filter, context);
+	layer = filter_layers_locked(filter, context);
 
 	read_unlock(&registry.lock);
 	return layer;

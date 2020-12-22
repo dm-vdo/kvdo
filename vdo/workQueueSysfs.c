@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#11 $
  */
 
 #include "workQueueSysfs.h"
@@ -148,12 +148,12 @@ static ssize_t work_queue_attr_show(struct kobject *kobj,
 {
 	struct work_queue_attribute *wq_attr =
 		container_of(attr, struct work_queue_attribute, attr);
-	if (wq_attr->show == NULL) {
-		return -EINVAL;
-	}
 	struct vdo_work_queue *queue = container_of(kobj,
 						    struct vdo_work_queue,
 						    kobj);
+	if (wq_attr->show == NULL) {
+		return -EINVAL;
+	}
 	return wq_attr->show(queue, buf);
 }
 
@@ -164,11 +164,11 @@ static ssize_t work_queue_attr_store(struct kobject *kobj,
 {
 	struct work_queue_attribute *wq_attr =
 		container_of(attr, struct work_queue_attribute, attr);
+	struct vdo_work_queue *queue =
+		container_of(kobj, struct vdo_work_queue, kobj);
 	if (wq_attr->store == NULL) {
 		return -EINVAL;
 	}
-	struct vdo_work_queue *queue =
-		container_of(kobj, struct vdo_work_queue, kobj);
 	return wq_attr->store(queue, buf, length);
 }
 

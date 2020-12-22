@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#12 $
  */
 
 #include "poolSysfs.h"
@@ -41,12 +41,12 @@ static ssize_t vdo_pool_attr_show(struct kobject *kobj,
 	struct pool_attribute *pool_attr = container_of(attr,
 							struct pool_attribute,
 							attr);
-	if (pool_attr->show == NULL) {
-		return -EINVAL;
-	}
 	struct kernel_layer *layer = container_of(kobj,
 						  struct kernel_layer,
 						  kobj);
+	if (pool_attr->show == NULL) {
+		return -EINVAL;
+	}
 	return pool_attr->show(layer, buf);
 }
 
@@ -59,12 +59,12 @@ static ssize_t vdo_pool_attr_store(struct kobject *kobj,
 	struct pool_attribute *pool_attr = container_of(attr,
 							struct pool_attribute,
 							attr);
-	if (pool_attr->store == NULL) {
-		return -EINVAL;
-	}
 	struct kernel_layer *layer = container_of(kobj,
 						  struct kernel_layer,
 						  kobj);
+	if (pool_attr->store == NULL) {
+		return -EINVAL;
+	}
 	return pool_attr->store(layer, buf, length);
 }
 

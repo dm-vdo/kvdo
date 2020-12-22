@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#19 $
  */
 
 #include <linux/kobject.h>
@@ -274,10 +274,10 @@ static ssize_t histogram_show(struct kobject *kobj,
 {
 	struct histogram_attribute *ha =
 		container_of(attr, struct histogram_attribute, attr);
+	struct histogram *h = container_of(kobj, struct histogram, kobj);
 	if (ha->show == NULL) {
 		return -EINVAL;
 	}
-	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
 	return ha->show(h, buf);
 }
@@ -290,10 +290,11 @@ static ssize_t histogram_store(struct kobject *kobj,
 {
 	struct histogram_attribute *ha =
 		container_of(attr, struct histogram_attribute, attr);
+	struct histogram *h = container_of(kobj, struct histogram, kobj);
+
 	if (ha->show == NULL) {
 		return -EINVAL;
 	}
-	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
 	return ha->store(h, buf, length);
 }
@@ -318,6 +319,9 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	bool bars = true;
 	ssize_t length = 0;
 	int max = max_bucket(h);
+	uint64_t total = 0;
+	int i;
+
 	// If max is -1, we'll fall through to reporting the total of zero.
 
 	enum { BAR_SIZE = 50 };
@@ -326,9 +330,6 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	bar[0] = ' ';
 	memset(bar + 1, '=', BAR_SIZE);
 	bar[BAR_SIZE + 1] = '\0';
-
-	uint64_t total = 0;
-	int i;
 
 	for (i = 0; i <= max; i++) {
 		total += atomic64_read(&h->counters[i]);
@@ -480,15 +481,17 @@ static ssize_t histogram_store_limit(struct histogram *h,
 /***********************************************************************/
 static ssize_t histogram_show_mean(struct histogram *h, char *buf)
 {
+	unsigned long sum_times1000_in_reporting_units;
+	unsigned int mean_times1000;
 	uint64_t count = atomic64_read(&h->count);
 
 	if (count == 0) {
 		return sprintf(buf, "0/0\n");
 	}
 	// Compute mean, scaled up by 1000, in reporting units
-	unsigned long sum_times1000_in_reporting_units =
+	sum_times1000_in_reporting_units =
 		h->conversion_factor * atomic64_read(&h->sum) * 1000;
-	unsigned int mean_times1000 = divide_rounding_to_nearest(
+	mean_times1000 = divide_rounding_to_nearest(
 		sum_times1000_in_reporting_units, count);
 	// Print mean with fractional part
 	return sprintf(buf,
@@ -818,6 +821,7 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 /***********************************************************************/
 void enter_histogram_sample(struct histogram *h, uint64_t sample)
 {
+	uint64_t old_minimum, old_maximum;
 	int bucket;
 
 	if (h->log_flag) {
@@ -849,7 +853,7 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	 * do more than a single read, with no memory barrier, from a cache
 	 * line we've already referenced above.
 	 */
-	uint64_t old_maximum = atomic64_read(&h->maximum);
+	old_maximum = atomic64_read(&h->maximum);
 
 	while (old_maximum < sample) {
 		uint64_t read_value =
@@ -860,7 +864,7 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 		old_maximum = read_value;
 	}
 
-	uint64_t old_minimum = atomic64_read(&h->minimum);
+	old_minimum = atomic64_read(&h->minimum);
 
 	while (old_minimum > sample) {
 		uint64_t read_value =

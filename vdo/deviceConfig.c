@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#27 $
  */
 
 #include "deviceConfig.h"
@@ -301,6 +301,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 static int parse_one_thread_config_spec(const char *spec,
 					struct thread_count_config *config)
 {
+	unsigned int count;
 	char **fields;
 	int result = split_string(spec, '=', &fields);
 
@@ -314,8 +315,6 @@ static int parse_one_thread_config_spec(const char *spec,
 		free_string_array(fields);
 		return -EINVAL;
 	}
-
-	unsigned int count;
 
 	result = string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
@@ -360,12 +359,11 @@ static int parse_thread_config_string(const char *string,
 	char **specs;
 
 	if (strcmp(".", string) != 0) {
+		unsigned int i;
 		result = split_string(string, ',', &specs);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-
-		unsigned int i;
 
 		for (i = 0; specs[i] != NULL; i++) {
 			result = parse_one_thread_config_spec(specs[i], config);
@@ -432,13 +430,15 @@ static int parse_one_key_value_pair(const char *key,
 				    const char *value,
 				    struct device_config *config)
 {
+	unsigned int count;
+	int result;
+
 	if (strcmp(key, "deduplication") == 0) {
 		return parse_bool(value, "on", "off", &config->deduplication);
 	}
 
 	// The remaining arguments must have integral values.
-	unsigned int count;
-	int result = string_to_uint(value, &count);
+	result = string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error(
 			"optional config string error: integer value needed, found \"%s\"",
@@ -555,6 +555,9 @@ int parse_device_config(int argc,
 			bool verbose,
 			struct device_config **config_ptr)
 {
+	bool enable_512e;
+	struct dm_arg_set arg_set;
+
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
 	int result =
@@ -599,8 +602,6 @@ int parse_device_config(int argc,
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
 
-	struct dm_arg_set arg_set;
-
 	arg_set.argc = argc;
 	arg_set.argv = argv;
 
@@ -639,8 +640,6 @@ int parse_device_config(int argc,
 	}
 
 	// Get the logical block size and validate
-	bool enable_512e;
-
 	result = parse_bool(dm_shift_arg(&arg_set),
 			    "512",
 			    "4096",
@@ -765,11 +764,12 @@ int parse_device_config(int argc,
 /**********************************************************************/
 void free_device_config(struct device_config **config_ptr)
 {
+	struct device_config *config;
 	if (config_ptr == NULL) {
 		return;
 	}
 
-	struct device_config *config = *config_ptr;
+	config = *config_ptr;
 
 	if (config == NULL) {
 		*config_ptr = NULL;

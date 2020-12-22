@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#14 $
  */
 
 #include "sysfs.h"
@@ -92,10 +92,10 @@ static ssize_t scan_int(const char *buf,
 			int minimum,
 			int maximum)
 {
+	unsigned int value;
 	if (n > 12) {
 		return -EINVAL;
 	}
-	unsigned int value;
 
 	if (sscanf(buf, "%d", &value) != 1) {
 		return -EINVAL;
@@ -128,10 +128,10 @@ static ssize_t scan_uint(const char *buf,
 			 unsigned int minimum,
 			 unsigned int maximum)
 {
+	unsigned int value;
 	if (n > 12) {
 		return -EINVAL;
 	}
-	unsigned int value;
 
 	if (sscanf(buf, "%u", &value) != 1) {
 		return -EINVAL;
@@ -258,14 +258,13 @@ static ssize_t vdo_version_show(struct vdo_module_globals *vdo_globals
 static ssize_t
 vdo_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
+	struct vdo_module_globals *vdo_globals;
 	struct vdo_attribute *vdo_attr = container_of(attr,
 						      struct vdo_attribute,
 						      attr);
 	if (vdo_attr->show == NULL) {
 		return -EINVAL;
 	}
-
-	struct vdo_module_globals *vdo_globals;
 
 	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
 	return (*vdo_attr->show)(vdo_globals, attr, buf);
@@ -277,13 +276,12 @@ static ssize_t vdo_attr_store(struct kobject *kobj,
 			      const char *buf,
 			      size_t length)
 {
+	struct vdo_module_globals *vdo_globals;
 	struct vdo_attribute *vdo_attr =
 		container_of(attr, struct vdo_attribute, attr);
 	if (vdo_attr->store == NULL) {
 		return -EINVAL;
 	}
-
-	struct vdo_module_globals *vdo_globals;
 
 	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
 	return (*vdo_attr->store)(vdo_globals, buf, length);
@@ -392,8 +390,9 @@ struct kobj_type vdo_ktype = {
 /**********************************************************************/
 int vdo_init_sysfs(struct kobject *module_object)
 {
+	int result;
 	kobject_init(module_object, &vdo_ktype);
-	int result = kobject_add(module_object, NULL, THIS_MODULE->name);
+	result = kobject_add(module_object, NULL, THIS_MODULE->name);
 
 	if (result < 0) {
 		uds_log_error("kobject_add failed with status %d", -result);

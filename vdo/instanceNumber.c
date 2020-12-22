@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#10 $
  */
 
 #include "instanceNumber.h"
@@ -99,6 +99,7 @@ static int grow_bit_array(void)
 /**********************************************************************/
 static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 {
+	unsigned int instance;
 	// If there are no unallocated instances, grow the bit array.
 	if (instance_count >= bit_count) {
 		int result = grow_bit_array();
@@ -110,14 +111,14 @@ static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 
 	// There must be a zero bit somewhere now. Find it, starting just after
 	// the last instance allocated.
-	unsigned int instance =
-		find_next_zero_bit(words, bit_count, next_instance);
+	instance = find_next_zero_bit(words, bit_count, next_instance);
 	if (instance >= bit_count) {
+		int result;
 		// Nothing free after next_instance, so wrap around to instance
 		// zero.
 		instance = find_first_zero_bit(words, bit_count);
-		int result = ASSERT(instance < bit_count,
-				    "impossibly, no zero bit found");
+		result = ASSERT(instance < bit_count,
+				"impossibly, no zero bit found");
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -133,8 +134,9 @@ static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 /**********************************************************************/
 int allocate_kvdo_instance(unsigned int *instance_ptr)
 {
+	int result;
 	mutex_lock(&instance_number_lock);
-	int result = allocate_kvdo_instance_locked(instance_ptr);
+	result = allocate_kvdo_instance_locked(instance_ptr);
 
 	mutex_unlock(&instance_number_lock);
 	return result;

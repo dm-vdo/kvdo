@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#11 $
  */
 
 #include "bufferPool.h"
@@ -68,6 +68,8 @@ int make_buffer_pool(const char *pool_name,
 		     struct buffer_pool **pool_ptr)
 {
 	struct buffer_pool *pool;
+	struct buffer_element *bh;
+	int i;
 
 	int result = ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
 
@@ -101,8 +103,7 @@ int make_buffer_pool(const char *pool_name,
 	spin_lock_init(&pool->lock);
 	INIT_LIST_HEAD(&pool->free_object_list);
 	INIT_LIST_HEAD(&pool->spare_list_nodes);
-	struct buffer_element *bh = pool->bhead;
-	int i;
+	bh = pool->bhead;
 
 	for (i = 0; i < pool->size; i++) {
 		result = pool->alloc(&bh->data);
@@ -200,6 +201,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 /*************************************************************************/
 int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 {
+	struct buffer_element *bh;
 	if (pool == NULL) {
 		return UDS_INVALID_ARGUMENT;
 	}
@@ -211,10 +213,8 @@ int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 		return -ENOMEM;
 	}
 
-	struct buffer_element *bh =
-		list_first_entry(&pool->free_object_list,
-				 struct buffer_element,
-				 list);
+	bh = list_first_entry(&pool->free_object_list,
+			      struct buffer_element, list);
 	list_move(&bh->list, &pool->spare_list_nodes);
 	pool->num_busy++;
 	if (pool->num_busy > pool->max_busy) {
@@ -228,13 +228,12 @@ int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 /*************************************************************************/
 static bool free_buffer_to_pool_internal(struct buffer_pool *pool, void *data)
 {
+	struct buffer_element *bh;
 	if (unlikely(list_empty(&pool->spare_list_nodes))) {
 		return false;
 	}
-	struct buffer_element *bh =
-		list_first_entry(&pool->spare_list_nodes,
-				 struct buffer_element,
-				 list);
+	bh = list_first_entry(&pool->spare_list_nodes,
+			      struct buffer_element, list);
 	list_move(&bh->list, &pool->free_object_list);
 	bh->data = data;
 	pool->num_busy--;
@@ -244,8 +243,9 @@ static bool free_buffer_to_pool_internal(struct buffer_pool *pool, void *data)
 /*************************************************************************/
 void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 {
+	bool success;
 	spin_lock(&pool->lock);
-	bool success = free_buffer_to_pool_internal(pool, data);
+	success = free_buffer_to_pool_internal(pool, data);
 
 	spin_unlock(&pool->lock);
 	if (!success) {
@@ -256,9 +256,9 @@ void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 /*************************************************************************/
 void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 {
-	spin_lock(&pool->lock);
 	bool success = true;
 	int i;
+	spin_lock(&pool->lock);
 
 	for (i = 0; (i < count) && success; i++) {
 		success = free_buffer_to_pool_internal(pool, data[i]);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#80 $
  */
 
 #include "dmvdo.h"
@@ -176,6 +176,7 @@ static void vdo_status(struct dm_target *ti,
 		       unsigned int maxlen)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo_statistics *stats;
 	char name_buffer[BDEVNAME_SIZE];
 	// N.B.: The DMEMIT macro uses the variables named "sz", "result",
 	// "maxlen".
@@ -186,7 +187,7 @@ static void vdo_status(struct dm_target *ti,
 		// Report info for dmsetup status
 		mutex_lock(&layer->stats_mutex);
 		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-		struct vdo_statistics *stats = &layer->vdo_stats_storage;
+		stats = &layer->vdo_stats_storage;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
 		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
@@ -374,6 +375,8 @@ process_vdo_message_locked(struct kernel_layer *layer,
 static int __must_check
 process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 {
+	int result;
+
 	/*
 	 * All messages which may be processed in parallel with other messages
 	 * should be handled here before the atomic check below. Messages which
@@ -426,7 +429,7 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 		return -EBUSY;
 	}
 
-	int result = process_vdo_message_locked(layer, argc, argv);
+	result = process_vdo_message_locked(layer, argc, argv);
 
 	smp_wmb();
 	atomic_set(&layer->processing_message, 0);
@@ -440,13 +443,15 @@ static int vdo_message(struct dm_target *ti,
 		       char *result_buffer,
 		       unsigned int maxlen)
 {
+	struct registered_thread allocating_thread, instance_thread;
+	struct kernel_layer *layer;
+	int result;
 	if (argc == 0) {
 		log_warning("unspecified dmsetup message");
 		return -EINVAL;
 	}
 
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	struct registered_thread allocating_thread, instance_thread;
+	layer = get_kernel_layer_for_target(ti);
 
 	register_allocating_thread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
@@ -470,7 +475,7 @@ static int vdo_message(struct dm_target *ti,
 		}
 	}
 
-	int result = process_vdo_message(layer, argc, argv);
+	result = process_vdo_message(layer, argc, argv);
 
 	unregister_thread_device_id();
 	unregister_allocating_thread();
@@ -554,12 +559,24 @@ static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
 {
-	log_info("loading device '%s'", config->pool_name);
+	// The thread_config will be copied by the VDO if it's successfully
+	// created.
+	struct vdo_load_config load_config = {
+		.cache_size = config->cache_size,
+		.thread_config = NULL,
+		.write_policy = config->write_policy,
+		.maximum_age = config->block_map_maximum_age,
+	};
+
+	char *failure_reason;
+	struct kernel_layer *layer;
+	int result;
 
 	uint64_t block_size = VDO_BLOCK_SIZE;
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
+	log_info("loading device '%s'", config->pool_name);
 	log_debug("Logical block size     = %llu",
 		  (uint64_t) config->logical_block_size);
 	log_debug("Logical blocks         = %llu", logical_blocks);
@@ -573,24 +590,13 @@ static int vdo_initialize(struct dm_target *ti,
 	log_debug("Deduplication          = %s",
 		  (config->deduplication ? "on" : "off"));
 
-	// The thread_config will be copied by the VDO if it's successfully
-	// created.
-	struct vdo_load_config load_config = {
-		.cache_size = config->cache_size,
-		.thread_config = NULL,
-		.write_policy = config->write_policy,
-		.maximum_age = config->block_map_maximum_age,
-	};
-
-	char *failure_reason;
-	struct kernel_layer *layer;
-	int result = make_kernel_layer(ti->begin,
-				       instance,
-				       config,
-				       &vdo_globals.kobj,
-				       &load_config.thread_config,
-				       &failure_reason,
-				       &layer);
+	result = make_kernel_layer(ti->begin,
+				   instance,
+				   config,
+				   &vdo_globals.kobj,
+				   &load_config.thread_config,
+				   &failure_reason,
+				   &layer);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
 			      result,
@@ -639,14 +645,17 @@ static int vdo_initialize(struct dm_target *ti,
 static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
 	int result = VDO_SUCCESS;
+	struct registered_thread allocating_thread, instance_thread;
+	const char *device_name;
+	struct kernel_layer *old_layer;
+	unsigned int instance;
+	bool verbose;
+	struct device_config *config = NULL;
 
-	struct registered_thread allocating_thread;
 	register_allocating_thread(&allocating_thread, NULL);
 
-	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
-	struct kernel_layer *old_layer = find_layer_matching(layer_is_named,
-							     (void *)device_name);
-	unsigned int instance;
+	device_name = dm_device_name(dm_table_get_md(ti->table));
+	old_layer = find_layer_matching(layer_is_named, (void *)device_name);
 	if (old_layer == NULL) {
 		result = allocate_kvdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
@@ -657,11 +666,9 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		instance = old_layer->instance;
 	}
 
-	struct registered_thread instance_thread;
 	register_thread_device_id(&instance_thread, &instance);
 
-	bool verbose = (old_layer == NULL);
-	struct device_config *config = NULL;
+	verbose = (old_layer == NULL);
 
 	result = parse_device_config(argc, argv, ti, verbose, &config);
 	if (result != VDO_SUCCESS) {
@@ -767,12 +774,14 @@ static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
+	const char *pool_name;
+	int result;
 
 	register_thread_device(&instance_thread, layer);
-	const char *pool_name = layer->device_config->pool_name;
+	pool_name = layer->device_config->pool_name;
 
 	log_info("suspending device '%s'", pool_name);
-	int result = suspend_kernel_layer(layer);
+	result = suspend_kernel_layer(layer);
 
 	if (result == VDO_SUCCESS) {
 		log_info("device '%s' suspended", pool_name);
@@ -791,6 +800,7 @@ static int vdo_preresume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
+	int result;
 
 	block_count_t backing_blocks =
 		get_underlying_device_block_count(layer);
@@ -804,11 +814,13 @@ static int vdo_preresume(struct dm_target *ti)
 	register_thread_device(&instance_thread, layer);
 
 	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
+		char *failure_reason;
+		int result;
+
 		// This is the first time this device has been resumed, so run
 		// it.
 		log_info("starting device '%s'", config->pool_name);
-		char *failure_reason;
-		int result = start_kernel_layer(layer, &failure_reason);
+		result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
 			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
@@ -826,7 +838,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
-	int result = modify_kernel_layer(layer, config);
+	result = modify_kernel_layer(layer, config);
 
 	if (result != VDO_SUCCESS) {
 		log_error_strerror(result,

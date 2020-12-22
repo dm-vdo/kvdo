@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#67 $
  */
 
 #include "ioSubmitter.h"
@@ -191,12 +191,15 @@ static unsigned int bio_queue_number_for_pbn(struct io_submitter *io_submitter,
  **/
 static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 {
+	struct bio_queue_data *this_queue;
+	struct io_submitter *submitter;
+	unsigned int computed_queue_number;
+
 	assert_running_in_bio_queue();
 
-	struct bio_queue_data *this_queue = get_current_bio_queue_data();
-	struct io_submitter *submitter = bio_queue_to_submitter(this_queue);
-	unsigned int computed_queue_number =
-		bio_queue_number_for_pbn(submitter, pbn);
+	this_queue = get_current_bio_queue_data();
+	submitter = bio_queue_to_submitter(this_queue);
+	computed_queue_number = bio_queue_number_for_pbn(submitter, pbn);
 	ASSERT_LOG_ONLY(this_queue->queue_number == computed_queue_number,
 			"running in correct bio queue (%u vs %u) for PBN %llu",
 			this_queue->queue_number,
@@ -277,8 +280,8 @@ static sector_t get_bio_sector(struct bio *bio)
  **/
 static void process_bio_map(struct vdo_work_item *item)
 {
-	assert_running_in_bio_queue();
 	struct vio *vio = work_item_as_vio(item);
+	assert_running_in_bio_queue();
 	// XXX Should we call finish_bio_queue for the biomap case on old
 	// kernels?
 	if (USE_BIOMAP && is_data_vio(vio)) {
@@ -342,6 +345,7 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 {
 	struct bio *bio = vio->bio_to_submit;
 	sector_t merge_sector = get_bio_sector(bio);
+	struct vio *vio_merge;
 
 	switch (merge_type) {
 	case ELEVATOR_BACK_MERGE:
@@ -352,7 +356,7 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		break;
 	}
 
-	struct vio *vio_merge = int_map_get(map, merge_sector);
+	vio_merge = int_map_get(map, merge_sector);
 
 	if (vio_merge == NULL) {
 		return NULL;
@@ -405,19 +409,18 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 			      struct vio *vio,
 			      struct bio *bio)
 {
+	int result;
 	bool merged = false;
+	struct vio *prev_vio, *next_vio;
 
 	mutex_lock(&bio_queue_data->lock);
-	struct vio *prev_vio = get_mergeable_locked(bio_queue_data->map,
-						    vio,
-						    ELEVATOR_BACK_MERGE);
-	struct vio *next_vio = get_mergeable_locked(bio_queue_data->map,
-						    vio,
-						    ELEVATOR_FRONT_MERGE);
+	prev_vio = get_mergeable_locked(bio_queue_data->map, vio,
+					ELEVATOR_BACK_MERGE);
+	next_vio = get_mergeable_locked(bio_queue_data->map, vio,
+				        ELEVATOR_FRONT_MERGE);
 	if (prev_vio == next_vio) {
 		next_vio = NULL;
 	}
-	int result;
 
 	if ((prev_vio == NULL) && (next_vio == NULL)) {
 		// no merge. just add to bio_queue
@@ -481,13 +484,15 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 {
 	struct vio *vio = bio->bi_private;
-	vio->bio_to_submit = bio;
-	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
-
 	struct kernel_layer *layer =
 		as_kernel_layer(vio_as_completion(vio)->layer);
 	struct bio_queue_data *bio_queue_data =
 		bio_queue_data_for_pbn(layer->io_submitter, vio->physical);
+
+	bool merged = false;
+
+	vio->bio_to_submit = bio;
+	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
 
 	vio_add_trace_record(vio, THIS_LOCATION("$F($io)"));
 
@@ -501,8 +506,6 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 	 * pending bio, enqueue an operation to run in a bio submission thread
 	 * appropriate to the indicated physical block number.
 	 */
-
-	bool merged = false;
 
 	if (USE_BIOMAP && is_data_vio(vio)) {
 		merged = try_bio_map_merge(bio_queue_data, vio, bio);
@@ -535,6 +538,8 @@ int make_io_submitter(const char *thread_name_prefix,
 		      struct kernel_layer *layer,
 		      struct io_submitter **io_submitter_ptr)
 {
+	char queue_name[MAX_QUEUE_NAME_LEN];
+	unsigned int i;
 	struct io_submitter *io_submitter;
 	int result = ALLOCATE_EXTENDED(struct io_submitter,
 				       thread_count,
@@ -545,12 +550,10 @@ int make_io_submitter(const char *thread_name_prefix,
 		return result;
 	}
 
-	// Setup for each bio-submission work queue
-	char queue_name[MAX_QUEUE_NAME_LEN];
 
 	io_submitter->bio_queue_rotation_interval = rotation_interval;
-	unsigned int i;
 
+	// Setup for each bio-submission work queue
 	for (i = 0; i < thread_count; i++) {
 		struct bio_queue_data *bio_queue_data =
 			&io_submitter->bio_queue_data[i];

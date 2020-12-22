@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#24 $
  */
 
 #include "physicalLayer.h"
@@ -132,6 +132,9 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 /**********************************************************************/
 void verify_duplication(struct data_vio *data_vio)
 {
+	const struct trace_location *location =
+		THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
+	data_vio_add_trace_record(data_vio, location);
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"advice to verify must be valid");
 	ASSERT_LOG_ONLY(data_vio->duplicate.state != MAPPING_STATE_UNMAPPED,
@@ -141,9 +144,6 @@ void verify_duplication(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zeroed block should not have advice to verify");
 
-	const struct trace_location *location =
-		THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
-	data_vio_add_trace_record(data_vio, location);
 	kvdo_read_block(data_vio,
 			data_vio->duplicate.pbn,
 			data_vio->duplicate.state,
