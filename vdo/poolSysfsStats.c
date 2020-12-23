@@ -35,6 +35,7 @@ static ssize_t pool_stats_attr_show(struct kobject *kobj,
 				    struct attribute *attr,
 				    char *buf)
 {
+	ssize_t size;
 	struct pool_stats_attribute *pool_stats_attr =
 		container_of(attr, struct pool_stats_attribute, attr);
 	struct kernel_layer *layer =
@@ -51,7 +52,7 @@ static ssize_t pool_stats_attr_show(struct kobject *kobj,
 		get_kernel_statistics(layer, &layer->kernel_stats_storage);
 	}
 
-	ssize_t size = pool_stats_attr->print(layer, buf);
+	size = pool_stats_attr->print(layer, buf);
 	mutex_unlock(&layer->stats_mutex);
 
 	return size;
