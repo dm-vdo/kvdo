@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#137 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#138 $
  */
 
 #include "kernelLayer.h"
@@ -373,17 +373,6 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 }
 
 /**
- * Implements buffer_allocator.
- **/
-static int kvdo_allocate_io_buffer(PhysicalLayer *layer __always_unused,
-				   size_t bytes,
-				   const char *why,
-				   char **buffer_ptr)
-{
-	return ALLOCATE(bytes, char, why, buffer_ptr);
-}
-
-/**
  * Implements extent_reader. Exists only for the geometry block; is unset after
  * it is read.
  **/
@@ -493,9 +482,6 @@ int make_kernel_layer(uint64_t starting_sector,
 		*reason = "Cannot allocate VDO configuration";
 		return result;
 	}
-
-	// Allow the base VDO to allocate buffers.
-	layer->common.allocateIOBuffer = kvdo_allocate_io_buffer;
 
 	old_layer = find_layer_matching(layer_uses_device, config);
 	if (old_layer != NULL) {

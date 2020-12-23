@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#5 $
  */
 
 #include "superBlockCodec.h"
@@ -57,9 +57,8 @@ int initialize_super_block_codec(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
-					 "encoded super block",
-					 (char **) &codec->encoded_super_block);
+	result = ALLOCATE(VDO_BLOCK_SIZE, char, "encoded super block",
+			  (char **) &codec->encoded_super_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
