@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#118 $
  */
 
 #include "dataKVIO.h"
@@ -784,8 +784,6 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, data_block));
 
-	vio->bio_to_submit = NULL;
-
 	initialize_kvio(vio,
 			layer,
 			VIO_TYPE_DATA,
@@ -1304,7 +1302,7 @@ static void dump_pooled_data_vio(void *data)
 		 get_operation_name(data_vio), vio_work_item_dump_buffer,
 		 flags_dump_buffer);
 	// might want info on: wantAlbireoAnswer / operation / status
-	// might want info on: bio / bio_to_submit / bios_merged
+	// might want info on: bio / bios_merged
 
 	dump_vio_waiters(&data_vio->logical.waiters, "lbn");
 

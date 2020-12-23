@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#68 $
  */
 
 #include "ioSubmitter.h"
@@ -268,15 +268,12 @@ static sector_t get_bio_sector(struct bio *bio)
  * Submits a bio to the underlying block device.  May block if the
  * device is busy.
  *
- * For metadata or if USE_BIOMAP is disabled, vio->bio_to_submit holds
- * the struct bio pointer to submit to the target device. For normal
- * data when USE_BIOMAP is enabled, vio->bios_merged is the list of
- * all bios collected together in this group; all of them get
- * submitted. In both cases, the bi_end_io callback is invoked when
- * each I/O operation completes.
+ * For normal data when USE_BIOMAP is enabled, vio->bios_merged is
+ * the list of all bios collected together in this group; all of
+ * them get submitted.
  *
- * @param item  The work item in the vio "owning" either the bio to
- *              submit, or the head of the bio_list to be submitted.
+ * @param item  The work item in the vio "owning" the head of the
+ *		bio_list to be submitted.
  **/
 static void process_bio_map(struct vdo_work_item *item)
 {
@@ -322,7 +319,7 @@ static void process_bio_map(struct vdo_work_item *item)
 		}
 	} else {
 		send_bio_to_device(vio,
-				   vio->bio_to_submit,
+				   vio->bio,
 				   THIS_LOCATION("$F($io)"));
 	}
 }
@@ -343,7 +340,7 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 					struct vio *vio,
 					unsigned int merge_type)
 {
-	struct bio *bio = vio->bio_to_submit;
+	struct bio *bio = vio->bio;
 	sector_t merge_sector = get_bio_sector(bio);
 	struct vio *vio_merge;
 
@@ -367,7 +364,7 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 		return NULL;
 	}
 
-	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio_to_submit)) {
+	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio)) {
 		return NULL;
 	}
 
@@ -491,7 +488,6 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 
 	bool merged = false;
 
-	vio->bio_to_submit = bio;
 	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
 
 	vio_add_trace_record(vio, THIS_LOCATION("$F($io)"));

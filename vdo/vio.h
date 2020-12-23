@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#30 $
  */
 
 #ifndef VIO_H
@@ -67,13 +67,6 @@ struct vio {
 
 	/* The VDO-owned bio to use for all IO for this vio */
 	struct bio *bio;
-	/**
-	 * A bio pointer used in enqueueBioMap (used via vdo_submit_bio etc),
-	 * to pass information -- which bio to submit to the storage device --
-	 * across a thread switch. This may match another bio pointer in
-	 * this structure, or could point somewhere else.
-	 **/
-	struct bio *bio_to_submit;
 	/**
 	 * A list of enqueued bios with consecutive block numbers, stored by
 	 * enqueueBioMap under the first-enqueued vio. The other vios are
