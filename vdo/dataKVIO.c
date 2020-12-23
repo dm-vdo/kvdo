@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#117 $
  */
 
 #include "dataKVIO.h"
@@ -182,7 +182,6 @@ static noinline void clean_data_vio(struct data_vio *data_vio,
 	struct vio *vio = data_vio_as_vio(data_vio);
 	vio_add_trace_record(vio, THIS_LOCATION(NULL));
 	kvdo_acknowledge_data_vio(data_vio);
-	vio->bio = NULL;
 
 	if (unlikely(vio->trace != NULL)) {
 		maybe_log_vio_trace(vio);
@@ -372,8 +371,9 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 static void complete_read(struct data_vio *data_vio)
 {
 	struct read_block *read_block = &data_vio->read_block;
+	struct vio *vio = data_vio_as_vio(data_vio);
 
-	read_block->status = blk_status_to_errno(data_vio->bio->bi_status);
+	read_block->status = blk_status_to_errno(vio->bio->bi_status);
 
 	if ((read_block->status == VDO_SUCCESS) &&
 	    is_compressed(read_block->mapping_state)) {
@@ -384,7 +384,7 @@ static void complete_read(struct data_vio *data_vio)
 		return;
 	}
 
-	read_block->callback(vio_as_completion(data_vio_as_vio(data_vio)));
+	read_block->callback(vio_as_completion(vio));
 }
 
 /**
@@ -421,7 +421,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 	read_block->mapping_state = mapping_state;
 
 	// Read the data using the read block buffer.
-	result = reset_bio_with_buffer(data_vio->bio, read_block->buffer,
+	result = reset_bio_with_buffer(vio->bio, read_block->buffer,
 				       vio, read_bio_callback, REQ_OP_READ,
 				       location);
 	if (result != VDO_SUCCESS) {
@@ -429,7 +429,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 		return;
 	}
 
-	vdo_submit_bio(data_vio->bio, action);
+	vdo_submit_bio(vio->bio, action);
 }
 
 /**********************************************************************/
@@ -452,7 +452,7 @@ static void acknowledge_user_bio(struct bio *bio)
 void read_data_vio(struct data_vio *data_vio)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	struct bio *bio = data_vio->bio;
+	struct bio *bio = vio->bio;
 	int result = VDO_SUCCESS;
 	int opf = (data_vio->user_bio->bi_opf &
 		   PASSTHROUGH_FLAGS);
@@ -473,15 +473,13 @@ void read_data_vio(struct data_vio *data_vio)
 	// Read directly into the user buffer (for a 4k read) or the data
 	// block (for a partial IO).
 	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
-		result = reset_bio_with_buffer(data_vio->bio,
-					       data_vio->data_block, vio,
+		result = reset_bio_with_buffer(bio, data_vio->data_block, vio,
 					       complete_async_bio,
 					       REQ_OP_READ | opf,
 					       data_vio->mapped.pbn);
 	} else if (data_vio->is_partial) {
 		// A partial read.
-		result = reset_bio_with_buffer(data_vio->bio,
-					       data_vio->data_block, vio,
+		result = reset_bio_with_buffer(bio, data_vio->data_block, vio,
 					       complete_async_bio,
 					       REQ_OP_READ | opf,
 					       data_vio->mapped.pbn);
@@ -573,7 +571,7 @@ void write_data_vio(struct data_vio *data_vio)
 	}
 
 	// Write the data from the data block buffer.
-	result = reset_bio_with_buffer(data_vio->bio, data_vio->data_block,
+	result = reset_bio_with_buffer(vio->bio, data_vio->data_block,
 				       vio, complete_async_bio,
 				       REQ_OP_WRITE | opf,
 				       data_vio->new_mapped.pbn);
@@ -582,7 +580,7 @@ void write_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	vdo_submit_bio(data_vio->bio, BIO_Q_ACTION_DATA);
+	vdo_submit_bio(vio->bio, BIO_Q_ACTION_DATA);
 }
 
 /**
@@ -765,6 +763,7 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 {
 	struct data_vio *data_vio;
 	struct vio *vio;
+	struct bio *vio_bio;
 	int result = alloc_buffer_from_pool(layer->data_vio_pool,
 					    (void **) &data_vio);
 	if (result != VDO_SUCCESS) {
@@ -776,18 +775,23 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
 	}
 
+	// XXX We save the bio out of the vio so that we don't forget it.
+	// Maybe we should just not zero that field somehow.
+	vio = data_vio_as_vio(data_vio);
+	vio_bio = vio->bio;
+
 	// Zero out the fields which don't need to be preserved (i.e. which
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, data_block));
 
-	vio = data_vio_as_vio(data_vio);
 	vio->bio_to_submit = NULL;
+
 	initialize_kvio(vio,
 			layer,
 			VIO_TYPE_DATA,
 			VIO_PRIORITY_DATA,
 			NULL,
-			bio);
+			vio_bio);
 	*data_vio_ptr = data_vio;
 	return VDO_SUCCESS;
 }
@@ -854,7 +858,6 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 		data_vio->read_block.data = data_vio->data_block;
 	}
 
-	data_vio_as_vio(data_vio)->bio = NULL;
 	*data_vio_ptr = data_vio;
 	return VDO_SUCCESS;
 }
@@ -1054,6 +1057,7 @@ void update_dedupe_index(struct data_vio *data_vio)
 static void free_pooled_data_vio(void *data)
 {
 	struct data_vio *data_vio;
+	struct vio *vio;
 
 	if (data == NULL) {
 		return;
@@ -1065,8 +1069,9 @@ static void free_pooled_data_vio(void *data)
 		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
 	}
 
-	if (data_vio->bio != NULL) {
-		free_bio(data_vio->bio);
+	vio = data_vio_as_vio(data_vio);
+	if (vio->bio != NULL) {
+		free_bio(vio->bio);
 	}
 
 	FREE(data_vio->read_block.buffer);
@@ -1086,6 +1091,7 @@ static void free_pooled_data_vio(void *data)
 static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 {
 	struct data_vio *data_vio;
+	struct vio *vio;
 	int result;
 
 	if (WRITE_PROTECT_FREE_POOL) {
@@ -1113,7 +1119,8 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 					  "data_vio data allocation failure");
 	}
 
-	result = create_bio(&data_vio->bio);
+	vio = data_vio_as_vio(data_vio);
+	result = create_bio(&vio->bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_vio(data_vio);
 		return log_error_strerror(result,

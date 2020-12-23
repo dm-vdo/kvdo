@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#60 $
  */
 
 #ifndef DATA_VIO_H
@@ -313,8 +313,6 @@ struct data_vio {
 	 * emulating smaller-than-blockSize I/O operations.
 	 **/
 	char *data_block;
-	/** A bio structure, used for all reads and writes from/to disk */
-	struct bio *bio;
 	/** A block used as output during compression or uncompression */
 	char *scratch_block;
 	/* For data and verification reads */
