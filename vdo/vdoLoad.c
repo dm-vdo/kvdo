@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#58 $
  */
 
 #include "vdoLoad.h"
@@ -44,10 +44,10 @@
 #include "vdoRecovery.h"
 
 /**
- * Extract the vdo from an AdminCompletion, checking that the current operation
- * is a load.
+ * Extract the vdo from an admin_completion, checking that the current
+ * operation is a load.
  *
- * @param completion  The AdminCompletion's sub-task completion
+ * @param completion  The admin_completion's sub-task completion
  *
  * @return The vdo
  **/
