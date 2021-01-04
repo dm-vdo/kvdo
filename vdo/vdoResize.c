@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#38 $
  */
 
 #include "vdoResize.h"
@@ -31,14 +31,14 @@
 #include "vdoInternal.h"
 #include "vdoLayout.h"
 
-typedef enum {
+enum {
 	GROW_PHYSICAL_PHASE_START = 0,
 	GROW_PHYSICAL_PHASE_COPY_SUMMARY,
 	GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS,
 	GROW_PHYSICAL_PHASE_USE_NEW_SLABS,
 	GROW_PHYSICAL_PHASE_END,
 	GROW_PHYSICAL_PHASE_ERROR,
-} GrowPhysicalPhase;
+};
 
 static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 	"GROW_PHYSICAL_PHASE_START",

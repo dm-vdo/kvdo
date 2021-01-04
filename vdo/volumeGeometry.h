@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#19 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -32,15 +32,15 @@ struct index_config {
 	bool sparse;
 } __packed;
 
-typedef enum {
+enum volume_region_id {
 	INDEX_REGION = 0,
 	DATA_REGION = 1,
 	VOLUME_REGION_COUNT,
-} volume_region_id;
+};
 
 struct volume_region {
 	/** The ID of the region */
-	volume_region_id id;
+	enum volume_region_id id;
 	/**
 	 * The absolute starting offset on the device. The region continues
 	 * until the next region begins.

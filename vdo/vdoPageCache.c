@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#52 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -271,7 +271,7 @@ static void report_cache_pressure(struct vdo_page_cache *cache)
 }
 
 /**********************************************************************/
-const char *vpc_page_state_name(page_state state)
+const char *vpc_page_state_name(enum vdo_page_buffer_state state)
 {
 	int result;
 	static const char *state_names[] = {
@@ -347,7 +347,8 @@ static void update_lru(struct page_info *info)
  * @param info       the page_info to modify
  * @param new_state  the new state for the page_info
  **/
-static void set_info_state(struct page_info *info, page_state new_state)
+static void set_info_state(struct page_info *info,
+			   enum vdo_page_buffer_state new_state)
 {
 	if (new_state == info->state) {
 		return;

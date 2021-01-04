@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#47 $
  */
 
 #include "slab.h"
@@ -366,7 +366,7 @@ void finish_scrubbing_slab(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-static const char *status_to_string(slab_rebuild_status status)
+static const char *status_to_string(enum slab_rebuild_status status)
 {
 	switch (status) {
 	case SLAB_REBUILT:

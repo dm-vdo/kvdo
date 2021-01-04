@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#30 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -106,7 +106,7 @@ struct vdo_page_cache {
  * @note Update the static data in vpc_page_state_name() if you change this
  * enumeration.
  **/
-typedef enum __packed {
+enum vdo_page_buffer_state {
 	/* this page buffer is not being used */
 	PS_FREE,
 	/* this page is being read from store */
@@ -121,16 +121,16 @@ typedef enum __packed {
 	PS_OUTGOING,
 	/* not a state */
 	PAGE_STATE_COUNT,
-} page_state;
+} __packed;
 
 /**
  * The write status of page
  **/
-typedef enum __packed {
+enum vdo_page_write_status {
 	WRITE_STATUS_NORMAL,
 	WRITE_STATUS_DISCARD,
 	WRITE_STATUS_DEFERRED,
-} write_status;
+} __packed;
 
 /**
  * Per-page-slot information.
@@ -145,9 +145,9 @@ struct page_info {
 	/** page is busy (temporarily locked) */
 	uint16_t busy;
 	/** the write status the page */
-	write_status write_status;
+	enum vdo_page_write_status write_status;
 	/** page state */
-	page_state state;
+	enum vdo_page_buffer_state state;
 	/** queue of completions awaiting this item */
 	struct wait_queue waiting;
 	/** state linked list entry */
@@ -287,6 +287,7 @@ vpc_find_page(struct vdo_page_cache *cache, physical_block_number_t pbn);
  * @note If the page state is invalid a static string is returned and the
  *       invalid state is logged.
  **/
-const char * __must_check vpc_page_state_name(page_state state);
+const char * __must_check
+vpc_page_state_name(enum vdo_page_buffer_state state);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

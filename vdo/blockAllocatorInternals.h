@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#30 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -37,13 +37,13 @@ enum {
 	VIO_POOL_SIZE = 128,
 };
 
-typedef enum {
+enum block_allocator_drain_step {
 	DRAIN_ALLOCATOR_START = 0,
 	DRAIN_ALLOCATOR_STEP_SCRUBBER,
 	DRAIN_ALLOCATOR_STEP_SLABS,
 	DRAIN_ALLOCATOR_STEP_SUMMARY,
 	DRAIN_ALLOCATOR_STEP_FINISHED,
-} BlockAllocatorDrainStep;
+};
 
 /**
  * A sub-structure for applying actions in parallel to all an allocator's
@@ -89,7 +89,7 @@ struct block_allocator {
 	/** The slab scrubber */
 	struct slab_scrubber *slab_scrubber;
 	/** What phase of the close operation the allocator is to perform */
-	BlockAllocatorDrainStep drain_step;
+	enum block_allocator_drain_step drain_step;
 
 	/*
 	 * These statistics are all mutated only by the physical zone thread,

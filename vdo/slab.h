@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#35 $
  */
 
 #ifndef VDO_SLAB_H
@@ -31,13 +31,13 @@
 #include "referenceOperation.h"
 #include "types.h"
 
-typedef enum {
+enum slab_rebuild_status {
 	SLAB_REBUILT = 0,
 	SLAB_REPLAYING,
 	SLAB_REQUIRES_SCRUBBING,
 	SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING,
 	SLAB_REBUILDING,
-} slab_rebuild_status;
+};
 
 /**
  * This is the type declaration for the vdo_slab type. A vdo_slab currently
@@ -74,7 +74,7 @@ struct vdo_slab {
 	/** The administrative state of the slab */
 	struct admin_state state;
 	/** The status of the slab */
-	slab_rebuild_status status;
+	enum slab_rebuild_status status;
 	/** Whether the slab was ever queued for scrubbing */
 	bool was_queued_for_scrubbing;
 
