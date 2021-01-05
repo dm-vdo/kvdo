@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#10 $
  */
 
 #ifndef PBN_LOCK_H
@@ -29,12 +29,12 @@
 /**
  * The type of a PBN lock.
  **/
-typedef enum {
+enum pbn_lock_type {
 	VIO_READ_LOCK = 0,
 	VIO_WRITE_LOCK,
 	VIO_COMPRESSED_WRITE_LOCK,
 	VIO_BLOCK_MAP_WRITE_LOCK,
-} pbn_lock_type;
+};
 
 struct pbn_lock_implementation;
 
@@ -80,7 +80,7 @@ struct pbn_lock {
  * @param lock  The lock to initialize
  * @param type  The type of the lock
  **/
-void initialize_pbn_lock(struct pbn_lock *lock, pbn_lock_type type);
+void initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type);
 
 /**
  * Check whether a pbn_lock is a read lock.

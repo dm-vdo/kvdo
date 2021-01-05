@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#17 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -72,14 +72,14 @@ struct block_map_page {
 	struct block_map_entry entries[];
 } __packed;
 
-typedef enum {
+enum block_map_page_validity {
 	// A block map page is correctly initialized
 	BLOCK_MAP_PAGE_VALID,
 	// A block map page is uninitialized
 	BLOCK_MAP_PAGE_INVALID,
 	// A block map page is intialized, but is the wrong page
 	BLOCK_MAP_PAGE_BAD,
-} block_map_page_validity;
+};
 
 /**
  * Check whether a block map page has been initialized.
@@ -161,7 +161,7 @@ struct block_map_page *format_block_map_page(void *buffer,
  *
  * @return The validity of the page
  **/
-block_map_page_validity __must_check
+enum block_map_page_validity __must_check
 validate_block_map_page(struct block_map_page *page,
 			nonce_t nonce,
 			physical_block_number_t pbn);

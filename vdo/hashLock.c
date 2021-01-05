@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#43 $
  */
 
 /**
@@ -154,7 +154,7 @@ struct pbn_lock *get_duplicate_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-const char *get_hash_lock_state_name(hash_lock_state state)
+const char *get_hash_lock_state_name(enum hash_lock_state state)
 {
 	// Catch if a state has been added without updating the name array.
 	STATIC_ASSERT((HASH_LOCK_DESTROYING + 1) == COUNT_OF(LOCK_STATE_NAMES));
@@ -169,7 +169,7 @@ const char *get_hash_lock_state_name(hash_lock_state state)
  * @param new_state  The new state
  **/
 static void set_hash_lock_state(struct hash_lock *lock,
-				hash_lock_state new_state)
+				enum hash_lock_state new_state)
 {
 	if (false) {
 		log_warning("XXX %px %s -> %s", (void *) lock,

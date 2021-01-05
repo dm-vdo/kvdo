@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#10 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -26,10 +26,10 @@
 
 #include "types.h"
 
-typedef enum {
+enum partition_direction {
 	FROM_BEGINNING,
 	FROM_END,
-} partition_direction;
+};
 
 extern const block_count_t ALL_FREE_BLOCKS;
 
@@ -146,7 +146,7 @@ int __must_check
 make_fixed_layout_partition(struct fixed_layout *layout,
 			    partition_id id,
 			    block_count_t block_count,
-			    partition_direction direction,
+			    enum partition_direction direction,
 			    physical_block_number_t base);
 
 /**

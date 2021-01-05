@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#22 $
  */
 
 #include "physicalZone.h"
@@ -131,7 +131,7 @@ struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
 /**********************************************************************/
 int attempt_pbn_lock(struct physical_zone *zone,
 		     physical_block_number_t pbn,
-		     pbn_lock_type type,
+		     enum pbn_lock_type type,
 		     struct pbn_lock **lock_ptr)
 {
 	// Borrow and prepare a lock from the pool so we don't have to do two

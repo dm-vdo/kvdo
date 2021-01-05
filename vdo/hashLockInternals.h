@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#15 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -28,7 +28,7 @@
 #include "uds.h"
 #include "waitQueue.h"
 
-typedef enum {
+enum hash_lock_state {
 	/** State for locks that are not in use or are being initialized. */
 	HASH_LOCK_INITIALIZING = 0,
 
@@ -55,7 +55,7 @@ typedef enum {
 	 * states.
 	 **/
 	HASH_LOCK_DESTROYING,
-} hash_lock_state;
+};
 
 struct hash_lock {
 	/** The block hash covered by this lock */
@@ -81,7 +81,7 @@ struct hash_lock {
 	vio_count_t max_references;
 
 	/** The current state of this lock */
-	hash_lock_state state;
+	enum hash_lock_state state;
 
 	/** True if the UDS index should be updated with new advice */
 	bool update_advice;
@@ -139,6 +139,6 @@ static inline void initialize_hash_lock(struct hash_lock *lock)
  *
  * @return The short string representing the state
  **/
-const char * __must_check get_hash_lock_state_name(hash_lock_state state);
+const char * __must_check get_hash_lock_state_name(enum hash_lock_state state);
 
 #endif // HASH_LOCK_INTERNALS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#14 $
  */
 
 #include "pbnLockPool.h"
@@ -98,7 +98,7 @@ void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
 
 /**********************************************************************/
 int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			      pbn_lock_type type,
+			      enum pbn_lock_type type,
 			      struct pbn_lock **lock_ptr)
 {
 	int result;

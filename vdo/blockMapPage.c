@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#27 $
  */
 
 #include "blockMapPage.h"
@@ -59,9 +59,10 @@ struct block_map_page *format_block_map_page(void *buffer,
 }
 
 /**********************************************************************/
-block_map_page_validity validate_block_map_page(struct block_map_page *page,
-						nonce_t nonce,
-						physical_block_number_t pbn)
+enum block_map_page_validity
+validate_block_map_page(struct block_map_page *page,
+			nonce_t nonce,
+			physical_block_number_t pbn)
 {
 	// Make sure the page layout isn't accidentally changed by changing the
 	// length of the page header.

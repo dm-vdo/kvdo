@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#10 $
  */
 
 #include "pbnLock.h"
@@ -27,7 +27,7 @@
 #include "packedReferenceBlock.h"
 
 struct pbn_lock_implementation {
-	pbn_lock_type type;
+	enum pbn_lock_type type;
 	const char *name;
 	const char *release_reason;
 };
@@ -60,7 +60,7 @@ static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
 
 /**********************************************************************/
 static inline bool has_lock_type(const struct pbn_lock *lock,
-				 pbn_lock_type type)
+				 enum pbn_lock_type type)
 {
 	return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
 }
@@ -72,13 +72,14 @@ bool is_pbn_read_lock(const struct pbn_lock *lock)
 }
 
 /**********************************************************************/
-static inline void set_pbn_lock_type(struct pbn_lock *lock, pbn_lock_type type)
+static inline void set_pbn_lock_type(struct pbn_lock *lock,
+				     enum pbn_lock_type type)
 {
 	lock->implementation = &LOCK_IMPLEMENTATIONS[type];
 }
 
 /**********************************************************************/
-void initialize_pbn_lock(struct pbn_lock *lock, pbn_lock_type type)
+void initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
 {
 	lock->holder_count = 0;
 	set_pbn_lock_type(lock, type);

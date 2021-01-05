@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#26 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -56,7 +56,7 @@ struct allocating_vio {
 	struct pbn_lock *allocation_lock;
 
 	/** The type of write lock to obtain on the allocated block */
-	pbn_lock_type write_lock_type;
+	enum pbn_lock_type write_lock_type;
 
 	/** The number of zones in which this vio has attempted an allocation */
 	zone_count_t allocation_attempts;
@@ -258,7 +258,7 @@ launch_physical_zone_callback(struct allocating_vio *allocating_vio,
  **/
 void allocate_data_block(struct allocating_vio *allocating_vio,
 			 struct allocation_selector *selector,
-			 pbn_lock_type write_lock_type,
+			 enum pbn_lock_type write_lock_type,
 			 allocation_callback *callback);
 
 /**
