@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#21 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -55,7 +55,6 @@ struct device_config {
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
 	bool deduplication;
-	char *pool_name;
 	struct thread_count_config thread_counts;
 	block_count_t max_discard_blocks;
 };
@@ -75,22 +74,6 @@ static inline struct device_config *as_device_config(struct list_head *entry)
 	}
 	return list_entry(entry, struct device_config, config_list);
 }
-
-/**
- * Grab a pointer to the pool name out of argv.
- *
- * @param [in]  argc           The number of table values
- * @param [in]  argv           The array of table values
- * @param [out] error_ptr      A pointer to return a error string in
- * @param [out] pool_name_ptr  A pointer to return the pool name
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check
-get_pool_name_from_argv(int argc,
-			char **argv,
-			char **error_ptr,
-			char **pool_name_ptr);
 
 /**
  * Convert the dmsetup table into a struct device_config.

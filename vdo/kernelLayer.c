@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#138 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#139 $
  */
 
 #include "kernelLayer.h"
@@ -110,7 +110,7 @@ static block_count_t kvdo_get_block_count(PhysicalLayer *header)
 bool layer_is_named(struct kernel_layer *layer, void *context)
 {
 	struct dm_target *ti = layer->device_config->owning_target;
-	const char *device_name = dm_device_name(dm_table_get_md(ti->table));
+	const char *device_name = get_vdo_device_name(ti);
 	return (strcmp(device_name, (const char *) context) == 0);
 }
 
@@ -339,6 +339,12 @@ struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 }
 
 /**********************************************************************/
+const char *get_vdo_device_name(const struct dm_target *ti)
+{
+     	return dm_device_name(dm_table_get_md(ti->table));
+}
+
+/**********************************************************************/
 void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 {
 	// If we had to buffer some requests to avoid deadlock, release them
@@ -485,8 +491,7 @@ int make_kernel_layer(uint64_t starting_sector,
 
 	old_layer = find_layer_matching(layer_uses_device, config);
 	if (old_layer != NULL) {
-		uds_log_error("Existing layer named %s already uses device %s",
-			      old_layer->device_config->pool_name,
+		uds_log_error("Existing layer already uses device %s",
 			      old_layer->device_config->parent_device_name);
 		*reason = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
@@ -502,8 +507,11 @@ int make_kernel_layer(uint64_t starting_sector,
 	// After this point, calling kobject_put on kobj will decrement its
 	// reference count, and when the count goes to 0 the struct kernel_layer
 	// will be freed.
+	struct dm_target *ti = config->owning_target;
+     	const char *device_name = get_vdo_device_name(ti);
+
 	kobject_init(&layer->kobj, &kernel_layer_kobj_type);
-	result = kobject_add(&layer->kobj, parent_kobject, config->pool_name);
+	result = kobject_add(&layer->kobj, parent_kobject, device_name);
 	if (result != 0) {
 		*reason = "Cannot add sysfs node";
 		kobject_put(&layer->kobj);
@@ -829,31 +837,6 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************
- * Modify the pool name of the device.
- *
- * @param layer       The kernel layer
- * @param old_name    The old pool name
- * @param new_name    The new pool name
- *
- * @return  VDO_SUCCESS or an error
- *
- */
-int modify_pool_name(struct kernel_layer *layer, char *old_name, char *new_name)
-{
-	int result;
-
-	// We use pool name for sysfs and procfs. Rename them accordingly
-	log_info("Modify pool name from %s to %s", old_name, new_name);
-
-	result = kobject_rename(&layer->kobj, new_name);
-	if (result != 0) {
-		return result;
-	}
-
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
 int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
@@ -885,7 +868,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 		 * written to synchronous storage.
 		 */
 		log_info("Modifying device '%s' write policy from %s to %s",
-			 config->pool_name,
+			 get_vdo_device_name(extant_config->owning_target),
 			 get_config_write_policy_string(extant_config),
 			 get_config_write_policy_string(config));
 		set_write_policy(layer->kvdo.vdo, config->write_policy);
@@ -904,18 +887,6 @@ int modify_kernel_layer(struct kernel_layer *layer,
 	if ((config->physical_blocks != extant_config->physical_blocks) ||
 	    (config->version == 0)) {
 		result = resize_physical(layer, config->physical_blocks);
-		if (result != VDO_SUCCESS) {
-			return result;
-		}
-	}
-
-	if (strcmp(config->pool_name, extant_config->pool_name) != 0) {
-		log_info("Modifying device '%s' pool name from %s to %s",
-			 config->pool_name,
-			 extant_config->pool_name,
-			 config->pool_name);
-		result = modify_pool_name(layer, extant_config->pool_name,
-					  config->pool_name);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

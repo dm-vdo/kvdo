@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#58 $
  */
 
 #ifndef KERNELLAYER_H
@@ -329,6 +329,15 @@ get_kernel_layer_state(const struct kernel_layer *layer)
 	smp_rmb();
 	return state;
 }
+
+/**
+ * Get the device name associated with the vdo target
+ *
+ * @param ti The target device interface.
+ *
+ * @return The block device name
+ **/
+const char * __must_check get_vdo_device_name(const struct dm_target *ti);
 
 /**
  * Function call to begin processing a bio passed in from the block layer

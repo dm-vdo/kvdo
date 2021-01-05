@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#28 $
  */
 
 #include "deviceConfig.h"
@@ -51,8 +51,9 @@ enum {
 };
 
 // arrays for handling different table versions
-static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 8};
-static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8, 7};
+static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 8 };
+// pool name no longer used. only here for verification of older versions
+static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
 /**
  * Decide the version number from argv.
@@ -102,22 +103,6 @@ static int get_version_number(int argc,
 		log_warning(
 			"Please consider upgrading management tools to match kernel.");
 	}
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int get_pool_name_from_argv(int argc,
-			    char **argv,
-			    char **error_ptr,
-			    char **pool_name_ptr)
-{
-	unsigned int version;
-	int result = get_version_number(argc, argv, error_ptr, &version);
-
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	*pool_name_ptr = argv[POOL_NAME_ARG_INDEX[version]];
 	return VDO_SUCCESS;
 }
 
@@ -676,7 +661,7 @@ int parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	// Skip pastt the no longer used MD RAID5 optimization mode
+	// Skip past the no longer used MD RAID5 optimization mode
 	if (config->version <= 2) {
 		dm_consume_args(&arg_set, 1);
 	}
@@ -696,25 +681,17 @@ int parse_device_config(int argc,
 	}
 	dm_shift_arg(&arg_set);
 
-	// Make sure the enum to get the pool name from argv directly is still
-	// in sync with the parsing of the table line.
-	if (&arg_set.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
-		handle_parse_error(&config,
-				   error_ptr,
-				   "Pool name not in expected location");
-		return VDO_BAD_CONFIGURATION;
-	}
-
-	// Get the address where the albserver is running. Check for validation
-	// is done in dedupe.c code during start_kernel_layer call.
-	result = duplicate_string(dm_shift_arg(&arg_set),
-				  "pool name",
-				  &config->pool_name);
-	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
-				   error_ptr,
-				   "Could not copy pool name");
-		return VDO_BAD_CONFIGURATION;
+	// Skip past the no longer used pool name for older table lines
+	if (config->version <= 2) {
+		// Make sure the enum to get the pool name from argv directly is still
+		// in sync with the parsing of the table line.
+		if (&arg_set.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
+			handle_parse_error(&config,
+					   error_ptr,
+					   "Pool name not in expected location");
+			return VDO_BAD_CONFIGURATION;
+		}
+		dm_shift_arg(&arg_set);
 	}
 
 	// Get the optional arguments and validate.
@@ -780,7 +757,6 @@ void free_device_config(struct device_config **config_ptr)
 		dm_put_device(config->owning_target, config->owned_device);
 	}
 
-	FREE(config->pool_name);
 	FREE(config->parent_device_name);
 	FREE(config->original_string);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#82 $
  */
 
 #include "dmvdo.h"
@@ -576,7 +576,7 @@ static int vdo_initialize(struct dm_target *ti,
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
-	log_info("loading device '%s'", config->pool_name);
+	log_info("loading device '%s'", get_vdo_device_name(ti));
 	log_debug("Logical block size     = %llu",
 		  (uint64_t) config->logical_block_size);
 	log_debug("Logical blocks         = %llu", logical_blocks);
@@ -654,7 +654,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	register_allocating_thread(&allocating_thread, NULL);
 
-	device_name = dm_device_name(dm_table_get_md(ti->table));
+     	device_name = get_vdo_device_name(ti);
 	old_layer = find_layer_matching(layer_is_named, (void *)device_name);
 	if (old_layer == NULL) {
 		result = allocate_vdo_instance(&instance);
@@ -689,7 +689,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * suspended, and if not, we are not, but we can't do that till
 		 * new VDO Manager does the right order.
 		 */
-		log_info("preparing to modify device '%s'", config->pool_name);
+		log_info("preparing to modify device '%s'", device_name);
 		result = prepare_to_modify_kernel_layer(old_layer,
 							config,
 							&ti->error);
@@ -735,14 +735,16 @@ static void vdo_dtr(struct dm_target *ti)
 		register_allocating_thread(&allocating_thread, NULL);
 
 		wait_for_no_requests_active(layer);
-		log_info("stopping device '%s'", config->pool_name);
+		const char *device_name = get_vdo_device_name(ti);
+
+		log_info("stopping device '%s'", device_name);
 
 		if (layer->dump_on_shutdown) {
 			vdo_dump_all(layer, "device shutdown");
 		}
 
 		free_kernel_layer(layer);
-		log_info("device '%s' stopped", config->pool_name);
+		log_info("device '%s' stopped", device_name);
 		unregister_thread_device_id();
 		unregister_allocating_thread();
 	} else if (config == layer->device_config) {
@@ -774,20 +776,20 @@ static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
-	const char *pool_name;
+	const char *device_name;
 	int result;
 
 	register_thread_device(&instance_thread, layer);
-	pool_name = layer->device_config->pool_name;
+     	device_name = get_vdo_device_name(ti);
 
-	log_info("suspending device '%s'", pool_name);
+	log_info("suspending device '%s'", device_name);
 	result = suspend_kernel_layer(layer);
 
 	if (result == VDO_SUCCESS) {
-		log_info("device '%s' suspended", pool_name);
+		log_info("device '%s' suspended", device_name);
 	} else {
 		uds_log_error("suspend of device '%s' failed with error: %d",
-			      pool_name,
+			      device_name,
 			      result);
 	}
 	layer->no_flush_suspend = false;
@@ -802,16 +804,18 @@ static int vdo_preresume(struct dm_target *ti)
 	struct registered_thread instance_thread;
 	int result;
 
+	register_thread_device(&instance_thread, layer);
+     	const char *device_name = get_vdo_device_name(ti);
+
 	block_count_t backing_blocks =
 		get_underlying_device_block_count(layer);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
-			      config->pool_name, backing_blocks,
+			      device_name, backing_blocks,
 			      config->physical_blocks);
+		unregister_thread_device_id();
 		return -EINVAL;
 	}
-
-	register_thread_device(&instance_thread, layer);
 
 	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
 		char *failure_reason;
@@ -819,7 +823,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 		// This is the first time this device has been resumed, so run
 		// it.
-		log_info("starting device '%s'", config->pool_name);
+		log_info("starting device '%s'", device_name);
 		result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
@@ -831,10 +835,10 @@ static int vdo_preresume(struct dm_target *ti)
 			return map_to_system_error(result);
 		}
 
-		log_info("device '%s' started", config->pool_name);
+		log_info("device '%s' started", device_name);
 	}
 
-	log_info("resuming device '%s'", config->pool_name);
+	log_info("resuming device '%s'", device_name);
 
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
@@ -843,7 +847,7 @@ static int vdo_preresume(struct dm_target *ti)
 	if (result != VDO_SUCCESS) {
 		log_error_strerror(result,
 				   "Commit of modifications to device '%s' failed",
-				   config->pool_name);
+				   device_name);
 		set_kernel_layer_active_config(layer, config);
 		set_kvdo_read_only(&layer->kvdo, result);
 	} else {
@@ -851,7 +855,7 @@ static int vdo_preresume(struct dm_target *ti)
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			uds_log_error("resume of device '%s' failed with error: %d",
-				      layer->device_config->pool_name, result);
+				      device_name, result);
 		}
 	}
 	unregister_thread_device_id();
@@ -865,7 +869,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct registered_thread instance_thread;
 
 	register_thread_device(&instance_thread, layer);
-	log_info("device '%s' resumed", layer->device_config->pool_name);
+	log_info("device '%s' resumed", get_vdo_device_name(ti));
 	unregister_thread_device_id();
 }
 
