@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#14 $
  */
 
 #ifndef PACKER_H
@@ -38,20 +38,17 @@ struct packer;
 /**
  * Make a new block packer.
  *
- * @param [in]  layer             The physical layer to which compressed blocks
- *                                will be written
+ * @param [in]  vdo               The vdo to which this packer belongs
  * @param [in]  input_bin_count   The number of partial bins to keep in memory
  * @param [in]  output_bin_count  The number of compressed blocks that can be
  *                                written concurrently
- * @param [in]  thread_config     The thread configuration of the VDO
  * @param [out] packer_ptr        A pointer to hold the new packer
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_packer(PhysicalLayer *layer,
+int __must_check make_packer(struct vdo *vdo,
 			     block_count_t input_bin_count,
 			     block_count_t output_bin_count,
-			     const struct thread_config *thread_config,
 			     struct packer **packer_ptr);
 
 /**

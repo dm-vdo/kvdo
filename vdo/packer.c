@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#63 $
  */
 
 #include "packerInternals.h"
@@ -149,13 +149,12 @@ static struct output_bin * __must_check pop_output_bin(struct packer *packer)
  * Allocate a new output bin and push it onto the packer's stack of idle bins.
  *
  * @param packer  The packer
- * @param layer   The physical layer that will receive the compressed block
- *                writes from the output bin
+ * @param vdo     The vdo to which this packer belongs
  *
  * @return VDO_SUCCESS or an error code
  **/
 static int __must_check
-make_output_bin(struct packer *packer, PhysicalLayer *layer)
+make_output_bin(struct packer *packer, struct vdo *vdo)
 {
 	struct output_bin *output;
 	int result = ALLOCATE(1, struct output_bin, __func__, &output);
@@ -177,9 +176,10 @@ make_output_bin(struct packer *packer, PhysicalLayer *layer)
 		return result;
 	}
 
-	return layer->createCompressedWriteVIO(layer, output,
-					       (char *) output->block,
-					       &output->writer);
+	return create_compressed_write_vio(vdo,
+					   output,
+					   (char *) output->block,
+					   &output->writer);
 }
 
 /**
@@ -205,12 +205,13 @@ static void free_output_bin(struct output_bin **bin_ptr)
 }
 
 /**********************************************************************/
-int make_packer(PhysicalLayer *layer,
+int make_packer(struct vdo *vdo,
 		block_count_t input_bin_count,
 		block_count_t output_bin_count,
-		const struct thread_config *thread_config,
 		struct packer **packer_ptr)
 {
+	const struct thread_config *thread_config = get_thread_config(vdo);
+
 	struct packer *packer;
 	block_count_t i;
 
@@ -258,7 +259,7 @@ int make_packer(PhysicalLayer *layer,
 	}
 
 	for (i = 0; i < output_bin_count; i++) {
-		int result = make_output_bin(packer, layer);
+		int result = make_output_bin(packer, vdo);
 		if (result != VDO_SUCCESS) {
 			free_packer(&packer);
 			return result;

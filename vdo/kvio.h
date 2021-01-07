@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#35 $
  */
 
 #ifndef KVIO_H
@@ -115,25 +115,6 @@ void initialize_kvio(struct vio *vio,
 		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio);
-
-/**
- * Create a new allocating_vio for compressed writes.
- *
- * <p>Implements compressed_write_vio_creator.
- *
- * @param [in]  layer              The physical layer
- * @param [in]  parent             The parent to assign to the allocating_vio's
- *                                 completion
- * @param [in]  data               The buffer
- * @param [out] allocating_vio_ptr  A pointer to hold new allocating_vio
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-kvdo_create_compressed_write_vio(PhysicalLayer *layer,
-				 void *parent,
-				 char *data,
-				 struct allocating_vio **allocating_vio_ptr);
 
 /**
  * Issue an empty flush to the lower layer using the bio in a metadata vio.

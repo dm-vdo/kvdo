@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#65 $
  */
 
 #include "kvio.h"
@@ -27,6 +27,7 @@
 
 #include "numUtils.h"
 #include "vdo.h"
+#include "vdoInternal.h"
 #include "waitQueue.h"
 
 #include "bio.h"
@@ -314,10 +315,10 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 }
 
 /**********************************************************************/
-int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
-				     void *parent,
-				     char *data,
-				     struct allocating_vio **allocating_vio_ptr)
+int create_compressed_write_vio(struct vdo *vdo,
+				void *parent,
+				char *data,
+				struct allocating_vio **allocating_vio_ptr)
 {
 	struct bio *bio;
 	struct allocating_vio *allocating_vio;
@@ -342,7 +343,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 
 	vio = allocating_vio_as_vio(allocating_vio);
 	initialize_kvio(vio,
-			as_kernel_layer(layer),
+			as_kernel_layer(vdo->layer),
 			VIO_TYPE_COMPRESSED_BLOCK,
 			VIO_PRIORITY_COMPRESSED_DATA,
 			parent,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#60 $
  */
 
 #include "vdoLoad.h"
@@ -430,10 +430,9 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		}
 	}
 
-	return make_packer(vdo->layer,
+	return make_packer(vdo,
 			   DEFAULT_PACKER_INPUT_BINS,
 			   DEFAULT_PACKER_OUTPUT_BINS,
-			   thread_config,
 			   &vdo->packer);
 }
 

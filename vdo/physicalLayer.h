@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#37 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -323,6 +323,23 @@ struct physicalLayer {
 	operation_waiter *waitForAdminOperation;
 	operation_complete *completeAdminOperation;
 };
+
+/**
+ * Create a new allocating_vio for compressed writes.
+ *
+ * @param [in]  vdo                The vdo
+ * @param [in]  parent             The parent to assign to the allocating_vio's
+ *                                 completion
+ * @param [in]  data               The buffer
+ * @param [out] allocating_vio_ptr  A pointer to hold new allocating_vio
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+create_compressed_write_vio(struct vdo *vdo,
+			    void *parent,
+			    char *data,
+			    struct allocating_vio **allocating_vio_ptr);
 
 /**
  * Get the id of the callback thread on which a completion is currently
