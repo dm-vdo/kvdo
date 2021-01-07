@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#69 $
  */
 
 #ifndef TYPES_H
@@ -199,12 +199,12 @@ typedef enum __packed {
 /**
  * Partition IDs are encoded in the volume layout in the super block.
  **/
-typedef enum __packed {
+enum partition_id {
 	BLOCK_MAP_PARTITION = 0,
 	BLOCK_ALLOCATOR_PARTITION = 1,
 	RECOVERY_JOURNAL_PARTITION = 2,
 	SLAB_SUMMARY_PARTITION = 3,
-} partition_id;
+} __packed;
 
 /**
  * Check whether a vio_type is for servicing an external data request.

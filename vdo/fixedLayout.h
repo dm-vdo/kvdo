@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#11 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -84,7 +84,7 @@ get_total_fixed_layout_size(const struct fixed_layout *layout);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check get_partition(struct fixed_layout *layout,
-			       partition_id id,
+			       enum partition_id id,
 			       struct partition **partition_ptr);
 
 /**
@@ -144,7 +144,7 @@ get_fixed_layout_blocks_available(const struct fixed_layout *layout);
  **/
 int __must_check
 make_fixed_layout_partition(struct fixed_layout *layout,
-			    partition_id id,
+			    enum partition_id id,
 			    block_count_t block_count,
 			    enum partition_direction direction,
 			    physical_block_number_t base);

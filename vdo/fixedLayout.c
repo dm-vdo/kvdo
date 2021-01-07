@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#21 $
  */
 
 #include "fixedLayout.h"
@@ -38,7 +38,7 @@ struct fixed_layout {
 };
 
 struct partition {
-	partition_id id; // The id of this partition
+	enum partition_id id; // The id of this partition
 	struct fixed_layout *layout; // The layout to which this partition
 				     // belongs
 	physical_block_number_t offset; // The offset into the layout of this
@@ -55,7 +55,7 @@ struct layout_3_0 {
 } __packed;
 
 struct partition_3_0 {
-	partition_id id;
+	enum partition_id id;
 	physical_block_number_t offset;
 	physical_block_number_t base;
 	block_count_t count;
@@ -124,7 +124,7 @@ block_count_t get_total_fixed_layout_size(const struct fixed_layout *layout)
 
 /**********************************************************************/
 int get_partition(struct fixed_layout *layout,
-		  partition_id id,
+		  enum partition_id id,
 		  struct partition **partition_ptr)
 {
 	struct partition *partition;
@@ -235,7 +235,7 @@ static int allocate_partition(struct fixed_layout *layout,
 
 /**********************************************************************/
 int make_fixed_layout_partition(struct fixed_layout *layout,
-				partition_id id,
+				enum partition_id id,
 				block_count_t block_count,
 				enum partition_direction direction,
 				physical_block_number_t base)
@@ -326,7 +326,7 @@ static int encode_partitions_3_0(const struct fixed_layout *layout,
 	     partition != NULL;
 	     partition = partition->next) {
 		int result;
-		STATIC_ASSERT_SIZEOF(partition_id, sizeof(byte));
+		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(byte));
 		result = put_byte(buffer, partition->id);
 		if (result != UDS_SUCCESS) {
 			return result;
