@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#47 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -88,7 +88,7 @@ struct vdo {
 	struct flusher *flusher;
 
 	/* The state the vdo was in when loaded (primarily for unit tests) */
-	VDOState load_state;
+	enum vdo_state load_state;
 	/* Whether VIO tracing is enabled */
 	bool vio_trace_recording;
 
@@ -121,7 +121,7 @@ struct vdo {
  *
  * @return the current state of the vdo
  **/
-VDOState __must_check get_vdo_state(const struct vdo *vdo);
+enum vdo_state __must_check get_vdo_state(const struct vdo *vdo);
 
 /**
  * Set the current state of the vdo. This method may be called from any thread.
@@ -129,7 +129,7 @@ VDOState __must_check get_vdo_state(const struct vdo *vdo);
  * @param vdo    The vdo whose state is to be set
  * @param state  The new state of the vdo
  **/
-void set_vdo_state(struct vdo *vdo, VDOState state);
+void set_vdo_state(struct vdo *vdo, enum vdo_state state);
 
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode

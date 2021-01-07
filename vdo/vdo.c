@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#89 $
  */
 
 /*
@@ -121,15 +121,15 @@ void free_vdo(struct vdo **vdo_ptr)
 }
 
 /**********************************************************************/
-VDOState get_vdo_state(const struct vdo *vdo)
+enum vdo_state get_vdo_state(const struct vdo *vdo)
 {
-	VDOState state = atomic_read(&vdo->state);
+	enum vdo_state state = atomic_read(&vdo->state);
 	smp_rmb();
 	return state;
 }
 
 /**********************************************************************/
-void set_vdo_state(struct vdo *vdo, VDOState state)
+void set_vdo_state(struct vdo *vdo, enum vdo_state state)
 {
 	smp_wmb();
 	atomic_set(&vdo->state, state);
@@ -373,7 +373,7 @@ static const char *describe_write_policy(enum write_policy policy)
 void get_vdo_statistics(const struct vdo *vdo,
 			struct vdo_statistics *stats)
 {
-	VDOState state;
+	enum vdo_state state;
 	slab_count_t slab_total;
 
 	// These are immutable properties of the vdo object, so it is safe to

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#3 $
  */
 
 #ifndef VDO_COMPONENT_H
@@ -32,7 +32,7 @@
  * component.
  **/
 struct vdo_component_41_0 {
-	VDOState state;
+	enum vdo_state state;
 	uint64_t complete_recoveries;
 	uint64_t read_only_recoveries;
 	struct vdo_config config;

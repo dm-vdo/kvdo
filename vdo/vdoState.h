@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#7 $
  */
 
 #ifndef VDO_STATE_H
@@ -28,7 +28,7 @@
  * The current operating mode of the VDO. These are persistent on disk
  * so the values must not change.
  **/
-typedef enum {
+enum vdo_state {
 	VDO_DIRTY = 0,
 	VDO_NEW = 1,
 	VDO_CLEAN = 2,
@@ -40,7 +40,7 @@ typedef enum {
 
 	// Keep VDO_STATE_COUNT at the bottom.
 	VDO_STATE_COUNT
-} VDOState;
+};
 
 /**
  * Get the name of a VDO state code for logging purposes.
@@ -49,7 +49,7 @@ typedef enum {
  *
  * @return The name of the state code
  **/
-const char * __must_check get_vdo_state_name(VDOState state);
+const char * __must_check get_vdo_state_name(enum vdo_state state);
 
 /**
  * Return a user-visible string describing the current VDO state.
@@ -58,6 +58,6 @@ const char * __must_check get_vdo_state_name(VDOState state);
  *
  * @return A string constant describing the state
  **/
-const char * __must_check describe_vdo_state(VDOState state);
+const char * __must_check describe_vdo_state(enum vdo_state state);
 
 #endif // VDO_STATE_H

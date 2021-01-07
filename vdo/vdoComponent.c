@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#7 $
  */
 
 #include "vdoComponent.h"
@@ -193,7 +193,7 @@ decode_vdo_component_41_0(struct buffer *buffer,
 	uint64_t read_only_recoveries;
 	struct vdo_config config;
 	nonce_t nonce;
-	VDOState vdo_state;
+	enum vdo_state vdo_state;
 
 	int result = get_uint32_le_from_buffer(buffer, &vdo_state);
 	if (result != VDO_SUCCESS) {
