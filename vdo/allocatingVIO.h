@@ -167,19 +167,6 @@ is_compressed_write_allocating_vio(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Add a trace record for the current source location.
- *
- * @param allocating_vio  The allocating_vio structure to be updated
- * @param location       The source-location descriptor to be recorded
- **/
-static inline void
-allocating_vio_add_trace_record(struct allocating_vio *allocating_vio,
-				const struct trace_location *location)
-{
-	vio_add_trace_record(allocating_vio_as_vio(allocating_vio), location);
-}
-
-/**
  * Get the vdo from an allocating_vio.
  *
  * @param allocating_vio  The allocating_vio from which to get the vdo
@@ -217,17 +204,14 @@ assert_in_physical_zone(struct allocating_vio *allocating_vio)
  *
  * @param allocating_vio  The allocating_vio
  * @param callback        The callback to set
- * @param location        The tracing info for the call site
  **/
 static inline void
 set_physical_zone_callback(struct allocating_vio *allocating_vio,
-			   vdo_action *callback,
-			   const struct trace_location *location)
+			   vdo_action *callback)
 {
 	set_callback(allocating_vio_as_completion(allocating_vio),
 		     callback,
 		     get_physical_zone_thread_id(allocating_vio->zone));
-	allocating_vio_add_trace_record(allocating_vio, location);
 }
 
 /**
@@ -236,14 +220,12 @@ set_physical_zone_callback(struct allocating_vio *allocating_vio,
  *
  * @param allocating_vio  The allocating_vio
  * @param callback       The callback to invoke
- * @param location       The tracing info for the call site
  **/
 static inline void
 launch_physical_zone_callback(struct allocating_vio *allocating_vio,
-			      vdo_action *callback,
-			      const struct trace_location *location)
+			      vdo_action *callback)
 {
-	set_physical_zone_callback(allocating_vio, callback, location);
+	set_physical_zone_callback(allocating_vio, callback);
 	invoke_callback(allocating_vio_as_completion(allocating_vio));
 }
 

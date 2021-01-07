@@ -29,7 +29,6 @@
 #include "readOnlyNotifier.h"
 #include "recoveryJournalFormat.h"
 #include "statistics.h"
-#include "trace.h"
 #include "types.h"
 
 /**

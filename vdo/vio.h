@@ -27,7 +27,6 @@
 #include "kernelLayer.h"
 
 #include "completion.h"
-#include "trace.h"
 #include "types.h"
 #include "vdo.h"
 
@@ -198,20 +197,6 @@ const char *get_vio_read_write_flavor(const struct vio *vio);
  **/
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
-
-/**
- * Add a trace record for the current source location.
- *
- * @param vio      The vio structure to be updated
- * @param location The source-location descriptor to be recorded
- **/
-static inline void vio_add_trace_record(struct vio *vio,
-					const struct trace_location *location)
-{
-	if (unlikely(vio->trace != NULL)) {
-		add_trace_record(vio->trace, location);
-	}
-}
 
 /**
  * Check whether a vio is servicing an external data request.

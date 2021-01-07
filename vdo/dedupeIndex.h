@@ -79,19 +79,6 @@ void get_index_statistics(struct dedupe_index *index,
 			  struct index_statistics *stats);
 
 /**
- * Return from a dedupe operation by invoking the callback function
- *
- * @param data_vio  The data_vio
- **/
-static inline void invoke_dedupe_callback(struct data_vio *data_vio)
-{
-
-	data_vio_add_trace_record(data_vio,
-				  THIS_LOCATION("$F($dup);cb=dedupe($dup)"));
-	enqueue_data_vio_callback(data_vio);
-}
-
-/**
  * Process a dmsetup message directed to the index.
  *
  * @param index  The dedupe index

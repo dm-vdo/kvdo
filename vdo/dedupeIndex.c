@@ -288,7 +288,7 @@ static void finish_index_operation(struct uds_request *uds_request)
 			}
 		}
 
-		invoke_dedupe_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		atomic_dec(&index->active);
 	} else {
 		atomic_cmpxchg(&dedupe_context->request_state,
@@ -468,7 +468,7 @@ static void timeout_index_operations(struct timer_list *t)
 		if (atomic_cmpxchg(&dedupe_context->request_state,
 				   UR_BUSY, UR_TIMED_OUT) == UR_BUSY) {
 			dedupe_context->status = ETIMEDOUT;
-			invoke_dedupe_callback(data_vio);
+			enqueue_data_vio_callback(data_vio);
 			atomic_dec(&index->active);
 			timed_out++;
 		}
@@ -530,7 +530,7 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 	}
 
 	if (vio != NULL) {
-		invoke_dedupe_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 	}
 }
 

@@ -138,7 +138,6 @@ void submit_metadata_vio(struct vio *vio)
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
-		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
 		bi_opf = REQ_OP_READ;
 	} else {
 		enum kernel_layer_state state = get_kernel_layer_state(layer);
@@ -148,12 +147,8 @@ void submit_metadata_vio(struct vio *vio)
 				"write metadata in allowed state %d", state);
 		if (vio_requires_flush_before(vio)) {
 			bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-			vio_add_trace_record(vio,
-					     THIS_LOCATION("$F;io=flushWriteMeta"));
 		} else {
 			bi_opf = REQ_OP_WRITE;
-			vio_add_trace_record(vio,
-					     THIS_LOCATION("$F;io=writeMeta"));
 		}
 	}
 
@@ -273,10 +268,6 @@ void initialize_kvio(struct vio *vio,
 		       parent,
 		       get_vdo(&layer->kvdo),
 		       &layer->common);
-
-	// XXX: The "init" label should be replaced depending on the
-	// write/read/flush path followed.
-	vio_add_trace_record(vio, THIS_LOCATION("$F;io=?init;j=normal"));
 }
 
 /**********************************************************************/

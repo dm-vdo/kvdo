@@ -127,7 +127,6 @@ void count_completed_bios(struct bio *bio)
 void complete_async_bio(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
-	vio_add_trace_record(vio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
 	continue_vio(vio, get_bio_result(bio));
 }

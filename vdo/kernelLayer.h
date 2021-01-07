@@ -42,7 +42,6 @@
 #include "kernelStatistics.h"
 #include "kernelTypes.h"
 #include "kernelVDO.h"
-#include "ktrace.h"
 #include "limiter.h"
 #include "statistics.h"
 #include "workQueue.h"

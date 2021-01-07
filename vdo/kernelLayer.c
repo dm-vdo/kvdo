@@ -797,13 +797,6 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	// Below here are the actions to take when a non-immutable property
-	// changes.
-
-	if (config->write_policy != extant_config->write_policy) {
-		// Nothing needs doing right now for a write policy change.
-	}
-
 	if (config->owning_target->len != extant_config->owning_target->len) {
 		int result;
 		size_t logical_bytes = to_bytes(config->owning_target->len);
