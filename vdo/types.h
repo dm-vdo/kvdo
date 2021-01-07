@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#70 $
  */
 
 #ifndef TYPES_H
@@ -170,7 +170,7 @@ typedef enum __packed {
 /**
  * vio types for statistics and instrumentation.
  **/
-typedef enum __packed {
+enum vio_type {
 	VIO_TYPE_UNINITIALIZED = 0,
 	VIO_TYPE_DATA,
 	VIO_TYPE_BLOCK_ALLOCATOR,
@@ -183,7 +183,7 @@ typedef enum __packed {
 	VIO_TYPE_SLAB_SUMMARY,
 	VIO_TYPE_SUPER_BLOCK,
 	VIO_TYPE_TEST,
-} vio_type;
+} __packed;
 
 /**
  * The current operation on a physical block (from the point of view of the
@@ -211,7 +211,7 @@ enum partition_id {
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_data_vio_type(vio_type type)
+static inline bool is_data_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_DATA);
 }
@@ -221,7 +221,7 @@ static inline bool is_data_vio_type(vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_compressed_write_vio_type(vio_type type)
+static inline bool is_compressed_write_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_COMPRESSED_BLOCK);
 }
@@ -231,7 +231,7 @@ static inline bool is_compressed_write_vio_type(vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_metadata_vio_type(vio_type type)
+static inline bool is_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
 		!is_data_vio_type(type) &&

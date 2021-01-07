@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#31 $
  */
 
 #ifndef VIO_H
@@ -57,7 +57,7 @@ struct vio {
 	vio_priority priority;
 
 	/* The vio type is used for statistics and instrumentation. */
-	vio_type type;
+	enum vio_type type;
 
 	/* Used for logging and debugging */
 	struct trace *trace;
@@ -132,7 +132,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  * Create a vio. Defined per-layer.
  *
  * @param [in]  layer      The physical layer
- * @param [in]  type       The type of vio to create
+ * @param [in]  vio_type   The type of vio to create
  * @param [in]  priority   The relative priority to assign to the vio
  * @param [in]  parent     The parent of the vio
  * @param [in]  data       The buffer
@@ -141,7 +141,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  * @return VDO_SUCCESS or an error
  **/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     vio_type type,
+			     enum vio_type vio_type,
 			     vio_priority priority,
 			     void *parent,
 			     char *data,
@@ -158,7 +158,7 @@ void free_vio(struct vio **vio_ptr);
  * Initialize a vio.
  *
  * @param vio       The vio to initialize
- * @param type      The vio type
+ * @param vio_type  The vio type
  * @param priority  The relative priority of the vio
  * @param parent    The parent (the extent completion) to assign to the vio
  *                  completion
@@ -166,7 +166,7 @@ void free_vio(struct vio **vio_ptr);
  * @param layer     The layer for this vio
  **/
 void initialize_vio(struct vio *vio,
-		    vio_type type,
+		    enum vio_type vio_type,
 		    vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
