@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#41 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -47,11 +47,11 @@
  * launched from the same thread as the original load operation.
  **/
 
-typedef enum {
+enum slab_depot_load_type {
 	NORMAL_LOAD,
 	RECOVERY_LOAD,
 	REBUILD_LOAD
-} slab_depot_load_type;
+};
 
 /**
  * Calculate the number of slabs a depot would have.
@@ -302,7 +302,7 @@ void load_slab_depot(struct slab_depot *depot,
  * @param parent      The completion to finish when the operation is complete
  **/
 void prepare_to_allocate(struct slab_depot *depot,
-			 slab_depot_load_type load_type,
+			 enum slab_depot_load_type load_type,
 			 struct vdo_completion *parent);
 
 /**

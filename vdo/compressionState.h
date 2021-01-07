@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#7 $
  */
 
 #ifndef COMPRESSION_STATE_H
@@ -28,7 +28,7 @@
  * Where a data_vio is on the compression path; advanceStatus() depends on the
  * order of this enum.
  **/
-typedef enum {
+enum vio_compression_status {
 	/* A VIO which has not yet entered the compression path */
 	VIO_PRE_COMPRESSOR = 0,
 	/* A VIO which is in the compressor */
@@ -39,10 +39,10 @@ typedef enum {
 	 * A VIO which is no longer on the compression path (and never will be)
 	 */
 	VIO_POST_PACKER,
-} vio_compression_status;
+};
 
 struct vio_compression_state {
-	vio_compression_status status;
+	enum vio_compression_status status;
 	bool may_not_compress;
 };
 

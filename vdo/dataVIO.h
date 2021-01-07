@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#61 $
  */
 
 #ifndef DATA_VIO_H
@@ -43,7 +43,7 @@
 /**
  * Codes for describing the last asynchronous operation performed on a vio.
  **/
-typedef enum __packed {
+enum async_operation_number {
 	MIN_ASYNC_OPERATION_NUMBER = 0,
 	LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
 	ACKNOWLEDGE_WRITE,
@@ -77,7 +77,7 @@ typedef enum __packed {
 	VERIFY_DEDUPLICATION,
 	WRITE_DATA,
 	MAX_ASYNC_OPERATION_NUMBER,
-} async_operation_number;
+} __packed;
 
 /*
  * An LBN lock.
@@ -211,7 +211,7 @@ struct data_vio {
 	struct uds_chunk_name chunk_name;
 
 	/* Used for logging and debugging */
-	async_operation_number last_async_operation;
+	enum async_operation_number last_async_operation;
 
 	/* The operation to record in the recovery and slab journals */
 	struct reference_operation operation;

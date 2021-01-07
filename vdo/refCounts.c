@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#60 $
  */
 
 #include "refCounts.h"
@@ -106,7 +106,7 @@ static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-reference_status reference_count_to_status(vdo_refcount_t count)
+enum reference_status reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT) {
 		return RS_FREE;
@@ -385,7 +385,7 @@ uint8_t get_available_references(struct ref_counts *ref_counts,
 static int increment_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
 			      slab_block_number block_number,
-			      reference_status old_status,
+			      enum reference_status old_status,
 			      struct pbn_lock *lock,
 			      vdo_refcount_t *counter_ptr,
 			      bool *free_status_changed)
@@ -443,7 +443,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 static int decrement_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
 			      slab_block_number block_number,
-			      reference_status old_status,
+			      enum reference_status old_status,
 			      struct pbn_lock *lock,
 			      vdo_refcount_t *counter_ptr,
 			      bool *free_status_changed)
@@ -507,7 +507,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 static int increment_for_block_map(struct ref_counts *ref_counts,
 				   struct reference_block *block,
 				   slab_block_number block_number,
-				   reference_status old_status,
+				   enum reference_status old_status,
 				   struct pbn_lock *lock,
 				   bool normal_operation,
 				   vdo_refcount_t *counter_ptr,
@@ -585,7 +585,7 @@ update_reference_count(struct ref_counts *ref_counts,
 		       bool *provisional_decrement_ptr)
 {
 	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
-	reference_status old_status = reference_count_to_status(*counter_ptr);
+	enum reference_status old_status = reference_count_to_status(*counter_ptr);
 	struct pbn_lock *lock = get_reference_operation_pbn_lock(operation);
 	int result;
 
@@ -778,7 +778,7 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 /**********************************************************************/
 int get_reference_status(struct ref_counts *ref_counts,
 			 physical_block_number_t pbn,
-			 reference_status *status_ptr)
+			 enum reference_status *status_ptr)
 {
 	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#29 $
  */
 
 #include "vdoSuspend.h"
@@ -33,7 +33,7 @@
 #include "threadConfig.h"
 #include "vdoInternal.h"
 
-typedef enum {
+enum {
 	SUSPEND_PHASE_START = 0,
 	SUSPEND_PHASE_PACKER,
 	SUSPEND_PHASE_LOGICAL_ZONES,
@@ -42,7 +42,7 @@ typedef enum {
 	SUSPEND_PHASE_DEPOT,
 	SUSPEND_PHASE_WRITE_SUPER_BLOCK,
 	SUSPEND_PHASE_END,
-} suspend_phase;
+};
 
 static const char *SUSPEND_PHASE_NAMES[] = {
 	"SUSPEND_PHASE_START",

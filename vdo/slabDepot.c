@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#83 $
  */
 
 #include "slabDepot.h"
@@ -581,7 +581,7 @@ void load_slab_depot(struct slab_depot *depot,
 
 /**********************************************************************/
 void prepare_to_allocate(struct slab_depot *depot,
-			 slab_depot_load_type load_type,
+			 enum slab_depot_load_type load_type,
 			 struct vdo_completion *parent)
 {
 	depot->load_type = load_type;

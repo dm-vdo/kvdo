@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#21 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -33,12 +33,12 @@
 /**
  * Represents the possible status of a block.
  **/
-typedef enum {
+enum reference_status {
 	RS_FREE, // this block is free
 	RS_SINGLE, // this block is singly-referenced
 	RS_SHARED, // this block is shared
 	RS_PROVISIONAL // this block is provisionally allocated
-} reference_status;
+};
 
 /*
  * Reference_block structure
@@ -150,7 +150,8 @@ struct ref_counts {
  *
  * @return  The appropriate reference status
  **/
-reference_status __must_check reference_count_to_status(vdo_refcount_t count);
+enum reference_status __must_check
+reference_count_to_status(vdo_refcount_t count);
 
 /**
  * Convert a generic vdo_completion to a ref_counts object.
@@ -203,7 +204,7 @@ void pack_reference_block(struct reference_block *block, void *buffer);
  **/
 int __must_check get_reference_status(struct ref_counts *ref_counts,
 				      physical_block_number_t pbn,
-				      reference_status *status_ptr);
+				      enum reference_status *status_ptr);
 
 /**
  * Find the first block with a reference count of zero in the specified range

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#27 $
  */
 
 #include "vdoResume.h"
@@ -33,7 +33,7 @@
 #include "threadConfig.h"
 #include "vdoInternal.h"
 
-typedef enum {
+enum {
 	RESUME_PHASE_START = 0,
 	RESUME_PHASE_ALLOW_READ_ONLY_MODE,
 	RESUME_PHASE_DEPOT,
@@ -42,7 +42,7 @@ typedef enum {
 	RESUME_PHASE_LOGICAL_ZONES,
 	RESUME_PHASE_PACKER,
 	RESUME_PHASE_END,
-} resume_phase;
+};
 
 static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_START",

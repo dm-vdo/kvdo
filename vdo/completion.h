@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#26 $
  */
 
 #ifndef COMPLETION_H
@@ -29,7 +29,7 @@
 
 #include "workQueue.h"
 
-typedef enum __packed {
+enum vdo_completion_type {
 	// Keep UNSET_COMPLETION_TYPE at the top.
 	UNSET_COMPLETION_TYPE = 0,
 
@@ -58,7 +58,7 @@ typedef enum __packed {
 
 	// Keep MAX_COMPLETION_TYPE at the bottom.
 	MAX_COMPLETION_TYPE
-} VDOCompletionType;
+} __packed;
 
 /**
  * An asynchronous VDO operation.
@@ -69,7 +69,7 @@ typedef void vdo_action(struct vdo_completion *completion);
 
 struct vdo_completion {
 	/** The type of completion this is */
-	VDOCompletionType type;
+	enum vdo_completion_type type;
 
 	/**
 	 * <code>true</code> once the processing of the operation is complete.
@@ -137,7 +137,7 @@ void set_completion_result(struct vdo_completion *completion, int result);
  * @param layer      The physical layer of the completion
  **/
 void initialize_completion(struct vdo_completion *completion,
-			   VDOCompletionType type,
+			   enum vdo_completion_type type,
 			   PhysicalLayer *layer);
 
 /**
@@ -236,8 +236,8 @@ void noop_callback(struct vdo_completion *completion __always_unused)
  *
  * @return          VDO_SUCCESS or VDO_PARAMETER_MISMATCH
  **/
-int assert_completion_type(VDOCompletionType actual,
-			   VDOCompletionType expected);
+int assert_completion_type(enum vdo_completion_type actual,
+			   enum vdo_completion_type expected);
 
 /**
  * Return the name of a completion type.
@@ -247,7 +247,7 @@ int assert_completion_type(VDOCompletionType actual,
  * @return a pointer to a static string; if the completionType is unknown
  *         this is to a static buffer that may be overwritten.
  **/
-const char *get_completion_type_name(VDOCompletionType completion_type);
+const char *get_completion_type_name(enum vdo_completion_type completion_type);
 
 /**
  * Set the callback for a completion.

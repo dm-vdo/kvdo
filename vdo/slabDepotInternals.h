@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#31 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -44,7 +44,7 @@ struct slab_depot {
 	unsigned int slab_size_shift;
 
 	/** Determines how slabs should be queued during load */
-	slab_depot_load_type load_type;
+	enum slab_depot_load_type load_type;
 
 	/** The state for notifying slab journals to release recovery journal */
 	sequence_number_t active_release_request;

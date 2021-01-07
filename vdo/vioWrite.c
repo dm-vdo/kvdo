@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#50 $
  */
 
 /*
@@ -203,27 +203,27 @@
 /**
  * The steps taken cleaning up a VIO, in the order they are performed.
  **/
-typedef enum {
+enum data_vio_cleanup_stage {
 	VIO_CLEANUP_START = 0,
 	VIO_RELEASE_ALLOCATED = VIO_CLEANUP_START,
 	VIO_RELEASE_RECOVERY_LOCKS,
 	VIO_RELEASE_HASH_LOCK,
 	VIO_RELEASE_LOGICAL,
 	VIO_CLEANUP_DONE
-} data_vio_cleanup_stage;
+};
 
 /**
  * Actions to take on error used by abort_on_error().
  **/
-typedef enum {
+enum read_only_action {
 	NOT_READ_ONLY,
 	READ_ONLY_IF_ASYNC,
 	READ_ONLY,
-} read_only_action;
+};
 
 // Forward declarations required because of circular function references.
 static void perform_cleanup_stage(struct data_vio *data_vio,
-				  data_vio_cleanup_stage stage);
+				  enum data_vio_cleanup_stage stage);
 static void write_block(struct data_vio *data_vio);
 
 /**
@@ -305,7 +305,7 @@ static void finish_cleanup(struct data_vio *data_vio)
  * @param stage     The cleanup stage to perform
  **/
 static void perform_cleanup_stage(struct data_vio *data_vio,
-				  data_vio_cleanup_stage stage)
+				  enum data_vio_cleanup_stage stage)
 {
 	switch (stage) {
 	case VIO_RELEASE_ALLOCATED:
@@ -375,7 +375,7 @@ static void finish_write_data_vio_with_error(struct vdo_completion *completion)
  **/
 static bool abort_on_error(int result,
 			   struct data_vio *data_vio,
-			   read_only_action action)
+			   enum read_only_action action)
 {
 	if (result == VDO_SUCCESS) {
 		return false;

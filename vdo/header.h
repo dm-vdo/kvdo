@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#10 $
  */
 
 #ifndef HEADER_H
@@ -56,20 +56,20 @@ struct packed_version_number {
 /**
  * The registry of component ids for use in headers
  **/
-typedef enum {
+enum component_id {
 	SUPER_BLOCK = 0,
 	FIXED_LAYOUT = 1,
 	RECOVERY_JOURNAL = 2,
 	SLAB_DEPOT = 3,
 	BLOCK_MAP = 4,
 	GEOMETRY_BLOCK = 5,
-} component_id;
+};
 
 /**
  * The header for versioned data stored on disk.
  **/
 struct header {
-	component_id id; // The component this is a header for
+	enum component_id id; // The component this is a header for
 	struct version_number version; // The version of the data format
 	size_t size; // The size of the data following this header
 } __packed;

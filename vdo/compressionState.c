@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#17 $
  */
 
 #include "compressionStateInternals.h"
@@ -77,7 +77,7 @@ bool set_compression_state(struct data_vio *data_vio,
  *
  * @return The new compression status of the data_vio
  **/
-static vio_compression_status advance_status(struct data_vio *data_vio)
+static enum vio_compression_status advance_status(struct data_vio *data_vio)
 {
 	for (;;) {
 		struct vio_compression_state state =

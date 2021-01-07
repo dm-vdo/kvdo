@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#23 $
  */
 
 #include "completion.h"
@@ -54,7 +54,7 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 
 /**********************************************************************/
 void initialize_completion(struct vdo_completion *completion,
-			   VDOCompletionType type,
+			   enum vdo_completion_type type,
 			   PhysicalLayer *layer)
 {
 	memset(completion, 0, sizeof(*completion));
@@ -182,7 +182,7 @@ void preserve_error_and_continue(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-const char *get_completion_type_name(VDOCompletionType completion_type)
+const char *get_completion_type_name(enum vdo_completion_type completion_type)
 {
 	// Try to catch failures to update the array when the enum values
 	// change.
@@ -203,8 +203,8 @@ const char *get_completion_type_name(VDOCompletionType completion_type)
 }
 
 /**********************************************************************/
-int assert_completion_type(VDOCompletionType actual,
-			   VDOCompletionType expected)
+int assert_completion_type(enum vdo_completion_type actual,
+			   enum vdo_completion_type expected)
 {
 	return ASSERT((expected == actual),
 		      "completion type is %s instead of %s",

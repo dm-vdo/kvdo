@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#9 $
  */
 
 #include "header.h"
@@ -107,7 +107,7 @@ int encode_version_number(struct version_number version, struct buffer *buffer)
 /**********************************************************************/
 int decode_header(struct buffer *buffer, struct header *header)
 {
-	component_id id;
+	enum component_id id;
 	uint64_t size;
 	struct version_number version;
 
