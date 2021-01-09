@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#51 $
  */
 
 /*
@@ -1070,8 +1070,9 @@ static void finish_block_write(struct vdo_completion *completion)
 		set_logical_callback(data_vio,
 				     get_write_increment_callback(data_vio));
 	} else {
-	set_allocated_zone_callback(data_vio, increment_for_write);
+		set_allocated_zone_callback(data_vio, increment_for_write);
 	}
+
 	data_vio->last_async_operation = JOURNAL_MAPPING_FOR_WRITE;
 	journal_increment(data_vio,
 			  data_vio_as_allocating_vio(data_vio)->allocation_lock);
