@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#35 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -162,7 +162,7 @@ get_slab_journal_block_offset(struct slab_journal *journal,
 void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			       slab_journal_payload *payload,
 			       slab_block_number sbn,
-			       journal_operation operation);
+			       enum journal_operation operation);
 
 /**
  * Generate the packed encoding of a slab journal entry.

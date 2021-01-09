@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#20 $
  */
 
 #ifndef REF_COUNTS_H
@@ -121,12 +121,12 @@ adjust_reference_count(struct ref_counts *ref_counts,
 int __must_check
 adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 				   physical_block_number_t pbn,
-				   journal_operation operation);
+				   enum journal_operation operation);
 
 /**
  * Replay the reference count adjustment from a slab journal entry into the
- * reference count for a block. The adjustment will be ignored if it was already
- * recorded in the reference count.
+ * reference count for a block. The adjustment will be ignored if it was
+ * already recorded in the reference count.
  *
  * @param ref_counts   The refcounts object
  * @param entry_point  The slab journal point for the entry

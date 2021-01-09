@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#5 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -134,7 +134,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 }
 
 /**********************************************************************/
-const char *get_journal_operation_name(journal_operation operation)
+const char *get_journal_operation_name(enum journal_operation operation)
 {
 	switch (operation) {
 	case DATA_DECREMENT:

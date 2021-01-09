@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#4 $
  */
 
 #ifndef RECOVERY_JOURNAL_FORMAT_H
@@ -82,7 +82,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
  * @return The name of the operation
  **/
 const char * __must_check
-get_journal_operation_name(journal_operation operation);
+get_journal_operation_name(enum journal_operation operation);
 
 /**
  * Determine whether the header of the given sector could describe a

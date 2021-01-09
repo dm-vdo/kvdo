@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#73 $
  */
 
 #ifndef TYPES_H
@@ -189,12 +189,12 @@ enum vio_type {
  * The current operation on a physical block (from the point of view of the
  * recovery journal, slab journals, and reference counts.
  **/
-typedef enum __packed {
+enum journal_operation {
 	DATA_DECREMENT = 0,
 	DATA_INCREMENT = 1,
 	BLOCK_MAP_DECREMENT = 2,
 	BLOCK_MAP_INCREMENT = 3,
-} journal_operation;
+} __packed;
 
 /**
  * Partition IDs are encoded in the volume layout in the super block.

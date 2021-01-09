@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#14 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -40,7 +40,7 @@
 struct recovery_journal_entry {
 	struct block_map_slot slot;
 	struct data_location mapping;
-	journal_operation operation;
+	enum journal_operation operation;
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */

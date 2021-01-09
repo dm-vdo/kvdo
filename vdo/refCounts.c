@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#61 $
  */
 
 #include "refCounts.h"
@@ -714,7 +714,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 /**********************************************************************/
 int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 				       physical_block_number_t pbn,
-				       journal_operation operation)
+				       enum journal_operation operation)
 {
 	slab_block_number block_number;
 	struct reference_block *block;

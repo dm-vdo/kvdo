@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#32 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -120,7 +120,7 @@
  *
  * @return true if the type is an increment type
  **/
-static inline bool is_increment_operation(journal_operation operation)
+static inline bool is_increment_operation(enum journal_operation operation)
 {
 	return ((operation == DATA_INCREMENT)
 		|| (operation == BLOCK_MAP_INCREMENT));
