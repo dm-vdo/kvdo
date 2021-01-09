@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#29 $
  */
 
 #include "deviceConfig.h"
@@ -51,7 +51,7 @@ enum {
 };
 
 // arrays for handling different table versions
-static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 8 };
+static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7 };
 // pool name no longer used. only here for verification of older versions
 static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
