@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#21 $
  */
 
 #include "extent.h"
@@ -35,7 +35,7 @@
 /**********************************************************************/
 int create_extent(PhysicalLayer *layer,
 		  enum vio_type vio_type,
-		  vio_priority priority,
+		  enum vio_priority priority,
 		  block_count_t block_count,
 		  char *data,
 		  struct vdo_extent **extent_ptr)

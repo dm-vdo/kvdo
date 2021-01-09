@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#28 $
  */
 
 #include "vio.h"
@@ -42,7 +42,7 @@ void free_vio(struct vio **vio_ptr)
 /**********************************************************************/
 void initialize_vio(struct vio *vio,
 		    enum vio_type vio_type,
-		    vio_priority priority,
+		    enum vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
 		    PhysicalLayer *layer)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#66 $
  */
 
 #include "kvio.h"
@@ -246,7 +246,7 @@ static noinline bool sample_this_vio(struct vio *vio,
 void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
 		     enum vio_type vio_type,
-		     vio_priority priority,
+		     enum vio_priority priority,
 		     void *parent,
 		     struct bio *bio)
 {
@@ -274,7 +274,7 @@ void initialize_kvio(struct vio *vio,
 /**********************************************************************/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     enum vio_type vio_type,
-			     vio_priority priority,
+			     enum vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#32 $
  */
 
 #ifndef VIO_H
@@ -53,7 +53,7 @@ struct vio {
 	vio_operation operation;
 
 	/* The queueing priority of the vio operation */
-	vio_priority priority;
+	enum vio_priority priority;
 
 	/* The vio type is used for statistics and instrumentation. */
 	enum vio_type type;
@@ -141,7 +141,7 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  **/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     enum vio_type vio_type,
-			     vio_priority priority,
+			     enum vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr);
@@ -166,7 +166,7 @@ void free_vio(struct vio **vio_ptr);
  **/
 void initialize_vio(struct vio *vio,
 		    enum vio_type vio_type,
-		    vio_priority priority,
+		    enum vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
 		    PhysicalLayer *layer);

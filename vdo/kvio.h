@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#36 $
  */
 
 #ifndef KVIO_H
@@ -112,7 +112,7 @@ void maybe_log_vio_trace(struct vio *vio);
 void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
 		     enum vio_type vio_type,
-		     vio_priority priority,
+		     enum vio_priority priority,
 		     void *parent,
 		     struct bio *bio);
 

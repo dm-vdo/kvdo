@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#71 $
  */
 
 #ifndef TYPES_H
@@ -241,13 +241,13 @@ static inline bool is_metadata_vio_type(enum vio_type type)
 /**
  * Priority levels for asynchronous I/O operations performed on a vio.
  **/
-typedef enum __packed {
+enum vio_priority {
 	VIO_PRIORITY_LOW = 0,
 	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
 	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
 	VIO_PRIORITY_METADATA,
 	VIO_PRIORITY_HIGH,
-} vio_priority;
+} __packed;
 
 /**
  * Metadata types for the vdo.
