@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#67 $
  */
 
 #include "kvio.h"
@@ -210,38 +210,6 @@ void kvdo_flush_vio(struct vio *vio)
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 
-/*
- * Hook for a SystemTap probe to potentially restrict the choices
- * of which vios should have their latencies tracked.
- *
- * Normally returns true. Even if true is returned, sample_this_one may
- * cut down the monitored vios by some fraction so as to reduce the
- * impact on system performance.
- *
- * Must be "noinline" so that SystemTap can find the return
- * instruction and modify the return value.
- *
- * @param vio    The vio being initialized
- * @param layer  The kernel layer
- * @param bio    The incoming I/O request
- *
- * @return whether it's useful to track latency for vios looking like
- *         this one
- */
-static noinline bool sample_this_vio(struct vio *vio,
-				     struct kernel_layer *layer,
-				     struct bio *bio)
-{
-	bool result = true;
-	// Ensure the arguments and result exist at the same time, for
-	// SystemTap.
-	__asm__ __volatile__(""
-			     : "=g"(result)
-			     : "0"(result), "g"(vio), "g"(layer), "g"(bio)
-			     : "memory");
-	return result;
-}
-
 /**********************************************************************/
 void initialize_kvio(struct vio *vio,
 		     struct kernel_layer *layer,
@@ -250,18 +218,6 @@ void initialize_kvio(struct vio *vio,
 		     void *parent,
 		     struct bio *bio)
 {
-	if (layer->vio_trace_recording && sample_this_vio(vio, layer, bio) &&
-	    sample_this_one(&layer->trace_sample_counter)) {
-		int result =
-			(is_data_vio_type(vio_type) ?
-			 alloc_trace_from_pool(layer, &vio->trace) :
-			 ALLOCATE(1, struct trace, "trace", &vio->trace));
-		if (result != VDO_SUCCESS) {
-			uds_log_error("trace record allocation failure %d",
-				      result);
-		}
-	}
-
 	vio->bio = bio;
 	initialize_vio(vio,
 		       vio_type,
@@ -279,6 +235,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     char *data,
 			     struct vio **vio_ptr)
 {
+	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	struct bio *bio;
 	struct vio *vio;
 
@@ -307,7 +264,12 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	initialize_kvio(vio, as_kernel_layer(layer), vio_type, priority,
+	if (sample_this_vio(vio, kernel_layer, bio)) {
+		// We don't care if it fails, and it already logs.
+		alloc_trace_data_buffer((void **)&vio->trace);
+	}
+
+	initialize_kvio(vio, kernel_layer, vio_type, priority,
 			parent, bio);
 	vio->data = data;
 	*vio_ptr  = vio;
@@ -320,6 +282,7 @@ int create_compressed_write_vio(struct vdo *vdo,
 				char *data,
 				struct allocating_vio **allocating_vio_ptr)
 {
+	struct kernel_layer *kernel_layer = as_kernel_layer(vdo->layer);
 	struct bio *bio;
 	struct allocating_vio *allocating_vio;
 	struct vio *vio;
@@ -342,8 +305,13 @@ int create_compressed_write_vio(struct vdo *vdo,
 	}
 
 	vio = allocating_vio_as_vio(allocating_vio);
+	if (sample_this_vio(vio, kernel_layer, bio)) {
+		// We don't care if it fails, and it already logs.
+		alloc_trace_data_buffer((void **)&vio->trace);
+	}
+
 	initialize_kvio(vio,
-			as_kernel_layer(vdo->layer),
+			kernel_layer,
 			VIO_TYPE_COMPRESSED_BLOCK,
 			VIO_PRIORITY_COMPRESSED_DATA,
 			parent,

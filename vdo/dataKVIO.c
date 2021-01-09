@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#120 $
  */
 
 #include "dataKVIO.h"
@@ -759,6 +759,16 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 	// Zero out the fields which don't need to be preserved (i.e. which
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, data_block));
+
+	// Note that sampling here is the only user of the 'bio' parameter of
+	// this function, which is the incoming user bio.
+	if (sample_this_vio(vio, layer, bio)) {
+		int result = alloc_trace_from_pool(layer, &vio->trace);
+		if (result != VDO_SUCCESS) {
+			uds_log_error("trace record allocation failure %d",
+				      result);
+		}
+	}
 
 	initialize_kvio(vio,
 			layer,
