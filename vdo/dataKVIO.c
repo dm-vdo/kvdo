@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#119 $
  */
 
 #include "dataKVIO.h"
@@ -854,7 +854,7 @@ static void launch_data_vio_work(struct vdo_work_item *item)
  **/
 static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 {
-	vio_operation operation;
+	enum vio_operation operation;
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
 
@@ -914,7 +914,7 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	struct data_vio *data_vio = NULL;
 	int result;
 	vdo_action *callback = kvdo_complete_data_vio;
-	vio_operation operation = VIO_WRITE;
+	enum vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 	logical_block_number_t lbn =
 		sector_to_block(bio->bi_iter.bi_sector -

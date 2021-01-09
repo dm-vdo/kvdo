@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#33 $
  */
 
 #ifndef VIO_H
@@ -50,7 +50,7 @@ struct vio {
 	physical_block_number_t physical;
 
 	/* The type of request this vio is servicing */
-	vio_operation operation;
+	enum vio_operation operation;
 
 	/* The queueing priority of the vio operation */
 	enum vio_priority priority;
@@ -302,7 +302,7 @@ void launch_metadata_vio(struct vio *vio,
 			 physical_block_number_t physical,
 			 vdo_action *callback,
 			 vdo_action *error_handler,
-			 vio_operation operation);
+			 enum vio_operation operation);
 
 /**
  * Launch a metadata read vio.

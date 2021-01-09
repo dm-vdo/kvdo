@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#42 $
  */
 
 #include "dataVIO.h"
@@ -91,7 +91,7 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 /**********************************************************************/
 void prepare_data_vio(struct data_vio *data_vio,
 		      logical_block_number_t lbn,
-		      vio_operation operation,
+		      enum vio_operation operation,
 		      bool is_trim,
 		      vdo_action *callback)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#72 $
  */
 
 #ifndef TYPES_H
@@ -157,7 +157,7 @@ typedef uint8_t zone_count_t;
 /**
  * The type of request a vio is performing
  **/
-typedef enum __packed {
+enum vio_operation {
 	VIO_UNSPECIFIED_OPERATION = 0,
 	VIO_READ = 1,
 	VIO_WRITE = 2,
@@ -165,7 +165,7 @@ typedef enum __packed {
 	VIO_READ_WRITE_MASK = VIO_READ_MODIFY_WRITE,
 	VIO_FLUSH_BEFORE = 4,
 	VIO_FLUSH_AFTER = 8,
-} vio_operation;
+} __packed;
 
 /**
  * vio types for statistics and instrumentation.
