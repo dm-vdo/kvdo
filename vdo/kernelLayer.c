@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#141 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#142 $
  */
 
 #include "kernelLayer.h"
@@ -479,6 +479,14 @@ int make_kernel_layer(uint64_t starting_sector,
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
 
+	old_layer = find_layer_matching(layer_uses_device, config);
+	if (old_layer != NULL) {
+		uds_log_error("Existing layer already uses device %s",
+			      old_layer->device_config->parent_device_name);
+		*reason = "Cannot share storage device with already-running VDO";
+		return VDO_BAD_CONFIGURATION;
+	}
+
 	/*
 	 * Part 1 - Allocate the kernel layer, its essential parts, and set
 	 * up the sysfs node. These must come first so that the sysfs node
@@ -489,14 +497,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO configuration";
 		return result;
-	}
-
-	old_layer = find_layer_matching(layer_uses_device, config);
-	if (old_layer != NULL) {
-		uds_log_error("Existing layer already uses device %s",
-			      old_layer->device_config->parent_device_name);
-		*reason = "Cannot share storage device with already-running VDO";
-		return VDO_BAD_CONFIGURATION;
 	}
 
 	result = initialize_vdo(&layer->common, &layer->vdo);
