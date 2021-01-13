@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#34 $
  */
 
 #include "kvdoFlush.h"
@@ -59,7 +59,7 @@ int make_kvdo_flush(struct kvdo_flush **flush_ptr)
 /**********************************************************************/
 bool should_process_flush(struct kernel_layer *layer)
 {
-	return (get_write_policy(layer->kvdo.vdo) != WRITE_POLICY_SYNC);
+	return (get_write_policy(&layer->vdo) != WRITE_POLICY_SYNC);
 }
 
 /**
@@ -72,7 +72,7 @@ static void kvdo_flush_work(struct vdo_work_item *item)
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,
 						     work_item);
-	flush(kvdo_flush->layer->kvdo.vdo, &kvdo_flush->vdo_flush);
+	flush(&kvdo_flush->layer->vdo, &kvdo_flush->vdo_flush);
 }
 
 /**
@@ -96,15 +96,15 @@ static void initialize_kvdo_flush(struct kvdo_flush *kvdo_flush,
 /**********************************************************************/
 static void enqueue_kvdo_flush(struct kvdo_flush *kvdo_flush)
 {
-	struct kvdo *kvdo = &kvdo_flush->layer->kvdo;
+	struct vdo *vdo = &kvdo_flush->layer->vdo;
 	setup_work_item(&kvdo_flush->work_item,
 			kvdo_flush_work,
 			NULL,
 			REQ_Q_ACTION_FLUSH);
 
-	enqueue_vdo_work(kvdo,
+	enqueue_vdo_work(vdo,
 			 &kvdo_flush->work_item,
-			 get_packer_zone_thread(get_thread_config(kvdo->vdo)));
+			 get_packer_zone_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/

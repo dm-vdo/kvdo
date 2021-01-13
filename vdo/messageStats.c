@@ -986,7 +986,7 @@ int write_vdo_stats(struct kernel_layer *layer,
 		return result;
 	}
 
-	get_kvdo_statistics(&layer->kvdo, stats);
+	get_kvdo_statistics(&layer->vdo, stats);
 	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
 	FREE(stats);
 	return result;

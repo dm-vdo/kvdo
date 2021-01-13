@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#18 $
  */
 
 #ifndef VDO_H
@@ -25,14 +25,14 @@
 #include "types.h"
 
 /**
- * Allocate a vdo structure and associate it with its physical layer.
+ * Initialize a vdo structure and associate it with its physical layer.
  *
- * @param [in]  layer        The physical layer the vdo sits on
- * @param [out] vdo_ptr      A pointer to hold the allocated vdo
+ * @param layer  The physical layer the vdo sits on
+ * @param vdo    The vdo to initialize
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr);
+int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo);
 
 /**
  * Destroy a vdo instance.
@@ -40,13 +40,6 @@ int __must_check allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr);
  * @param vdo  The vdo to destroy
  **/
 void destroy_vdo(struct vdo *vdo);
-
-/**
- * Destroy a vdo instance, free it, and null out the reference to it.
- *
- * @param vdo_ptr  A reference to the vdo to free
- **/
-void free_vdo(struct vdo **vdo_ptr);
 
 /**
  * Put a vdo into read-only mode and save the read-only state in the super

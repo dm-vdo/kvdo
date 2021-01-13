@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#83 $
  */
 
 #include "dmvdo.h"
@@ -186,7 +186,7 @@ static void vdo_status(struct dm_target *ti,
 	case STATUSTYPE_INFO:
 		// Report info for dmsetup status
 		mutex_lock(&layer->stats_mutex);
-		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
+		get_kvdo_statistics(&layer->vdo, &layer->vdo_stats_storage);
 		stats = &layer->vdo_stats_storage;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
@@ -194,8 +194,7 @@ static void vdo_status(struct dm_target *ti,
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       get_dedupe_state_name(layer->dedupe_index),
-		       get_kvdo_compressing(&layer->kvdo) ? "online" :
-							    "offline",
+		       get_vdo_compressing(&layer->vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
 		mutex_unlock(&layer->stats_mutex);
@@ -267,7 +266,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	// Messages with variable numbers of arguments.
 	if (strncasecmp(argv[0], "x-", 2) == 0) {
 		int result =
-			perform_kvdo_extended_command(&layer->kvdo, argc, argv);
+			perform_kvdo_extended_command(&layer->vdo, argc, argv);
 		if (result == VDO_UNKNOWN_COMMAND) {
 			log_warning("unknown extended command '%s' to dmsetup message",
 				    argv[0]);
@@ -332,12 +331,12 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
-				set_kvdo_compressing(&layer->kvdo, true);
+				set_kvdo_compressing(&layer->vdo, true);
 				return 0;
 			}
 
 			if (strcasecmp(argv[1], "off") == 0) {
-				set_kvdo_compressing(&layer->kvdo, false);
+				set_kvdo_compressing(&layer->vdo, false);
 				return 0;
 			}
 
@@ -830,7 +829,7 @@ static int vdo_preresume(struct dm_target *ti)
 			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
 				      result,
 				      failure_reason);
-			set_kvdo_read_only(&layer->kvdo, result);
+			set_kvdo_read_only(&layer->vdo, result);
 			unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
@@ -849,7 +848,7 @@ static int vdo_preresume(struct dm_target *ti)
 				   "Commit of modifications to device '%s' failed",
 				   device_name);
 		set_kernel_layer_active_config(layer, config);
-		set_kvdo_read_only(&layer->kvdo, result);
+		set_kvdo_read_only(&layer->vdo, result);
 	} else {
 		set_kernel_layer_active_config(layer, config);
 		result = resume_kernel_layer(layer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#48 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -25,6 +25,8 @@
 #include "vdo.h"
 
 #include "atomicDefs.h"
+
+#include "threadRegistry.h"
 
 #include "adminCompletion.h"
 #include "adminState.h"
@@ -51,7 +53,20 @@ struct atomic_error_statistics {
 	atomic64_t read_only_error_count;
 };
 
+struct vdo_thread {
+	struct vdo *vdo;
+	thread_id_t thread_id;
+	struct vdo_work_queue *request_queue;
+	struct registered_thread allocating_thread;
+};
+
 struct vdo {
+	struct vdo_thread *threads;
+	thread_id_t initialized_thread_count;
+	struct vdo_work_item work_item;
+	vdo_action *action;
+	struct vdo_completion *completion;
+
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
 	/* The full state of all components */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#90 $
  */
 
 /*
@@ -51,23 +51,15 @@
 #include "vdoLayout.h"
 
 /**********************************************************************/
-int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
+int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo)
 {
-	struct vdo *vdo;
-
 	int result = register_status_codes();
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(1, struct vdo, __func__, &vdo);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
 	vdo->layer = layer;
 	initialize_admin_completion(vdo, &vdo->admin_completion);
-	*vdo_ptr = vdo;
 	return VDO_SUCCESS;
 }
 
@@ -106,18 +98,6 @@ void destroy_vdo(struct vdo *vdo)
 	vdo->physical_zones = NULL;
 	free_read_only_notifier(&vdo->read_only_notifier);
 	free_thread_config(&vdo->load_config.thread_config);
-}
-
-/**********************************************************************/
-void free_vdo(struct vdo **vdo_ptr)
-{
-	if (*vdo_ptr == NULL) {
-		return;
-	}
-
-	destroy_vdo(*vdo_ptr);
-	FREE(*vdo_ptr);
-	*vdo_ptr = NULL;
 }
 
 /**********************************************************************/

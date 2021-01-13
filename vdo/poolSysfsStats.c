@@ -47,7 +47,7 @@ static ssize_t pool_stats_attr_show(struct kobject *kobj,
 
 	mutex_lock(&layer->stats_mutex);
 	if (pool_stats_attr->from_vdo) {
-		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
+		get_kvdo_statistics(&layer->vdo, &layer->vdo_stats_storage);
 	} else {
 		get_kernel_statistics(layer, &layer->kernel_stats_storage);
 	}

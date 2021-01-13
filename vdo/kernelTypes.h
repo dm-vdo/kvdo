@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#24 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -29,7 +29,6 @@ struct dedupe_context;
 struct dedupe_index;
 struct io_submitter;
 struct kernel_layer;
-struct kvdo;
 struct kvdo_flush;
 struct vdo_work_item;
 struct vdo_work_queue;

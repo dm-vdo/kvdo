@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#68 $
  */
 
 #include "kvio.h"
@@ -163,7 +163,7 @@ void submit_metadata_vio(struct vio *vio)
 	 *
 	 * We believe all recovery journal and block map IO is important for
 	 * throughput relative to other IO, so we tag them with REQ_PRIO to
-	 * convey this to lower layers, if they care. 
+	 * convey this to lower layers, if they care.
 	 *
 	 * Additionally, recovery journal IO is directly critical to user
 	 * bio latency, so we tag them with REQ_SYNC.
@@ -223,7 +223,7 @@ void initialize_kvio(struct vio *vio,
 		       vio_type,
 		       priority,
 		       parent,
-		       get_vdo(&layer->kvdo),
+		       &layer->vdo,
 		       &layer->common);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#59 $
  */
 
 #ifndef KERNELLAYER_H
@@ -31,6 +31,9 @@
 #include "flush.h"
 #include "intMap.h"
 #include "physicalLayer.h"
+#include "types.h"
+#include "vdo.h"
+#include "vdoInternal.h"
 #include "volumeGeometry.h"
 #include "waitQueue.h"
 
@@ -101,7 +104,7 @@ struct kernel_layer {
 	/** Limit the number of requests that are being processed. */
 	struct limiter request_limiter;
 	struct limiter discard_limiter;
-	struct kvdo kvdo;
+	struct vdo vdo;
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
 	// for REQ_FLUSH processing
