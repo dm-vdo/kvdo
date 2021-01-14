@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#34 $
  */
 
 #ifndef VIO_H
@@ -181,13 +181,18 @@ void initialize_vio(struct vio *vio,
 void vio_done_callback(struct vdo_completion *completion);
 
 /**
- * Get the name of a vio's operation.
+ * Get the description of a vio's operation.
  *
- * @param vio  The vio
+ * The output buffer must have size VIO_OPERATION_DESCRIPTION_MAX_LENGTH.
  *
- * @return The name of the vio's operation (read, write, or read-modify-write)
+ * @param vio     The vio
+ * @param buffer  The buffer to populate with the vio operation name.
+ *
+ * @return The name of the vio's operation (read, write, empty,
+ *	   read-modify-write, possibly with additional preflush
+ *	   or postflush)
  **/
-const char *get_vio_read_write_flavor(const struct vio *vio);
+void get_vio_operation_description(const struct vio *vio, char *buffer);
 
 /**
  * Update per-vio error stats and log the error.

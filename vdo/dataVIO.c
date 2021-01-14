@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#43 $
  */
 
 #include "dataVIO.h"
@@ -127,9 +127,11 @@ void complete_data_vio(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	if (completion->result != VDO_SUCCESS) {
 		struct vio *vio = data_vio_as_vio(data_vio);
+		char vio_operation[VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+		get_vio_operation_description(vio, vio_operation);
 		update_vio_error_stats(vio,
 				       "Completing %s vio for LBN %llu with error after %s",
-				       get_vio_read_write_flavor(vio),
+				       vio_operation,
 				       data_vio->logical.lbn,
 				       get_operation_name(data_vio));
 	}

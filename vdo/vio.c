@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#30 $
  */
 
 #include "vio.h"
@@ -67,12 +67,45 @@ void vio_done_callback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-const char *get_vio_read_write_flavor(const struct vio *vio)
+void get_vio_operation_description(const struct vio *vio, char *buffer)
 {
-	if (is_read_vio(vio)) {
-		return "read";
+	size_t buffer_remaining = VIO_OPERATION_DESCRIPTION_MAX_LENGTH;
+
+	static const char *operations[] = {
+		[VIO_UNSPECIFIED_OPERATION] = "empty",
+		[VIO_READ]		    = "read",
+		[VIO_WRITE]		    = "write",
+		[VIO_READ_MODIFY_WRITE]	    = "read-modify-write",
+	};
+	int written = snprintf(buffer, buffer_remaining, "%s",
+		operations[vio->operation & VIO_READ_WRITE_MASK]);
+	if ((written < 0) || (buffer_remaining < written)) {
+		// Should never happen, but if it does, we've done as much
+		// description as possible.
+		return;
 	}
-	return (is_write_vio(vio) ? "write" : "read-modify-write");
+
+	buffer += written;
+	buffer_remaining -= written;
+
+	if (vio->operation & VIO_FLUSH_BEFORE) {
+		written = snprintf(buffer, buffer_remaining, "+preflush");
+	}
+	if ((written < 0) || (buffer_remaining < written)) {
+		// Should never happen, but if it does, we've done as much
+		// description as possible.
+		return;
+	}
+
+	buffer += written;
+	buffer_remaining -= written;
+
+	if (vio->operation & VIO_FLUSH_AFTER) {
+		snprintf(buffer, buffer_remaining, "+postflush");
+	}
+
+	STATIC_ASSERT(sizeof("write+preflush+postflush") <=
+		      VIO_OPERATION_DESCRIPTION_MAX_LENGTH);
 }
 
 /**********************************************************************/
@@ -117,9 +150,11 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 static void handle_metadata_io_error(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
+	char vio_operation[VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+	get_vio_operation_description(vio, vio_operation);
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",
-			       get_vio_read_write_flavor(vio),
+			       vio_operation,
 			       vio->type,
 			       vio->physical);
 	vio_done_callback(completion);

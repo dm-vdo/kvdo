@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#4 $
  */
 
 #ifndef CONSTANTS_H
@@ -93,6 +93,8 @@ enum {
 	/** The size of a sector that will not be torn */
 	VDO_SECTOR_SIZE = 512,
 
+	/** The number of characters needed for a vio operation description */
+	VIO_OPERATION_DESCRIPTION_MAX_LENGTH = 25,
 	/** The physical block number reserved for storing the zero block */
 	ZERO_BLOCK = 0,
 };
