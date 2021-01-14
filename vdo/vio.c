@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#31 $
  */
 
 #include "vio.h"
@@ -69,7 +69,7 @@ void vio_done_callback(struct vdo_completion *completion)
 /**********************************************************************/
 void get_vio_operation_description(const struct vio *vio, char *buffer)
 {
-	size_t buffer_remaining = VIO_OPERATION_DESCRIPTION_MAX_LENGTH;
+	int buffer_remaining = VIO_OPERATION_DESCRIPTION_MAX_LENGTH;
 
 	static const char *operations[] = {
 		[VIO_UNSPECIFIED_OPERATION] = "empty",
