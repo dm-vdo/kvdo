@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#38 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -311,7 +311,6 @@ struct physicalLayer {
 	compressed_writer *writeCompressedBlock;
 	metadata_reader *readMetadata;
 	metadata_writer *writeMetadata;
-	metadata_writer *flush;
 	data_acknowledger *acknowledgeDataVIO;
 	data_vio_comparator *compareDataVIOs;
 	data_compressor *compressDataVIO;

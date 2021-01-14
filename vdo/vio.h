@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#35 $
  */
 
 #ifndef VIO_H
@@ -259,6 +259,18 @@ static inline bool is_read_modify_write_vio(const struct vio *vio)
 }
 
 /**
+ * Check whether a vio is a empty flush.
+ *
+ * @param vio  The vio
+ *
+ * @return <code>true</code> if the vio is a pure, empty flush
+ **/
+static inline bool is_empty_flush_vio(const struct vio *vio)
+{
+	return (vio->operation == VIO_FLUSH_BEFORE);
+}
+
+/**
  * Check whether a vio is a write.
  *
  * @param vio  The vio
@@ -377,8 +389,12 @@ launch_write_metadata_vio_with_flush(struct vio *vio,
  * @param callback       The function to call when the flush is complete
  * @param error_handler  The handler for flush errors
  **/
-void launch_flush(struct vio *vio,
-		  vdo_action *callback,
-		  vdo_action *error_handler);
+static inline void launch_flush(struct vio *vio,
+				vdo_action *callback,
+				vdo_action *error_handler)
+{
+	launch_metadata_vio(vio, 0, callback, error_handler,
+			    VIO_FLUSH_BEFORE);
+}
 
 #endif // VIO_H

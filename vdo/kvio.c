@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#69 $
  */
 
 #include "kvio.h"
@@ -132,6 +132,7 @@ static inline enum bio_q_action get_metadata_action(struct vio *vio)
 void submit_metadata_vio(struct vio *vio)
 {
 	int result;
+	char *data = vio->data;
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
 	struct kernel_layer *layer =
@@ -179,7 +180,11 @@ void submit_metadata_vio(struct vio *vio)
 		bi_opf |= REQ_SYNC;
 	}
 
-	result = reset_bio_with_buffer(bio, vio->data, vio,
+	if (is_empty_flush_vio(vio)) {
+		data = NULL;
+	}
+
+	result = reset_bio_with_buffer(bio, data, vio,
 				       complete_async_bio, bi_opf,
 				       vio->physical);
 	if (result != VDO_SUCCESS) {
@@ -188,25 +193,6 @@ void submit_metadata_vio(struct vio *vio)
 	}
 
 	// Perform the metadata IO, using the metadata vio's own bio.
-	vdo_submit_bio(bio, get_metadata_action(vio));
-}
-
-/**********************************************************************/
-void kvdo_flush_vio(struct vio *vio)
-{
-	struct bio *bio = vio->bio;
-
-	/*
-	 * One would think we could use REQ_OP_FLUSH on new kernels, but some
-	 * layers of the stack don't recognize that as a flush. So do it
-	 * like blkdev_issue_flush() and make it a write+flush.
-	 */
-	int result = reset_bio_with_buffer(bio, NULL, vio, complete_async_bio,
-					   REQ_OP_WRITE | REQ_PREFLUSH, 0);
-	if (result != VDO_SUCCESS) {
-		continue_vio(vio, result);
-		return;
-	}
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
 

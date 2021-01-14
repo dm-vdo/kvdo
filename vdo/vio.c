@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#32 $
  */
 
 #include "vio.h"
@@ -91,6 +91,7 @@ void get_vio_operation_description(const struct vio *vio, char *buffer)
 	if (vio->operation & VIO_FLUSH_BEFORE) {
 		written = snprintf(buffer, buffer_remaining, "+preflush");
 	}
+
 	if ((written < 0) || (buffer_remaining < written)) {
 		// Should never happen, but if it does, we've done as much
 		// description as possible.
@@ -179,36 +180,4 @@ void launch_metadata_vio(struct vio *vio,
 	completion->error_handler = handle_metadata_io_error;
 
 	submit_metadata_vio(vio);
-}
-
-/**
- * Handle a flush error.
- *
- * @param completion  The flush vio
- **/
-static void handle_flush_error(struct vdo_completion *completion)
-{
-	log_error_strerror(completion->result, "Error flushing layer");
-	completion->error_handler = as_vio(completion)->error_handler;
-	complete_completion(completion);
-}
-
-/**********************************************************************/
-void launch_flush(struct vio *vio,
-		  vdo_action *callback,
-		  vdo_action *error_handler)
-{
-	struct vdo_completion *completion = vio_as_completion(vio);
-
-	ASSERT_LOG_ONLY(get_write_policy(vio->vdo) != WRITE_POLICY_SYNC,
-			"pure flushes should not currently be issued in sync mode");
-
-	reset_completion(completion);
-	completion->callback = callback;
-	completion->error_handler = handle_flush_error;
-	vio->error_handler = error_handler;
-	vio->operation = VIO_FLUSH_BEFORE;
-	vio->physical = ZERO_BLOCK;
-
-	completion->layer->flush(vio);
 }

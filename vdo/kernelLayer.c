@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#142 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#143 $
  */
 
 #include "kernelLayer.h"
@@ -559,7 +559,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->common.enqueue = kvdo_enqueue;
 	layer->common.waitForAdminOperation = wait_for_sync_operation;
 	layer->common.completeAdminOperation = kvdo_complete_sync_operation;
-	layer->common.flush = kvdo_flush_vio;
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
