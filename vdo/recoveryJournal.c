@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#88 $
  */
 
 #include "recoveryJournal.h"
@@ -518,7 +518,7 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 				"journal being freed has no active tail blocks");
 	} else if (!is_saved(&journal->state)
 		   && !list_empty(&journal->active_tail_blocks)) {
-		log_warning("journal being freed has uncommited entries");
+		log_warning("journal being freed has uncommitted entries");
 	}
 
 	while ((block = pop_active_list(journal)) != NULL) {
