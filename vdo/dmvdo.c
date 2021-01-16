@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#84 $
  */
 
 #include "dmvdo.h"
@@ -45,24 +45,6 @@
 #include "threadRegistry.h"
 
 struct vdo_module_globals vdo_globals;
-
-/*
- * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
- * and the value in max_discard_sectors to split large discards into smaller
- * ones. 4.3 to 4.18 kernels have removed the code in blkdev_issue_discard
- * and so in place of that, we use the code in device mapper itself to
- * split the discards. Unfortunately, it uses the same value to split large
- * discards as it does to split large data bios.
- *
- * In kernel version 4.18, support for splitting discards was added
- * back into blkdev_issue_discard. Since this mode of splitting
- * (based on max_discard_sectors) is preferable to splitting always
- * on 4k, we are turning off the device mapper splitting from 4.18
- * on.
- */
-#define HAS_NO_BLKDEV_SPLIT                              \
-	LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) && \
-		LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 
 /**********************************************************************/
 
@@ -138,16 +120,16 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * /var/log/kern.log.  In order to avoid these warnings, we choose to
 	 * use the smallest reasonable value.  See VDO-3062 and VDO-3087.
 	 *
-	 * We allow setting of the value for max_discard_sectors even in
-	 * situations where we only split on 4k (see comments for
-	 * HAS_NO_BLKDEV_SPLIT) as the value is still used in other code, like
-	 * sysfs display of queue limits and most especially in dm-thin to
-	 * determine whether to pass down discards.
+	 * The value is displayed in sysfs, and also used by dm-thin to
+	 * determine whether to pass down discards. The block layer splits
+	 * large discards on this boundary when this is set.
 	 */
 	limits->max_discard_sectors =
 		layer->device_config->max_discard_blocks *
 		VDO_SECTORS_PER_BLOCK;
 
+	// Force discards to not begin or end with a partial block by stating
+	// the granularity is 4k.
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
@@ -505,13 +487,6 @@ static void configure_target_capabilities(struct dm_target *ti,
 	// If this value changes, please make sure to update the
 	// value for max_discard_sectors accordingly.
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
-
-/*
- * Please see comments above where the macro is defined.
- */
-#if HAS_NO_BLKDEV_SPLIT
-	ti->split_discard_bios = 1;
-#endif
 }
 
 /**
