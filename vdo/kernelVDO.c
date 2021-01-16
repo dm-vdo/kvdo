@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#72 $
  */
 
 /*
@@ -416,7 +416,7 @@ static void initialize_vdo_action_data(struct vdo_action_data *data,
 }
 
 /**
- * The VDO callback that completes the kvdo completion.
+ * The VDO callback that completes the vdo completion.
  *
  * @param vdo_completion     The VDO completion which was acted upon.
  **/
@@ -435,7 +435,7 @@ static void finish_vdo_action(struct vdo_completion *vdo_completion)
  * structure so that the corresponding kernel completion is completed
  * when the VDO completion is.
  *
- * @param item          A kvdo work queue item.
+ * @param item          A vdo work queue item.
  **/
 static void perform_vdo_action_work(struct vdo_work_item *item)
 {

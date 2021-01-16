@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.h#3 $
  */
 
 #ifndef SYSFS_H
@@ -27,14 +27,14 @@
 /**
  * Initialize the sysfs objects global to all VDO devices.
  *
- * @param module_object  The kvdo module's global kobject
+ * @param module_object  The VDO module's global kobject
  */
 int vdo_init_sysfs(struct kobject *module_object);
 
 /**
  * Release the global sysfs objects.
  *
- * @param module_object  The kvdo module's global kobject
+ * @param module_object  The VDO module's global kobject
  */
 void vdo_put_sysfs(struct kobject *module_object);
 
