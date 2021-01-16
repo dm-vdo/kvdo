@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#36 $
  */
 
 #ifndef VIO_H
@@ -57,9 +57,6 @@ struct vio {
 
 	/* The vio type is used for statistics and instrumentation. */
 	enum vio_type type;
-
-	/* Used for logging and debugging */
-	struct trace *trace;
 
 	/* The data being read or written. */
 	char *data;
