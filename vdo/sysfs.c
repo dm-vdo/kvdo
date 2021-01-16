@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#15 $
  */
 
 #include "sysfs.h"
 
 #include <linux/module.h>
-#include <linux/version.h>
 
 #include "dedupeIndex.h"
 #include "dmvdo.h"

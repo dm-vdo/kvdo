@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#35 $
  */
 
 #include "kvdoFlush.h"
+
+#include <linux/version.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
