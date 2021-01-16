@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#21 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -35,7 +35,6 @@ struct page_info;
 
 /**
  * Structure describing entire page cache.
- * (Unfortunately the name "PageCache" is already taken by Albireo.)
  **/
 struct vdo_page_cache;
 

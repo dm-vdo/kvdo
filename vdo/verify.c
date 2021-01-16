@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#25 $
  */
 
 #include "physicalLayer.h"
@@ -73,7 +73,7 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 }
 
 /**
- * Verify the Albireo-provided deduplication advice, and invoke a
+ * Verify the deduplication advice from the UDS index, and invoke a
  * callback once the answer is available.
  *
  * After we've compared the stored data with the data to be written,
@@ -103,7 +103,7 @@ static void verify_duplication_work(struct vdo_work_item *item)
 }
 
 /**
- * Verify the Albireo-provided deduplication advice, and invoke a
+ * Verify the deduplication advice from the UDS index, and invoke a
  * callback once the answer is available.
  *
  * @param completion  The data_vio that we are looking to dedupe.

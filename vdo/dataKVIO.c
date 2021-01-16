@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#121 $
  */
 
 #include "dataKVIO.h"
@@ -1282,7 +1282,7 @@ static void dump_pooled_data_vio(void *data)
 		 vio_block_number_dump_buffer, vio_flush_generation_buffer,
 		 get_operation_name(data_vio), vio_work_item_dump_buffer,
 		 flags_dump_buffer);
-	// might want info on: wantAlbireoAnswer / operation / status
+	// might want info on: wantUDSAnswer / operation / status
 	// might want info on: bio / bios_merged
 
 	dump_vio_waiters(&data_vio->logical.waiters, "lbn");

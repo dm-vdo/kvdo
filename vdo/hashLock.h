@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#6 $
  */
 
 #ifndef HASH_LOCK_H
@@ -56,9 +56,9 @@ void enter_hash_lock(struct data_vio *data_vio);
 /**
  * Asynchronously continue processing a data_vio in its hash lock after it has
  * finished writing, compressing, or deduplicating, so it can share the result
- * with any data_vios waiting in the hash lock, or update Albireo, or simply
- * release its share of the lock. This must only be called in the correct
- * thread for the hash zone.
+ * with any data_vios waiting in the hash lock, or update the UDS index, or
+ * simply release its share of the lock. This must only be called in the
+ * correct thread for the hash zone.
  *
  * @param data_vio  The data_vio to continue processing in its hash lock
  **/
