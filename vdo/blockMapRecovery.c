@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#35 $
  */
 
 #include "blockMapRecovery.h"
@@ -121,7 +121,7 @@ static int compare_mappings(const void *item1, const void *item2)
 }
 
 /**
- * Swap two numbered_block_mapping structures. Implements HeapSwapper.
+ * Swap two numbered_block_mapping structures. Implements heap_swapper.
  **/
 static void swap_mappings(void *item1, void *item2)
 {

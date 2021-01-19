@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#76 $
  */
 
 #include "slabJournalInternals.h"
@@ -292,7 +292,7 @@ static void mark_slab_journal_clean(struct slab_journal *journal)
 }
 
 /**
- * Implements WaiterCallback. This callback is invoked on all vios waiting
+ * Implements waiter_callback. This callback is invoked on all vios waiting
  * to make slab journal entries after the VDO has gone into read-only mode.
  **/
 static void abort_waiter(struct waiter *waiter, void *context __always_unused)
@@ -473,7 +473,7 @@ static void reap_slab_journal(struct slab_journal *journal)
  * This is the callback invoked after a slab summary update completes. It
  * is registered in the constructor on behalf of update_tail_block_location().
  *
- * Implements WaiterCallback.
+ * Implements waiter_callback.
  *
  * @param waiter        The slab summary waiter that has just been notified
  * @param context       The result code of the update
@@ -898,7 +898,7 @@ bool requires_scrubbing(const struct slab_journal *journal)
 }
 
 /**
- * Implements WaiterCallback. This callback is invoked by add_entries() once
+ * Implements waiter_callback. This callback is invoked by add_entries() once
  * it has determined that we are ready to make another entry in the slab
  * journal.
  *

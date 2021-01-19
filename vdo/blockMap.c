@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#84 $
  */
 
 #include "blockMap.h"
@@ -57,7 +57,7 @@ struct block_map_page_context {
 };
 
 /**
- * Implements VDOPageReadFunction.
+ * Implements vdo_page_read_function.
  **/
 static int validate_page_on_read(void *buffer,
 				 physical_block_number_t pbn,
@@ -88,7 +88,7 @@ static int validate_page_on_read(void *buffer,
 /**
  * Handle journal updates and torn write protection.
  *
- * Implements VDOPageWriteFunction.
+ * Implements vdo_page_write_function.
  **/
 static bool handle_page_write(void *raw_page,
 			      struct block_map_zone *zone,
@@ -166,7 +166,7 @@ struct block_map_zone *get_block_map_zone(struct block_map *map,
 /**
  * Get the ID of the thread on which a given block map zone operates.
  *
- * <p>Implements ZoneThreadGetter.
+ * <p>Implements zone_thread_getter.
  **/
 static thread_id_t get_block_map_zone_thread_id(void *context,
 						zone_count_t zone_number)
@@ -177,7 +177,7 @@ static thread_id_t get_block_map_zone_thread_id(void *context,
 /**
  * Prepare for an era advance.
  *
- * <p>Implements ActionPreamble.
+ * <p>Implements action_preamble.
  **/
 static void prepare_for_era_advance(void *context,
 				    struct vdo_completion *parent)
@@ -190,7 +190,7 @@ static void prepare_for_era_advance(void *context,
 /**
  * Update the progress of the era in a zone.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 static void advance_block_map_zone_era(void *context,
 				       zone_count_t zone_number,
@@ -209,7 +209,7 @@ static void advance_block_map_zone_era(void *context,
  * directly. Rather, call schedule_default_action() on the block map's action
  * manager.
  *
- * <p>Implements ActionScheduler.
+ * <p>Implements action_scheduler.
  **/
 static bool schedule_era_advance(void *context)
 {
@@ -453,7 +453,7 @@ static void initiate_drain(struct admin_state *state)
 /**
  * Drain a zone of the block map.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 static void
 drain_zone(void *context, zone_count_t zone_number,
@@ -478,7 +478,7 @@ void drain_block_map(struct block_map *map,
 /**
  * Resume a zone of the block map.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 static void resume_block_map_zone(void *context,
 				  zone_count_t zone_number,
@@ -528,7 +528,7 @@ block_count_t get_new_entry_count(struct block_map *map)
 /**
  * Grow the block map by replacing the forest with the one which was prepared.
  *
- * Implements ActionPreamble
+ * Implements action_preamble
  **/
 static void grow_forest(void *context, struct vdo_completion *completion)
 {

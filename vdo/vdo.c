@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#91 $
  */
 
 /*
@@ -151,7 +151,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
  * Notify a vdo that it is going read-only. This will save the read-only state
  * to the super block.
  *
- * <p>Implements ReadOnlyNotification.
+ * <p>Implements read_only_notification.
  *
  * @param listener  The vdo
  * @param parent    The completion to notify in order to acknowledge the

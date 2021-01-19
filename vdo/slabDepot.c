@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#85 $
  */
 
 #include "slabDepot.h"
@@ -147,7 +147,7 @@ void abandon_new_slabs(struct slab_depot *depot)
 /**
  * Get the ID of the thread on which a given allocator operates.
  *
- * <p>Implements ZoneThreadGetter.
+ * <p>Implements zone_thread_getter.
  **/
 static thread_id_t get_allocator_thread_id(void *context,
 					   zone_count_t zone_number)
@@ -158,7 +158,7 @@ static thread_id_t get_allocator_thread_id(void *context,
 /**
  * Prepare to commit oldest tail blocks.
  *
- * <p>Implements ActionPreamble.
+ * <p>Implements action_preamble.
  **/
 static void prepare_for_tail_block_commit(void *context,
 					  struct vdo_completion *parent)
@@ -173,7 +173,7 @@ static void prepare_for_tail_block_commit(void *context,
  * directly. Rather, call schedule_default_action() on the depot's action
  * manager.
  *
- * <p>Implements ActionScheduler,
+ * <p>Implements action_scheduler.
  **/
 static bool schedule_tail_block_commit(void *context)
 {
@@ -551,7 +551,7 @@ slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 /**
  * The preamble of a load operation which loads the slab summary.
  *
- * <p>Implements ActionPreamble.
+ * <p>Implements action_preamble.
  **/
 static void start_depot_load(void *context, struct vdo_completion *parent)
 {
@@ -648,7 +648,7 @@ int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
  * Finish registering new slabs now that all of the allocators have received
  * their new slabs.
  *
- * <p>Implements ActionConclusion.
+ * <p>Implements action_conclusion.
  **/
 static int finish_registration(void *context)
 {

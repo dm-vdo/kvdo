@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#31 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -126,7 +126,7 @@ struct block_allocator {
 /**
  * Construct allocator metadata vios. Exposed for unit tests.
  *
- * Implements VIOConstructor
+ * Implements vio_constructor
  **/
 int __must_check
 make_allocator_pool_vios(PhysicalLayer *layer,

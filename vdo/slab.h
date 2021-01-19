@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#36 $
  */
 
 #ifndef VDO_SLAB_H
@@ -250,7 +250,6 @@ slab_block_number_from_pbn(struct vdo_slab *slab,
 
 /**
  * Check whether the reference counts for a given rebuilt slab should be saved.
- * Implements SlabStatusChecker.
  *
  * @param slab  The slab to check
  *

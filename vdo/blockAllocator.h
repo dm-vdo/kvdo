@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#30 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -129,7 +129,7 @@ get_unrecovered_slab_count(const struct block_allocator *allocator);
 /**
  * Load the state of an allocator from disk.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void load_block_allocator(void *context,
 			  zone_count_t zone_number,
@@ -148,7 +148,7 @@ void notify_slab_journals_are_recovered(struct block_allocator *allocator,
 /**
  * Prepare the block allocator to come online and start allocating blocks.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void prepare_allocator_to_allocate(void *context,
 				   zone_count_t zone_number,
@@ -166,7 +166,7 @@ void register_slab_with_allocator(struct block_allocator *allocator,
 /**
  * Register the new slabs belonging to this allocator.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void register_new_slabs_for_allocator(void *context,
 				      zone_count_t zone_number,
@@ -177,7 +177,7 @@ void register_new_slabs_for_allocator(void *context,
  * dirty metadata may be written to disk. The type of drain will be determined
  * from the state of the allocator's depot.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void drain_block_allocator(void *context,
 			   zone_count_t zone_number,
@@ -186,7 +186,7 @@ void drain_block_allocator(void *context,
 /**
  * Resume a quiescent allocator.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void resume_block_allocator(void *context,
 			    zone_count_t zone_number,
@@ -196,7 +196,7 @@ void resume_block_allocator(void *context,
  * Request a commit of all dirty tail blocks which are locking a given recovery
  * journal block.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void release_tail_block_locks(void *context,
 			      zone_count_t zone_number,
@@ -235,7 +235,7 @@ void return_vio(struct block_allocator *allocator,
 /**
  * Initiate scrubbing all unrecovered slabs.
  *
- * <p>Implements ZoneAction.
+ * <p>Implements zone_action.
  **/
 void scrub_all_unrecovered_slabs_in_zone(void *context,
 					 zone_count_t zone_number,

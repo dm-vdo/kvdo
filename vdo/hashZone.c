@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#34 $
  */
 
 #include "hashZone.h"
@@ -65,7 +65,7 @@ struct hash_zone {
 };
 
 /**
- * Implements PointerKeyComparator.
+ * Implements pointer_key_comparator.
  **/
 static bool compare_keys(const void *this_key, const void *that_key)
 {
@@ -74,7 +74,7 @@ static bool compare_keys(const void *this_key, const void *that_key)
 }
 
 /**
- * Implements PointerKeyComparator.
+ * Implements pointer_key_comparator.
  **/
 static uint32_t hash_key(const void *key)
 {

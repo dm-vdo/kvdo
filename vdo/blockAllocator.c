@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#94 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -144,7 +144,7 @@ get_slab_iterator(const struct block_allocator *allocator)
 /**
  * Notify a block allocator that the VDO has entered read-only mode.
  *
- * Implements ReadOnlyNotification.
+ * Implements read_only_notification.
  *
  * @param listener  The block allocator
  * @param parent    The completion to notify in order to acknowledge the
@@ -537,7 +537,7 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 }
 
 /**
- * Swap two slab_status structures. Implements HeapSwapper.
+ * Swap two slab_status structures. Implements heap_swapper.
  **/
 static void swap_slab_statuses(void *item1, void *item2)
 {

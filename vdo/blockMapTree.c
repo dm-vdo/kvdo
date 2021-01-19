@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#76 $
  */
 
 #include "blockMapTree.h"
@@ -88,7 +88,7 @@ static void write_dirty_pages_callback(struct list_head *expired,
 /**
  * Make vios for reading, writing, and allocating the arboreal block map.
  *
- * Implements VIOConstructor.
+ * Implements vio_constructor.
  **/
 static int __must_check
 make_block_map_vios(PhysicalLayer *layer,
@@ -328,7 +328,7 @@ static void write_page(struct tree_page *tree_page,
  * Write out a dirty page if it is still covered by the most recent flush
  * or if it is the flusher.
  *
- * <p>Implements WaiterCallback
+ * <p>Implements waiter_callback
  *
  * @param waiter   The page to write
  * @param context  The vio_pool_entry with which to do the write
@@ -402,7 +402,7 @@ static void enqueue_page(struct tree_page *page,
  * Write pages which were waiting for a flush and have not been redirtied.
  * Requeue those pages which were redirtied.
  *
- * <p>Implements WaiterCallback.
+ * <p>Implements waiter_callback.
  *
  * @param waiter   The dirty page
  * @param context  The zone and generation
@@ -575,7 +575,7 @@ static void write_page(struct tree_page *tree_page,
 /**
  * Schedule a batch of dirty pages for writing.
  *
- * <p>Implements DirtyListsCallback.
+ * <p>Implements dirty_callback.
  *
  * @param expired  The pages to write
  * @param context  The zone
@@ -864,7 +864,7 @@ static void handle_io_error(struct vdo_completion *completion)
 
 /**
  * Read a tree page from disk now that we've gotten a vio with which to do the
- * read. This WaiterCallback is registered in load_block_map_page().
+ * read. This waiter_callback is registered in load_block_map_page().
  *
  * @param waiter   The data_vio which requires a page load
  * @param context  The vio pool entry with which to do the read

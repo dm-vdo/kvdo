@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#53 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -550,7 +550,7 @@ static void complete_with_page(struct page_info *info,
 }
 
 /**
- * Complete a page completion with an error code. Implements WaiterCallback.
+ * Complete a page completion with an error code. Implements waiter_callback.
  *
  * @param waiter         The page completion, as a waiter
  * @param result_ptr     A pointer to the error code.
@@ -577,7 +577,7 @@ static void distribute_error_over_queue(int result, struct wait_queue *queue)
 }
 
 /**
- * Complete a page completion with a page. Implements WaiterCallback.
+ * Complete a page completion with a page. Implements waiter_callback.
  *
  * @param waiter         The page completion, as a waiter
  * @param page_info      The page info to complete with
@@ -969,7 +969,7 @@ static void launch_page_save(struct page_info *info)
 
 /**
  * Determine whether a given vdo_page_completion (as a waiter) is requesting a
- * given page number. Implements WaiterMatch.
+ * given page number. Implements waiter_match.
  *
  * @param waiter        The page completion in question
  * @param context       A pointer to the pbn of the desired page

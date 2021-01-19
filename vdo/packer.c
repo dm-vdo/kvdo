@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#64 $
  */
 
 #include "packerInternals.h"
@@ -461,7 +461,7 @@ static void complete_output_bin(struct vdo_completion *completion)
 }
 
 /**
- * Implements WaiterCallback. Continues the data_vio waiter.
+ * Implements waiter_callback. Continues the data_vio waiter.
  **/
 static void continue_waiter(struct waiter *waiter,
 			    void *context __always_unused)
@@ -471,7 +471,7 @@ static void continue_waiter(struct waiter *waiter,
 }
 
 /**
- * Implements WaiterCallback. Updates the data_vio waiter to refer to its slot
+ * Implements waiter_callback. Updates the data_vio waiter to refer to its slot
  * in the compressed block, gives the data_vio a share of the PBN lock on that
  * block, and reserves a reference count increment on the lock.
  **/

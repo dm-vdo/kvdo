@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#39 $
  */
 
 #include "forest.h"
@@ -466,7 +466,7 @@ static void traverse(struct cursor *cursor)
  * Start traversing a single block map tree now that the cursor has a VIO with
  * which to load pages.
  *
- * <p>Implements WaiterCallback.
+ * <p>Implements waiter_callback.
  *
  * @param waiter   The cursor
  * @param context  The vio_pool_entry just acquired
