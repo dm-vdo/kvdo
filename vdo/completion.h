@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#27 $
  */
 
 #ifndef COMPLETION_H
@@ -377,5 +377,13 @@ static inline void prepare_to_finish_parent(struct vdo_completion *completion,
 			   parent->callback_thread_id,
 			   parent);
 }
+
+/**
+ * A function to enqueue a vdo_completion to run on the thread specified by its
+ * 'callbackThreadID' field.
+ *
+ * @param completion  The completion to be enqueued
+ **/
+void enqueue_completion(struct vdo_completion *completion);
 
 #endif // COMPLETION_H

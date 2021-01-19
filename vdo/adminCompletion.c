@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#27 $
  */
 
 #include "adminCompletion.h"
@@ -159,7 +159,7 @@ int perform_admin_operation(struct vdo *vdo,
 	admin_completion->phase = 0;
 	prepare_admin_sub_task(vdo, action, error_handler);
 
-	layer->enqueue(&admin_completion->sub_task_completion);
+	enqueue_completion(&admin_completion->sub_task_completion);
 	layer->waitForAdminOperation(layer);
 	result = admin_completion->completion.result;
 	smp_wmb();
