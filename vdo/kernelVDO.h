@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#32 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -176,17 +176,6 @@ int kvdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
  **/
 void set_kvdo_read_only(struct vdo *vdo, int result);
 
-/**
- * Perform an extended base-code command
- *
- * @param vdo   The vdo upon which to perform the operation.
- * @param argc  The number of arguments to the command.
- * @param argv  The command arguments. Note that all extended command argv[0]
- *               strings start with "x-".
- *
- * @return VDO_SUCCESS or an error code
- **/
-int perform_kvdo_extended_command(struct vdo *vdo, int argc, char **argv);
 
 /**
  * Enqueue a work item to be processed in the base code context.

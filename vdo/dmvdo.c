@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#85 $
  */
 
 #include "dmvdo.h"
@@ -245,18 +245,6 @@ process_vdo_message_locked(struct kernel_layer *layer,
 			   unsigned int argc,
 			   char **argv)
 {
-	// Messages with variable numbers of arguments.
-	if (strncasecmp(argv[0], "x-", 2) == 0) {
-		int result =
-			perform_kvdo_extended_command(&layer->vdo, argc, argv);
-		if (result == VDO_UNKNOWN_COMMAND) {
-			log_warning("unknown extended command '%s' to dmsetup message",
-				    argv[0]);
-			result = -EINVAL;
-		}
-
-		return result;
-	}
 
 	// Messages with fixed numbers of arguments.
 	switch (argc) {
