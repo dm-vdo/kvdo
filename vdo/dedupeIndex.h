@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#24 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -166,11 +166,11 @@ void update_dedupe_advice(struct data_vio *data_vio);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping UDS.
-extern unsigned int albireo_timeout_interval;
+extern unsigned int dedupe_index_timeout_interval;
 
 // Minimum time interval (in milliseconds) between timer invocations to
 // check for requests waiting for UDS that should now time out.
-extern unsigned int min_albireo_timer_interval;
+extern unsigned int min_dedupe_index_timer_interval;
 
 /**
  * Set the interval from submission until switching to fast path and
@@ -178,7 +178,7 @@ extern unsigned int min_albireo_timer_interval;
  *
  * @param value  The number of milliseconds
  **/
-void set_albireo_timeout_interval(unsigned int value);
+void set_dedupe_index_timeout_interval(unsigned int value);
 
 /**
  * Set the minimum time interval between timer invocations to check for
@@ -186,6 +186,6 @@ void set_albireo_timeout_interval(unsigned int value);
  *
  * @param value  The number of milliseconds
  **/
-void set_min_albireo_timer_interval(unsigned int value);
+void set_min_dedupe_index_timer_interval(unsigned int value);
 
 #endif /* DEDUPE_INDEX_H */

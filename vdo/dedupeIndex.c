@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#81 $
  */
 
 #include "dedupeIndex.h"
@@ -118,12 +118,12 @@ static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
 // These times are in milliseconds, and these are the default values.
-unsigned int albireo_timeout_interval = 5000;
-unsigned int min_albireo_timer_interval = 100;
+unsigned int dedupe_index_timeout_interval = 5000;
+unsigned int min_dedupe_index_timer_interval = 100;
 
 // These times are in jiffies
-static uint64_t albireo_timeout_jiffies;
-static uint64_t min_albireo_timer_jiffies;
+static uint64_t dedupe_index_timeout_jiffies;
+static uint64_t min_dedupe_index_timer_jiffies;
 
 /**********************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
@@ -206,14 +206,14 @@ static bool decode_uds_advice(const struct uds_request *request,
  *
  * @return the absolute end time for the timer, in jiffies
  **/
-static uint64_t get_albireo_timeout(uint64_t start_jiffies)
+static uint64_t get_dedupe_index_timeout(uint64_t start_jiffies)
 {
-	return max(start_jiffies + albireo_timeout_jiffies,
-		   jiffies + min_albireo_timer_jiffies);
+	return max(start_jiffies + dedupe_index_timeout_jiffies,
+		   jiffies + min_dedupe_index_timer_jiffies);
 }
 
 /**********************************************************************/
-void set_albireo_timeout_interval(unsigned int value)
+void set_dedupe_index_timeout_interval(unsigned int value)
 {
 	uint64_t alb_jiffies;
 
@@ -228,12 +228,12 @@ void set_albireo_timeout_interval(unsigned int value)
 		alb_jiffies = 2;
 		value = jiffies_to_msecs(alb_jiffies);
 	}
-	albireo_timeout_interval = value;
-	albireo_timeout_jiffies = alb_jiffies;
+	dedupe_index_timeout_interval = value;
+	dedupe_index_timeout_jiffies = alb_jiffies;
 }
 
 /**********************************************************************/
-void set_min_albireo_timer_interval(unsigned int value)
+void set_min_dedupe_index_timer_interval(unsigned int value)
 {
 	uint64_t min_jiffies;
 
@@ -250,8 +250,8 @@ void set_min_albireo_timer_interval(unsigned int value)
 		value = jiffies_to_msecs(min_jiffies);
 	}
 
-	min_albireo_timer_interval = value;
-	min_albireo_timer_jiffies = min_jiffies;
+	min_dedupe_index_timer_interval = value;
+	min_dedupe_index_timer_jiffies = min_jiffies;
 }
 
 /**********************************************************************/
@@ -317,7 +317,7 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 {
 	struct dedupe_context *context = &data_vio->dedupe_context;
 	start_expiration_timer(index,
-			       get_albireo_timeout(context->submission_jiffies));
+			       get_dedupe_index_timeout(context->submission_jiffies));
 }
 
 /**********************************************************************/
@@ -434,7 +434,8 @@ static void timeout_index_operations(struct timer_list *t)
 {
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
 	LIST_HEAD(expired_head);
-	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
+	uint64_t timeout_jiffies =
+		msecs_to_jiffies(dedupe_index_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
 	unsigned int timed_out = 0;
 
@@ -972,8 +973,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 			  .priority = 0 },
 		},
 	};
-	set_albireo_timeout_interval(albireo_timeout_interval);
-	set_min_albireo_timer_interval(min_albireo_timer_interval);
+	set_dedupe_index_timeout_interval(dedupe_index_timeout_interval);
+	set_min_dedupe_index_timer_interval(min_dedupe_index_timer_interval);
 
 	result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
 

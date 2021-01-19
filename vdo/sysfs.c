@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#16 $
  */
 
 #include "sysfs.h"
@@ -214,7 +214,7 @@ vdo_max_req_active_store(struct vdo_module_globals *vdo_globals
 
 /**********************************************************************/
 static ssize_t
-vdo_albireo_timeout_interval_store(struct vdo_module_globals *vdo_globals
+vdo_dedupe_timeout_interval_store(struct vdo_module_globals *vdo_globals
 				   __always_unused,
 				   const char *buf,
 				   size_t n)
@@ -223,14 +223,14 @@ vdo_albireo_timeout_interval_store(struct vdo_module_globals *vdo_globals
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
 
 	if (result > 0) {
-		set_albireo_timeout_interval(value);
+		set_dedupe_index_timeout_interval(value);
 	}
 	return result;
 }
 
 /**********************************************************************/
 static ssize_t
-vdo_min_albireo_timer_interval_store(struct vdo_module_globals *vdo_globals
+vdo_min_dedupe_timer_interval_store(struct vdo_module_globals *vdo_globals
 				     __always_unused,
 				     const char *buf,
 				     size_t n)
@@ -239,7 +239,7 @@ vdo_min_albireo_timer_interval_store(struct vdo_module_globals *vdo_globals
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
 
 	if (result > 0) {
-		set_min_albireo_timer_interval(value);
+		set_min_dedupe_index_timer_interval(value);
 	}
 	return result;
 }
@@ -316,26 +316,26 @@ static struct vdo_attribute vdo_max_req_active_attr = {
 	.value_ptr = &default_max_requests_active,
 };
 
-static struct vdo_attribute vdo_albireo_timeout_interval = {
+static struct vdo_attribute vdo_dedupe_timeout_interval = {
 	.attr = {
 
 			.name = "deduplication_timeout_interval",
 			.mode = 0644,
 		},
 	.show = show_uint,
-	.store = vdo_albireo_timeout_interval_store,
-	.value_ptr = &albireo_timeout_interval,
+	.store = vdo_dedupe_timeout_interval_store,
+	.value_ptr = &dedupe_index_timeout_interval,
 };
 
-static struct vdo_attribute vdo_min_albireo_timer_interval = {
+static struct vdo_attribute vdo_min_dedupe_timer_interval = {
 	.attr = {
 
 			.name = "min_deduplication_timer_interval",
 			.mode = 0644,
 		},
 	.show = show_uint,
-	.store = vdo_min_albireo_timer_interval_store,
-	.value_ptr = &min_albireo_timer_interval,
+	.store = vdo_min_dedupe_timer_interval_store,
+	.value_ptr = &min_dedupe_index_timer_interval,
 };
 
 static struct vdo_attribute vdo_trace_recording = {
@@ -362,8 +362,8 @@ static struct attribute *default_attrs[] = {
 	&vdo_status_attr.attr,
 	&vdo_log_level_attr.attr,
 	&vdo_max_req_active_attr.attr,
-	&vdo_albireo_timeout_interval.attr,
-	&vdo_min_albireo_timer_interval.attr,
+	&vdo_dedupe_timeout_interval.attr,
+	&vdo_min_dedupe_timer_interval.attr,
 	&vdo_trace_recording.attr,
 	&vdo_version_attr.attr,
 	NULL
