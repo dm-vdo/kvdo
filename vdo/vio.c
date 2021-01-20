@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#33 $
  */
 
 #include "vio.h"
@@ -112,7 +112,7 @@ void get_vio_operation_description(const struct vio *vio, char *buffer)
 /**********************************************************************/
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
-	static DEFINE_RATELIMIT_STATE(errorLimiter,
+	static DEFINE_RATELIMIT_STATE(error_limiter,
 				      DEFAULT_RATELIMIT_INTERVAL,
 				      DEFAULT_RATELIMIT_BURST);
 
@@ -134,7 +134,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 		priority = LOG_ERR;
 	}
 
-	if (!__ratelimit(&errorLimiter)) {
+	if (!__ratelimit(&error_limiter)) {
 		return;
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#54 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -1129,11 +1129,11 @@ static void handle_page_write_error(struct vdo_completion *completion)
 
 	// If we're already read-only, write failures are to be expected.
 	if (result != VDO_READ_ONLY) {
-		static DEFINE_RATELIMIT_STATE(errorLimiter,
+		static DEFINE_RATELIMIT_STATE(error_limiter,
 					      DEFAULT_RATELIMIT_INTERVAL,
 					      DEFAULT_RATELIMIT_BURST);
 
-		if (__ratelimit(&errorLimiter)) {
+		if (__ratelimit(&error_limiter)) {
 			uds_log_error("failed to write block map page %llu",
 				      info->pbn);
 		}
