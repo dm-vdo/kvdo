@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#76 $
  */
 
 /*
@@ -35,7 +35,6 @@
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
-#include "vdoDebug.h"
 //#include "vdoInternal.h"
 #include "vdoLoad.h"
 #include "vdoResize.h"
