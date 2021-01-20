@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#16 $
  */
 
 /**
  * vdo_layout is an object which manages the layout of a VDO. It wraps
- * FixedLayout, but includes the knowledge of exactly which partitions a VDO is
- * expected to have. Because of this knowledge, the vdo_layout validates the
- * FixedLayout encoded in the super block at load time, obviating the need for
- * subsequent error checking when other modules need to get partitions from the
- * layout.
+ * fixed_layout, but includes the knowledge of exactly which partitions a VDO
+ * is expected to have. Because of this knowledge, the vdo_layout validates
+ * the fixed_layout encoded in the super block at load time, obviating the
+ * need for subsequent error checking when other modules need to get
+ * partitions from the layout.
  *
  * The vdo_layout also manages the preparation and growth of the layout for
  * grow physical operations.
@@ -56,7 +56,7 @@ int __must_check decode_vdo_layout(struct fixed_layout *layout,
 void free_vdo_layout(struct vdo_layout **vdo_layout_ptr);
 
 /**
- * Get a partition from a vdo_layout. Because the layout's FixedLayout has
+ * Get a partition from a vdo_layout. Because the layout's fixed_layout has
  * already been validated, this can not fail.
  *
  * @param vdo_layout  The vdo_layout from which to get the partition

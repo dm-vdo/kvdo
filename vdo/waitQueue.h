@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#6 $
  */
 
 #ifndef WAIT_QUEUE_H
@@ -32,13 +32,13 @@
  * queue.
  *
  *   An empty queue:
- *     queue0.lastWaiter -> NULL
+ *     queue0.last_waiter -> NULL
  *
  *   A singleton queue:
- *     queue1.lastWaiter -> entry1 -> entry1 -> [...]
+ *     queue1.last_waiter -> entry1 -> entry1 -> [...]
  *
  *   A three-element queue:
- *     queue2.lastWaiter -> entry3 -> entry1 -> entry2 -> entry3 -> [...]
+ *     queue2.last_waiter -> entry3 -> entry1 -> entry2 -> entry3 -> [...]
  **/
 
 struct waiter;

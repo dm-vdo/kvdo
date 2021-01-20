@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#49 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -149,7 +149,7 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state);
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode
  * super block savers should use this bottle neck instead of calling
- * saveSuperBlockAsync() directly.
+ * save_super_block() directly.
  *
  * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete

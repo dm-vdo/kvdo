@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#77 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -149,17 +149,17 @@ make_missing_decref(struct recovery_completion *recovery,
 	 * using real recovery journal space for this, we can use fake journal
 	 * points between the last currently valid entry in the tail block and
 	 * the first journal entry in the next block. We can't overflow the
-	 * entry count since the number of synthesized decrefs is bounded by the
-	 * data VIO limit.
+	 * entry count since the number of synthesized decrefs is bounded by
+	 * the data VIO limit.
 	 *
 	 * It is vital that any given missing decref always have the same fake
-	 * journal point since a failed recovery may be retried with a different
-	 * number of zones after having written out some slab journal blocks.
-	 * Since the missing decrefs are always read out of the journal in the
-	 * same order, we can assign them a journal point when they are read.
-	 * Their subsequent use will ensure that, for any given slab journal,
-	 * they are applied in the order dictated by these assigned journal
-	 * points.
+	 * journal point since a failed recovery may be retried with a
+	 * different number of zones after having written out some slab
+	 * journal blocks. Since the missing decrefs are always read out of
+	 * the journal in the same order, we can assign them a journal point
+	 * when they are read. Their subsequent use will ensure that, for any
+	 * given slab journal, they are applied in the order dictated by these
+	 * assigned journal points.
 	 */
 	decref->slot = entry.slot;
 	decref->journal_point = recovery->next_synthesized_journal_point;
@@ -250,12 +250,12 @@ before_recovery_point(const struct recovery_point *first,
 /**
  * Prepare the sub-task completion.
  *
- * @param recovery       The recovery_completion whose sub-task completion is to
- *                       be prepared
+ * @param recovery       The recovery_completion whose sub-task completion is
+ *                       to be prepared
  * @param callback       The callback to register for the next sub-task
  * @param error_handler  The error handler for the next sub-task
- * @param zone_type      The type of zone on which the callback or error_handler
- *                       should run
+ * @param zone_type      The type of zone on which the callback or
+ *                       error_handler should run
  **/
 static void prepare_sub_task(struct recovery_completion *recovery,
 			     vdo_action callback,
@@ -459,7 +459,7 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 	};
 	/*
 	 * Allocate an array of numbered_block_mapping structs just large
-	 * enough to transcribe every increment PackedRecoveryJournalEntry
+	 * enough to transcribe every increment packed_recovery_journal_entry
 	 * from every valid journal block.
 	 */
 	int result = ALLOCATE(recovery->incref_count,
@@ -532,7 +532,7 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 
 /**
  * Finish flushing all slab journals and start a write of the super block.
- * This callback is registered in addSynthesizedEntries().
+ * This callback is registered in add_synthesized_entries().
  *
  * @param completion  The sub-task completion
  **/
@@ -836,7 +836,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 /**
  * Queue each missing decref on the slab journal to which it is to be applied
  * then load the slab depot. This callback is registered in
- * findSlabJournalEntries().
+ * find_slab_journal_entries().
  *
  * @param completion  The sub-task completion
  **/
@@ -982,14 +982,14 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		}
 
 		if (decref == &found_decref) {
-			// This incref already had a decref in the intmap, so we
-			// know it is not missing its decref.
+			// This incref already had a decref in the intmap, so
+			// we know it is not missing its decref.
 			continue;
 		}
 
 		if (decref == NULL) {
-			// This incref is missing a decref. Add a missing decref
-			// object.
+			// This incref is missing a decref. Add a missing
+			// decref object.
 			result = make_missing_decref(recovery, entry, &decref);
 			if (result != VDO_SUCCESS) {
 				return result;
@@ -1129,9 +1129,9 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 			 ZONE_TYPE_ADMIN);
 
 	/*
-	 * Increment the incomplete_decref_count so that the fetch callback can't
-	 * complete the sub-task while we are still processing the queue of
-	 * missing decrefs.
+	 * Increment the incomplete_decref_count so that the fetch callback
+	 * can't complete the sub-task while we are still processing the queue
+	 * of missing decrefs.
 	 */
 	if (recovery->incomplete_decref_count++ > 0) {
 		// Fetch block map pages to fill in the incomplete missing

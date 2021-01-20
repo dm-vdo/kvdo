@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#37 $
  */
 
 #ifndef VIO_H
@@ -65,7 +65,7 @@ struct vio {
 	struct bio *bio;
 	/**
 	 * A list of enqueued bios with consecutive block numbers, stored by
-	 * enqueueBioMap under the first-enqueued vio. The other vios are
+	 * vdo_submit_bio() under the first-enqueued vio. The other vios are
 	 * found via their bio entries in this list, and are not added to
 	 * the work queue as separate work items.
 	 **/

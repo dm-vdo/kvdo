@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#53 $
  */
 
 /*
@@ -407,11 +407,11 @@ static bool abort_on_error(int result,
 
 /**
  * Return a data_vio that finished writing, compressing, or deduplicating to
- * its hash lock so it can share the result with any DataVIOs waiting in the
+ * its hash lock so it can share the result with any data_vios waiting in the
  * hash lock, or update UDS, or simply release its share of the lock. This
  * continuation is registered in update_block_map_for_write(),
- * update_block_map_for_dedupe(), and abortDeduplication(), and must be called in
- * the hash zone of the data_vio.
+ * update_block_map_for_dedupe(), and abort_deduplication(), and must be
+ * called in the hash zone of the data_vio.
  *
  * @param completion  The completion of the data_vio to return to its hash lock
  **/
@@ -715,7 +715,7 @@ void compress_data(struct data_vio *data_vio)
 
 /**
  * Do the incref after deduplication. This is the callback registered by
- * addRecoveryJournalEntryForDedupe().
+ * add_recovery_journal_entry_for_dedupe().
  *
  * @param completion  The completion of the write in progress
  **/
@@ -767,9 +767,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 }
 
 /**
- * Share a block in the block map if it is a duplicate. This is the lock
- * callback registered in acquirePBNReadLock(). This is only public so
- * test code can compare the function to the current callback in a completion.
+ * Share a block in the block map if it is a duplicate.
  *
  * @param completion The completion of the write in progress
  **/
@@ -792,8 +790,8 @@ void share_block(struct vdo_completion *completion)
 }
 
 /**
- * Route the data_vio to the HashZone responsible for the chunk name to acquire
- * a hash lock on that name, or join with a existing hash lock managing
+ * Route the data_vio to the hash_zone responsible for the chunk name to
+ * acquire a hash lock on that name, or join with a existing hash lock managing
  * concurrent dedupe for that name. This is the callback registered in
  * resolve_hash_zone().
  *
@@ -855,7 +853,7 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 /**
  * Prepare for the dedupe path after a synchronous write or an asynchronous
  * allocation. This callback is registered in update_block_map_for_write() for
- * sync, and continueWriteAfterAllocation() (via acknowledge_write()) for
+ * sync, and continue_write_after_allocation() (via acknowledge_write()) for
  * async. It is also called directly from the latter when allocation fails.
  *
  * @param completion  The completion of the write in progress
@@ -1093,10 +1091,10 @@ static void write_block(struct data_vio *data_vio)
 /**
  * Continue the write path for a data_vio now that block allocation is complete
  * (the data_vio may or may not have actually received an allocation). This
- * callback is registered in continueWriteWithBlockMapSlot().
+ * callback is registered in continue_write_with_block_map_slot().
  *
- * @param allocating_vio  The data_vio which has finished the allocation process
- *                         (as an allocating_vio)
+ * @param allocating_vio  The data_vio which has finished the allocation
+ *                        process (as an allocating_vio)
  **/
 static void
 continue_write_after_allocation(struct allocating_vio *allocating_vio)

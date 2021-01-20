@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#61 $
  */
 
 #include "vdoLoad.h"
@@ -59,7 +59,7 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 
 /**
  * Finish aborting a load now that any entry to read-only mode is complete.
- * This callback is registered in abortLoad().
+ * This callback is registered in abort_load().
  *
  * @param completion  The sub-task completion
  **/
@@ -130,7 +130,7 @@ static void wait_for_read_only_mode(struct vdo_completion *completion)
 
 /**
  * Finish loading the VDO after an error, but leave it in read-only
- * mode.  This error handler is set in makeDirty(), scrubSlabs(), and
+ * mode.  This error handler is set in make_dirty(), scrub_slabs(), and
  * load_vdo_components().
  *
  * @param completion  The sub-task completion
@@ -146,7 +146,7 @@ static void continue_load_read_only(struct vdo_completion *completion)
 
 /**
  * Initiate slab scrubbing if necessary. This callback is registered in
- * prepareToComeOnline().
+ * prepare_to_come_online().
  *
  * @param completion   The sub-task completion
  **/

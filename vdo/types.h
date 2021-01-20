@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#74 $
  */
 
 #ifndef TYPES_H
@@ -323,12 +323,12 @@ struct slab_config {
 	block_count_t slab_journal_blocks;
 	/**
 	 * Number of blocks after which the slab journal starts pushing out a
-	 * ReferenceBlock for each new entry it receives.
+	 * reference_block for each new entry it receives.
 	 **/
 	block_count_t slab_journal_flushing_threshold;
 	/**
 	 * Number of blocks after which the slab journal pushes out all
-	 * ReferenceBlocks and makes all vios wait.
+	 * reference_blocks and makes all vios wait.
 	 **/
 	block_count_t slab_journal_blocking_threshold;
 	/**
