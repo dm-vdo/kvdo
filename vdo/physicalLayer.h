@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#40 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -238,7 +238,7 @@ typedef async_data_operation data_compressor;
  *
  * @param dataVIO  The data_vio which needs to change the entry for its data
  **/
-typedef async_data_operation albireo_updater;
+typedef async_data_operation index_updater;
 
 /**
  * A function to finish flush requests
@@ -306,7 +306,7 @@ struct physicalLayer {
 	data_acknowledger *acknowledgeDataVIO;
 	data_vio_comparator *compareDataVIOs;
 	data_compressor *compressDataVIO;
-	albireo_updater *updateAlbireo;
+	index_updater *updateIndex;
 
 	// Asynchronous interface (other)
 	flush_complete *completeFlush;
