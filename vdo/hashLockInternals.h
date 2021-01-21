@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#16 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -51,8 +51,8 @@ enum hash_lock_state {
 
 	/**
 	 * Terminal state for locks returning to the pool. Must be last both
-	 * because it's the final state, and also because it's used to count the
-	 * states.
+	 * because it's the final state, and also because it's used to count
+	 * the states.
 	 **/
 	HASH_LOCK_DESTROYING,
 };
@@ -74,7 +74,7 @@ struct hash_lock {
 	 **/
 	struct list_head duplicate_ring;
 
-	/** The number of DataVIOs sharing this lock instance */
+	/** The number of data_vios sharing this lock instance */
 	vio_count_t reference_count;
 
 	/** The maximum value of reference_count in the lifetime of this lock */
@@ -112,7 +112,7 @@ struct hash_lock {
 	struct data_vio *agent;
 
 	/**
-	 * Other DataVIOs with data identical to the agent who are currently
+	 * Other data_vios with data identical to the agent who are currently
 	 * waiting for the agent to get the information they all need to
 	 * deduplicate--either against each other, or against an existing
 	 * duplicate on disk.

@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#44 $
  */
 
 /**
  * A hash_lock controls and coordinates writing, index access, and dedupe among
- * groups of DataVIOs concurrently writing identical blocks, allowing them to
+ * groups of data_vios concurrently writing identical blocks, allowing them to
  * deduplicate not only against advice but also against each other. This save
- * on index queries and allows those DataVIOs to concurrently deduplicate
+ * on index queries and allows those data_vios to concurrently deduplicate
  * against a single block instead of being serialized through a PBN read lock.
  * Only one index query is needed for each hash_lock, instead of one for every
  * data_vio.
@@ -31,7 +31,7 @@
  * A hash_lock acts like a state machine perhaps more than as a lock. Other
  * than the starting and ending states INITIALIZING and DESTROYING, every
  * state represents and is held for the duration of an asynchronous operation.
- * All state transitions are performed on the thread of the HashZone
+ * All state transitions are performed on the thread of the hash_zone
  * containing the lock. An asynchronous operation is almost always performed
  * upon entering a state, and the callback from that operation triggers
  * exiting the state and entering a new state.
@@ -39,13 +39,13 @@
  * In all states except DEDUPING, there is a single data_vio, called the lock
  * agent, performing the asynchronous operations on behalf of the lock. The
  * agent will change during the lifetime of the lock if the lock is shared by
- * more than one data_vio. DataVIOs waiting to deduplicate are kept on a wait
+ * more than one data_vio. data_vios waiting to deduplicate are kept on a wait
  * queue. Viewed a different way, the agent holds the lock exclusively until
  * the lock enters the DEDUPING state, at which point it becomes a shared lock
- * that all the waiters (and any new DataVIOs that arrive) use to share a PBN
+ * that all the waiters (and any new data_vios that arrive) use to share a PBN
  * lock. In state DEDUPING, there is no agent. When the last data_vio in the
  * lock calls back in DEDUPING, it becomes the agent and the lock becomes
- * exclusive again. New DataVIOs that arrive in the lock will also go on the
+ * exclusive again. New data_vios that arrive in the lock will also go on the
  * wait queue.
  *
  * The existence of lock waiters is a key factor controlling which state the
@@ -54,7 +54,7 @@
  * and exit.
  *
  * Deduping requires holding a PBN lock on a block that is known to contain
- * data identical to the DataVIOs in the lock, so the lock will send the
+ * data identical to the data_vios in the lock, so the lock will send the
  * agent to the duplicate zone to acquire the PBN lock (LOCKING), to the
  * kernel I/O threads to read and verify the data (VERIFYING), or to write a
  * new copy of the data to a full data block or a slot in a compressed block
@@ -78,7 +78,7 @@
  * When there are not enough available reference count increments available on
  * a PBN for a data_vio to deduplicate, a new lock is forked and the excess
  * waiters roll over to the new lock (which goes directly to WRITING). The new
- * lock takes the place of the old lock in the lock map so new DataVIOs will
+ * lock takes the place of the old lock in the lock map so new data_vios will
  * be directed to it. The two locks will proceed independently, but only the
  * new lock will have the right to update the index (unless it also forks).
  *
@@ -92,9 +92,9 @@
  * states and transitions in the state machine diagram for VDOSTORY-190.
  * [XXX link or repository path to it?]
  * For example, for the LOCKING state, there are start_locking() and
- * finish_locking() functions. start_locking() is invoked by the finish function
- * of the state (or states) that transition to LOCKING. It performs the actual
- * lock state change and must be invoked on the hash zone thread.
+ * finish_locking() functions. start_locking() is invoked by the finish
+ * function of the state (or states) that transition to LOCKING. It performs
+ * the actual lock state change and must be invoked on the hash zone thread.
  * finish_locking() is called by (or continued via callback from) the code
  * actually obtaining the lock. It does any bookkeeping or decision-making
  * required and invokes the appropriate start function of the state being
@@ -361,8 +361,8 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
  **/
 static void compress_data_callback(struct vdo_completion *completion)
 {
-	// XXX VDOSTORY-190 need an error check since compress_data doesn't have
-	// one.
+	// XXX VDOSTORY-190 need an error check since compress_data doesn't
+	// have one.
 	compress_data(as_data_vio(completion));
 }
 
@@ -455,8 +455,8 @@ static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 
 	if (lock->duplicate_lock != NULL) {
 		if (agent != NULL) {
-			// The agent must reference the duplicate zone to launch
-			// it.
+			// The agent must reference the duplicate zone to
+			// launch it.
 			agent->duplicate = lock->duplicate;
 			launch_duplicate_zone_callback(agent,
 						       unlock_duplicate_pbn);
@@ -478,7 +478,8 @@ static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 
 /**
  * Abort processing on this hash lock when noticing an error. Currently, this
- * moves the hash lock to the BYPASSING state, to release all pending data_vios.
+ * moves the hash lock to the BYPASSING state, to release all pending
+ * data_vios.
  *
  * @param lock     The hash_lock
  * @param data_vio  The data_vio with the error
@@ -495,8 +496,8 @@ static void abort_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 	if (data_vio != lock->agent) {
 		if ((lock->agent != NULL) || (lock->reference_count > 1)) {
 			// Other data_vios are still sharing the lock (which
-			// should be DEDUPING), so just kick this one out of the
-			// lock to report its error.
+			// should be DEDUPING), so just kick this one out of
+			// the lock to report its error.
 			ASSERT_LOG_ONLY(
 				lock->agent == NULL,
 				"only active agent should call abort_hash_lock");
@@ -536,8 +537,8 @@ static void finish_unlocking(struct vdo_completion *completion)
 	if (!lock->verified) {
 		/*
 		 * UNLOCKING -> WRITING transition: The lock we released was on
-		 * an unverified block, so it must have been a lock on advice we
-		 * were verifying, not on a location that was used for
+		 * an unverified block, so it must have been a lock on advice
+		 * we were verifying, not on a location that was used for
 		 * deduplication. Go write (or compress) the block to get a
 		 * location to dedupe against.
 		 */
@@ -545,8 +546,8 @@ static void finish_unlocking(struct vdo_completion *completion)
 		return;
 	}
 
-	// With the lock released, the verified duplicate block may already have
-	// changed and will need to be re-verified if a waiter arrived.
+	// With the lock released, the verified duplicate block may already
+	// have changed and will need to be re-verified if a waiter arrived.
 	lock->verified = false;
 
 	if (has_waiters(&lock->waiters)) {
@@ -612,15 +613,15 @@ static void start_unlocking(struct hash_lock *lock, struct data_vio *agent)
 	/*
 	 * XXX If we arrange to continue on the duplicate zone thread when
 	 * verification fails, and don't explicitly change lock states (or use
-	 * an agent-local state, or an atomic), we can avoid a thread transition
-	 * here.
+	 * an agent-local state, or an atomic), we can avoid a thread
+	 * transition here.
 	 */
 	launch_duplicate_zone_callback(agent, unlock_duplicate_pbn);
 }
 
 /**
  * Process the result of a UDS update performed by the agent for the lock.
- * This continuation is registered in startQuerying().
+ * This continuation is registered in start_querying().
  *
  * @param completion  The completion of the data_vio that performed the update
  **/
@@ -707,7 +708,8 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!has_waiters(&lock->waiters),
 			"shouldn't have any lock waiters in DEDUPING");
 
-	// Just release the lock reference if other data_vios are still deduping.
+	// Just release the lock reference if other data_vios are still
+	// deduping.
 	if (lock->reference_count > 1) {
 		exit_hash_lock(data_vio);
 		return;
@@ -730,16 +732,16 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 		/*
 		 * DEDUPING -> UNLOCKING transition: Release the PBN read lock
 		 * on the duplicate location so the hash lock itself can be
-		 * released (contingent on no new data_vios arriving in the lock
-		 * before the agent returns).
+		 * released (contingent on no new data_vios arriving in the
+		 * lock before the agent returns).
 		 */
 		start_unlocking(lock, agent);
 	}
 }
 
 /**
- * Implements waiter_callback. Binds the data_vio that was waiting to a new hash
- * lock and waits on that lock.
+ * Implements waiter_callback. Binds the data_vio that was waiting to a new
+ * hash lock and waits on that lock.
  **/
 static void enter_forked_lock(struct waiter *waiter, void *context)
 {
@@ -817,16 +819,16 @@ static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio,
  *
  * @param lock         The hash lock
  * @param agent        The data_vio acting as the agent for the lock
- * @param agent_is_done  <code>true</code> only if the agent has already written
- *                     or deduplicated against its data
+ * @param agent_is_done  <code>true</code> only if the agent has already
+ *                     written or deduplicated against its data
  **/
 static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 			  bool agent_is_done)
 {
 	set_hash_lock_state(lock, HASH_LOCK_DEDUPING);
 
-	// We don't take the downgraded allocation lock from the agent unless we
-	// actually need to deduplicate against it.
+	// We don't take the downgraded allocation lock from the agent unless
+	// we actually need to deduplicate against it.
 	if (lock->duplicate_lock == NULL) {
 		ASSERT_LOG_ONLY(!is_compressed(agent->new_mapped.state),
 				"compression must have shared a lock");
@@ -847,9 +849,9 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 
 	/*
 	 * Launch the agent (if not already deduplicated) and as many lock
-	 * waiters as we have available increments for on the dedupe path. If we
-	 * run out of increments, rollover will be triggered and the remaining
-	 * waiters will be transferred to the new lock.
+	 * waiters as we have available increments for on the dedupe path. If
+	 * we run out of increments, rollover will be triggered and the
+	 * remaining waiters will be transferred to the new lock.
 	 */
 	if (!agent_is_done) {
 		launch_dedupe(lock, agent, true);
@@ -861,10 +863,10 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 
 	if (agent_is_done) {
 		/*
-		 * In the degenerate case where all the waiters rolled over to a
-		 * new lock, this will continue to use the old agent to clean up
-		 * this lock, and otherwise it just lets the agent exit the
-		 * lock.
+		 * In the degenerate case where all the waiters rolled over to
+		 * a new lock, this will continue to use the old agent to
+		 * clean up this lock, and otherwise it just lets the agent
+		 * exit the lock.
 		 */
 		finish_deduping(lock, agent);
 	}
@@ -923,8 +925,8 @@ static void finish_verifying(struct vdo_completion *completion)
 		 * VERIFYING -> UNLOCKING transition: Either the verify failed
 		 * or we'd try to dedupe and roll over immediately, which would
 		 * fail because it would leave the lock without an agent to
-		 * release the PBN lock. In both cases, the data will have to be
-		 * written or compressed, but first the advice PBN must be
+		 * release the PBN lock. In both cases, the data will have to
+		 * be written or compressed, but first the advice PBN must be
 		 * unlocked by the VERIFYING agent.
 		 */
 		lock->update_advice = true;
@@ -952,9 +954,9 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	 * XXX VDOSTORY-190 Optimization: This is one of those places where the
 	 * zone and continuation we want to use depends on the outcome of the
 	 * comparison. If we could choose which path in the layer thread before
-	 * continuing, we could save a thread transition in one of the two cases
-	 * (assuming we're willing to delay visibility of the the hash lock
-	 * state change).
+	 * continuing, we could save a thread transition in one of the two
+	 * cases (assuming we're willing to delay visibility of the the hash
+	 * lock state change).
 	 */
 	agent->last_async_operation = VERIFY_DEDUPLICATION;
 	set_hash_zone_callback(agent, finish_verifying);
@@ -1004,9 +1006,9 @@ static void finish_locking(struct vdo_completion *completion)
 	if (!lock->verified) {
 		/*
 		 * LOCKING -> VERIFYING transition: Continue on the unverified
-		 * dedupe path, reading the candidate duplicate and comparing it
-		 * to the agent's data to decide whether it is a true duplicate
-		 * or stale advice.
+		 * dedupe path, reading the candidate duplicate and comparing
+		 * it to the agent's data to decide whether it is a true
+		 * duplicate or stale advice.
 		 */
 		start_verifying(lock, agent);
 		return;
@@ -1027,9 +1029,9 @@ static void finish_locking(struct vdo_completion *completion)
 	}
 
 	/*
-	 * LOCKING -> DEDUPING transition: Continue on the verified dedupe path,
-	 * deduplicating against a location that was previously verified or
-	 * written to.
+	 * LOCKING -> DEDUPING transition: Continue on the verified dedupe
+	 * path, deduplicating against a location that was previously verified
+	 * or written to.
 	 */
 	start_deduping(lock, agent, false);
 }
@@ -1063,9 +1065,9 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	// duplicate.
 	increment_limit = get_increment_limit(depot, agent->duplicate.pbn);
 	if (increment_limit == 0) {
-		// We could deduplicate against it later if a reference happened
-		// to be released during verification, but it's probably better
-		// to bail out now.
+		// We could deduplicate against it later if a reference
+		// happened to be released during verification, but it's
+		// probably better to bail out now.
 		// XXX clearDuplicateLocation()?
 		agent->is_duplicate = false;
 		continue_data_vio(agent, VDO_SUCCESS);
@@ -1081,25 +1083,25 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 
 	if (!is_pbn_read_lock(lock)) {
 		/*
-		 * There are three cases of write locks: uncompressed data block
-		 * writes, compressed (packed) block writes, and block map page
-		 * writes. In all three cases, we give up on trying to verify
-		 * the advice and don't bother to try deduplicate against the
-		 * data in the write lock holder.
+		 * There are three cases of write locks: uncompressed data
+		 * block writes, compressed (packed) block writes, and block
+		 * map page writes. In all three cases, we give up on trying
+		 * to verify the advice and don't bother to try deduplicate
+		 * against the data in the write lock holder.
 		 *
 		 * 1) We don't ever want to try to deduplicate against a block
 		 * map page.
 		 *
 		 * 2a) It's very unlikely we'd deduplicate against an entire
-		 * packed block, both because of the chance of matching it, and
-		 * because we don't record advice for it, but for the
-		 * uncompressed representation of all the fragments it contains.
-		 * The only way we'd be getting lock contention is if we've
-		 * written the same representation coincidentally before, had it
-		 * become unreferenced, and it just happened to be packed
-		 * together from compressed writes when we go to verify the
-		 * lucky advice. Giving up is a miniscule loss of potential
-		 * dedupe.
+		 * packed block, both because of the chance of matching it,
+		 * and because we don't record advice for it, but for the
+		 * uncompressed representation of all the fragments it
+		 * contains. The only way we'd be getting lock contention is
+		 * if we've written the same representation coincidentally
+		 * before, had it become unreferenced, and it just happened to
+		 * be packed together from compressed writes when we go to
+		 * verify the lucky advice. Giving up is a miniscule loss of
+		 * potential dedupe.
 		 *
 		 * 2b) If the advice is for a slot of a compressed block, it's
 		 * about to get smashed, and the write smashing it cannot
@@ -1110,18 +1112,19 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * 3a) If the lock is held by a data_vio with different data,
 		 * the advice is already stale or is about to become stale.
 		 *
-		 * 3b) If the lock is held by a data_vio that matches us, we may
-		 * as well either write it ourselves (or reference the copy we
-		 * already wrote) instead of potentially having many duplicates
-		 * wait for the lock holder to write, journal, hash, and finally
-		 * arrive in the hash lock. All we lose is a chance to avoid a
-		 * UDS update in the very rare case of advice for a free block
-		 * that just happened to be allocated to a data_vio with the
-		 * same hash. In async mode, there's also a chance to save on a
-		 * block write, at the cost of a block verify. Saving on a full
-		 * block compare in all stale advice cases almost certainly
-		 * outweighs saving a UDS update in a lucky case where advice
-		 * would have been saved from becoming stale.
+		 * 3b) If the lock is held by a data_vio that matches us, we
+		 * may as well either write it ourselves (or reference the
+		 * copy we already wrote) instead of potentially having many
+		 * duplicates wait for the lock holder to write, journal,
+		 * hash, and finally arrive in the hash lock. All we lose is a
+		 * chance to avoid a UDS update in the very rare case of
+		 * advice for a free block that just happened to be allocated
+		 * to a data_vio with the same hash. In async mode, there's
+		 * also a chance to save on a block write, at the cost of a
+		 * block verify. Saving on a full block compare in all stale
+		 * advice cases almost certainly outweighs saving a UDS update
+		 * in a lucky case where advice would have been saved from
+		 * becoming stale.
 		 */
 		// XXX clearDuplicateLocation()?
 		agent->is_duplicate = false;
@@ -1158,10 +1161,10 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	set_duplicate_lock(agent->hash_lock, lock);
 
 	/*
-	 * XXX VDOSTORY-190 Optimization: Same as start_locking() lazily changing
-	 * state to save on having to switch back to the hash zone thread. Here
-	 * we could directly launch the block verify, then switch to a hash
-	 * thread.
+	 * XXX VDOSTORY-190 Optimization: Same as start_locking() lazily
+	 * changing state to save on having to switch back to the hash zone
+	 * thread. Here we could directly launch the block verify, then switch
+	 * to a hash thread.
 	 */
 	continue_data_vio(agent, VDO_SUCCESS);
 }
@@ -1183,9 +1186,9 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
 
 	/*
 	 * XXX VDOSTORY-190 Optimization: If we arrange to continue on the
-	 * duplicate zone thread when accepting the advice, and don't explicitly
-	 * change lock states (or use an agent-local state, or an atomic), we
-	 * can avoid a thread transition here.
+	 * duplicate zone thread when accepting the advice, and don't
+	 * explicitly change lock states (or use an agent-local state, or an
+	 * atomic), we can avoid a thread transition here.
 	 */
 	agent->last_async_operation = ACQUIRE_PBN_READ_LOCK;
 	launch_duplicate_zone_callback(agent, lock_duplicate_pbn);
@@ -1223,9 +1226,10 @@ static void finish_writing(struct hash_lock *lock, struct data_vio *agent)
 	if (has_waiters(&lock->waiters)) {
 		/*
 		 * WRITING -> DEDUPING transition: an asynchronously-written
-		 * block failed to compress, so the PBN lock on the written copy
-		 * was already transferred. The agent is done with the lock, but
-		 * the lock may still need to use it to clean up after rollover.
+		 * block failed to compress, so the PBN lock on the written
+		 * copy was already transferred. The agent is done with the
+		 * lock, but the lock may still need to use it to clean up
+		 * after rollover.
 		 */
 		start_deduping(lock, agent, true);
 		return;
@@ -1341,8 +1345,8 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	// for writing, but it's entirely possible that one of the waiters did.
 	if (!has_allocation(agent)) {
 		agent = select_writing_agent(lock);
-		// If none of the waiters had an allocation, the writes all have
-		// to fail.
+		// If none of the waiters had an allocation, the writes all
+		// have to fail.
 		if (!has_allocation(agent)) {
 			/*
 			 * XXX VDOSTORY-190 Should we keep a variant of
@@ -1367,16 +1371,16 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	}
 
 	/*
-	 * Send the agent to the compress/pack/async-write path in vioWrite. If
-	 * it succeeds, it will return to the hash lock via continue_hash_lock()
-	 * and call finish_writing().
+	 * Send the agent to the compress/pack/async-write path in vioWrite. 
+	 * If it succeeds, it will return to the hash lock via
+	 * continue_hash_lock() and call finish_writing().
 	 */
 	compress_data(agent);
 }
 
 /**
  * Process the result of a UDS query performed by the agent for the lock. This
- * continuation is registered in startQuerying().
+ * continuation is registered in start_querying().
  *
  * @param completion  The completion of the data_vio that performed the query
  **/
@@ -1402,9 +1406,9 @@ static void finish_querying(struct vdo_completion *completion)
 		 */
 		start_locking(lock, agent);
 	} else {
-		// The agent will be used as the duplicate if has an allocation;
-		// if it does, that location was posted to UDS, so no update
-		// will be needed.
+		// The agent will be used as the duplicate if has an
+		// allocation; if it does, that location was posted to UDS, so
+		// no update will be needed.
 		lock->update_advice = !has_allocation(agent);
 		/*
 		 * QUERYING -> WRITING transition: There was no advice or the
@@ -1605,9 +1609,9 @@ int acquire_hash_lock(struct data_vio *data_vio)
 	}
 
 	if (is_hash_collision(lock, data_vio)) {
-		// Hash collisions are extremely unlikely, but the bogus dedupe
-		// would be a data corruption. Bypass dedupe entirely by leaving
-		// hash_lock unset.
+		// Hash collisions are extremely unlikely, but the bogus
+		// dedupe would be a data corruption. Bypass dedupe entirely
+		// by leaving hash_lock unset.
 		// XXX clear hash_zone too?
 		return VDO_SUCCESS;
 	}

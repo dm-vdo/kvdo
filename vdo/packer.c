@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#65 $
  */
 
 #include "packerInternals.h"
@@ -436,7 +436,7 @@ static void finish_output_bin(struct packer *packer, struct output_bin *bin)
 
 /**
  * This finishes the bin write process after the bin is written to disk. This
- * is the vio callback function registered by writeOutputBin().
+ * is the vio callback function registered by launch_compressed_write().
  *
  * @param completion  The compressed write vio
  **/
@@ -499,7 +499,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 
 /**
  * Finish a compressed block write. This callback is registered in
- * continueAfterAllocation().
+ * continue_after_allocation().
  *
  * @param completion  The compressed write completion
  **/
@@ -510,14 +510,14 @@ static void finish_compressed_write(struct vdo_completion *completion)
 
 	if (completion->result != VDO_SUCCESS) {
 		release_allocation_lock(bin->writer);
-		// Invokes complete_output_bin() on the packer thread, which will
-		// deal with the waiters.
+		// Invokes complete_output_bin() on the packer thread, which
+		// will deal with the waiters.
 		vio_done_callback(completion);
 		return;
 	}
 
-	// First give every data_vio/HashLock a share of the PBN lock to ensure
-	// it can't be released until they've all done their incRefs.
+	// First give every data_vio/hash_lock a share of the PBN lock to
+	// ensure it can't be released until they've all done their incRefs.
 	notify_all_waiters(&bin->outgoing, share_compressed_block, bin);
 
 	// The waiters now hold the (downgraded) PBN lock.
@@ -637,8 +637,8 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 	}
 
 	// If the batch contains only a single vio, then we save nothing by
-	// saving the compressed form. Continue processing the single vio in the
-	// batch.
+	// saving the compressed form. Continue processing the single vio in
+	// the batch.
 	if (batch.slots_used == 1) {
 		abort_packing(batch.slots[0]);
 		return false;
@@ -814,12 +814,13 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 	/*
 	 * None of the bins have enough space for the data_vio. We're not
 	 * allowed to create new bins, so we have to overflow one of the
-	 * existing bins. It's pretty intuitive to select the fullest bin, since
-	 * that "wastes" the least amount of free space in the compressed block.
-	 * But if the space currently used in the fullest bin is smaller than
-	 * the compressed size of the incoming block, it seems wrong to force
-	 * that bin to write when giving up on compressing the incoming data_vio
-	 * would likewise "waste" the the least amount of free space.
+	 * existing bins. It's pretty intuitive to select the fullest bin,
+	 * since that "wastes" the least amount of free space in the
+	 * compressed block. But if the space currently used in the fullest
+	 * bin is smaller than the compressed size of the incoming block, it
+	 * seems wrong to force that bin to write when giving up on
+	 * compressing the incoming data_vio would likewise "waste" the the
+	 * least amount of free space.
 	 */
 	if (data_vio->compression.size
 	    >= (packer->bin_data_size - fullest_bin->free_space)) {
@@ -855,8 +856,8 @@ void attempt_packing(struct data_vio *data_vio)
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer + 1);
 
-	// If packing of this data_vio is disallowed for administrative reasons,
-	// give up before making any state changes.
+	// If packing of this data_vio is disallowed for administrative
+	// reasons, give up before making any state changes.
 	if (!is_normal(&packer->state) ||
 	    (data_vio->flush_generation < packer->flush_generation)) {
 		abort_packing(data_vio);
@@ -1013,9 +1014,9 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 		 (canceled ? "Canceled" : "Input"), bin->slots_used,
 		 bin->free_space);
 
-	// XXX dump vios in bin->incoming? The vios should have been dumped from
-	// the vio pool. Maybe just dump their addresses so it's clear they're
-	// here?
+	// XXX dump vios in bin->incoming? The vios should have been dumped
+	// from the vio pool. Maybe just dump their addresses so it's clear
+	// they're here?
 }
 
 /**********************************************************************/
@@ -1029,9 +1030,9 @@ static void dump_output_bin(const struct output_bin *bin)
 
 	log_info("    struct output_bin contains %zu outgoing waiters", count);
 
-	// XXX dump vios in bin->outgoing? The vios should have been dumped from
-	// the vio pool. Maybe just dump their addresses so it's clear they're
-	// here?
+	// XXX dump vios in bin->outgoing? The vios should have been dumped
+	// from the vio pool. Maybe just dump their addresses so it's clear
+	// they're here?
 
 	// XXX dump writer vio?
 }

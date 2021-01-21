@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#11 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -38,7 +38,7 @@ typedef struct pbn_lock *pbn_lock_getter(struct reference_operation operation);
 
 /**
  * The current operation on a physical block (from the point of view of the
- * DataVIO doing the operation)
+ * data_vio doing the operation)
  **/
 struct reference_operation {
 	/** The operation being performed */

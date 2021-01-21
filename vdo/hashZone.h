@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#10 $
  */
 
 #ifndef HASH_ZONE_H
@@ -76,7 +76,7 @@ struct hash_lock_statistics __must_check
 get_hash_zone_statistics(const struct hash_zone *zone);
 
 /**
- * Get the lock for the hash (chunk name) of the data in a DataVIO, or if one
+ * Get the lock for the hash (chunk name) of the data in a data_vio, or if one
  * does not exist (or if we are explicitly rolling over), initialize a new
  * lock for the hash and register it in the zone. This must only be called in
  * the correct thread for the zone.
@@ -127,7 +127,7 @@ void bump_hash_zone_stale_advice_count(struct hash_zone *zone);
  * Increment the concurrent dedupe count in the hash zone statistics.
  * Must only be called from the hash zone thread.
  *
- * @param zone  The hash zone of the lock that matched a new DataVIO
+ * @param zone  The hash zone of the lock that matched a new data_vio
  **/
 void bump_hash_zone_data_match_count(struct hash_zone *zone);
 
@@ -135,7 +135,7 @@ void bump_hash_zone_data_match_count(struct hash_zone *zone);
  * Increment the concurrent hash collision count in the hash zone statistics.
  * Must only be called from the hash zone thread.
  *
- * @param zone  The hash zone of the lock that rejected a colliding DataVIO
+ * @param zone  The hash zone of the lock that rejected a colliding data_vio
  **/
 void bump_hash_zone_collision_count(struct hash_zone *zone);
 

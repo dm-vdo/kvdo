@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#11 $
  */
 
 #ifndef PBN_LOCK_H
@@ -66,7 +66,7 @@ struct pbn_lock {
 	uint8_t increment_limit;
 
 	/**
-	 * For read locks, the number of DataVIOs that have tried to claim one
+	 * For read locks, the number of data_vios that have tried to claim one
 	 * of the available increments during the lifetime of the lock. Each
 	 * claim will first increment this counter, so it can exceed the
 	 * increment limit.

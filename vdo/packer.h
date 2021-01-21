@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#15 $
  */
 
 #ifndef PACKER_H
@@ -108,7 +108,7 @@ void flush_packer(struct packer *packer);
  * Remove a lock holder from the packer.
  *
  * @param completion  The data_vio which needs a lock held by a data_vio in the
- *                    packer. The data_vio's compressedVIO.lockHolder field will
+ *                    packer. The data_vio's compression.lock_holder field will
  *                    point to the data_vio to remove.
  **/
 void remove_lock_holder_from_packer(struct vdo_completion *completion);

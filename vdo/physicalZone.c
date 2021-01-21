@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#23 $
  */
 
 #include "physicalZone.h"
@@ -37,8 +37,8 @@
 #include "vdoInternal.h"
 
 enum {
-	// Each user DataVIO needs a PBN read lock and write lock, and each
-	// packer output bin has an AllocatingVIO that needs a PBN write lock.
+	// Each user data_vio needs a PBN read lock and write lock, and each
+	// packer output bin has an allocating_vio that needs a PBN write lock.
 	LOCK_POOL_CAPACITY = 2 * MAXIMUM_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
 };
 
@@ -185,8 +185,8 @@ void release_pbn_lock(struct physical_zone *zone,
 
 	lock->holder_count -= 1;
 	if (lock->holder_count > 0) {
-		// The lock was shared and is still referenced, so don't release
-		// it yet.
+		// The lock was shared and is still referenced, so don't
+		// release it yet.
 		return;
 	}
 

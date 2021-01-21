@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#11 $
  */
 
 #include "pbnLock.h"
@@ -96,14 +96,14 @@ void downgrade_pbn_write_lock(struct pbn_lock *lock)
 			"PBN write lock should have one holder but has %u",
 			lock->holder_count);
 	if (has_lock_type(lock, VIO_WRITE_LOCK)) {
-		// DataVIO write locks are downgraded in place--the writer
+		// data_vio write locks are downgraded in place--the writer
 		// retains the hold on the lock. They've already had a single
 		// incRef journaled.
 		lock->increment_limit = MAXIMUM_REFERENCE_COUNT - 1;
 	} else {
 		// Compressed block write locks are downgraded when they are
-		// shared with all their hash locks. The writer is releasing its
-		// hold on the lock.
+		// shared with all their hash locks. The writer is releasing
+		// its hold on the lock.
 		lock->holder_count = 0;
 		lock->increment_limit = MAXIMUM_REFERENCE_COUNT;
 	}
@@ -116,10 +116,10 @@ bool claim_pbn_lock_increment(struct pbn_lock *lock)
 	/*
 	 * Claim the next free reference atomically since hash locks from
 	 * multiple hash zone threads might be concurrently deduplicating
-	 * against a single PBN lock on compressed block. As long as hitting the
-	 * increment limit will lead to the PBN lock being released in a sane
-	 * time-frame, we won't overflow a 32-bit claim counter, allowing a
-	 * simple add instead of a compare-and-swap.
+	 * against a single PBN lock on compressed block. As long as hitting
+	 * the increment limit will lead to the PBN lock being released in a
+	 * sane time-frame, we won't overflow a 32-bit claim counter, allowing
+	 * a simple add instead of a compare-and-swap.
 	 */
 	uint32_t claim_number =
 		(uint32_t) atomic_add_return(1, &lock->increments_claimed);

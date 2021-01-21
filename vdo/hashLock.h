@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#7 $
  */
 
 #ifndef HASH_LOCK_H
@@ -26,7 +26,7 @@
 
 /**
  * Get the PBN lock on the duplicate data location for a data_vio from the
- * HashLock the data_vio holds (if there is one).
+ * hash_lock the data_vio holds (if there is one).
  *
  * @param data_vio  The data_vio to query
  *

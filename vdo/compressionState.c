@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#18 $
  */
 
 #include "compressionStateInternals.h"
@@ -124,9 +124,9 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 	}
 
 	if (data_vio->hash_lock == NULL) {
-		// DataVIOs without a HashLock (which should be extremely rare)
-		// aren't able to share the packer's PBN lock, so don't try to
-		// compress them.
+		// data_vios without a hash_lock (which should be extremely
+		// rare) aren't able to share the packer's PBN lock, so don't
+		// try to compress them.
 		return false;
 	}
 

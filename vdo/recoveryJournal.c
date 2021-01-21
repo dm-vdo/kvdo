@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#90 $
  */
 
 #include "recoveryJournal.h"
@@ -161,7 +161,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		notify_commit_waiters(journal);
 		recycle_journal_blocks(journal);
 
-		// Release any DataVIOs waiting to be assigned entries.
+		// Release any data_vios waiting to be assigned entries.
 		notify_all_waiters(&journal->decrement_waiters,
 				   continue_waiter, &result);
 		notify_all_waiters(&journal->increment_waiters,
@@ -705,8 +705,8 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	 * Don't allow the new block to be reaped until all of its entries have
 	 * been committed to the block map and until the journal block has been
 	 * fully committed as well. Because the block map update is done only
-	 * after any slab journal entries have been made, the per-entry lock for
-	 * the block map entry serves to protect those as well.
+	 * after any slab journal entries have been made, the per-entry lock
+	 * for the block map entry serves to protect those as well.
 	 */
 	initialize_lock_count(journal->lock_counter,
 			      journal->active_block->block_number,
@@ -795,8 +795,8 @@ static void assign_entry(struct waiter *waiter, void *context)
 		}
 
 		// Per-entry locks need not be held for decrement entries since
-		// the lock held for the incref entry will protect this entry as
-		// well.
+		// the lock held for the incref entry will protect this entry
+		// as well.
 		release_journal_block_reference(block);
 		ASSERT_LOG_ONLY((journal->pending_decrement_count != 0),
 				"decrement follows increment");
@@ -984,8 +984,8 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 
 /**
  * Handle post-commit processing. This is the callback registered by
- * write_block(). If more entries accumulated in the block being committed while
- * the commit was in progress, another commit will be initiated.
+ * write_block(). If more entries accumulated in the block being committed
+ * while the commit was in progress, another commit will be initiated.
  *
  * @param completion  The completion of the VIO writing this block
  **/
@@ -1158,8 +1158,8 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	// Start reclaiming blocks only when the journal head has no references.
-	// Then stop when a block is referenced.
+	// Start reclaiming blocks only when the journal head has no
+	// references. Then stop when a block is referenced.
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
 	       && !is_locked(journal->lock_counter,
 			     journal->block_map_head_block_number,

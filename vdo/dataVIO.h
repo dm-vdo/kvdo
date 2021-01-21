@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#63 $
  */
 
 #ifndef DATA_VIO_H
@@ -119,12 +119,13 @@ struct tree_lock {
 struct compression_state {
 	/*
 	 * The current compression state of this vio. This field contains a
-	 * value which consists of a VIOCompressionState possibly ORed with a
+	 * value which consists of a vio_compression_state possibly ORed with a
 	 * flag indicating that a request has been made to cancel (or prevent)
 	 * compression for this vio.
 	 *
-	 * This field should be accessed through the getCompressionState() and
-	 * setCompressionState() methods. It should not be accessed directly.
+	 * This field should be accessed through the get_compression_state()
+	 * and set_compression_state() methods. It should not be accessed
+	 * directly.
 	 */
 	atomic_t state;
 
@@ -300,7 +301,7 @@ struct data_vio {
 	bool has_discard_permit;
 	uint32_t remaining_discard;
 
-	// Fields beyond this point will not be reset when a pooled DataVIO
+	// Fields beyond this point will not be reset when a pooled data_vio
 	// is reused.
 
 	/**
