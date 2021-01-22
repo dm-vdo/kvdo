@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#50 $
  */
 
 #include "slabScrubberInternals.h"
@@ -221,7 +221,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber);
 
 /**
  * Notify the scrubber that a slab has been scrubbed. This callback is
- * registered in applyJournalEntries().
+ * registered in apply_journal_entries().
  *
  * @param completion  The slab rebuild completion
  **/
@@ -312,7 +312,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 
 /**
  * Find the relevant extent of the slab journal and apply all valid entries.
- * This is a callback registered in startScrubbing().
+ * This is a callback registered in start_scrubbing().
  *
  * @param completion  The metadata read extent completion
  **/
@@ -377,7 +377,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		}
 	}
 
-	// At the end of rebuild, the refCounts should be accurate to the end
+	// At the end of rebuild, the ref_counts should be accurate to the end
 	// of the journal we just applied.
 	result = ASSERT(!before_journal_point(&last_entry_applied,
 					      &ref_counts_point),
@@ -430,8 +430,8 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	struct vdo_completion *completion;
 	struct vdo_slab *slab;
 
-	// Note: this notify call is always safe only because scrubbing can only
-	// be started when the VDO is quiescent.
+	// Note: this notify call is always safe only because scrubbing can
+	// only be started when the VDO is quiescent.
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (is_read_only(scrubber->read_only_notifier)) {
 		set_completion_result(&scrubber->completion, VDO_READ_ONLY);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#5 $
  */
 
 #ifndef SLAB_SUMMARY_FORMAT_H
@@ -41,14 +41,14 @@ struct slab_summary_entry {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	/** Bits 13..8: A hint about the fullness of the slab */
 	unsigned int fullness_hint : 6;
-	/** Bit 14: Whether the refCounts must be loaded from the layer */
+	/** Bit 14: Whether the ref_counts must be loaded from the layer */
 	unsigned int load_ref_counts : 1;
 	/** Bit 15: The believed cleanliness of this slab */
 	unsigned int is_dirty : 1;
 #else
 	/** Bit 15: The believed cleanliness of this slab */
 	unsigned int is_dirty : 1;
-	/** Bit 14: Whether the refCounts must be loaded from the layer */
+	/** Bit 14: Whether the ref_counts must be loaded from the layer */
 	unsigned int load_ref_counts : 1;
 	/** Bits 13..8: A hint about the fullness of the slab */
 	unsigned int fullness_hint : 6;

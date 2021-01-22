@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#77 $
  */
 
 #include "slabJournalInternals.h"
@@ -193,7 +193,8 @@ int make_slab_journal(struct block_allocator *allocator,
 		slab_config->slab_journal_flushing_threshold;
 	journal->blocking_threshold =
 		slab_config->slab_journal_blocking_threshold;
-	journal->scrubbing_threshold = slab_config->slab_journal_scrubbing_threshold;
+	journal->scrubbing_threshold =
+		slab_config->slab_journal_scrubbing_threshold;
 	journal->entries_per_block = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
 	journal->full_entries_per_block = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;
@@ -409,16 +410,16 @@ static void reap_slab_journal(struct slab_journal *journal)
 
 	if (is_unrecovered_slab(journal->slab) ||
 	    !is_normal(&journal->slab->state) || is_vdo_read_only(journal)) {
-		// We must not reap in the first two cases, and there's no point
-		// in read-only mode.
+		// We must not reap in the first two cases, and there's no
+		// point in read-only mode.
 		return;
 	}
 
 	/*
-	 * Start reclaiming blocks only when the journal head has no references.
-	 * Then stop when a block is referenced or reap reaches the most
-	 * recently written block, referenced by the slab summary, which has the
-	 * sequence number just before the tail.
+	 * Start reclaiming blocks only when the journal head has no
+	 * references. Then stop when a block is referenced or reap reaches
+	 * the most recently written block, referenced by the slab summary,
+	 * which has the sequence number just before the tail.
 	 */
 	while ((journal->unreapable < journal->tail) &&
 	       (journal->reap_lock->count == 0)) {
@@ -563,8 +564,8 @@ static void update_tail_block_location(struct slab_journal *journal)
 	 * Update slab summary as dirty.
 	 * vdo_slab journal can only reap past sequence number 1 when all the
 	 * ref counts for this slab have been written to the layer. Therefore,
-	 * indicate that the ref counts must be loaded when the journal head has
-	 * reaped past sequence number 1.
+	 * indicate that the ref counts must be loaded when the journal head
+	 * has reaped past sequence number 1.
 	 */
 	block_offset =
 		get_slab_journal_block_offset(journal, journal->summarized);
@@ -607,7 +608,7 @@ get_committing_sequence_number(const struct vio_pool_entry *entry)
 
 /**
  * Handle post-commit processing. This is the callback registered by
- * writeSlabJournalBlock().
+ * write_slab_journal_block().
  *
  * @param completion  The write vio as a completion
  **/
@@ -633,8 +634,8 @@ static void complete_write(struct vdo_completion *completion)
 		   journal->events->blocks_written + 1);
 
 	if (list_empty(&journal->uncommitted_blocks)) {
-		// If no blocks are outstanding, then the commit point is at the
-		// tail.
+		// If no blocks are outstanding, then the commit point is at
+		// the tail.
 		journal->next_commit = journal->tail;
 	} else {
 		// The commit point is always the beginning of the oldest
@@ -687,8 +688,8 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 		journal->slab->allocator->thread_id;
 	/*
 	 * This block won't be read in recovery until the slab summary is
-	 * updated to refer to it. The slab summary update does a flush which is
-	 * sufficient to protect us from VDO-2331.
+	 * updated to refer to it. The slab summary update does a flush which
+	 * is sufficient to protect us from VDO-2331.
 	 */
 	launch_write_metadata_vio(entry->vio, block_number, complete_write,
 				  complete_write);
@@ -736,7 +737,8 @@ void commit_slab_journal_tail(struct slab_journal *journal)
 	journal->waiting_to_commit = true;
 
 	journal->resource_waiter.callback = write_slab_journal_block;
-	result = acquire_vio(journal->slab->allocator, &journal->resource_waiter);
+	result = acquire_vio(journal->slab->allocator,
+			     &journal->resource_waiter);
 	if (result != VDO_SUCCESS) {
 		journal->waiting_to_commit = false;
 		enter_journal_read_only_mode(journal, result);
@@ -937,7 +939,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		mark_slab_journal_dirty(journal, recovery_block);
 
 		// If the slab journal is over the first threshold, tell the
-		// refCounts to write some reference blocks, but proceed apace.
+		// ref_counts to write some reference blocks soon.
 		if (requires_flushing(journal)) {
 			block_count_t journal_length =
 				(journal->tail - journal->head);
@@ -1002,8 +1004,8 @@ static void add_entries(struct slab_journal *journal)
 		struct slab_journal_block_header *header = &journal->tail_header;
 		if (journal->partial_write_in_progress ||
 		    slab_is_rebuilding(journal->slab)) {
-			// Don't add entries while rebuilding or while a partial
-			// write is outstanding (VDO-2399).
+			// Don't add entries while rebuilding or while a
+			// partial write is outstanding (VDO-2399).
 			break;
 		}
 
@@ -1040,9 +1042,9 @@ static void add_entries(struct slab_journal *journal)
 		if (header->entry_count == 0) {
 			struct journal_lock *lock =
 				get_lock(journal, header->sequence_number);
-			// Check if the on disk slab journal is full. Because of
-			// the blocking and scrubbing thresholds, this should
-			// never happen.
+			// Check if the on disk slab journal is full. Because
+			// of the blocking and scrubbing thresholds, this
+			// should never happen.
 			if (lock->count > 0) {
 				ASSERT_LOG_ONLY((journal->head + journal->size) ==
 						journal->tail,
@@ -1081,8 +1083,8 @@ static void add_entries(struct slab_journal *journal)
 				 * block so that the journal won't be reaped
 				 * until the reference counts are initialized.
 				 * The lock acquisition must be done by the
-				 * RefCounts since here we don't know how many
-				 * reference blocks the RefCounts has.
+				 * ref_counts since here we don't know how many
+				 * reference blocks the ref_counts has.
 				 */
 				acquire_dirty_block_locks(journal->slab->reference_counts);
 			}
@@ -1225,7 +1227,7 @@ static void finish_decoding_journal(struct vdo_completion *completion)
 
 /**
  * Set up the in-memory journal state to the state which was written to disk.
- * This is the callback registered in readSlabJournalTail().
+ * This is the callback registered in read_slab_journal_tail().
  *
  * @param completion  The vio which was used to read the journal tail
  **/
@@ -1262,7 +1264,7 @@ static void set_decoded_state(struct vdo_completion *completion)
 
 /**
  * This reads the slab journal tail block by using a vio acquired from the vio
- * pool. This is the success callback from acquireVIOFromPool() when decoding
+ * pool. This is the success callback from acquire_vio() when decoding
  * the slab journal.
  *
  * @param waiter       The vio pool waiter which has just been notified
@@ -1308,10 +1310,10 @@ void decode_slab_journal(struct slab_journal *journal)
 	if ((last_commit_point == 0) &&
 	    !must_load_ref_counts(journal->summary, slab->slab_number)) {
 		/*
-		 * This slab claims that it has a tail block at (journal->size -
-		 * 1), but a head of 1. This is impossible, due to the scrubbing
-		 * threshold, on a real system, so don't bother reading the
-		 * (bogus) data off disk.
+		 * This slab claims that it has a tail block at (journal->size
+		 * - 1), but a head of 1. This is impossible, due to the
+		 * scrubbing threshold, on a real system, so don't bother
+		 * reading the (bogus) data off disk.
 		 */
 		ASSERT_LOG_ONLY(((journal->size < 16) ||
 				 (journal->scrubbing_threshold < (journal->size - 1))),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#62 $
  */
 
 #include "refCounts.h"
@@ -78,8 +78,8 @@ ref_counts_from_waiter(struct waiter *waiter)
  *
  * @return the physical block number corresponding to the index
  **/
-static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts,
-					    uint64_t index)
+static physical_block_number_t
+index_to_pbn(const struct ref_counts *ref_counts, uint64_t index)
 {
 	return (ref_counts->slab->start + index);
 }
@@ -157,7 +157,8 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 		return false;
 	}
 
-	// We're not already at the end, so advance to cursor to the next block.
+	// We're not already at the end, so advance to cursor to the next
+	// block.
 	cursor->block++;
 	cursor->index = cursor->end_index;
 
@@ -366,7 +367,8 @@ uint8_t get_available_references(struct ref_counts *ref_counts,
 /**
  * Increment the reference count for a data block.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the block
+ * @param [in]     ref_counts           The ref_counts responsible for the
+ *                                      block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
  * @param [in]     block_number         The block to update
@@ -424,7 +426,8 @@ static int increment_for_data(struct ref_counts *ref_counts,
 /**
  * Decrement the reference count for a data block.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the block
+ * @param [in]     ref_counts           The ref_counts responsible for the
+ *                                      block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
  * @param [in]     block_number         The block to update
@@ -481,13 +484,14 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 }
 
 /**
- * Increment the reference count for a block map page. All block map increments
- * should be from provisional to MAXIMUM_REFERENCE_COUNT. Since block map blocks
- * never dedupe they should never be adjusted from any other state. The
- * adjustment always results in MAXIMUM_REFERENCE_COUNT as this value is used to
- * prevent dedupe against block map blocks.
+ * Increment the reference count for a block map page. All block map
+ * increments should be from provisional to MAXIMUM_REFERENCE_COUNT. Since
+ * block map blocks never dedupe they should never be adjusted from any other
+ * state. The adjustment always results in MAXIMUM_REFERENCE_COUNT as this
+ * value is used to prevent dedupe against block map blocks.
  *
- * @param [in]     ref_counts           The ref_counts responsible for the block
+ * @param [in]     ref_counts           The ref_counts responsible for the
+ *                                      block
  * @param [in]     block                The reference block which contains the
  *                                      block being updated
  * @param [in]     block_number         The block to update
@@ -676,12 +680,13 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 	}
 
 	if (block->is_dirty && (block->slab_journal_lock > 0)) {
-		sequence_number_t entry_lock = slab_journal_point->sequence_number;
+		sequence_number_t entry_lock =
+			slab_journal_point->sequence_number;
 		/*
-		 * This block is already dirty and a slab journal entry has been
-		 * made for it since the last time it was clean. We must release
-		 * the per-entry slab journal lock for the entry associated with
-		 * the update we are now doing.
+		 * This block is already dirty and a slab journal entry has
+		 * been made for it since the last time it was clean. We must
+		 * release the per-entry slab journal lock for the entry
+		 * associated with the update we are now doing.
 		 */
 		result = ASSERT(is_valid_journal_point(slab_journal_point),
 				"Reference count adjustments need slab journal points.");
@@ -757,8 +762,8 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 	struct reference_operation operation = { .type = entry.operation };
 
 	if (!before_journal_point(&block->commit_points[sector], entry_point)) {
-		// This entry is already reflected in the existing counts, so do
-		// nothing.
+		// This entry is already reflected in the existing counts, so
+		// do nothing.
 		return VDO_SUCCESS;
 	}
 
@@ -862,7 +867,8 @@ bool find_free_block(const struct ref_counts *ref_counts,
 
 	// Search every byte of the first unaligned word. (Array is padded so
 	// reading past end is safe.)
-	zero_index = find_zero_byte_in_word(next_counter, next_index, end_index);
+	zero_index = find_zero_byte_in_word(next_counter, next_index,
+					    end_index);
 	if (zero_index < end_index) {
 		*index_ptr = zero_index;
 		return true;
@@ -879,8 +885,8 @@ bool find_free_block(const struct ref_counts *ref_counts,
 		/*
 		 * The following code is currently an exact copy of the code
 		 * preceding the loop, but if you try to merge them by using a
-		 * do loop, it runs slower because a jump instruction gets added
-		 * at the start of the iteration.
+		 * do loop, it runs slower because a jump instruction gets
+		 * added at the start of the iteration.
 		 */
 		zero_index = find_zero_byte_in_word(next_counter,
 						    next_index,
@@ -1056,7 +1062,7 @@ waiter_as_reference_block(struct waiter *waiter)
 }
 
 /**
- * WaitCallback to clean dirty reference blocks when resetting.
+ * A waiter_callback to clean dirty reference blocks when resetting.
  *
  * @param block_waiter  The dirty block
  * @param context       Unused
@@ -1171,7 +1177,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	return_vio(ref_counts->slab->allocator, entry);
 
 	/*
-	 * We can't clear the isWriting flag earlier as releasing the slab
+	 * We can't clear the is_writing flag earlier as releasing the slab
 	 * journal lock may cause us to be dirtied again, but we don't want to
 	 * double enqueue.
 	 */
@@ -1196,7 +1202,8 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 
 	// Mark the ref_counts as clean in the slab summary if there are no
 	// dirty or writing blocks and no summary update in progress.
-	if (!has_active_io(ref_counts) && !has_waiters(&ref_counts->dirty_blocks)) {
+	if (!has_active_io(ref_counts)
+	    && !has_waiters(&ref_counts->dirty_blocks)) {
 		update_slab_summary_as_clean(ref_counts);
 	}
 }
@@ -1250,8 +1257,8 @@ static void write_reference_block(struct waiter *block_waiter,
 
 	/*
 	 * Mark the block as clean, since we won't be committing any updates
-	 * that happen after this moment. As long as VIO order is preserved, two
-	 * VIOs updating this block at once will not cause complications.
+	 * that happen after this moment. As long as VIO order is preserved,
+	 * two VIOs updating this block at once will not cause complications.
 	 */
 	block->is_dirty = false;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#45 $
  */
 
 #include "referenceCountRebuild.h"
@@ -111,7 +111,7 @@ static void free_rebuild_completion(struct vdo_completion **completion_ptr)
 
 /**
  * Free the rebuild_completion and notify the parent that the block map
- * rebuild is done. This callback is registered in rebuildBlockMap().
+ * rebuild is done. This callback is registered in make_rebuild_completion().
  *
  * @param completion  The rebuild_completion
  **/
@@ -190,7 +190,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 
 /**
  * Flush the block map now that all the reference counts are rebuilt. This
- * callback is registered in finishIfDone().
+ * callback is registered in finish_if_done().
  *
  * @param completion  The sub-task completion
  **/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#33 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -57,9 +57,9 @@
  * to buffer up entries until they can be committed. In general the
  * number of in-memory blocks ('tail_buffer_count') will be less than
  * the on-disk size. Each in-memory block is also a vdo_completion.
- * Each in-memory block has a VDOExtent which is used to commit that
- * block to disk. The extent's data is a PackedJournalBlock (which is a
- * formatted journal block). In addition each in-memory block has a
+ * Each in-memory block has a vdo_extent which is used to commit that
+ * block to disk. The extent's data is the on-disk representation
+ * of the journal block. In addition each in-memory block has a
  * buffer which is used to accumulate entries while a partial commit
  * of the block is in progress. In-memory blocks are kept on two
  * rings. Free blocks live on the 'free_tail_blocks' ring. When a block
@@ -273,14 +273,15 @@ struct recovery_journal_state_7_0 __must_check
 record_recovery_journal(const struct recovery_journal *journal);
 
 /**
- * Add an entry to a recovery journal. This method is asynchronous. The data_vio
- * will not be called back until the entry is committed to the on-disk journal.
+ * Add an entry to a recovery journal. This method is asynchronous. The
+ * data_vio will not be called back until the entry is committed to the
+ * on-disk journal.
  *
  * @param journal   The journal in which to make an entry
  * @param data_vio  The data_vio for which to add the entry. The entry will be
- *                  taken from the logical and newMapped fields of the
- *                  data_vio. The data_vio's recoverySequenceNumber field will
- *                  be set to the sequence number of the journal block in
+ *                  taken from the logical and new_mapped fields of the
+ *                  data_vio. The data_vio's recovery_sequence_number field
+ *                  will be set to the sequence number of the journal block in
  *                  which the entry was made.
  **/
 void add_recovery_journal_entry(struct recovery_journal *journal,

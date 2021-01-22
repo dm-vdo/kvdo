@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#20 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -69,7 +69,7 @@ struct slab_summary_zone {
 	struct admin_state state;
 	/** The array (owned by the blocks) of all entries */
 	struct slab_summary_entry *entries;
-	/** The array of SlabSummaryEntryBlocks */
+	/** The array of slab_summary_blocks */
 	struct slab_summary_block summary_blocks[];
 };
 

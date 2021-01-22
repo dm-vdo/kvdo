@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#52 $
  */
 
 #include "slabSummary.h"
@@ -36,7 +36,8 @@
 
 /**
  * Translate a slab's free block count into a 'fullness hint' that can be
- * stored in a slab_summary_entry's 7 bits that are dedicated to its free count.
+ * stored in a slab_summary_entry's 7 bits that are dedicated to its free
+ * count.
  *
  * Note: the number of free blocks must be strictly less than 2^23 blocks,
  * even though theoretically slabs could contain precisely 2^23 blocks; there
@@ -448,7 +449,7 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
  * @param summary_zone    The slab_summary_zone being queried
  * @param slab_number     The slab whose summary location is sought
  *
- * @return A pointer to the SlabSummaryEntryBlock containing this
+ * @return A pointer to the slab_summary_block containing this
  *         slab_summary_entry
  **/
 static struct slab_summary_block *

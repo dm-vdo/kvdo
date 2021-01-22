@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#42 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -106,10 +106,10 @@ struct slab_depot_state_2_0 __must_check
 record_slab_depot(const struct slab_depot *depot);
 
 /**
- * Allocate the RefCounts for all slabs in the depot. This method may be called
- * only before entering normal operation from the load thread.
+ * Allocate the ref_counts for all slabs in the depot. This method may be
+ * called only before entering normal operation from the load thread.
  *
- * @param depot  The depot whose RefCounts need allocation
+ * @param depot  The depot whose ref_counts need allocation
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -268,19 +268,19 @@ struct slab_journal_statistics __must_check
 get_depot_slab_journal_statistics(const struct slab_depot *depot);
 
 /**
- * Get the cumulative RefCounts statistics for the depot.
+ * Get the cumulative ref_counts statistics for the depot.
  *
  * @param depot  The slab depot
  *
- * @return The cumulative statistics for all RefCounts in the depot
+ * @return The cumulative statistics for all ref_counts in the depot
  **/
 struct ref_counts_statistics __must_check
 get_depot_ref_counts_statistics(const struct slab_depot *depot);
 
 /**
  * Asynchronously load any slab depot state that isn't included in the
- * SuperBlock component. This method may be called only before entering normal
- * operation from the load thread.
+ * super_block component. This method may be called only before entering
+ * normal operation from the load thread.
  *
  * @param depot        The depot to load
  * @param operation    The type of load to perform

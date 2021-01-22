@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#44 $
  */
 
 #include "readOnlyRebuild.h"
@@ -202,7 +202,7 @@ abort_rebuild_on_error(int result,
 
 /**
  * Clean up after finishing the reference count rebuild. This callback is
- * registered in launchReferenceCountRebuild().
+ * registered in launch_reference_count_rebuild().
  *
  * @param completion  The sub-task completion
  **/
@@ -224,7 +224,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 /**
  * Rebuild the reference counts from the block map now that all journal entries
  * have been applied to the block map. This callback is registered in
- * applyJournalEntries().
+ * apply_journal_entries().
  *
  * @param completion  The sub-task completion
  **/
@@ -233,7 +233,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
 
-	// We must allocate RefCounts before we can rebuild them.
+	// We must allocate ref_counts before we can rebuild them.
 	int result = allocate_slab_ref_counts(vdo->depot);
 	if (abort_rebuild_on_error(result, rebuild)) {
 		return;
@@ -339,8 +339,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 		// Don't extract more than the expected maximum entries per
 		// block.
-		block_entries =
-			min_block(journal->entries_per_block, header.entry_count);
+		block_entries = min_block(journal->entries_per_block,
+					  header.entry_count);
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			journal_entry_count_t sector_entries;
 
@@ -367,9 +367,9 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			sector_entries = min_block(sector_entries,
 						   block_entries);
 			append_sector_entries(rebuild, sector, sector_entries);
-			// Even if the sector wasn't full, count it as full when
-			// counting up to the entry count the block header
-			// claims.
+			// Even if the sector wasn't full, count it as full
+			// when counting up to the entry count the block
+			// header claims.
 			block_entries -=
 				min_block(block_entries,
 					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
@@ -382,7 +382,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 /**
  * Determine the limits of the valid recovery journal and apply all
  * valid entries to the block map. This callback is registered in
- * rebuildJournalAsync().
+ * load_journal_callback().
  *
  * @param completion   The sub-task completion
  **/

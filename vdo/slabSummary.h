@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#25 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -72,8 +72,8 @@ struct slab_status {
  *                                            size
  * @param [in]  maximum_free_blocks_per_slab  The maximum number of free blocks
  *                                            a slab can have
- * @param [in]  read_only_notifier            The context for entering read-only
- *                                            mode
+ * @param [in]  read_only_notifier            The context for entering
+ *                                            read-only mode
  * @param [out] slab_summary_ptr              A pointer to hold the summary
  *
  * @return VDO_SUCCESS or an error
@@ -128,19 +128,21 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 /**
  * Update the entry for a slab.
  *
- * @param summary_zone      The slab_summary_zone for the zone of the slab
- * @param waiter            The waiter that is updating the summary
- * @param slab_number       The slab number to update
- * @param tail_block_offset The offset of slab journal's tail block
- * @param load_ref_counts   Whether the refCounts must be loaded from the layer
- *                          on the next load
- * @param is_clean          Whether the slab is clean
- * @param free_blocks       The number of free blocks
+ * @param summary_zone       The slab_summary_zone for the zone of the slab
+ * @param waiter             The waiter that is updating the summary
+ * @param slab_number        The slab number to update
+ * @param tail_block_offset  The offset of slab journal's tail block
+ * @param load_ref_counts    Whether the ref_counts must be loaded from the
+ *                           layer on the next load
+ * @param is_clean           Whether the slab is clean
+ * @param free_blocks        The number of free blocks
  **/
 void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-			       struct waiter *waiter, slab_count_t slab_number,
+			       struct waiter *waiter,
+			       slab_count_t slab_number,
 			       tail_block_offset_t tail_block_offset,
-			       bool load_ref_counts, bool is_clean,
+			       bool load_ref_counts,
+			       bool is_clean,
 			       block_count_t free_blocks);
 
 /**
@@ -191,7 +193,7 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 				slab_count_t slab_number);
 
 /**
- * Get the stored RefCounts state information for a single slab. Used
+ * Get the stored ref_counts state information for a single slab. Used
  * in testing only.
  *
  * @param [in]  summary_zone      The slab_summary_zone to use
@@ -201,14 +203,15 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
  **/
 void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
 				     slab_count_t slab_number,
-				     size_t *free_block_hint, bool *is_clean);
+				     size_t *free_block_hint,
+				     bool *is_clean);
 
 /**
  * Get the stored slab statuses for all slabs in a zone.
  *
- * @param [in]     summary_zone   The slab_summary_zone to use
- * @param [in]     slab_count     The number of slabs to fetch
- * @param [in,out] statuses       An array of slab_status structures to populate
+ * @param [in]     summary_zone  The slab_summary_zone to use
+ * @param [in]     slab_count    The number of slabs to fetch
+ * @param [in,out] statuses      An array of slab_status structures to populate
  **/
 void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 				  slab_count_t slab_count,

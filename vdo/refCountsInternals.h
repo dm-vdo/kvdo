@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#22 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -46,9 +46,9 @@ enum reference_status {
  * Blocks are used as a proxy, permitting saves of partial refcounts.
  **/
 struct reference_block {
-	/** This block waits on the refCounts to tell it to write */
+	/** This block waits on the ref_counts to tell it to write */
 	struct waiter waiter;
-	/** The parent RefCount structure */
+	/** The parent ref_count structure */
 	struct ref_counts *ref_counts;
 	/** The number of references in this block that represent allocations */
 	block_size_t allocated_count;
@@ -215,7 +215,8 @@ int __must_check get_reference_status(struct ref_counts *ref_counts,
  *                           (included in the scan)
  * @param [in]  end_index    The array index at which to stop scanning
  *                           (excluded from the scan)
- * @param [out] index_ptr    A pointer to hold the array index of the free block
+ * @param [out] index_ptr    A pointer to hold the array index of the free
+ *                           block
  *
  * @return true if a free block was found in the specified range
  **/

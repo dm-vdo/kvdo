@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#9 $
  */
 
 #include "slabDepotFormat.h"
@@ -323,8 +323,8 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 	/*
 	 * This calculation should technically be a recurrence, but the total
 	 * number of metadata blocks is currently less than a single block of
-	 * refCounts, so we'd gain at most one data block in each slab with more
-	 * iteration.
+	 * ref_counts, so we'd gain at most one data block in each slab with
+	 * more iteration.
 	 */
 	ref_blocks =
 		get_saved_reference_count_size(slab_size - slab_journal_blocks);
@@ -344,9 +344,9 @@ int configure_slab(block_count_t slab_size, block_count_t slab_journal_blocks,
 	 * slab size was a power of two, and every block in a slab was a data
 	 * block.
 	 *
-	 * XXX Try to figure out some way of structuring testParameters and unit
-	 * tests so this hack isn't needed without having to edit several unit
-	 * tests every time the metadata size changes by one block.
+	 * XXX Try to figure out some way of structuring testParameters and
+	 * unit tests so this hack isn't needed without having to edit several
+	 * unit tests every time the metadata size changes by one block.
 	 */
 	data_blocks = slab_size - meta_blocks;
 	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {

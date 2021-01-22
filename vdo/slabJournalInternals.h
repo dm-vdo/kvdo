@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#36 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -56,7 +56,7 @@ struct slab_journal {
 	bool waiting_to_commit;
 	/** Whether the journal is updating the slab summary */
 	bool updating_slab_summary;
-	/** Whether the journal is adding entries from the entryWaiters queue */
+	/** Whether the journal is adding entries from the entry_waiters queue */
 	bool adding_entries;
 	/** Whether a partial write is in progress */
 	bool partial_write_in_progress;
@@ -83,8 +83,8 @@ struct slab_journal {
 	 **/
 	journal_entry_count_t entries_per_block;
 	/**
-	 * The number of full entries which fit in a single block. Can't use the
-	 * constant because unit tests change this number.
+	 * The number of full entries which fit in a single block. Can't use
+	 * the constant because unit tests change this number.
 	 **/
 	journal_entry_count_t full_entries_per_block;
 
@@ -125,7 +125,7 @@ struct slab_journal {
 	block_count_t scrubbing_threshold;
 
 	/**
-	 * This list entry is for BlockAllocator to keep a queue of dirty
+	 * This list entry is for block_allocator to keep a queue of dirty
 	 * journals
 	 */
 	struct list_head dirty_entry;

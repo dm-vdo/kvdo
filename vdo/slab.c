@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#48 $
  */
 
 #include "slab.h"
@@ -236,7 +236,7 @@ int slab_block_number_from_pbn(struct vdo_slab *slab,
 /**********************************************************************/
 bool should_save_fully_built_slab(const struct vdo_slab *slab)
 {
-	// Write out the refCounts if the slab has written them before, or it
+	// Write out the ref_counts if the slab has written them before, or it
 	// has any non-zero reference counts, or there are any slab journal
 	// blocks.
 	block_count_t data_blocks =
