@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#77 $
  */
 
 #include "blockMapTree.h"
@@ -249,8 +249,8 @@ is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 					     zone->generation, 1 << 8)
 			     && in_cyclic_range(zone->oldest_generation, b,
 						zone->generation, 1 << 8)),
-			    "generation(s) %u, %u are out of range [%u, %u]", a,
-			    b, zone->oldest_generation, zone->generation);
+			    "generation(s) %u, %u are out of range [%u, %u]",
+			    a, b, zone->oldest_generation, zone->generation);
 	if (result != VDO_SUCCESS) {
 		enter_zone_read_only_mode(zone, result);
 		return true;
@@ -1164,8 +1164,8 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 
 /**
  * Continue the process of allocating a block map page now that the
- * BlockAllocator has given us a block. This method is supplied as the callback
- * to allocate_data_block() by allocate_block_map_page().
+ * block_allocator has given us a block. This method is supplied as the
+ * callback to allocate_data_block() by allocate_block_map_page().
  *
  * @param allocating_vio  The data_vio which is doing the allocation
  **/

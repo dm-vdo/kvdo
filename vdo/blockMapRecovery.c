@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#36 $
  */
 
 #include "blockMapRecovery.h"
@@ -84,7 +84,7 @@ struct block_map_recovery_completion {
 };
 
 /**
- * This is a HeapComparator function that orders NumberedBlockMappings using
+ * This is a heap_comparator function that orders numbered_block_mappings using
  * the 'block_map_slot' field as the primary key and the mapping 'number' field
  * as the secondary key. Using the mapping number preserves the journal order
  * of entries for the same slot, allowing us to sort by slot while still

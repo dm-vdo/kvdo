@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#32 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -237,7 +237,7 @@ void get_mapped_block(struct data_vio *data_vio);
 
 /**
  * Associate the logical block number for a block represented by a data_vio
- * with the physical block number in its newMapped field.
+ * with the physical block number in its new_mapped field.
  *
  * @param data_vio  The data_vio of the block to map
  **/

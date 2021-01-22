@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#32 $
  */
 
 #include "flush.h"
@@ -120,7 +120,7 @@ static void notify_flush(struct flusher *flusher);
  * Finish the notification process by checking if any flushes have completed
  * and then starting the notification of the next flush request if one came in
  * while the current notification was in progress. This callback is registered
- * in flushPackerCallback().
+ * in flush_packer_callback().
  *
  * @param completion  The flusher completion
  **/
@@ -151,7 +151,7 @@ static void finish_notification(struct vdo_completion *completion)
 /**
  * Flush the packer now that all of the logical and physical zones have been
  * notified of the new flush request. This callback is registered in
- * incrementGeneration().
+ * increment_generation().
  *
  * @param completion  The flusher completion
  **/

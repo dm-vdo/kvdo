@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#11 $
  */
 
 #ifndef HEADER_H
@@ -134,7 +134,8 @@ int __must_check validate_version(struct version_number expected_version,
  * @param expected_header  The expected header
  * @param actual_header    The header being validated
  * @param exact_size       If true, the size fields of the two headers must be
- *                         the same, otherwise actualSize >= expectedSize is OK
+ *                         the same, otherwise it is required that
+ *                         actual_header.size >= expected_header.size
  * @param component_name   The name of the component or the calling function
  *                         (for error logging)
  *

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#27 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -39,7 +39,7 @@ struct allocating_vio {
 	/** The underlying vio */
 	struct vio vio;
 
-	/** The WaitQueue entry structure */
+	/** The wait_queue entry structure */
 	struct waiter waiter;
 
 	/** The physical zone in which to allocate a physical block */
@@ -49,16 +49,16 @@ struct allocating_vio {
 	physical_block_number_t allocation;
 
 	/**
-	 * If non-NULL, the pooled PBN lock held on the allocated block. Must be
-	 * a write lock until the block has been  written, after which it will
-	 * become a read lock.
+	 * If non-NULL, the pooled PBN lock held on the allocated block. Must
+	 * be a write lock until the block has been written, after which it
+	 * will become a read lock.
 	 **/
 	struct pbn_lock *allocation_lock;
 
 	/** The type of write lock to obtain on the allocated block */
 	enum pbn_lock_type write_lock_type;
 
-	/** The number of zones in which this vio has attempted an allocation */
+	/** The number of zones in which this vio has attempted to allocate */
 	zone_count_t allocation_attempts;
 
 	/** Whether this vio should wait for a clean slab */
@@ -199,8 +199,8 @@ assert_in_physical_zone(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Set a callback as a physical block operation in an allocating_vio's allocated
- * zone.
+ * Set a callback as a physical block operation in an allocating_vio's
+ * allocated zone.
  *
  * @param allocating_vio  The allocating_vio
  * @param callback        The callback to set
@@ -215,8 +215,8 @@ set_physical_zone_callback(struct allocating_vio *allocating_vio,
 }
 
 /**
- * Set a callback as a physical block operation in an allocating_vio's allocated
- * zone and invoke it immediately.
+ * Set a callback as a physical block operation in an allocating_vio's
+ * allocated zone and invoke it immediately.
  *
  * @param allocating_vio  The allocating_vio
  * @param callback       The callback to invoke

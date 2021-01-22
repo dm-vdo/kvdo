@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#8 $
  */
 
 #ifndef COMPRESSION_STATE_H
@@ -25,7 +25,7 @@
 #include "types.h"
 
 /**
- * Where a data_vio is on the compression path; advanceStatus() depends on the
+ * Where a data_vio is on the compression path; advance_status() depends on the
  * order of this enum.
  **/
 enum vio_compression_status {

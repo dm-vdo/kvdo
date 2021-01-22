@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#5 $
  */
 
 #ifndef CONSTANTS_H
@@ -48,10 +48,10 @@ enum {
 	DEFAULT_SLAB_JOURNAL_SIZE = 224,
 
 	/**
-	 * The initial size of lbnOperations and pbnOperations, which is based
-	 * upon the expected maximum number of outstanding VIOs. This value was
-	 * chosen to make it highly unlikely that the maps would need to be
-	 * resized.
+	 * The initial size of lbn_operations and pbn_operations, which is
+	 * based upon the expected maximum number of outstanding VIOs. This
+	 * value was chosen to make it highly unlikely that the maps would
+	 * need to be resized.
 	 **/
 	LOCK_MAP_CAPACITY = 10000,
 

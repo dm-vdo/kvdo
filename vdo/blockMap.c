@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#85 $
  */
 
 #include "blockMap.h"
@@ -570,7 +570,7 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 
 /**
  * Handle an error fetching a page from the cache. This error handler is
- * registered in setupMappedBlock().
+ * registered in setup_mapped_block().
  *
  * @param completion  The page completion which got an error
  **/

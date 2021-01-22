@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#31 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -32,7 +32,7 @@
 /**
  * Create a block allocator.
  *
- * @param [in]  depot             The slab depot for this allocator
+ * @param [in]  depot               The slab depot for this allocator
  * @param [in]  zone_number         The physical zone number for this allocator
  * @param [in]  thread_id           The thread ID for this allocator's zone
  * @param [in]  nonce               The nonce of the VDO
@@ -81,13 +81,13 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment);
 /**
  * Allocate a physical block.
  *
- * The block allocated will have a provisional reference and the
- * reference must be either confirmed with a subsequent call to
- * incrementReferenceCount() or vacated with a subsequent call to
- * decrementReferenceCount().
+ * The block allocated will have a provisional reference and the reference
+ * must be either confirmed with a subsequent increment or vacated with a
+ * subsequent decrement of the reference count.
  *
  * @param [in]  allocator         The block allocator
- * @param [out] block_number_ptr  A pointer to receive the allocated block number
+ * @param [out] block_number_ptr  A pointer to receive the allocated block
+ *                                number
  *
  * @return UDS_SUCCESS or an error code
  **/
@@ -281,7 +281,7 @@ struct slab_journal_statistics __must_check
 get_slab_journal_statistics(const struct block_allocator *allocator);
 
 /**
- * Get the cumulative RefCounts statistics for the slabs in this allocator.
+ * Get the cumulative ref_counts statistics for the slabs in this allocator.
  *
  * @param allocator  The allocator to query
  *

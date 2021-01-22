@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#18 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -41,7 +41,7 @@ struct block_map_page_header {
 	/** The 64-bit PBN of this page, in little-endian byte order */
 	__le64 pbn;
 
-	/** Formerly recoverySequenceNumber; may be non-zero on disk */
+	/** Formerly recovery_sequence_number; may be non-zero on disk */
 	byte unused_long_word[8];
 
 	/**
@@ -50,11 +50,11 @@ struct block_map_page_header {
 	bool initialized;
 
 	/**
-	 * Formerly entryOffset; now unused since it should always be zero
+	 * Formerly entry_offset; now unused since it should always be zero
 	 */
 	byte unused_byte1;
 
-	/** Formerly interiorTreePageWriting; may be non-zero on disk */
+	/** Formerly interior_tree_page_writing; may be non-zero on disk */
 	byte unused_byte2;
 
 	/**

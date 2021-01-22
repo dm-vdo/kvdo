@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#12 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -46,7 +46,7 @@ struct partition;
  *
  * @param [in]  total_blocks  The total size of the layout, in blocks
  * @param [in]  start_offset  The block offset in the underlying layer at which
- *                           the fixed layout begins
+ *                            the fixed layout begins
  * @param [out] layout_ptr    The pointer to hold the resulting layout
  *
  * @return a success or error code
@@ -152,7 +152,7 @@ make_fixed_layout_partition(struct fixed_layout *layout,
 /**
  * Return the size in blocks of a partition.
  *
- * @param partition       a partition of the fixedLayout
+ * @param partition       a partition of the fixed_layout
  *
  * @return the size of the partition in blocks
  **/
@@ -162,7 +162,7 @@ get_fixed_layout_partition_size(const struct partition *partition);
 /**
  * Get the first block of the partition in the layout.
  *
- * @param partition       a partition of the fixedLayout
+ * @param partition       a partition of the fixed_layout
  *
  * @return the partition's offset in blocks
  **/
@@ -173,7 +173,7 @@ get_fixed_layout_partition_offset(const struct partition *partition);
  * Get the number of the first block in the partition from the partition users
  * point of view.
  *
- * @param partition a partition of the fixedLayout
+ * @param partition  a partition of the fixed_layout
  *
  * @return the number of the first block in the partition
  **/
@@ -183,7 +183,7 @@ get_fixed_layout_partition_base(const struct partition *partition);
 /**
  * Get the size of an encoded layout
  *
- * @param layout The layout
+ * @param layout  The layout
  *
  * @return The encoded size of the layout
  **/
@@ -193,8 +193,8 @@ get_fixed_layout_encoded_size(const struct fixed_layout *layout);
 /**
  * Encode a layout into a buffer.
  *
- * @param layout The layout to encode
- * @param buffer The buffer to encode into
+ * @param layout  The layout to encode
+ * @param buffer  The buffer to encode into
  *
  * @return UDS_SUCCESS or an error
  **/
@@ -204,8 +204,8 @@ encode_fixed_layout(const struct fixed_layout *layout, struct buffer *buffer);
 /**
  * Decode a fixed layout from a buffer.
  *
- * @param [in]  buffer     The buffer from which to decode
- * @param [out] layout_ptr A pointer to hold the layout
+ * @param [in]  buffer      The buffer from which to decode
+ * @param [out] layout_ptr  A pointer to hold the layout
  *
  * @return VDO_SUCCESS or an error
  **/

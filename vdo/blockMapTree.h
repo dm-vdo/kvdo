@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#18 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -81,7 +81,7 @@ void advance_zone_tree_period(struct block_map_tree_zone *zone,
  * the drain type, all dirty block map trees will be written to disk. This
  * method must not be called when lookups are active.
  *
- * @param zone  The BlockMapTreeZone to drain
+ * @param zone  The block_map_tree_zone to drain
  **/
 void drain_zone_trees(struct block_map_tree_zone *zone);
 

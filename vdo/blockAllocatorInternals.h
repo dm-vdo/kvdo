@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#32 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -105,7 +105,7 @@ struct block_allocator {
 	struct block_allocator_statistics statistics;
 	/** Cumulative statistics for the slab journals in this zone */
 	struct slab_journal_statistics slab_journal_statistics;
-	/** Cumulative statistics for the RefCounts in this zone */
+	/** Cumulative statistics for the ref_counts in this zone */
 	struct ref_counts_statistics ref_counts_statistics;
 
 	/**
@@ -113,9 +113,9 @@ struct block_allocator {
 	 * their tail blocks which have not yet started to commit. When the
 	 * recovery journal is under space pressure, slab journals which have
 	 * uncommitted entries holding a lock on the recovery journal head are
-	 * forced to commit their blocks early. This list is kept in order, with
-	 * the tail containing the slab journal holding the most recent recovery
-	 * journal lock.
+	 * forced to commit their blocks early. This list is kept in order,
+	 * with the tail containing the slab journal holding the most recent
+	 * recovery journal lock.
 	 **/
 	struct list_head dirty_slab_journals;
 

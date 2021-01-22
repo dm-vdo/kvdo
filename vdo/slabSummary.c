@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#51 $
  */
 
 #include "slabSummary.h"
@@ -118,7 +118,8 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 	}
 
 	result = kvdo_create_metadata_vio(layer, VIO_TYPE_SLAB_SUMMARY,
-					  VIO_PRIORITY_METADATA, slab_summary_block,
+					  VIO_PRIORITY_METADATA,
+					  slab_summary_block,
 					  slab_summary_block->outgoing_entries,
 					  &slab_summary_block->vio);
 	if (result != VDO_SUCCESS) {
@@ -232,7 +233,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	hint = compute_fullness_hint(summary, maximum_free_blocks_per_slab);
 	for (i = 0; i < total_entries; i++) {
 		// This default tail block offset must be reflected in
-		// slabJournal.c::readSlabJournalTail().
+		// slabJournal.c::read_slab_journal_tail().
 		summary->entries[i] = (struct slab_summary_entry) {
 			.tail_block_offset = 0,
 			.fullness_hint = hint,

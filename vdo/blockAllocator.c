@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#95 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -81,9 +81,9 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 	/*
 	 * Slabs that have never been opened (empty, newly initialized, never
 	 * been written to) have lower priority than previously opened slabs
-	 * that have a signficant number of free blocks. This ranking causes VDO
-	 * to avoid writing physical blocks for the first time until there are
-	 * very few free blocks that have been previously written to. That
+	 * that have a signficant number of free blocks. This ranking causes
+	 * VDO to avoid writing physical blocks for the first time until there
+	 * are very few free blocks that have been previously written to. That
 	 * policy makes VDO a better client of any underlying storage that is
 	 * thinly-provisioned [VDOSTORY-123].
 	 */
@@ -241,17 +241,19 @@ static int allocate_components(struct block_allocator *allocator,
 	 * VDOSTORY-123 requires that we try to open slabs that already have
 	 * allocated blocks in preference to slabs that have never been opened.
 	 * For reasons we have not been able to fully understand, performance
-	 * tests on SSD harvards have been very sensitive (50% reduction in test
-	 * throughput) to very slight differences in the timing and locality of
-	 * block allocation. Assigning a low priority to unopened slabs
-	 * (max_priority/2, say) would be ideal for the story, but anything less
-	 * than a very high threshold (max_priority - 1) hurts PMI results.
+	 * tests on SSD harvards have been very sensitive (50% reduction in
+	 * test throughput) to very slight differences in the timing and
+	 * locality of block allocation. Assigning a low priority to unopened
+	 * slabs (max_priority/2, say) would be ideal for the story, but
+	 * anything less than a very high threshold (max_priority - 1) hurts
+	 * PMI results.
 	 *
-	 * This sets the free block threshold for preferring to open an unopened
-	 * slab to the binary floor of 3/4ths the total number of datablocks in
-	 * a slab, which will generally evaluate to about half the slab size,
-	 * but avoids degenerate behavior in unit tests where the number of data
-	 * blocks is artificially constrained to a power of two.
+	 * This sets the free block threshold for preferring to open an
+	 * unopened slab to the binary floor of 3/4ths the total number of
+	 * datablocks in a slab, which will generally evaluate to about half
+	 * the slab size, but avoids degenerate behavior in unit tests where
+	 * the number of data blocks is artificially constrained to a power of
+	 * two.
 	 */
 	allocator->unopened_slab_priority =
 		(1 + log_base_two((max_free_blocks * 3) / 4));
@@ -408,8 +410,9 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 		return;
 	}
 
-	// Reprioritize the slab to reflect the new free block count by removing
-	// it from the table and re-enqueuing it with the new priority.
+	// Reprioritize the slab to reflect the new free block count by
+	// removing it from the table and re-enqueuing it with the new
+	// priority.
 	priority_table_remove(allocator->prioritized_slabs,
 			      &slab->allocq_entry);
 	prioritize_slab(slab);
@@ -419,12 +422,12 @@ void adjust_free_block_count(struct vdo_slab *slab, bool increment)
  * Allocate the next free physical block in a slab.
  *
  * The block allocated will have a provisional reference and the
- * reference must be either confirmed with a subsequent call to
- * incrementReferenceCount() or vacated with a subsequent call to
- * decrementReferenceCount().
+ * reference must be either confirmed with a subsequent increment
+ * or vacated with a subsequent decrement of the reference count.
  *
  * @param [in]  slab              The slab
- * @param [out] block_number_ptr  A pointer to receive the allocated block number
+ * @param [out] block_number_ptr  A pointer to receive the allocated block
+ *                                number
  *
  * @return UDS_SUCCESS or an error code
  **/
@@ -473,8 +476,8 @@ int allocate_block(struct block_allocator *allocator,
 			   allocator->statistics.slabs_reopened + 1);
 	}
 
-	// Try allocating again. If we're out of space immediately after opening
-	// a slab, then every slab must be fully allocated.
+	// Try allocating again. If we're out of space immediately after
+	// opening a slab, then every slab must be fully allocated.
 	return allocate_slab_block(allocator->open_slab, block_number_ptr);
 }
 
@@ -505,7 +508,7 @@ void release_block_reference(struct block_allocator *allocator,
 }
 
 /**
- * This is a HeapComparator function that orders slab_status
+ * This is a heap_comparator function that orders slab_status
  * structures using the 'is_clean' field as the primary key and the
  * 'emptiness' field as the secondary key.
  *
@@ -564,7 +567,7 @@ as_block_allocator(struct vdo_completion *completion)
 
 /**
  * Inform the allocator that a slab action has finished on some slab. This
- * callback is registered in applyToSlabs().
+ * callback is registered in apply_to_slabs().
  *
  * @param completion  The allocator completion
  **/

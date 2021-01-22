@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#28 $
  */
 
 #ifndef COMPLETION_H
@@ -244,7 +244,7 @@ int assert_completion_type(enum vdo_completion_type actual,
  *
  * @param completion_type  the completion type
  *
- * @return a pointer to a static string; if the completionType is unknown
+ * @return a pointer to a static string; if the completion_type is unknown
  *         this is to a static buffer that may be overwritten.
  **/
 const char *get_completion_type_name(enum vdo_completion_type completion_type);
@@ -380,7 +380,7 @@ static inline void prepare_to_finish_parent(struct vdo_completion *completion,
 
 /**
  * A function to enqueue a vdo_completion to run on the thread specified by its
- * 'callbackThreadID' field.
+ * callback_thread_id field.
  *
  * @param completion  The completion to be enqueued
  **/
