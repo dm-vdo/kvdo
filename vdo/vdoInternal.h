@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#50 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -66,6 +66,7 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
+	struct vio_tracer *vio_tracer;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
@@ -104,8 +105,6 @@ struct vdo {
 
 	/* The state the vdo was in when loaded (primarily for unit tests) */
 	enum vdo_state load_state;
-	/* Whether VIO tracing is enabled */
-	bool vio_trace_recording;
 
 	/* The logical zones of this vdo */
 	struct logical_zones *logical_zones;

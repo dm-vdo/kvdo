@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#77 $
  */
 
 /*
@@ -35,7 +35,6 @@
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
-//#include "vdoInternal.h"
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
@@ -151,7 +150,6 @@ int make_vdo_threads(struct vdo *vdo,
 int preload_kvdo(struct vdo *vdo,
 		 PhysicalLayer *common,
 		 const struct vdo_load_config *load_config,
-		 bool vio_trace_recording,
 		 char **reason)
 {
 	int result;
@@ -165,7 +163,6 @@ int preload_kvdo(struct vdo *vdo,
 		return result;
 	}
 
-	set_vdo_tracing_flags(vdo, vio_trace_recording);
 	return VDO_SUCCESS;
 }
 
@@ -378,69 +375,6 @@ void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 			       stats,
 			       get_admin_thread(get_thread_config(vdo)),
 			       &stats_wait);
-}
-
-/**
- * A structure to invoke an arbitrary VDO action.
- **/
-struct vdo_action_data {
-	vdo_action *action;
-	struct vdo_completion *vdo_completion;
-	struct completion waiter;
-};
-
-/**
- * Initialize a struct vdo_action_data structure so that the specified
- * action can be invoked on the specified completion.
- *
- * @param data               A vdo_action_data structure.
- * @param action             The vdo_action to execute.
- * @param vdo_completion     The VDO completion upon which the action acts.
- **/
-static void initialize_vdo_action_data(struct vdo_action_data *data,
-				       vdo_action *action,
-				       struct vdo_completion *vdo_completion)
-{
-	*data = (struct vdo_action_data) {
-		.action = action,
-		.vdo_completion = vdo_completion,
-	};
-}
-
-/**
- * The VDO callback that completes the vdo completion.
- *
- * @param vdo_completion     The VDO completion which was acted upon.
- **/
-static void finish_vdo_action(struct vdo_completion *vdo_completion)
-{
-	struct sync_queue_work *work = vdo_completion->parent;
-
-	complete(work->completion);
-}
-
-/**
- * Perform a VDO base code action as specified by a vdo_action_data
- * structure.
- *
- * Sets the completion callback and parent inside the vdo_action_data
- * structure so that the corresponding kernel completion is completed
- * when the VDO completion is.
- *
- * @param item          A vdo work queue item.
- **/
-static void perform_vdo_action_work(struct vdo_work_item *item)
-{
-	struct sync_queue_work *work =
-		container_of(item, struct sync_queue_work, work_item);
-	struct vdo_action_data *data = work->data;
-	thread_id_t id = get_callback_thread_id();
-
-	set_callback_with_parent(data->vdo_completion,
-			        finish_vdo_action,
-			        id,
-			        work);
-	data->action(data->vdo_completion);
 }
 
 

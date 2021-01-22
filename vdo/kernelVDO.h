@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#34 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -60,13 +60,11 @@ int make_vdo_threads(struct vdo *vdo,
  * @param [in]  vdo                  The vdo to be started
  * @param [in]  common               The physical layer pointer
  * @param [in]  load_config          Load-time parameters for the VDO
- * @param [in]  vio_trace_recording  Debug flag to store
  * @param [out] reason               The reason for failure
  **/
 int preload_kvdo(struct vdo *vdo,
 		 PhysicalLayer *common,
 		 const struct vdo_load_config *load_config,
-		 bool vio_trace_recording,
 		 char **reason);
 
 /**

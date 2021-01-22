@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#92 $
  */
 
 /*
@@ -49,6 +49,7 @@
 #include "threadConfig.h"
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
+
 
 /**********************************************************************/
 int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo)
@@ -516,18 +517,6 @@ void dump_vdo_status(const struct vdo *vdo)
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		dump_hash_zone(vdo->hash_zones[zone]);
 	}
-}
-
-/**********************************************************************/
-void set_vdo_tracing_flags(struct vdo *vdo, bool vio_tracing)
-{
-	vdo->vio_trace_recording = vio_tracing;
-}
-
-/**********************************************************************/
-bool vdo_vio_tracing_enabled(const struct vdo *vdo)
-{
-	return ((vdo != NULL) && vdo->vio_trace_recording);
 }
 
 /**********************************************************************/

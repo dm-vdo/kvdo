@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#121 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#122 $
  */
 
 #include "dataKVIO.h"
@@ -104,53 +104,6 @@ static __always_inline void set_write_protect(void *address,
 	BUG(); // only works in internal code, sorry
 }
 
-/**
- * First tracing hook for data_vio completion.
- *
- * If the SystemTap script vdotrace.stp is in use, it does stage 1 of
- * its processing here. We must not call add_trace_record between the
- * two tap functions.
- *
- * @param data_vio  The data_vio we're finishing up
- **/
-static void vio_completion_tap1(struct data_vio *data_vio)
-{
-	/*
-	 * Ensure that data_vio doesn't get optimized out, even under inline
-	 * expansion. Also, make sure the compiler has to emit debug info
-	 * for base_trace_location, which some of our SystemTap scripts will
-	 * use here.
-	 *
-	 * First, make it look as though all memory could be clobbered; then
-	 * require that a value be read into a register. That'll force at
-	 * least one instruction to exist (so SystemTap can hook in) where
-	 * data_vio is live. We use a field that the caller would've
-	 * accessed recently anyway, so it may be cached.
-	 */
-	barrier();
-	__asm__ __volatile__(""
-			     :
-			     : "m"(data_vio), "m"(base_trace_location),
-			       "r"(data_vio->allocating_vio.vio.completion.layer));
-}
-
-/**
- * Second tracing hook for data_vio completion.
- *
- * The SystemTap script vdotrace.stp splits its vio-completion work
- * into two stages, to reduce lock contention for script variables.
- * Hence, it needs two hooks in the code.
- *
- * @param data_vio  The data_vio we're finishing up
- **/
-static void vio_completion_tap2(struct data_vio *data_vio)
-{
-	// Hack to ensure variable doesn't get optimized out.
-	barrier();
-	__asm__ __volatile__("" : : "m"(data_vio),
-			     "r"(data_vio->allocating_vio.vio.completion.layer));
-}
-
 /**********************************************************************/
 static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
@@ -178,17 +131,7 @@ static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 static noinline void clean_data_vio(struct data_vio *data_vio,
 				    struct free_buffer_pointers *fbp)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
 	kvdo_acknowledge_data_vio(data_vio);
-
-	if (unlikely(vio->trace != NULL)) {
-		maybe_log_vio_trace(vio);
-		vio_completion_tap1(data_vio);
-		vio_completion_tap2(data_vio);
-		free_trace_to_pool(as_kernel_layer(vio_as_completion(vio)->layer),
-				   vio->trace);
-	}
-
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
@@ -759,16 +702,6 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 	// Zero out the fields which don't need to be preserved (i.e. which
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, data_block));
-
-	// Note that sampling here is the only user of the 'bio' parameter of
-	// this function, which is the incoming user bio.
-	if (sample_this_vio(vio, layer, bio)) {
-		int result = alloc_trace_from_pool(layer, &vio->trace);
-		if (result != VDO_SUCCESS) {
-			uds_log_error("trace record allocation failure %d",
-				      result);
-		}
-	}
 
 	initialize_kvio(vio,
 			layer,

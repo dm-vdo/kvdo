@@ -549,7 +549,8 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 		return;
 	}
 
-	set_physical_zone_callback(allocating_vio, finish_compressed_write);
+	set_physical_zone_callback(allocating_vio,
+				   finish_compressed_write);
 	write_compressed_block(allocating_vio);
 }
 

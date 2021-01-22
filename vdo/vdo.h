@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#19 $
  */
 
 #ifndef VDO_H
@@ -218,31 +218,5 @@ validate_dedupe_advice(struct vdo *vdo,
  * @param vdo  The vdo to dump
  **/
 void dump_vdo_status(const struct vdo *vdo);
-
-/**
- * Set the VIO tracing flag.
- *
- * @param vdo          The vdo
- * @param vio_tracing  Whether VIO tracing is enabled for this device
- **/
-void set_vdo_tracing_flags(struct vdo *vdo, bool vio_tracing);
-
-/**
- * Indicate whether VIO tracing is enabled.
- *
- * @param vdo  The vdo
- *
- * @return Whether VIO tracing is enabled
- **/
-bool vdo_vio_tracing_enabled(const struct vdo *vdo);
-
-/**
- * Indicate whether extent tracing is enabled.
- *
- * @param vdo  The vdo
- *
- * @return Whether extent tracing is enabled
- **/
-bool vdo_extent_tracing_enabled(const struct vdo *vdo);
 
 #endif /* VDO_H */

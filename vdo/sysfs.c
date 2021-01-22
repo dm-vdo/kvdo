@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#17 $
  */
 
 #include "sysfs.h"
@@ -155,41 +155,6 @@ static ssize_t show_uint(struct vdo_module_globals *vdo_globals
 						      attr);
 
 	return sprintf(buf, "%u\n", *(unsigned int *) vdo_attr->value_ptr);
-}
-
-/**********************************************************************/
-static ssize_t scan_bool(const char *buf, size_t n, bool *value_ptr)
-{
-	unsigned int int_value = 0;
-
-	n = scan_uint(buf, n, &int_value, 0, 1);
-	if (n > 0) {
-		*value_ptr = (int_value != 0);
-	}
-	return n;
-}
-
-/**********************************************************************/
-static ssize_t show_bool(struct vdo_module_globals *vdo_globals
-			 __always_unused,
-			 struct attribute *attr,
-			 char *buf)
-{
-	struct vdo_attribute *vdo_attr = container_of(attr,
-						      struct vdo_attribute,
-						      attr);
-
-	return sprintf(buf, "%u\n", *(bool *) vdo_attr->value_ptr ? 1 : 0);
-}
-
-/**********************************************************************/
-static ssize_t
-vdo_trace_recording_store(struct vdo_module_globals *vdo_globals
-			  __always_unused,
-			  const char *buf,
-			  size_t n)
-{
-	return scan_bool(buf, n, &trace_recording);
 }
 
 /**********************************************************************/
@@ -338,17 +303,6 @@ static struct vdo_attribute vdo_min_dedupe_timer_interval = {
 	.value_ptr = &min_dedupe_index_timer_interval,
 };
 
-static struct vdo_attribute vdo_trace_recording = {
-	.attr = {
-
-			.name = "trace_recording",
-			.mode = 0644,
-		},
-	.show = show_bool,
-	.store = vdo_trace_recording_store,
-	.value_ptr = &trace_recording,
-};
-
 static struct vdo_attribute vdo_version_attr = {
 	.attr = {
 
@@ -364,7 +318,6 @@ static struct attribute *default_attrs[] = {
 	&vdo_max_req_active_attr.attr,
 	&vdo_dedupe_timeout_interval.attr,
 	&vdo_min_dedupe_timer_interval.attr,
-	&vdo_trace_recording.attr,
 	&vdo_version_attr.attr,
 	NULL
 };

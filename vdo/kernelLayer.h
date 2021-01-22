@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#61 $
  */
 
 #ifndef KERNELLAYER_H
@@ -153,16 +153,7 @@ struct kernel_layer {
 	// Debugging
 	/* Whether to dump VDO state on shutdown */
 	bool dump_on_shutdown;
-	/**
-	 * Whether we should collect tracing info. (Actually, this controls
-	 * allocations; non-null record pointers cause recording.)
-	 **/
-	bool vio_trace_recording;
-	struct sample_counter trace_sample_counter;
-	/* Should we log tracing info? */
-	bool trace_logging;
-	/* Storage for trace data. */
-	struct buffer_pool *trace_buffer_pool;
+
 	/* For returning batches of data_vios to their pool */
 	struct batch_processor *data_vio_releaser;
 

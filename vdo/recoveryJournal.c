@@ -1127,7 +1127,8 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 			"journal lock not held for increment");
 
 	advance_journal_point(&journal->append_point, journal->entries_per_block);
-	result = enqueue_data_vio((increment ? &journal->increment_waiters : &journal->decrement_waiters),
+	result = enqueue_data_vio((increment ? &journal->increment_waiters
+				  : &journal->decrement_waiters),
 				  data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);

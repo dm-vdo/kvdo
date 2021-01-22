@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#70 $
  */
 
 #include "kvio.h"
@@ -66,14 +66,6 @@ void continue_vio(struct vio *vio, int error)
 }
 
 /**********************************************************************/
-void maybe_log_vio_trace(struct vio *vio)
-{
-	if (as_kernel_layer(vio_as_completion(vio)->layer)->trace_logging) {
-		log_vio_trace(vio);
-	}
-}
-
-/**********************************************************************/
 void destroy_vio(struct vio **vio_ptr)
 {
 	struct vio *vio = *vio_ptr;
@@ -83,12 +75,6 @@ void destroy_vio(struct vio **vio_ptr)
 	}
 
 	BUG_ON(is_data_vio(vio));
-
-	if (unlikely(vio->trace != NULL)) {
-		maybe_log_vio_trace(vio);
-		FREE(vio->trace);
-	}
-
 	free_bio(vio->bio);
 	FREE(vio);
 	*vio_ptr = NULL;
@@ -250,11 +236,6 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	if (sample_this_vio(vio, kernel_layer, bio)) {
-		// We don't care if it fails, and it already logs.
-		alloc_trace_data_buffer((void **)&vio->trace);
-	}
-
 	initialize_kvio(vio, kernel_layer, vio_type, priority,
 			parent, bio);
 	vio->data = data;
@@ -291,11 +272,6 @@ int create_compressed_write_vio(struct vdo *vdo,
 	}
 
 	vio = allocating_vio_as_vio(allocating_vio);
-	if (sample_this_vio(vio, kernel_layer, bio)) {
-		// We don't care if it fails, and it already logs.
-		alloc_trace_data_buffer((void **)&vio->trace);
-	}
-
 	initialize_kvio(vio,
 			kernel_layer,
 			VIO_TYPE_COMPRESSED_BLOCK,

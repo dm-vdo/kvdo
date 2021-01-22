@@ -1156,8 +1156,7 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 		return;
 	}
 
-	set_allocated_zone_callback(data_vio,
-				    set_block_map_page_reference_count);
+	set_allocated_zone_callback(data_vio, set_block_map_page_reference_count);
 	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				   data_vio);
 }

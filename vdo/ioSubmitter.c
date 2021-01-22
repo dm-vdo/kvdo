@@ -309,11 +309,13 @@ static void process_bio_map(struct vdo_work_item *item)
 			struct bio *next = bio->bi_next;
 
 			bio->bi_next = NULL;
-			send_bio_to_device(vio_bio, bio);
+			send_bio_to_device(vio_bio,
+					   bio);
 			bio = next;
 		}
 	} else {
-		send_bio_to_device(vio, vio->bio);
+		send_bio_to_device(vio,
+				   vio->bio);
 	}
 }
 

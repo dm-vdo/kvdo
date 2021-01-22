@@ -326,7 +326,8 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 
 	case VIO_RELEASE_HASH_LOCK:
 		if (data_vio->hash_lock != NULL) {
-			launch_hash_zone_callback(data_vio, clean_hash_lock);
+			launch_hash_zone_callback(data_vio,
+						 clean_hash_lock);
 			return;
 		}
 		// fall through
@@ -640,8 +641,7 @@ static void increment_for_compression(struct vdo_completion *completion)
 	 * to look in the block map.
 	 */
 	if (is_async(data_vio) || !has_allocation(data_vio)) {
-		  set_logical_callback(data_vio,
-				       read_old_block_mapping_for_dedupe);
+		  set_logical_callback(data_vio, read_old_block_mapping_for_dedupe);
 	} else {
 		  set_journal_callback(data_vio, journal_unmapping_for_dedupe);
 	}

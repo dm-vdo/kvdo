@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#144 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#145 $
  */
 
 #include "kernelLayer.h"
@@ -660,14 +660,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	 */
 	set_kernel_layer_state(layer, LAYER_BUFFER_POOLS_INITIALIZED);
 
-	// Trace pool
-	BUG_ON(layer->request_limiter.limit <= 0);
-	result = trace_kernel_layer_init(layer);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot initialize trace data";
-		free_kernel_layer(layer);
-		return result;
-	}
 
 	// Data vio pool
 	BUG_ON(layer->device_config->logical_block_size <= 0);
@@ -942,7 +934,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
 		free_buffer_pool(&layer->data_vio_pool);
-		free_buffer_pool(&layer->trace_buffer_pool);
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
@@ -1019,7 +1010,7 @@ int preload_kernel_layer(struct kernel_layer *layer,
 
 	set_kernel_layer_state(layer, LAYER_STARTING);
 	result = preload_kvdo(&layer->vdo, &layer->common, load_config,
-			      layer->vio_trace_recording, reason);
+			      reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;

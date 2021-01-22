@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#86 $
  */
 
 #include "dmvdo.h"
@@ -254,17 +254,6 @@ process_vdo_message_locked(struct kernel_layer *layer,
 			return 0;
 		}
 
-		if (strcasecmp(argv[0], "trace-on") == 0) {
-			log_info("Tracing on");
-			layer->trace_logging = true;
-			return 0;
-		}
-
-		if (strcasecmp(argv[0], "trace-off") == 0) {
-			log_info("Tracing off");
-			layer->trace_logging = false;
-			return 0;
-		}
 
 		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
 			return prepare_to_resize_physical(layer,
@@ -921,7 +910,6 @@ static int __init vdo_init(void)
 	sysfs_initialized = true;
 
 	init_work_queue_once();
-	initialize_trace_logging_once();
 	initialize_instance_number_tracking();
 
 	vdo_globals.status = VDO_MODULE_READY;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#37 $
  */
 
 #ifndef KVIO_H
@@ -91,13 +91,6 @@ void enqueue_vio_callback(struct vio *vio);
  * @param error  Possible error
  **/
 void continue_vio(struct vio *vio, int error);
-
-/**
- * Log the trace for a vio if tracing is enabled.
- *
- * @param vio  The vio to log
- **/
-void maybe_log_vio_trace(struct vio *vio);
 
 /**
  * Initialize a vio structure.

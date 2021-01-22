@@ -118,7 +118,8 @@ void prepare_data_vio(struct data_vio *data_vio,
 	data_vio->new_mapped.state =
 		(is_trim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
 	reset_completion(vio_as_completion(vio));
-	set_logical_callback(data_vio, attempt_logical_block_lock);
+	set_logical_callback(data_vio,
+			     attempt_logical_block_lock);
 }
 
 /**********************************************************************/
@@ -285,7 +286,8 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	}
 
 	data_vio->last_async_operation = ACQUIRE_LOGICAL_BLOCK_LOCK;
-	result = enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
+	result = enqueue_data_vio(&lock_holder->logical.waiters,
+				data_vio);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
@@ -296,8 +298,9 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	if (!is_read_data_vio(lock_holder) &&
 	    cancel_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
-		launch_packer_callback(data_vio,
-				       remove_lock_holder_from_packer);
+		launch_packer_callback(
+			data_vio,
+			remove_lock_holder_from_packer);
 	}
 }
 
