@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#122 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#123 $
  */
 
 #include "dataKVIO.h"
@@ -701,7 +701,9 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 
 	// Zero out the fields which don't need to be preserved (i.e. which
 	// are not pointers to separately allocated objects).
-	memset(data_vio, 0, offsetof(struct data_vio, data_block));
+	memset(data_vio, 0, offsetof(struct data_vio, dedupe_context));
+	memset(&data_vio->dedupe_context.pending_list, 0,
+		sizeof(struct list_head));
 
 	initialize_kvio(vio,
 			layer,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#64 $
  */
 
 #ifndef DATA_VIO_H
@@ -290,9 +290,6 @@ struct data_vio {
 	/* The user bio that initiated this VIO */
 	struct bio *user_bio;
 
-	/* Dedupe */
-	struct dedupe_context dedupe_context;
-
 	/* partial block support */
 	block_size_t offset;
 	bool is_partial;
@@ -303,6 +300,9 @@ struct data_vio {
 
 	// Fields beyond this point will not be reset when a pooled data_vio
 	// is reused.
+
+	/* Dedupe */
+	struct dedupe_context dedupe_context;
 
 	/**
 	 * A copy of user data written, so we can do additional processing
