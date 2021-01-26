@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#20 $
  */
 
 #ifndef VDO_H
@@ -40,16 +40,6 @@ int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo);
  * @param vdo  The vdo to destroy
  **/
 void destroy_vdo(struct vdo *vdo);
-
-/**
- * Put a vdo into read-only mode and save the read-only state in the super
- * block.
- *
- * @param vdo              The vdo to put into read-only mode
- * @param error_code       The error which caused the vdo to enter read-only
- *                         mode
- **/
-void make_vdo_read_only(struct vdo *vdo, int error_code);
 
 /**
  * Set whether compression is enabled in a vdo.

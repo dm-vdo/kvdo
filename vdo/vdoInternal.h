@@ -66,7 +66,6 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
-	struct vio_tracer *vio_tracer;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;

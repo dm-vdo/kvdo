@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#93 $
  */
 
 /*
@@ -244,12 +244,6 @@ void enter_recovery_mode(struct vdo *vdo)
 
 	log_info("Entering recovery mode");
 	set_vdo_state(vdo, VDO_RECOVERING);
-}
-
-/**********************************************************************/
-void make_vdo_read_only(struct vdo *vdo, int error_code)
-{
-	enter_read_only_mode(vdo->read_only_notifier, error_code);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#78 $
  */
 
 /*
@@ -32,6 +32,7 @@
 #include "memoryAlloc.h"
 
 #include "physicalLayer.h"
+#include "readOnlyNotifier.h"
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
@@ -333,7 +334,7 @@ static void enter_read_only_mode_work(struct vdo_work_item *item)
 		container_of(item, struct sync_queue_work, work_item);
 	struct vdo_read_only_data *data = work->data;
 
-	make_vdo_read_only(work->vdo, data->result);
+	enter_read_only_mode(work->vdo->read_only_notifier, data->result);
 	complete(work->completion);
 }
 
