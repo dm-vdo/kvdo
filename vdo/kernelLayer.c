@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#145 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#146 $
  */
 
 #include "kernelLayer.h"
@@ -200,7 +200,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
  * processing other requests.
  *
  * If a request permit can be acquired immediately,
- * kvdo_launch_data_vio_from_bio will be called. (If the bio is a discard
+ * vdo_launch_data_vio_from_bio will be called. (If the bio is a discard
  * operation, a permit from the discard limiter will be requested but the call
  * will be made with or without it.) If the request permit is not available,
  * the bio will be saved on a list to be launched later. Either way, this
@@ -257,9 +257,9 @@ static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 	has_discard_permit =
 		((bio_op(bio) == REQ_OP_DISCARD) &&
 		 limiter_poll(&layer->discard_limiter));
-	result = kvdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
-					       has_discard_permit);
-	// Succeed or fail, kvdo_launch_data_vio_from_bio owns the permit(s)
+	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
+					      has_discard_permit);
+	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
 	// now.
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -323,9 +323,9 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	limiter_wait_for_one_free(&layer->request_limiter);
 
-	result = kvdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
-					       has_discard_permit);
-	// Succeed or fail, kvdo_launch_data_vio_from_bio owns the permit(s)
+	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
+					      has_discard_permit);
+	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
 	// now.
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -364,13 +364,13 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 		has_discard_permit =
 			((bio_op(bio) == REQ_OP_DISCARD) &&
 			 limiter_poll(&layer->discard_limiter));
-		result = kvdo_launch_data_vio_from_bio(layer, bio,
-						       arrival_jiffies,
-						       has_discard_permit);
+		result = vdo_launch_data_vio_from_bio(layer, bio,
+						      arrival_jiffies,
+						      has_discard_permit);
 		if (result != VDO_SUCCESS) {
 			complete_bio(bio, result);
 		}
-		// Succeed or fail, kvdo_launch_data_vio_from_bio owns the
+		// Succeed or fail, vdo_launch_data_vio_from_bio owns the
 		// permit(s) now.
 		count--;
 	}

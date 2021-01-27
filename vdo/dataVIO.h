@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#65 $
  */
 
 #ifndef DATA_VIO_H
@@ -181,7 +181,7 @@ struct read_block {
 	 **/
 	vdo_action *callback;
 	/**
-	 * Mapping state passed to kvdo_read_block(), used to determine whether
+	 * Mapping state passed to vdo_read_block(), used to determine whether
 	 * the data must be uncompressed.
 	 **/
 	enum block_mapping_state mapping_state;

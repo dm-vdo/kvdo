@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#58 $
  */
 
 #ifndef DATA_KVIO_H
@@ -133,10 +133,10 @@ static inline void enqueue_data_vio_callback(struct data_vio *data_vio)
  *
  * @return VDO_SUCCESS or a system error code
  **/
-int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
-				  struct bio *bio,
-				  uint64_t arrival_jiffies,
-				  bool has_discard_permit);
+int vdo_launch_data_vio_from_bio(struct kernel_layer *layer,
+				 struct bio *bio,
+				 uint64_t arrival_jiffies,
+				 bool has_discard_permit);
 
 /**
  * Return a batch of data_vio objects to the pool.
@@ -161,11 +161,11 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
  * @param action         The bio queue action
  * @param callback       The function to call when the read is done
  **/
-void kvdo_read_block(struct data_vio *data_vio,
-		     physical_block_number_t location,
-		     enum block_mapping_state mapping_state,
-		     enum bio_q_action action,
-		     vdo_action *callback);
+void vdo_read_block(struct data_vio *data_vio,
+		    physical_block_number_t location,
+		    enum block_mapping_state mapping_state,
+		    enum bio_q_action action,
+		    vdo_action *callback);
 
 /**
  * Allocate a buffer pool of data_vio objects.

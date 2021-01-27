@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#123 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#124 $
  */
 
 #include "dataKVIO.h"
@@ -105,7 +105,7 @@ static __always_inline void set_write_protect(void *address,
 }
 
 /**********************************************************************/
-static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
+static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
@@ -131,7 +131,7 @@ static void kvdo_acknowledge_data_vio(struct data_vio *data_vio)
 static noinline void clean_data_vio(struct data_vio *data_vio,
 				    struct free_buffer_pointers *fbp)
 {
-	kvdo_acknowledge_data_vio(data_vio);
+	vdo_acknowledge_data_vio(data_vio);
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
@@ -165,18 +165,18 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 
 /**********************************************************************/
 static void
-kvdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
+vdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	struct kernel_layer *layer
 		= as_kernel_layer(container_of(item, struct vdo_completion,
 					       work_item)->layer);
-	kvdo_acknowledge_data_vio(data_vio);
+	vdo_acknowledge_data_vio(data_vio);
 	add_to_batch_processor(layer->data_vio_releaser, item);
 }
 
 /**********************************************************************/
-void kvdo_complete_data_vio(struct vdo_completion *completion)
+static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct kernel_layer *layer = as_kernel_layer(completion->layer);
@@ -185,7 +185,7 @@ void kvdo_complete_data_vio(struct vdo_completion *completion)
 	    (data_vio->user_bio != NULL)) {
 		launch_data_vio_on_bio_ack_queue(
 			data_vio,
-			kvdo_acknowledge_then_complete_data_vio,
+			vdo_acknowledge_then_complete_data_vio,
 			NULL,
 			BIO_ACK_Q_ACTION_ACK);
 	} else {
@@ -198,7 +198,7 @@ void kvdo_complete_data_vio(struct vdo_completion *completion)
  * For a read, dispatch the freshly uncompressed data to its destination:
  * - for a 4k read, copy it into the user bio for later acknowlegement;
  *
- * - for a partial read, invoke its callback; kvdo_complete_partial_read will
+ * - for a partial read, invoke its callback; vdo_complete_partial_read will
  *   copy the data into the user bio for acknowledgement;
  *
  * - for a partial write, copy it into the data block, so that we can later
@@ -340,11 +340,11 @@ static void read_bio_callback(struct bio *bio)
 }
 
 /**********************************************************************/
-void kvdo_read_block(struct data_vio *data_vio,
-		     physical_block_number_t location,
-		     enum block_mapping_state mapping_state,
-		     enum bio_q_action action,
-		     vdo_action *callback)
+void vdo_read_block(struct data_vio *data_vio,
+		    physical_block_number_t location,
+		    enum block_mapping_state mapping_state,
+		    enum bio_q_action action,
+		    vdo_action *callback)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct read_block *read_block = &data_vio->read_block;
@@ -394,11 +394,11 @@ void read_data_vio(struct data_vio *data_vio)
 			"operation set correctly for data read");
 
 	if (is_compressed(data_vio->mapped.state)) {
-		kvdo_read_block(data_vio,
-				data_vio->mapped.pbn,
-				data_vio->mapped.state,
-				BIO_Q_ACTION_COMPRESSED_DATA,
-				read_data_vio_read_block_callback);
+		vdo_read_block(data_vio,
+			       data_vio->mapped.pbn,
+			       data_vio->mapped.state,
+			       BIO_Q_ACTION_COMPRESSED_DATA,
+			       read_data_vio_read_block_callback);
 		return;
 	}
 
@@ -440,11 +440,11 @@ void read_data_vio(struct data_vio *data_vio)
 
 /**********************************************************************/
 static void
-kvdo_acknowledge_data_vio_then_continue(struct vdo_work_item *item)
+vdo_acknowledge_data_vio_then_continue(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
-	kvdo_acknowledge_data_vio(data_vio);
+	vdo_acknowledge_data_vio(data_vio);
 	// Even if we're not using bio-ack threads, we may be in the wrong
 	// base-code thread.
 	enqueue_data_vio_callback(data_vio);
@@ -471,11 +471,11 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	if (use_bio_ack_queue(layer)) {
 		launch_data_vio_on_bio_ack_queue(
 			data_vio,
-			kvdo_acknowledge_data_vio_then_continue,
+			vdo_acknowledge_data_vio_then_continue,
 			NULL,
 			BIO_ACK_Q_ACTION_ACK);
 	} else {
-		kvdo_acknowledge_data_vio_then_continue(
+		vdo_acknowledge_data_vio_then_continue(
 			work_item_from_data_vio(data_vio));
 	}
 }
@@ -620,7 +620,7 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 }
 
 /**********************************************************************/
-static void kvdo_compress_work(struct vdo_work_item *item)
+static void vdo_compress_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	char *context = get_work_queue_private_data();
@@ -662,7 +662,7 @@ void compress_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	launch_data_vio_on_cpu_queue(data_vio, kvdo_compress_work,
+	launch_data_vio_on_cpu_queue(data_vio, vdo_compress_work,
 				      NULL,
 				      CPU_Q_ACTION_COMPRESS_BLOCK);
 }
@@ -725,14 +725,14 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
  * @param [in]  bio              The bio from the request the new data_vio
  *                               will service
  * @param [in]  arrival_jiffies  The arrival time of the bio
- * @param [out] data_vio_ptr  A pointer to hold the new data_vio
+ * @param [out] data_vio_ptr     A pointer to hold the new data_vio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
-				     struct bio *bio,
-				     uint64_t arrival_jiffies,
-				     struct data_vio **data_vio_ptr)
+static int vdo_create_vio_from_bio(struct kernel_layer *layer,
+				   struct bio *bio,
+				   uint64_t arrival_jiffies,
+				   struct data_vio **data_vio_ptr)
 {
 	struct data_vio *data_vio = NULL;
 	int result = make_data_vio(layer, bio, &data_vio);
@@ -751,7 +751,7 @@ static int kvdo_create_vio_from_bio(struct kernel_layer *layer,
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array
-		 * for non-read operations. There are places like kvdo_copy_vio
+		 * for non-read operations. There are places like vdo_copy_vio
 		 * that may look at vio->data_block for a zero block (and maybe
 		 * for discards?). We could skip filling in data_block for such
 		 * cases, but only once we're sure all such places are fixed to
@@ -797,7 +797,7 @@ static void launch_data_vio_work(struct vdo_work_item *item)
  *
  * @param completion  A completion representing the discard vio
  **/
-static void kvdo_continue_discard_vio(struct vdo_completion *completion)
+static void vdo_continue_discard_vio(struct vdo_completion *completion)
 {
 	enum vio_operation operation;
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -812,7 +812,7 @@ static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 			limiter_release(&layer->discard_limiter);
 			data_vio->has_discard_permit = false;
 		}
-		kvdo_complete_data_vio(completion);
+		vdo_complete_data_vio(completion);
 		return;
 	}
 
@@ -830,7 +830,7 @@ static void kvdo_continue_discard_vio(struct vdo_completion *completion)
 	}
 
 	prepare_data_vio(data_vio, data_vio->logical.lbn + 1, operation,
-		         !data_vio->is_partial, kvdo_continue_discard_vio);
+		         !data_vio->is_partial, vdo_continue_discard_vio);
 	enqueue_vio(as_vio(completion), launch_data_vio_work,
 		    completion->callback, REQ_Q_ACTION_MAP_BIO);
 }
@@ -840,25 +840,25 @@ static void kvdo_continue_discard_vio(struct vdo_completion *completion)
  *
  * @param completion  The partial read vio
  **/
-static void kvdo_complete_partial_read(struct vdo_completion *completion)
+static void vdo_complete_partial_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	bio_copy_data_out(data_vio->user_bio,
 			  data_vio->read_block.data + data_vio->offset);
-	kvdo_complete_data_vio(completion);
+	vdo_complete_data_vio(completion);
 	return;
 }
 
 /**********************************************************************/
-int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
-				  struct bio *bio,
-				  uint64_t arrival_jiffies,
-				  bool has_discard_permit)
+int vdo_launch_data_vio_from_bio(struct kernel_layer *layer,
+				 struct bio *bio,
+				 uint64_t arrival_jiffies,
+				 bool has_discard_permit)
 {
 	struct data_vio *data_vio = NULL;
 	int result;
-	vdo_action *callback = kvdo_complete_data_vio;
+	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 	logical_block_number_t lbn =
@@ -867,8 +867,8 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	struct vio *vio;
 
 
-	result = kvdo_create_vio_from_bio(layer, bio, arrival_jiffies,
-					  &data_vio);
+	result = vdo_create_vio_from_bio(layer, bio, arrival_jiffies,
+					 &data_vio);
 	if (unlikely(result != VDO_SUCCESS)) {
 		log_info("%s: vio allocation failure", __func__);
 		if (has_discard_permit) {
@@ -886,7 +886,7 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_vio->has_discard_permit = has_discard_permit;
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
-		callback = kvdo_continue_discard_vio;
+		callback = vdo_continue_discard_vio;
 		if (data_vio->is_partial) {
 			operation = VIO_READ_MODIFY_WRITE;
 		} else {
@@ -894,7 +894,7 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 		}
 	} else if (data_vio->is_partial) {
 		if (bio_data_dir(bio) == READ) {
-			callback = kvdo_complete_partial_read;
+			callback = vdo_complete_partial_read;
 			operation = VIO_READ;
 		} else {
 			operation = VIO_READ_MODIFY_WRITE;
@@ -921,7 +921,7 @@ int kvdo_launch_data_vio_from_bio(struct kernel_layer *layer,
  *
  * @param item  The data_vio to be hashed
  **/
-static void kvdo_hash_data_work(struct vdo_work_item *item)
+static void vdo_hash_data_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
@@ -936,7 +936,7 @@ static void kvdo_hash_data_work(struct vdo_work_item *item)
 void hash_data_vio(struct data_vio *data_vio)
 {
 	launch_data_vio_on_cpu_queue(data_vio,
-				     kvdo_hash_data_work,
+				     vdo_hash_data_work,
 				     NULL,
 				     CPU_Q_ACTION_HASH_BLOCK);
 }

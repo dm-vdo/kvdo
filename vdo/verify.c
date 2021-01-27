@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#26 $
  */
 
 #include "physicalLayer.h"
@@ -138,11 +138,11 @@ void verify_duplication(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zeroed block should not have advice to verify");
 
-	kvdo_read_block(data_vio,
-			data_vio->duplicate.pbn,
-			data_vio->duplicate.state,
-			BIO_Q_ACTION_VERIFY,
-			verify_read_block_callback);
+	vdo_read_block(data_vio,
+		       data_vio->duplicate.pbn,
+		       data_vio->duplicate.state,
+		       BIO_Q_ACTION_VERIFY,
+		       verify_read_block_callback);
 }
 
 /**********************************************************************/
