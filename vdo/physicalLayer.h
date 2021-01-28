@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#41 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -330,6 +330,15 @@ create_compressed_write_vio(struct vdo *vdo,
 			    void *parent,
 			    char *data,
 			    struct allocating_vio **allocating_vio_ptr);
+
+/**
+ * Get the number of physical blocks in a vdo volume.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The physical block count of the vdo
+ **/
+block_count_t get_vdo_physical_block_count(const struct vdo *vdo);
 
 /**
  * Get the id of the callback thread on which a completion is currently

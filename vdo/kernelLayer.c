@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#146 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#147 $
  */
 
 #include "kernelLayer.h"
@@ -103,9 +103,9 @@ crc32_checksum_t update_crc32(crc32_checksum_t crc, const byte *buffer,
 }
 
 /**********************************************************************/
-static block_count_t kvdo_get_block_count(PhysicalLayer *header)
+block_count_t get_vdo_physical_block_count(const struct vdo *vdo)
 {
-	return as_kernel_layer(header)->device_config->physical_blocks;
+	return as_kernel_layer(vdo->layer)->device_config->physical_blocks;
 }
 
 /**********************************************************************/
@@ -553,7 +553,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->starting_sector_offset = starting_sector;
 	INIT_LIST_HEAD(&layer->device_config_list);
 
-	layer->common.getBlockCount = kvdo_get_block_count;
 	layer->common.getWritePolicy = kvdo_get_write_policy;
 	layer->common.completeFlush = kvdo_complete_flush;
 	layer->common.waitForAdminOperation = wait_for_sync_operation;

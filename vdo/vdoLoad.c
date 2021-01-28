@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#62 $
  */
 
 #include "vdoLoad.h"
@@ -293,7 +293,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	set_vdo_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
 
-	block_count = vdo->layer->getBlockCount(vdo->layer);
+	block_count = get_vdo_physical_block_count(vdo);
 	result = validate_component_states(&vdo->states,
 					   vdo->load_config.nonce,
 					   block_count);
