@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#33 $
  */
 
 #include "volumeGeometry.h"
@@ -35,7 +35,6 @@
 #include "types.h"
 
 enum {
-	GEOMETRY_BLOCK_LOCATION = 0,
 	MAGIC_NUMBER_SIZE = 8,
 };
 
@@ -247,55 +246,21 @@ static int decode_geometry_block(struct buffer *buffer,
 }
 
 
-/**
- * Allocate a block-size buffer to read the geometry from the physical layer,
- * read the block, and return the buffer.
- *
- * @param [in]  layer      The physical layer containing the block to read
- * @param [out] block_ptr  A pointer to receive the allocated buffer
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int read_geometry_block(PhysicalLayer *layer, byte **block_ptr)
-{
-	char *block;
-	int result;
-	result = ALLOCATE(VDO_BLOCK_SIZE, char, "geometry block", &block);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = layer->reader(layer, GEOMETRY_BLOCK_LOCATION, 1, block);
-	if (result != VDO_SUCCESS) {
-		FREE(block);
-		return result;
-	}
-
-	*block_ptr = (byte *) block;
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
-int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
+int parse_geometry_block(byte *block, struct volume_geometry *geometry)
 {
 	crc32_checksum_t checksum, saved_checksum;
-	byte *block;
 	struct buffer *buffer;
-	int result = read_geometry_block(layer, &block);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
+	int result;
 
 	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
 	if (result != VDO_SUCCESS) {
-		FREE(block);
 		return result;
 	}
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
 		free_buffer(&buffer);
-		FREE(block);
 		return result;
 	}
 
@@ -305,13 +270,11 @@ int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(&buffer);
-		FREE(block);
 		return result;
 	}
 
 	// Finished all decoding. Everything that follows is validation code.
 	free_buffer(&buffer);
-	FREE(block);
 
 	if (!is_loadable_release_version(geometry->release_version)) {
 		return log_error_strerror(VDO_UNSUPPORTED_VERSION,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#147 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#148 $
  */
 
 #include "kernelLayer.h"
@@ -343,7 +343,7 @@ struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 /**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *ti)
 {
-     	return dm_device_name(dm_table_get_md(ti->table));
+	return dm_device_name(dm_table_get_md(ti->table));
 }
 
 /**********************************************************************/
@@ -381,46 +381,68 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 }
 
 /**
- * Implements extent_reader. Exists only for the geometry block; is unset after
- * it is read.
+ * Synchronously read a single block from a block_device.
+ *
+ * @param bdev    The block device containing the block to read
+ * @param pbn     The location of the block to read
+ * @param buffer  A buffer to receive the block data
+ *
+ * @return VDO_SUCCESS or an error code
  **/
-static int kvdo_synchronous_read(PhysicalLayer *layer,
-				 physical_block_number_t start_block,
-				 size_t block_count,
-				 char *buffer)
+static int __must_check
+synchronous_read_block(struct block_device *bdev,
+		       physical_block_number_t pbn,
+		       byte *buffer)
 {
-	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	struct bio *bio;
-	int result;
-
-	if (block_count != 1) {
-		return VDO_NOT_IMPLEMENTED;
-	}
-
-	result = create_bio(&bio);
+	int result = create_bio(&bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	result = reset_bio_with_buffer(bio, buffer, NULL, NULL, REQ_OP_READ,
-				       start_block);
+				       pbn);
 	if (result != VDO_SUCCESS) {
 		free_bio(bio);
 		return result;
 	}
 
-	bio_set_dev(bio, get_kernel_layer_bdev(kernel_layer));
+	bio_set_dev(bio, bdev);
 	submit_bio_wait(bio);
 	result = blk_status_to_errno(bio->bi_status);
+	free_bio(bio);
 	if (result != 0) {
 		log_error_strerror(result, "synchronous read failed");
-		result = -EIO;
+		return -EIO;
 	}
-	free_bio(bio);
 
+	return VDO_SUCCESS;
+}
+
+/**
+ * Allocate a block-size buffer to read the geometry from a block_device,
+ * read the block, and return the buffer.
+ *
+ * @param [in]  bdev       The block device containing the block to read
+ * @param [out] block_ptr  A pointer to receive the allocated buffer
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
+{
+	byte *block;
+	int result = ALLOCATE(VDO_BLOCK_SIZE, byte, "geometry block", &block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+
+	result = synchronous_read_block(bdev, GEOMETRY_BLOCK_LOCATION, block);
+	if (result != VDO_SUCCESS) {
+		FREE(block);
+		return result;
+	}
+
+	*block_ptr = block;
 	return VDO_SUCCESS;
 }
 
@@ -476,6 +498,8 @@ int make_kernel_layer(uint64_t starting_sector,
 {
 	int result, request_limit, i;
 	struct kernel_layer *layer, *old_layer;
+	byte *geometry_block;
+
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
 
@@ -507,10 +531,10 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// After this point, calling kobject_put on kobj will decrement its
-	// reference count, and when the count goes to 0 the struct kernel_layer
-	// will be freed.
+	// reference count, and when the count goes to 0 the struct
+	// kernel_layer will be freed.
 	struct dm_target *ti = config->owning_target;
-     	const char *device_name = get_vdo_device_name(ti);
+	const char *device_name = get_vdo_device_name(ti);
 
 	kobject_init(&layer->kobj, &kernel_layer_kobj_type);
 	result = kobject_add(&layer->kobj, parent_kobject, device_name);
@@ -608,11 +632,18 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	// Read the geometry block so we know how to set up the index. Allow it
-	// to do synchronous reads.
-	layer->common.reader = kvdo_synchronous_read;
-	result = load_volume_geometry(&layer->common, &layer->geometry);
-	layer->common.reader = NULL;
+	// Allocate and read the geometry block data from the backing device.
+	result = read_geometry_block(get_kernel_layer_bdev(layer),
+				     &geometry_block);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not read geometry block";
+		free_kernel_layer(layer);
+		return result;
+	}
+
+	// Decode the geometry block so we know how to set up the index.
+	result = parse_geometry_block(geometry_block, &layer->geometry);
+	FREE(geometry_block);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
 		free_kernel_layer(layer);

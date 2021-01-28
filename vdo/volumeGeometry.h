@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#20 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -25,6 +25,10 @@
 #include "uds.h"
 
 #include "types.h"
+
+enum {
+	GEOMETRY_BLOCK_LOCATION = 0,
+};
 
 struct index_config {
 	uint32_t mem;
@@ -105,13 +109,13 @@ get_index_region_size(struct volume_geometry geometry)
 }
 
 /**
- * Read the volume geometry from a layer.
+ * Decode and validate an encoded geometry block.
  *
- * @param layer     The layer to read and parse the geometry from
- * @param geometry  The geometry to be loaded
+ * @param block     The encoded geometry block
+ * @param geometry  The structure to receive the decoded fields
  **/
 int __must_check
-load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry);
+parse_geometry_block(byte *block, struct volume_geometry *geometry);
 
 
 /**
