@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#30 $
  */
 
 #include "superBlock.h"
@@ -74,10 +74,10 @@ allocate_super_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	return kvdo_create_metadata_vio(layer, VIO_TYPE_SUPER_BLOCK,
-					VIO_PRIORITY_METADATA, super_block,
-					(char *) super_block->codec.encoded_super_block,
-					&super_block->vio);
+	return vdo_create_metadata_vio(layer, VIO_TYPE_SUPER_BLOCK,
+				       VIO_PRIORITY_METADATA, super_block,
+				       (char *) super_block->codec.encoded_super_block,
+				       &super_block->vio);
 }
 
 /**********************************************************************/

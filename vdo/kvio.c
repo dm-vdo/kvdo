@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#71 $
  */
 
 #include "kvio.h"
@@ -41,7 +41,7 @@
  *
  * @param item    The work item of the vio to complete
  **/
-static void kvdo_handle_vio_callback(struct vdo_work_item *item)
+static void vdo_handle_vio_callback(struct vdo_work_item *item)
 {
 	run_callback(container_of(item, struct vdo_completion, work_item));
 }
@@ -50,7 +50,7 @@ static void kvdo_handle_vio_callback(struct vdo_work_item *item)
 void enqueue_vio_callback(struct vio *vio)
 {
 	enqueue_vio(vio,
-		    kvdo_handle_vio_callback,
+		    vdo_handle_vio_callback,
 		    vio_as_completion(vio)->callback,
 		    REQ_Q_ACTION_VIO_CALLBACK);
 }
@@ -200,12 +200,12 @@ void initialize_kvio(struct vio *vio,
 }
 
 /**********************************************************************/
-int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     enum vio_type vio_type,
-			     enum vio_priority priority,
-			     void *parent,
-			     char *data,
-			     struct vio **vio_ptr)
+int vdo_create_metadata_vio(PhysicalLayer *layer,
+			    enum vio_type vio_type,
+			    enum vio_priority priority,
+			    void *parent,
+			    char *data,
+			    struct vio **vio_ptr)
 {
 	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	struct bio *bio;

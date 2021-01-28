@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#38 $
  */
 
 #ifndef KVIO_H
@@ -108,14 +108,5 @@ void initialize_kvio(struct vio *vio,
 		     enum vio_priority priority,
 		     void *parent,
 		     struct bio *bio);
-
-/**
- * Issue an empty flush to the lower layer using the bio in a metadata vio.
- *
- * <p>Implements metadata_writer.
- *
- * @param vio  The vio to flush
- **/
-void kvdo_flush_vio(struct vio *vio);
 
 #endif /* KVIO_H */

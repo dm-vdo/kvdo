@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#96 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -172,9 +172,9 @@ int make_allocator_pool_vios(PhysicalLayer *layer,
 			     void *buffer,
 			     struct vio **vio_ptr)
 {
-	return kvdo_create_metadata_vio(layer, VIO_TYPE_SLAB_JOURNAL,
-					VIO_PRIORITY_METADATA, parent,
-					buffer, vio_ptr);
+	return vdo_create_metadata_vio(layer, VIO_TYPE_SLAB_JOURNAL,
+				       VIO_PRIORITY_METADATA, parent,
+				       buffer, vio_ptr);
 }
 
 /**

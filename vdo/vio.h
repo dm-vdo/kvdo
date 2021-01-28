@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#38 $
  */
 
 #ifndef VIO_H
@@ -136,12 +136,12 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     enum vio_type vio_type,
-			     enum vio_priority priority,
-			     void *parent,
-			     char *data,
-			     struct vio **vio_ptr);
+int vdo_create_metadata_vio(PhysicalLayer *layer,
+			    enum vio_type vio_type,
+			    enum vio_priority priority,
+			    void *parent,
+			    char *data,
+			    struct vio **vio_ptr);
 
 /**
  * Destroy a vio. The pointer to the vio will be nulled out.
