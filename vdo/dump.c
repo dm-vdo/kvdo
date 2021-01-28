@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#28 $
  */
 
 #include "dump.h"
@@ -123,7 +123,7 @@ static void do_dump(struct kernel_layer *layer,
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
 		// Options should become more fine-grained when we have more to
 		// display here.
-		dump_kvdo_status(&layer->vdo);
+		dump_vdo_status(&layer->vdo);
 	}
 	report_memory_usage();
 	log_info("end of %s dump", THIS_MODULE->name);

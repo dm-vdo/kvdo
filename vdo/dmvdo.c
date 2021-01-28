@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#87 $
  */
 
 #include "dmvdo.h"
@@ -781,7 +781,7 @@ static int vdo_preresume(struct dm_target *ti)
 			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
 				      result,
 				      failure_reason);
-			set_kvdo_read_only(&layer->vdo, result);
+			set_vdo_read_only(&layer->vdo, result);
 			unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
@@ -800,7 +800,7 @@ static int vdo_preresume(struct dm_target *ti)
 				   "Commit of modifications to device '%s' failed",
 				   device_name);
 		set_kernel_layer_active_config(layer, config);
-		set_kvdo_read_only(&layer->vdo, result);
+		set_vdo_read_only(&layer->vdo, result);
 	} else {
 		set_kernel_layer_active_config(layer, config);
 		result = resume_kernel_layer(layer);

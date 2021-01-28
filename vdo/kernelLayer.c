@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#148 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#149 $
  */
 
 #include "kernelLayer.h"
@@ -447,7 +447,7 @@ static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
 }
 
 /**********************************************************************/
-static enum write_policy kvdo_get_write_policy(PhysicalLayer *common)
+static enum write_policy vdo_get_write_policy(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 	return get_write_policy(&layer->vdo);
@@ -461,7 +461,7 @@ static enum write_policy kvdo_get_write_policy(PhysicalLayer *common)
  *
  * @param common  The kernel layer
  **/
-static void kvdo_complete_sync_operation(PhysicalLayer *common)
+static void vdo_complete_sync_operation(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 
@@ -577,10 +577,10 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->starting_sector_offset = starting_sector;
 	INIT_LIST_HEAD(&layer->device_config_list);
 
-	layer->common.getWritePolicy = kvdo_get_write_policy;
+	layer->common.getWritePolicy = vdo_get_write_policy;
 	layer->common.completeFlush = kvdo_complete_flush;
 	layer->common.waitForAdminOperation = wait_for_sync_operation;
-	layer->common.completeAdminOperation = kvdo_complete_sync_operation;
+	layer->common.completeAdminOperation = vdo_complete_sync_operation;
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
@@ -919,7 +919,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 */
 	bool used_bio_ack_queue = false;
 	bool used_cpu_queue = false;
-	bool used_kvdo = false;
+	bool used_vdo = false;
 	bool release_instance = false;
 
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
@@ -958,8 +958,8 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_REQUEST_QUEUE_INITIALIZED:
-		finish_kvdo(&layer->vdo);
-		used_kvdo = true;
+		finish_vdo(&layer->vdo);
+		used_vdo = true;
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
@@ -1000,7 +1000,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	if (layer->io_submitter) {
 		free_io_submitter(layer->io_submitter);
 	}
-	if (used_kvdo) {
+	if (used_vdo) {
 		destroy_kvdo(&layer->vdo);
 	}
 
@@ -1039,8 +1039,7 @@ int preload_kernel_layer(struct kernel_layer *layer,
 	}
 
 	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = preload_kvdo(&layer->vdo, &layer->common, load_config,
-			      reason);
+	result = preload_vdo(&layer->vdo, &layer->common, load_config, reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;
@@ -1065,7 +1064,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		return UDS_BAD_STATE;
 	}
 
-	result = start_kvdo(&layer->vdo, &layer->common, reason);
+	result = start_vdo(&layer->vdo, &layer->common, reason);
 
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
@@ -1186,7 +1185,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	result = synchronous_flush(layer);
 
 	if (result != VDO_SUCCESS) {
-		set_kvdo_read_only(&layer->vdo, result);
+		set_vdo_read_only(&layer->vdo, result);
 	}
 
 	/*
@@ -1194,7 +1193,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * was not set on the dmsetup suspend call. This will ensure that we
 	 * don't have cause to write while suspended [VDO-4402].
 	 */
-	suspend_result = suspend_kvdo(&layer->vdo);
+	suspend_result = suspend_vdo(&layer->vdo);
 
 	if (result == VDO_SUCCESS) {
 		result = suspend_result;
@@ -1215,7 +1214,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 	}
 
 	resume_dedupe_index(layer->dedupe_index);
-	result = resume_kvdo(&layer->vdo);
+	result = resume_vdo(&layer->vdo);
 
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -1261,10 +1260,10 @@ int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 	 * suspended lest an allocation attempt block on writing IO to the
 	 * suspended VDO.
 	 */
-	int result = kvdo_resize_physical(&layer->vdo, physical_count);
+	int result = vdo_resize_physical(&layer->vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
-		// kvdo_resize_physical logs errors
+		// vdo_resize_physical logs errors
 		return result;
 	}
 	return VDO_SUCCESS;
@@ -1301,10 +1300,10 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 	 * suspended lest an allocation attempt block on writing IO to the
 	 * suspended VDO.
 	 */
-	result = kvdo_resize_logical(&layer->vdo, logical_count);
+	result = vdo_resize_logical(&layer->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
-		// kvdo_resize_logical logs errors
+		// vdo_resize_logical logs errors
 		return result;
 	}
 

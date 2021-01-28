@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#35 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -62,10 +62,10 @@ int make_vdo_threads(struct vdo *vdo,
  * @param [in]  load_config          Load-time parameters for the VDO
  * @param [out] reason               The reason for failure
  **/
-int preload_kvdo(struct vdo *vdo,
-		 PhysicalLayer *common,
-		 const struct vdo_load_config *load_config,
-		 char **reason);
+int preload_vdo(struct vdo *vdo,
+		PhysicalLayer *common,
+		const struct vdo_load_config *load_config,
+		char **reason);
 
 /**
  * Starts the base VDO instance associated with the kernel layer. This method
@@ -77,7 +77,7 @@ int preload_kvdo(struct vdo *vdo,
  *
  * @return VDO_SUCCESS if started, otherwise error
  **/
-int start_kvdo(struct vdo *vdo, PhysicalLayer *common, char **reason);
+int start_vdo(struct vdo *vdo, PhysicalLayer *common, char **reason);
 
 /**
  * Suspend the base VDO instance associated with the kernel layer.
@@ -86,7 +86,7 @@ int start_kvdo(struct vdo *vdo, PhysicalLayer *common, char **reason);
  *
  * @return VDO_SUCCESS if stopped, otherwise error
  **/
-int suspend_kvdo(struct vdo *vdo);
+int suspend_vdo(struct vdo *vdo);
 
 /**
  * Resume the base VDO instance associated with the kernel layer.
@@ -95,14 +95,14 @@ int suspend_kvdo(struct vdo *vdo);
  *
  * @return VDO_SUCCESS or an error
  **/
-int resume_kvdo(struct vdo *vdo);
+int resume_vdo(struct vdo *vdo);
 
 /**
  * Shut down the base code interface. The vdo object must first be stopped.
  *
  * @param vdo  The vdo to be shut down
  **/
-void finish_kvdo(struct vdo *vdo);
+void finish_vdo(struct vdo *vdo);
 
 /**
  * Free up storage of the base code interface. The vdo object must first have
@@ -140,13 +140,6 @@ void get_kvdo_statistics(struct vdo *vdo,
 			 struct vdo_statistics *stats);
 
 /**
- * Dump base code status information to the kernel log for debugging.
- *
- * @param vdo  The vdo to be examined
- **/
-void dump_kvdo_status(struct vdo *vdo);
-
-/**
  * Notify the base code of resized physical storage.
  *
  * @param vdo             The vdo to be updated
@@ -154,7 +147,7 @@ void dump_kvdo_status(struct vdo *vdo);
  *
  * @return VDO_SUCCESS or error
  **/
-int kvdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
+int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
 
 /**
  * Request the base code grow the logical space.
@@ -164,7 +157,7 @@ int kvdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
  *
  * @return VDO_SUCCESS or error
  **/
-int kvdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
+int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
 
 /**
  * Request the base code go read-only.
@@ -172,7 +165,7 @@ int kvdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
  * @param vdo     The vdo to be updated
  * @param result  The error code causing the read only
  **/
-void set_kvdo_read_only(struct vdo *vdo, int result);
+void set_vdo_read_only(struct vdo *vdo, int result);
 
 
 /**
