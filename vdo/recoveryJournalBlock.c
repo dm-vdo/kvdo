@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#45 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -33,7 +33,8 @@
 #include "waitQueue.h"
 
 /**********************************************************************/
-int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
+int make_recovery_block(struct vdo *vdo,
+			struct recovery_journal *journal,
 			struct recovery_journal_block **block_ptr)
 {
 	struct recovery_journal_block *block;
@@ -60,9 +61,12 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 		return result;
 	}
 
-	result = vdo_create_metadata_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
-					 VIO_PRIORITY_HIGH, block,
-					 block->block, &block->vio);
+	result = create_metadata_vio(vdo,
+				     VIO_TYPE_RECOVERY_JOURNAL,
+				     VIO_PRIORITY_HIGH,
+				     block,
+				     block->block,
+				     &block->vio);
 	if (result != VDO_SUCCESS) {
 		free_recovery_block(&block);
 		return result;

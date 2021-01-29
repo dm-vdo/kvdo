@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#92 $
  */
 
 #include "recoveryJournal.h"
@@ -411,7 +411,7 @@ static void set_journal_tail(struct recovery_journal *journal,
 /**********************************************************************/
 int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 			    nonce_t nonce,
-			    PhysicalLayer *layer,
+			    struct vdo *vdo,
 			    struct partition *partition,
 			    uint64_t recovery_count,
 			    block_count_t journal_size,
@@ -454,7 +454,7 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 
 	for (i = 0; i < tail_buffer_size; i++) {
 		struct recovery_journal_block *block;
-		result = make_recovery_block(layer, journal, &block);
+		result = make_recovery_block(vdo, journal, &block);
 		if (result != VDO_SUCCESS) {
 			free_recovery_journal(&journal);
 			return result;
@@ -463,7 +463,8 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		list_move_tail(&block->list_node, &journal->free_tail_blocks);
 	}
 
-	result = make_lock_counter(layer, journal,
+	result = make_lock_counter(vdo,
+				   journal,
 				   reap_recovery_journal_callback,
 				   journal->thread_id,
 				   thread_config->logical_zone_count,
@@ -475,9 +476,12 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		return result;
 	}
 
-	result = vdo_create_metadata_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
-					 VIO_PRIORITY_HIGH, journal,
-					 NULL, &journal->flush_vio);
+	result = create_metadata_vio(vdo,
+				     VIO_TYPE_RECOVERY_JOURNAL,
+				     VIO_PRIORITY_HIGH,
+				     journal,
+				     NULL,
+				     &journal->flush_vio);
 	if (result != VDO_SUCCESS) {
 		free_recovery_journal(&journal);
 		return result;

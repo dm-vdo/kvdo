@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#22 $
  */
 
 #include "lockCounter.h"
 
 #include "atomicDefs.h"
 #include "memoryAlloc.h"
+
+#include "vdoInternal.h"
 
 /**
  * A lock_counter is intended to keep all of the locks for the blocks in the
@@ -71,9 +73,13 @@ struct lock_counter {
 };
 
 /**********************************************************************/
-int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
-		      thread_id_t thread_id, zone_count_t logical_zones,
-		      zone_count_t physical_zones, block_count_t locks,
+int make_lock_counter(struct vdo *vdo,
+		      void *parent,
+		      vdo_action callback,
+		      thread_id_t thread_id,
+		      zone_count_t logical_zones,
+		      zone_count_t physical_zones,
+		      block_count_t locks,
 		      struct lock_counter **lock_counter_ptr)
 {
 	struct lock_counter *lock_counter;
@@ -126,7 +132,7 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 	}
 
 	initialize_completion(&lock_counter->completion,
-			      LOCK_COUNTER_COMPLETION, layer);
+			      LOCK_COUNTER_COMPLETION, vdo->layer);
 	set_callback_with_parent(&lock_counter->completion, callback,
 				 thread_id, parent);
 	lock_counter->logical_zones = logical_zones;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#34 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -132,7 +132,7 @@ static inline bool is_increment_operation(enum journal_operation operation)
  *
  * @param [in]  state               the decoded state of the journal
  * @param [in]  nonce               the nonce of the VDO
- * @param [in]  layer               the physical layer for the journal
+ * @param [in]  vdo                 the VDO
  * @param [in]  partition           the partition for the journal
  * @param [in]  recovery_count      the VDO's number of completed recoveries
  * @param [in]  journal_size        the number of blocks in the journal on disk
@@ -146,7 +146,7 @@ static inline bool is_increment_operation(enum journal_operation operation)
 int __must_check
 decode_recovery_journal(struct recovery_journal_state_7_0 state,
 			nonce_t nonce,
-			PhysicalLayer *layer,
+			struct vdo *vdo,
 			struct partition *partition,
 			uint64_t recovery_count,
 			block_count_t journal_size,

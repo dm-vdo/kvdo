@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#14 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -43,7 +43,7 @@
 /**
  * Create a lock counter.
  *
- * @param [in]  layer             The physical layer of the VDO
+ * @param [in]  vdo               The VDO
  * @param [in]  parent            The parent to notify when the lock count goes
  *                                to zero
  * @param [in]  callback          The function to call when the lock count goes
@@ -56,7 +56,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_lock_counter(PhysicalLayer *layer,
+int __must_check make_lock_counter(struct vdo *vdo,
 				   void *parent,
 				   vdo_action callback,
 				   thread_id_t thread_id,
