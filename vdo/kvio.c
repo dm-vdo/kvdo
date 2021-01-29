@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#73 $
  */
 
 #include "kvio.h"
@@ -190,44 +190,12 @@ int vdo_create_metadata_vio(PhysicalLayer *layer,
 			    char *data,
 			    struct vio **vio_ptr)
 {
-	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
-	struct bio *bio;
-	struct vio *vio;
-
-	int result = ASSERT(is_metadata_vio_type(vio_type),
-			    "%d is a metadata type",
-			    vio_type);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = create_bio(&bio);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// If struct vio grows past 256 bytes, we'll lose benefits of
-	// VDOSTORY-176.
-	STATIC_ASSERT(sizeof(struct vio) <= 256);
-
-	// Metadata vios should use direct allocation and not use the buffer
-	// pool, which is reserved for submissions from the linux block layer.
-	result = ALLOCATE(1, struct vio, __func__, &vio);
-	if (result != VDO_SUCCESS) {
-		uds_log_error("metadata vio allocation failure %d", result);
-		free_bio(bio);
-		return result;
-	}
-
-	initialize_vio(vio,
-		       bio,
-		       vio_type,
-		       priority,
-		       parent,
-		       &kernel_layer->vdo,
-		       data);
-	*vio_ptr = vio;
-	return VDO_SUCCESS;
+	return create_metadata_vio(&(as_kernel_layer(layer)->vdo),
+				   vio_type,
+				   priority,
+				   parent,
+				   data,
+				   vio_ptr);
 }
 
 /**********************************************************************/

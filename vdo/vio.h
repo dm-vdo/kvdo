@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#40 $
  */
 
 #ifndef VIO_H
@@ -124,6 +124,25 @@ static inline struct vdo_work_item *work_item_from_vio(struct vio *vio)
 {
 	return &vio_as_completion(vio)->work_item;
 }
+
+/**
+ * Create a vio.
+ *
+ * @param [in]  vdo        The vdo on which the vio will operate
+ * @param [in]  vio_type   The type of vio to create
+ * @param [in]  priority   The relative priority to assign to the vio
+ * @param [in]  parent     The parent of the vio
+ * @param [in]  data       The buffer
+ * @param [out] vio_ptr    A pointer to hold the new vio
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check create_metadata_vio(struct vdo *vdo,
+				     enum vio_type vio_type,
+				     enum vio_priority priority,
+				     void *parent,
+				     char *data,
+				     struct vio **vio_ptr);
 
 /**
  * Create a vio. Defined per-layer.

@@ -16,17 +16,67 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#35 $
  */
 
 #include "vio.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
 
 #include <linux/ratelimit.h>
+
+/**********************************************************************/
+int create_metadata_vio(struct vdo *vdo,
+			enum vio_type vio_type,
+			enum vio_priority priority,
+			void *parent,
+			char *data,
+			struct vio **vio_ptr)
+{
+	struct vio *vio;
+	struct bio *bio;
+	int result;
+
+	// If struct vio grows past 256 bytes, we'll lose benefits of
+	// VDOSTORY-176.
+	STATIC_ASSERT(sizeof(struct vio) <= 256);
+
+	result = ASSERT(is_metadata_vio_type(vio_type),
+			"%d is a metadata type",
+			vio_type);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	// Metadata vios should use direct allocation and not use the buffer
+	// pool, which is reserved for submissions from the linux block layer.
+	result = ALLOCATE(1, struct vio, __func__, &vio);
+	if (result != VDO_SUCCESS) {
+		uds_log_error("metadata vio allocation failure %d", result);
+		return result;
+	}
+
+	result = create_bio(&bio);
+	if (result != VDO_SUCCESS) {
+		FREE(vio);
+		return result;
+	}
+
+	initialize_vio(vio,
+		       bio,
+		       vio_type,
+		       priority,
+		       parent,
+		       vdo,
+		       data);
+	*vio_ptr  = vio;
+	return VDO_SUCCESS;
+
+}
 
 /**********************************************************************/
 void free_vio(struct vio **vio_ptr)
