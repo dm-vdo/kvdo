@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#36 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -103,14 +103,6 @@ int resume_vdo(struct vdo *vdo);
  * @param vdo  The vdo to be shut down
  **/
 void finish_vdo(struct vdo *vdo);
-
-/**
- * Free up storage of the base code interface. The vdo object must first have
- * been "finished".
- *
- * @param vdo  The vdo object to be destroyed
- **/
-void destroy_kvdo(struct vdo *vdo);
 
 
 /**

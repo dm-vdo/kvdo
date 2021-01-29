@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#94 $
  */
 
 /*
@@ -50,6 +50,7 @@
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
 
+#include "workQueue.h"
 
 /**********************************************************************/
 int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo)
@@ -67,6 +68,7 @@ int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo)
 /**********************************************************************/
 void destroy_vdo(struct vdo *vdo)
 {
+	unsigned int i;
 	const struct thread_config *thread_config = get_thread_config(vdo);
 
 	free_flusher(&vdo->flusher);
@@ -99,6 +101,12 @@ void destroy_vdo(struct vdo *vdo)
 	vdo->physical_zones = NULL;
 	free_read_only_notifier(&vdo->read_only_notifier);
 	free_thread_config(&vdo->load_config.thread_config);
+
+	for (i = 0; i < vdo->initialized_thread_count; i++) {
+		free_work_queue(&vdo->threads[i].request_queue);
+	}
+	FREE(vdo->threads);
+	vdo->threads = NULL;
 }
 
 /**********************************************************************/
