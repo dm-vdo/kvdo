@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#40 $
  */
 
 #ifndef KVIO_H
 #define KVIO_H
 
-#include "allocatingVIO.h"
 #include "vio.h"
 
 #include "kernelLayer.h"
+#include "workQueue.h"
 
 /**
  * Enqueue a vio on a work queue.
