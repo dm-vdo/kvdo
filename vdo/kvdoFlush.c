@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#36 $
  */
 
 #include "kvdoFlush.h"
@@ -199,13 +199,12 @@ static void release_kvdo_flush(struct kvdo_flush *kvdo_flush)
  *
  * @param item    The flush-request work item
  **/
-static void kvdo_complete_flush_work(struct vdo_work_item *item)
+static void vdo_complete_flush_work(struct vdo_work_item *item)
 {
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,
 						     work_item);
 	struct kernel_layer *layer = kvdo_flush->layer;
-
 	struct bio *bio;
 
 	while ((bio = bio_list_pop(&kvdo_flush->bios)) != NULL) {
@@ -231,18 +230,15 @@ static void kvdo_complete_flush_work(struct vdo_work_item *item)
 }
 
 /**********************************************************************/
-void kvdo_complete_flush(struct vdo_flush **kfp)
+void vdo_complete_flush(struct vdo_flush **flush_ptr)
 {
-	if (*kfp != NULL) {
-		struct kvdo_flush *kvdo_flush = container_of(*kfp,
-							     struct kvdo_flush,
-							     vdo_flush);
-		setup_work_item(&kvdo_flush->work_item,
-				kvdo_complete_flush_work,
-				NULL,
-				BIO_Q_ACTION_FLUSH);
-		enqueue_bio_work_item(kvdo_flush->layer->io_submitter,
-				      &kvdo_flush->work_item);
-		*kfp = NULL;
-	}
+	struct kvdo_flush *kvdo_flush =
+		container_of(*flush_ptr, struct kvdo_flush, vdo_flush);
+	setup_work_item(&kvdo_flush->work_item,
+			vdo_complete_flush_work,
+			NULL,
+			BIO_Q_ACTION_FLUSH);
+	enqueue_bio_work_item(kvdo_flush->layer->io_submitter,
+			      &kvdo_flush->work_item);
+	*flush_ptr = NULL;
 }

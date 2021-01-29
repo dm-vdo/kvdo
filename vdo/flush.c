@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#33 $
  */
 
 #include "flush.h"
@@ -138,7 +138,7 @@ static void finish_notification(struct vdo_completion *completion)
 	if (result != VDO_SUCCESS) {
 		struct vdo_flush *flush = waiter_as_flush(waiter);
 		enter_read_only_mode(flusher->vdo->read_only_notifier, result);
-		completion->layer->completeFlush(&flush);
+		vdo_complete_flush(&flush);
 		return;
 	}
 
@@ -219,7 +219,7 @@ void flush(struct vdo *vdo, struct vdo_flush *flush)
 	result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (result != VDO_SUCCESS) {
 		enter_read_only_mode(vdo->read_only_notifier, result);
-		flusher->completion.layer->completeFlush(&flush);
+		vdo_complete_flush(&flush);
 		return;
 	}
 
@@ -259,7 +259,7 @@ void complete_flushes(struct flusher *flusher)
 				flusher->first_unacknowledged_generation,
 				flush->flush_generation);
 		dequeue_next_waiter(&flusher->pending_flushes);
-		flusher->completion.layer->completeFlush(&flush);
+		vdo_complete_flush(&flush);
 		flusher->first_unacknowledged_generation++;
 	}
 }

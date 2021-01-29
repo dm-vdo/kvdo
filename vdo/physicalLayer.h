@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#42 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -488,5 +488,12 @@ void write_compressed_block(struct allocating_vio *allocating_vio);
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
 bool compare_data_vios(struct data_vio *first, struct data_vio *second);
+
+/**
+ * Complete and free a vdo flush request.
+ *
+ * @param flush_ptr  The pointer to the flush reference, which will be nulled
+ **/
+void vdo_complete_flush(struct vdo_flush **flush_ptr);
 
 #endif // PHYSICAL_LAYER_H
