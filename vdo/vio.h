@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#39 $
  */
 
 #ifndef VIO_H
@@ -63,6 +63,7 @@ struct vio {
 
 	/* The VDO-owned bio to use for all IO for this vio */
 	struct bio *bio;
+
 	/**
 	 * A list of enqueued bios with consecutive block numbers, stored by
 	 * vdo_submit_bio() under the first-enqueued vio. The other vios are
@@ -154,19 +155,21 @@ void free_vio(struct vio **vio_ptr);
  * Initialize a vio.
  *
  * @param vio       The vio to initialize
+ * @param bio       The bio this vio should use for its I/O
  * @param vio_type  The vio type
  * @param priority  The relative priority of the vio
  * @param parent    The parent (the extent completion) to assign to the vio
  *                  completion
  * @param vdo       The vdo for this vio
- * @param layer     The layer for this vio
+ * @param data      The data buffer for this vio
  **/
 void initialize_vio(struct vio *vio,
+		    struct bio *bio,
 		    enum vio_type vio_type,
 		    enum vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
-		    PhysicalLayer *layer);
+		    char *data);
 
 /**
  * The very last step in processing a vio. Set the vio's completion's callback

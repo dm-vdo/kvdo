@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#34 $
  */
 
 #include "vio.h"
@@ -41,19 +41,22 @@ void free_vio(struct vio **vio_ptr)
 
 /**********************************************************************/
 void initialize_vio(struct vio *vio,
+		    struct bio *bio,
 		    enum vio_type vio_type,
 		    enum vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
-		    PhysicalLayer *layer)
+		    char *data)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
 
+	vio->bio = bio;
 	vio->vdo = vdo;
 	vio->type = vio_type;
 	vio->priority = priority;
+	vio->data = data;
 
-	initialize_completion(completion, VIO_COMPLETION, layer);
+	initialize_completion(completion, VIO_COMPLETION, vdo->layer);
 	completion->parent = parent;
 }
 

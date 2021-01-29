@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#124 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#125 $
  */
 
 #include "dataKVIO.h"
@@ -668,19 +668,25 @@ void compress_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Construct a data_vio.
+ * Creates a new data_vio structure. A data_vio represents a single logical
+ * block of data. It is what most VDO operations work with. This function also
+ * creates a wrapping data_vio structure that is used when we want to
+ * physically read or write the data associated with the struct data_vio.
  *
- * @param [in]  layer          The physical layer
- * @param [in]  bio            The bio to associate with this data_vio
+ * @param [in]  layer            The physical layer
+ * @param [in]  bio              The bio from the request the new data_vio
+ *                               will service
+ * @param [in]  arrival_jiffies  The arrival time of the bio
  * @param [out] data_vio_ptr  A pointer to hold the new data_vio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int __must_check make_data_vio(struct kernel_layer *layer,
-				      struct bio *bio,
-				      struct data_vio **data_vio_ptr)
+static int vdo_create_vio_from_bio(struct kernel_layer *layer,
+				   struct bio *bio,
+				   uint64_t arrival_jiffies,
+				   struct data_vio **data_vio_ptr)
 {
-	struct data_vio *data_vio;
+	struct data_vio *data_vio = NULL;
 	struct vio *vio;
 	struct bio *vio_bio;
 	int result = alloc_buffer_from_pool(layer->data_vio_pool,
@@ -694,9 +700,9 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
 	}
 
+	vio = data_vio_as_vio(data_vio);
 	// XXX We save the bio out of the vio so that we don't forget it.
 	// Maybe we should just not zero that field somehow.
-	vio = data_vio_as_vio(data_vio);
 	vio_bio = vio->bio;
 
 	// Zero out the fields which don't need to be preserved (i.e. which
@@ -705,43 +711,15 @@ static int __must_check make_data_vio(struct kernel_layer *layer,
 	memset(&data_vio->dedupe_context.pending_list, 0,
 		sizeof(struct list_head));
 
-	initialize_kvio(vio,
-			layer,
-			VIO_TYPE_DATA,
-			VIO_PRIORITY_DATA,
-			NULL,
-			vio_bio);
-	*data_vio_ptr = data_vio;
-	return VDO_SUCCESS;
-}
-
-/**
- * Creates a new data_vio structure. A data_vio represents a single logical
- * block of data. It is what most VDO operations work with. This function also
- * creates a wrapping data_vio structure that is used when we want to
- * physically read or write the data associated with the struct data_vio.
- *
- * @param [in]  layer            The physical layer
- * @param [in]  bio              The bio from the request the new data_vio
- *                               will service
- * @param [in]  arrival_jiffies  The arrival time of the bio
- * @param [out] data_vio_ptr     A pointer to hold the new data_vio
- *
- * @return VDO_SUCCESS or an error
- **/
-static int vdo_create_vio_from_bio(struct kernel_layer *layer,
-				   struct bio *bio,
-				   uint64_t arrival_jiffies,
-				   struct data_vio **data_vio_ptr)
-{
-	struct data_vio *data_vio = NULL;
-	int result = make_data_vio(layer, bio, &data_vio);
-
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
 
 	data_vio->user_bio = bio;
+	initialize_vio(vio,
+		       vio_bio,
+		       VIO_TYPE_DATA,
+		       VIO_PRIORITY_DATA,
+		       NULL,
+		       &layer->vdo,
+		       NULL);
 	data_vio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
 	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 			        (data_vio->offset != 0));

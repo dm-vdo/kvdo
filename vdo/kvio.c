@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#72 $
  */
 
 #include "kvio.h"
@@ -183,23 +183,6 @@ void submit_metadata_vio(struct vio *vio)
 }
 
 /**********************************************************************/
-void initialize_kvio(struct vio *vio,
-		     struct kernel_layer *layer,
-		     enum vio_type vio_type,
-		     enum vio_priority priority,
-		     void *parent,
-		     struct bio *bio)
-{
-	vio->bio = bio;
-	initialize_vio(vio,
-		       vio_type,
-		       priority,
-		       parent,
-		       &layer->vdo,
-		       &layer->common);
-}
-
-/**********************************************************************/
 int vdo_create_metadata_vio(PhysicalLayer *layer,
 			    enum vio_type vio_type,
 			    enum vio_priority priority,
@@ -236,10 +219,14 @@ int vdo_create_metadata_vio(PhysicalLayer *layer,
 		return result;
 	}
 
-	initialize_kvio(vio, kernel_layer, vio_type, priority,
-			parent, bio);
-	vio->data = data;
-	*vio_ptr  = vio;
+	initialize_vio(vio,
+		       bio,
+		       vio_type,
+		       priority,
+		       parent,
+		       &kernel_layer->vdo,
+		       data);
+	*vio_ptr = vio;
 	return VDO_SUCCESS;
 }
 
@@ -272,13 +259,13 @@ int create_compressed_write_vio(struct vdo *vdo,
 	}
 
 	vio = allocating_vio_as_vio(allocating_vio);
-	initialize_kvio(vio,
-			kernel_layer,
-			VIO_TYPE_COMPRESSED_BLOCK,
-			VIO_PRIORITY_COMPRESSED_DATA,
-			parent,
-			bio);
-	vio->data = data;
+	initialize_vio(vio,
+		       bio,
+		       VIO_TYPE_COMPRESSED_BLOCK,
+		       VIO_PRIORITY_COMPRESSED_DATA,
+		       parent,
+		       &kernel_layer->vdo,
+		       data);
 	*allocating_vio_ptr = allocating_vio;
 	return VDO_SUCCESS;
 }

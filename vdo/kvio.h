@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#39 $
  */
 
 #ifndef KVIO_H
@@ -91,22 +91,5 @@ void enqueue_vio_callback(struct vio *vio);
  * @param error  Possible error
  **/
 void continue_vio(struct vio *vio, int error);
-
-/**
- * Initialize a vio structure.
- *
- * @param vio        The vio to initialize
- * @param layer      The physical layer
- * @param vio_type   The type of vio to create
- * @param priority   The relative priority to assign to the kvio
- * @param parent     The parent of the kvio completion
- * @param bio        The bio to associate with this kvio
- **/
-void initialize_kvio(struct vio *vio,
-		     struct kernel_layer *layer,
-		     enum vio_type vio_type,
-		     enum vio_priority priority,
-		     void *parent,
-		     struct bio *bio);
 
 #endif /* KVIO_H */
