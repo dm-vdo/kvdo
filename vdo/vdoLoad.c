@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#64 $
  */
 
 #include "vdoLoad.h"
@@ -335,7 +335,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 
 	result = make_read_only_notifier(in_read_only_mode(vdo),
 					 thread_config,
-					 vdo->layer,
+					 vdo,
 					 &vdo->read_only_notifier);
 	if (result != VDO_SUCCESS) {
 		return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#10 $
  */
 
 /*
@@ -49,7 +49,7 @@ typedef void read_only_notification(void *listener,
  *
  * @param [in]  is_read_only     Whether the VDO is already read-only
  * @param [in]  thread_config    The thread configuration of the VDO
- * @param [in]  layer            The physical layer of the VDO
+ * @param [in]  vdo              The VDO
  * @param [out] notifier_ptr     A pointer to receive the new notifier
  *
  * @return VDO_SUCCESS or an error
@@ -57,7 +57,7 @@ typedef void read_only_notification(void *listener,
 int __must_check
 make_read_only_notifier(bool is_read_only,
 			const struct thread_config *thread_config,
-			PhysicalLayer *layer,
+			struct vdo *vdo,
 			struct read_only_notifier **notifier_ptr);
 
 /**

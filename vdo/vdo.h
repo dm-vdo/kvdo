@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#21 $
  */
 
 #ifndef VDO_H
@@ -40,6 +40,15 @@ int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo);
  * @param vdo  The vdo to destroy
  **/
 void destroy_vdo(struct vdo *vdo);
+
+/**
+ * Get the layer from a vdo.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The vdo's layer
+ **/
+PhysicalLayer __must_check *get_layer_from_vdo(struct vdo *vdo);
 
 /**
  * Set whether compression is enabled in a vdo.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#27 $
  */
 
 #include "readOnlyNotifier.h"
@@ -27,8 +27,8 @@
 #include "permassert.h"
 
 #include "completion.h"
-#include "physicalLayer.h"
 #include "threadConfig.h"
+#include "vdo.h"
 
 /**
  * A read_only_notifier has a single completion which is used to perform
@@ -125,7 +125,7 @@ as_notifier(struct vdo_completion *completion)
 /**********************************************************************/
 int make_read_only_notifier(bool is_read_only,
 			    const struct thread_config *thread_config,
-			    PhysicalLayer *layer,
+			    struct vdo *vdo,
 			    struct read_only_notifier **notifier_ptr)
 {
 	struct read_only_notifier *notifier;
@@ -148,7 +148,7 @@ int make_read_only_notifier(bool is_read_only,
 	}
 
 	initialize_completion(&notifier->completion, READ_ONLY_MODE_COMPLETION,
-			      layer);
+			      get_layer_from_vdo(vdo));
 
 	for (id = 0; id < thread_config->base_thread_count; id++) {
 		notifier->thread_data[id].is_read_only = is_read_only;
