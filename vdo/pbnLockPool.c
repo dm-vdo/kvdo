@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#15 $
  */
 
 #include "pbnLockPool.h"
@@ -27,6 +27,7 @@
 #include <linux/list.h>
 
 #include "pbnLock.h"
+#include "statusCodes.h"
 
 /**
  * Unused (idle) PBN locks are kept in a list. Just like in a malloc

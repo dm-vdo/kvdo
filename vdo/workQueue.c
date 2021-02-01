@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#47 $
  */
 
 #include "workQueue.h"
@@ -30,6 +30,8 @@
 #include "numeric.h"
 #include "permassert.h"
 #include "stringUtils.h"
+
+#include "statusCodes.h"
 
 #include "workItemStats.h"
 #include "workQueueHandle.h"
@@ -285,14 +287,10 @@ static void run_finish_hook(struct simple_work_queue *queue)
 static struct vdo_work_item *
 wait_for_next_work_item(struct simple_work_queue *queue)
 {
+	struct vdo_work_item *item;
 	const long TIMEOUT_JIFFIES =
 		max(2UL, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
-	struct vdo_work_item *item = poll_for_work_item(queue);
 	DEFINE_WAIT(wait);
-
-	if (item != NULL) {
-		return item;
-	}
 
 	while (true) {
 		uint64_t time_before_schedule, call_duration_ns;
@@ -385,28 +383,6 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 }
 
 /**
- * Get the next work item to process, possibly waiting for one, unless
- * kthread_should_stop indicates that it's time for us to shut down.
- *
- * If kthread_should_stop says it's time to stop but we have pending work
- * items, return a work item.
- *
- * @param queue  The work queue to wait on
- *
- * @return  the next work item, or NULL to indicate shutdown is requested
- **/
-static struct vdo_work_item *
-get_next_work_item(struct simple_work_queue *queue)
-{
-	struct vdo_work_item *item = poll_for_work_item(queue);
-	if (item != NULL) {
-		return item;
-	}
-
-	return wait_for_next_work_item(queue);
-}
-
-/**
  * Execute a work item from a work queue, and do associated bookkeeping.
  *
  * @param queue  the work queue the item is from
@@ -483,7 +459,11 @@ static void service_work_queue(struct simple_work_queue *queue)
 	run_start_hook(queue);
 
 	while (true) {
-		struct vdo_work_item *item = get_next_work_item(queue);
+		struct vdo_work_item *item = poll_for_work_item(queue);
+		if (item == NULL) {
+			item = wait_for_next_work_item(queue);
+		}
+
 		if (item == NULL) {
 			// No work items but kthread_should_stop was triggered.
 			break;

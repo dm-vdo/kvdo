@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#75 $
  */
 
 #ifndef TYPES_H
@@ -24,7 +24,6 @@
 
 #include "blockMappingState.h"
 #include "common.h"
-#include "statusCodes.h"
 
 /**
  * A size type in blocks.

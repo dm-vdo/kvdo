@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#30 $
  */
 
 #include "actionManager.h"
@@ -25,6 +25,7 @@
 
 #include "adminState.h"
 #include "completion.h"
+#include "statusCodes.h"
 #include "types.h"
 
 /** An action to be performed in each of a set of zones */

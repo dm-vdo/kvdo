@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#12 $
  */
 
 #include "threadConfig.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 
 #include "constants.h"
+#include "statusCodes.h"
 #include "types.h"
 
 /**********************************************************************/
