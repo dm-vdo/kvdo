@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#76 $
  */
 
 #ifndef TYPES_H
@@ -423,14 +423,6 @@ struct zoned_pbn {
 	enum block_mapping_state state;
 	struct physical_zone *zone;
 };
-
-/**
- * Callback which will be called by the VDO when all of the vios in the
- * extent have been processed.
- *
- * @param extent The extent which is complete
- **/
-typedef void vdo_extent_callback(struct vdo_extent *extent);
 
 /**
  * An asynchronous operation.
