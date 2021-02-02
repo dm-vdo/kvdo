@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#82 $
  */
 
 #include "dedupeIndex.h"
 
+#include <asm/unaligned.h>
 #include <linux/ratelimit.h>
 #include <linux/workqueue.h>
 
@@ -28,7 +29,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
-#include "numeric.h"
 #include "stringUtils.h"
 #include "uds.h"
 
@@ -163,7 +163,8 @@ static void encode_uds_advice(struct uds_request *request,
 
 	encoding->data[offset++] = UDS_ADVICE_VERSION;
 	encoding->data[offset++] = advice.state;
-	encode_uint64_le(encoding->data, &offset, advice.pbn);
+	put_unaligned_le64(advice.pbn, &encoding->data[offset]);
+	offset += sizeof(uint64_t);
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 }
 
@@ -193,7 +194,9 @@ static bool decode_uds_advice(const struct uds_request *request,
 	}
 
 	advice->state = encoding->data[offset++];
-	decode_uint64_le(encoding->data, &offset, &advice->pbn);
+	advice->pbn = get_unaligned_le64(&encoding->data[offset]);
+	offset += sizeof(uint64_t);
+
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 	return true;
 }
