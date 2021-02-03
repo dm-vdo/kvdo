@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#31 $
  */
 
 #ifndef COMPLETION_H
@@ -50,6 +50,7 @@ enum vdo_completion_type {
 	REFERENCE_COUNT_REBUILD_COMPLETION,
 	SLAB_SCRUBBER_COMPLETION,
 	SUB_TASK_COMPLETION,
+	SYNC_COMPLETION,
 	VDO_EXTENT_COMPLETION,
 	VDO_PAGE_COMPLETION,
 	VIO_COMPLETION,

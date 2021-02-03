@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#82 $
  */
 
 /*
@@ -234,42 +234,57 @@ void dump_vdo_work_queue(struct vdo *vdo)
 }
 
 /**********************************************************************/
-struct sync_queue_work {
-	struct vdo_work_item work_item;
+struct sync_completion {
+	struct vdo_completion vdo_completion;
 	struct vdo *vdo;
 	void *data;
-	struct completion *completion;
+	struct completion completion;
 };
 
 /**
- * Initiate an arbitrary asynchronous base-code operation and wait for
+ * Convert a vdo_completion to a sync completion.
+ *
+ * @param completion  The completion to convert
+ *
+ * @return The completion as a sync completion.
+ **/
+static inline struct sync_completion * __must_check
+as_sync_completion(struct vdo_completion *completion)
+{
+	assert_completion_type(completion->type, SYNC_COMPLETION);
+	return container_of(completion,
+			    struct sync_completion,
+			    vdo_completion);
+}
+
+/**
+ * Initiate an arbitrary asynchronous base-code callback and wait for
  * it.
  *
  * An async queue operation is performed and we wait for completion.
  *
- * @param vdo         The vdo data handle
- * @param action      The operation to perform
+ * @param vdo         The vdo
+ * @param action      The callback to launch
  * @param data        Unique data that can be used by the operation
- * @param thread_id   The thread on which to perform the operation
- * @param completion  The completion to wait on
+ * @param thread_id   The thread on which to enqueue the operation
  **/
 static void perform_vdo_operation(struct vdo *vdo,
-				  vdo_work_function action,
+				  vdo_action *action,
 				  void *data,
-				  thread_id_t thread_id,
-				  struct completion *completion)
+				  thread_id_t thread_id)
 {
-	struct sync_queue_work sync;
+	struct sync_completion sync;
 
 	memset(&sync, 0, sizeof(sync));
-	setup_work_item(&sync.work_item, action, NULL, REQ_Q_ACTION_SYNC);
 	sync.vdo = vdo;
-	sync.data = data;
-	sync.completion = completion;
+        initialize_completion(&sync.vdo_completion, SYNC_COMPLETION,
+			      vdo->layer);
+        init_completion(&sync.completion);
 
-	init_completion(completion);
-	enqueue_vdo_work(vdo, &sync.work_item, thread_id);
-	wait_for_completion(completion);
+	sync.data = data;
+
+	launch_callback(&sync.vdo_completion, action, thread_id);
+	wait_for_completion(&sync.completion);
 }
 
 /**********************************************************************/
@@ -282,30 +297,27 @@ struct vdo_compress_data {
  * Does the work of calling the base code to set compress state, then
  * tells the function waiting on completion to go ahead.
  *
- * @param item  The work item
+ * @param completion  The completion
  **/
-static void set_compressing_work(struct vdo_work_item *item)
+static void set_compressing_callback(struct vdo_completion *completion)
 {
-	struct sync_queue_work *work =
-		container_of(item, struct sync_queue_work, work_item);
-	struct vdo_compress_data *data = (struct vdo_compress_data *) work->data;
+	struct sync_completion *sync = as_sync_completion(completion);
+	struct vdo_compress_data *data = (struct vdo_compress_data *) sync->data;
 
-	data->was_enabled = set_vdo_compressing(work->vdo, data->enable);
-	complete(work->completion);
+	data->was_enabled = set_vdo_compressing(sync->vdo, data->enable);
+	complete(&sync->completion);
 }
 
 /***********************************************************************/
 bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression)
 {
-	struct completion compress_wait;
 	struct vdo_compress_data data;
 
 	data.enable = enable_compression;
 	perform_vdo_operation(vdo,
-			      set_compressing_work,
+			      set_compressing_callback,
 			      &data,
-			      get_packer_zone_thread(get_thread_config(vdo)),
-			      &compress_wait);
+			      get_packer_zone_thread(get_thread_config(vdo)));
 	return data.was_enabled;
 }
 
@@ -315,54 +327,49 @@ struct vdo_read_only_data {
 };
 
 /**********************************************************************/
-static void enter_read_only_mode_work(struct vdo_work_item *item)
+static void enter_read_only_mode_callback(struct vdo_completion *completion)
 {
-	struct sync_queue_work *work =
-		container_of(item, struct sync_queue_work, work_item);
-	struct vdo_read_only_data *data = work->data;
+	struct sync_completion *sync = as_sync_completion(completion);
+	struct vdo_read_only_data *data = sync->data;
 
-	enter_read_only_mode(work->vdo->read_only_notifier, data->result);
-	complete(work->completion);
+	enter_read_only_mode(sync->vdo->read_only_notifier, data->result);
+	complete(&sync->completion);
 }
 
 /***********************************************************************/
 void set_vdo_read_only(struct vdo *vdo, int result)
 {
-	struct completion read_only_wait;
 	struct vdo_read_only_data data;
 
 	data.result = result;
-	perform_vdo_operation(vdo, enter_read_only_mode_work, &data,
-			      get_admin_thread(get_thread_config(vdo)),
-			      &read_only_wait);
+	perform_vdo_operation(vdo,
+			      enter_read_only_mode_callback,
+			      &data,
+			      get_admin_thread(get_thread_config(vdo)));
 }
 
 /**
  * Does the work of calling the vdo statistics gathering tool
  *
- * @param item   The work item
+ * @param completion  The sync completion
  **/
-static void get_vdo_statistics_work(struct vdo_work_item *item)
+static void get_vdo_statistics_callback(struct vdo_completion *completion)
 {
-	struct sync_queue_work *work =
-		container_of(item, struct sync_queue_work, work_item);
-	struct vdo_statistics *stats = (struct vdo_statistics *) work->data;
+	struct sync_completion *sync = as_sync_completion(completion);
+	struct vdo_statistics *stats = (struct vdo_statistics *) sync->data;
 
-	get_vdo_statistics(work->vdo, stats);
-	complete(work->completion);
+	get_vdo_statistics(sync->vdo, stats);
+	complete(&sync->completion);
 }
 
 /***********************************************************************/
 void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
-	struct completion stats_wait;
-
 	memset(stats, 0, sizeof(struct vdo_statistics));
 	perform_vdo_operation(vdo,
-			      get_vdo_statistics_work,
+			      get_vdo_statistics_callback,
 			      stats,
-			      get_admin_thread(get_thread_config(vdo)),
-			      &stats_wait);
+			      get_admin_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/
