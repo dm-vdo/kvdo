@@ -16,10 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#19 $
  */
 
-#include "compressionStateInternals.h"
+#include "compressionState.h"
+
 
 #include "dataVIO.h"
 #include "packer.h"
@@ -52,10 +53,21 @@ static uint32_t __must_check pack_state(struct vio_compression_state state)
 	       | (state.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);
 }
 
-/**********************************************************************/
-bool set_compression_state(struct data_vio *data_vio,
-			   struct vio_compression_state state,
-			   struct vio_compression_state new_state)
+/**
+ * Set the compression state of a data_vio.
+ *
+ * @param data_vio   The data_vio whose compression state is to be set
+ * @param state      The expected current state of the data_vio
+ * @param new_state  The state to set
+ *
+ * @return <code>true</code> if the new state was set, false if the data_vio's
+ *         compression state did not match the expected state, and so was
+ *         left unchanged
+ **/
+static bool __must_check
+set_compression_state(struct data_vio *data_vio,
+		      struct vio_compression_state state,
+		      struct vio_compression_state new_state)
 {
 	uint32_t actual;
 	uint32_t expected = pack_state(state);
