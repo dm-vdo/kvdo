@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#58 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -167,11 +167,11 @@ static int initialize_info(struct vdo_page_cache *cache)
 		info->state = PS_FREE;
 		info->pbn = NO_PAGE;
 
-		result = vdo_create_metadata_vio(cache->layer,
-						 VIO_TYPE_BLOCK_MAP,
-						 VIO_PRIORITY_METADATA, info,
-						 get_page_buffer(info),
-						 &info->vio);
+		result = create_metadata_vio(cache->vdo,
+					     VIO_TYPE_BLOCK_MAP,
+					     VIO_PRIORITY_METADATA, info,
+					     get_page_buffer(info),
+					     &info->vio);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -215,7 +215,7 @@ int make_vdo_page_cache(struct vdo *vdo,
 		return result;
 	}
 
-	cache->layer = get_layer_from_vdo(vdo);
+	cache->vdo = vdo;
 	cache->page_count = page_count;
 	cache->read_hook = read_hook;
 	cache->write_hook = write_hook;
@@ -750,7 +750,8 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 		.cache = cache,
 	};
 
-	initialize_completion(completion, VDO_PAGE_COMPLETION, cache->layer);
+	initialize_completion(completion, VDO_PAGE_COMPLETION,
+			      get_layer_from_vdo(cache->vdo));
 	prepare_completion(completion,
 			   callback,
 			   error_handler,
@@ -969,7 +970,6 @@ static void save_pages(struct vdo_page_cache *cache)
 {
 	struct page_info *info;
 	struct vio *vio;
-	PhysicalLayer *layer;
 
 	if ((cache->pages_in_flush > 0) || (cache->pages_to_flush == 0)) {
 		return;
@@ -983,7 +983,6 @@ static void save_pages(struct vdo_page_cache *cache)
 	ADD_ONCE(cache->stats.flush_count, 1);
 
 	vio = info->vio;
-	layer = vio->completion.layer;
 
 	/*
 	 * We must make sure that the recovery journal entries that changed
@@ -992,7 +991,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	 * sync mode, every journal block is written with FUA, thus guaranteeing
 	 * the journal persisted already.
 	 */
-	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
+	if (get_write_policy(vio->vdo) != WRITE_POLICY_SYNC) {
 		launch_flush(vio, write_pages, handle_flush_error);
 		return;
 	}

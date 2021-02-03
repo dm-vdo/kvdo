@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#32 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -42,8 +42,8 @@ static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
  * The VDO Page Cache abstraction.
  **/
 struct vdo_page_cache {
-	/** the physical layer to page to */
-	PhysicalLayer *layer;
+	/** the VDO which owns this cache */
+	struct vdo *vdo;
 	/** number of pages in cache */
 	page_count_t page_count;
 	/** function to call on page read */
