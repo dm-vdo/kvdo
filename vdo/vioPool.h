@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#16 $
  */
 
 #ifndef VIO_POOL_H
@@ -48,18 +48,20 @@ struct vio_pool_entry {
 /**
  * A function which constructs a vio for a pool.
  *
- * @param [in]  layer    The physical layer in which the vio will operate
+ * @param [in]  vdo      The vdo in which the vio will operate
  * @param [in]  parent   The parent of the vio
  * @param [in]  buffer   The data buffer for the vio
  * @param [out] vio_ptr  A pointer to hold the new vio
  **/
-typedef int vio_constructor(PhysicalLayer *layer, void *parent, void *buffer,
+typedef int vio_constructor(struct vdo *vdo,
+			    void *parent,
+			    void *buffer,
 			    struct vio **vio_ptr);
 
 /**
  * Create a new vio pool.
  *
- * @param [in]  layer        the physical layer to write to and read from
+ * @param [in]  vdo          the vdo
  * @param [in]  pool_size    the number of vios in the pool
  * @param [in]  thread_id    the ID of the thread using this pool
  * @param [in]  constructor  the constructor for vios in the pool
@@ -68,7 +70,7 @@ typedef int vio_constructor(PhysicalLayer *layer, void *parent, void *buffer,
  *
  * @return a success or error code
  **/
-int __must_check make_vio_pool(PhysicalLayer *layer,
+int __must_check make_vio_pool(struct vdo *vdo,
 			       size_t pool_size,
 			       thread_id_t thread_id,
 			       vio_constructor *constructor,

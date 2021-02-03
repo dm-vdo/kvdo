@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#98 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -167,14 +167,17 @@ notify_block_allocator_of_read_only_mode(void *listener,
 }
 
 /**********************************************************************/
-int make_allocator_pool_vios(PhysicalLayer *layer,
+int make_allocator_pool_vios(struct vdo *vdo,
 			     void *parent,
 			     void *buffer,
 			     struct vio **vio_ptr)
 {
-	return vdo_create_metadata_vio(layer, VIO_TYPE_SLAB_JOURNAL,
-				       VIO_PRIORITY_METADATA, parent,
-				       buffer, vio_ptr);
+	return create_metadata_vio(vdo,
+				   VIO_TYPE_SLAB_JOURNAL,
+				   VIO_PRIORITY_METADATA,
+				   parent,
+				   buffer,
+				   vio_ptr);
 }
 
 /**
@@ -214,7 +217,7 @@ static int allocate_components(struct block_allocator *allocator,
 	allocator->summary =
 		get_slab_summary_for_zone(depot, allocator->zone_number);
 
-	result = make_vio_pool(layer,
+	result = make_vio_pool(vdo,
 			       vio_pool_size,
 			       allocator->thread_id,
 			       make_allocator_pool_vios,
@@ -310,19 +313,6 @@ void free_block_allocator(struct block_allocator **block_allocator_ptr)
 	*block_allocator_ptr = NULL;
 }
 
-/**********************************************************************/
-int replace_vio_pool(struct block_allocator *allocator,
-		     size_t size,
-		     PhysicalLayer *layer)
-{
-	free_vio_pool(&allocator->vio_pool);
-	return make_vio_pool(layer,
-			     size,
-			     allocator->thread_id,
-			     make_allocator_pool_vios,
-			     NULL,
-			     &allocator->vio_pool);
-}
 
 /**
  * Get the maximum number of data blocks that can be allocated.

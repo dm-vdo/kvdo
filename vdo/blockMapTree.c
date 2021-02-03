@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#80 $
  */
 
 #include "blockMapTree.h"
@@ -91,14 +91,17 @@ static void write_dirty_pages_callback(struct list_head *expired,
  * Implements vio_constructor.
  **/
 static int __must_check
-make_block_map_vios(PhysicalLayer *layer,
+make_block_map_vios(struct vdo *vdo,
 		    void *parent,
 		    void *buffer,
 		    struct vio **vio_ptr)
 {
-	return vdo_create_metadata_vio(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
-				       VIO_PRIORITY_METADATA, parent,
-				       buffer, vio_ptr);
+	return create_metadata_vio(vdo,
+				   VIO_TYPE_BLOCK_MAP_INTERIOR,
+				   VIO_PRIORITY_METADATA,
+				   parent,
+				   buffer,
+				   vio_ptr);
 }
 
 /**********************************************************************/
@@ -123,7 +126,7 @@ int initialize_tree_zone(struct block_map_zone *zone,
 		return result;
 	}
 
-	return make_vio_pool(get_layer_from_vdo(vdo),
+	return make_vio_pool(vdo,
 			     BLOCK_MAP_VIO_POOL_SIZE,
 			     zone->thread_id,
 			     make_block_map_vios,
@@ -133,11 +136,16 @@ int initialize_tree_zone(struct block_map_zone *zone,
 
 /**********************************************************************/
 int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			       PhysicalLayer *layer, size_t pool_size)
+			       struct vdo *vdo,
+			       size_t pool_size)
 {
 	free_vio_pool(&zone->vio_pool);
-	return make_vio_pool(layer, pool_size, zone->map_zone->thread_id,
-			     make_block_map_vios, zone, &zone->vio_pool);
+	return make_vio_pool(vdo,
+			     pool_size,
+			     zone->map_zone->thread_id,
+			     make_block_map_vios,
+			     zone,
+			     &zone->vio_pool);
 }
 
 /**********************************************************************/

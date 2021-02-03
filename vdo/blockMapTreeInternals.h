@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#15 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -89,14 +89,14 @@ as_block_map_page(struct tree_page *tree_page)
  * Replace the VIOPool in a tree zone. This method is used by unit tests.
  *
  * @param zone       The zone whose pool is to be replaced
- * @param layer      The physical layer from which to make VIOs
+ * @param vdo        The vdo from which to make VIOs
  * @param pool_size  The size of the new pool
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
 replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			   PhysicalLayer *layer,
+			   struct vdo *vdo,
 			   size_t pool_size);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#33 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -129,7 +129,7 @@ struct block_allocator {
  * Implements vio_constructor
  **/
 int __must_check
-make_allocator_pool_vios(PhysicalLayer *layer,
+make_allocator_pool_vios(struct vdo *vdo,
 			 void *parent,
 			 void *buffer,
 			 struct vio **vio_ptr);
@@ -140,13 +140,13 @@ make_allocator_pool_vios(PhysicalLayer *layer,
  *
  * @param allocator  The block allocator
  * @param size       The number of entries in the pool
- * @param layer      The physical layer from which to allocate vios
+ * @param vdo        The vdo from which to allocate vios
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check replace_vio_pool(struct block_allocator *allocator,
 				  size_t size,
-				  PhysicalLayer *layer);
+				  struct vdo *vdo);
 
 /**
  * Prepare slabs for allocation or scrubbing. This method is exposed for
