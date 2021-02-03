@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#26 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -65,7 +65,7 @@ struct slab_status {
 /**
  * Create a slab summary.
  *
- * @param [in]  layer                         The layer
+ * @param [in]  vdo                           The vdo
  * @param [in]  partition                     The partition to hold the summary
  * @param [in]  thread_config                 The thread config of the VDO
  * @param [in]  slab_size_shift               The number of bits in the slab
@@ -79,7 +79,7 @@ struct slab_status {
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-make_slab_summary(PhysicalLayer *layer,
+make_slab_summary(struct vdo *vdo,
 		  struct partition *partition,
 		  const struct thread_config *thread_config,
 		  unsigned int slab_size_shift,

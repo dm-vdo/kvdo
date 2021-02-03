@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#51 $
  */
 
 #include "slabScrubberInternals.h"
@@ -39,14 +39,14 @@
  * scrubbing a slab.
  *
  * @param scrubber           The slab scrubber for which to allocate
- * @param layer              The physical layer on which the scrubber resides
+ * @param vdo                The VDO in which the scrubber resides
  * @param slab_journal_size  The size of a slab journal
  *
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check
 allocate_extent_and_buffer(struct slab_scrubber *scrubber,
-			   PhysicalLayer *layer,
+			   struct vdo *vdo,
 			   block_count_t slab_journal_size)
 {
 	size_t buffer_size = VDO_BLOCK_SIZE * slab_journal_size;
@@ -56,7 +56,7 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 		return result;
 	}
 
-	return create_extent(layer,
+	return create_extent(get_layer_from_vdo(vdo),
 			     VIO_TYPE_SLAB_JOURNAL,
 			     VIO_PRIORITY_METADATA,
 			     slab_journal_size,
@@ -65,7 +65,7 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 }
 
 /**********************************************************************/
-int make_slab_scrubber(PhysicalLayer *layer,
+int make_slab_scrubber(struct vdo *vdo,
 		       block_count_t slab_journal_size,
 		       struct read_only_notifier *read_only_notifier,
 		       struct slab_scrubber **scrubber_ptr)
@@ -76,7 +76,7 @@ int make_slab_scrubber(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = allocate_extent_and_buffer(scrubber, layer, slab_journal_size);
+	result = allocate_extent_and_buffer(scrubber, vdo, slab_journal_size);
 	if (result != VDO_SUCCESS) {
 		free_slab_scrubber(&scrubber);
 		return result;
@@ -84,7 +84,7 @@ int make_slab_scrubber(PhysicalLayer *layer,
 
 	initialize_completion(&scrubber->completion,
 			      SLAB_SCRUBBER_COMPLETION,
-			      layer);
+			      get_layer_from_vdo(vdo));
 	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
 	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;

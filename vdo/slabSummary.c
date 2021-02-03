@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#54 $
  */
 
 #include "slabSummary.h"
@@ -94,7 +94,7 @@ static void launch_write(struct slab_summary_block *summary_block);
 /**
  * Initialize a slab_summary_block.
  *
- * @param layer               The backing layer
+ * @param vdo                 The vdo
  * @param summary_zone        The parent slab_summary_zone
  * @param thread_id           The ID of the thread of physical zone of this
  *                            block
@@ -105,7 +105,7 @@ static void launch_write(struct slab_summary_block *summary_block);
  * @return VDO_SUCCESS or an error
  **/
 static int
-initialize_slab_summary_block(PhysicalLayer *layer,
+initialize_slab_summary_block(struct vdo *vdo,
 			      struct slab_summary_zone *summary_zone,
 			      thread_id_t thread_id,
 			      struct slab_summary_entry *entries,
@@ -118,11 +118,12 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = vdo_create_metadata_vio(layer, VIO_TYPE_SLAB_SUMMARY,
-					 VIO_PRIORITY_METADATA,
-					 slab_summary_block,
-					 slab_summary_block->outgoing_entries,
-					 &slab_summary_block->vio);
+	result = create_metadata_vio(vdo,
+				     VIO_TYPE_SLAB_SUMMARY,
+				     VIO_PRIORITY_METADATA,
+				     slab_summary_block,
+				     slab_summary_block->outgoing_entries,
+				     &slab_summary_block->vio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -138,7 +139,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
  * Create a new, empty slab_summary_zone object.
  *
  * @param summary      The summary to which the new zone will belong
- * @param layer        The layer
+ * @param vdo          The vdo
  * @param zone_number  The zone this is
  * @param thread_id    The ID of the thread for this zone
  * @param entries      The buffer to hold the entries in this zone
@@ -146,7 +147,7 @@ initialize_slab_summary_block(PhysicalLayer *layer,
  * @return VDO_SUCCESS or an error
  **/
 static int make_slab_summary_zone(struct slab_summary *summary,
-				  PhysicalLayer *layer,
+				  struct vdo *vdo,
 				  zone_count_t zone_number,
 				  thread_id_t thread_id,
 				  struct slab_summary_entry *entries)
@@ -168,7 +169,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 
 	// Initialize each block.
 	for (i = 0; i < summary->blocks_per_zone; i++) {
-		result = initialize_slab_summary_block(layer, summary_zone,
+		result = initialize_slab_summary_block(vdo, summary_zone,
 						       thread_id, entries, i,
 						       &summary_zone->summary_blocks[i]);
 		if (result != VDO_SUCCESS) {
@@ -181,7 +182,8 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 }
 
 /**********************************************************************/
-int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
+int make_slab_summary(struct vdo *vdo,
+		      struct partition *partition,
 		      const struct thread_config *thread_config,
 		      unsigned int slab_size_shift,
 		      block_count_t maximum_free_blocks_per_slab,
@@ -246,7 +248,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	set_slab_summary_origin(summary, partition);
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
-			make_slab_summary_zone(summary, layer, zone,
+			make_slab_summary_zone(summary, vdo, zone,
 					       get_physical_zone_thread(thread_config,
 								        zone),
 					       summary->entries +

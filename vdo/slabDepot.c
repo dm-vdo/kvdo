@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#86 $
  */
 
 #include "slabDepot.h"
@@ -39,8 +39,10 @@
 #include "slabJournal.h"
 #include "slabIterator.h"
 #include "slabSummary.h"
+#include "statusCodes.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdo.h"
 #include "vdoState.h"
 
 /**********************************************************************/
@@ -197,7 +199,7 @@ static bool schedule_tail_block_commit(void *context)
  * @param nonce               The nonce of the VDO
  * @param thread_config       The thread config of the VDO
  * @param vio_pool_size       The size of the VIO pool
- * @param layer               The physical layer below this depot
+ * @param vdo                 The VDO itself
  * @param summary_partition   The partition which holds the slab summary
  *
  * @return VDO_SUCCESS or an error
@@ -206,11 +208,12 @@ static int allocate_components(struct slab_depot *depot,
 			       nonce_t nonce,
 			       const struct thread_config *thread_config,
 			       block_count_t vio_pool_size,
-			       PhysicalLayer *layer,
+			       struct vdo *vdo,
 			       struct partition *summary_partition)
 {
 	zone_count_t zone;
 	slab_count_t slab_count, i;
+	PhysicalLayer *layer = get_layer_from_vdo(vdo);
 	int result = make_action_manager(depot->zone_count,
 					 get_allocator_thread_id,
 					 get_journal_zone_thread(thread_config),
@@ -224,7 +227,7 @@ static int allocate_components(struct slab_depot *depot,
 
 	depot->origin = depot->first_block;
 
-	result = make_slab_summary(layer,
+	result = make_slab_summary(vdo,
 				   summary_partition,
 				   thread_config,
 				   depot->slab_size_shift,
@@ -252,7 +255,7 @@ static int allocate_components(struct slab_depot *depot,
 					      thread_id,
 					      nonce,
 					      vio_pool_size,
-					      layer,
+					      vdo,
 					      depot->read_only_notifier,
 					      &depot->allocators[zone]);
 		if (result != VDO_SUCCESS) {
@@ -284,7 +287,7 @@ static int allocate_components(struct slab_depot *depot,
 int decode_slab_depot(struct slab_depot_state_2_0 state,
 		      const struct thread_config *thread_config,
 		      nonce_t nonce,
-		      PhysicalLayer *layer,
+		      struct vdo *vdo,
 		      struct partition *summary_partition,
 		      struct read_only_notifier *read_only_notifier,
 		      struct recovery_journal *recovery_journal,
@@ -326,7 +329,7 @@ int decode_slab_depot(struct slab_depot_state_2_0 state,
 				     nonce,
 				     thread_config,
 				     VIO_POOL_SIZE,
-				     layer,
+				     vdo,
 				     summary_partition);
 	if (result != VDO_SUCCESS) {
 		free_slab_depot(&depot);

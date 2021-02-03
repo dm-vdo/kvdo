@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#97 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -182,13 +182,13 @@ int make_allocator_pool_vios(PhysicalLayer *layer,
  * load time, not at format time.
  *
  * @param allocator             The allocator
- * @param layer                 The physical layer below this allocator
+ * @param vdo                   The VDO
  * @param vio_pool_size         The vio pool size
  *
  * @return VDO_SUCCESS or an error
  **/
 static int allocate_components(struct block_allocator *allocator,
-			       PhysicalLayer *layer,
+			       struct vdo *vdo,
 			       block_count_t vio_pool_size)
 {
 	struct slab_depot *depot = allocator->depot;
@@ -198,6 +198,7 @@ static int allocate_components(struct block_allocator *allocator,
 		depot->slab_config.slab_journal_blocks;
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
+	PhysicalLayer *layer = get_layer_from_vdo(vdo);
 	int result;
 
 	result = register_read_only_listener(allocator->read_only_notifier,
@@ -223,7 +224,7 @@ static int allocate_components(struct block_allocator *allocator,
 		return result;
 	}
 
-	result = make_slab_scrubber(layer,
+	result = make_slab_scrubber(vdo,
 				    slab_journal_size,
 				    allocator->read_only_notifier,
 				    &allocator->slab_scrubber);
@@ -267,7 +268,7 @@ int make_block_allocator(struct slab_depot *depot,
 			 thread_id_t thread_id,
 			 nonce_t nonce,
 			 block_count_t vio_pool_size,
-			 PhysicalLayer *layer,
+			 struct vdo *vdo,
 			 struct read_only_notifier *read_only_notifier,
 			 struct block_allocator **allocator_ptr)
 {
@@ -284,7 +285,7 @@ int make_block_allocator(struct slab_depot *depot,
 	allocator->read_only_notifier = read_only_notifier;
 	INIT_LIST_HEAD(&allocator->dirty_slab_journals);
 
-	result = allocate_components(allocator, layer, vio_pool_size);
+	result = allocate_components(allocator, vdo, vio_pool_size);
 	if (result != VDO_SUCCESS) {
 		free_block_allocator(&allocator);
 		return result;

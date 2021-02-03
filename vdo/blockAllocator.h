@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#32 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -37,7 +37,7 @@
  * @param [in]  thread_id           The thread ID for this allocator's zone
  * @param [in]  nonce               The nonce of the VDO
  * @param [in]  vio_pool_size       The size of the VIO pool
- * @param [in]  layer               The physical layer below this allocator
+ * @param [in]  vdo                 The VDO
  * @param [in]  read_only_notifier  The context for entering read-only mode
  * @param [out] allocator_ptr       A pointer to hold the allocator
  *
@@ -49,7 +49,7 @@ make_block_allocator(struct slab_depot *depot,
 		     thread_id_t thread_id,
 		     nonce_t nonce,
 		     block_count_t vio_pool_size,
-		     PhysicalLayer *layer,
+		     struct vdo *vdo,
 		     struct read_only_notifier *read_only_notifier,
 		     struct block_allocator **allocator_ptr);
 
