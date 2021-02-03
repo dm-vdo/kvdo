@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#17 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -109,7 +109,7 @@ typedef thread_id_t zone_thread_getter(void *context, zone_count_t zone_number);
  * @param [in]  scheduler            A function to schedule a next action after
  *                                   an action concludes if there is no pending
  *                                   action (may be NULL)
- * @param [in]  layer                The layer used to make completions
+ * @param [in]  vdo                  The vdo used to initialize completions
  * @param [out] manager_ptr          A pointer to hold the new action manager
  *
  * @return VDO_SUCCESS or an error code
@@ -119,7 +119,7 @@ int __must_check make_action_manager(zone_count_t zones,
 				     thread_id_t initiator_thread_id,
 				     void *context,
 				     action_scheduler *scheduler,
-				     PhysicalLayer *layer,
+				     struct vdo *vdo,
 				     struct action_manager **manager_ptr);
 
 /**

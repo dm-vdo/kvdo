@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#31 $
  */
 
 #include "actionManager.h"
@@ -27,6 +27,7 @@
 #include "completion.h"
 #include "statusCodes.h"
 #include "types.h"
+#include "vdo.h"
 
 /** An action to be performed in each of a set of zones */
 struct action {
@@ -131,7 +132,7 @@ int make_action_manager(zone_count_t zones,
 			thread_id_t initiator_thread_id,
 			void *context,
 			action_scheduler *scheduler,
-			PhysicalLayer *layer,
+			struct vdo *vdo,
 			struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
@@ -153,7 +154,8 @@ int make_action_manager(zone_count_t zones,
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
 
-	initialize_completion(&manager->completion, ACTION_COMPLETION, layer);
+	initialize_completion(&manager->completion, ACTION_COMPLETION,
+			      get_layer_from_vdo(vdo));
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
 }
