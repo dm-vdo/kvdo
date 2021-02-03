@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#46 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -292,9 +292,9 @@ bool can_commit_recovery_block(struct recovery_journal_block *block)
 
 /**********************************************************************/
 int commit_recovery_block(struct recovery_journal_block *block,
-			  vdo_action *callback, vdo_action *error_handler)
+			  vdo_action *callback,
+			  vdo_action *error_handler)
 {
-	PhysicalLayer *layer = vio_as_completion(block->vio)->layer;
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t block_pbn;
@@ -340,10 +340,10 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 * we are doing is stable, so we issue the write with FUA.
 	 */
 	fua = (block->has_fua_entry
-	       || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+	       || (get_write_policy(block->vio->vdo) == WRITE_POLICY_SYNC));
 	flush = (block->has_fua_entry
-		 || (layer->getWritePolicy(layer) !=
-		     WRITE_POLICY_ASYNC_UNSAFE)
+		 || (get_write_policy(block->vio->vdo)
+		     != WRITE_POLICY_ASYNC_UNSAFE)
 		 || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
