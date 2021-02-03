@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#34 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -123,47 +123,5 @@ struct block_allocator {
 	struct vio_pool *vio_pool;
 };
 
-/**
- * Construct allocator metadata vios. Exposed for unit tests.
- *
- * Implements vio_constructor
- **/
-int __must_check
-make_allocator_pool_vios(struct vdo *vdo,
-			 void *parent,
-			 void *buffer,
-			 struct vio **vio_ptr);
-
-/**
- * Replace the vio pool in a block allocator. This method exists for unit
- * tests.
- *
- * @param allocator  The block allocator
- * @param size       The number of entries in the pool
- * @param vdo        The vdo from which to allocate vios
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check replace_vio_pool(struct block_allocator *allocator,
-				  size_t size,
-				  struct vdo *vdo);
-
-/**
- * Prepare slabs for allocation or scrubbing. This method is exposed for
- * testing.
- *
- * @param allocator  The allocator to prepare
- *
- * @return VDO_SUCCESS or an error code
- **/
-int __must_check
-prepare_slabs_for_allocation(struct block_allocator *allocator);
-
-/**
- * Start allocating from the highest numbered slab.
- *
- * @param allocator   The allocator
- **/
-void allocate_from_allocator_last_slab(struct block_allocator *allocator);
 
 #endif // BLOCK_ALLOCATOR_INTERNALS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#33 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -79,20 +79,6 @@ struct slab_depot {
 };
 
 /**
- * Destroy a slab.
- *
- * @param slab  The slab to destroy
- **/
-void destroy_slab(struct vdo_slab *slab);
-
-/**
- * Inform a slab's depot that the slab has been created.
- *
- * @param slab  The slab to register
- **/
-void register_slab_with_depot(struct vdo_slab *slab);
-
-/**
  * Notify a slab depot that one of its allocators has finished scrubbing slabs.
  * This method should only be called if the scrubbing was successful. This
  * callback is registered by each block allocator in
@@ -102,24 +88,5 @@ void register_slab_with_depot(struct vdo_slab *slab);
  **/
 void notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
-/**
- * Check whether two depots are equivalent (i.e. represent the same
- * state and have the same reference counter). This method is used for unit
- * testing.
- *
- * @param depot_a The first depot to compare
- * @param depot_b The second depot to compare
- *
- * @return <code>true</code> if the two depots are equivalent
- **/
-bool __must_check
-are_equivalent_depots(struct slab_depot *depot_a, struct slab_depot *depot_b);
-
-/**
- * Start allocating from the highest numbered slab in each zone.
- *
- * @param depot   The depot
- **/
-void allocate_from_last_slab(struct slab_depot *depot);
 
 #endif /* SLAB_DEPOT_INTERNALS_H */

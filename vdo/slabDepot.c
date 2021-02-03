@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#88 $
  */
 
 #include "slabDepot.h"
@@ -787,43 +787,6 @@ block_count_t get_new_depot_size(const struct slab_depot *depot)
 	return (depot->new_slabs == NULL) ? 0 : depot->new_size;
 }
 
-/**********************************************************************/
-bool are_equivalent_depots(struct slab_depot *depot_a,
-			   struct slab_depot *depot_b)
-{
-	size_t i;
-
-	if ((depot_a->first_block != depot_b->first_block) ||
-	    (depot_a->last_block != depot_b->last_block) ||
-	    (depot_a->slab_count != depot_b->slab_count) ||
-	    (depot_a->slab_size_shift != depot_b->slab_size_shift) ||
-	    (get_depot_allocated_blocks(depot_a) !=
-	     get_depot_allocated_blocks(depot_b))) {
-		return false;
-	}
-
-	for (i = 0; i < depot_a->slab_count; i++) {
-		struct vdo_slab *slab_a = depot_a->slabs[i];
-		struct vdo_slab *slab_b = depot_b->slabs[i];
-		if ((slab_a->start != slab_b->start) ||
-		    (slab_a->end != slab_b->end) ||
-		    !are_equivalent_reference_counters(slab_a->reference_counts,
-						       slab_b->reference_counts)) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**********************************************************************/
-void allocate_from_last_slab(struct slab_depot *depot)
-{
-	zone_count_t zone;
-	for (zone = 0; zone < depot->zone_count; zone++) {
-		allocate_from_allocator_last_slab(depot->allocators[zone]);
-	}
-}
 
 /**********************************************************************/
 struct block_allocator_statistics

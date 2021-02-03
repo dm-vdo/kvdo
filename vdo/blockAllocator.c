@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#99 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -166,11 +166,16 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	complete_completion(parent);
 }
 
-/**********************************************************************/
-int make_allocator_pool_vios(struct vdo *vdo,
-			     void *parent,
-			     void *buffer,
-			     struct vio **vio_ptr)
+/**
+ * Construct allocator metadata vios.
+ *
+ * Implements vio_constructor
+ **/
+static int __must_check
+make_allocator_pool_vios(struct vdo *vdo,
+			 void *parent,
+			 void *buffer,
+			 struct vio **vio_ptr)
 {
 	return create_metadata_vio(vdo,
 				   VIO_TYPE_SLAB_JOURNAL,
@@ -692,8 +697,15 @@ void notify_slab_journals_are_recovered(struct block_allocator *allocator,
 	finish_loading_with_result(&allocator->state, result);
 }
 
-/**********************************************************************/
-int prepare_slabs_for_allocation(struct block_allocator *allocator)
+/**
+ * Prepare slabs for allocation or scrubbing.
+ *
+ * @param allocator  The allocator to prepare
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int __must_check
+prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
 	struct slab_status current_slab_status;
 	struct heap heap;
@@ -982,17 +994,6 @@ void increase_scrubbing_priority(struct vdo_slab *slab)
 	register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
 }
 
-/**********************************************************************/
-void allocate_from_allocator_last_slab(struct block_allocator *allocator)
-{
-	struct vdo_slab *last_slab =
-		allocator->depot->slabs[allocator->last_slab];
-	ASSERT_LOG_ONLY(allocator->open_slab == NULL,
-			"mustn't have an open slab");
-	priority_table_remove(allocator->prioritized_slabs,
-			      &last_slab->allocq_entry);
-	allocator->open_slab = last_slab;
-}
 
 /**********************************************************************/
 struct block_allocator_statistics
