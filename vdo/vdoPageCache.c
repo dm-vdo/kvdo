@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#56 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -127,7 +127,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 static void write_dirty_pages_callback(struct list_head *entry, void *context);
 
 /**********************************************************************/
-int make_vdo_page_cache(PhysicalLayer *layer,
+int make_vdo_page_cache(struct vdo *vdo,
 			page_count_t page_count,
 			vdo_page_read_function *read_hook,
 			vdo_page_write_function *write_hook,
@@ -150,7 +150,7 @@ int make_vdo_page_cache(PhysicalLayer *layer,
 		return result;
 	}
 
-	cache->layer = layer;
+	cache->layer = get_layer_from_vdo(vdo);
 	cache->page_count = page_count;
 	cache->read_hook = read_hook;
 	cache->write_hook = write_hook;

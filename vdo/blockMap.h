@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#33 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -37,7 +37,7 @@
  * @param [in]  state               The block map state from the super block
  * @param [in]  logical_blocks      The number of logical blocks for the VDO
  * @param [in]  thread_config       The thread configuration of the VDO
- * @param [in]  layer               The physical layer
+ * @param [in]  vdo                 The vdo
  * @param [in]  read_only_notifier  The read only mode context
  * @param [in]  journal             The recovery journal (may be NULL)
  * @param [in]  nonce               The nonce to distinguish initialized pages
@@ -52,7 +52,7 @@ int __must_check
 decode_block_map(struct block_map_state_2_0 state,
 		 block_count_t logical_blocks,
 		 const struct thread_config *thread_config,
-		 PhysicalLayer *layer,
+		 struct vdo *vdo,
 		 struct read_only_notifier *read_only_notifier,
 		 struct recovery_journal *journal,
 		 nonce_t nonce,

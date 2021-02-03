@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#19 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -30,15 +30,15 @@ struct tree_page;
 /**
  * Intialize a block_map_tree_zone.
  *
- * @param zone               The block_map_zone of the tree zone to intialize
- * @param layer              The physical layer
- * @param maximum_age        The number of journal blocks before a dirtied page
- *                           is considered old and may be written out
+ * @param zone         The block_map_zone of the tree zone to intialize
+ * @param vdo          The vdo
+ * @param maximum_age  The number of journal blocks before a dirtied page is
+ *                     considered old and may be written out
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check initialize_tree_zone(struct block_map_zone *zone,
-				      PhysicalLayer *layer,
+				      struct vdo *vdo,
 				      block_count_t maximum_age);
 
 /**

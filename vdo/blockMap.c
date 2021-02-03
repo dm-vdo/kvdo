@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#86 $
  */
 
 #include "blockMap.h"
@@ -117,7 +117,7 @@ static bool handle_page_write(void *raw_page,
  * @param map                 The block map
  * @param zone_number         The number of the zone to initialize
  * @param thread_config       The thread config of the VDO
- * @param layer               The physical layer on which the zone resides
+ * @param vdo                 The VDO
  * @param read_only_notifier  The read-only context for the VDO
  * @param cache_size          The size of the page cache for the block map
  * @param maximum_age         The number of journal blocks before a dirtied
@@ -129,7 +129,7 @@ static int __must_check
 initialize_block_map_zone(struct block_map *map,
 			  zone_count_t zone_number,
 			  const struct thread_config *thread_config,
-			  PhysicalLayer *layer,
+			  struct vdo *vdo,
 			  struct read_only_notifier *read_only_notifier,
 			  page_count_t cache_size,
 			  block_count_t maximum_age)
@@ -141,12 +141,12 @@ initialize_block_map_zone(struct block_map *map,
 	zone->thread_id = get_logical_zone_thread(thread_config, zone_number);
 	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
-	result = initialize_tree_zone(zone, layer, maximum_age);
+	result = initialize_tree_zone(zone, vdo, maximum_age);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return make_vdo_page_cache(layer,
+	return make_vdo_page_cache(vdo,
 				   cache_size / map->zone_count,
 				   validate_page_on_read,
 				   handle_page_write,
@@ -261,7 +261,7 @@ void free_block_map(struct block_map **map_ptr)
 int decode_block_map(struct block_map_state_2_0 state,
 		     block_count_t logical_blocks,
 		     const struct thread_config *thread_config,
-		     PhysicalLayer *layer,
+		     struct vdo *vdo,
 		     struct read_only_notifier *read_only_notifier,
 		     struct recovery_journal *journal,
 		     nonce_t nonce,
@@ -310,7 +310,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 		result = initialize_block_map_zone(map,
 						   zone,
 						   thread_config,
-						   layer,
+						   vdo,
 						   read_only_notifier,
 						   cache_size,
 						   maximum_age);
@@ -326,7 +326,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 				     get_recovery_journal_thread_id(journal),
 				     map,
 				     schedule_era_advance,
-				     layer,
+				     get_layer_from_vdo(vdo),
 				     &map->action_manager);
 	if (result != VDO_SUCCESS) {
 		free_block_map(&map);

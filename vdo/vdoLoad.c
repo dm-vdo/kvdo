@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#66 $
  */
 
 #include "vdoLoad.h"
@@ -378,7 +378,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	result = decode_block_map(vdo->states.block_map,
 				  vdo->states.vdo.config.logical_blocks,
 				  thread_config,
-				  vdo->layer,
+				  vdo,
 				  vdo->read_only_notifier,
 				  vdo->recovery_journal,
 				  vdo->states.vdo.nonce,

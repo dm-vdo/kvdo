@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#22 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -79,7 +79,7 @@ typedef bool vdo_page_write_function(void *raw_page,
 /**
  * Construct a page cache.
  *
- * @param [in]  layer               The physical layer to read and write
+ * @param [in]  vdo                 The vdo
  * @param [in]  page_count          The number of cache pages to hold
  * @param [in]  read_hook           The function to be called when a page is
  *                                  read into the cache
@@ -95,7 +95,7 @@ typedef bool vdo_page_write_function(void *raw_page,
  *
  * @return a success or error code
  **/
-int __must_check make_vdo_page_cache(PhysicalLayer *layer,
+int __must_check make_vdo_page_cache(struct vdo *vdo,
 				     page_count_t page_count,
 				     vdo_page_read_function *read_hook,
 				     vdo_page_write_function *write_hook,
