@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#93 $
  */
 
 #include "recoveryJournal.h"
@@ -36,6 +36,8 @@
 #include "recoveryJournalFormat.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
+#include "vdo.h"
+#include "vdoInternal.h"
 #include "waitQueue.h"
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
@@ -733,7 +735,6 @@ static void schedule_block_write(struct recovery_journal *journal,
 				 struct recovery_journal_block *block)
 {
 	int result;
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 
 	if (block->committing) {
 		return;
@@ -746,7 +747,7 @@ static void schedule_block_write(struct recovery_journal *journal,
 		return;
 	}
 
-	if ((layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC)) {
+	if (get_write_policy(journal->flush_vio->vdo) == WRITE_POLICY_ASYNC) {
 		/*
 		 * At the end of adding entries, or discovering this partial
 		 * block is now full and ready to rewrite, we will call
@@ -1073,8 +1074,6 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
  **/
 static void write_blocks(struct recovery_journal *journal)
 {
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
-
 	assert_on_journal_thread(journal, __func__);
 	/*
 	 * In sync and async-unsafe modes, we call this function each time we
@@ -1093,7 +1092,7 @@ static void write_blocks(struct recovery_journal *journal)
 	 * no pending writes.
 	 */
 
-	if ((layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC)
+	if ((get_write_policy(journal->flush_vio->vdo) != WRITE_POLICY_ASYNC)
 	    || (journal->pending_write_count == 0)) {
 		// Write all the full blocks.
 		notify_all_waiters(&journal->pending_writes, write_block, NULL);
@@ -1150,8 +1149,6 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
  **/
 static void reap_recovery_journal(struct recovery_journal *journal)
 {
-	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
-
 	if (journal->reaping) {
 		// We already have an outstanding reap in progress. We need to
 		// wait for it to finish.
@@ -1191,7 +1188,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
+	if (get_write_policy(journal->flush_vio->vdo) != WRITE_POLICY_SYNC) {
 		/*
 		 * If the block map head will advance, we must flush any block
 		 * map page modified by the entries we are reaping. If the slab
