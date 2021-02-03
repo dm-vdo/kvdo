@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#31 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -103,7 +103,7 @@ struct vdo_page_cache {
  * data is stable and may be accessed. Otherwise the page is in flight
  * (incoming or outgoing) and its data should not be accessed.
  *
- * @note Update the static data in vpc_page_state_name() if you change this
+ * @note Update the static data in get_page_state_name() if you change this
  * enumeration.
  **/
 enum vdo_page_buffer_state {
@@ -158,85 +158,11 @@ struct page_info {
 	byte context[MAX_PAGE_CONTEXT_SIZE];
 };
 
-// PAGE INFO LIST OPERATIONS
-
-/**********************************************************************/
-static inline struct page_info *
-page_info_from_state_entry(struct list_head *entry)
-{
-	if (entry == NULL) {
-		return NULL;
-	}
-	return list_entry(entry, struct page_info, state_entry);
-}
-
-/**********************************************************************/
-static inline struct page_info *
-page_info_from_lru_entry(struct list_head *entry)
-{
-	if (entry == NULL) {
-		return NULL;
-	}
-	return list_entry(entry, struct page_info, lru_entry);
-}
-
-// PAGE INFO STATE ACCESSOR FUNCTIONS
-
-/**********************************************************************/
-static inline bool is_free(const struct page_info *info)
-{
-	return info->state == PS_FREE;
-}
-
-/**********************************************************************/
-static inline bool is_available(const struct page_info *info)
-{
-	return (info->state == PS_FREE) || (info->state == PS_FAILED);
-}
-
-/**********************************************************************/
-static inline bool is_present(const struct page_info *info)
-{
-	return (info->state == PS_RESIDENT) || (info->state == PS_DIRTY);
-}
-
 /**********************************************************************/
 static inline bool is_dirty(const struct page_info *info)
 {
 	return info->state == PS_DIRTY;
 }
-
-/**********************************************************************/
-static inline bool is_resident(const struct page_info *info)
-{
-	return info->state == PS_RESIDENT;
-}
-
-/**********************************************************************/
-static inline bool is_in_flight(const struct page_info *info)
-{
-	return (info->state == PS_INCOMING) || (info->state == PS_OUTGOING);
-}
-
-/**********************************************************************/
-static inline bool is_incoming(const struct page_info *info)
-{
-	return info->state == PS_INCOMING;
-}
-
-/**********************************************************************/
-static inline bool is_outgoing(const struct page_info *info)
-{
-	return info->state == PS_OUTGOING;
-}
-
-/**********************************************************************/
-static inline bool is_valid(const struct page_info *info)
-{
-	return is_present(info) || is_outgoing(info);
-}
-
-// COMPLETION CONVERSIONS
 
 /**********************************************************************/
 static inline struct vdo_page_completion *
@@ -245,26 +171,6 @@ as_vdo_page_completion(struct vdo_completion *completion)
 	assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
 	return container_of(completion, struct vdo_page_completion, completion);
 }
-
-/**********************************************************************/
-static inline struct vdo_page_completion *
-page_completion_from_waiter(struct waiter *waiter)
-{
-	struct vdo_page_completion *completion;
-	if (waiter == NULL) {
-		return NULL;
-	}
-
-	completion = container_of(waiter, struct vdo_page_completion, waiter);
-	assert_completion_type(completion->completion.type,
-			       VDO_PAGE_COMPLETION);
-	return completion;
-}
-
-// COMMONLY USED FUNCTIONS
-
-// All of these functions are prefixed "vpc" in order to prevent namespace
-// issues (ordinarily they would be static).
 
 /**
  * Find the page info (if any) associated with a given pbn.
@@ -276,18 +182,5 @@ page_completion_from_waiter(struct waiter *waiter)
  **/
 struct page_info * __must_check
 vpc_find_page(struct vdo_page_cache *cache, physical_block_number_t pbn);
-
-/**
- * Return the name of a page state.
- *
- * @param state     a page state
- *
- * @return a pointer to a static page state name
- *
- * @note If the page state is invalid a static string is returned and the
- *       invalid state is logged.
- **/
-const char * __must_check
-vpc_page_state_name(enum vdo_page_buffer_state state);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

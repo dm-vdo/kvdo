@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#57 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -49,10 +49,75 @@ enum {
 #define ADD_ONCE(value, delta) WRITE_ONCE(value, (value) + (delta))
 
 /**********************************************************************/
+static inline bool is_present(const struct page_info *info)
+{
+	return (info->state == PS_RESIDENT) || (info->state == PS_DIRTY);
+}
+
+/**********************************************************************/
+static inline bool is_in_flight(const struct page_info *info)
+{
+	return (info->state == PS_INCOMING) || (info->state == PS_OUTGOING);
+}
+
+/**********************************************************************/
+static inline bool is_incoming(const struct page_info *info)
+{
+	return info->state == PS_INCOMING;
+}
+
+/**********************************************************************/
+static inline bool is_outgoing(const struct page_info *info)
+{
+	return info->state == PS_OUTGOING;
+}
+
+/**********************************************************************/
+static inline bool is_valid(const struct page_info *info)
+{
+	return is_present(info) || is_outgoing(info);
+}
+
+/**********************************************************************/
 static char *get_page_buffer(struct page_info *info)
 {
 	struct vdo_page_cache *cache = info->cache;
 	return &cache->pages[(info - cache->infos) * VDO_BLOCK_SIZE];
+}
+
+/**********************************************************************/
+static inline struct page_info *
+page_info_from_state_entry(struct list_head *entry)
+{
+	if (entry == NULL) {
+		return NULL;
+	}
+	return list_entry(entry, struct page_info, state_entry);
+}
+
+/**********************************************************************/
+static inline struct page_info *
+page_info_from_lru_entry(struct list_head *entry)
+{
+	if (entry == NULL) {
+		return NULL;
+	}
+	return list_entry(entry, struct page_info, lru_entry);
+}
+
+/**********************************************************************/
+static inline struct vdo_page_completion *
+page_completion_from_waiter(struct waiter *waiter)
+{
+	struct vdo_page_completion *completion;
+	if (waiter == NULL) {
+		return NULL;
+	}
+
+	completion = container_of(waiter, struct vdo_page_completion, waiter);
+	assert_completion_type(completion->completion.type,
+			       VDO_PAGE_COMPLETION);
+	return completion;
 }
 
 /**
@@ -271,8 +336,18 @@ static void report_cache_pressure(struct vdo_page_cache *cache)
 	}
 }
 
-/**********************************************************************/
-const char *vpc_page_state_name(enum vdo_page_buffer_state state)
+/**
+ * Return the name of a page state.
+ *
+ * @param state     a page state
+ *
+ * @return a pointer to a static page state name
+ *
+ * @note If the page state is invalid a static string is returned and the
+ *       invalid state is logged.
+ **/
+static const char * __must_check
+get_page_state_name(enum vdo_page_buffer_state state)
 {
 	int result;
 	static const char *state_names[] = {
@@ -538,7 +613,7 @@ static void complete_with_page(struct page_info *info,
 		log_error_strerror(VDO_BAD_PAGE,
 				   "Requested cache page %llu in state %s is not %s",
 				   info->pbn,
-				   vpc_page_state_name(info->state),
+				   get_page_state_name(info->state),
 				   vdo_page_comp->writable ? "present" :
 				   "valid");
 		finish_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
