@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#41 $
  */
 
 #ifndef VIO_H
@@ -206,10 +206,6 @@ void vio_done_callback(struct vdo_completion *completion);
  *
  * @param vio     The vio
  * @param buffer  The buffer to populate with the vio operation name.
- *
- * @return The name of the vio's operation (read, write, empty,
- *	   read-modify-write, possibly with additional preflush
- *	   or postflush)
  **/
 void get_vio_operation_description(const struct vio *vio, char *buffer);
 
