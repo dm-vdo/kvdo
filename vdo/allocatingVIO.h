@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#28 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -151,19 +151,6 @@ waiter_as_allocating_vio(struct waiter *waiter)
 	}
 
 	return container_of(waiter, struct allocating_vio, waiter);
-}
-
-/**
- * Check whether an allocating_vio is a compressed block write.
- *
- * @param allocating_vio  The allocating_vio to check
- *
- * @return <code>true</code> if the allocating_vio is a compressed block write
- **/
-static inline bool
-is_compressed_write_allocating_vio(struct allocating_vio *allocating_vio)
-{
-	return is_compressed_write_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**

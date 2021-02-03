@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#17 $
  */
 
 /**
@@ -113,15 +113,6 @@ get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
  * @return The new size of the VDO
  **/
 block_count_t __must_check grow_vdo_layout(struct vdo_layout *vdo_layout);
-
-/**
- * Revert the last growth attempt.
- *
- * @param vdo_layout  The layout to revert
- *
- * @return The reverted size (in blocks) of the VDO
- **/
-block_count_t __must_check revert_vdo_layout(struct vdo_layout *vdo_layout);
 
 /**
  * Clean up any unused resources once an attempt to grow has completed.

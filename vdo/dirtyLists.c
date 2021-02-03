@@ -16,11 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#10 $
  */
 
 #include "dirtyLists.h"
-#include "dirtyListsInternals.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -187,10 +186,4 @@ void flush_dirty_lists(struct dirty_lists *dirty_lists)
 		expire_oldest_list(dirty_lists);
 	}
 	write_expired_elements(dirty_lists);
-}
-
-/**********************************************************************/
-sequence_number_t get_dirty_lists_next_period(struct dirty_lists *dirty_lists)
-{
-	return dirty_lists->next_period;
 }

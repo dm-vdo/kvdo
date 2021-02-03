@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#9 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -129,20 +129,6 @@ max_page_count(page_count_t a, page_count_t b)
  **/
 static inline size_t __must_check
 round_up_to_multiple_size_t(size_t number, size_t quantum)
-{
-	return number + quantum - 1 - ((number + quantum - 1) % quantum);
-}
-
-/**
- * Round upward towards the nearest multiple of quantum for uint64_t
- *
- * @param number        a number
- * @param quantum       the quantum
- *
- * @return the least multiple of quantum not less than number
- **/
-static inline uint64_t __must_check
-round_up_to_multiple_u_int64_t(uint64_t number, uint64_t quantum)
 {
 	return number + quantum - 1 - ((number + quantum - 1) % quantum);
 }

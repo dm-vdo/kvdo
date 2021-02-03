@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#66 $
  */
 
 #ifndef DATA_VIO_H
@@ -856,21 +856,6 @@ set_new_mapped_zone_callback(struct data_vio *data_vio,
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
 		     get_physical_zone_thread_id(data_vio->new_mapped.zone));
-}
-
-/**
- * Set a callback as a physical block operation in a data_vio's new_mapped zone
- * and queue the data_vio and invoke it immediately.
- *
- * @param data_vio  The data_vio
- * @param callback  The callback to invoke
- **/
-static inline void
-launch_new_mapped_zone_callback(struct data_vio *data_vio,
-				vdo_action *callback)
-{
-	set_new_mapped_zone_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**

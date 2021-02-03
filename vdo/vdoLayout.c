@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#21 $
  */
 
 #include "vdoLayout.h"
@@ -278,20 +278,6 @@ block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
 	vdo_layout->previous_layout = vdo_layout->layout;
 	vdo_layout->layout = vdo_layout->next_layout;
 	vdo_layout->next_layout = NULL;
-
-	return get_vdo_size(vdo_layout->layout, vdo_layout->starting_offset);
-}
-
-/**********************************************************************/
-block_count_t revert_vdo_layout(struct vdo_layout *vdo_layout)
-{
-	if ((vdo_layout->previous_layout != NULL) &&
-	    (vdo_layout->previous_layout != vdo_layout->layout)) {
-		// Only revert if there's something to revert to.
-		free_fixed_layout(&vdo_layout->layout);
-		vdo_layout->layout = vdo_layout->previous_layout;
-		vdo_layout->previous_layout = NULL;
-	}
 
 	return get_vdo_size(vdo_layout->layout, vdo_layout->starting_offset);
 }

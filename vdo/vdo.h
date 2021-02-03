@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#22 $
  */
 
 #ifndef VDO_H
@@ -104,15 +104,6 @@ block_count_t __must_check get_physical_blocks_free(const struct vdo *vdo);
  * @return The number of overhead blocks
  **/
 block_count_t __must_check get_physical_blocks_overhead(const struct vdo *vdo);
-
-/**
- * Get the total number of blocks used for the block map.
- *
- * @param vdo  The vdo
- *
- * @return The number of block map blocks
- **/
-block_count_t __must_check get_total_block_map_blocks(const struct vdo *vdo);
 
 /**
  * Get the vdo write policy.

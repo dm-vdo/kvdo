@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#34 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -176,16 +176,6 @@ zone_count_t compute_logical_zone(struct data_vio *data_vio);
 void find_block_map_slot(struct data_vio *data_vio,
 			 vdo_action *callback,
 			 thread_id_t thread_id);
-
-/**
- * Get number of block map pages at predetermined locations.
- *
- * @param map  The block map
- *
- * @return The number of fixed pages used by the map
- **/
-page_count_t __must_check
-get_number_of_fixed_block_map_pages(const struct block_map *map);
 
 /**
  * Get number of block map entries.
