@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#88 $
  */
 
 #include "dmvdo.h"
@@ -245,7 +245,6 @@ process_vdo_message_locked(struct kernel_layer *layer,
 			   unsigned int argc,
 			   char **argv)
 {
-
 	// Messages with fixed numbers of arguments.
 	switch (argc) {
 	case 1:
