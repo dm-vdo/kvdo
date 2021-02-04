@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#37 $
  */
 
 #ifndef VDO_SLAB_H
@@ -300,14 +300,6 @@ bool __must_check is_slab_draining(struct vdo_slab *slab);
  * @param slab  The slab to check
  **/
 void check_if_slab_drained(struct vdo_slab *slab);
-
-/**
- * Inform a slab that its journal has finished draining.
- *
- * @param slab    The slab whose journal has been drained
- * @param result  The result of the drain operation
- **/
-void notify_slab_journal_is_drained(struct vdo_slab *slab, int result);
 
 /**
  * Inform a slab that its ref_counts have finished draining.
