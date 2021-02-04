@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#37 $
  */
 
 #include "blockMapRecovery.h"
@@ -203,8 +203,8 @@ make_recovery_completion(struct vdo *vdo,
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
-		min_page_count(get_configured_cache_size(vdo) >> 1,
-			       MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
+		min(get_configured_cache_size(vdo) >> 1,
+		    (page_count_t) MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
 	struct block_map_recovery_completion *recovery;
 	int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,

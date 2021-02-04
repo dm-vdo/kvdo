@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#20 $
  */
 
 #include "partitionCopy.h"
@@ -132,8 +132,8 @@ static void copy_partition_stride(struct copy_completion *copy);
  **/
 static inline block_count_t get_stride_size(struct copy_completion *copy)
 {
-	return min_block_count(STRIDE_LENGTH,
-			       copy->ending_index - copy->current_index);
+	return min((block_count_t) STRIDE_LENGTH,
+		   copy->ending_index - copy->current_index);
 }
 
 /**

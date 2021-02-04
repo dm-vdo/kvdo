@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#45 $
  */
 
 #include "readOnlyRebuild.h"
@@ -339,8 +339,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 		// Don't extract more than the expected maximum entries per
 		// block.
-		block_entries = min_block(journal->entries_per_block,
-					  header.entry_count);
+		block_entries = min(journal->entries_per_block,
+				    header.entry_count);
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			journal_entry_count_t sector_entries;
 
@@ -353,26 +353,26 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			}
 
 			if (!is_valid_recovery_journal_sector(&header, sector)) {
-				block_entries -= min_block(block_entries,
-							   RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				block_entries -=
+					min(block_entries,
+					    (journal_entry_count_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 				continue;
 			}
 
 			// Don't extract more than the expected maximum entries
 			// per sector.
 			sector_entries =
-				min_block(sector->entry_count,
-					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				min(sector->entry_count,
+				    (uint8_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 			// Only extract as many as the block header calls for.
-			sector_entries = min_block(sector_entries,
-						   block_entries);
+			sector_entries = min(sector_entries, block_entries);
 			append_sector_entries(rebuild, sector, sector_entries);
 			// Even if the sector wasn't full, count it as full
 			// when counting up to the entry count the block
 			// header claims.
 			block_entries -=
-				min_block(block_entries,
-					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				min(block_entries,
+				    (journal_entry_count_t) RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 		}
 	}
 

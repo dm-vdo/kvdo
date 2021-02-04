@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#6 $
  */
 
 #include "blockMapFormat.h"
@@ -175,7 +175,7 @@ block_count_t compute_new_forest_pages(root_count_t root_count,
 				       struct boundary *new_sizes)
 {
 	page_count_t leaf_pages
-		= max_page_count(compute_block_map_page_count(entries), 1);
+		= max(compute_block_map_page_count(entries), 1U);
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;

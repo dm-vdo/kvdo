@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#78 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -926,9 +926,8 @@ find_missing_decrefs(struct recovery_completion *recovery)
 	struct int_map *slot_entry_map = recovery->slot_entry_map;
 	// A buffer is allocated based on the number of incref entries found, so
 	// use the earliest head.
-	sequence_number_t head =
-		min_sequence_number(recovery->block_map_head,
-				    recovery->slab_journal_head);
+	sequence_number_t head = min(recovery->block_map_head,
+				     recovery->slab_journal_head);
 	struct recovery_point head_point = {
 		.sequence_number = head,
 		.sector_count = 1,
@@ -1156,9 +1155,8 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 static bool find_contiguous_range(struct recovery_completion *recovery)
 {
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
-	sequence_number_t head =
-		min_sequence_number(recovery->block_map_head,
-				    recovery->slab_journal_head);
+	sequence_number_t head = min(recovery->block_map_head,
+				     recovery->slab_journal_head);
 
 	bool found_entries = false;
 	sequence_number_t i;
@@ -1193,7 +1191,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			struct packed_journal_sector *sector =
 				get_journal_block_sector(packed_header, j);
 			journal_entry_count_t sector_entries =
-				min_block(sector->entry_count, block_entries);
+				min((journal_entry_count_t) sector->entry_count,
+				    block_entries);
 
 			// A bad sector means that this block was torn.
 			if (!is_valid_recovery_journal_sector(&header,

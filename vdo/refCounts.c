@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#63 $
  */
 
 #include "refCounts.h"
@@ -102,7 +102,7 @@ static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
 		return 0;
 	}
 	index = (pbn - ref_counts->slab->start);
-	return min_block(index, ref_counts->block_count);
+	return min(index, (uint64_t) ref_counts->block_count);
 }
 
 /**********************************************************************/
@@ -133,8 +133,8 @@ static void reset_search_cursor(struct ref_counts *ref_counts)
 	cursor->index = 0;
 	// Unit tests have slabs with only one reference block (and it's a
 	// runt).
-	cursor->end_index = min_block(COUNTS_PER_BLOCK,
-				      ref_counts->block_count);
+	cursor->end_index = min((uint32_t) COUNTS_PER_BLOCK,
+				ref_counts->block_count);
 }
 
 /**
