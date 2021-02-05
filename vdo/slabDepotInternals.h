@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#34 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -26,14 +26,14 @@
 
 #include "atomicDefs.h"
 
-#include "actionManager.h"
+#include "types.h"
 
 struct slab_depot {
 	zone_count_t zone_count;
 	zone_count_t old_zone_count;
+	struct vdo *vdo;
 	struct slab_config slab_config;
 	struct slab_summary *slab_summary;
-	struct read_only_notifier *read_only_notifier;
 	struct action_manager *action_manager;
 
 	physical_block_number_t first_block;
@@ -51,11 +51,7 @@ struct slab_depot {
 	sequence_number_t new_release_request;
 
 	/** State variables for scrubbing complete handling */
-	atomic_t *vdo_state;
 	atomic_t zones_to_scrub;
-
-	/** Cached journal pointer for slab creation */
-	struct recovery_journal *journal;
 
 	/** Array of pointers to individually allocated slabs */
 	struct vdo_slab **slabs;

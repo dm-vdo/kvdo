@@ -16,22 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#44 $
  */
 
 #ifndef SLAB_DEPOT_H
 #define SLAB_DEPOT_H
 
-#include "atomicDefs.h"
-
 #include "adminState.h"
-#include "completion.h"
 #include "fixedLayout.h"
-#include "journalPoint.h"
 #include "slabDepotFormat.h"
 #include "statistics.h"
 #include "types.h"
-#include "waitQueue.h"
 
 /**
  * A slab_depot is responsible for managing all of the slabs and block
@@ -66,26 +61,16 @@ slab_count_t __must_check calculate_slab_count(struct slab_depot *depot);
  * Make a slab depot and configure it with the state read from the super block.
  *
  * @param [in]  state               The slab depot state from the super block
- * @param [in]  thread_config       The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
  * @param [in]  vdo                 The VDO which will own the depot
  * @param [in]  summary_partition   The partition which holds the slab summary
- * @param [in]  read_only_notifier  The context for entering read-only mode
- * @param [in]  recovery_journal    The recovery journal of the VDO
- * @param [in]  vdo_state           A pointer to the VDO's atomic state
  * @param [out] depot_ptr           A pointer to hold the depot
  *
  * @return A success or error code
  **/
 int __must_check
 decode_slab_depot(struct slab_depot_state_2_0 state,
-		  const struct thread_config *thread_config,
-		  nonce_t nonce,
 		  struct vdo *vdo,
 		  struct partition *summary_partition,
-		  struct read_only_notifier *read_only_notifier,
-		  struct recovery_journal *recovery_journal,
-		  atomic_t *vdo_state,
 		  struct slab_depot **depot_ptr);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#67 $
  */
 
 #include "vdoLoad.h"
@@ -362,14 +362,9 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	}
 
 	result = decode_slab_depot(vdo->states.slab_depot,
-				   thread_config,
-				   vdo->states.vdo.nonce,
 				   vdo,
 				   get_vdo_partition(vdo->layout,
 						     SLAB_SUMMARY_PARTITION),
-				   vdo->read_only_notifier,
-				   vdo->recovery_journal,
-				   &vdo->state,
 				   &vdo->depot);
 	if (result != VDO_SUCCESS) {
 		return result;

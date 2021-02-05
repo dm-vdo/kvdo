@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#89 $
  */
 
 #include "slabDepot.h"
@@ -28,6 +28,7 @@
 #include "actionManager.h"
 #include "adminState.h"
 #include "blockAllocatorInternals.h"
+#include "completion.h"
 #include "constants.h"
 #include "header.h"
 #include "numUtils.h"
@@ -43,6 +44,7 @@
 #include "threadConfig.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdoInternal.h"
 #include "vdoState.h"
 
 /**********************************************************************/
@@ -113,7 +115,7 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 		result = make_slab(slab_origin,
 				   allocator,
 				   translation,
-				   depot->journal,
+				   depot->vdo->recovery_journal,
 				   depot->new_slab_count,
 				   resizing,
 				   slab_ptr);
@@ -196,29 +198,23 @@ static bool schedule_tail_block_commit(void *context)
  * time, not at format time.
  *
  * @param depot               The depot
- * @param nonce               The nonce of the VDO
- * @param thread_config       The thread config of the VDO
- * @param vio_pool_size       The size of the VIO pool
- * @param vdo                 The VDO itself
  * @param summary_partition   The partition which holds the slab summary
  *
  * @return VDO_SUCCESS or an error
  **/
 static int allocate_components(struct slab_depot *depot,
-			       nonce_t nonce,
-			       const struct thread_config *thread_config,
-			       block_count_t vio_pool_size,
-			       struct vdo *vdo,
 			       struct partition *summary_partition)
 {
 	zone_count_t zone;
 	slab_count_t slab_count, i;
+	const struct thread_config *thread_config =
+		get_thread_config(depot->vdo);
 	int result = make_action_manager(depot->zone_count,
 					 get_allocator_thread_id,
 					 get_journal_zone_thread(thread_config),
 					 depot,
 					 schedule_tail_block_commit,
-					 vdo,
+					 depot->vdo,
 					 &depot->action_manager);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -226,12 +222,12 @@ static int allocate_components(struct slab_depot *depot,
 
 	depot->origin = depot->first_block;
 
-	result = make_slab_summary(vdo,
+	result = make_slab_summary(depot->vdo,
 				   summary_partition,
 				   thread_config,
 				   depot->slab_size_shift,
 				   depot->slab_config.data_blocks,
-				   depot->read_only_notifier,
+				   depot->vdo->read_only_notifier,
 				   &depot->slab_summary);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -252,10 +248,10 @@ static int allocate_components(struct slab_depot *depot,
 		result = make_block_allocator(depot,
 					      zone,
 					      thread_id,
-					      nonce,
-					      vio_pool_size,
-					      vdo,
-					      depot->read_only_notifier,
+					      depot->vdo->states.vdo.nonce,
+					      VIO_POOL_SIZE,
+					      depot->vdo,
+					      depot->vdo->read_only_notifier,
 					      &depot->allocators[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
@@ -284,18 +280,14 @@ static int allocate_components(struct slab_depot *depot,
 
 /**********************************************************************/
 int decode_slab_depot(struct slab_depot_state_2_0 state,
-		      const struct thread_config *thread_config,
-		      nonce_t nonce,
 		      struct vdo *vdo,
 		      struct partition *summary_partition,
-		      struct read_only_notifier *read_only_notifier,
-		      struct recovery_journal *recovery_journal,
-		      atomic_t *vdo_state,
 		      struct slab_depot **depot_ptr)
 {
 	unsigned int slab_size_shift;
 	struct slab_depot *depot;
 	int result;
+	const struct thread_config *thread_config = get_thread_config(vdo);
 
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
@@ -308,28 +300,22 @@ int decode_slab_depot(struct slab_depot_state_2_0 state,
 
 	result = ALLOCATE_EXTENDED(struct slab_depot,
 				   thread_config->physical_zone_count,
-				   struct block_allocator *, __func__,
+				   struct block_allocator *,
+				   __func__,
 				   &depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
+	depot->vdo = vdo;
 	depot->old_zone_count = state.zone_count;
 	depot->zone_count = thread_config->physical_zone_count;
 	depot->slab_config = state.slab_config;
-	depot->read_only_notifier = read_only_notifier;
 	depot->first_block = state.first_block;
 	depot->last_block = state.last_block;
 	depot->slab_size_shift = slab_size_shift;
-	depot->journal = recovery_journal;
-	depot->vdo_state = vdo_state;
 
-	result = allocate_components(depot,
-				     nonce,
-				     thread_config,
-				     VIO_POOL_SIZE,
-				     vdo,
-				     summary_partition);
+	result = allocate_components(depot, summary_partition);
 	if (result != VDO_SUCCESS) {
 		free_slab_depot(&depot);
 		return result;
@@ -447,7 +433,7 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
 
 	result = get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(depot->read_only_notifier, result);
+		enter_read_only_mode(depot->vdo->read_only_notifier, result);
 		return NULL;
 	}
 
@@ -691,7 +677,7 @@ void drain_slab_depot(struct slab_depot *depot,
 /**********************************************************************/
 void resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
-	if (is_read_only(depot->read_only_notifier)) {
+	if (is_read_only(depot->vdo->read_only_notifier)) {
 		finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
@@ -762,7 +748,7 @@ void notify_zone_finished_scrubbing(struct vdo_completion *completion)
 	}
 
 	// We're the last!
-	prior_state = atomic_cmpxchg(depot->vdo_state,
+	prior_state = atomic_cmpxchg(&depot->vdo->state,
 				     VDO_RECOVERING, VDO_DIRTY);
 	// To be safe, even if the CAS failed, ensure anything that follows is
 	// ordered with respect to whatever state change did happen.

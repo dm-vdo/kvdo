@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#100 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -25,6 +25,8 @@
 #include "memoryAlloc.h"
 
 #include "adminState.h"
+#include "actionManager.h"
+#include "completion.h"
 #include "heap.h"
 #include "numUtils.h"
 #include "priorityTable.h"
