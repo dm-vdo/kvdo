@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#151 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#152 $
  */
 
 #include "kernelLayer.h"
@@ -446,13 +446,6 @@ static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-static enum write_policy vdo_get_write_policy(PhysicalLayer *common)
-{
-	struct kernel_layer *layer = as_kernel_layer(common);
-	return get_write_policy(&layer->vdo);
-}
-
 /**
  * Function that is called when a synchronous operation is completed. We let
  * the waiting thread know it can continue.
@@ -577,7 +570,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->starting_sector_offset = starting_sector;
 	INIT_LIST_HEAD(&layer->device_config_list);
 
-	layer->common.getWritePolicy = vdo_get_write_policy;
 	layer->common.waitForAdminOperation = wait_for_sync_operation;
 	layer->common.completeAdminOperation = vdo_complete_sync_operation;
 	spin_lock_init(&layer->flush_lock);

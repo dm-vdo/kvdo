@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#78 $
  */
 
 #include "slabJournalInternals.h"
@@ -31,6 +31,7 @@
 #include "recoveryJournal.h"
 #include "refCounts.h"
 #include "slabDepot.h"
+#include "slabDepotInternals.h"
 #include "slabSummary.h"
 
 /**********************************************************************/
@@ -399,7 +400,6 @@ static void flush_for_reaping(struct waiter *waiter, void *vio_context)
  **/
 static void reap_slab_journal(struct slab_journal *journal)
 {
-	PhysicalLayer *layer = journal->slab->allocator->completion.layer;
 	bool reaped = false;
 	int result;
 
@@ -435,10 +435,12 @@ static void reap_slab_journal(struct slab_journal *journal)
 		return;
 	}
 
-	if (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC) {
+	if (get_write_policy(journal->slab->allocator->depot->vdo)
+	    == WRITE_POLICY_SYNC) {
 		finish_reaping(journal);
 		return;
 	}
+
 	/*
 	 * In async mode, it is never safe to reap a slab journal block without
 	 * first issuing a flush, regardless of whether a user flush has been
