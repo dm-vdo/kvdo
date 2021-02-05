@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#64 $
  */
 
 #include "refCounts.h"
@@ -317,9 +317,15 @@ block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
 	return ref_counts->free_blocks;
 }
 
-/**********************************************************************/
-struct reference_block *get_reference_block(struct ref_counts *ref_counts,
-					    slab_block_number index)
+/**
+ * Get the reference block that covers the given block index.
+ *
+ * @param ref_counts  The refcounts object
+ * @param index       The block index
+ **/
+static struct reference_block * __must_check
+get_reference_block(struct ref_counts *ref_counts,
+		    slab_block_number index)
 {
 	return &ref_counts->blocks[index / COUNTS_PER_BLOCK];
 }
@@ -780,20 +786,6 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-int get_reference_status(struct ref_counts *ref_counts,
-			 physical_block_number_t pbn,
-			 enum reference_status *status_ptr)
-{
-	vdo_refcount_t *counter_ptr = NULL;
-	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*status_ptr = reference_count_to_status(*counter_ptr);
-	return VDO_SUCCESS;
-}
 
 /**********************************************************************/
 bool are_equivalent_reference_counters(struct ref_counts *counter_a,
@@ -1208,15 +1200,28 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	}
 }
 
-/**********************************************************************/
-vdo_refcount_t *get_reference_counters_for_block(struct reference_block *block)
+/**
+ * Find the reference counters for a given block.
+ *
+ * @param block  The reference_block in question
+ *
+ * @return A pointer to the reference counters for this block
+ **/
+static vdo_refcount_t * __must_check
+get_reference_counters_for_block(struct reference_block *block)
 {
 	size_t block_index = block - block->ref_counts->blocks;
 	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
 }
 
-/**********************************************************************/
-void pack_reference_block(struct reference_block *block, void *buffer)
+/**
+ * Copy data from a reference block to a buffer ready to be written out.
+ *
+ * @param block   The block to copy
+ * @param buffer  The char buffer to fill with the packed block
+ **/
+static void
+pack_reference_block(struct reference_block *block, void *buffer)
 {
 	struct packed_reference_block *packed = buffer;
 	vdo_refcount_t *counters = get_reference_counters_for_block(block);

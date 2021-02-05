@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#23 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -163,48 +163,6 @@ reference_count_to_status(vdo_refcount_t count);
 struct ref_counts * __must_check
 as_ref_counts(struct vdo_completion *completion);
 
-/**
- * Get the reference block that covers the given block index (exposed for
- * testing).
- *
- * @param ref_counts  The refcounts object
- * @param index       The block index
- **/
-struct reference_block * __must_check
-get_reference_block(struct ref_counts *ref_counts, slab_block_number index);
-
-/**
- * Find the reference counters for a given block (exposed for testing).
- *
- * @param block  The reference_block in question
- *
- * @return A pointer to the reference counters for this block
- **/
-vdo_refcount_t * __must_check
-get_reference_counters_for_block(struct reference_block *block);
-
-/**
- * Copy data from a reference block to a buffer ready to be written out
- * (exposed for testing).
- *
- * @param block   The block to copy
- * @param buffer  The char buffer to fill with the packed block
- **/
-void pack_reference_block(struct reference_block *block, void *buffer);
-
-/**
- * Get the reference status of a block. Exposed only for unit testing.
- *
- * @param [in]  ref_counts   The refcounts object
- * @param [in]  pbn          The physical block number
- * @param [out] status_ptr   Where to put the status of the block
- *
- * @return                  A success or error code, specifically:
- *                          VDO_OUT_OF_RANGE if the pbn is out of range.
- **/
-int __must_check get_reference_status(struct ref_counts *ref_counts,
-				      physical_block_number_t pbn,
-				      enum reference_status *status_ptr);
 
 /**
  * Find the first block with a reference count of zero in the specified range
