@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#23 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -135,32 +135,5 @@ struct packer {
 	struct output_bin *idle_output_bins[];
 };
 
-/**
- * This returns the first bin in the free_space-sorted list.
- **/
-struct input_bin *get_fullest_bin(const struct packer *packer);
-
-/**
- * This returns the next bin in the free_space-sorted list.
- **/
-struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin);
-
-/**
- * Change the maxiumum number of compression slots the packer will use. The new
- * number of slots must be less than or equal to MAX_COMPRESSION_SLOTS. Bins
- * which already have fragments will not be resized until they are next written
- * out.
- *
- * @param packer  The packer
- * @param slots   The new number of slots
- **/
-void reset_slot_count(struct packer *packer, compressed_fragment_count_t slots);
-
-/**
- * Remove a data_vio from the packer. This method is exposed for testing.
- *
- * @param data_vio  The data_vio to remove
- **/
-void remove_from_packer(struct data_vio *data_vio);
 
 #endif /* PACKER_INTERNALS_H */

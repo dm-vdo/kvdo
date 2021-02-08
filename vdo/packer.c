@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#66 $
  */
 
 #include "packerInternals.h"
@@ -47,8 +47,11 @@ static inline void assert_on_packer_thread(struct packer *packer,
 			"%s() called from packer thread", caller);
 }
 
-/**********************************************************************/
-struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin)
+/**
+ * This returns the next bin in the free_space-sorted list.
+ **/
+static struct input_bin * __must_check
+next_bin(const struct packer *packer, struct input_bin *bin)
 {
 	if (bin->list.next == &packer->input_bins) {
 		return NULL;
@@ -57,8 +60,11 @@ struct input_bin *next_bin(const struct packer *packer, struct input_bin *bin)
 	}
 }
 
-/**********************************************************************/
-struct input_bin *get_fullest_bin(const struct packer *packer)
+/**
+ * This returns the first bin in the free_space-sorted list.
+ **/
+static struct input_bin * __must_check
+get_fullest_bin(const struct packer *packer)
 {
 	if (list_empty(&packer->input_bins)) {
 		return NULL;
@@ -917,11 +923,12 @@ void flush_packer(struct packer *packer)
 	}
 }
 
-/*
- * This method is only exposed for unit tests and should not normally be called
- * directly; use remove_lock_holder_from_packer() instead.
- */
-void remove_from_packer(struct data_vio *data_vio)
+/**
+ * Remove a data_vio from the packer.
+ *
+ * @param data_vio  The data_vio to remove
+ **/
+static void remove_from_packer(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	struct input_bin *bin = data_vio->compression.bin;
@@ -993,15 +1000,6 @@ void resume_packer(struct packer *packer, struct vdo_completion *parent)
 	finish_completion(parent, resume_if_quiescent(&packer->state));
 }
 
-/**********************************************************************/
-void reset_slot_count(struct packer *packer, compressed_fragment_count_t slots)
-{
-	if (slots > MAX_COMPRESSION_SLOTS) {
-		return;
-	}
-
-	packer->max_slots = slots;
-}
 
 /**********************************************************************/
 static void dump_input_bin(const struct input_bin *bin, bool canceled)
