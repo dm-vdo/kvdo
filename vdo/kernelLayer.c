@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#152 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#153 $
  */
 
 #include "kernelLayer.h"
@@ -1030,7 +1030,7 @@ int preload_kernel_layer(struct kernel_layer *layer,
 	}
 
 	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = preload_vdo(&layer->vdo, &layer->common, load_config, reason);
+	result = preload_vdo(&layer->vdo, load_config, reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;
@@ -1055,8 +1055,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		return UDS_BAD_STATE;
 	}
 
-	result = start_vdo(&layer->vdo, &layer->common, reason);
-
+	result = start_vdo(&layer->vdo, reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;

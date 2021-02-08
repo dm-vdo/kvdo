@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#37 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -57,13 +57,11 @@ int make_vdo_threads(struct vdo *vdo,
  * is ultimately called from the constructor for devices which have not been
  * resumed.
  *
- * @param [in]  vdo                  The vdo to be started
- * @param [in]  common               The physical layer pointer
- * @param [in]  load_config          Load-time parameters for the VDO
- * @param [out] reason               The reason for failure
+ * @param [in]  vdo          The vdo to be started
+ * @param [in]  load_config  Load-time parameters for the VDO
+ * @param [out] reason       The reason for failure
  **/
 int preload_vdo(struct vdo *vdo,
-		PhysicalLayer *common,
 		const struct vdo_load_config *load_config,
 		char **reason);
 
@@ -72,12 +70,11 @@ int preload_vdo(struct vdo *vdo,
  * is ultimately called from preresume the first time an instance is resumed.
  *
  * @param [in]  vdo     The vdo to be started
- * @param [in]  common  The physical layer pointer
  * @param [out] reason  The reason for failure
  *
  * @return VDO_SUCCESS if started, otherwise error
  **/
-int start_vdo(struct vdo *vdo, PhysicalLayer *common, char **reason);
+int start_vdo(struct vdo *vdo, char **reason);
 
 /**
  * Suspend the base VDO instance associated with the kernel layer.

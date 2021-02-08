@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#83 $
  */
 
 /*
@@ -149,12 +149,11 @@ int make_vdo_threads(struct vdo *vdo,
 
 /**********************************************************************/
 int preload_vdo(struct vdo *vdo,
-		PhysicalLayer *common,
 		const struct vdo_load_config *load_config,
 		char **reason)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(common);
+	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
 
 	init_completion(&layer->callback_sync);
 	result = prepare_to_load_vdo(vdo, load_config);
@@ -168,10 +167,10 @@ int preload_vdo(struct vdo *vdo,
 }
 
 /**********************************************************************/
-int start_vdo(struct vdo *vdo, PhysicalLayer *common, char **reason)
+int start_vdo(struct vdo *vdo, char **reason)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(common);
+	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
 
 	init_completion(&layer->callback_sync);
 	result = perform_vdo_load(vdo);
