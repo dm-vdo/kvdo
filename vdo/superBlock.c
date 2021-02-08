@@ -16,23 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#31 $
  */
 
 #include "superBlock.h"
 
-#include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "completion.h"
-#include "constants.h"
-#include "header.h"
-#include "releaseVersions.h"
 #include "statusCodes.h"
 #include "superBlockCodec.h"
 #include "types.h"
+#include "vdo.h"
 #include "vio.h"
 
 struct vdo_super_block {
@@ -50,14 +47,13 @@ struct vdo_super_block {
  * Allocate a super block. Callers must free the allocated super block even
  * on error.
  *
- * @param layer            The physical layer which holds the super block on
- *                         disk
- * @param super_block_ptr  A pointer to hold the new super block
+ * @param [in]  vdo              The vdo containing the super block on disk
+ * @param [out] super_block_ptr  A pointer to hold the new super block
  *
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check
-allocate_super_block(PhysicalLayer *layer,
+allocate_super_block(struct vdo *vdo,
 		     struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
@@ -69,23 +65,24 @@ allocate_super_block(PhysicalLayer *layer,
 	}
 
 	super_block = *super_block_ptr;
-	result = initialize_super_block_codec(layer, &super_block->codec);
+	result = initialize_super_block_codec(get_layer_from_vdo(vdo),
+					      &super_block->codec);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	return vdo_create_metadata_vio(layer, VIO_TYPE_SUPER_BLOCK,
-				       VIO_PRIORITY_METADATA, super_block,
-				       (char *) super_block->codec.encoded_super_block,
-				       &super_block->vio);
+	return create_metadata_vio(vdo, VIO_TYPE_SUPER_BLOCK,
+				   VIO_PRIORITY_METADATA, super_block,
+				   (char *) super_block->codec.encoded_super_block,
+				   &super_block->vio);
 }
 
 /**********************************************************************/
-int make_super_block(PhysicalLayer *layer,
+int make_super_block(struct vdo *vdo,
 		     struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
-	int result = allocate_super_block(layer, &super_block);
+	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
 		free_super_block(&super_block);
 		return result;
@@ -195,13 +192,13 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void load_super_block(struct vdo_completion *parent,
+void load_super_block(struct vdo *vdo,
+		      struct vdo_completion *parent,
 		      physical_block_number_t super_block_offset,
 		      struct vdo_super_block **super_block_ptr)
 {
-	PhysicalLayer *layer = parent->layer;
 	struct vdo_super_block *super_block = NULL;
-	int result = allocate_super_block(layer, &super_block);
+	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
 		free_super_block(&super_block);
 		finish_completion(parent, result);
