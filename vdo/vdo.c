@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#97 $
  */
 
 /*
@@ -29,7 +29,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "adminCompletion.h"
 #include "blockMap.h"
 #include "hashZone.h"
 #include "header.h"
@@ -51,19 +50,6 @@
 #include "vdoLayout.h"
 
 #include "workQueue.h"
-
-/**********************************************************************/
-int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo)
-{
-	int result = register_status_codes();
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	vdo->layer = layer;
-	initialize_admin_completion(vdo, &vdo->admin_completion);
-	return VDO_SUCCESS;
-}
 
 /**********************************************************************/
 void destroy_vdo(struct vdo *vdo)

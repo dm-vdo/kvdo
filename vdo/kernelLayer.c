@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#153 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#154 $
  */
 
 #include "kernelLayer.h"
@@ -33,12 +33,13 @@
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 
+#include "adminCompletion.h"
 #include "releaseVersions.h"
-#include "volumeGeometry.h"
 #include "statistics.h"
 #include "vdo.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "volumeGeometry.h"
 
 #include "bio.h"
 #include "dataKVIO.h"
@@ -516,12 +517,8 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	result = initialize_vdo(&layer->common, &layer->vdo);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot allocate VDO";
-		FREE(layer);
-		return result;
-	}
+	layer->vdo.layer = &layer->common;
+	initialize_admin_completion(&layer->vdo, &layer->vdo.admin_completion);
 
 	// After this point, calling kobject_put on kobj will decrement its
 	// reference count, and when the count goes to 0 the struct

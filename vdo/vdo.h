@@ -16,23 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#23 $
  */
 
 #ifndef VDO_H
 #define VDO_H
 
 #include "types.h"
-
-/**
- * Initialize a vdo structure and associate it with its physical layer.
- *
- * @param layer  The physical layer the vdo sits on
- * @param vdo    The vdo to initialize
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check initialize_vdo(PhysicalLayer *layer, struct vdo *vdo);
 
 /**
  * Destroy a vdo instance.
