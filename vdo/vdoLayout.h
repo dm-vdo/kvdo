@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#18 $
  */
 
 /**
@@ -73,7 +73,7 @@ get_vdo_partition(struct vdo_layout *vdo_layout, enum partition_id id);
  * @param vdo_layout           The layout to grow
  * @param old_physical_blocks  The current size of the VDO
  * @param new_physical_blocks  The size to which the VDO will be grown
- * @param layer                The layer being grown
+ * @param vdo                  The VDO being grown
  *
  * @return VDO_SUCCESS or an error code
  **/
@@ -81,7 +81,7 @@ int __must_check
 prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 			   block_count_t old_physical_blocks,
 			   block_count_t new_physical_blocks,
-			   PhysicalLayer *layer);
+			   struct vdo *vdo);
 
 /**
  * Get the size of the next layout.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#22 $
  */
 
 #include "vdoLayout.h"
@@ -29,10 +29,9 @@
 #include "partitionCopy.h"
 #include "slab.h"
 #include "slabSummary.h"
+#include "statusCodes.h"
 #include "types.h"
 #include "vdoInternal.h"
-
-#include "statusCodes.h"
 
 static const enum partition_id REQUIRED_PARTITIONS[] = {
 	BLOCK_MAP_PARTITION,
@@ -170,7 +169,7 @@ get_partition_size(struct vdo_layout *layout, enum partition_id id)
 int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 			       block_count_t old_physical_blocks,
 			       block_count_t new_physical_blocks,
-			       PhysicalLayer *layer)
+			       struct vdo *vdo)
 {
 	int result;
 	struct partition *slab_summary_partition, *recovery_journal_partition;
@@ -185,7 +184,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	// Make a copy completion if there isn't one
 	if (vdo_layout->copy_completion == NULL) {
 		int result =
-			make_copy_completion(layer, &vdo_layout->copy_completion);
+			make_copy_completion(vdo, &vdo_layout->copy_completion);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

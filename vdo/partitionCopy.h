@@ -16,25 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#7 $
  */
 
 #ifndef PARTITION_COPY_H
 #define PARTITION_COPY_H
 
 #include "fixedLayout.h"
-#include "physicalLayer.h"
 #include "types.h"
 
 /**
  * Make a copy completion.
  *
- * @param [in]  layer           The layer on which the partitions reside
+ * @param [in]  vdo             The VDO on which the partitions reside
  * @param [out] completion_ptr  A pointer to hold the copy completion
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_copy_completion(PhysicalLayer *layer,
+int __must_check make_copy_completion(struct vdo *vdo,
 				      struct vdo_completion **completion_ptr);
 
 /**
