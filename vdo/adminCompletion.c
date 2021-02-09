@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#28 $
  */
 
 #include "adminCompletion.h"
@@ -141,7 +141,6 @@ int perform_admin_operation(struct vdo *vdo,
 			    vdo_action *error_handler)
 {
 	int result;
-	PhysicalLayer *layer = vdo->layer;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
 	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0) {
 		return log_error_strerror(VDO_COMPONENT_BUSY,
@@ -160,7 +159,7 @@ int perform_admin_operation(struct vdo *vdo,
 	prepare_admin_sub_task(vdo, action, error_handler);
 
 	enqueue_completion(&admin_completion->sub_task_completion);
-	layer->waitForAdminOperation(layer);
+	vdo->layer->waitForAdminOperation(vdo->layer);
 	result = admin_completion->completion.result;
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);

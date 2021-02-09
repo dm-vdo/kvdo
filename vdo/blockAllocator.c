@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#101 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -208,7 +208,6 @@ static int allocate_components(struct block_allocator *allocator,
 		depot->slab_config.slab_journal_blocks;
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
-	PhysicalLayer *layer = get_layer_from_vdo(vdo);
 	int result;
 
 	result = register_read_only_listener(allocator->read_only_notifier,
@@ -220,7 +219,8 @@ static int allocate_components(struct block_allocator *allocator,
 	}
 
 	initialize_completion(&allocator->completion,
-			      BLOCK_ALLOCATOR_COMPLETION, layer);
+			      BLOCK_ALLOCATOR_COMPLETION,
+			      get_layer_from_vdo(vdo));
 	allocator->summary =
 		get_slab_summary_for_zone(depot, allocator->zone_number);
 
