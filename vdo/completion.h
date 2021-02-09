@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#32 $
  */
 
 #ifndef COMPLETION_H
@@ -139,6 +139,17 @@ void set_completion_result(struct vdo_completion *completion, int result);
 void initialize_completion(struct vdo_completion *completion,
 			   enum vdo_completion_type type,
 			   PhysicalLayer *layer);
+
+/**
+ * Initialize a completion to a clean state, for reused completions.
+ *
+ * @param completion The completion to initialize
+ * @param vdo        The VDO instance
+ * @param type       The type of the completion
+ **/
+void initialize_vdo_completion(struct vdo_completion *completion,
+			       struct vdo *vdo,
+			       enum vdo_completion_type type);
 
 /**
  * Reset a completion to a clean state, while keeping

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#102 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -218,9 +218,8 @@ static int allocate_components(struct block_allocator *allocator,
 		return result;
 	}
 
-	initialize_completion(&allocator->completion,
-			      BLOCK_ALLOCATOR_COMPLETION,
-			      get_layer_from_vdo(vdo));
+	initialize_vdo_completion(&allocator->completion, vdo,
+				  BLOCK_ALLOCATOR_COMPLETION);
 	allocator->summary =
 		get_slab_summary_for_zone(depot, allocator->zone_number);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#79 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -309,10 +309,10 @@ int make_recovery_completion(struct vdo *vdo,
 		initialize_wait_queue(&recovery->missing_decrefs[z]);
 	}
 
-	initialize_completion(&recovery->completion, RECOVERY_COMPLETION,
-			      vdo->layer);
-	initialize_completion(&recovery->sub_task_completion,
-			      SUB_TASK_COMPLETION, vdo->layer);
+	initialize_vdo_completion(&recovery->completion, vdo,
+				  RECOVERY_COMPLETION);
+	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
+				  SUB_TASK_COMPLETION);
 
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {

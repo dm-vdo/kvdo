@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#36 $
  */
 
 #include "vio.h"
@@ -106,7 +106,7 @@ void initialize_vio(struct vio *vio,
 	vio->priority = priority;
 	vio->data = data;
 
-	initialize_completion(completion, VIO_COMPLETION, vdo->layer);
+	initialize_vdo_completion(completion, vdo, VIO_COMPLETION);
 	completion->parent = parent;
 }
 

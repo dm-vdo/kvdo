@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#29 $
  */
 
 #include "adminCompletion.h"
@@ -78,11 +78,10 @@ void initialize_admin_completion(struct vdo *vdo,
 				 struct admin_completion *admin_completion)
 {
 	admin_completion->vdo = vdo;
-	initialize_completion(&admin_completion->completion, ADMIN_COMPLETION,
-			      vdo->layer);
-
-	initialize_completion(&admin_completion->sub_task_completion,
-			      SUB_TASK_COMPLETION, vdo->layer);
+	initialize_vdo_completion(&admin_completion->completion, vdo,
+				  ADMIN_COMPLETION);
+	initialize_vdo_completion(&admin_completion->sub_task_completion, vdo,
+				  SUB_TASK_COMPLETION);
 	atomic_set(&admin_completion->busy, 0);
 }
 

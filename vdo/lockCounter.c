@@ -16,15 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#23 $
  */
 
 #include "lockCounter.h"
 
 #include "atomicDefs.h"
 #include "memoryAlloc.h"
-
-#include "vdoInternal.h"
 
 /**
  * A lock_counter is intended to keep all of the locks for the blocks in the
@@ -131,8 +129,8 @@ int make_lock_counter(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_completion(&lock_counter->completion,
-			      LOCK_COUNTER_COMPLETION, vdo->layer);
+	initialize_vdo_completion(&lock_counter->completion, vdo,
+				  LOCK_COUNTER_COMPLETION);
 	set_callback_with_parent(&lock_counter->completion, callback,
 				 thread_id, parent);
 	lock_counter->logical_zones = logical_zones;

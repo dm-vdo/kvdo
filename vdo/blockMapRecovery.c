@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#38 $
  */
 
 #include "blockMapRecovery.h"
@@ -216,10 +216,10 @@ make_recovery_completion(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_completion(&recovery->completion,
-			      BLOCK_MAP_RECOVERY_COMPLETION, vdo->layer);
-	initialize_completion(&recovery->sub_task_completion,
-			      SUB_TASK_COMPLETION, vdo->layer);
+	initialize_vdo_completion(&recovery->completion, vdo,
+				  BLOCK_MAP_RECOVERY_COMPLETION);
+	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
+				  SUB_TASK_COMPLETION);
 	recovery->block_map = block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;

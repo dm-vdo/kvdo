@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#52 $
  */
 
 #include "slabScrubberInternals.h"
@@ -82,9 +82,8 @@ int make_slab_scrubber(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_completion(&scrubber->completion,
-			      SLAB_SCRUBBER_COMPLETION,
-			      get_layer_from_vdo(vdo));
+	initialize_vdo_completion(&scrubber->completion, vdo,
+				  SLAB_SCRUBBER_COMPLETION);
 	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
 	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;

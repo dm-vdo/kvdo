@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#22 $
  */
 
 #include "partitionCopy.h"
@@ -76,8 +76,8 @@ int make_copy_completion(struct vdo *vdo,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	initialize_completion(&copy->completion, PARTITION_COPY_COMPLETION,
-			      vdo->layer);
+	initialize_vdo_completion(&copy->completion, vdo,
+				  PARTITION_COPY_COMPLETION);
 
 	result = ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
 			  char,

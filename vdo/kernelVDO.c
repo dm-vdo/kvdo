@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#84 $
  */
 
 /*
@@ -276,9 +276,8 @@ static void perform_vdo_operation(struct vdo *vdo,
 
 	memset(&sync, 0, sizeof(sync));
 	sync.vdo = vdo;
-        initialize_completion(&sync.vdo_completion, SYNC_COMPLETION,
-			      vdo->layer);
-        init_completion(&sync.completion);
+	initialize_vdo_completion(&sync.vdo_completion, vdo, SYNC_COMPLETION);
+	init_completion(&sync.completion);
 
 	sync.data = data;
 

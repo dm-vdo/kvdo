@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#47 $
  */
 
 #include "referenceCountRebuild.h"
@@ -155,10 +155,10 @@ static int make_rebuild_completion(struct vdo *vdo,
 		return result;
 	}
 
-	initialize_completion(&rebuild->completion,
-			      REFERENCE_COUNT_REBUILD_COMPLETION, vdo->layer);
-	initialize_completion(&rebuild->sub_task_completion,
-			      SUB_TASK_COMPLETION, vdo->layer);
+	initialize_vdo_completion(&rebuild->completion, vdo,
+				  REFERENCE_COUNT_REBUILD_COMPLETION);
+	initialize_vdo_completion(&rebuild->sub_task_completion, vdo,
+				  SUB_TASK_COMPLETION);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &rebuild->completion;
 		free_rebuild_completion(&completion);
