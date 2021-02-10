@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#74 $
  */
 
 #include "kvio.h"
@@ -204,7 +204,7 @@ int create_compressed_write_vio(struct vdo *vdo,
 				char *data,
 				struct allocating_vio **allocating_vio_ptr)
 {
-	struct kernel_layer *kernel_layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *kernel_layer = vdo_as_kernel_layer(vdo);
 	struct bio *bio;
 	struct allocating_vio *allocating_vio;
 	struct vio *vio;

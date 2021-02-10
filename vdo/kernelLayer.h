@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#62 $
  */
 
 #ifndef KERNELLAYER_H
@@ -354,6 +354,18 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);
 static inline struct kernel_layer *as_kernel_layer(PhysicalLayer *layer)
 {
 	return container_of(layer, struct kernel_layer, common);
+}
+
+/**
+ * Convert a struct vdo pointer to the kernel_layer contining it.
+ *
+ * @param vdo  The vdo to convert
+ *
+ * @return The enclosing struct kernel_layer
+ **/
+static inline struct kernel_layer *vdo_as_kernel_layer(struct vdo *vdo)
+{
+	return container_of(vdo, struct kernel_layer, vdo);
 }
 
 /**

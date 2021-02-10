@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#154 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#155 $
  */
 
 #include "kernelLayer.h"
@@ -106,7 +106,9 @@ crc32_checksum_t update_crc32(crc32_checksum_t crc, const byte *buffer,
 /**********************************************************************/
 block_count_t get_vdo_physical_block_count(const struct vdo *vdo)
 {
-	return as_kernel_layer(vdo->layer)->device_config->physical_blocks;
+	const struct kernel_layer *layer =
+		container_of(vdo, struct kernel_layer, vdo);
+	return layer->device_config->physical_blocks;
 }
 
 /**********************************************************************/

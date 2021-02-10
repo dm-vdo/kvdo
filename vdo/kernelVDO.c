@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#85 $
  */
 
 /*
@@ -53,7 +53,7 @@ static void start_vdo_request_queue(void *ptr)
 {
 	struct vdo_thread *thread = ptr;
 	struct vdo *vdo = thread->vdo;
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	register_allocating_thread(&thread->allocating_thread,
 				   &layer->allocations_allowed);
 }
@@ -93,7 +93,7 @@ int make_vdo_threads(struct vdo *vdo,
 		     const struct thread_config *thread_config,
 		     char **reason)
 {
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	unsigned int base_threads = thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
 			      struct vdo_thread,
@@ -153,7 +153,7 @@ int preload_vdo(struct vdo *vdo,
 		char **reason)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	init_completion(&layer->callback_sync);
 	result = prepare_to_load_vdo(vdo, load_config);
@@ -170,7 +170,7 @@ int preload_vdo(struct vdo *vdo,
 int start_vdo(struct vdo *vdo, char **reason)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	init_completion(&layer->callback_sync);
 	result = perform_vdo_load(vdo);
@@ -186,7 +186,7 @@ int start_vdo(struct vdo *vdo, char **reason)
 /**********************************************************************/
 int suspend_vdo(struct vdo *vdo)
 {
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	int result;
 
 	init_completion(&layer->callback_sync);
@@ -205,7 +205,7 @@ int suspend_vdo(struct vdo *vdo)
 /**********************************************************************/
 int resume_vdo(struct vdo *vdo)
 {
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	init_completion(&layer->callback_sync);
 	return perform_vdo_resume(vdo);
@@ -374,7 +374,7 @@ void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	init_completion(&layer->callback_sync);
 	result = perform_grow_physical(vdo, physical_count);
@@ -391,7 +391,7 @@ int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count)
 int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count)
 {
 	int result;
-	struct kernel_layer *layer = as_kernel_layer(vdo->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	init_completion(&layer->callback_sync);
 	result = perform_grow_logical(vdo, logical_count);
@@ -478,8 +478,7 @@ thread_id_t get_callback_thread_id(void)
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct vdo *vdo = thread->vdo;
-		struct kernel_layer *kernel_layer =
-			as_kernel_layer(vdo->layer);
+		struct kernel_layer *kernel_layer = vdo_as_kernel_layer(vdo);
 		BUG_ON(&kernel_layer->vdo != vdo);
 		BUG_ON(thread_id >= vdo->initialized_thread_count);
 		BUG_ON(thread != &vdo->threads[thread_id]);
