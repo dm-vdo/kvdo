@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#70 $
  */
 
 #include "ioSubmitter.h"
@@ -216,8 +216,7 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer =
-		as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 
 	if (is_data_vio(vio)) {
 		count_bios(&layer->bios_out, bio);
@@ -242,8 +241,8 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	struct kernel_layer *layer =
-		as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
+
 	assert_running_in_bio_queue_for_pbn(vio->physical);
 	atomic64_inc(&layer->bios_submitted);
 	count_all_bios(vio, bio);
@@ -477,8 +476,7 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 {
 	struct vio *vio = bio->bi_private;
-	struct kernel_layer *layer =
-		as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	struct bio_queue_data *bio_queue_data =
 		bio_queue_data_for_pbn(layer->io_submitter, vio->physical);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#87 $
  */
 
 /*
@@ -426,15 +426,13 @@ void enqueue_vio(struct vio *vio,
 		 void *stats_function,
 		 unsigned int action)
 {
-	struct vdo_completion *completion = vio_as_completion(vio);
-	thread_id_t thread_id = completion->callback_thread_id;
-	struct kernel_layer *layer = as_kernel_layer(completion->layer);
-	BUG_ON(thread_id >= layer->vdo.initialized_thread_count);
+	thread_id_t thread_id = vio_as_completion(vio)->callback_thread_id;
+	BUG_ON(thread_id >= vio->vdo->initialized_thread_count);
 	launch_vio(vio,
 		   work,
 		   stats_function,
 		   action,
-		   layer->vdo.threads[thread_id].request_queue);
+		   vio->vdo->threads[thread_id].request_queue);
 }
 
 /**********************************************************************/

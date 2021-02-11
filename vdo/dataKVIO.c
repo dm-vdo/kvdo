@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#127 $
  */
 
 #include "dataKVIO.h"
@@ -108,9 +108,9 @@ static __always_inline void set_write_protect(void *address,
 /**********************************************************************/
 static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
-	struct vdo_completion *completion = data_vio_as_completion(data_vio);
-	struct kernel_layer *layer = as_kernel_layer(completion->layer);
-	int error = map_to_system_error(completion->result);
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
+	int error = map_to_system_error(vio_as_completion(vio)->result);
 	struct bio *bio = data_vio->user_bio;
 
 
@@ -169,9 +169,8 @@ static void
 vdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
-	struct kernel_layer *layer
-		= as_kernel_layer(container_of(item, struct vdo_completion,
-					       work_item)->layer);
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	vdo_acknowledge_data_vio(data_vio);
 	add_to_batch_processor(layer->data_vio_releaser, item);
 }
@@ -180,7 +179,8 @@ vdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
 static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
@@ -454,8 +454,8 @@ vdo_acknowledge_data_vio_then_continue(struct vdo_work_item *item)
 /**********************************************************************/
 void acknowledge_data_vio(struct data_vio *data_vio)
 {
-	struct kernel_layer *layer =
-		as_kernel_layer(vio_as_completion(data_vio_as_vio(data_vio))->layer);
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	// If the remaining discard work is not completely processed by this
 	// data_vio, don't acknowledge it yet.
@@ -780,7 +780,8 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 {
 	enum vio_operation operation;
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	data_vio->remaining_discard -=
 		min_t(uint32_t, data_vio->remaining_discard,

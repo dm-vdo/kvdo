@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#48 $
  */
 
 #include "bio.h"
@@ -101,8 +101,7 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
  **/
 static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer
-		= as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	if (is_data_vio(vio)) {
 		count_bios(&layer->bios_out_completed, bio);
 		return;
@@ -120,8 +119,7 @@ static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 void count_completed_bios(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
-	struct kernel_layer *layer
-		= as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	atomic64_inc(&layer->bios_completed);
 	count_all_bios_completed(vio, bio);
 }

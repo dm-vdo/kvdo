@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#83 $
  */
 
 #include "dedupeIndex.h"
@@ -268,8 +268,7 @@ static void finish_index_operation(struct uds_request *uds_request)
 	if (atomic_cmpxchg(&dedupe_context->request_state,
 			   UR_BUSY, UR_IDLE) == UR_BUSY) {
 		struct vio *vio = data_vio_as_vio(data_vio);
-		struct kernel_layer *layer
-			= as_kernel_layer(vio_as_completion(vio)->layer);
+		struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 		struct dedupe_index *index = layer->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
@@ -328,8 +327,8 @@ static void start_index_operation(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
 	struct data_vio *data_vio = vio_as_data_vio(vio);
-	struct dedupe_index *index =
-		as_kernel_layer(vio_as_completion(vio)->layer)->dedupe_index;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
+	struct dedupe_index *index = layer->dedupe_index;
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
 	struct uds_request *uds_request = &dedupe_context->uds_request;
 	int status;
@@ -486,9 +485,9 @@ static void enqueue_index_operation(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
-	struct kernel_layer *layer
-		= as_kernel_layer(vio_as_completion(vio)->layer);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	struct dedupe_index *index = layer->dedupe_index;
+
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_jiffies = jiffies;
 	if (atomic_cmpxchg(&dedupe_context->request_state,
