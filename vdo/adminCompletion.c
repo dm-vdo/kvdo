@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#30 $
  */
 
 #include "adminCompletion.h"
@@ -129,7 +129,7 @@ void prepare_admin_sub_task(struct vdo *vdo,
  **/
 static void admin_operation_callback(struct vdo_completion *completion)
 {
-	completion->layer->completeAdminOperation(completion->layer);
+	completion->vdo->layer->completeAdminOperation(completion->vdo->layer);
 }
 
 /**********************************************************************/

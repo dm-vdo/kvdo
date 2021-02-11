@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#88 $
  */
 
 /*
@@ -445,21 +445,21 @@ static void vdo_enqueue_work(struct vdo_work_item *work_item)
 /**********************************************************************/
 void enqueue_completion(struct vdo_completion *completion)
 {
-	struct kernel_layer *layer = as_kernel_layer(completion->layer);
+	struct vdo *vdo = completion->vdo;
 	thread_id_t thread_id = completion->callback_thread_id;
 
-	if (ASSERT(thread_id < layer->vdo.initialized_thread_count,
+	if (ASSERT(thread_id < vdo->initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
 		   thread_id,
 		   completion->type,
-		   layer->vdo.initialized_thread_count) != UDS_SUCCESS) {
+		   vdo->initialized_thread_count) != UDS_SUCCESS) {
 		BUG();
 	}
 
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
 			completion->callback,
 			REQ_Q_ACTION_COMPLETION);
-	enqueue_vdo_thread_work(&layer->vdo.threads[thread_id],
+	enqueue_vdo_thread_work(&vdo->threads[thread_id],
 				&completion->work_item);
 }
 
