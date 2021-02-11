@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#24 $
  */
 
 #include "partitionCopy.h"
@@ -28,7 +28,6 @@
 #include "constants.h"
 #include "extent.h"
 #include "numUtils.h"
-#include "vdoInternal.h"
 
 enum {
 	STRIDE_LENGTH = 2048
@@ -90,7 +89,7 @@ int make_copy_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = create_extent(vdo->layer,
+	result = create_extent(vdo,
 			       VIO_TYPE_PARTITION_COPY,
 			       VIO_PRIORITY_HIGH,
 			       STRIDE_LENGTH,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#19 $
  */
 
 #include "slabJournalEraser.h"
@@ -109,7 +109,7 @@ void erase_slab_journals(struct slab_depot *depot,
 		return;
 	}
 
-	result = create_extent(parent->layer,
+	result = create_extent(parent->vdo,
 			       VIO_TYPE_SLAB_JOURNAL,
 			       VIO_PRIORITY_METADATA,
 			       journal_size,

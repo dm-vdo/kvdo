@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#29 $
  */
 
 #include "completion.h"
@@ -54,22 +54,15 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 };
 
 /**********************************************************************/
-void initialize_completion(struct vdo_completion *completion,
-			   enum vdo_completion_type type,
-			   PhysicalLayer *layer)
-{
-	memset(completion, 0, sizeof(*completion));
-	completion->layer = layer;
-	completion->type = type;
-	reset_completion(completion);
-}
-
-/**********************************************************************/
 void initialize_vdo_completion(struct vdo_completion *completion,
 			       struct vdo *vdo,
 			       enum vdo_completion_type type)
 {
-	initialize_completion(completion, type, get_layer_from_vdo(vdo));
+	memset(completion, 0, sizeof(*completion));
+	completion->layer = get_layer_from_vdo(vdo);
+	completion->vdo = vdo;
+	completion->type = type;
+	reset_completion(completion);
 }
 
 /**********************************************************************/

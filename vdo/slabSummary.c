@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#56 $
  */
 
 #include "slabSummary.h"
@@ -651,7 +651,7 @@ void load_slab_summary(struct slab_summary *summary,
 	}
 
 	blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
-	result = create_extent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
+	result = create_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
 			       VIO_PRIORITY_METADATA, blocks,
 			       (char *)summary->entries, &extent);
 	if (result != VDO_SUCCESS) {

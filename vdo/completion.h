@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#33 $
  */
 
 #ifndef COMPLETION_H
@@ -93,6 +93,9 @@ struct vdo_completion {
 	/** The physical layer on which this completion operates */
 	PhysicalLayer *layer;
 
+	/** The VDO on which this completion operates */
+	struct vdo *vdo;
+
 	/** The callback which will be called once the operation is complete */
 	vdo_action *callback;
 
@@ -128,17 +131,6 @@ static inline void run_callback(struct vdo_completion *completion)
  * @param result     The result to set
  **/
 void set_completion_result(struct vdo_completion *completion, int result);
-
-/**
- * Initialize a completion to a clean state, for reused completions.
- *
- * @param completion The completion to initialize
- * @param type       The type of the completion
- * @param layer      The physical layer of the completion
- **/
-void initialize_completion(struct vdo_completion *completion,
-			   enum vdo_completion_type type,
-			   PhysicalLayer *layer);
 
 /**
  * Initialize a completion to a clean state, for reused completions.

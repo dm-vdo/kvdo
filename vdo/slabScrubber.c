@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#54 $
  */
 
 #include "slabScrubberInternals.h"
@@ -57,7 +57,7 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 		return result;
 	}
 
-	return create_extent(get_layer_from_vdo(vdo),
+	return create_extent(vdo,
 			     VIO_TYPE_SLAB_JOURNAL,
 			     VIO_PRIORITY_METADATA,
 			     slab_journal_size,
