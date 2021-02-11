@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#42 $
  */
 
 #ifndef VIO_H
@@ -143,25 +143,6 @@ int __must_check create_metadata_vio(struct vdo *vdo,
 				     void *parent,
 				     char *data,
 				     struct vio **vio_ptr);
-
-/**
- * Create a vio. Defined per-layer.
- *
- * @param [in]  layer      The physical layer
- * @param [in]  vio_type   The type of vio to create
- * @param [in]  priority   The relative priority to assign to the vio
- * @param [in]  parent     The parent of the vio
- * @param [in]  data       The buffer
- * @param [out] vio_ptr    A pointer to hold the new vio
- *
- * @return VDO_SUCCESS or an error
- **/
-int vdo_create_metadata_vio(PhysicalLayer *layer,
-			    enum vio_type vio_type,
-			    enum vio_priority priority,
-			    void *parent,
-			    char *data,
-			    struct vio **vio_ptr);
 
 /**
  * Destroy a vio. The pointer to the vio will be nulled out.

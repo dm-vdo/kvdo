@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#77 $
  */
 
 #include "kvio.h"
@@ -180,22 +180,6 @@ void submit_metadata_vio(struct vio *vio)
 
 	// Perform the metadata IO, using the metadata vio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
-}
-
-/**********************************************************************/
-int vdo_create_metadata_vio(PhysicalLayer *layer,
-			    enum vio_type vio_type,
-			    enum vio_priority priority,
-			    void *parent,
-			    char *data,
-			    struct vio **vio_ptr)
-{
-	return create_metadata_vio(&(as_kernel_layer(layer)->vdo),
-				   vio_type,
-				   priority,
-				   parent,
-				   data,
-				   vio_ptr);
 }
 
 /**********************************************************************/
