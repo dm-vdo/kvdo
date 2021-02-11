@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#24 $
  */
 
 #include "lockCounter.h"
 
 #include "atomicDefs.h"
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 /**
  * A lock_counter is intended to keep all of the locks for the blocks in the

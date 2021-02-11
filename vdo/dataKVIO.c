@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#126 $
  */
 
 #include "dataKVIO.h"
@@ -27,6 +27,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
+#include "permassert.h"
 
 #include "compressedBlock.h"
 #include "dataVIO.h"

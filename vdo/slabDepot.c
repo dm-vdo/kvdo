@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#90 $
  */
 
 #include "slabDepot.h"
@@ -24,6 +24,7 @@
 #include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "actionManager.h"
 #include "adminState.h"

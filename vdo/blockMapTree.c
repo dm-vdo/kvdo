@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#81 $
  */
 
 #include "blockMapTree.h"
 
 #include "logger.h"
+#include "permassert.h"
 
 #include "blockMap.h"
 #include "blockMapInternals.h"

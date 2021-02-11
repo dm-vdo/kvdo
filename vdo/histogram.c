@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#20 $
  */
 
 #include <linux/kobject.h>
 
 #include "memoryAlloc.h"
 #include "typeDefs.h"
+#include "permassert.h"
 
 #include "histogram.h"
 #include "logger.h"

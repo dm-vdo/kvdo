@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#155 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#156 $
  */
 
 #include "kernelLayer.h"
@@ -32,6 +32,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
+#include "permassert.h"
 
 #include "adminCompletion.h"
 #include "releaseVersions.h"

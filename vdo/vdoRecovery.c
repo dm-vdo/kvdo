@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#80 $
  */
 
 #include "vdoRecoveryInternals.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "blockAllocator.h"
 #include "blockAllocatorInternals.h"

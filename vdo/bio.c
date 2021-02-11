@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#47 $
  */
 
 #include "bio.h"
@@ -26,6 +26,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
+#include "permassert.h"
 
 #include "kernelLayer.h"
 #include "kvio.h"

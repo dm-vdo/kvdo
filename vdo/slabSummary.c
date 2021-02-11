@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#55 $
  */
 
 #include "slabSummary.h"
 
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "adminState.h"
 #include "constants.h"

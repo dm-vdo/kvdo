@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#15 $
  */
 
 #include "deviceRegistry.h"
@@ -26,6 +26,7 @@
 #include <linux/spinlock.h>
 
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "statusCodes.h"
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#86 $
  */
 
 /*
@@ -30,6 +30,7 @@
 #include <linux/delay.h>
 
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "physicalLayer.h"
 #include "readOnlyNotifier.h"

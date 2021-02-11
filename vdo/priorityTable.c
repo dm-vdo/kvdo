@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#13 $
  */
 
 #include "priorityTable.h"
@@ -24,6 +24,7 @@
 #include "errors.h"
 #include "memoryAlloc.h"
 #include "numUtils.h"
+#include "permassert.h"
 
 #include "statusCodes.h"
 

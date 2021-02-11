@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#98 $
  */
 
 /*
@@ -28,6 +28,7 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "blockMap.h"
 #include "hashZone.h"

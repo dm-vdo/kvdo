@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#69 $
  */
 
 #include "ioSubmitter.h"
@@ -24,6 +24,7 @@
 #include <linux/version.h>
 
 #include "memoryAlloc.h"
+#include "permassert.h"
 
 #include "bio.h"
 #include "dataKVIO.h"

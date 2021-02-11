@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#67 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
 
 #include "atomicDefs.h"
+#include "permassert.h"
 
 #include "allocatingVIO.h"
 #include "blockMapEntry.h"
