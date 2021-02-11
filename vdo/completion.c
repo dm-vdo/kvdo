@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#30 $
  */
 
 #include "completion.h"
@@ -24,7 +24,6 @@
 #include "logger.h"
 #include "permassert.h"
 #include "statusCodes.h"
-#include "vdo.h"
 
 static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 	// Keep UNSET_COMPLETION_TYPE at the top.
@@ -59,7 +58,6 @@ void initialize_vdo_completion(struct vdo_completion *completion,
 			       enum vdo_completion_type type)
 {
 	memset(completion, 0, sizeof(*completion));
-	completion->layer = get_layer_from_vdo(vdo);
 	completion->vdo = vdo;
 	completion->type = type;
 	reset_completion(completion);

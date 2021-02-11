@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#34 $
  */
 
 #ifndef COMPLETION_H
@@ -90,9 +90,6 @@ struct vdo_completion {
 	/** The result of the operation */
 	int result;
 
-	/** The physical layer on which this completion operates */
-	PhysicalLayer *layer;
-
 	/** The VDO on which this completion operates */
 	struct vdo *vdo;
 
@@ -145,7 +142,7 @@ void initialize_vdo_completion(struct vdo_completion *completion,
 
 /**
  * Reset a completion to a clean state, while keeping
- * the type, layer and parent information.
+ * the type, vdo and parent information.
  *
  * @param completion the completion to reset
  **/
