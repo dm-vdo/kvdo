@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#99 $
  */
 
 /*
@@ -94,12 +94,6 @@ void destroy_vdo(struct vdo *vdo)
 	}
 	FREE(vdo->threads);
 	vdo->threads = NULL;
-}
-
-/**********************************************************************/
-PhysicalLayer *get_layer_from_vdo(struct vdo *vdo)
-{
-	return vdo->layer;
 }
 
 /**********************************************************************/
