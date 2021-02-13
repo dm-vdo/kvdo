@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#7 $
  */
 
 #include "superBlockCodec.h"
@@ -49,8 +49,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 };
 
 /**********************************************************************/
-int initialize_super_block_codec(PhysicalLayer *layer,
-				 struct super_block_codec *codec)
+int initialize_super_block_codec(struct super_block_codec *codec)
 {
 	int result = make_buffer(MAX_COMPONENT_DATA_SIZE,
 				 &codec->component_buffer);

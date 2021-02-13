@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.h#3 $
  */
 
 #ifndef SUPER_BLOCK_CODEC_H
@@ -46,14 +46,11 @@ struct super_block_codec {
 /**
  * Initialize a super block codec.
  *
- * @param layer  The physical layer of the underlying VDO
  * @param codec  The codec to initialize
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check initialize_super_block_codec(PhysicalLayer *layer,
-					      struct super_block_codec *codec);
-
+int __must_check initialize_super_block_codec(struct super_block_codec *codec);
 
 /**
  * Free resources in a super block codec.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#43 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -46,22 +46,6 @@ typedef void layer_destructor(PhysicalLayer **layer_ptr);
  * @return The block count of the layer
  **/
 typedef block_count_t block_count_getter(PhysicalLayer *layer);
-
-/**
- * A function which can allocate a buffer suitable for use in an
- * extent_reader or extent_writer.
- *
- * @param [in]  layer       The physical layer in question
- * @param [in]  bytes       The size of the buffer, in bytes.
- * @param [in]  why         The occasion for allocating the buffer
- * @param [out] buffer_ptr  A pointer to hold the buffer
- *
- * @return a success or error code
- **/
-typedef int buffer_allocator(PhysicalLayer *layer,
-			     size_t bytes,
-			     const char *why,
-			     char **buffer_ptr);
 
 /**
  * A function which can read an extent from a physicalLayer.
@@ -282,7 +266,6 @@ struct physicalLayer {
 	block_count_getter *getBlockCount;
 
 	// Synchronous IO interface
-	buffer_allocator *allocateIOBuffer;
 	extent_reader *reader;
 	extent_writer *writer;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#32 $
  */
 
 #include "superBlock.h"
@@ -65,8 +65,7 @@ allocate_super_block(struct vdo *vdo,
 	}
 
 	super_block = *super_block_ptr;
-	result = initialize_super_block_codec(get_layer_from_vdo(vdo),
-					      &super_block->codec);
+	result = initialize_super_block_codec(&super_block->codec);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
