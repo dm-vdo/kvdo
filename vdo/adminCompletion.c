@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#31 $
  */
 
 #include "adminCompletion.h"
@@ -129,7 +129,7 @@ void prepare_admin_sub_task(struct vdo *vdo,
  **/
 static void admin_operation_callback(struct vdo_completion *completion)
 {
-	completion->vdo->layer->completeAdminOperation(completion->vdo->layer);
+	vdo_complete_sync_operation(completion->vdo);
 }
 
 /**********************************************************************/
@@ -158,7 +158,7 @@ int perform_admin_operation(struct vdo *vdo,
 	prepare_admin_sub_task(vdo, action, error_handler);
 
 	enqueue_completion(&admin_completion->sub_task_completion);
-	vdo->layer->waitForAdminOperation(vdo->layer);
+	vdo_wait_for_sync_operation(vdo);
 	result = admin_completion->completion.result;
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);

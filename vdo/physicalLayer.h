@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#44 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -322,6 +322,21 @@ create_compressed_write_vio(struct vdo *vdo,
  * @return The physical block count of the vdo
  **/
 block_count_t get_vdo_physical_block_count(const struct vdo *vdo);
+
+/**
+ * Wait for an admin operation to complete. This function should
+ * not be called from a base-code thread.
+ *
+ * @param vdo The layer on which to wait
+ **/
+void vdo_wait_for_sync_operation(struct vdo *vdo);
+
+/**
+ * Inform the vdo that the admin operation has completed.
+ *
+ * @param vdo  The vdo to inform
+ **/
+void vdo_complete_sync_operation(struct vdo *vdo);
 
 /**
  * Get the id of the callback thread on which a completion is currently

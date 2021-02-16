@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#156 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#157 $
  */
 
 #include "kernelLayer.h"
@@ -455,12 +455,10 @@ static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
  * the waiting thread know it can continue.
  *
  * <p>Implements operation_complete.
- *
- * @param common  The kernel layer
  **/
-static void vdo_complete_sync_operation(PhysicalLayer *common)
+void vdo_complete_sync_operation(struct vdo *vdo)
 {
-	struct kernel_layer *layer = as_kernel_layer(common);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	complete(&layer->callback_sync);
 }
@@ -469,12 +467,11 @@ static void vdo_complete_sync_operation(PhysicalLayer *common)
  * Wait for a synchronous operation to complete.
  *
  * <p>Implements operation_waiter.
- *
- * @param common  The kernel layer
  **/
-static void wait_for_sync_operation(PhysicalLayer *common)
+void vdo_wait_for_sync_operation(struct vdo *vdo)
 {
-	struct kernel_layer *layer = as_kernel_layer(common);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
+
 	// Using the "interruptible" interface means that Linux will not log a
 	// message when we wait for more than 120 seconds.
 	while (wait_for_completion_interruptible(&layer->callback_sync) != 0) {
@@ -570,8 +567,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->starting_sector_offset = starting_sector;
 	INIT_LIST_HEAD(&layer->device_config_list);
 
-	layer->common.waitForAdminOperation = wait_for_sync_operation;
-	layer->common.completeAdminOperation = vdo_complete_sync_operation;
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
