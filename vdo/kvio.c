@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#78 $
  */
 
 #include "kvio.h"
@@ -80,7 +80,6 @@ void destroy_vio(struct vio **vio_ptr)
 	FREE(vio);
 	*vio_ptr = NULL;
 }
-
 
 /**********************************************************************/
 void write_compressed_block(struct allocating_vio *allocating_vio)
@@ -180,44 +179,4 @@ void submit_metadata_vio(struct vio *vio)
 
 	// Perform the metadata IO, using the metadata vio's own bio.
 	vdo_submit_bio(bio, get_metadata_action(vio));
-}
-
-/**********************************************************************/
-int create_compressed_write_vio(struct vdo *vdo,
-				void *parent,
-				char *data,
-				struct allocating_vio **allocating_vio_ptr)
-{
-	struct kernel_layer *kernel_layer = vdo_as_kernel_layer(vdo);
-	struct bio *bio;
-	struct allocating_vio *allocating_vio;
-	struct vio *vio;
-	int result = create_bio(&bio);
-
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	// Compressed write vios should use direct allocation and not use the
-	// buffer pool, which is reserved for submissions from the linux block
-	// layer.
-	result = ALLOCATE(1, struct allocating_vio, __func__,
-			  &allocating_vio);
-	if (result != VDO_SUCCESS) {
-		uds_log_error("compressed write vio allocation failure %d",
-			      result);
-		free_bio(bio);
-		return result;
-	}
-
-	vio = allocating_vio_as_vio(allocating_vio);
-	initialize_vio(vio,
-		       bio,
-		       VIO_TYPE_COMPRESSED_BLOCK,
-		       VIO_PRIORITY_COMPRESSED_DATA,
-		       parent,
-		       &kernel_layer->vdo,
-		       data);
-	*allocating_vio_ptr = allocating_vio;
-	return VDO_SUCCESS;
 }

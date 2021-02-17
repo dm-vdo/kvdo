@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#29 $
  */
 
 #include "allocatingVIO.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "allocationSelector.h"
@@ -267,4 +268,43 @@ void reset_allocation(struct allocating_vio *allocating_vio)
 	allocating_vio->allocation = ZERO_BLOCK;
 	allocating_vio->allocation_attempts = 0;
 	allocating_vio->wait_for_clean_slab = false;
+}
+
+/**********************************************************************/
+int create_compressed_write_vio(struct vdo *vdo,
+				void *parent,
+				char *data,
+				struct allocating_vio **allocating_vio_ptr)
+{
+	struct bio *bio;
+	struct allocating_vio *allocating_vio;
+	struct vio *vio;
+
+	// Compressed write vios should use direct allocation and not use the
+	// buffer pool, which is reserved for submissions from the linux block
+	// layer.
+	int result = ALLOCATE(1, struct allocating_vio, __func__,
+			      &allocating_vio);
+	if (result != VDO_SUCCESS) {
+		uds_log_error("compressed write vio allocation failure %d",
+			      result);
+		return result;
+	}
+
+	result = create_bio(&bio);
+	if (result != VDO_SUCCESS) {
+		FREE(allocating_vio);
+		return result;
+	}
+
+	vio = allocating_vio_as_vio(allocating_vio);
+	initialize_vio(vio,
+		       bio,
+		       VIO_TYPE_COMPRESSED_BLOCK,
+		       VIO_PRIORITY_COMPRESSED_DATA,
+		       parent,
+		       vdo,
+		       data);
+	*allocating_vio_ptr = allocating_vio;
+	return VDO_SUCCESS;
 }

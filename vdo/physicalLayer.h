@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#46 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -78,21 +78,6 @@ typedef int extent_writer(PhysicalLayer *layer,
 			  physical_block_number_t startBlock,
 			  size_t blockCount,
 			  char *buffer);
-
-/**
- * A function to allocate an allocating_vio for compressed writes.
- *
- * @param [in]  layer               The physical layer
- * @param [in]  parent              The parent of this vio
- * @param [in]  data                The buffer
- * @param [out] allocating_vio_ptr  A pointer to hold the new allocating_vio
- *
- * @return VDO_SUCCESS or an error
- **/
-typedef int compressed_write_vio_creator(PhysicalLayer *layer,
-				         void *parent,
-				         char *data,
-				         struct allocating_vio **allocating_vio_ptr);
 
 /**
  * A function to destroy a vio. The pointer to the vio will be nulled out.
@@ -272,7 +257,6 @@ struct physicalLayer {
 	write_policy_getter *getWritePolicy;
 
 	// Synchronous interfaces (vio-based)
-	compressed_write_vio_creator *createCompressedWriteVIO;
 	data_vio_zeroer *zeroDataVIO;
 	data_copier *copyData;
 	data_modifier *applyPartialWrite;
@@ -296,23 +280,6 @@ struct physicalLayer {
 	operation_waiter *waitForAdminOperation;
 	operation_complete *completeAdminOperation;
 };
-
-/**
- * Create a new allocating_vio for compressed writes.
- *
- * @param [in]  vdo                The vdo
- * @param [in]  parent             The parent to assign to the allocating_vio's
- *                                 completion
- * @param [in]  data               The buffer
- * @param [out] allocating_vio_ptr  A pointer to hold new allocating_vio
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-create_compressed_write_vio(struct vdo *vdo,
-			    void *parent,
-			    char *data,
-			    struct allocating_vio **allocating_vio_ptr);
 
 /**
  * Wait for an admin operation to complete. This function should
