@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#55 $
  */
 
 #include "slabScrubberInternals.h"
@@ -34,6 +34,7 @@
 #include "refCountsInternals.h"
 #include "slab.h"
 #include "slabJournalInternals.h"
+#include "vdo.h"
 
 /**
  * Allocate the buffer and extent used for reading the slab journal when

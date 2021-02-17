@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#47 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -295,14 +295,6 @@ void vdo_wait_for_sync_operation(struct vdo *vdo);
  * @param vdo  The vdo to inform
  **/
 void vdo_complete_sync_operation(struct vdo *vdo);
-
-/**
- * Get the id of the callback thread on which a completion is currently
- * running, or -1 if no such thread.
- *
- * @return the current thread ID
- **/
-thread_id_t get_callback_thread_id(void);
 
 /**
  * A function to update a running CRC-32 checksum.

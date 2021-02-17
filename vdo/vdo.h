@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#26 $
  */
 
 #ifndef VDO_H
@@ -131,6 +131,14 @@ get_vdo_load_config(const struct vdo *vdo);
  **/
 const struct thread_config * __must_check
 get_thread_config(const struct vdo *vdo);
+
+/**
+ * Get the id of the callback thread on which a completion is currently
+ * running, or -1 if no such thread.
+ *
+ * @return the current thread ID
+ **/
+thread_id_t get_callback_thread_id(void);
 
 /**
  * Get the configured maximum age of a dirty block map page.

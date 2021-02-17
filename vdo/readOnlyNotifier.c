@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#29 $
  */
 
 #include "readOnlyNotifier.h"
@@ -28,6 +28,7 @@
 
 #include "completion.h"
 #include "threadConfig.h"
+#include "vdo.h"
 
 /**
  * A read_only_notifier has a single completion which is used to perform

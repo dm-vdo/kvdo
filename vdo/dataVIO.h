@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#69 $
  */
 
 #ifndef DATA_VIO_H
@@ -36,6 +36,7 @@
 #include "referenceOperation.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdo.h"
 #include "vdoPageCache.h"
 #include "vio.h"
 #include "waitQueue.h"
