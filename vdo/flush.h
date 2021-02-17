@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#10 $
  */
 
 #ifndef FLUSH_H
@@ -81,5 +81,12 @@ void complete_flushes(struct flusher *flusher);
  * @param flusher  The flusher
  **/
 void dump_flusher(const struct flusher *flusher);
+
+/**
+ * Complete and free a vdo flush request.
+ *
+ * @param flush_ptr  The pointer to the flush reference, which will be nulled
+ **/
+void vdo_complete_flush(struct vdo_flush **flush_ptr);
 
 #endif /* FLUSH_H */

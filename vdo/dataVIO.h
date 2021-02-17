@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#68 $
  */
 
 #ifndef DATA_VIO_H
@@ -1007,5 +1007,113 @@ void attempt_logical_block_lock(struct vdo_completion *completion);
  * @param data_vio The data_vio releasing its logical block lock
  **/
 void release_logical_block_lock(struct data_vio *data_vio);
+
+/**
+ * A function to asynchronously hash the block data, setting the chunk name of
+ * the data_vio. This is asynchronous to allow the computation to be done on
+ * different threads.
+ *
+ * @param data_vio  The data_vio to hash
+ **/
+void hash_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to determine whether a block is a duplicate. This function
+ * expects the 'physical' field of the data_vio to be set to the physical block
+ * where the block will be written if it is not a duplicate. If the block does
+ * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set to
+ * true, and the data_vio's 'advice' field will be set to the physical block and
+ * mapping state of the already stored copy of the block.
+ *
+ * @param data_vio  The data_vio containing the block to check.
+ **/
+void check_for_duplication(struct data_vio *data_vio);
+
+/**
+ * A function to verify the duplication advice by examining an already-stored
+ * data block. This function expects the 'physical' field of the data_vio to be
+ * set to the physical block where the block will be written if it is not a
+ * duplicate, and the 'duplicate' field to be set to the physical block and
+ * mapping state where a copy of the data may already exist. If the block is
+ * not a duplicate, the data_vio's 'isDuplicate' field will be cleared.
+ *
+ * @param data_vio  The data_vio containing the block to check.
+ **/
+void verify_duplication(struct data_vio *data_vio);
+
+/**
+ * Update the index with new dedupe advice.
+ *
+ * @param data_vio  The data_vio which needs to change the entry for its data
+ **/
+void update_dedupe_index(struct data_vio *data_vio);
+
+/**
+ * A function to zero the contents of a non-write data_vio -- a read, or a RMW
+ * before becoming a write.
+ *
+ * @param data_vio  The data_vio to zero
+ **/
+void zero_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to copy the data of a write data_vio into a read data_vio.
+ *
+ * @param source       The data_vio to copy from
+ * @param destination  The data_vio to copy to
+ **/
+void copy_data(struct data_vio *source, struct data_vio *destination);
+
+/**
+ * A function to apply a partial write to a data_vio which has completed the
+ * read portion of a read-modify-write operation.
+ *
+ * @param data_vio  The data_vio to modify
+ **/
+void apply_partial_write(struct data_vio *data_vio);
+
+/**
+ * A function to inform the layer that a data_vio's related I/O request can be
+ * safely acknowledged as complete, even though the data_vio itself may have
+ * further processing to do.
+ *
+ * @param data_vio  The data_vio to acknowledge
+ **/
+void acknowledge_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to compress the data in a data_vio.
+ *
+ * @param data_vio  The data_vio to compress
+ **/
+void compress_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to read a single data_vio from the layer.
+ *
+ * If the data_vio does not describe a read-modify-write operation, the
+ * physical layer may safely acknowledge the related user I/O request
+ * as complete.
+ *
+ * @param data_vio  The data_vio to read
+ **/
+void read_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to write a single data_vio to the layer
+ *
+ * @param data_vio  The data_vio to write
+ **/
+void write_data_vio(struct data_vio *data_vio);
+
+/**
+ * A function to compare the contents of a data_vio to another data_vio.
+ *
+ * @param first   The first data_vio to compare
+ * @param second  The second data_vio to compare
+ *
+ * @return <code>true</code> if the contents of the two DataVIOs are the same
+ **/
+bool compare_data_vios(struct data_vio *first, struct data_vio *second);
 
 #endif // DATA_VIO_H

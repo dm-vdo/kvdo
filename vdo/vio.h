@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#43 $
  */
 
 #ifndef VIO_H
@@ -392,5 +392,19 @@ static inline void launch_flush(struct vio *vio,
 	launch_metadata_vio(vio, 0, callback, error_handler,
 			    VIO_FLUSH_BEFORE);
 }
+
+/**
+ * Destroy a vio. The pointer to the vio will be nulled out.
+ *
+ * @param vio_ptr  A pointer to the vio to destroy
+ **/
+void destroy_vio(struct vio **vio_ptr);
+
+/**
+ * Read or write a single metadata vio.
+ *
+ * @param vio  The vio to read or write
+ **/
+void submit_metadata_vio(struct vio *vio);
 
 #endif // VIO_H
