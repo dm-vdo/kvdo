@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#30 $
  */
 
 #include "deviceConfig.h"
@@ -34,7 +34,7 @@
 
 enum {
 	// If we bump this, update the arrays below
-	TABLE_VERSION = 3,
+	TABLE_VERSION = 4,
 	// Limits used when parsing thread-count config spec strings
 	BIO_ROTATION_INTERVAL_LIMIT = 1024,
 	LOGICAL_THREAD_COUNT_LIMIT = 60,
@@ -51,7 +51,7 @@ enum {
 };
 
 // arrays for handling different table versions
-static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7 };
+static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
 // pool name no longer used. only here for verification of older versions
 static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
@@ -666,20 +666,11 @@ int parse_device_config(int argc,
 		dm_consume_args(&arg_set, 1);
 	}
 
-	// Get the write policy and validate.
-	if (strcmp(arg_set.argv[0], "async") == 0) {
-		config->write_policy = WRITE_POLICY_ASYNC;
-	} else if (strcmp(arg_set.argv[0], "async-unsafe") == 0) {
-		config->write_policy = WRITE_POLICY_ASYNC_UNSAFE;
-	} else if (strcmp(arg_set.argv[0], "sync") == 0) {
-		config->write_policy = WRITE_POLICY_SYNC;
-	} else if (strcmp(arg_set.argv[0], "auto") == 0) {
-		config->write_policy = WRITE_POLICY_AUTO;
-	} else {
-		handle_parse_error(&config, error_ptr, "Invalid write policy");
-		return VDO_BAD_CONFIGURATION;
+	// Skip past the no longer used write policy setting
+	if (config->version <= 3) {
+		dm_consume_args(&arg_set, 1);
 	}
-	dm_shift_arg(&arg_set);
+	config->write_policy = WRITE_POLICY_ASYNC;
 
 	// Skip past the no longer used pool name for older table lines
 	if (config->version <= 2) {
