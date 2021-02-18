@@ -16,20 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#48 $
  */
 
 #ifndef PHYSICAL_LAYER_H
 #define PHYSICAL_LAYER_H
 
 #include "types.h"
-
-static const crc32_checksum_t INITIAL_CHECKSUM = 0xffffffff;
-
-enum {
-	/* The size of a CRC-32 checksum */
-	CHECKSUM_SIZE = sizeof(crc32_checksum_t),
-};
 
 /**
  * A function to destroy a physical layer and NULL out the reference to it.
@@ -295,18 +288,6 @@ void vdo_wait_for_sync_operation(struct vdo *vdo);
  * @param vdo  The vdo to inform
  **/
 void vdo_complete_sync_operation(struct vdo *vdo);
-
-/**
- * A function to update a running CRC-32 checksum.
- *
- * @param crc     The current value of the crc
- * @param buffer  The data to add to the checksum
- * @param length  The length of the data
- *
- * @return The updated value of the checksum
- **/
-crc32_checksum_t
-update_crc32(crc32_checksum_t crc, const byte *buffer, size_t length);
 
 /**
  * A function to write a single compressed block to the layer

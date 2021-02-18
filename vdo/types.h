@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#77 $
  */
 
 #ifndef TYPES_H
@@ -39,11 +39,6 @@ typedef uint16_t block_size_t;
  * A count of compressed fragments
  **/
 typedef uint8_t compressed_fragment_count_t;
-
-/**
- * A CRC-32 checksum
- **/
-typedef uint32_t crc32_checksum_t;
 
 /**
  * A height within a tree.

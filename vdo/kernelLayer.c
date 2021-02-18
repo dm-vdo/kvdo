@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#157 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#158 $
  */
 
 #include "kernelLayer.h"
 
 #include <linux/backing-dev.h>
 #include <linux/blkdev.h>
-#include <linux/crc32.h>
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/lz4.h>
@@ -92,17 +91,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 // 2000 is half the number of entries currently in our page cache,
 // to allow for each in-progress operation to update two pages.
 int default_max_requests_active = 2000;
-
-/**********************************************************************/
-crc32_checksum_t update_crc32(crc32_checksum_t crc, const byte *buffer,
-			      size_t length)
-{
-	/*
-	 * The kernel's CRC 32 implementation does not do pre- and post-
-	 * conditioning, so do it ourselves.
-	 */
-	return crc32(crc ^ 0xffffffff, buffer, length) ^ 0xffffffff;
-}
 
 /**********************************************************************/
 block_count_t get_vdo_physical_block_count(const struct vdo *vdo)
