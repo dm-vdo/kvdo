@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#8 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
@@ -73,7 +73,8 @@ void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
  *
  * @return   the work queue pointer, or NULL
  **/
-static inline struct simple_work_queue *get_current_thread_work_queue(void)
+static inline __no_sanitize_address
+struct simple_work_queue *get_current_thread_work_queue(void)
 {
 	struct work_queue_stack_handle *handle =
 		(struct work_queue_stack_handle *)
