@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#65 $
  */
 
 #include "refCounts.h"
@@ -119,13 +119,8 @@ enum reference_status reference_count_to_status(vdo_refcount_t count)
 	}
 }
 
-/**
- * Reset the free block search back to the first reference counter
- * in the first reference block.
- *
- * @param ref_counts  The ref_counts object containing the search cursor
- **/
-static void reset_search_cursor(struct ref_counts *ref_counts)
+/**********************************************************************/
+void reset_search_cursor(struct ref_counts *ref_counts)
 {
 	struct search_cursor *cursor = &ref_counts->search_cursor;
 

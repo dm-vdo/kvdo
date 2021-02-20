@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#21 $
  */
 
 #ifndef REF_COUNTS_H
@@ -63,6 +63,14 @@ void free_ref_counts(struct ref_counts **ref_counts_ptr);
  * @param ref_counts  The ref_counts to check
  **/
 bool __must_check are_ref_counts_active(struct ref_counts *ref_counts);
+
+/**
+ * Reset the free block search back to the first reference counter
+ * in the first reference block.
+ *
+ * @param ref_counts  The ref_counts object containing the search cursor
+ **/
+void reset_search_cursor(struct ref_counts *ref_counts);
 
 /**
  * Get the stored count of the number of blocks that are currently free.

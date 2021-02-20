@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#38 $
  */
 
 #ifndef VDO_SLAB_H
@@ -193,6 +193,13 @@ void mark_slab_replaying(struct vdo_slab *slab);
  * @param slab  The slab to mark
  **/
 void mark_slab_unrecovered(struct vdo_slab *slab);
+
+/**
+ * Perform all necessary initialization of a slab necessary for allocations.
+ *
+ * @param slab  The slab
+ **/
+void open_slab(struct vdo_slab *slab);
 
 /**
  * Get the current number of free blocks in a slab.

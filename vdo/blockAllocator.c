@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#105 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -465,15 +465,7 @@ int allocate_block(struct block_allocator *allocator,
 	// the open slab.
 	allocator->open_slab =
 		slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
-
-	if (is_slab_journal_blank(allocator->open_slab->journal)) {
-		WRITE_ONCE(allocator->statistics.slabs_opened,
-			   allocator->statistics.slabs_opened + 1);
-		dirty_all_reference_blocks(allocator->open_slab->reference_counts);
-	} else {
-		WRITE_ONCE(allocator->statistics.slabs_reopened,
-			   allocator->statistics.slabs_reopened + 1);
-	}
+	open_slab(allocator->open_slab);
 
 	// Try allocating again. If we're out of space immediately after
 	// opening a slab, then every slab must be fully allocated.
