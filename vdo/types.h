@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#78 $
  */
 
 #ifndef TYPES_H
@@ -251,34 +251,6 @@ enum vdo_metadata_type {
 	VDO_METADATA_SLAB_JOURNAL,
 } __packed;
 
-/**
- * The possible write policy values.
- **/
-enum write_policy {
-	/**
-	 * All writes are synchronous, i. e., they are acknowledged
-	 * only when the data is written to stable storage.
-	 */
-	WRITE_POLICY_SYNC,
-	/**
-	 * Writes are acknowledged when the data is cached for writing
-	 * to stable storage, subject to resiliency guarantees
-	 * specified elsewhere. After a crash, the data will be either
-	 * old or new value for unflushed writes, never garbage.
-	 */
-	WRITE_POLICY_ASYNC,
-	/**
-	 * Writes are acknowledged when the data is cached for writing
-	 * to stable storage, subject to resiliency guarantees
-	 * specified elsewhere.
-	 */
-	WRITE_POLICY_ASYNC_UNSAFE,
-	/**
-	 * The appropriate policy is chosen based on the underlying device.
-	 */
-	WRITE_POLICY_AUTO,
-};
-
 enum vdo_zone_type {
 	ZONE_TYPE_ADMIN,
 	ZONE_TYPE_JOURNAL,
@@ -357,8 +329,6 @@ struct vdo_load_config {
 	struct thread_config *thread_config;
 	/** the page cache size, in pages */
 	page_count_t cache_size;
-	/** whether writes are synchronous */
-	enum write_policy write_policy;
 	/**
 	 * the maximum age of a dirty block map page in recovery journal blocks
 	 */

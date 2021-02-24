@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#61 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -987,16 +987,9 @@ static void save_pages(struct vdo_page_cache *cache)
 	/*
 	 * We must make sure that the recovery journal entries that changed
 	 * these pages were successfully persisted, and thus must issue a flush
-	 * before each batch of pages is written to ensure this. However, in
-	 * sync mode, every journal block is written with FUA, thus guaranteeing
-	 * the journal persisted already.
+	 * before each batch of pages is written to ensure this.
 	 */
-	if (get_write_policy(vio->vdo) != WRITE_POLICY_SYNC) {
-		launch_flush(vio, write_pages, handle_flush_error);
-		return;
-	}
-
-	write_pages(&vio->completion);
+	launch_flush(vio, write_pages, handle_flush_error);
 }
 
 /**

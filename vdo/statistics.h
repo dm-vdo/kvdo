@@ -24,7 +24,7 @@
 #include "types.h"
 
 enum {
-	STATISTICS_VERSION = 31,
+	STATISTICS_VERSION = 32,
 };
 
 struct block_allocator_statistics {
@@ -182,8 +182,6 @@ struct vdo_statistics {
 	block_count_t logical_blocks;
 	/** Size of the block map page cache, in bytes */
 	uint64_t block_map_cache_size;
-	/** String describing the active write policy of the VDO */
-	char write_policy[15];
 	/** The physical block size */
 	uint64_t block_size;
 	/** Number of times the VDO has successfully recovered */

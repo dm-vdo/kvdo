@@ -824,15 +824,6 @@ int write_vdo_statistics(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** String describing the active write policy of the VDO */
-	result = write_string("writePolicy : ",
-			      stats->write_policy,
-			      ", ",
-			      buf,
-			      maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
 	/** The physical block size */
 	result = write_uint64_t("blockSize : ",
 				stats->block_size,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#9 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -32,17 +32,6 @@
  * @param flush_ptr  A pointer to hold the new flush
  **/
 int make_kvdo_flush(struct kvdo_flush **flush_ptr);
-
-/**
- * Answer the question as to whether VDO should be processing REQ_FLUSH
- * requests or not.
- *
- * @param layer    The layer
- *
- * @return true if VDO should process empty flush requests, or false if
- *         they should just be forwarded to our storage device.
- **/
-bool should_process_flush(struct kernel_layer *layer);
 
 /**
  * Function called to start processing a flush request. It is called when we

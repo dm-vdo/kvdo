@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#81 $
  */
 
 #include "slabJournalInternals.h"
@@ -437,34 +437,18 @@ static void reap_slab_journal(struct slab_journal *journal)
 		return;
 	}
 
-	if (get_write_policy(journal->slab->allocator->depot->vdo)
-	    == WRITE_POLICY_SYNC) {
-		finish_reaping(journal);
-		return;
-	}
-
 	/*
-	 * In async mode, it is never safe to reap a slab journal block without
-	 * first issuing a flush, regardless of whether a user flush has been
-	 * received or not. In the absence of the flush, the reference block
-	 * write which released the locks allowing the slab journal to reap may
-	 * not be persisted. Although slab summary writes will eventually issue
+	 * It is never safe to reap a slab journal block without first issuing
+	 * a flush, regardless of whether a user flush has been received or
+	 * not. In the absence of the flush, the reference block write which
+	 * released the locks allowing the slab journal to reap may not be
+	 * persisted. Although slab summary writes will eventually issue
 	 * flushes, multiple slab journal block writes can be issued while
 	 * previous slab summary updates have not yet been made. Even though
 	 * those slab journal block writes will be ignored if the slab summary
 	 * update is not persisted, they may still overwrite the to-be-reaped
 	 * slab journal block resulting in a loss of reference count updates
 	 * (VDO-2912).
-	 *
-	 * In sync mode, it is similarly unsafe. However, we cannot possibly
-	 * make those additional slab journal block writes due to the blocking
-	 * threshold and the recovery journal's flush policy of flushing before
-	 * every block. We may make no more than (number of VIOs) entries in
-	 * slab journals since the last recovery journal flush; thus, due to
-	 * the size of the slab journal blocks, the RJ must have flushed the
-	 * storage no more than one slab journal block ago. So we could only
-	 * overwrite the to-be-reaped block if we wrote and flushed the last
-	 * block in the journal. But the blocking threshold prevents that.
 	 */
 	journal->flush_waiter.callback = flush_for_reaping;
 	result = acquire_vio(journal->slab->allocator, &journal->flush_waiter);

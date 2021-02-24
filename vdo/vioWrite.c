@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#56 $
  */
 
 /*
@@ -26,82 +26,6 @@
  * asynchronous. The paths would proceed as outlined in the pseudo-code here
  * if this were normal, synchronous code without callbacks. Complications
  * involved in waiting on locks are not included.
- *
- * ######################################################################
- * writeExtentSynchronous(extent)
- * {
- *   foreach (vio in extent) {
- *     launchWriteVIO()
- *     # allocate_block_for_write()
- *     if (!trim and !zero-block) {
- *       allocate block
- *       if (vio is compressed) {
- *         completeCompressedBlockWrite()
- *         finishVIO()
- *         return
- *       }
- *       write_block()
- *     }
- *     finish_block_write()
- *     addJournalEntry() # Increment
- *     if (vio->new_mapped is not ZERO_BLOCK) {
- *       journalIncrementForWrite()
- *     }
- *     acknowledge_write_callback()
- *     read_old_block_mapping()
- *     journal_unmapping_for_write()
- *     if (vio->mapped is not ZERO_BLOCK) {
- *       journal_decrement_for_write()
- *     }
- *     update_block_map_for_write()
- *     if (trim || zero-block) {
- *       finishVIO()
- *       return
- *     }
- *
- *     prepare_for_dedupe()
- *     hashData()
- *     resolve_hash_zone()
- *     acquire_hash_lock()
- *     attemptDedupe() (query UDS)
- *     if (is_duplicate) {
- *       verifyAdvice() (read verify)
- *       if (is_duplicate and canAddReference) {
- *         share_block()
- *         addJournalEntryForDedupe()
- *         increment_for_dedupe()
- *         journal_unmapping_for_dedupe()
- *         if (vio->mapped is not ZERO_BLOCK) {
- *           decrement_for_dedupe()
- *         }
- *         update_block_map_for_dedupe()
- *         finishVIO()
- *         return
- *       }
- *     }
- *
- *     if (not canAddReference) {
- *       update_dedupe_index()
- *     }
- *     # compress_data()
- *     if (compressing and not mooted and has no waiters) {
- *       compress_data_vio()
- *       pack_compressed_data()
- *       if (compressed) {
- *         journalCompressedBlocks()
- *         increment_for_dedupe()
- *         read_old_block_mapping_for_dedupe()
- *         journal_unmapping_for_dedupe()
- *         if (vio->mapped is not ZERO_BLOCK) {
- *           decrement_for_dedupe()
- *         }
- *         update_block_map_for_dedupe()
- *       }
- *     }
- *
- *     finishVIO()
- *   }
- * }
  *
  * ######################################################################
  * writeExtentAsynchronous(extent)
@@ -218,7 +142,6 @@ enum data_vio_cleanup_stage {
  **/
 enum read_only_action {
 	NOT_READ_ONLY,
-	READ_ONLY_IF_ASYNC,
 	READ_ONLY,
 };
 
@@ -226,20 +149,6 @@ enum read_only_action {
 static void perform_cleanup_stage(struct data_vio *data_vio,
 				  enum data_vio_cleanup_stage stage);
 static void write_block(struct data_vio *data_vio);
-
-/**
- * Check whether we are in async mode.
- *
- * @param data_vio  A data_vio containing a pointer to the VDO whose write
- *                  policy we want to check
- *
- * @return <code>true</code> if we are in async mode
- **/
-static inline bool is_async(struct data_vio *data_vio)
-{
-	return (get_write_policy(get_vdo_from_data_vio(data_vio)) !=
-		WRITE_POLICY_SYNC);
-}
 
 /**
  * Release the PBN lock and/or the reference on the allocated block at the
@@ -379,8 +288,7 @@ static bool abort_on_error(int result,
 		return false;
 	}
 
-	if ((result == VDO_READ_ONLY) || (action == READ_ONLY) ||
-	    ((action == READ_ONLY_IF_ASYNC) && is_async(data_vio))) {
+	if ((result == VDO_READ_ONLY) || (action == READ_ONLY)) {
 		struct read_only_notifier *notifier =
 			data_vio_as_vio(data_vio)->vdo->read_only_notifier;
 		if (!is_read_only(notifier)) {
@@ -421,7 +329,7 @@ static void finish_write_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_hash_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 	continue_hash_lock(data_vio);
@@ -441,27 +349,9 @@ static void abort_deduplication(struct data_vio *data_vio)
 		return;
 	}
 
-	if (is_async(data_vio)) {
-		// We failed to deduplicate or compress an async data_vio, so
-		// now we need to actually write the data.
-		write_block(data_vio);
-		return;
-	}
-
-	if (data_vio->hash_lock == NULL) {
-		// We failed to compress a synchronous data_vio that is a
-		// hash collision, which means it can't dedupe or be used
-		// for dedupe, so it's done now.
-		finish_data_vio(data_vio, VDO_SUCCESS);
-		return;
-	}
-
-	/*
-	 * This synchronous data_vio failed to compress and so is finished, but
-	 * must now return to its hash lock so other data VIOs with the same
-	 * data can deduplicate against the uncompressed block it wrote.
-	 */
-	launch_hash_zone_callback(data_vio, finish_write_data_vio);
+	// We failed to deduplicate or compress an async data_vio, so
+	// now we need to actually write the data.
+	write_block(data_vio);
 }
 
 /**
@@ -636,16 +526,7 @@ static void increment_for_compression(struct vdo_completion *completion)
 			"Impossible attempt to update reference counts for a block which was not compressed (logical block %llu)",
 			data_vio->logical.lbn);
 
-	/*
-	 * If we are synchronous and allocated a block, we know the one we
-	 * allocated is the block we need to decrement, so there is no need
-	 * to look in the block map.
-	 */
-	if (is_async(data_vio) || !has_allocation(data_vio)) {
-		  set_logical_callback(data_vio, read_old_block_mapping_for_dedupe);
-	} else {
-		  set_journal_callback(data_vio, journal_unmapping_for_dedupe);
-	}
+	set_logical_callback(data_vio, read_old_block_mapping_for_dedupe);
 	data_vio->last_async_operation = JOURNAL_INCREMENT_FOR_COMPRESSION;
 	update_reference_count(data_vio);
 }
@@ -660,7 +541,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_journal_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
@@ -732,17 +613,8 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 			"Impossible attempt to update reference counts for a block which was not a duplicate (logical block %llu)",
 			data_vio->logical.lbn);
 
-	/*
-	 * If we are synchronous and allocated a block, we know the one we
-	 * allocated is the block we need to decrement, so there is no need
-	 * to look in the block map.
-	 */
-	if (is_async(data_vio) || !has_allocation(data_vio)) {
-		set_logical_callback(data_vio,
-				     read_old_block_mapping_for_dedupe);
-	} else {
-		set_journal_callback(data_vio, journal_unmapping_for_dedupe);
-	}
+	set_logical_callback(data_vio,
+			     read_old_block_mapping_for_dedupe);
 	data_vio->last_async_operation = JOURNAL_INCREMENT_FOR_DEDUPE;
 	update_reference_count(data_vio);
 }
@@ -758,7 +630,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_journal_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
@@ -776,7 +648,7 @@ void share_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_duplicate_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
@@ -867,13 +739,6 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!is_async(data_vio)) {
-		// Remember which block we wrote so we will decrement the
-		// reference to it if we deduplicate. This avoids having to look
-		// it up in the block map.
-		data_vio->mapped = data_vio->new_mapped;
-	}
-
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"must not prepare to dedupe zero blocks");
 
@@ -904,10 +769,6 @@ static void update_block_map_for_write(struct vdo_completion *completion)
 
 	if (data_vio->is_zero_block || is_trim_data_vio(data_vio)) {
 		completion->callback = complete_data_vio;
-	} else if (!is_async(data_vio)) {
-		// Synchronous data VIOs branch off to the hash/dedupe path
-		// after finishing the uncompressed write of their data.
-		completion->callback = prepare_for_dedupe;
 	} else if (data_vio->hash_lock != NULL) {
 		// Async writes will be finished, but must return to the hash
 		// lock to allow other data VIOs with the same data to dedupe
@@ -1000,31 +861,6 @@ static void acknowledge_write(struct data_vio *data_vio)
 }
 
 /**
- * Acknowledge a write now that we have made an entry in the recovery
- * journal. This is the callback registered in finish_block_write() in
- * synchronous mode.
- *
- * @param completion The completion of the write in progress
- **/
-static void acknowledge_write_callback(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
-		return;
-	}
-
-	set_logical_callback(data_vio, read_old_block_mapping_for_write);
-	acknowledge_write(data_vio);
-}
-
-/**********************************************************************/
-static vdo_action *get_write_increment_callback(struct data_vio *data_vio)
-{
-	return (is_async(data_vio) ? read_old_block_mapping_for_write :
-		acknowledge_write_callback);
-}
-
-/**
  * Do the incref after a successful block write. This is the callback
  * registered by finish_block_write().
  *
@@ -1034,7 +870,7 @@ static void increment_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_allocated_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
@@ -1046,7 +882,8 @@ static void increment_for_write(struct vdo_completion *completion)
 	downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
 
 	data_vio->last_async_operation = JOURNAL_INCREMENT_FOR_WRITE;
-	set_logical_callback(data_vio, get_write_increment_callback(data_vio));
+	set_logical_callback(data_vio,
+			     read_old_block_mapping_for_write);
 	update_reference_count(data_vio);
 }
 
@@ -1061,13 +898,13 @@ static void finish_block_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_journal_zone(data_vio);
-	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
+	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	if (data_vio->new_mapped.pbn == ZERO_BLOCK) {
 		set_logical_callback(data_vio,
-				     get_write_increment_callback(data_vio));
+				     read_old_block_mapping_for_write);
 	} else {
 		set_allocated_zone_callback(data_vio, increment_for_write);
 	}
@@ -1118,11 +955,6 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 		.pbn = allocating_vio->allocation,
 		.state = MAPPING_STATE_UNCOMPRESSED,
 	};
-
-	if (!is_async(data_vio)) {
-		write_block(data_vio);
-		return;
-	}
 
 	// XXX prepare_for_dedupe can run from any thread, so this is a place
 	// where running the callback on the kernel thread would save a thread

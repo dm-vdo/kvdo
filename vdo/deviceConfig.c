@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#31 $
  */
 
 #include "deviceConfig.h"
@@ -130,21 +130,6 @@ static void resolve_config_with_device(struct device_config *config,
 	} else {
 		// We should probably always log, but need to make sure that
 		// makes sense before changing behavior.
-	}
-
-	if (config->write_policy == WRITE_POLICY_AUTO) {
-		config->write_policy = (flush_supported ? WRITE_POLICY_ASYNC :
-							  WRITE_POLICY_SYNC);
-		log_info("Using write policy %s automatically.",
-			 get_config_write_policy_string(config));
-	} else {
-		log_info("Using write policy %s.",
-			 get_config_write_policy_string(config));
-	}
-
-	if (flush_supported && (config->write_policy == WRITE_POLICY_SYNC)) {
-		log_warning(
-			"WARNING: Running in sync mode atop a device supporting flushes is dangerous!");
 	}
 
 	if (config->version == 0) {
@@ -670,7 +655,6 @@ int parse_device_config(int argc,
 	if (config->version <= 3) {
 		dm_consume_args(&arg_set, 1);
 	}
-	config->write_policy = WRITE_POLICY_ASYNC;
 
 	// Skip past the no longer used pool name for older table lines
 	if (config->version <= 2) {
@@ -756,23 +740,6 @@ void free_device_config(struct device_config **config_ptr)
 
 	FREE(config);
 	*config_ptr = NULL;
-}
-
-/**********************************************************************/
-const char *get_config_write_policy_string(struct device_config *config)
-{
-	switch (config->write_policy) {
-	case WRITE_POLICY_AUTO:
-		return "auto";
-	case WRITE_POLICY_ASYNC:
-		return "async";
-	case WRITE_POLICY_ASYNC_UNSAFE:
-		return "async-unsafe";
-	case WRITE_POLICY_SYNC:
-		return "sync";
-	default:
-		return "unknown";
-	}
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#50 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -226,15 +226,6 @@ typedef async_data_operation index_updater;
 typedef void flush_complete(struct vdo_flush **vdoFlush);
 
 /**
- * A function to query the write policy of the layer.
- *
- * @param layer  The layer to query
- *
- * @return the write policy of the layer
- **/
-typedef enum write_policy write_policy_getter(PhysicalLayer *layer);
-
-/**
  * A function to wait for an admin operation to complete. This function should
  * not be called from a base-code thread.
  *
@@ -263,8 +254,6 @@ struct physicalLayer {
 	buffer_allocator *allocateIOBuffer;
 	extent_reader *reader;
 	extent_writer *writer;
-
-	write_policy_getter *getWritePolicy;
 
 	// Synchronous interfaces (vio-based)
 	data_vio_zeroer *zeroDataVIO;

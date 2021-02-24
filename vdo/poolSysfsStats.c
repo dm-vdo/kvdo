@@ -142,19 +142,6 @@ static struct pool_stats_attribute pool_stats_attr_block_map_cache_size = {
 };
 
 /**********************************************************************/
-/** String describing the active write policy of the VDO */
-static ssize_t pool_stats_print_write_policy(struct kernel_layer *layer, char *buf)
-{
-	return sprintf(buf, "%s\n", layer->vdo_stats_storage.write_policy);
-}
-
-static struct pool_stats_attribute pool_stats_attr_write_policy = {
-	.attr = { .name = "write_policy", .mode = 0444, },
-	.from_vdo = true,
-	.print = pool_stats_print_write_policy,
-};
-
-/**********************************************************************/
 /** The physical block size */
 static ssize_t pool_stats_print_block_size(struct kernel_layer *layer, char *buf)
 {
@@ -1929,7 +1916,6 @@ struct attribute *pool_stats_attrs[] = {
 	&pool_stats_attr_physical_blocks.attr,
 	&pool_stats_attr_logical_blocks.attr,
 	&pool_stats_attr_block_map_cache_size.attr,
-	&pool_stats_attr_write_policy.attr,
 	&pool_stats_attr_block_size.attr,
 	&pool_stats_attr_complete_recoveries.attr,
 	&pool_stats_attr_read_only_recoveries.attr,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#96 $
  */
 
 #include "recoveryJournal.h"
@@ -744,18 +744,13 @@ static void schedule_block_write(struct recovery_journal *journal,
 			        &block->write_waiter);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
-		return;
 	}
 
-	if (get_write_policy(journal->flush_vio->vdo) == WRITE_POLICY_ASYNC) {
-		/*
-		 * At the end of adding entries, or discovering this partial
-		 * block is now full and ready to rewrite, we will call
-		 * write_blocks() and write a whole batch.
-		 */
-		return;
-	}
-	write_blocks(journal);
+	/*
+	 * At the end of adding entries, or discovering this partial
+	 * block is now full and ready to rewrite, we will call
+	 * write_blocks() and write a whole batch.
+	 */
 }
 
 /**
@@ -1076,27 +1071,22 @@ static void write_blocks(struct recovery_journal *journal)
 {
 	assert_on_journal_thread(journal, __func__);
 	/*
-	 * In sync and async-unsafe modes, we call this function each time we
-	 * queue a full block on pending writes; in addition, in all cases we
-	 * call this function after adding entries to the journal and finishing
-	 * a block write. Thus, when this function terminates we must either
-	 * have no VIOs waiting in the journal or have some outstanding IO to
-	 * provide a future wakeup.
+	 * We call this function after adding entries to the journal and after
+	 * finishing a block write. Thus, when this function terminates we must
+	 * either have no VIOs waiting in the journal or have some outstanding
+	 * IO to provide a future wakeup.
 	 *
-	 * In all modes, if there are no outstanding writes and some unwritten
+	 * We want to only issue full blocks if there are no pending writes.
+	 * However, if there are no outstanding writes and some unwritten
 	 * entries, we must issue a block, even if it's the active block and it
-	 * isn't full. Otherwise, in sync/async-unsafe modes, we want to issue
-	 * all full blocks every time; since we call it each time we fill a
-	 * block, this is equivalent to issuing every full block as soon as its
-	 * full. In async mode, we want to only issue full blocks if there are
-	 * no pending writes.
+	 * isn't full.
 	 */
-
-	if ((get_write_policy(journal->flush_vio->vdo) != WRITE_POLICY_ASYNC)
-	    || (journal->pending_write_count == 0)) {
-		// Write all the full blocks.
-		notify_all_waiters(&journal->pending_writes, write_block, NULL);
+	if (journal->pending_write_count > 0) {
+		return;
 	}
+
+	// Write all the full blocks.
+	notify_all_waiters(&journal->pending_writes, write_block, NULL);
 
 	// Do we need to write the active block? Only if we have no outstanding
 	// writes, even after issuing all of the full writes.
@@ -1188,27 +1178,21 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	if (get_write_policy(journal->flush_vio->vdo) != WRITE_POLICY_SYNC) {
-		/*
-		 * If the block map head will advance, we must flush any block
-		 * map page modified by the entries we are reaping. If the slab
-		 * journal head will advance, we must flush the slab summary
-		 * update covering the slab journal that just released some
-		 * lock.
-		 *
-		 * In sync mode, this is unnecessary because we won't record
-		 * these numbers on disk until the next journal block write,
-		 * and in sync mode every journal block write is preceded by
-		 * a flush, which does the block map page and slab summary
-		 * update flushing itself.
-		 */
-		journal->reaping = true;
-		launch_flush(journal->flush_vio, complete_reaping,
-			     handle_flush_error);
-		return;
-	}
-
-	finish_reaping(journal);
+	/*
+	 * If the block map head will advance, we must flush any block
+	 * map page modified by the entries we are reaping. If the slab
+	 * journal head will advance, we must flush the slab summary
+	 * update covering the slab journal that just released some
+	 * lock.
+	 *
+	 * In sync mode, this is unnecessary because we won't record
+	 * these numbers on disk until the next journal block write,
+	 * and in sync mode every journal block write is preceded by
+	 * a flush, which does the block map page and slab summary
+	 * update flushing itself.
+	 */
+	journal->reaping = true;
+	launch_flush(journal->flush_vio, complete_reaping, handle_flush_error);
 }
 
 /**********************************************************************/

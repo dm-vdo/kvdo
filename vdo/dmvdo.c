@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#89 $
  */
 
 #include "dmvdo.h"
@@ -449,14 +449,7 @@ static void configure_target_capabilities(struct dm_target *ti,
 					  struct kernel_layer *layer)
 {
 	ti->discards_supported = 1;
-
-	/**
-	 * This may appear to indicate we don't support flushes in sync mode.
-	 * However, dm will set up the request queue to accept flushes if any
-	 * device in the stack accepts flushes. Hence if the device under VDO
-	 * accepts flushes, we will receive flushes.
-	 **/
-	ti->flush_supported = should_process_flush(layer);
+	ti->flush_supported = true;
 	ti->num_discard_bios = 1;
 	ti->num_flush_bios = 1;
 
@@ -514,7 +507,6 @@ static int vdo_initialize(struct dm_target *ti,
 	struct vdo_load_config load_config = {
 		.cache_size = config->cache_size,
 		.thread_config = NULL,
-		.write_policy = config->write_policy,
 		.maximum_age = config->block_map_maximum_age,
 	};
 
@@ -535,8 +527,6 @@ static int vdo_initialize(struct dm_target *ti,
 	log_debug("Block map cache blocks = %u", config->cache_size);
 	log_debug("Block map maximum age  = %u",
 		  config->block_map_maximum_age);
-	log_debug("Write policy           = %s",
-		  get_config_write_policy_string(config));
 	log_debug("Deduplication          = %s",
 		  (config->deduplication ? "on" : "off"));
 

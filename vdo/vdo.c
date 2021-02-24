@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#100 $
  */
 
 /*
@@ -325,21 +325,6 @@ static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-static const char *describe_write_policy(enum write_policy policy)
-{
-	switch (policy) {
-	case WRITE_POLICY_ASYNC:
-		return "async";
-	case WRITE_POLICY_ASYNC_UNSAFE:
-		return "async-unsafe";
-	case WRITE_POLICY_SYNC:
-		return "sync";
-	default:
-		return "unknown";
-	}
-}
-
-/**********************************************************************/
 void get_vdo_statistics(const struct vdo *vdo,
 			struct vdo_statistics *stats)
 {
@@ -361,10 +346,6 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->complete_recoveries = vdo->states.vdo.complete_recoveries;
 	stats->read_only_recoveries = vdo->states.vdo.read_only_recoveries;
 	stats->block_map_cache_size = get_block_map_cache_size(vdo);
-	snprintf(stats->write_policy,
-		 sizeof(stats->write_policy),
-		 "%s",
-		 describe_write_policy(get_write_policy(vdo)));
 
 	// The callees are responsible for thread-safety.
 	stats->data_blocks_used = get_physical_blocks_allocated(vdo);
@@ -415,18 +396,6 @@ block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 	return (vdo->states.vdo.config.physical_blocks -
 		get_depot_data_blocks(vdo->depot) +
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
-}
-
-/**********************************************************************/
-enum write_policy get_write_policy(const struct vdo *vdo)
-{
-	return vdo->load_config.write_policy;
-}
-
-/**********************************************************************/
-void set_write_policy(struct vdo *vdo, enum write_policy new)
-{
-	vdo->load_config.write_policy = new;
 }
 
 /**********************************************************************/

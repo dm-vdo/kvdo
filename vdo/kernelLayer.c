@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#158 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#159 $
  */
 
 #include "kernelLayer.h"
@@ -281,20 +281,8 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		if (should_process_flush(layer)) {
-			launch_kvdo_flush(layer, bio);
-			return DM_MAPIO_SUBMITTED;
-		} else {
-			/*
-			 * We're not acknowledging this bio now, but we'll
-			 * never touch it again, so this is the last chance to
-			 * account for it.
-			 */
-			count_bios(&layer->bios_acknowledged, bio);
-			atomic64_inc(&layer->flush_out);
-			bio_set_dev(bio, get_kernel_layer_bdev(layer));
-			return DM_MAPIO_REMAPPED;
-		}
+		launch_kvdo_flush(layer, bio);
+		return DM_MAPIO_SUBMITTED;
 	}
 
 	current_work_queue = get_current_work_queue();
@@ -791,6 +779,9 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
+	// Below here are the actions to take when a non-immutable property
+	// changes.
+
 	if (config->owning_target->len != extant_config->owning_target->len) {
 		int result;
 		size_t logical_bytes = to_bytes(config->owning_target->len);
@@ -843,23 +834,6 @@ int modify_kernel_layer(struct kernel_layer *layer,
 
 	// A failure here is unrecoverable. So there is no problem if it
 	// happens.
-
-	if (config->write_policy != extant_config->write_policy) {
-		/*
-		 * Ordinarily, when going from async to sync, we must flush any
-		 * metadata written. However, because the underlying storage
-		 * must have gone into sync mode before we suspend VDO, and
-		 * suspending VDO concludes by issuing a flush, all metadata
-		 * written before the suspend is flushed by the suspend and all
-		 * metadata between the suspend and the write policy change is
-		 * written to synchronous storage.
-		 */
-		log_info("Modifying device '%s' write policy from %s to %s",
-			 get_vdo_device_name(extant_config->owning_target),
-			 get_config_write_policy_string(extant_config),
-			 get_config_write_policy_string(config));
-		set_write_policy(&layer->vdo, config->write_policy);
-	}
 
 	if (config->owning_target->len != extant_config->owning_target->len) {
 		size_t logical_bytes = to_bytes(config->owning_target->len);
@@ -1149,9 +1123,8 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	}
 
 	/*
-	 * Attempt to flush all I/O before completing post suspend work. This
-	 * is needed so that changing write policy upon resume is safe. Also,
-	 * we think a suspended device is expected to have persisted all data
+	 * Attempt to flush all I/O before completing post suspend work. We
+	 * believe a suspended device is expected to have persisted all data
 	 * written before the suspend, even if it hasn't been flushed yet.
 	 */
 	wait_for_no_requests_active(layer);

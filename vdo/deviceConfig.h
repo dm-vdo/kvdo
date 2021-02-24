@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#22 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -51,7 +51,6 @@ struct device_config {
 	char *parent_device_name;
 	block_count_t physical_blocks;
 	unsigned int logical_block_size;
-	enum write_policy write_policy;
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
 	bool deduplication;
@@ -98,16 +97,6 @@ int __must_check parse_device_config(int argc,
  * @param config_ptr  The pointer holding the config, which will be nulled
  **/
 void free_device_config(struct device_config **config_ptr);
-
-/**
- * Get the text describing the write policy.
- *
- * @param config  The device config
- *
- * @returns a pointer to a string describing the write policy
- **/
-const char * __must_check
-get_config_write_policy_string(struct device_config *config);
 
 /**
  * Acquire or release a reference from the config to a kernel layer.

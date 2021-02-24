@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#27 $
  */
 
 #ifndef VDO_H
@@ -94,23 +94,6 @@ block_count_t __must_check get_physical_blocks_overhead(const struct vdo *vdo);
  * @return The physical block count of the vdo
  **/
 block_count_t get_vdo_physical_block_count(const struct vdo *vdo);
-
-/**
- * Get the vdo write policy.
- *
- * @param vdo  The vdo
- *
- * @return The write policy
- **/
-enum write_policy get_write_policy(const struct vdo *vdo);
-
-/**
- * Set the vdo write policy.
- *
- * @param vdo  The vdo
- * @param new  The new write policy
- **/
-void set_write_policy(struct vdo *vdo, enum write_policy new);
 
 /**
  * Get a copy of the load-time configuration of the vdo.
