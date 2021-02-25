@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#23 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -80,7 +80,6 @@ static inline struct device_config *as_device_config(struct list_head *entry)
  * @param [in]  argc         The number of table values
  * @param [in]  argv         The array of table values
  * @param [in]  ti           The target structure for this table
- * @param [in]  verbose      Whether to log about the underlying device
  * @param [out] config_ptr   A pointer to return the allocated config
  *
  * @return VDO_SUCCESS or an error code
@@ -88,7 +87,6 @@ static inline struct device_config *as_device_config(struct list_head *entry)
 int __must_check parse_device_config(int argc,
 				     char **argv,
 				     struct dm_target *ti,
-				     bool verbose,
 				     struct device_config **config_ptr);
 
 /**

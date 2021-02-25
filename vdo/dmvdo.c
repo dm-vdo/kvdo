@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#90 $
  */
 
 #include "dmvdo.h"
@@ -589,7 +589,6 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	const char *device_name;
 	struct kernel_layer *old_layer;
 	unsigned int instance;
-	bool verbose;
 	struct device_config *config = NULL;
 
 	register_allocating_thread(&allocating_thread, NULL);
@@ -607,10 +606,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	register_thread_device_id(&instance_thread, &instance);
-
-	verbose = (old_layer == NULL);
-
-	result = parse_device_config(argc, argv, ti, verbose, &config);
+	result = parse_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		unregister_thread_device_id();
 		unregister_allocating_thread();

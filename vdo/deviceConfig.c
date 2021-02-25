@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#32 $
  */
 
 #include "deviceConfig.h"
@@ -104,39 +104,6 @@ static int get_version_number(int argc,
 			"Please consider upgrading management tools to match kernel.");
 	}
 	return VDO_SUCCESS;
-}
-
-/**
- * Resolve the config with write policy, physical size, and other unspecified
- * fields based on the device, if needed.
- *
- * @param [in,out] config   The config possibly missing values
- * @param [in]     verbose  Whether to log about the underlying device
- **/
-
-static void resolve_config_with_device(struct device_config *config,
-				       bool verbose)
-{
-	struct dm_dev *dev = config->owned_device;
-	struct request_queue *request_queue = bdev_get_queue(dev->bdev);
-	bool flush_supported =
-		((request_queue->queue_flags & (1ULL << QUEUE_FLAG_WC)) != 0);
-	bool fua_supported =
-		((request_queue->queue_flags & (1ULL << QUEUE_FLAG_FUA)) != 0);
-	if (verbose) {
-		log_info("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
-			 (flush_supported ? "supported" : "not supported"),
-			 (fua_supported ? "supported" : "not supported"));
-	} else {
-		// We should probably always log, but need to make sure that
-		// makes sense before changing behavior.
-	}
-
-	if (config->version == 0) {
-		uint64_t device_size = i_size_read(dev->bdev->bd_inode);
-
-		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
-	}
 }
 
 /**
@@ -522,7 +489,6 @@ static void handle_parse_error(struct device_config **config_ptr,
 int parse_device_config(int argc,
 			char **argv,
 			struct dm_target *ti,
-			bool verbose,
 			struct device_config **config_ptr)
 {
 	bool enable_512e;
@@ -707,7 +673,12 @@ int parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	resolve_config_with_device(config, verbose);
+	if (config->version == 0) {
+		uint64_t device_size
+			= i_size_read(config->owned_device->bdev->bd_inode);
+
+		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
+	}
 
 	*config_ptr = config;
 	return result;
