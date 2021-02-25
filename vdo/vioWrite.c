@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#57 $
  */
 
 /*
@@ -767,16 +767,12 @@ static void update_block_map_for_write(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->is_zero_block || is_trim_data_vio(data_vio)) {
-		completion->callback = complete_data_vio;
-	} else if (data_vio->hash_lock != NULL) {
-		// Async writes will be finished, but must return to the hash
-		// lock to allow other data VIOs with the same data to dedupe
-		// against the write.
+	if (data_vio->hash_lock != NULL) {
+		// The write is finished, but must return to the hash lock to
+		// allow other data VIOs with the same data to dedupe against
+		// the write.
 		set_hash_zone_callback(data_vio, finish_write_data_vio);
 	} else {
-		// Async writes without a hash lock (hash collisions) will be
-		// finished.
 		completion->callback = complete_data_vio;
 	}
 
