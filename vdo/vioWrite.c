@@ -16,19 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#58 $
  */
 
 /*
  * This file contains almost all of the VDO write path, which begins with
- * writeExtent(). The progression through the callbacks which make up the
- * write path depends upon whether or not the write policy is synchronous or
- * asynchronous. The paths would proceed as outlined in the pseudo-code here
- * if this were normal, synchronous code without callbacks. Complications
- * involved in waiting on locks are not included.
+ * launch_write_data_vio(). The path would proceed as outlined in the
+ * pseudo-code here if this were normal, synchronous code without
+ * callbacks. Complications involved in waiting on locks are not included.
  *
  * ######################################################################
- * writeExtentAsynchronous(extent)
+ * launch_write_data_vio(vio)
  * {
  *   foreach (vio in extent) {
  *     launchWriteVIO()
@@ -349,8 +347,8 @@ static void abort_deduplication(struct data_vio *data_vio)
 		return;
 	}
 
-	// We failed to deduplicate or compress an async data_vio, so
-	// now we need to actually write the data.
+	// We failed to deduplicate or compress so now we need to actually
+	// write the data.
 	write_block(data_vio);
 }
 
@@ -724,10 +722,9 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 }
 
 /**
- * Prepare for the dedupe path after a synchronous write or an asynchronous
- * allocation. This callback is registered in update_block_map_for_write() for
- * sync, and continue_write_after_allocation() (via acknowledge_write()) for
- * async. It is also called directly from the latter when allocation fails.
+ * Prepare for the dedupe path after attempting to get an allocation. This
+ * callback is both registered in and called directly from
+ * continue_write_after_allocation().
  *
  * @param completion  The completion of the write in progress
  **/
@@ -825,8 +822,7 @@ static void journal_unmapping_for_write(struct vdo_completion *completion)
 /**
  * Get the previous PBN mapped to this LBN from the block map for a write, so
  * as to make an appropriate journal entry referencing the removal of this
- * LBN->PBN mapping. This callback is registered in finish_block_write() in the
- * async path, and is registered in acknowledge_write() in the sync path.
+ * LBN->PBN mapping. This callback is registered in finish_block_write().
  *
  * @param completion  The completion of the write in progress
  **/
@@ -871,9 +867,9 @@ static void increment_for_write(struct vdo_completion *completion)
 	}
 
 	/*
-	 * Now that the data has been written, it's safe to deduplicate against the
-	 * block. Downgrade the allocation lock to a read lock so it can be used
-	 * later by the hash lock (which we don't have yet in sync mode).
+	 * Now that the data has been written, it's safe to deduplicate against
+	 * the block. Downgrade the allocation lock to a read lock so it can be
+	 * used later by the hash lock.
 	 */
 	downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
 

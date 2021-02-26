@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#44 $
  */
 
 #ifndef VIO_H
@@ -378,8 +378,7 @@ launch_write_metadata_vio_with_flush(struct vio *vio,
 }
 
 /**
- * Issue a flush to the layer. Currently expected to be used only in
- * async mode.
+ * Issue a flush to the layer.
  *
  * @param vio            The vio to notify when the flush is complete
  * @param callback       The function to call when the flush is complete

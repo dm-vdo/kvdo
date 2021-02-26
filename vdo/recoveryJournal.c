@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#97 $
  */
 
 #include "recoveryJournal.h"
@@ -1184,12 +1184,6 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	 * journal head will advance, we must flush the slab summary
 	 * update covering the slab journal that just released some
 	 * lock.
-	 *
-	 * In sync mode, this is unnecessary because we won't record
-	 * these numbers on disk until the next journal block write,
-	 * and in sync mode every journal block write is preceded by
-	 * a flush, which does the block map page and slab summary
-	 * update flushing itself.
 	 */
 	journal->reaping = true;
 	launch_flush(journal->flush_vio, complete_reaping, handle_flush_error);

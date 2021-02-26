@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#35 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -32,16 +32,10 @@
 #include "types.h"
 
 /**
- * The recovery_journal provides a log of all block mapping changes
- * which have not yet been stably written to the block map. It exists
- * to help provide resiliency guarantees by allowing synchronous
- * writes to be acknowledged as soon as the corresponding journal
- * entry is committed instead of having to wait for the block map
- * update. For asynchronous writes, the journal aids in meeting the
- * five second data loss window by ensuring that writes will not be
- * lost as long as they are committed to the journal before the window
- * expires. This should be less work than committing all of the
- * required block map pages.
+ * The recovery_journal provides a log of all block mapping and reference count
+ * changes which have not yet been stably written to the block map or slab
+ * journals. This log helps to reduce the write amplification of writes by
+ * providing amortization of slab journal and block map page updates.
  *
  * The journal consists of a set of on-disk blocks arranged as a
  * circular log with monotonically increasing sequence numbers. Three

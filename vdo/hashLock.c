@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#45 $
  */
 
 /**
@@ -1364,15 +1364,13 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	// If the agent compresses, it might wait indefinitely in the packer,
 	// which would be bad if there are any other data_vios waiting.
 	if (has_waiters(&lock->waiters)) {
-		// XXX in sync mode, transition directly to LOCKING to start
-		// dedupe?
 		cancel_compression(agent);
 	}
 
 	/*
-	 * Send the agent to the compress/pack/async-write path in vioWrite. 
-	 * If it succeeds, it will return to the hash lock via
-	 * continue_hash_lock() and call finish_writing().
+	 * Send the agent to the compress/pack/write path in vioWrite.  If it
+	 * succeeds, it will return to the hash lock via continue_hash_lock()
+	 * and call finish_writing().
 	 */
 	compress_data(agent);
 }
