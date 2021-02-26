@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#127 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#128 $
  */
 
 #include "dataKVIO.h"
@@ -491,13 +491,6 @@ void write_data_vio(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(is_write_vio(vio),
 			"write_data_vio must be passed a write data_vio");
 
-
-	// In sync mode, we still have the original bio, and the hints are
-	// appropriate for lower layers' fast completion of IO. In async,
-	// we don't, and the hints don't matter anymore.
-	if (data_vio->user_bio != NULL) {
-		opf = data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS;
-	}
 
 	// Write the data from the data block buffer.
 	result = reset_bio_with_buffer(vio->bio, data_vio->data_block,
