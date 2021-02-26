@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#49 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -212,18 +212,11 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		int result;
 
 		if (data_vio->operation.type == DATA_INCREMENT) {
-			// In order to not lose committed sectors of this
-			// partial write, we must flush before the partial write
-			// entries are committed.
-			block->has_partial_write_entry =
-				(block->has_partial_write_entry
-				 || data_vio->is_partial_write);
 			/*
-			 * In order to not lose acknowledged writes with the FUA
-			 * flag set, we must issue a flush to cover the data
-			 * write and also all previous journal writes, and we
-			 * must issue a FUA on the journal write.
-			 */
+			 * In order to not lose an acknowledged write with the
+                         * FUA flag, we must also set the FUA flag on the
+                         * journal entry write.
+                         */
 			block->has_fua_entry =
 				(block->has_fua_entry ||
 				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
@@ -299,6 +292,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t block_pbn;
+	bool fua;
 	int result = ASSERT(can_commit_recovery_block(block),
 			    "should never call %s when the block can't be committed",
 			    __func__);
@@ -329,23 +323,21 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	block->committing = true;
 
 	/*
-	 * When we are writing an increment entry for a request with FUA, or
-	 * when making the increment entry for a partial write, we need to make
-	 * sure all the data being mapped to by this block is stable on disk
-	 * and also that the recovery journal is stable up to the current
-	 * block, so we must flush before writing.
-	 *
-	 * For FUA, we also need to make sure that the write we are doing is
-	 * stable, so we issue the write with FUA.
-	 */
+         * We must issue a flush for every commit. For increments, it is
+         * necessary to ensure that the data being referenced is stable. For
+         * decrements, it is necessary to ensure that the preceding increment
+         * entry is stable before allowing overwrites of the lbn's previous
+         * data. For writes which had the FUA flag set, we must also set the
+         * FUA flag on the journal write.
+         */
+	fua = block->has_fua_entry;
 	block->has_fua_entry = false;
-	block->has_partial_write_entry = false;
 	launch_write_metadata_vio_with_flush(block->vio,
 					     block_pbn,
 					     callback,
 					     error_handler,
 					     true,
-					     block->has_fua_entry);
+					     fua);
 	return VDO_SUCCESS;
 }
 
