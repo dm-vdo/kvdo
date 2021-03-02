@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#9 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -43,30 +43,16 @@ struct slab_journal_entry {
 };
 
 /** A single slab journal entry in its on-disk form */
-typedef union {
-	struct __packed {
-		uint8_t offset_low8;
-		uint8_t offset_mid8;
+typedef struct {
+	uint8_t offset_low8;
+	uint8_t offset_mid8;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-		unsigned offset_high7 : 7;
-		unsigned increment : 1;
+	unsigned offset_high7 : 7;
+	unsigned increment : 1;
 #else
-		unsigned increment : 1;
-		unsigned offset_high7 : 7;
-#endif
-	} fields;
-
-	// A raw view of the packed encoding.
-	uint8_t raw[3];
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	// This view is only valid on little-endian machines and is only present
-	// for ease of directly examining packed entries in GDB.
-	struct __packed {
-		unsigned offset : 23;
-		unsigned increment : 1;
-	} little_endian;
+	unsigned increment : 1;
+	unsigned offset_high7 : 7;
 #endif
 } __packed packed_slab_journal_entry;
 
@@ -188,13 +174,13 @@ static inline struct slab_journal_entry __must_check
 unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;
-	entry.sbn = packed->fields.offset_high7;
+	entry.sbn = packed->offset_high7;
 	entry.sbn <<= 8;
-	entry.sbn |= packed->fields.offset_mid8;
+	entry.sbn |= packed->offset_mid8;
 	entry.sbn <<= 8;
-	entry.sbn |= packed->fields.offset_low8;
+	entry.sbn |= packed->offset_low8;
 	entry.operation =
-		(packed->fields.increment ? DATA_INCREMENT : DATA_DECREMENT);
+		(packed->increment ? DATA_INCREMENT : DATA_DECREMENT);
 	return entry;
 }
 
