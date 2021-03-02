@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#13 $
  */
 
 #include "bufferPool.h"
@@ -155,10 +155,11 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 static bool in_free_list(struct buffer_pool *pool, void *data)
 {
 	struct list_head *node;
+        struct buffer_element *bh;
 
 	list_for_each(node, &pool->free_object_list) {
-		if (list_entry(node, struct buffer_element, list)->data ==
-		    data) {
+		bh = list_entry(node, struct buffer_element, list);
+		if (bh->data == data) {
 			return true;
 		}
 	}

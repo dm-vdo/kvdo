@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#22 $
  */
 
 #include "chapterWriter.h"
@@ -203,7 +203,7 @@ void free_chapter_writer(struct chapter_writer *writer)
 		return;
 	}
 
-	int result __attribute__((unused)) = stop_chapter_writer(writer);
+	int result __always_unused = stop_chapter_writer(writer);
 	destroy_mutex(&writer->mutex);
 	destroy_cond(&writer->cond);
 	free_open_chapter_index(writer->open_chapter_index);

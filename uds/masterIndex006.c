@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#24 $
  */
 #include "masterIndex006.h"
 
@@ -153,8 +153,8 @@ struct mi006_data {
  * @param tag          The tag value
  **/
 static void set_master_index_tag_006(struct master_index *master_index
-				     		__attribute__((unused)),
-				     byte tag __attribute__((unused)))
+				     __always_unused,
+				     byte tag __always_unused)
 {
 }
 
@@ -577,11 +577,11 @@ lookup_master_index_name_006(const struct master_index *master_index,
  **/
 static int
 lookup_master_index_sampled_name_006(const struct master_index *master_index
-						__attribute__((unused)),
+				     __always_unused,
 				     const struct uds_chunk_name *name
-				     		__attribute__((unused)),
+				     __always_unused,
 				     struct master_index_triage *triage
-				     		__attribute__((unused)))
+				     __always_unused)
 {
 	return ASSERT_WITH_ERROR_CODE(false, UDS_BAD_STATE,
 				      "%s should not be called", __func__);

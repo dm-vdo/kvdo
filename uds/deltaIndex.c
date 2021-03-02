@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#20 $
  */
 #include "deltaIndex.h"
 
@@ -191,7 +191,7 @@ struct delta_page_header {
 	uint16_t first_list;              // Index of the first delta list on
 	                                  // the page
 	uint16_t num_lists;               // Number of delta lists on the page
-} __attribute__((packed));
+} __packed;
 
 // Immutable delta lists are packed into pages containing a header that
 // encodes the delta list information into 19 bits per list (64KB bit offset)

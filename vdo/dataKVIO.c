@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#128 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#129 $
  */
 
 #include "dataKVIO.h"
@@ -166,7 +166,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 
 /**********************************************************************/
 static void
-vdo_acknowledge_then_complete_data_vio(struct vdo_work_item *item)
+vdo_acknowledge_and_batch(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
@@ -184,11 +184,10 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 
 	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
-		launch_data_vio_on_bio_ack_queue(
-			data_vio,
-			vdo_acknowledge_then_complete_data_vio,
-			NULL,
-			BIO_ACK_Q_ACTION_ACK);
+		launch_data_vio_on_bio_ack_queue(data_vio,
+						 vdo_acknowledge_and_batch,
+						 NULL,
+						 BIO_ACK_Q_ACTION_ACK);
 	} else {
 		add_to_batch_processor(layer->data_vio_releaser,
 				       &completion->work_item);
@@ -441,7 +440,7 @@ void read_data_vio(struct data_vio *data_vio)
 
 /**********************************************************************/
 static void
-vdo_acknowledge_data_vio_then_continue(struct vdo_work_item *item)
+vdo_acknowledge_and_enqueue(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
@@ -470,14 +469,12 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	// We've finished with the vio; acknowledge completion of the bio to
 	// the kernel.
 	if (use_bio_ack_queue(layer)) {
-		launch_data_vio_on_bio_ack_queue(
-			data_vio,
-			vdo_acknowledge_data_vio_then_continue,
-			NULL,
-			BIO_ACK_Q_ACTION_ACK);
+		launch_data_vio_on_bio_ack_queue(data_vio,
+						 vdo_acknowledge_and_enqueue,
+						 NULL,
+						 BIO_ACK_Q_ACTION_ACK);
 	} else {
-		vdo_acknowledge_data_vio_then_continue(
-			work_item_from_data_vio(data_vio));
+		vdo_acknowledge_and_enqueue(work_item_from_data_vio(data_vio));
 	}
 }
 

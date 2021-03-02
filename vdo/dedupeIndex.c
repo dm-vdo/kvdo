@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#84 $
  */
 
 #include "dedupeIndex.h"
@@ -318,8 +318,8 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 					   struct data_vio *data_vio)
 {
 	struct dedupe_context *context = &data_vio->dedupe_context;
-	start_expiration_timer(index,
-			       get_dedupe_index_timeout(context->submission_jiffies));
+	uint64_t start_time = context->submission_jiffies;
+	start_expiration_timer(index, get_dedupe_index_timeout(start_time));
 }
 
 /**********************************************************************/
@@ -966,6 +966,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 {
 	int result;
 	struct dedupe_index *index;
+	struct index_config *index_config;
 	static const struct vdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
@@ -996,9 +997,9 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
 	index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
-	index_config_to_uds_parameters(&layer->geometry.index_config,
-				       &index->uds_params);
-	result = index_config_to_uds_configuration(&layer->geometry.index_config,
+	index_config = &layer->geometry.index_config;
+	index_config_to_uds_parameters(index_config, &index->uds_params);
+	result = index_config_to_uds_configuration(index_config,
 						   &index->configuration);
 	if (result != VDO_SUCCESS) {
 		FREE(index->index_name);

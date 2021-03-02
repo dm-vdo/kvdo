@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#71 $
  */
 
 #include "ioSubmitter.h"
@@ -30,25 +30,6 @@
 #include "dataKVIO.h"
 #include "kernelLayer.h"
 #include "logger.h"
-
-enum {
-	/*
-	 * Whether to use bio merging code.
-	 *
-	 * Merging I/O requests in the request queue below us is helpful for
-	 * many devices, and VDO does a good job sometimes of shuffling up
-	 * the I/O order (too much for some simple I/O schedulers to sort
-	 * out) as we deal with dedupe advice etc. The bio map tracks the
-	 * yet-to-be-submitted I/O requests by block number so that we can
-	 * collect together and submit sequential I/O operations that should
-	 * be easy to merge. (So we don't actually *merge* them here, we
-	 * just arrange them so that merging can happen.)
-	 *
-	 * For some devices, merging may not help, and we may want to turn
-	 * off this code and save compute/spinlock cycles.
-	 */
-	USE_BIOMAP = 1,
-};
 
 /*
  * Submission of bio operations to the underlying storage device will
@@ -265,9 +246,8 @@ static sector_t get_bio_sector(struct bio *bio)
  * Submits a bio to the underlying block device.  May block if the
  * device is busy.
  *
- * For normal data when USE_BIOMAP is enabled, vio->bios_merged is
- * the list of all bios collected together in this group; all of
- * them get submitted.
+ * For normal data, vio->bios_merged is the list of all bios collected
+ * together in this group; all of them get submitted.
  *
  * @param item  The work item in the vio "owning" the head of the
  *		bio_list to be submitted.
@@ -278,7 +258,7 @@ static void process_bio_map(struct vdo_work_item *item)
 	assert_running_in_bio_queue();
 	// XXX Should we call finish_bio_queue for the biomap case on old
 	// kernels?
-	if (USE_BIOMAP && is_data_vio(vio)) {
+	if (is_data_vio(vio)) {
 		// We need to make sure to do two things here:
 		// 1. Use each bio's vio when submitting. Any other vio is
 		// not safe
@@ -397,6 +377,44 @@ static inline unsigned int advance_bio_rotor(struct io_submitter *bio_data)
 }
 
 /**********************************************************************/
+static int merge_to_prev_tail(struct int_map *bio_map,
+			      struct vio *vio,
+			      struct vio *prev_vio)
+{
+	int result;
+	int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
+	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
+	result = int_map_put(bio_map,
+			     get_bio_sector(prev_vio->bios_merged.head),
+			     prev_vio, true, NULL);
+	result = int_map_put(bio_map,
+			     get_bio_sector(prev_vio->bios_merged.tail),
+			     prev_vio, true, NULL);
+	return result;
+}
+
+/**********************************************************************/
+static int merge_to_next_head(struct int_map *bio_map,
+			      struct vio *vio,
+			      struct vio *next_vio)
+{
+	int result;
+
+	// Handle "next merge" and "gap fill" cases the same way so as to
+	// reorder bios in a way that's compatible with using funnel queues
+	// in work queues.  This avoids removing an existing work item.
+	int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
+	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
+	result = int_map_put(bio_map,
+			     get_bio_sector(next_vio->bios_merged.head),
+			     next_vio, true, NULL);
+	result = int_map_put(bio_map,
+			     get_bio_sector(next_vio->bios_merged.tail),
+			     next_vio, true, NULL);
+	return result;
+}
+
+/**********************************************************************/
 static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 			      struct vio *vio,
 			      struct bio *bio)
@@ -423,34 +441,13 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 		mutex_unlock(&bio_queue_data->lock);
 	} else {
 		if (next_vio == NULL) {
-			// Only prev. merge to  prev's tail
-			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(prev_vio->bios_merged.tail));
-			bio_list_merge(&prev_vio->bios_merged,
-				       &vio->bios_merged);
-			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(prev_vio->bios_merged.head),
-					     prev_vio, true, NULL);
-			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(prev_vio->bios_merged.tail),
-					     prev_vio, true, NULL);
+			// Only prev. merge to prev's tail
+			result = merge_to_prev_tail(bio_queue_data->map,
+						    vio, prev_vio);
 		} else {
 			// Only next. merge to next's head
-			//
-			// Handle "next merge" and "gap fill" cases the same way
-			// so as to reorder bios in a way that's compatible with
-			// using funnel queues in work queues.  This avoids
-			// removing an existing work item.
-			int_map_remove(bio_queue_data->map,
-				       get_bio_sector(next_vio->bios_merged.head));
-			bio_list_merge_head(&next_vio->bios_merged,
-					    &vio->bios_merged);
-			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(next_vio->bios_merged.head),
-					     next_vio, true, NULL);
-			result = int_map_put(bio_queue_data->map,
-					     get_bio_sector(next_vio->bios_merged.tail),
-					     next_vio, true, NULL);
+			result = merge_to_next_head(bio_queue_data->map,
+						    vio, next_vio);
 		}
 
 		// We don't care about failure of int_map_put in this case.
@@ -495,7 +492,7 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 	 * appropriate to the indicated physical block number.
 	 */
 
-	if (USE_BIOMAP && is_data_vio(vio)) {
+	if (is_data_vio(vio)) {
 		merged = try_bio_map_merge(bio_queue_data, vio, bio);
 	}
 	if (!merged) {
@@ -547,31 +544,28 @@ int make_io_submitter(const char *thread_name_prefix,
 			&io_submitter->bio_queue_data[i];
 		snprintf(queue_name, sizeof(queue_name), "bioQ%u", i);
 
-		if (USE_BIOMAP) {
-			mutex_init(&bio_queue_data->lock);
-			/*
-			 * One I/O operation per request, but both first &
-			 * last sector numbers.
-			 *
-			 * If requests are assigned to threads round-robin,
-			 * they should be distributed quite evenly. But if
-			 * they're assigned based on PBN, things can sometimes
-			 * be very uneven. So for now, we'll assume that all
-			 * requests *may* wind up on one thread, and thus all
-			 * in the same map.
-			 */
-			result = make_int_map(max_requests_active * 2, 0,
-					      &bio_queue_data->map);
-			if (result != 0) {
-				// Clean up the partially initialized bio-queue
-				// entirely and indicate that initialization
-				// failed.
-				uds_log_error("bio map initialization failed %d",
-					      result);
-				cleanup_io_submitter(io_submitter);
-				free_io_submitter(io_submitter);
-				return result;
-			}
+		mutex_init(&bio_queue_data->lock);
+		/*
+		 * One I/O operation per request, but both first &
+		 * last sector numbers.
+		 *
+		 * If requests are assigned to threads round-robin,
+		 * they should be distributed quite evenly. But if
+		 * they're assigned based on PBN, things can sometimes
+		 * be very uneven. So for now, we'll assume that all
+		 * requests *may* wind up on one thread, and thus all
+		 * in the same map.
+		 */
+		result = make_int_map(max_requests_active * 2, 0,
+				      &bio_queue_data->map);
+		if (result != 0) {
+			// Clean up the partially initialized bio-queue
+			// entirely and indicate that initialization failed.
+			uds_log_error("bio map initialization failed %d",
+				      result);
+			cleanup_io_submitter(io_submitter);
+			free_io_submitter(io_submitter);
+			return result;
 		}
 
 		result = initialize_bio_queue(bio_queue_data,
@@ -580,11 +574,9 @@ int make_io_submitter(const char *thread_name_prefix,
 					      i,
 					      layer);
 		if (result != VDO_SUCCESS) {
-			// Clean up the partially initialized bio-queue entirely
-			// and indicate that initialization failed.
-			if (USE_BIOMAP) {
-				free_int_map(&io_submitter->bio_queue_data[i].map);
-			}
+			// Clean up the partially initialized bio-queue
+			// entirely and indicate that initialization failed.
+			free_int_map(&bio_queue_data->map);
 			uds_log_error("bio queue initialization failed %d",
 				      result);
 			cleanup_io_submitter(io_submitter);
@@ -618,9 +610,7 @@ void free_io_submitter(struct io_submitter *io_submitter)
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		free_work_queue(&io_submitter->bio_queue_data[i].queue);
-		if (USE_BIOMAP) {
-			free_int_map(&io_submitter->bio_queue_data[i].map);
-		}
+		free_int_map(&io_submitter->bio_queue_data[i].map);
 	}
 	FREE(io_submitter);
 }

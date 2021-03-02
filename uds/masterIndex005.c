@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#30 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#31 $
  */
 #include "masterIndex005.h"
 
@@ -1341,9 +1341,9 @@ static void get_master_index_stats_005(const struct master_index *master_index,
  * @return whether to use as sample
  **/
 static bool is_master_index_sample_005(const struct master_index *master_index
-				       __attribute__((unused)),
+				       __always_unused,
 				       const struct uds_chunk_name *name
-				       __attribute__((unused)))
+				       __always_unused)
 {
 	return false;
 }

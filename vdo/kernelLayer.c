@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#159 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#160 $
  */
 
 #include "kernelLayer.h"
@@ -857,6 +857,16 @@ int modify_kernel_layer(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
+static void free_compression_context(struct kernel_layer *layer)
+{
+	int i;
+	for (i = 0; i < layer->device_config->thread_counts.cpu_threads; i++) {
+		FREE(layer->compression_context[i]);
+	}
+	FREE(layer->compression_context);
+}
+
+/**********************************************************************/
 void free_kernel_layer(struct kernel_layer *layer)
 {
 	/*
@@ -916,14 +926,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		if (layer->compression_context != NULL) {
-			int i;
-
-			for (i = 0;
-			     i < layer->device_config->thread_counts.cpu_threads;
-			     i++) {
-				FREE(layer->compression_context[i]);
-			}
-			FREE(layer->compression_context);
+			free_compression_context(layer);
 		}
 		if (layer->dedupe_index != NULL) {
 			finish_dedupe_index(layer->dedupe_index);

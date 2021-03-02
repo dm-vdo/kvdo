@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.h#10 $
  */
 
 #ifndef OPEN_CHAPTER_ZONE_H
@@ -67,7 +67,7 @@ struct open_chapter_zone_slot {
 	unsigned int record_number : OPEN_CHAPTER_RECORD_NUMBER_BITS;
 	/** If true, the record at the index of this hash slot was deleted */
 	bool record_deleted : 1;
-} __attribute__((packed));
+} __packed;
 
 struct open_chapter_zone {
 	/** Maximum number of records that can be stored */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#91 $
  */
 
 #include "dmvdo.h"
@@ -159,6 +159,7 @@ static void vdo_status(struct dm_target *ti,
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct vdo_statistics *stats;
+	struct device_config *device_config;
 	char name_buffer[BDEVNAME_SIZE];
 	// N.B.: The DMEMIT macro uses the variables named "sz", "result",
 	// "maxlen".
@@ -184,8 +185,8 @@ static void vdo_status(struct dm_target *ti,
 
 	case STATUSTYPE_TABLE:
 		// Report the string actually specified in the beginning.
-		DMEMIT("%s",
-		       ((struct device_config *) ti->private)->original_string);
+		device_config = (struct device_config *) ti->private;
+		DMEMIT("%s", device_config->original_string);
 		break;
 	}
 
@@ -229,6 +230,27 @@ vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 	return prepare_to_resize_logical(layer, logical_count);
 }
 
+/**********************************************************************/
+static int vdo_grow_physical(struct kernel_layer *layer)
+{
+	// The actual growPhysical will happen when the device is resumed.
+	if (layer->device_config->version != 0) {
+		/*
+		 * XXX Uncomment this branch when new VDO manager is updated to
+		 * not send this message. Old style message on new style table
+		 * is unexpected; it means the user started the VDO with new
+		 * manager and is growing with old.
+		 */
+		// log_info("Mismatch between growPhysical method and table version.");
+		// return -EINVAL;
+	} else {
+		block_count_t backing_blocks =
+			get_underlying_device_block_count(layer);
+		layer->device_config->physical_blocks = backing_blocks;
+	}
+	return 0;
+}
+
 /**
  * Process a dmsetup message now that we know no other message is being
  * processed.
@@ -255,33 +277,14 @@ process_vdo_message_locked(struct kernel_layer *layer,
 
 
 		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
+			block_count_t backing_blocks =
+				get_underlying_device_block_count(layer);
 			return prepare_to_resize_physical(layer,
-							  get_underlying_device_block_count(layer));
+							  backing_blocks);
 		}
 
 		if (strcasecmp(argv[0], "growPhysical") == 0) {
-			/*
-			 * The actual growPhysical will happen when the device
-			 * is resumed.
-			 */
-
-			if (layer->device_config->version != 0) {
-				/*
-				 * XXX Uncomment this branch when new VDO
-				 * manager is updated to not send this
-				 * message. Old style message on new style
-				 * table is unexpected; it means the user
-				 * started the VDO with new manager and is
-				 * growing with old.
-				 */
-
-				// log_info("Mismatch between growPhysical method
-				// and table version."); return -EINVAL;
-			} else {
-				layer->device_config->physical_blocks =
-					get_underlying_device_block_count(layer);
-			}
-			return 0;
+			return vdo_grow_physical(layer);
 		}
 
 		break;
