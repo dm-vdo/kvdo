@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#79 $
  */
 
 #ifndef TYPES_H
@@ -395,13 +395,6 @@ struct zoned_pbn {
  * @param vio The vio on which to operate
  **/
 typedef void async_operation(struct vio *vio);
-
-/**
- * An asynchronous compressed write operation.
- *
- * @param allocating_vio  The allocating_vio to write
- **/
-typedef void compressed_writer(struct allocating_vio *allocating_vio);
 
 /**
  * An asynchronous data operation.

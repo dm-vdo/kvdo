@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#51 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -164,6 +164,13 @@ typedef async_data_operation duplication_verifier;
 typedef async_data_operation data_reader;
 
 /**
+ * An asynchronous compressed write operation.
+ *
+ * @param vio  The compressed write vio
+ **/
+typedef async_operation compressed_writer;
+
+/**
  * A function to read a single metadata vio from the layer.
  *
  * @param vio  The vio to read
@@ -294,12 +301,5 @@ void vdo_wait_for_sync_operation(struct vdo *vdo);
  * @param vdo  The vdo to inform
  **/
 void vdo_complete_sync_operation(struct vdo *vdo);
-
-/**
- * A function to write a single compressed block to the layer
- *
- * @param allocating_vio  The allocating_vio to write
- **/
-void write_compressed_block(struct allocating_vio *allocating_vio);
 
 #endif // PHYSICAL_LAYER_H

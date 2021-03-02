@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#79 $
  */
 
 #include "kvio.h"
@@ -82,17 +82,25 @@ void destroy_vio(struct vio **vio_ptr)
 }
 
 /**********************************************************************/
-void write_compressed_block(struct allocating_vio *allocating_vio)
+void write_compressed_block(struct vio *vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
-	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 	struct bio *bio = vio->bio;
+	int result = ASSERT(is_compressed_write_vio(vio),
+			    "Compressed write vio has correct type");
+	if (result != VDO_SUCCESS) {
+		continue_vio(vio, result);
+		return;
+	}
 
 	// Write the compressed block, using the compressed vio's own bio.
-	int result = reset_bio_with_buffer(bio, vio->data, vio,
-					   complete_async_bio, REQ_OP_WRITE,
-					   vio->physical);
+	result = reset_bio_with_buffer(bio,
+				       vio->data,
+				       vio,
+				       complete_async_bio,
+				       REQ_OP_WRITE,
+				       vio->physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;

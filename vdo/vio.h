@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#45 $
  */
 
 #ifndef VIO_H
@@ -405,5 +405,12 @@ void destroy_vio(struct vio **vio_ptr);
  * @param vio  The vio to read or write
  **/
 void submit_metadata_vio(struct vio *vio);
+
+/**
+ * A function to write a single compressed block to the layer
+ *
+ * @param vio  The compressed write vio to write
+ **/
+void write_compressed_block(struct vio *vio);
 
 #endif // VIO_H
