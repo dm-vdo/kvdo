@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#27 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -49,7 +49,7 @@
  * recovery journal space.
  *
  * The slab_summary does not have its own version information, but relies on
- * the master version number.
+ * the VDO volume version number.
  **/
 
 /**

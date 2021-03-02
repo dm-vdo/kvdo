@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#4 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -31,14 +31,14 @@
 #include "vdoState.h"
 
 /**
- * The master version of the on-disk format of a VDO. This should be
+ * The version of the on-disk format of a VDO volume. This should be
  * incremented any time the on-disk representation of any VDO structure
  * changes. Changes which require only online upgrade steps should increment
  * the minor version. Changes which require an offline upgrade or which can not
  * be upgraded to at all should increment the major version and set the minor
  * version to 0.
  **/
-extern const struct version_number VDO_MASTER_VERSION_67_0;
+extern const struct version_number VDO_VOLUME_VERSION_67_0;
 
 /**
  * The entirety of the component data encoded in the VDO super block.
@@ -47,8 +47,8 @@ struct vdo_component_states {
 	/* The release version */
 	release_version_number_t release_version;
 
-	/* The VDO master version */
-	struct version_number master_version;
+	/* The VDO volume version */
+	struct version_number volume_version;
 
 	/* Components */
 	struct vdo_component_41_0 vdo;

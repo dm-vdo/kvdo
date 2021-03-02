@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#8 $
  */
 
 #include "vdoComponentStates.h"
@@ -34,7 +34,7 @@
 #include "types.h"
 #include "vdoComponent.h"
 
-const struct version_number VDO_MASTER_VERSION_67_0 = {
+const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.major_version = 67,
 	.minor_version = 0,
 };
@@ -111,15 +111,15 @@ int decode_component_states(struct buffer *buffer,
 					  states->release_version);
 	}
 
-	// Check the VDO master version
-	result = decode_version_number(buffer, &states->master_version);
+	// Check the VDO volume version
+	result = decode_version_number(buffer, &states->volume_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_version(VDO_MASTER_VERSION_67_0,
-				  states->master_version,
-				  "master");
+	result = validate_version(VDO_VOLUME_VERSION_67_0,
+				  states->volume_version,
+				  "volume");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -181,7 +181,7 @@ int encode_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_version_number(states->master_version, buffer);
+	result = encode_version_number(states->volume_version, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
