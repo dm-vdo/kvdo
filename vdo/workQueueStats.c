@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#22 $
  */
 
 #include "workQueueStats.h"
@@ -59,7 +59,8 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 	stats->reschedule_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "reschedule_time",
 					   "Reschedule Time", "calls",
-					   "sleep interval", "microseconds", 9);
+					   "sleep interval", "microseconds",
+					   9);
 	if (stats->reschedule_time_histogram == NULL) {
 		return -ENOMEM;
 	}
@@ -77,7 +78,8 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 	stats->schedule_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "schedule_time",
 					   "Schedule Time", "calls",
-					   "sleep interval", "microseconds", 9);
+					   "sleep interval", "microseconds",
+					   9);
 	if (stats->schedule_time_histogram == NULL) {
 		return -ENOMEM;
 	}
@@ -91,7 +93,8 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 	}
 
 	stats->wakeup_queue_length_histogram =
-		make_logarithmic_histogram(queue_kobject, "wakeup_queue_length",
+		make_logarithmic_histogram(queue_kobject,
+					   "wakeup_queue_length",
 					   "Wakeup Queue Length", "wakeups",
 					   "queued work items", NULL, 4);
 	if (stats->wakeup_queue_length_histogram == NULL) {

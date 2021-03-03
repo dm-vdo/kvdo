@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#6 $
  */
 
 #ifndef BUFFER_H
@@ -311,114 +311,6 @@ int __must_check get_boolean(struct buffer *buffer, bool *b);
  * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is no space in the buffer
  **/
 int __must_check put_boolean(struct buffer *buffer, bool b);
-
-/**
- * Get a 2 byte, big endian encoded integer from a buffer and advance the
- * start pointer past it.
- *
- * @param buffer The buffer
- * @param ui     A pointer to hold the integer
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
- *         bytes available
- **/
-int __must_check get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui);
-
-/**
- * Put a 2 byte, big endian encoded integer into a buffer and advance the
- * end pointer past it.
- *
- * @param buffer The buffer
- * @param ui     The integer to put
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
- *         bytes available
- **/
-int __must_check put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui);
-
-/**
- * Get a 4 byte, big endian encoded integer from a buffer and advance the
- * start pointer past it.
- *
- * @param buffer The buffer
- * @param ui     A pointer to hold the integer
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
- *         bytes available
- **/
-int __must_check get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui);
-
-/**
- * Put a 4 byte, big endian encoded integer into a buffer and advance the
- * end pointer past it.
- *
- * @param buffer The buffer
- * @param ui     The integer to put
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
- *         bytes available
- **/
-int __must_check put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui);
-
-/**
- * Get a series of 4 byte, big endian encoded integer from a buffer and
- * advance the start pointer past them.
- *
- * @param buffer The buffer
- * @param count  The number of integers to get
- * @param ui     A pointer to hold the integers
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
- *         in the buffer
- **/
-int __must_check
-get_uint32_bes_from_buffer(struct buffer *buffer, size_t count, uint32_t *ui);
-
-/**
- * Put a series of 4 byte, big endian encoded integers into a buffer and
- * advance the end pointer past them.
- *
- * @param buffer The buffer
- * @param count  The number of integers to put
- * @param ui     A pointer to the integers
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
- *         in the buffer
- **/
-int __must_check
-put_uint32_bes_into_buffer(struct buffer *buffer,
-			   size_t count,
-			   const uint32_t *ui);
-
-/**
- * Get a series of 8 byte, big endian encoded integer from a buffer and
- * advance the start pointer past them.
- *
- * @param buffer The buffer
- * @param count  The number of integers to get
- * @param ui     A pointer to hold the integers
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
- *         in the buffer
- **/
-int __must_check
-get_uint64_bes_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui);
-
-/**
- * Put a series of 8 byte, big endian encoded integers into a buffer and
- * advance the end pointer past them.
- *
- * @param buffer The buffer
- * @param count  The number of integers to put
- * @param ui     A pointer to the integers
- *
- * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
- *         in the buffer
- **/
-int __must_check
-put_uint64_bes_into_buffer(struct buffer *buffer,
-			   size_t count,
-			   const uint64_t *ui);
 
 /**
  * Get a 2 byte, little endian encoded integer from a buffer and

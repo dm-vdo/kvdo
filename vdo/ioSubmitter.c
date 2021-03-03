@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#72 $
  */
 
 #include "ioSubmitter.h"
@@ -349,8 +349,8 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 
 	switch (merge_type) {
 	case ELEVATOR_BACK_MERGE:
-		if (get_bio_sector(vio_merge->bios_merged.tail)
-		    != merge_sector) {
+		if (get_bio_sector(vio_merge->bios_merged.tail) !=
+		    merge_sector) {
 			return NULL;
 		}
 		break;

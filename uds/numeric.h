@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#10 $
  */
 
 #ifndef NUMERIC_H
@@ -27,108 +27,6 @@
 #include <asm/unaligned.h>
 #include <linux/kernel.h>
 
-
-/**
- * Extract a 64 bit unsigned big-endian number from a buffer at a
- * specified offset.  The offset will be advanced to the first byte
- * after the number.
- *
- * @param buffer  The buffer from which to extract the number
- * @param offset  A pointer to the offset into the buffer at which to extract
- * @param decoded A pointer to hold the extracted number
- **/
-static INLINE void decode_uint64_be(const uint8_t *buffer,
-				    size_t *offset,
-				    uint64_t *decoded)
-{
-	*decoded = get_unaligned_be64(buffer + *offset);
-	*offset += sizeof(uint64_t);
-}
-
-/**
- * Encode a 64 bit unsigned number into a buffer at a given offset
- * using a big-endian representation. The offset will be advanced to
- * first byte after the encoded number.
- *
- * @param data      The buffer to encode into
- * @param offset    A pointer to the offset at which to start encoding
- * @param to_encode The number to encode
- **/
-static INLINE void encode_uint64_be(uint8_t *data,
-				    size_t *offset,
-				    uint64_t to_encode)
-{
-	put_unaligned_be64(to_encode, data + *offset);
-	*offset += sizeof(uint64_t);
-}
-
-/**
- * Extract a 32 bit unsigned big-endian number from a buffer at a
- * specified offset.  The offset will be advanced to the first byte
- * after the number.
- *
- * @param buffer  The buffer from which to extract the number
- * @param offset  A pointer to the offset into the buffer at which to extract
- * @param decoded A pointer to hold the extracted number
- **/
-static INLINE void decode_uint32_be(const uint8_t *buffer,
-				    size_t *offset,
-				    uint32_t *decoded)
-{
-	*decoded = get_unaligned_be32(buffer + *offset);
-	*offset += sizeof(uint32_t);
-}
-
-/**
- * Encode a 32 bit number into a buffer at a given offset using a
- * big-endian representation. The offset will be advanced to first byte
- * after the encoded number.
- *
- * @param data      The buffer to encode into
- * @param offset    A pointer to the offset at which to start encoding
- * @param to_encode The number to encode
- **/
-static INLINE void encode_uint32_be(uint8_t *data,
-				    size_t *offset,
-				    uint32_t to_encode)
-{
-	put_unaligned_be32(to_encode, data + *offset);
-	*offset += sizeof(uint32_t);
-}
-
-/**
- * Extract a 16 bit, big-endian number from a buffer at a specified offset.
- * The offset will be advanced to the first byte after the number.
- *
- * @param buffer  The buffer from which to extract the number
- * @param offset  A pointer to the offset into the buffer at which to
- *                extract
- * @param decoded A pointer to hold the extracted number
- **/
-static INLINE void decode_uint16_be(const uint8_t *buffer,
-				    size_t *offset,
-				    uint16_t *decoded)
-{
-	*decoded = get_unaligned_be16(buffer + *offset);
-	*offset += sizeof(uint16_t);
-}
-
-/**
- * Encode a 16 bit number into a buffer at a given offset using a
- * big-endian representation. The offset will be advanced to first byte
- * after the encoded number.
- *
- * @param data      The buffer to encode into
- * @param offset    A pointer to the offset at which to start encoding
- * @param to_encode The number to encode
- **/
-static INLINE void encode_uint16_be(uint8_t *data,
-				    size_t *offset,
-				    uint16_t to_encode)
-{
-	put_unaligned_be16(to_encode, data + *offset);
-	*offset += sizeof(uint16_t);
-}
 
 /**
  * Extract a 64 bit signed little-endian number from a buffer at a

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#160 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#161 $
  */
 
 #include "kernelLayer.h"
@@ -477,7 +477,8 @@ int make_kernel_layer(uint64_t starting_sector,
 	if (old_layer != NULL) {
 		uds_log_error("Existing layer already uses device %s",
 			      old_layer->device_config->parent_device_name);
-		*reason = "Cannot share storage device with already-running VDO";
+		*reason =
+			"Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -510,7 +511,8 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 	kobject_init(&layer->wq_directory, &work_queue_directory_kobj_type);
-	result = kobject_add(&layer->wq_directory, &layer->kobj, "work_queues");
+	result = kobject_add(&layer->wq_directory, &layer->kobj,
+			     "work_queues");
 	if (result != 0) {
 		*reason = "Cannot add sysfs node";
 		kobject_put(&layer->wq_directory);
@@ -1119,9 +1121,8 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 	if (state != LAYER_RUNNING) {
-		uds_log_error(
-			"Suspend invoked while in unexpected kernel layer state %d",
-			state);
+		uds_log_error("Suspend invoked while in unexpected kernel layer state %d",
+			      state);
 		return -EINVAL;
 	}
 

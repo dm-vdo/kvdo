@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#8 $
  */
 
 #include "buffer.h"
@@ -310,113 +310,7 @@ int get_boolean(struct buffer *buffer, bool *b)
 /**********************************************************************/
 int put_boolean(struct buffer *buffer, bool b)
 {
-	return put_byte(buffer, (byte)(b ? 1 : 0));
-}
-
-/**********************************************************************/
-int get_uint16_be_from_buffer(struct buffer *buffer, uint16_t *ui)
-{
-	if (content_length(buffer) < sizeof(uint16_t)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	decode_uint16_be(buffer->data, &buffer->start, ui);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int put_uint16_be_into_buffer(struct buffer *buffer, uint16_t ui)
-{
-	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	encode_uint16_be(buffer->data, &buffer->end, ui);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int get_uint32_be_from_buffer(struct buffer *buffer, uint32_t *ui)
-{
-	if (content_length(buffer) < sizeof(uint32_t)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	decode_uint32_be(buffer->data, &buffer->start, ui);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int put_uint32_be_into_buffer(struct buffer *buffer, uint32_t ui)
-{
-	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	encode_uint32_be(buffer->data, &buffer->end, ui);
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int get_uint32_bes_from_buffer(struct buffer *buffer, size_t count,
-			       uint32_t *ui)
-{
-	if (content_length(buffer) < (sizeof(uint32_t) * count)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	unsigned int i;
-	for (i = 0; i < count; i++) {
-		decode_uint32_be(buffer->data, &buffer->start, ui + i);
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int put_uint32_bes_into_buffer(struct buffer *buffer,
-				 size_t count,
-				 const uint32_t *ui)
-{
-	if (!ensure_available_space(buffer, sizeof(uint32_t) * count)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	unsigned int i;
-	for (i = 0; i < count; i++) {
-		encode_uint32_be(buffer->data, &buffer->end, ui[i]);
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int get_uint64_bes_from_buffer(struct buffer *buffer, size_t count,
-			       uint64_t *ui)
-{
-	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	unsigned int i;
-	for (i = 0; i < count; i++) {
-		decode_uint64_be(buffer->data, &buffer->start, ui + i);
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int put_uint64_bes_into_buffer(struct buffer *buffer,
-				 size_t count,
-				 const uint64_t *ui)
-{
-	if (!ensure_available_space(buffer, sizeof(uint64_t) * count)) {
-		return UDS_BUFFER_ERROR;
-	}
-
-	unsigned int i;
-	for (i = 0; i < count; i++) {
-		encode_uint64_be(buffer->data, &buffer->end, ui[i]);
-	}
-	return UDS_SUCCESS;
+	return put_byte(buffer, (byte) (b ? 1 : 0));
 }
 
 /**********************************************************************/

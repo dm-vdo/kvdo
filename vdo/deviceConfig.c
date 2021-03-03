@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#33 $
  */
 
 #include "deviceConfig.h"
@@ -96,12 +96,10 @@ static int get_version_number(int argc,
 	}
 
 	if (*version_ptr != TABLE_VERSION) {
-		log_warning(
-			"Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
-			TABLE_VERSION,
-			*version_ptr);
-		log_warning(
-			"Please consider upgrading management tools to match kernel.");
+		log_warning("Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
+			    TABLE_VERSION,
+			    *version_ptr);
+		log_warning("Please consider upgrading management tools to match kernel.");
 	}
 	return VDO_SUCCESS;
 }
@@ -158,31 +156,27 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	// Handle limited thread parameters
 	if (strcmp(thread_param_type, "bioRotationInterval") == 0) {
 		if (count == 0) {
-			uds_log_error(
-				"thread config string error:  'bioRotationInterval' of at least 1 is required");
+			uds_log_error("thread config string error:  'bioRotationInterval' of at least 1 is required");
 			return -EINVAL;
 		} else if (count > BIO_ROTATION_INTERVAL_LIMIT) {
-			uds_log_error(
-				"thread config string error: 'bioRotationInterval' cannot be higher than %d",
-				BIO_ROTATION_INTERVAL_LIMIT);
+			uds_log_error("thread config string error: 'bioRotationInterval' cannot be higher than %d",
+				      BIO_ROTATION_INTERVAL_LIMIT);
 			return -EINVAL;
 		}
 		config->bio_rotation_interval = count;
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "logical") == 0) {
 		if (count > LOGICAL_THREAD_COUNT_LIMIT) {
-			uds_log_error(
-				"thread config string error: at most %d 'logical' threads are allowed",
-				LOGICAL_THREAD_COUNT_LIMIT);
+			uds_log_error("thread config string error: at most %d 'logical' threads are allowed",
+				      LOGICAL_THREAD_COUNT_LIMIT);
 			return -EINVAL;
 		}
 		config->logical_zones = count;
 		return VDO_SUCCESS;
 	} else if (strcmp(thread_param_type, "physical") == 0) {
 		if (count > PHYSICAL_THREAD_COUNT_LIMIT) {
-			uds_log_error(
-				"thread config string error: at most %d 'physical' threads are allowed",
-				PHYSICAL_THREAD_COUNT_LIMIT);
+			uds_log_error("thread config string error: at most %d 'physical' threads are allowed",
+				      PHYSICAL_THREAD_COUNT_LIMIT);
 			return -EINVAL;
 		}
 		config->physical_zones = count;
@@ -190,10 +184,9 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	} else {
 		// Handle other thread count parameters
 		if (count > THREAD_COUNT_LIMIT) {
-			uds_log_error(
-				"thread config string error: at most %d '%s' threads are allowed",
-				THREAD_COUNT_LIMIT,
-				thread_param_type);
+			uds_log_error("thread config string error: at most %d '%s' threads are allowed",
+				      THREAD_COUNT_LIMIT,
+				      thread_param_type);
 			return -EINVAL;
 		}
 
@@ -202,8 +195,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 			return VDO_SUCCESS;
 		} else if (strcmp(thread_param_type, "cpu") == 0) {
 			if (count == 0) {
-				uds_log_error(
-					"thread config string error: at least one 'cpu' thread required");
+				uds_log_error("thread config string error: at least one 'cpu' thread required");
 				return -EINVAL;
 			}
 			config->cpu_threads = count;
@@ -213,8 +205,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 			return VDO_SUCCESS;
 		} else if (strcmp(thread_param_type, "bio") == 0) {
 			if (count == 0) {
-				uds_log_error(
-					"thread config string error: at least one 'bio' thread required");
+				uds_log_error("thread config string error: at least one 'bio' thread required");
 				return -EINVAL;
 			}
 			config->bio_threads = count;
@@ -246,18 +237,16 @@ static int parse_one_thread_config_spec(const char *spec,
 		return result;
 	}
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
-		uds_log_error(
-			"thread config string error: expected thread parameter assignment, saw \"%s\"",
-			spec);
+		uds_log_error("thread config string error: expected thread parameter assignment, saw \"%s\"",
+			      spec);
 		free_string_array(fields);
 		return -EINVAL;
 	}
 
 	result = string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
-		uds_log_error(
-			"thread config string error: integer value needed, found \"%s\"",
-			fields[1]);
+		uds_log_error("thread config string error: integer value needed, found \"%s\"",
+			      fields[1]);
 		free_string_array(fields);
 		return result;
 	}
@@ -334,15 +323,13 @@ static int process_one_key_value_pair(const char *key,
 	// Non thread optional parameters
 	if (strcmp(key, "maxDiscard") == 0) {
 		if (value == 0) {
-			uds_log_error(
-				"optional parameter error: at least one max discard block required");
+			uds_log_error("optional parameter error: at least one max discard block required");
 			return -EINVAL;
 		}
 		// Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9
 		if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
-			uds_log_error(
-				"optional parameter error: at most %d max discard  blocks are allowed",
-				UINT_MAX / VDO_BLOCK_SIZE);
+			uds_log_error("optional parameter error: at most %d max discard  blocks are allowed",
+				      UINT_MAX / VDO_BLOCK_SIZE);
 			return -EINVAL;
 		}
 		config->max_discard_blocks = value;
@@ -377,9 +364,8 @@ static int parse_one_key_value_pair(const char *key,
 	// The remaining arguments must have integral values.
 	result = string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
-		uds_log_error(
-			"optional config string error: integer value needed, found \"%s\"",
-			value);
+		uds_log_error("optional config string error: integer value needed, found \"%s\"",
+			      value);
 		return result;
 	}
 	return process_one_key_value_pair(key, count, config);
@@ -455,8 +441,7 @@ int parse_optional_arguments(struct dm_arg_set *arg_set,
 		}
 	} else {
 		if ((arg_set->argc % 2) != 0) {
-			*error_ptr =
-				"Odd number of optional arguments given but they should be <key> <value> pairs";
+			*error_ptr = "Odd number of optional arguments given but they should be <key> <value> pairs";
 			return VDO_BAD_CONFIGURATION;
 		}
 		result = parse_key_value_pairs(arg_set->argc,
@@ -624,9 +609,10 @@ int parse_device_config(int argc,
 
 	// Skip past the no longer used pool name for older table lines
 	if (config->version <= 2) {
-		// Make sure the enum to get the pool name from argv directly is still
-		// in sync with the parsing of the table line.
-		if (&arg_set.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
+		// Make sure the enum to get the pool name from argv directly
+		// is still in sync with the parsing of the table line.
+		if (&arg_set.argv[0] !=
+		    &argv[POOL_NAME_ARG_INDEX[config->version]]) {
 			handle_parse_error(&config,
 					   error_ptr,
 					   "Pool name not in expected location");
@@ -652,10 +638,9 @@ int parse_device_config(int argc,
 	     (config->thread_counts.physical_zones == 0)) ||
 	    ((config->thread_counts.physical_zones == 0) !=
 	     (config->thread_counts.hash_zones == 0))) {
-		handle_parse_error(
-			&config,
-			error_ptr,
-			"Logical, physical, and hash zones counts must all be zero or all non-zero");
+		handle_parse_error(&config,
+				   error_ptr,
+				   "Logical, physical, and hash zones counts must all be zero or all non-zero");
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -674,8 +659,8 @@ int parse_device_config(int argc,
 	}
 
 	if (config->version == 0) {
-		uint64_t device_size
-			= i_size_read(config->owned_device->bdev->bd_inode);
+		uint64_t device_size =
+			i_size_read(config->owned_device->bdev->bd_inode);
 
 		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
 	}
@@ -719,7 +704,8 @@ void set_device_config_layer(struct device_config *config,
 {
 	list_del_init(&config->config_list);
 	if (layer != NULL) {
-		list_add_tail(&config->config_list, &layer->device_config_list);
+		list_add_tail(&config->config_list,
+			      &layer->device_config_list);
 	}
 	config->layer = layer;
 }

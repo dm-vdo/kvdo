@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#89 $
  */
 
 /*
@@ -301,7 +301,8 @@ struct vdo_compress_data {
 static void set_compressing_callback(struct vdo_completion *completion)
 {
 	struct sync_completion *sync = as_sync_completion(completion);
-	struct vdo_compress_data *data = (struct vdo_compress_data *) sync->data;
+	struct vdo_compress_data *data =
+		(struct vdo_compress_data *) sync->data;
 
 	data->was_enabled = set_vdo_compressing(sync->vdo, data->enable);
 	complete(&sync->completion);

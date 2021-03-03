@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#73 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#74 $
  */
 
 #include <linux/module.h>
@@ -108,13 +108,9 @@ EXPORT_SYMBOL_GPL(get_byte);
 EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
 EXPORT_SYMBOL_GPL(get_log_level);
 EXPORT_SYMBOL_GPL(get_memory_stats);
-EXPORT_SYMBOL_GPL(get_uint16_be_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_les_from_buffer);
-EXPORT_SYMBOL_GPL(get_uint32_be_from_buffer);
-EXPORT_SYMBOL_GPL(get_uint32_bes_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint32_le_from_buffer);
-EXPORT_SYMBOL_GPL(get_uint64_bes_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
@@ -139,13 +135,9 @@ EXPORT_SYMBOL_GPL(put_buffer);
 EXPORT_SYMBOL_GPL(put_byte);
 EXPORT_SYMBOL_GPL(put_bytes);
 EXPORT_SYMBOL_GPL(put_int64_le_into_buffer);
-EXPORT_SYMBOL_GPL(put_uint16_be_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint16_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint16_les_into_buffer);
-EXPORT_SYMBOL_GPL(put_uint32_be_into_buffer);
-EXPORT_SYMBOL_GPL(put_uint32_bes_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
-EXPORT_SYMBOL_GPL(put_uint64_bes_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
 EXPORT_SYMBOL_GPL(priority_to_string);

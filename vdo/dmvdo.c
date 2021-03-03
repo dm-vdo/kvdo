@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#92 $
  */
 
 #include "dmvdo.h"
@@ -65,8 +65,8 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  * through the "map" function, and has resulted from a bio being
  * submitted.
  *
- * @param ti      The dm_target.  We only need the "private" member to give
- *                us the kernel_layer.
+ * @param ti      The dm_target.  We only need the "private" member to access
+ *                the kernel_layer.
  * @param bio     The bio.
  *
  * @return One of these values:
@@ -623,10 +623,10 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (old_layer != NULL) {
 		/*
 		 * To preserve backward compatibility with old VDO Managers, we
-		 * need to allow this to happen when either suspended or not. We
-		 * could assert that if the config is version 0, we are
-		 * suspended, and if not, we are not, but we can't do that till
-		 * new VDO Manager does the right order.
+		 * need to allow this to happen when either suspended or not.
+		 * We could assert that if the config is version 0, we are
+		 * suspended, and if not, we are not, but we can't do that
+		 * until new VDO Manager does the right order.
 		 */
 		log_info("preparing to modify device '%s'", device_name);
 		result = prepare_to_modify_kernel_layer(old_layer,
