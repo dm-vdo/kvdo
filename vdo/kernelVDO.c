@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#90 $
  */
 
 /*
@@ -263,10 +263,10 @@ as_sync_completion(struct vdo_completion *completion)
  *
  * An async queue operation is performed and we wait for completion.
  *
- * @param vdo         The vdo
- * @param action      The callback to launch
- * @param data        Unique data that can be used by the operation
- * @param thread_id   The thread on which to enqueue the operation
+ * @param vdo        The vdo
+ * @param action     The callback to launch
+ * @param data       Unique data that can be used by the operation
+ * @param thread_id  The thread on which to enqueue the operation
  **/
 static void perform_vdo_operation(struct vdo *vdo,
 				  vdo_action *action,

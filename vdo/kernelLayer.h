@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#63 $
  */
 
 #ifndef KERNELLAYER_H
@@ -250,8 +250,8 @@ modify_kernel_layer(struct kernel_layer *layer, struct device_config *config);
 /**
  * Free a kernel physical layer.
  *
- * @param layer    The layer, which must have been created by
- *                 make_kernel_layer
+ * @param layer  The layer, which must have been created by
+ *               make_kernel_layer
  **/
 void free_kernel_layer(struct kernel_layer *layer);
 
@@ -326,7 +326,7 @@ get_kernel_layer_state(const struct kernel_layer *layer)
 /**
  * Get the device name associated with the vdo target
  *
- * @param ti The target device interface.
+ * @param ti  The target device interface.
  *
  * @return The block device name
  **/
@@ -347,7 +347,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);
 /**
  * Convert a generic PhysicalLayer to a kernel_layer.
  *
- * @param layer The PhysicalLayer to convert
+ * @param layer  The PhysicalLayer to convert
  *
  * @return The PhysicalLayer as a struct kernel_layer
  **/
@@ -379,7 +379,7 @@ static inline struct kernel_layer *vdo_as_kernel_layer(struct vdo *vdo)
  *
  * @param block_number  the block number/count
  *
- * @return  the sector number/count
+ * @return the sector number/count
  **/
 static inline sector_t block_to_sector(physical_block_number_t block_number)
 {
@@ -393,7 +393,7 @@ static inline sector_t block_to_sector(physical_block_number_t block_number)
  *
  * @param sector_number  the sector number/count
  *
- * @return  the block number/count
+ * @return the block number/count
  **/
 static inline sector_t sector_to_block(sector_t sector_number)
 {
@@ -405,7 +405,7 @@ static inline sector_t sector_to_block(sector_t sector_number)
  *
  * @param sector_number  the sector number
  *
- * @return  the offset within the block
+ * @return the offset within the block
  **/
 static inline block_size_t sector_to_block_offset(sector_t sector_number)
 {
@@ -442,9 +442,9 @@ static inline void set_kernel_layer_active_config(struct kernel_layer *layer,
  * code; the result must be something the rest of the OS can consume
  * (negative errno values such as -EIO, in the case of the kernel).
  *
- * @param error    the error code to convert
+ * @param error  the error code to convert
  *
- * @return   a system error code value
+ * @return a system error code value
  **/
 int map_to_system_error(int error);
 
@@ -524,7 +524,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count);
  *
  * @param  layer  The kernel layer
  *
- * @return   Whether a bio-acknowledgement work queue is in use
+ * @return Whether a bio-acknowledgement work queue is in use
  **/
 static inline bool use_bio_ack_queue(struct kernel_layer *layer)
 {

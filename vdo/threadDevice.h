@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#5 $
  */
 
 #include "kernelLayer.h"
@@ -62,7 +62,7 @@ void unregister_thread_device_id(void);
  * Get the VDO device ID number temporarily associated with the
  * current thread, if any.
  *
- * @return  the device ID number, if any, or -1
+ * @return the device ID number, if any, or -1
  **/
 int get_thread_device_id(void);
 

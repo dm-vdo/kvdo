@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#8 $
  */
 
 #include "limiter.h"
@@ -92,7 +92,7 @@ void limiter_wait_for_idle(struct limiter *limiter)
  *
  * @param limiter  The limiter to update
  *
- * @return  true iff the permit was acquired
+ * @return true iff the permit was acquired
  **/
 static bool take_permit_locked(struct limiter *limiter)
 {

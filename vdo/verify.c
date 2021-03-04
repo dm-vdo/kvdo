@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#28 $
  */
 
 #include "physicalLayer.h"
@@ -40,7 +40,7 @@
  * @param pointer_argument2  second data block
  * @param length             length of the data block
  *
- * @return   true iff the two blocks are equal
+ * @return true iff the two blocks are equal
  **/
 static bool __must_check
 memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
@@ -50,8 +50,8 @@ memory_equal(void *pointer_argument1, void *pointer_argument2, size_t length)
 
 	while (length >= sizeof(uint64_t)) {
 		/*
-		 * get_unaligned is just for paranoia.  (1) On x86_64 it is
-		 * treated the same as an aligned access.  (2) In this use case,
+		 * get_unaligned is just for paranoia. (1) On x86_64 it is
+		 * treated the same as an aligned access. (2) In this use case,
 		 * one or both of the inputs will almost(?) always be aligned.
 		 */
 		if (get_unaligned((u64 *) pointer1) !=

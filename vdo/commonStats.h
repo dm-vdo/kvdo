@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.h#3 $
  *
  */
 
@@ -28,8 +28,8 @@
 /**
  * Retrieves the current kernel statistics.
  *
- * @param layer    the kernel layer
- * @param stats    pointer to the structure to fill in
+ * @param layer  the kernel layer
+ * @param stats  pointer to the structure to fill in
  */
 void get_kernel_statistics(struct kernel_layer *layer,
 			   struct kernel_statistics *stats);

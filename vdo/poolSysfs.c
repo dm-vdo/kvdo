@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#14 $
  */
 
 #include "poolSysfs.h"
@@ -147,7 +147,6 @@ static void vdo_pool_release(struct kobject *kobj)
 
 static struct pool_attribute vdo_pool_compressing_attr = {
 	.attr = {
-
 			.name = "compressing",
 			.mode = 0444,
 		},
@@ -156,7 +155,6 @@ static struct pool_attribute vdo_pool_compressing_attr = {
 
 static struct pool_attribute vdo_pool_discards_active_attr = {
 	.attr = {
-
 			.name = "discards_active",
 			.mode = 0444,
 		},
@@ -165,7 +163,6 @@ static struct pool_attribute vdo_pool_discards_active_attr = {
 
 static struct pool_attribute vdo_pool_discards_limit_attr = {
 	.attr = {
-
 			.name = "discards_limit",
 			.mode = 0644,
 		},
@@ -175,7 +172,6 @@ static struct pool_attribute vdo_pool_discards_limit_attr = {
 
 static struct pool_attribute vdo_pool_discards_maximum_attr = {
 	.attr = {
-
 			.name = "discards_maximum",
 			.mode = 0444,
 		},
@@ -184,7 +180,6 @@ static struct pool_attribute vdo_pool_discards_maximum_attr = {
 
 static struct pool_attribute vdo_pool_instance_attr = {
 	.attr = {
-
 			.name = "instance",
 			.mode = 0444,
 		},
@@ -193,7 +188,6 @@ static struct pool_attribute vdo_pool_instance_attr = {
 
 static struct pool_attribute vdo_pool_requests_active_attr = {
 	.attr = {
-
 			.name = "requests_active",
 			.mode = 0444,
 		},
@@ -202,7 +196,6 @@ static struct pool_attribute vdo_pool_requests_active_attr = {
 
 static struct pool_attribute vdo_pool_requests_limit_attr = {
 	.attr = {
-
 			.name = "requests_limit",
 			.mode = 0444,
 		},
@@ -211,7 +204,6 @@ static struct pool_attribute vdo_pool_requests_limit_attr = {
 
 static struct pool_attribute vdo_pool_requests_maximum_attr = {
 	.attr = {
-
 			.name = "requests_maximum",
 			.mode = 0444,
 		},

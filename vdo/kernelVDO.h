@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#38 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -46,7 +46,7 @@ enum {
  * @param [in]  thread_config  The base-code thread configuration
  * @param [out] reason         The reason for failure
  *
- * @return  VDO_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 int make_vdo_threads(struct vdo *vdo,
 		     const struct thread_config *thread_config,

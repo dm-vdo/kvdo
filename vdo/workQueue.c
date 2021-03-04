@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#48 $
  */
 
 #include "workQueue.h"
@@ -70,7 +70,7 @@ static void finish_simple_work_queue(struct simple_work_queue *queue);
  *
  * @param queue  The round-robin-type work queue
  *
- * @return  A subordinate work queue
+ * @return A subordinate work queue
  **/
 static inline struct simple_work_queue *
 next_service_queue(struct round_robin_work_queue *queue)
@@ -97,7 +97,7 @@ next_service_queue(struct round_robin_work_queue *queue)
  *
  * @param queue  a work queue (round-robin or simple)
  *
- * @return  a simple work queue
+ * @return a simple work queue
  **/
 static inline struct simple_work_queue *
 pick_simple_queue(struct vdo_work_queue *queue)
@@ -121,7 +121,7 @@ pick_simple_queue(struct vdo_work_queue *queue)
  *
  * @param queue  the work queue
  *
- * @return  a work item pointer, or NULL
+ * @return a work item pointer, or NULL
  **/
 static struct vdo_work_item *
 poll_for_work_item(struct simple_work_queue *queue)
@@ -153,7 +153,7 @@ poll_for_work_item(struct simple_work_queue *queue)
  * @param queue  The work queue
  * @param item   The work item to add
  *
- * @return  true iff the caller should wake the worker thread
+ * @return true iff the caller should wake the worker thread
  **/
 static bool __must_check
 enqueue_work_queue_item(struct simple_work_queue *queue,
@@ -224,7 +224,7 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
  *
  * @param queue  The work queue to examine
  *
- * @return  the estimate of the number of pending work items
+ * @return the estimate of the number of pending work items
  **/
 static unsigned int get_pending_count(struct simple_work_queue *queue)
 {
@@ -282,7 +282,7 @@ static void run_finish_hook(struct simple_work_queue *queue)
  *
  * @param queue  The work queue to wait on
  *
- * @return  the next work item, or NULL to indicate shutdown is requested
+ * @return the next work item, or NULL to indicate shutdown is requested
  **/
 static struct vdo_work_item *
 wait_for_next_work_item(struct simple_work_queue *queue)
@@ -481,7 +481,7 @@ static void service_work_queue(struct simple_work_queue *queue)
  *
  * @param ptr  A pointer to the vdo_work_queue to run.
  *
- * @return  0 (indicating success to kthread_run())
+ * @return 0 (indicating success to kthread_run())
  **/
 static int work_queue_runner(void *ptr)
 {
@@ -567,7 +567,7 @@ static bool queue_started(struct simple_work_queue *queue)
  *                                 timeout behavior
  * @param [out] queue_ptr          Where to store the queue handle
  *
- * @return  VDO_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,

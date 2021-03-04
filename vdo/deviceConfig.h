@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#24 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -77,10 +77,10 @@ static inline struct device_config *as_device_config(struct list_head *entry)
 /**
  * Convert the dmsetup table into a struct device_config.
  *
- * @param [in]  argc         The number of table values
- * @param [in]  argv         The array of table values
- * @param [in]  ti           The target structure for this table
- * @param [out] config_ptr   A pointer to return the allocated config
+ * @param [in]  argc        The number of table values
+ * @param [in]  argv        The array of table values
+ * @param [in]  ti          The target structure for this table
+ * @param [out] config_ptr  A pointer to return the allocated config
  *
  * @return VDO_SUCCESS or an error code
  **/

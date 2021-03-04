@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#7 $
  */
 
 #ifndef DEADLOCK_QUEUE_H
@@ -77,7 +77,7 @@ void add_to_deadlock_queue(struct deadlock_queue *queue,
  * @param [in]  queue            The incoming-bio queue
  * @param [out] arrival_jiffies  The arrival time to use for this bio
  *
- * @return  a bio pointer, or NULL if none were queued
+ * @return a bio pointer, or NULL if none were queued
  **/
 static inline struct bio *poll_deadlock_queue(struct deadlock_queue *queue,
 					      uint64_t *arrival_jiffies)

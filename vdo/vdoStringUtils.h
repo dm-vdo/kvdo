@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#6 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -44,7 +44,7 @@
  * @param [in]  separator            The separator character
  * @param [out] substring_array_ptr  The NULL-terminated substring array
  *
- * @return  UDS_SUCCESS or -ENOMEM
+ * @return UDS_SUCCESS or -ENOMEM
  **/
 int __must_check
 split_string(const char *string, char separator, char ***substring_array_ptr);
@@ -60,7 +60,7 @@ split_string(const char *string, char separator, char ***substring_array_ptr);
  * @param [in]  separator        The separator character
  * @param [out] string_ptr       A pointer to hold the joined string
  *
- * @return  VDO_SUCCESS or an error
+ * @return VDO_SUCCESS or an error
  **/
 int __must_check join_strings(char **substring_array,
 			      size_t array_length,
@@ -82,7 +82,7 @@ void free_string_array(char **string_array);
  * @param [in]  input      The string to be processed
  * @param [out] value_ptr  The value of the number read
  *
- * @return  UDS_SUCCESS or -EINVAL or -ERANGE.
+ * @return UDS_SUCCESS or -EINVAL or -ERANGE.
  **/
 int __must_check string_to_uint(const char *input, unsigned int *value_ptr);
 

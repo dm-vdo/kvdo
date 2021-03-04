@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#13 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -119,7 +119,7 @@ struct vdo_work_item_stats {
  * values. Assumes the storage was already zeroed out at allocation
  * time.
  *
- * @param stats    The statistics structure
+ * @param stats  The statistics structure
  **/
 static inline void init_simple_stats(struct simple_stats *stats)
 {
@@ -130,8 +130,8 @@ static inline void init_simple_stats(struct simple_stats *stats)
 /**
  * Update the statistics being tracked for a new sample value.
  *
- * @param stats    The statistics structure
- * @param value    The new value to be folded in
+ * @param stats  The statistics structure
+ * @param value  The new value to be folded in
  **/
 static inline void add_sample(struct simple_stats *stats, uint64_t value)
 {
@@ -148,9 +148,9 @@ static inline void add_sample(struct simple_stats *stats, uint64_t value)
 /**
  * Return the average of the samples collected.
  *
- * @param stats    The statistics structure
+ * @param stats  The statistics structure
  *
- * @return         The average sample value
+ * @return The average sample value
  **/
 static inline uint64_t get_sample_average(const struct simple_stats *stats)
 {
@@ -162,9 +162,9 @@ static inline uint64_t get_sample_average(const struct simple_stats *stats)
  * Update all work queue statistics (work-item and otherwise) after
  * enqueueing a work item.
  *
- * @param  stats     The statistics structure
- * @param  item      The work item enqueued
- * @param  priority  The work item's priority
+ * @param stats     The statistics structure
+ * @param item      The work item enqueued
+ * @param priority  The work item's priority
  **/
 void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
 					struct vdo_work_item *item,
@@ -183,8 +183,8 @@ void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
  * cases counters may be updated in update_work_item_stats_for_work_time
  * rather than here.
  *
- * @param  stats  The statistics structure
- * @param  item   The work item enqueued
+ * @param stats  The statistics structure
+ * @param item   The work item enqueued
  **/
 static inline void
 update_work_item_stats_for_dequeue(struct vdo_work_item_stats *stats,
@@ -206,9 +206,9 @@ update_work_item_stats_for_dequeue(struct vdo_work_item_stats *stats,
  * stats are enabled and if we haven't run out of room for recording
  * stats in the table.
  *
- * @param  index  The work item's index into the internal array
+ * @param index  The work item's index into the internal array
  *
- * @return    The current time, or zero
+ * @return The current time, or zero
  **/
 static inline uint64_t record_start_time(unsigned int index)
 {
@@ -220,9 +220,9 @@ static inline uint64_t record_start_time(unsigned int index)
  * processing a work item, if timing stats are enabled and if we
  * haven't run out of room for recording stats in the table.
  *
- * @param  stats       The statistics structure
- * @param  index       The work item's index into the internal array
- * @param  start_time  The start time as reported by record_start_time
+ * @param stats       The statistics structure
+ * @param index       The work item's index into the internal array
+ * @param start_time  The start time as reported by record_start_time
  **/
 static inline void
 update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,
@@ -249,7 +249,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length);
  * Dump statistics broken down by work function and priority into the
  * kernel log.
  *
- * @param  stats  The statistics structure
+ * @param stats  The statistics structure
  **/
 void log_work_item_stats(const struct vdo_work_item_stats *stats);
 
@@ -260,7 +260,7 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats);
  * @param [out] buffer  The output buffer
  * @param [in]  length  The size of the output buffer
  *
- * @return  The size of the string actually written
+ * @return The size of the string actually written
  **/
 size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 			      char *buffer,

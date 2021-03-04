@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#34 $
  */
 
 #include "deviceConfig.h"
@@ -58,10 +58,10 @@ static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 /**
  * Decide the version number from argv.
  *
- * @param [in]  argc          The number of table values
- * @param [in]  argv          The array of table values
- * @param [out] error_ptr     A pointer to return a error string in
- * @param [out] version_ptr   A pointer to return the version
+ * @param [in]  argc         The number of table values
+ * @param [in]  argv         The array of table values
+ * @param [out] error_ptr    A pointer to return a error string in
+ * @param [out] version_ptr  A pointer to return the version
  *
  * @return VDO_SUCCESS or an error code
  **/
@@ -107,10 +107,10 @@ static int get_version_number(int argc,
 /**
  * Parse a two-valued option into a bool.
  *
- * @param [in]  bool_str    The string value to convert to a bool
- * @param [in]  true_str    The string value which should be converted to true
- * @param [in]  false_str   The string value which should be converted to false
- * @param [out] bool_ptr    A pointer to return the bool value in
+ * @param [in]  bool_str   The string value to convert to a bool
+ * @param [in]  true_str   The string value which should be converted to true
+ * @param [in]  false_str  The string value which should be converted to false
+ * @param [out] bool_ptr   A pointer to return the bool value in
  *
  * @return VDO_SUCCESS or an error if bool_str is neither true_str
  *                        nor false_str
@@ -147,7 +147,7 @@ parse_bool(const char *bool_str,
  * @param count              The thread count requested
  * @param config             The configuration data structure to update
  *
- * @return   VDO_SUCCESS or -EINVAL
+ * @return VDO_SUCCESS or -EINVAL
  **/
 static int process_one_thread_config_spec(const char *thread_param_type,
 					  unsigned int count,
@@ -275,7 +275,7 @@ static int parse_one_thread_config_spec(const char *spec,
  * @param string  Thread parameter configuration string
  * @param config  The thread configuration data to update
  *
- * @return   VDO_SUCCESS or -EINVAL or -ENOMEM
+ * @return VDO_SUCCESS or -EINVAL or -ENOMEM
  **/
 static int parse_thread_config_string(const char *string,
 				      struct thread_count_config *config)
@@ -310,11 +310,11 @@ static int parse_thread_config_string(const char *string,
  * returned. If the key is unknown, a message is logged but no error
  * is returned.
  *
- * @param key    The optional parameter key name
- * @param value  The optional parameter value
- * @param config The configuration data structure to update
+ * @param key     The optional parameter key name
+ * @param value   The optional parameter value
+ * @param config  The configuration data structure to update
  *
- * @return   VDO_SUCCESS or -EINVAL
+ * @return VDO_SUCCESS or -EINVAL
  **/
 static int process_one_key_value_pair(const char *key,
 				      unsigned int value,
@@ -348,7 +348,7 @@ static int process_one_key_value_pair(const char *key,
  * @param value   The optional value
  * @param config  The configuration data to be updated
  *
- * @return   VDO_SUCCESS or error
+ * @return VDO_SUCCESS or error
  **/
 static int parse_one_key_value_pair(const char *key,
 				    const char *value,
@@ -382,11 +382,11 @@ static int parse_one_key_value_pair(const char *key,
  * invalid, and we can't allocate the "reason" strings dynamically. So
  * if an error occurs, we'll log the details and return the error.
  *
- * @param argc     The total number of arguments in list
- * @param argv     The list of key/value pairs
- * @param config   The device configuration data to update
+ * @param argc    The total number of arguments in list
+ * @param argv    The list of key/value pairs
+ * @param config  The device configuration data to update
  *
- * @return   VDO_SUCCESS or error
+ * @return VDO_SUCCESS or error
  **/
 static int parse_key_value_pairs(int argc,
 				 char **argv,
@@ -420,11 +420,11 @@ static int parse_key_value_pairs(int argc,
  * arguments. They should contain one or more key/value pairs
  * separated by a space.
  *
- * @param arg_set   The structure holding the arguments to parse
- * @param error_ptr Pointer to a buffer to hold the error string
- * @param config    Pointer to device configuration data to update
+ * @param arg_set    The structure holding the arguments to parse
+ * @param error_ptr  Pointer to a buffer to hold the error string
+ * @param config     Pointer to device configuration data to update
  *
- * @return   VDO_SUCCESS or error
+ * @return VDO_SUCCESS or error
  */
 int parse_optional_arguments(struct dm_arg_set *arg_set,
 			     char **error_ptr,
@@ -458,9 +458,9 @@ int parse_optional_arguments(struct dm_arg_set *arg_set,
 /**
  * Handle a parsing error.
  *
- * @param config_ptr     A pointer to the config to free
- * @param error_ptr      A place to store a constant string about the error
- * @param error_str      A constant string to store in error_ptr
+ * @param config_ptr  A pointer to the config to free
+ * @param error_ptr   A place to store a constant string about the error
+ * @param error_str   A constant string to store in error_ptr
  **/
 static void handle_parse_error(struct device_config **config_ptr,
 			       char **error_ptr,

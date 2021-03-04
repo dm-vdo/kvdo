@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#129 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#130 $
  */
 
 #include "dataKVIO.h"
@@ -700,7 +700,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 	// are not pointers to separately allocated objects).
 	memset(data_vio, 0, offsetof(struct data_vio, dedupe_context));
 	memset(&data_vio->dedupe_context.pending_list, 0,
-		sizeof(struct list_head));
+	       sizeof(struct list_head));
 
 
 	data_vio->user_bio = bio;

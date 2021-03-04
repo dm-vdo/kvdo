@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#61 $
  */
 
 #ifndef DATA_KVIO_H
@@ -111,12 +111,12 @@ static inline void enqueue_data_vio_callback(struct data_vio *data_vio)
  * (request and maybe discard) released, but the caller is responsible for
  * disposing of the bio.
  *
- * @param layer                 The physical layer
- * @param bio                   The bio for which to create vio
- * @param arrival_jiffies       The time (in jiffies) when the external request
- *                              entered the device mapbio function
- * @param has_discard_permit    Whether we got a permit from the discard
- *                              limiter of the kernel layer
+ * @param layer               The physical layer
+ * @param bio                 The bio for which to create vio
+ * @param arrival_jiffies     The time (in jiffies) when the external request
+ *                            entered the device mapbio function
+ * @param has_discard_permit  Whether we got a permit from the discard
+ *                            limiter of the kernel layer
  *
  * @return VDO_SUCCESS or a system error code
  **/

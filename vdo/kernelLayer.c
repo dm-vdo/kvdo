@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#161 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#162 $
  */
 
 #include "kernelLayer.h"
@@ -203,7 +203,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
  * @param bio              The bio to launch
  * @param arrival_jiffies  The arrival time of the bio
  *
- * @return  DM_MAPIO_SUBMITTED or a system error code
+ * @return DM_MAPIO_SUBMITTED or a system error code
  **/
 static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 					   struct bio *bio,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#19 $
  */
 
 #include "workItemStats.h"
@@ -29,13 +29,13 @@
  * priority value. If it's not found, see if an empty slot is
  * available.
  *
- * @param table       The work queue's function table
- * @param work        The function we want to record stats for
- * @param priority    The priority of the work item
+ * @param table     The work queue's function table
+ * @param work      The function we want to record stats for
+ * @param priority  The priority of the work item
  *
- * @return   The index of the slot to use (matching or empty), or
- *           NUM_WORK_QUEUE_ITEM_STATS if the table is full of
- *           non-matching entries.
+ * @return The index of the slot to use (matching or empty), or
+ *         NUM_WORK_QUEUE_ITEM_STATS if the table is full of
+ *         non-matching entries.
  **/
 static inline unsigned int
 scan_stat_table(const struct vdo_work_function_table *table,
@@ -64,12 +64,12 @@ scan_stat_table(const struct vdo_work_function_table *table,
  * Scan the work queue stats table for the provided work function and
  * priority value. Assign an empty slot if necessary.
  *
- * @param stats       The stats structure
- * @param work        The function we want to record stats for
- * @param priority    The priority of the work item
+ * @param stats     The stats structure
+ * @param work      The function we want to record stats for
+ * @param priority  The priority of the work item
  *
- * @return   The index of the matching slot, or NUM_WORK_QUEUE_ITEM_STATS
- *           if the table is full of non-matching entries.
+ * @return The index of the matching slot, or NUM_WORK_QUEUE_ITEM_STATS
+ *         if the table is full of non-matching entries.
  **/
 static unsigned int get_stat_table_index(struct vdo_work_item_stats *stats,
 					 vdo_work_function work,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#73 $
  */
 
 #include "ioSubmitter.h"
@@ -147,8 +147,8 @@ bio_queue_to_submitter(struct bio_queue_data *bio_queue)
  * Return the bio thread number handling the specified physical block
  * number.
 *
- * @param io_submitter      The I/O submitter data
- * @param pbn               The physical block number
+ * @param io_submitter  The I/O submitter data
+ * @param pbn           The physical block number
  *
  * @return read cache zone number
  **/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#11 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -54,7 +54,7 @@ typedef void (*batch_processor_callback)(struct batch_processor *batch,
  * @param [in]  closure    A private data pointer for use by the callback
  * @param [out] batch_ptr  Where to store the pointer to the new object
  *
- * @return   UDS_SUCCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int make_batch_processor(struct kernel_layer *layer,
 			 batch_processor_callback callback,
@@ -78,7 +78,7 @@ void add_to_batch_processor(struct batch_processor *batch,
  *
  * @param [in]  batch  The batch-processor data
  *
- * @return   An object pointer or NULL
+ * @return An object pointer or NULL
  **/
 struct vdo_work_item * __must_check
 next_batch_item(struct batch_processor *batch);

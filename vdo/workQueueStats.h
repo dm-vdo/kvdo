@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#18 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -90,10 +90,10 @@ struct vdo_work_queue_stats {
 /**
  * Initialize the work queue's statistics tracking.
  *
- * @param stats           The statistics structure
- * @param queue_kobject   The sysfs directory kobject for the work queue
+ * @param stats          The statistics structure
+ * @param queue_kobject  The sysfs directory kobject for the work queue
  *
- * @return  0 or a kernel error code
+ * @return 0 or a kernel error code
  **/
 int __must_check
 initialize_work_queue_stats(struct vdo_work_queue_stats *stats,

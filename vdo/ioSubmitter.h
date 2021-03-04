@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#13 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -28,15 +28,15 @@
 /**
  * Create a io_submitter structure for a new physical layer.
  *
- * @param [in]  thread_name_prefix  The per-device prefix to use in process
- *                                  names
- * @param [in]  thread_count        Number of bio-submission threads to set up
- * @param [in]  rotation_interval   Interval to use when rotating between
- *                                  bio-submission threads when enqueuing work
- *                                  items
- * @param [in]  max_requests_active Number of bios for merge tracking
- * @param [in]  layer               The kernel layer
- * @param [out] io_submitter        Pointer to the new data structure
+ * @param [in]  thread_name_prefix   The per-device prefix to use in process
+ *                                   names
+ * @param [in]  thread_count         Number of bio-submission threads to set up
+ * @param [in]  rotation_interval    Interval to use when rotating between
+ *                                   bio-submission threads when enqueuing work
+ *                                   items
+ * @param [in]  max_requests_active  Number of bios for merge tracking
+ * @param [in]  layer                The kernel layer
+ * @param [out] io_submitter         Pointer to the new data structure
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -50,7 +50,7 @@ int make_io_submitter(const char *thread_name_prefix,
 /**
  * Tear down the io_submitter fields as needed for a physical layer.
  *
- * @param [in]  io_submitter    The I/O submitter data to tear down
+ * @param [in]  io_submitter  The I/O submitter data to tear down
  **/
 void cleanup_io_submitter(struct io_submitter *io_submitter);
 
@@ -61,7 +61,7 @@ void cleanup_io_submitter(struct io_submitter *io_submitter);
  * the shutdown process to avoid or reduce the chance of race
  * conditions.
  *
- * @param [in]  io_submitter    The I/O submitter data to destroy
+ * @param [in]  io_submitter  The I/O submitter data to destroy
  **/
 void free_io_submitter(struct io_submitter *io_submitter);
 
@@ -69,7 +69,7 @@ void free_io_submitter(struct io_submitter *io_submitter);
  * Dump info to the kernel log about the work queue used by the
  * physical layer. For debugging only.
  *
- * @param [in]  io_submitter        The I/O submitter data
+ * @param [in]  io_submitter  The I/O submitter data
  **/
 void dump_bio_work_queue(struct io_submitter *io_submitter);
 
@@ -81,8 +81,8 @@ void dump_bio_work_queue(struct io_submitter *io_submitter);
  * Outside of io_submitter, used only for finishing processing of empty
  * flush bios by sending them to the storage device.
  *
- * @param io_submitter        The I/O submitter data to update
- * @param work_item           The new work item to run
+ * @param io_submitter  The I/O submitter data to update
+ * @param work_item     The new work item to run
  **/
 void enqueue_bio_work_item(struct io_submitter *io_submitter,
 			   struct vdo_work_item *work_item);
@@ -99,8 +99,8 @@ void enqueue_bio_work_item(struct io_submitter *io_submitter,
  * with the operation. The bi_end_io callback is invoked when the I/O
  * operation completes.
  *
- * @param bio      the block I/O operation descriptor to submit
- * @param action   the action code specifying the priority for the operation
+ * @param bio     the block I/O operation descriptor to submit
+ * @param action  the action code specifying the priority for the operation
  **/
 void vdo_submit_bio(struct bio *bio, enum bio_q_action action);
 

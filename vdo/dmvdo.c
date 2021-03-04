@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#93 $
  */
 
 #include "dmvdo.h"
@@ -65,9 +65,9 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  * through the "map" function, and has resulted from a bio being
  * submitted.
  *
- * @param ti      The dm_target.  We only need the "private" member to access
- *                the kernel_layer.
- * @param bio     The bio.
+ * @param ti   The dm_target.  We only need the "private" member to access
+ *             the kernel_layer.
+ * @param bio  The bio.
  *
  * @return One of these values:
  *
@@ -255,9 +255,9 @@ static int vdo_grow_physical(struct kernel_layer *layer)
  * Process a dmsetup message now that we know no other message is being
  * processed.
  *
- * @param layer The layer to which the message was sent
- * @param argc  The argument count of the message
- * @param argv  The arguments to the message
+ * @param layer  The layer to which the message was sent
+ * @param argc   The argument count of the message
+ * @param argv   The arguments to the message
  *
  * @return -EINVAL if the message is unrecognized or the result of processing
  *                 the message
@@ -325,9 +325,9 @@ process_vdo_message_locked(struct kernel_layer *layer,
  * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
  * check that no other message is being processed, and only proceed if so.
  *
- * @param layer         The layer to which the message was sent
- * @param argc          The argument count of the message
- * @param argv          The arguments to the message
+ * @param layer  The layer to which the message was sent
+ * @param argc   The argument count of the message
+ * @param argv   The arguments to the message
  *
  * @return -EBUSY if another message is being processed or the result of
  *                processsing the message
@@ -445,8 +445,8 @@ static int vdo_message(struct dm_target *ti,
 /**
  * Configure the dm_target with our capabilities.
  *
- * @param ti    The device mapper target representing our device
- * @param layer The kernel layer to get the write policy from
+ * @param ti     The device mapper target representing our device
+ * @param layer  The kernel layer to get the write policy from
  **/
 static void configure_target_capabilities(struct dm_target *ti,
 					  struct kernel_layer *layer)
@@ -498,7 +498,7 @@ static void cleanup_initialize(struct dm_target *ti,
  * @param instance  The device instantiation counter
  * @param config    The parsed config for the instance
  *
- * @return  VDO_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  *
  **/
 static int vdo_initialize(struct dm_target *ti,
@@ -597,7 +597,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	register_allocating_thread(&allocating_thread, NULL);
 
      	device_name = get_vdo_device_name(ti);
-	old_layer = find_layer_matching(layer_is_named, (void *)device_name);
+	old_layer = find_layer_matching(layer_is_named, (void *) device_name);
 	if (old_layer == NULL) {
 		result = allocate_vdo_instance(&instance);
 		if (result != VDO_SUCCESS) {

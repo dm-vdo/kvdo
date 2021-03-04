@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.h#4 $
  */
 
 #ifndef THREADS_H
@@ -28,7 +28,7 @@
  * Return the id of the current thread.
  * In kernel interrupt context, returns -1.
  *
- * @return       the thread id
+ * @return the thread id
  **/
 pid_t __must_check get_thread_id(void);
 

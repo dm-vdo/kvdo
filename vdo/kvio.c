@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#80 $
  */
 
 #include "kvio.h"
@@ -40,7 +40,7 @@
  * A function to tell vdo that we have completed the requested async
  * operation for a vio.
  *
- * @param item    The work item of the vio to complete
+ * @param item  The work item of the vio to complete
  **/
 static void vdo_handle_vio_callback(struct vdo_work_item *item)
 {

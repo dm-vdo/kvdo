@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#6 $
  */
 
 #ifndef HISTOGRAM_H
@@ -39,18 +39,18 @@
  * strings used should be consistent (e.g., always "milliseconds" and
  * not "ms" for milliseconds).
  *
- * @param parent        The parent kobject.
- * @param name          The short name of the histogram.  This label is used
- *                      for the sysfs node.
- * @param init_label    The label for the sampled data.  This label is used
- *                      when we plot the data.
- * @param counted_items A name (plural) for the things being counted.
- * @param metric        The measure being used to divide samples into buckets.
- * @param sample_units  The unit (plural) for the metric, or NULL if it's a
- *                      simple counter.
- * @param size          The number of buckets.  There are buckets for every
- *                      value from 0 up to size (but not including) size.
- *                      There is an extra bucket for larger samples.
+ * @param parent         The parent kobject.
+ * @param name           The short name of the histogram.  This label is used
+ *                       for the sysfs node.
+ * @param init_label     The label for the sampled data.  This label is used
+ *                       when we plot the data.
+ * @param counted_items  A name (plural) for the things being counted.
+ * @param metric         The measure being used to divide samples into buckets.
+ * @param sample_units   The unit (plural) for the metric, or NULL if it's a
+ *                       simple counter.
+ * @param size           The number of buckets.  There are buckets for every
+ *                       value from 0 up to size (but not including) size.
+ *                       There is an extra bucket for larger samples.
  *
  * @return the histogram
  **/
@@ -66,18 +66,18 @@ struct histogram *make_linear_histogram(struct kobject *parent,
  * Allocate and initialize a histogram that uses logarithmically sized
  * buckets.
  *
- * @param parent        The parent kobject.
- * @param name          The short name of the histogram.  This label is used
- *                      for the sysfs node.
- * @param init_label    The label for the sampled data.  This label is used
- *                      when we plot the data.
- * @param counted_items A name (plural) for the things being counted.
- * @param metric        The measure being used to divide samples into buckets.
- * @param sample_units  The unit (plural) for the metric, or NULL if it's a
- *                      simple counter.
- * @param log_size      The number of buckets.  There are buckets for a range
- *                      of sizes up to 10^log_size, and an extra bucket for
- *                      larger samples.
+ * @param parent         The parent kobject.
+ * @param name           The short name of the histogram.  This label is used
+ *                       for the sysfs node.
+ * @param init_label     The label for the sampled data.  This label is used
+ *                       when we plot the data.
+ * @param counted_items  A name (plural) for the things being counted.
+ * @param metric         The measure being used to divide samples into buckets.
+ * @param sample_units   The unit (plural) for the metric, or NULL if it's a
+ *                       simple counter.
+ * @param log_size       The number of buckets.  There are buckets for a range
+ *                       of sizes up to 10^log_size, and an extra bucket for
+ *                       larger samples.
  *
  * @return the histogram
  **/
@@ -94,16 +94,16 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent,
  * buckets. Values are entered that count in jiffies, and they are
  * reported in milliseconds.
  *
- * @param parent        The parent kobject.
- * @param name          The short name of the histogram.  This label is used
- *                      for the sysfs node.
- * @param init_label    The label for the sampled data.  This label is used
- *                      when we plot the data.
- * @param counted_items A name (plural) for the things being counted.
- * @param metric        The measure being used to divide samples into buckets.
- * @param log_size      The number of buckets.  There are buckets for a range
- *                      of sizes up to 10^log_size, and an extra bucket for
- *                      larger samples.
+ * @param parent         The parent kobject.
+ * @param name           The short name of the histogram.  This label is used
+ *                       for the sysfs node.
+ * @param init_label     The label for the sampled data.  This label is used
+ *                       when we plot the data.
+ * @param counted_items  A name (plural) for the things being counted.
+ * @param metric         The measure being used to divide samples into buckets.
+ * @param log_size       The number of buckets.  There are buckets for a range
+ *                       of sizes up to 10^log_size, and an extra bucket for
+ *                       larger samples.
  *
  * @return the histogram
  **/

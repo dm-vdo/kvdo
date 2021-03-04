@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#20 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -132,21 +132,21 @@ struct vdo_work_queue_type {
  * If multiple threads are requested, work items will be distributed to them in
  * round-robin fashion.
  *
- * @param [in]  thread_name_prefix The per-device prefix to use in thread
- *                                 names
- * @param [in]  name               The queue name
- * @param [in]  parent_kobject     The parent sysfs node
- * @param [in]  owner              The kernel layer owning the work queue
- * @param [in]  private            Private data of the queue for use by work
- *                                 items or other queue-specific functions
- * @param [in]  thread_privates    If non-NULL, an array of separate private
- *                                 data pointers, one for each service thread,
- *                                 to use instead of sharing 'private'
- * @param [in]  type               The work queue type defining the lifecycle
- *                                 functions, queue actions, priorities, and
- *                                 timeout behavior
- * @param [in]  thread_count       Number of service threads to set up
- * @param [out] queue_ptr          Where to store the queue handle
+ * @param [in]  thread_name_prefix  The per-device prefix to use in thread
+ *                                  names
+ * @param [in]  name                The queue name
+ * @param [in]  parent_kobject      The parent sysfs node
+ * @param [in]  owner               The kernel layer owning the work queue
+ * @param [in]  private             Private data of the queue for use by work
+ *                                  items or other queue-specific functions
+ * @param [in]  thread_privates     If non-NULL, an array of separate private
+ *                                  data pointers, one for each service thread,
+ *                                  to use instead of sharing 'private'
+ * @param [in]  type                The work queue type defining the lifecycle
+ *                                  functions, queue actions, priorities, and
+ *                                  timeout behavior
+ * @param [in]  thread_count        Number of service threads to set up
+ * @param [out] queue_ptr           Where to store the queue handle
  *
  * @return VDO_SUCCESS or an error code
  **/
@@ -186,8 +186,8 @@ void setup_work_item(struct vdo_work_item *item,
  * If the work item has a timeout that has already passed, the timeout
  * handler function may be invoked at this time.
  *
- * @param queue      The queue handle
- * @param item       The work item to be processed
+ * @param queue  The queue handle
+ * @param item   The work item to be processed
  **/
 void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item);
@@ -241,8 +241,8 @@ void init_work_queue_once(void);
 /**
  * Checks whether two work items have the same action codes
  *
- * @param item1 The first item
- * @param item2 The second item
+ * @param item1  The first item
+ * @param item2  The second item
  *
  * @return TRUE if the actions are the same, FALSE otherwise
  */
@@ -255,15 +255,15 @@ static inline bool are_work_item_actions_equal(struct vdo_work_item *item1,
 /**
  * Returns the private data for the current thread's work queue.
  *
- * @return  The private data pointer, or NULL if none or if the current
- *          thread is not a work queue thread.
+ * @return The private data pointer, or NULL if none or if the current
+ *         thread is not a work queue thread.
  **/
 void *get_work_queue_private_data(void);
 
 /**
  * Returns the work queue pointer for the current thread, if any.
  *
- * @return   The work queue pointer or NULL
+ * @return The work queue pointer or NULL
  **/
 struct vdo_work_queue *get_current_work_queue(void);
 
@@ -272,7 +272,7 @@ struct vdo_work_queue *get_current_work_queue(void);
  *
  * @param queue  The work queue
  *
- * @return   The owner pointer supplied at work queue creation
+ * @return The owner pointer supplied at work queue creation
  **/
 struct kernel_layer *get_work_queue_owner(struct vdo_work_queue *queue);
 

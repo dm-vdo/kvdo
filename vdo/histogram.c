@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#21 $
  */
 
 #include <linux/kobject.h>
@@ -535,7 +535,6 @@ static struct sysfs_ops histogram_sysfs_ops = {
 
 static struct histogram_attribute count_attribute = {
 	.attr = {
-
 			.name = "count",
 			.mode = 0444,
 		},
@@ -544,7 +543,6 @@ static struct histogram_attribute count_attribute = {
 
 static struct histogram_attribute histogram_attribute = {
 	.attr = {
-
 			.name = "histogram",
 			.mode = 0444,
 		},
@@ -553,7 +551,6 @@ static struct histogram_attribute histogram_attribute = {
 
 static struct histogram_attribute label_attribute = {
 	.attr = {
-
 			.name = "label",
 			.mode = 0444,
 		},
@@ -562,7 +559,6 @@ static struct histogram_attribute label_attribute = {
 
 static struct histogram_attribute maximum_attribute = {
 	.attr = {
-
 			.name = "maximum",
 			.mode = 0444,
 		},
@@ -571,7 +567,6 @@ static struct histogram_attribute maximum_attribute = {
 
 static struct histogram_attribute minimum_attribute = {
 	.attr = {
-
 			.name = "minimum",
 			.mode = 0444,
 		},
@@ -580,7 +575,6 @@ static struct histogram_attribute minimum_attribute = {
 
 static struct histogram_attribute limit_attribute = {
 	.attr = {
-
 			.name = "limit",
 			.mode = 0644,
 		},
@@ -590,7 +584,6 @@ static struct histogram_attribute limit_attribute = {
 
 static struct histogram_attribute mean_attribute = {
 	.attr = {
-
 			.name = "mean",
 			.mode = 0444,
 		},
@@ -599,7 +592,6 @@ static struct histogram_attribute mean_attribute = {
 
 static struct histogram_attribute unacceptable_attribute = {
 	.attr = {
-
 			.name = "unacceptable",
 			.mode = 0444,
 		},
@@ -608,7 +600,6 @@ static struct histogram_attribute unacceptable_attribute = {
 
 static struct histogram_attribute unit_attribute = {
 	.attr = {
-
 			.name = "unit",
 			.mode = 0444,
 		},
