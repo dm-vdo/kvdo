@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#32 $
  */
 
 #include "adminCompletion.h"
+
+#include <linux/delay.h>
 
 #include "atomicDefs.h"
 #include "logger.h"
@@ -82,6 +84,7 @@ void initialize_admin_completion(struct vdo *vdo,
 				  ADMIN_COMPLETION);
 	initialize_vdo_completion(&admin_completion->sub_task_completion, vdo,
 				  SUB_TASK_COMPLETION);
+	init_completion(&admin_completion->callback_sync);
 	atomic_set(&admin_completion->busy, 0);
 }
 
@@ -125,11 +128,31 @@ void prepare_admin_sub_task(struct vdo *vdo,
  * Callback for admin operations which will notify the layer that the operation
  * is complete.
  *
- * @param completion  The admin completion
+ * @param vdo_completion  The vdo_completion within the admin completion
  **/
-static void admin_operation_callback(struct vdo_completion *completion)
+static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
-	vdo_complete_sync_operation(completion->vdo);
+	assert_completion_type(vdo_completion->type, ADMIN_COMPLETION);
+	struct admin_completion *completion =
+		container_of(vdo_completion, struct admin_completion, completion);
+	complete(&completion->callback_sync);
+}
+
+/**
+ * A function to wait for an admin operation to complete. Will block the
+ * thread it is called from.
+ *
+ * @param completion  the admin completion to wait for
+ **/
+static void wait_for_admin_completion(struct admin_completion *completion)
+{
+	// Using the "interruptible" interface means that Linux will not log a
+	// message when we wait for more than 120 seconds.
+	while (wait_for_completion_interruptible(&completion->callback_sync) != 0) {
+		// However, if we get a signal in a user-mode process, we could
+		// spin...
+		msleep(1);
+	}
 }
 
 /**********************************************************************/
@@ -157,8 +180,10 @@ int perform_admin_operation(struct vdo *vdo,
 	admin_completion->phase = 0;
 	prepare_admin_sub_task(vdo, action, error_handler);
 
+	reinit_completion(&admin_completion->callback_sync);
+
 	enqueue_completion(&admin_completion->sub_task_completion);
-	vdo_wait_for_sync_operation(vdo);
+	wait_for_admin_completion(admin_completion);
 	result = admin_completion->completion.result;
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);

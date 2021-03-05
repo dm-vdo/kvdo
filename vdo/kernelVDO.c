@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#91 $
  */
 
 /*
@@ -153,11 +153,7 @@ int preload_vdo(struct vdo *vdo,
 		const struct vdo_load_config *load_config,
 		char **reason)
 {
-	int result;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	init_completion(&layer->callback_sync);
-	result = prepare_to_load_vdo(vdo, load_config);
+	int result = prepare_to_load_vdo(vdo, load_config);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
@@ -170,11 +166,7 @@ int preload_vdo(struct vdo *vdo,
 /**********************************************************************/
 int start_vdo(struct vdo *vdo, char **reason)
 {
-	int result;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	init_completion(&layer->callback_sync);
-	result = perform_vdo_load(vdo);
+	int result = perform_vdo_load(vdo);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
@@ -190,7 +182,6 @@ int suspend_vdo(struct vdo *vdo)
 	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	int result;
 
-	init_completion(&layer->callback_sync);
 	result = perform_vdo_suspend(vdo, !layer->no_flush_suspend);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		log_error_strerror(result, "%s: Suspend device failed",
@@ -206,9 +197,6 @@ int suspend_vdo(struct vdo *vdo)
 /**********************************************************************/
 int resume_vdo(struct vdo *vdo)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	init_completion(&layer->callback_sync);
 	return perform_vdo_resume(vdo);
 }
 
@@ -375,11 +363,7 @@ void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 /**********************************************************************/
 int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count)
 {
-	int result;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	init_completion(&layer->callback_sync);
-	result = perform_grow_physical(vdo, physical_count);
+	int result = perform_grow_physical(vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
 		uds_log_error("resize operation failed, result = %d", result);
@@ -392,11 +376,7 @@ int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count)
 /**********************************************************************/
 int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count)
 {
-	int result;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	init_completion(&layer->callback_sync);
-	result = perform_grow_logical(vdo, logical_count);
+	int result = perform_grow_logical(vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
 		uds_log_error("grow logical operation failed, result = %d",

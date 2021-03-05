@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#52 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -233,21 +233,6 @@ typedef async_data_operation index_updater;
 typedef void flush_complete(struct vdo_flush **vdoFlush);
 
 /**
- * A function to wait for an admin operation to complete. This function should
- * not be called from a base-code thread.
- *
- * @param layer  The layer on which to wait
- **/
-typedef void operation_waiter(PhysicalLayer *layer);
-
-/**
- * A function to inform the layer of the result of an admin operation.
- *
- * @param layer  The layer to inform
- **/
-typedef void operation_complete(PhysicalLayer *layer);
-
-/**
  * An abstraction representing the underlying physical layer.
  **/
 struct physicalLayer {
@@ -283,23 +268,6 @@ struct physicalLayer {
 
 	// Asynchronous interface (other)
 	flush_complete *completeFlush;
-	operation_waiter *waitForAdminOperation;
-	operation_complete *completeAdminOperation;
 };
-
-/**
- * Wait for an admin operation to complete. This function should
- * not be called from a base-code thread.
- *
- * @param vdo The layer on which to wait
- **/
-void vdo_wait_for_sync_operation(struct vdo *vdo);
-
-/**
- * Inform the vdo that the admin operation has completed.
- *
- * @param vdo  The vdo to inform
- **/
-void vdo_complete_sync_operation(struct vdo *vdo);
 
 #endif // PHYSICAL_LAYER_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#162 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#163 $
  */
 
 #include "kernelLayer.h"
@@ -424,37 +424,6 @@ static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
 
 	*block_ptr = block;
 	return VDO_SUCCESS;
-}
-
-/**
- * Function that is called when a synchronous operation is completed. We let
- * the waiting thread know it can continue.
- *
- * <p>Implements operation_complete.
- **/
-void vdo_complete_sync_operation(struct vdo *vdo)
-{
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	complete(&layer->callback_sync);
-}
-
-/**
- * Wait for a synchronous operation to complete.
- *
- * <p>Implements operation_waiter.
- **/
-void vdo_wait_for_sync_operation(struct vdo *vdo)
-{
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	// Using the "interruptible" interface means that Linux will not log a
-	// message when we wait for more than 120 seconds.
-	while (wait_for_completion_interruptible(&layer->callback_sync) != 0) {
-		// However, if we get a signal in a user-mode process, we could
-		// spin...
-		msleep(1);
-	}
 }
 
 /**********************************************************************/

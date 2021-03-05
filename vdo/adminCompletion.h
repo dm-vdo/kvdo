@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#17 $
  */
 
 #ifndef ADMIN_COMPLETION_H
 #define ADMIN_COMPLETION_H
 
 #include "atomicDefs.h"
+
+#include "threads.h"
 
 #include "completion.h"
 #include "types.h"
@@ -67,6 +69,8 @@ struct admin_completion {
 	thread_id_getter_for_phase *get_thread_id;
 	/** The current phase of the operation */
 	uint32_t phase;
+	/** A kernel mechanism for inter-thread signalling */
+	struct completion callback_sync;
 };
 
 /**

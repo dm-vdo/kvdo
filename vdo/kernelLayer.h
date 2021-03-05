@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#64 $
  */
 
 #ifndef KERNELLAYER_H
@@ -156,10 +156,6 @@ struct kernel_layer {
 
 	/* For returning batches of data_vios to their pool */
 	struct batch_processor *data_vio_releaser;
-
-	// Administrative operations
-	/* The object used to wait for administrative operations to complete */
-	struct completion callback_sync;
 
 	// Statistics reporting
 	/* Protects the *_stats_storage structs */
