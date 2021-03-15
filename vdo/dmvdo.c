@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#95 $
  */
 
 #include "dmvdo.h"
@@ -57,7 +57,8 @@ struct vdo_module_globals vdo_globals;
  **/
 static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 {
-	return ((struct device_config *) ti->private)->layer;
+	struct vdo *vdo = ((struct device_config *) ti->private)->vdo;
+	return vdo_as_kernel_layer(vdo);
 }
 
 /**
@@ -577,7 +578,7 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	set_device_config_layer(config, layer);
+	set_device_config_vdo(config, &layer->vdo);
 	set_kernel_layer_active_config(layer, config);
 	ti->private = config;
 	configure_target_capabilities(ti, layer);
@@ -636,7 +637,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			result = map_to_system_error(result);
 			free_device_config(&config);
 		} else {
-			set_device_config_layer(config, old_layer);
+			set_device_config_vdo(config, &old_layer->vdo);
 			ti->private = config;
 			configure_target_capabilities(ti, old_layer);
 		}
@@ -661,11 +662,11 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
-	struct kernel_layer *layer = config->layer;
+	struct vdo *vdo = config->vdo;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
-	set_device_config_layer(config, NULL);
-
-	if (list_empty(&layer->device_config_list)) {
+	set_device_config_vdo(config, NULL);
+	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
 		// This was the last config referencing the layer. Free it.
@@ -692,7 +693,7 @@ static void vdo_dtr(struct dm_target *ti)
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.
 		layer->device_config =
-			as_device_config(layer->device_config_list.next);
+			as_device_config(vdo->device_config_list.next);
 	}
 
 	free_device_config(&config);
@@ -744,7 +745,7 @@ static int vdo_preresume(struct dm_target *ti)
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
 	const char *device_name;
-	block_count_t backing_blocks;	
+	block_count_t backing_blocks;
 	int result;
 
 	register_thread_device(&instance_thread, layer);

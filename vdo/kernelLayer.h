@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#65 $
  */
 
 #ifndef KERNELLAYER_H
@@ -84,8 +84,6 @@ struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
 	struct device_config *device_config;
-	/** A list of all device_configs referencing this layer */
-	struct list_head device_config_list;
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
 	struct kobject wq_directory;

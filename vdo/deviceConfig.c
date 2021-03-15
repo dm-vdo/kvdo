@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#35 $
  */
 
 #include "deviceConfig.h"
@@ -27,7 +27,9 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
-#include "kernelLayer.h"
+#include "types.h"
+#include "vdoInternal.h"
+
 #include "vdoStringUtils.h"
 
 #include "constants.h"
@@ -699,13 +701,13 @@ void free_device_config(struct device_config **config_ptr)
 }
 
 /**********************************************************************/
-void set_device_config_layer(struct device_config *config,
-			     struct kernel_layer *layer)
+void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
 {
 	list_del_init(&config->config_list);
-	if (layer != NULL) {
-		list_add_tail(&config->config_list,
-			      &layer->device_config_list);
+	if (vdo != NULL) {
+		list_add_tail(&config->config_list, &vdo->device_config_list);
+
 	}
-	config->layer = layer;
+
+	config->vdo = vdo;
 }

@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#25 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
 
 #include <linux/device-mapper.h>
 #include <linux/list.h>
+
+#include "types.h"
 
 #include "kernelTypes.h"
 
@@ -43,7 +45,7 @@ struct thread_count_config {
 struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 	/** All configs referencing a layer are kept on a list in the layer */
 	struct list_head config_list;
 	char *original_string;
@@ -97,12 +99,11 @@ int __must_check parse_device_config(int argc,
 void free_device_config(struct device_config **config_ptr);
 
 /**
- * Acquire or release a reference from the config to a kernel layer.
+ * Acquire or release a reference from the config to a vdo.
  *
  * @param config  The config in question
- * @param layer   The kernel layer in question
+ * @param vdo     The vdo in question
  **/
-void set_device_config_layer(struct device_config *config,
-			     struct kernel_layer *layer);
+void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
 
 #endif // DEVICE_CONFIG_H
