@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#163 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#164 $
  */
 
 #include "kernelLayer.h"
@@ -438,6 +438,8 @@ int make_kernel_layer(uint64_t starting_sector,
 	int result, request_limit, i;
 	struct kernel_layer *layer, *old_layer;
 	byte *geometry_block;
+	struct dm_target *ti;
+	const char *device_name;	
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
@@ -469,8 +471,8 @@ int make_kernel_layer(uint64_t starting_sector,
 	// After this point, calling kobject_put on kobj will decrement its
 	// reference count, and when the count goes to 0 the struct
 	// kernel_layer will be freed.
-	struct dm_target *ti = config->owning_target;
-	const char *device_name = get_vdo_device_name(ti);
+	ti = config->owning_target;
+	device_name = get_vdo_device_name(ti);
 
 	kobject_init(&layer->kobj, &kernel_layer_kobj_type);
 	result = kobject_add(&layer->kobj, parent_kobject, device_name);

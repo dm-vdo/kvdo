@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#94 $
  */
 
 #include "dmvdo.h"
@@ -666,6 +666,8 @@ static void vdo_dtr(struct dm_target *ti)
 	set_device_config_layer(config, NULL);
 
 	if (list_empty(&layer->device_config_list)) {
+		const char *device_name;
+
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		struct registered_thread allocating_thread, instance_thread;
@@ -674,7 +676,7 @@ static void vdo_dtr(struct dm_target *ti)
 		register_allocating_thread(&allocating_thread, NULL);
 
 		wait_for_no_requests_active(layer);
-		const char *device_name = get_vdo_device_name(ti);
+		device_name = get_vdo_device_name(ti);
 
 		log_info("stopping device '%s'", device_name);
 
@@ -741,13 +743,14 @@ static int vdo_preresume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
+	const char *device_name;
+	block_count_t backing_blocks;	
 	int result;
 
 	register_thread_device(&instance_thread, layer);
-     	const char *device_name = get_vdo_device_name(ti);
+     	device_name = get_vdo_device_name(ti);
 
-	block_count_t backing_blocks =
-		get_underlying_device_block_count(layer);
+	backing_blocks = get_underlying_device_block_count(layer);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name, backing_blocks,
