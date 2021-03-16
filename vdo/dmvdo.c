@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#96 $
  */
 
 #include "dmvdo.h"
@@ -100,7 +100,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 
-	limits->logical_block_size = layer->device_config->logical_block_size;
+	limits->logical_block_size =
+		layer->vdo.device_config->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
 	// The minimum io size for random io
@@ -126,7 +127,7 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * large discards on this boundary when this is set.
 	 */
 	limits->max_discard_sectors =
-		layer->device_config->max_discard_blocks *
+		layer->vdo.device_config->max_discard_blocks *
 		VDO_SECTORS_PER_BLOCK;
 
 	// Force discards to not begin or end with a partial block by stating
@@ -140,9 +141,10 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       void *data)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	sector_t len = block_to_sector(layer->device_config->physical_blocks);
+	sector_t len =
+		block_to_sector(layer->vdo.device_config->physical_blocks);
 
-	return fn(ti, layer->device_config->owned_device, 0, len, data);
+	return fn(ti, layer->vdo.device_config->owned_device, 0, len, data);
 }
 
 /*
@@ -235,7 +237,7 @@ vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 static int vdo_grow_physical(struct kernel_layer *layer)
 {
 	// The actual growPhysical will happen when the device is resumed.
-	if (layer->device_config->version != 0) {
+	if (layer->vdo.device_config->version != 0) {
 		/*
 		 * XXX Uncomment this branch when new VDO manager is updated to
 		 * not send this message. Old style message on new style table
@@ -247,7 +249,7 @@ static int vdo_grow_physical(struct kernel_layer *layer)
 	} else {
 		block_count_t backing_blocks =
 			get_underlying_device_block_count(layer);
-		layer->device_config->physical_blocks = backing_blocks;
+		layer->vdo.device_config->physical_blocks = backing_blocks;
 	}
 	return 0;
 }
@@ -579,10 +581,20 @@ static int vdo_initialize(struct dm_target *ti,
 	}
 
 	set_device_config_vdo(config, &layer->vdo);
-	set_kernel_layer_active_config(layer, config);
+	set_vdo_active_config(&layer->vdo, config);
 	ti->private = config;
 	configure_target_capabilities(ti, layer);
 	return VDO_SUCCESS;
+}
+
+/**
+ * Implements vdo_filter_t.
+ **/
+static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
+{
+	struct dm_target *ti = vdo->device_config->owning_target;
+	const char *device_name = get_vdo_device_name(ti);
+	return (strcmp(device_name, (const char *) context) == 0);
 }
 
 /**********************************************************************/
@@ -591,22 +603,22 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	int result = VDO_SUCCESS;
 	struct registered_thread allocating_thread, instance_thread;
 	const char *device_name;
-	struct kernel_layer *old_layer;
+	struct vdo *old_vdo;
 	unsigned int instance;
 	struct device_config *config = NULL;
 
 	register_allocating_thread(&allocating_thread, NULL);
 
      	device_name = get_vdo_device_name(ti);
-	old_layer = find_layer_matching(layer_is_named, (void *) device_name);
-	if (old_layer == NULL) {
+	old_vdo = find_vdo_matching(vdo_is_named, (void *) device_name);
+	if (old_vdo == NULL) {
 		result = allocate_vdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
 			unregister_allocating_thread();
 			return -ENOMEM;
 		}
 	} else {
-		instance = old_layer->instance;
+		instance = vdo_as_kernel_layer(old_vdo)->instance;
 	}
 
 	register_thread_device_id(&instance_thread, &instance);
@@ -614,14 +626,15 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		unregister_thread_device_id();
 		unregister_allocating_thread();
-		if (old_layer == NULL) {
+		if (old_vdo == NULL) {
 			release_vdo_instance(instance);
 		}
 		return -EINVAL;
 	}
 
 	// Is there already a device of this name?
-	if (old_layer != NULL) {
+	if (old_vdo != NULL) {
+		struct kernel_layer *layer = vdo_as_kernel_layer(old_vdo);
 		/*
 		 * To preserve backward compatibility with old VDO Managers, we
 		 * need to allow this to happen when either suspended or not.
@@ -630,16 +643,16 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * until new VDO Manager does the right order.
 		 */
 		log_info("preparing to modify device '%s'", device_name);
-		result = prepare_to_modify_kernel_layer(old_layer,
+		result = prepare_to_modify_kernel_layer(layer,
 							config,
 							&ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
 			free_device_config(&config);
 		} else {
-			set_device_config_vdo(config, &old_layer->vdo);
+			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
-			configure_target_capabilities(ti, old_layer);
+			configure_target_capabilities(ti, layer);
 		}
 		unregister_thread_device_id();
 		unregister_allocating_thread();
@@ -689,10 +702,10 @@ static void vdo_dtr(struct dm_target *ti)
 		log_info("device '%s' stopped", device_name);
 		unregister_thread_device_id();
 		unregister_allocating_thread();
-	} else if (config == layer->device_config) {
+	} else if (config == vdo->device_config) {
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.
-		layer->device_config =
+		vdo->device_config =
 			as_device_config(vdo->device_config_list.next);
 	}
 
@@ -791,10 +804,10 @@ static int vdo_preresume(struct dm_target *ti)
 		log_error_strerror(result,
 				   "Commit of modifications to device '%s' failed",
 				   device_name);
-		set_kernel_layer_active_config(layer, config);
+		set_vdo_active_config(&layer->vdo, config);
 		set_vdo_read_only(&layer->vdo, result);
 	} else {
-		set_kernel_layer_active_config(layer, config);
+		set_vdo_active_config(&layer->vdo, config);
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			uds_log_error("resume of device '%s' failed with error: %d",

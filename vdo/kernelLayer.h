@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#66 $
  */
 
 #ifndef KERNELLAYER_H
@@ -83,7 +83,6 @@ struct atomic_bio_stats {
 struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
-	struct device_config *device_config;
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
 	struct kobject wq_directory;
@@ -187,11 +186,6 @@ enum cpu_q_action {
 enum bio_ack_q_action {
 	BIO_ACK_Q_ACTION_ACK,
 };
-
-/**
- * Implements layer_filter_t.
- **/
-bool __must_check layer_is_named(struct kernel_layer *layer, void *context);
 
 /**
  * Creates a kernel specific physical layer to be used by VDO
@@ -418,18 +412,6 @@ struct block_device * __must_check
 get_kernel_layer_bdev(const struct kernel_layer *layer);
 
 /**
- * Set the layer's active config.
- *
- * @param layer   The kernel layer in question
- * @param config  The config in question
- **/
-static inline void set_kernel_layer_active_config(struct kernel_layer *layer,
-						  struct device_config *config)
-{
-	layer->device_config = config;
-}
-
-/**
  * Given an error code, return a value we can return to the OS.  The
  * input error code may be a system-generated value (such as -EIO), an
  * errno macro used in our code (such as EIO), or a UDS or VDO status
@@ -507,23 +489,6 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
  * @return VDO_SUCCESS or an error
  */
 int resize_logical(struct kernel_layer *layer, block_count_t logical_count);
-
-/**
- * Indicate whether the kernel layer is configured to use a separate
- * work queue for acknowledging received and processed bios.
- *
- * Note that this directly controls handling of write operations, but
- * the compile-time flag USE_BIO_ACK_QUEUE_FOR_READ is also checked
- * for read operations.
- *
- * @param  layer  The kernel layer
- *
- * @return Whether a bio-acknowledgement work queue is in use
- **/
-static inline bool use_bio_ack_queue(struct kernel_layer *layer)
-{
-	return layer->device_config->thread_counts.bio_ack_threads > 0;
-}
 
 /**
  * Update bookkeeping for the completion of some number of requests, so that

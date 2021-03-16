@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#85 $
  */
 
 #include "dedupeIndex.h"
@@ -987,7 +987,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = alloc_sprintf("index name", &index->index_name,
 			       "dev=%s offset=4096 size=%llu",
-			       layer->device_config->parent_device_name,
+			       layer->vdo.device_config->parent_device_name,
 			       get_index_region_size(layer->geometry) *
 					VDO_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {

@@ -16,20 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#7 $
  */
 
 #ifndef DEVICE_REGISTRY_H
 #define DEVICE_REGISTRY_H
 
-#include "kernelTypes.h"
+#include "types.h"
 
 /**
- * Method type for layer matching methods.
+ * Method type for vdo matching methods.
  *
- * A filter function returns false if the layer doesn't match.
+ * A filter function returns false if the vdo doesn't match.
  **/
-typedef bool layer_filter_t(struct kernel_layer *layer, void *context);
+typedef bool vdo_filter_t(struct vdo *vdo, void *context);
 
 /**
  * Initialize the necessary structures for the device registry.
@@ -37,29 +37,28 @@ typedef bool layer_filter_t(struct kernel_layer *layer, void *context);
 void initialize_device_registry_once(void);
 
 /**
- * Add a layer to the device registry. The layer must not already exist in the
- * registry.
+ * Register a VDO; it must not already be registered.
  *
- * @param layer  The layer to add
+ * @param vdo  The vdo to register
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check add_layer_to_device_registry(struct kernel_layer *layer);
+int __must_check register_vdo(struct vdo *vdo);
 
 /**
- * Remove a layer from the device registry.
+ * Remove a vdo from the device registry.
  *
- * @param layer  The layer to remove
+ * @param vdo  The vdo to remove
  **/
-void remove_layer_from_device_registry(struct kernel_layer *layer);
+void unregister_vdo(struct vdo *vdo);
 
 /**
- * Find and return the first (if any) layer matching a given filter function.
+ * Find and return the first (if any) vdo matching a given filter function.
  *
- * @param filter   The filter function to apply to layers
+ * @param filter   The filter function to apply to vdos
  * @param context  A bit of context to provide the filter
  **/
-struct kernel_layer * __must_check
-find_layer_matching(layer_filter_t *filter, void *context);
+struct vdo * __must_check
+find_vdo_matching(vdo_filter_t *filter, void *context);
 
 #endif // DEVICE_REGISTRY_H

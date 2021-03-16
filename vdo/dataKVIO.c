@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#130 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#131 $
  */
 
 #include "dataKVIO.h"
@@ -182,7 +182,7 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
-	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
+	if (use_bio_ack_queue(vdo) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
 		launch_data_vio_on_bio_ack_queue(data_vio,
 						 vdo_acknowledge_and_batch,
@@ -454,7 +454,6 @@ vdo_acknowledge_and_enqueue(struct vdo_work_item *item)
 void acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	// If the remaining discard work is not completely processed by this
 	// data_vio, don't acknowledge it yet.
@@ -468,7 +467,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 
 	// We've finished with the vio; acknowledge completion of the bio to
 	// the kernel.
-	if (use_bio_ack_queue(layer)) {
+	if (use_bio_ack_queue(vdo)) {
 		launch_data_vio_on_bio_ack_queue(data_vio,
 						 vdo_acknowledge_and_enqueue,
 						 NULL,

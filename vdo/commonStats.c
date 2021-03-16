@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#9 $
  *
  * Common stat functions
  *
@@ -74,7 +74,8 @@ void get_kernel_statistics(struct kernel_layer *layer,
 		(get_dedupe_timeout_count(layer->dedupe_index) +
 		 atomic64_read(&layer->dedupe_context_busy));
 	stats->flush_out = atomic64_read(&layer->flush_out);
-	stats->logical_block_size = layer->device_config->logical_block_size;
+	stats->logical_block_size =
+		layer->vdo.device_config->logical_block_size;
 	copy_bio_stat(&stats->bios_in, &layer->bios_in);
 	copy_bio_stat(&stats->bios_in_partial, &layer->bios_in_partial);
 	copy_bio_stat(&stats->bios_out, &layer->bios_out);

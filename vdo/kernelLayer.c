@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#165 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#166 $
  */
 
 #include "kernelLayer.h"
@@ -92,29 +92,13 @@ static const struct vdo_work_queue_type cpu_q_type = {
 // to allow for each in-progress operation to update two pages.
 int default_max_requests_active = 2000;
 
-/**********************************************************************/
-block_count_t get_vdo_physical_block_count(const struct vdo *vdo)
-{
-	const struct kernel_layer *layer =
-		container_of(vdo, struct kernel_layer, vdo);
-	return layer->device_config->physical_blocks;
-}
-
-/**********************************************************************/
-bool layer_is_named(struct kernel_layer *layer, void *context)
-{
-	struct dm_target *ti = layer->device_config->owning_target;
-	const char *device_name = get_vdo_device_name(ti);
-	return (strcmp(device_name, (const char *) context) == 0);
-}
-
 /**
- * Implements layer_filter_t.
+ * Implements vdo_filter_t.
  **/
-static bool layer_uses_device(struct kernel_layer *layer, void *context)
+static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
-	return (layer->device_config->owned_device->bdev->bd_dev
+	return (vdo->device_config->owned_device->bdev->bd_dev
 		== config->owned_device->bdev->bd_dev);
 }
 
@@ -317,7 +301,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 /**********************************************************************/
 struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 {
-	return layer->device_config->owned_device->bdev;
+	return layer->vdo.device_config->owned_device->bdev;
 }
 
 /**********************************************************************/
@@ -436,18 +420,19 @@ int make_kernel_layer(uint64_t starting_sector,
 		      struct kernel_layer **layer_ptr)
 {
 	int result, request_limit, i;
-	struct kernel_layer *layer, *old_layer;
+	struct kernel_layer *layer;
+	struct vdo *old_vdo;
 	byte *geometry_block;
 	struct dm_target *ti;
-	const char *device_name;	
+	const char *device_name;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
 
-	old_layer = find_layer_matching(layer_uses_device, config);
-	if (old_layer != NULL) {
+	old_vdo = find_vdo_matching(vdo_uses_device, config);
+	if (old_vdo != NULL) {
 		uds_log_error("Existing layer already uses device %s",
-			      old_layer->device_config->parent_device_name);
+			      old_vdo->device_config->parent_device_name);
 		*reason =
 			"Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
@@ -512,7 +497,7 @@ int make_kernel_layer(uint64_t starting_sector,
 
 	layer->allocations_allowed = true;
 	layer->instance = instance;
-	layer->device_config = config;
+	layer->vdo.device_config = config;
 	layer->starting_sector_offset = starting_sector;
 	INIT_LIST_HEAD(&layer->vdo.device_config_list);
 
@@ -520,7 +505,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
 
-	result = add_layer_to_device_registry(layer);
+	result = register_vdo(&layer->vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot add layer to device registry";
 		free_kernel_layer(layer);
@@ -627,9 +612,9 @@ int make_kernel_layer(uint64_t starting_sector,
 
 
 	// Data vio pool
-	BUG_ON(layer->device_config->logical_block_size <= 0);
+	BUG_ON(layer->vdo.device_config->logical_block_size <= 0);
 	BUG_ON(layer->request_limiter.limit <= 0);
-	BUG_ON(layer->device_config->owned_device == NULL);
+	BUG_ON(layer->vdo.device_config->owned_device == NULL);
 	result = make_data_vio_buffer_pool(layer->request_limiter.limit,
 					   &layer->data_vio_pool);
 	if (result != VDO_SUCCESS) {
@@ -670,7 +655,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	set_kernel_layer_state(layer, LAYER_BIO_DATA_INITIALIZED);
 
 	// Bio ack queue
-	if (use_bio_ack_queue(layer)) {
+	if (use_bio_ack_queue(&layer->vdo)) {
 		result = make_work_queue(layer->thread_name_prefix,
 					 "ackQ",
 					 &layer->wq_directory,
@@ -716,7 +701,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 				   struct device_config *config,
 				   char **error_ptr)
 {
-	struct device_config *extant_config = layer->device_config;
+	struct device_config *extant_config = layer->vdo.device_config;
 
 	if (config->owning_target->begin !=
 	    extant_config->owning_target->begin) {
@@ -793,7 +778,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
 {
 	int result;
-	struct device_config *extant_config = layer->device_config;
+	struct device_config *extant_config = layer->vdo.device_config;
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	if (state == LAYER_RUNNING) {
@@ -833,7 +818,9 @@ int modify_kernel_layer(struct kernel_layer *layer,
 static void free_compression_context(struct kernel_layer *layer)
 {
 	int i;
-	for (i = 0; i < layer->device_config->thread_counts.cpu_threads; i++) {
+	for (i = 0;
+	     i < layer->vdo.device_config->thread_counts.cpu_threads;
+	     i++) {
 		FREE(layer->compression_context[i]);
 	}
 	FREE(layer->compression_context);
@@ -878,7 +865,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
-		if (use_bio_ack_queue(layer)) {
+		if (use_bio_ack_queue(&layer->vdo)) {
 			finish_work_queue(layer->bio_ack_queue);
 			used_bio_ack_queue = true;
 		}
@@ -907,7 +894,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		FREE(layer->spare_kvdo_flush);
 		layer->spare_kvdo_flush = NULL;
 		free_batch_processor(&layer->data_vio_releaser);
-		remove_layer_from_device_registry(layer);
+		unregister_vdo(&layer->vdo);
 		break;
 
 	default:
@@ -1006,16 +993,14 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 	layer->stats_added = true;
 
-	if (layer->device_config->deduplication) {
+	if (layer->vdo.device_config->deduplication) {
 		// Don't try to load or rebuild the index first (and log
 		// scary error messages) if this is known to be a
 		// newly-formatted volume.
-		start_dedupe_index(layer->dedupe_index,
-				   was_new(&layer->vdo));
+		start_dedupe_index(layer->dedupe_index, was_new(&layer->vdo));
 	}
 
 	layer->allocations_allowed = false;
-
 	return VDO_SUCCESS;
 }
 
