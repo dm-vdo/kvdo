@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#102 $
  */
 
 /*
@@ -94,6 +94,12 @@ void destroy_vdo(struct vdo *vdo)
 	}
 	FREE(vdo->threads);
 	vdo->threads = NULL;
+}
+
+/**********************************************************************/
+struct block_device *get_vdo_backing_device(const struct vdo *vdo)
+{
+	return vdo->device_config->owned_device->bdev;
 }
 
 /**********************************************************************/

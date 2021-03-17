@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#97 $
  */
 
 #include "dmvdo.h"
@@ -176,7 +176,8 @@ static void vdo_status(struct dm_target *ti,
 		stats = &layer->vdo_stats_storage;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
+		       bdevname(get_vdo_backing_device(&layer->vdo),
+				name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       get_dedupe_state_name(layer->dedupe_index),
@@ -198,18 +199,17 @@ static void vdo_status(struct dm_target *ti,
 
 
 /**
- * Get the size of the underlying device, in blocks.
+ * Get the size of a vdo's underlying device, in blocks.
  *
- * @param [in] layer  The layer
+ * @param vdo  The vdo
  *
  * @return The size in blocks
  **/
-static block_count_t
-get_underlying_device_block_count(struct kernel_layer *layer)
+static block_count_t __must_check
+get_underlying_device_block_count(const struct vdo *vdo)
 {
-	uint64_t physical_size =
-		i_size_read(get_kernel_layer_bdev(layer)->bd_inode);
-	return physical_size / VDO_BLOCK_SIZE;
+	return (i_size_read(get_vdo_backing_device(vdo)->bd_inode)
+		/ VDO_BLOCK_SIZE);
 }
 
 /**********************************************************************/
@@ -234,10 +234,10 @@ vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 }
 
 /**********************************************************************/
-static int vdo_grow_physical(struct kernel_layer *layer)
+static int vdo_grow_physical(struct vdo *vdo)
 {
 	// The actual growPhysical will happen when the device is resumed.
-	if (layer->vdo.device_config->version != 0) {
+	if (vdo->device_config->version != 0) {
 		/*
 		 * XXX Uncomment this branch when new VDO manager is updated to
 		 * not send this message. Old style message on new style table
@@ -247,9 +247,9 @@ static int vdo_grow_physical(struct kernel_layer *layer)
 		// log_info("Mismatch between growPhysical method and table version.");
 		// return -EINVAL;
 	} else {
-		block_count_t backing_blocks =
-			get_underlying_device_block_count(layer);
-		layer->vdo.device_config->physical_blocks = backing_blocks;
+		vdo->device_config->physical_blocks =
+			get_underlying_device_block_count(vdo);
+
 	}
 	return 0;
 }
@@ -281,13 +281,13 @@ process_vdo_message_locked(struct kernel_layer *layer,
 
 		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
 			block_count_t backing_blocks =
-				get_underlying_device_block_count(layer);
+				get_underlying_device_block_count(&layer->vdo);
 			return prepare_to_resize_physical(layer,
 							  backing_blocks);
 		}
 
 		if (strcasecmp(argv[0], "growPhysical") == 0) {
-			return vdo_grow_physical(layer);
+			return vdo_grow_physical(&layer->vdo);
 		}
 
 		break;
@@ -764,7 +764,7 @@ static int vdo_preresume(struct dm_target *ti)
 	register_thread_device(&instance_thread, layer);
      	device_name = get_vdo_device_name(ti);
 
-	backing_blocks = get_underlying_device_block_count(layer);
+	backing_blocks = get_underlying_device_block_count(&layer->vdo);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name, backing_blocks,

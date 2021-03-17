@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#28 $
  */
 
 #ifndef VDO_H
 #define VDO_H
+
+#include <linux/blk_types.h>
 
 #include "types.h"
 
@@ -30,6 +32,16 @@
  * @param vdo  The vdo to destroy
  **/
 void destroy_vdo(struct vdo *vdo);
+
+/**
+ * Get the block device object underlying a vdo.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The vdo's current block device
+ **/
+struct block_device * __must_check
+get_vdo_backing_device(const struct vdo *vdo);
 
 /**
  * Set whether compression is enabled in a vdo.

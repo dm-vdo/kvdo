@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#166 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#167 $
  */
 
 #include "kernelLayer.h"
@@ -299,12 +299,6 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
-{
-	return layer->vdo.device_config->owned_device->bdev;
-}
-
-/**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *ti)
 {
 	return dm_device_name(dm_table_get_md(ti->table));
@@ -553,7 +547,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// Allocate and read the geometry block data from the backing device.
-	result = read_geometry_block(get_kernel_layer_bdev(layer),
+	result = read_geometry_block(get_vdo_backing_device(&layer->vdo),
 				     &geometry_block);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not read geometry block";
@@ -1047,7 +1041,7 @@ static int synchronous_flush(struct kernel_layer *layer)
 	int result;
 	struct bio bio;
 	bio_init(&bio, 0, 0);
-	bio_set_dev(&bio, get_kernel_layer_bdev(layer));
+	bio_set_dev(&bio, get_vdo_backing_device(&layer->vdo));
 	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	submit_bio_wait(&bio);
 	result = blk_status_to_errno(bio.bi_status);

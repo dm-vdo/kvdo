@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#67 $
  */
 
 #ifndef KERNELLAYER_H
@@ -400,16 +400,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
 	return to_bytes(sector_number & sectors_per_block_mask);
 }
-
-/**
- * Get the block device object currently underlying a kernel layer.
- *
- * @param layer  The kernel layer in question
- *
- * @return The block device object under the layer
- **/
-struct block_device * __must_check
-get_kernel_layer_bdev(const struct kernel_layer *layer);
 
 /**
  * Given an error code, return a value we can return to the OS.  The
