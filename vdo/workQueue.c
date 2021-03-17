@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#49 $
  */
 
 #include "workQueue.h"
@@ -38,21 +38,6 @@
 #include "workQueueInternals.h"
 #include "workQueueStats.h"
 #include "workQueueSysfs.h"
-
-enum {
-	/*
-	 * Time between work queue heartbeats in usec. The default kernel
-	 * configurations generally have 1ms or 4ms tick rates, so let's make
-	 * this a multiple for accuracy.
-	 */
-	FUNNEL_HEARTBEAT_INTERVAL = 4000,
-
-	/*
-	 * Time to wait for a work queue to flush remaining items during
-	 * shutdown.  Specified in milliseconds.
-	 */
-	FUNNEL_FINISH_SLEEP = 5000,
-};
 
 static struct mutex queue_data_lock;
 static struct simple_work_queue queue_data;
@@ -189,27 +174,16 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 	 * have the same view of the queue as a producer thread.
 	 *
 	 * However, the above is wasteful so instead we attempt to minimize the
-	 * number of thread wakeups. This is normally unsafe due to the above
-	 * consumer-producer synchronization constraints. To correct this a
-	 * timeout mechanism is used to wake the thread periodically to handle
-	 * the occasional race condition that triggers and results in this
-	 * thread not being woken properly.
+	 * number of thread wakeups. Using an idle flag, and careful ordering
+	 * using memory barriers, we should be able to determine when the
+	 * worker thread might be asleep or going to sleep. We use cmpxchg to
+	 * try to take ownership (vs other producer threads) of the
+	 * responsibility for waking the worker thread, so multiple wakeups
+	 * aren't tried at once.
 	 *
-	 * In most cases, the above timeout will not occur prior to some other
-	 * work item being added after the queue is set to idle state, so thread
-	 * wakeups will generally be triggered much faster than this interval.
-	 * The timeout provides protection against the cases where more work
-	 * items are either not added or are added too infrequently.
-	 *
-	 * This is also why we can get away with the normally-unsafe
-	 * optimization for the common case by checking queue->idle first
-	 * without synchronization. The race condition exists, but another work
-	 * item getting enqueued can wake us up, and if we don't get that
-	 * either, we still have the timeout to fall back on.
-	 *
-	 * Developed and tuned for some x86 boxes; untested whether this is any
-	 * better or worse for other platforms, with or without the explicit
-	 * memory barrier.
+	 * This was tuned for some x86 boxes that were handy; it's untested
+	 * whether doing the read first is any better or worse for other
+	 * platforms, even other x86 configurations.
 	 */
 	smp_mb();
 	return ((atomic_read(&queue->idle) == 1) &&
@@ -288,8 +262,6 @@ static struct vdo_work_item *
 wait_for_next_work_item(struct simple_work_queue *queue)
 {
 	struct vdo_work_item *item;
-	const long TIMEOUT_JIFFIES =
-		max(2UL, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 	DEFINE_WAIT(wait);
 
 	while (true) {
@@ -336,8 +308,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 
 		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
-		// Wake up often, to address the missed-wakeup race.
-		schedule_timeout(TIMEOUT_JIFFIES);
+		schedule();
 		queue->most_recent_wakeup = ktime_get_ns();
 		call_duration_ns =
 			queue->most_recent_wakeup - time_before_schedule;
@@ -346,9 +317,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 
 		/*
 		 * Check again before resetting first_wakeup for more accurate
-		 * stats. (It's still racy, which can't be fixed without
-		 * requiring tighter synchronization between producer and
-		 * consumer sides.)
+		 * stats. If it was a spurious wakeup, continue looping.
 		 */
 		item = poll_for_work_item(queue);
 		if (item != NULL) {
