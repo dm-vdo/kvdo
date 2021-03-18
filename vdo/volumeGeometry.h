@@ -16,11 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#22 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
 #define VOLUME_GEOMETRY_H
+
+
+#include <linux/uuid.h>
 
 #include "uds.h"
 
@@ -52,16 +55,13 @@ struct volume_region {
 	physical_block_number_t start_block;
 } __packed;
 
-/** A binary UUID is 16 bytes. */
-typedef unsigned char UUID[16];
-
 struct volume_geometry {
 	/** The release version number of this volume */
 	release_version_number_t release_version;
 	/** The nonce of this volume */
 	nonce_t nonce;
-	/** The UUID of this volume */
-	UUID uuid;
+	/** The uuid of this volume */
+	uuid_t uuid;
 	/** The regions in ID order */
 	struct volume_region regions[VOLUME_REGION_COUNT];
 	/** The index config */
