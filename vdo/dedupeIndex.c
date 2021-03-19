@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#86 $
  */
 
 #include "dedupeIndex.h"
@@ -31,6 +31,8 @@
 #include "murmur/MurmurHash3.h"
 #include "stringUtils.h"
 #include "uds.h"
+
+#include "kernelLayer.h"
 
 struct uds_attribute {
 	struct attribute attr;
@@ -480,8 +482,8 @@ static void timeout_index_operations(struct timer_list *t)
 }
 
 /**********************************************************************/
-static void enqueue_index_operation(struct data_vio *data_vio,
-				    enum uds_callback_type operation)
+void enqueue_index_operation(struct data_vio *data_vio,
+			     enum uds_callback_type operation)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
@@ -851,18 +853,6 @@ int message_dedupe_index(struct dedupe_index *index, const char *name)
 }
 
 /**********************************************************************/
-void post_dedupe_advice(struct data_vio *data_vio)
-{
-	enqueue_index_operation(data_vio, UDS_POST);
-}
-
-/**********************************************************************/
-void query_dedupe_advice(struct data_vio *data_vio)
-{
-	enqueue_index_operation(data_vio, UDS_QUERY);
-}
-
-/**********************************************************************/
 void start_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
@@ -872,12 +862,6 @@ void start_dedupe_index(struct dedupe_index *index, bool create_flag)
 void stop_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
-}
-
-/**********************************************************************/
-void update_dedupe_advice(struct data_vio *data_vio)
-{
-	enqueue_index_operation(data_vio, UDS_UPDATE);
 }
 
 /**********************************************************************/

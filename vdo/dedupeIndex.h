@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#25 $
  */
 
 #ifndef DEDUPE_INDEX_H
 #define DEDUPE_INDEX_H
+
+#include "uds.h"
 
 #include "dataKVIO.h"
 
@@ -89,6 +91,15 @@ void get_index_statistics(struct dedupe_index *index,
 int message_dedupe_index(struct dedupe_index *index, const char *name);
 
 /**
+ * Enqueue operation for submission to the index.
+ *
+ * @param data_vio   The data_vio requesting the operation
+ * @param operation  The index operation to perform
+ **/
+void enqueue_index_operation(struct data_vio *data_vio,
+			     enum uds_callback_type operation);
+
+/**
  * Look up the chunkname of the data_vio and identify duplicated chunks.
  *
  * @param data_vio  The data_vio. These fields are used:
@@ -99,7 +110,10 @@ int message_dedupe_index(struct dedupe_index *index, const char *name);
  *                  dedupe_context.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-void post_dedupe_advice(struct data_vio *data_vio);
+static inline void post_dedupe_advice(struct data_vio *data_vio)
+{
+	enqueue_index_operation(data_vio, UDS_POST);
+}
 
 /**
  * Look up the chunk_name of the data_vio and identify duplicated chunks.
@@ -110,7 +124,25 @@ void post_dedupe_advice(struct data_vio *data_vio);
  *                  set_dedupe_advice(). dedupe_context.status is set to the
  *                  return status code of any asynchronous index processing.
  **/
-void query_dedupe_advice(struct data_vio *data_vio);
+static inline void query_dedupe_advice(struct data_vio *data_vio)
+{
+	enqueue_index_operation(data_vio, UDS_QUERY);
+}
+
+/**
+ * Look up the chunk_name of the data_vio and associate the new PBN with the
+ * name.
+ *
+ * @param data_vio  The data_vio. These fields are used:
+ *                  dedupe_context.chunk_name is the chunk name. The advice to
+ *                  offer to the index will be obtained via
+ *                  get_dedupe_advice(). dedupe_context.status is set to the
+ *                  return status code of any asynchronous index processing.
+ **/
+static inline void update_dedupe_advice(struct data_vio *data_vio)
+{
+	enqueue_index_operation(data_vio, UDS_UPDATE);
+}
 
 /**
  * Start the dedupe index.
@@ -151,18 +183,6 @@ void resume_dedupe_index(struct dedupe_index *index);
  * @param index  The dedupe index
  **/
 void finish_dedupe_index(struct dedupe_index *index);
-
-/**
- * Look up the chunk_name of the data_vio and associate the new PBN with the
- * name.
- *
- * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice to
- *                  offer to the index will be obtained via
- *                  get_dedupe_advice(). dedupe_context.status is set to the
- *                  return status code of any asynchronous index processing.
- **/
-void update_dedupe_advice(struct data_vio *data_vio);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping UDS.
