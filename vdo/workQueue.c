@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#50 $
  */
 
 #include "workQueue.h"
@@ -638,13 +638,14 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			     "%s:%s",
 			     thread_name_prefix,
 			     queue->common.name);
-
 	if (IS_ERR(thread)) {
 		free_simple_work_queue(queue);
 		return (int) PTR_ERR(thread);
 	}
+
 	queue->thread = thread;
-	atomic_set(&queue->thread_id, thread->pid);
+	WRITE_ONCE(queue->thread_id, thread->pid);
+
 	/*
 	 * If we don't wait to ensure the thread is running VDO code, a
 	 * quick kthread_stop (due to errors elsewhere) could cause it to
@@ -654,6 +655,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	 * won't need this synchronization.
 	 */
 	wait_event(queue->start_waiters, queue_started(queue) == true);
+
 	*queue_ptr = queue;
 	return UDS_SUCCESS;
 }
@@ -761,13 +763,16 @@ int make_work_queue(const char *thread_name_prefix,
  **/
 static void finish_simple_work_queue(struct simple_work_queue *queue)
 {
-	// Tell the worker thread to shut down.
-	if (queue->thread != NULL) {
-		atomic_set(&queue->thread_id, 0);
-		// Waits for thread to exit.
-		kthread_stop(queue->thread);
+	if (queue->thread == NULL) {
+		return;
 	}
 
+	// Reduces (but does not eliminate) the chance of the sysfs support
+	// reporting the pid even after the thread is gone.
+	WRITE_ONCE(queue->thread_id, 0);
+
+	// Tells the worker thread to shut down and waits for it to exit.
+	kthread_stop(queue->thread);
 	queue->thread = NULL;
 }
 
