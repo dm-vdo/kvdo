@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#26 $
  */
 
 #include "lockCounter.h"
@@ -301,8 +301,8 @@ void acquire_lock_count_reference(struct lock_counter *counter,
 		// Extra barriers because this was original developed using
 		// an atomic add operation that implicitly had them.
 		smp_mb__before_atomic();
-		atomic_add(1, get_zone_count_ptr(counter, lock_number,
-						 zone_type));
+		atomic_inc(get_zone_count_ptr(counter, lock_number,
+					      zone_type));
 		smp_mb__after_atomic();
 	}
 	*current_value += 1;
@@ -401,7 +401,7 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 	// Extra barriers because this was original developed using
 	// an atomic add operation that implicitly had them.
 	smp_mb__before_atomic();
-	atomic_add(1, &(counter->journal_decrement_counts[lock_number]));
+	atomic_inc(&(counter->journal_decrement_counts[lock_number]));
 	smp_mb__after_atomic();
 }
 
