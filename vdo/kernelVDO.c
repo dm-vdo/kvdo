@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#92 $
  */
 
 /*
@@ -123,7 +123,7 @@ int make_vdo_threads(struct vdo *vdo,
 				    sizeof(queue_name));
 		result = make_work_queue(layer->thread_name_prefix,
 					 queue_name,
-					 &layer->wq_directory,
+					 &layer->vdo.work_queue_directory,
 					 layer,
 					 thread,
 					 &request_queue_type,

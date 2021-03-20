@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#68 $
  */
 
 #ifndef KERNELLAYER_H
@@ -84,9 +84,6 @@ struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
-	struct kobject kobj;
-	struct kobject wq_directory;
-	struct kobject stats_directory;
 	/**
 	 * A counter value to attach to thread names and log messages to
 	 * identify the individual device.
@@ -310,15 +307,6 @@ get_kernel_layer_state(const struct kernel_layer *layer)
 	smp_rmb();
 	return state;
 }
-
-/**
- * Get the device name associated with the vdo target
- *
- * @param ti  The target device interface.
- *
- * @return The block device name
- **/
-const char * __must_check get_vdo_device_name(const struct dm_target *ti);
 
 /**
  * Function call to begin processing a bio passed in from the block layer

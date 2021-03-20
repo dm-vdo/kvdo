@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#167 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#168 $
  */
 
 #include "kernelLayer.h"
@@ -52,6 +52,7 @@
 #include "kvio.h"
 #include "poolSysfs.h"
 #include "stringUtils.h"
+#include "vdoInit.h"
 
 static const struct vdo_work_queue_type bio_ack_q_type = {
 	.action_table = {
@@ -299,12 +300,6 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-const char *get_vdo_device_name(const struct dm_target *ti)
-{
-	return dm_device_name(dm_table_get_md(ti->table));
-}
-
-/**********************************************************************/
 void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 {
 	// If we had to buffer some requests to avoid deadlock, release them
@@ -417,8 +412,6 @@ int make_kernel_layer(uint64_t starting_sector,
 	struct kernel_layer *layer;
 	struct vdo *old_vdo;
 	byte *geometry_block;
-	struct dm_target *ti;
-	const char *device_name;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
@@ -444,29 +437,15 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	layer->vdo.layer = &layer->common;
-	initialize_admin_completion(&layer->vdo, &layer->vdo.admin_completion);
-
-	// After this point, calling kobject_put on kobj will decrement its
-	// reference count, and when the count goes to 0 the struct
-	// kernel_layer will be freed.
-	ti = config->owning_target;
-	device_name = get_vdo_device_name(ti);
-
-	kobject_init(&layer->kobj, &kernel_layer_kobj_type);
-	result = kobject_add(&layer->kobj, parent_kobject, device_name);
-	if (result != 0) {
-		*reason = "Cannot add sysfs node";
-		kobject_put(&layer->kobj);
-		return result;
-	}
-	kobject_init(&layer->wq_directory, &work_queue_directory_kobj_type);
-	result = kobject_add(&layer->wq_directory, &layer->kobj,
-			     "work_queues");
-	if (result != 0) {
-		*reason = "Cannot add sysfs node";
-		kobject_put(&layer->wq_directory);
-		kobject_put(&layer->kobj);
+	// After this point, calling kobject_put on vdo->vdo_directory will
+	// decrement its reference count, and when the count goes to 0 the
+	// struct kernel_layer will be freed.
+	result = initialize_vdo(&layer->vdo,
+				&layer->common,
+				config->owning_target,
+				parent_kobject,
+				reason);
+	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
@@ -652,7 +631,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	if (use_bio_ack_queue(&layer->vdo)) {
 		result = make_work_queue(layer->thread_name_prefix,
 					 "ackQ",
-					 &layer->wq_directory,
+					 &layer->vdo.work_queue_directory,
 					 layer,
 					 layer,
 					 &bio_ack_q_type,
@@ -671,7 +650,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	// CPU Queues
 	result = make_work_queue(layer->thread_name_prefix,
 				 "cpuQ",
-				 &layer->wq_directory,
+				 &layer->vdo.work_queue_directory,
 				 layer,
 				 layer,
 				 &cpu_q_type,
@@ -918,17 +897,15 @@ void free_kernel_layer(struct kernel_layer *layer)
 	// The call to kobject_put on the kobj sysfs node will decrement its
 	// reference count; when the count goes to zero the VDO object and
 	// the kernel layer object will be freed as a side effect.
-	kobject_put(&layer->wq_directory);
-	kobject_put(&layer->kobj);
+	kobject_put(&layer->vdo.work_queue_directory);
+	kobject_put(&layer->vdo.vdo_directory);
 }
 
 /**********************************************************************/
-static void pool_stats_release(struct kobject *kobj)
+static void pool_stats_release(struct kobject *directory)
 {
-	struct kernel_layer *layer = container_of(kobj,
-						  struct kernel_layer,
-						  stats_directory);
-	complete(&layer->stats_shutdown);
+	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
+	complete(&(vdo_as_kernel_layer(vdo)->stats_shutdown));
 }
 
 /**********************************************************************/
@@ -956,7 +933,7 @@ int preload_kernel_layer(struct kernel_layer *layer,
 /**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
-	static struct kobj_type stats_directory_kobj_type = {
+	static struct kobj_type stats_directory_type = {
 		.release = pool_stats_release,
 		.sysfs_ops = &pool_stats_sysfs_ops,
 		.default_attrs = pool_stats_attrs,
@@ -976,9 +953,9 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 
 	set_kernel_layer_state(layer, LAYER_RUNNING);
-	kobject_init(&layer->stats_directory, &stats_directory_kobj_type);
-	result = kobject_add(&layer->stats_directory,
-			     &layer->kobj,
+	kobject_init(&layer->vdo.stats_directory, &stats_directory_type);
+	result = kobject_add(&layer->vdo.stats_directory,
+			     &layer->vdo.vdo_directory,
 			     "statistics");
 	if (result != 0) {
 		*reason = "Cannot add sysfs statistics node";
@@ -1008,7 +985,7 @@ void stop_kernel_layer(struct kernel_layer *layer)
 	if (layer->stats_added) {
 		layer->stats_added = false;
 		init_completion(&layer->stats_shutdown);
-		kobject_put(&layer->stats_directory);
+		kobject_put(&layer->vdo.stats_directory);
 		wait_for_completion(&layer->stats_shutdown);
 	}
 

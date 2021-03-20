@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#87 $
  */
 
 #include "dedupeIndex.h"
@@ -70,7 +70,7 @@ struct periodic_event_reporter {
 };
 
 struct dedupe_index {
-	struct kobject dedupe_object;
+	struct kobject dedupe_directory;
 	struct registered_thread allocating_thread;
 	char *index_name;
 	struct uds_configuration *configuration;
@@ -775,7 +775,7 @@ void free_dedupe_index(struct dedupe_index **index_ptr)
 		del_timer_sync(&index->pending_timer);
 	}
 	spin_unlock_bh(&index->pending_lock);
-	kobject_put(&index->dedupe_object);
+	kobject_put(&index->dedupe_directory);
 }
 
 /**********************************************************************/
@@ -865,25 +865,25 @@ void stop_dedupe_index(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-static void dedupe_kobj_release(struct kobject *kobj)
+static void dedupe_kobj_release(struct kobject *directory)
 {
-	struct dedupe_index *index = container_of(kobj,
+	struct dedupe_index *index = container_of(directory,
 						  struct dedupe_index,
-						  dedupe_object);
+						  dedupe_directory);
 	uds_free_configuration(index->configuration);
 	FREE(index->index_name);
 	FREE(index);
 }
 
 /**********************************************************************/
-static ssize_t dedupe_status_show(struct kobject *kobj,
+static ssize_t dedupe_status_show(struct kobject *directory,
 				  struct attribute *attr,
 				  char *buf)
 {
 	struct uds_attribute *ua =
 		container_of(attr, struct uds_attribute, attr);
 	struct dedupe_index *index =
-		container_of(kobj, struct dedupe_index, dedupe_object);
+		container_of(directory, struct dedupe_index, dedupe_directory);
 	if (ua->show_string != NULL) {
 		return sprintf(buf, "%s\n", ua->show_string(index));
 	} else {
@@ -917,7 +917,7 @@ static struct attribute *dedupe_attributes[] = {
 	NULL,
 };
 
-static struct kobj_type dedupe_kobj_type = {
+static struct kobj_type dedupe_directory_type = {
 	.release = dedupe_kobj_release,
 	.sysfs_ops = &dedupe_sysfs_ops,
 	.default_attrs = dedupe_attributes,
@@ -1003,7 +1003,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = make_work_queue(layer->thread_name_prefix,
 				 "dedupeQ",
-				 &layer->wq_directory,
+				 &layer->vdo.work_queue_directory,
 				 layer,
 				 index,
 				 &uds_queue_type,
@@ -1020,8 +1020,10 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	kobject_init(&index->dedupe_object, &dedupe_kobj_type);
-	result = kobject_add(&index->dedupe_object, &layer->kobj, "dedupe");
+	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
+	result = kobject_add(&index->dedupe_directory,
+			     &layer->vdo.vdo_directory,
+			     "dedupe");
 	if (result != VDO_SUCCESS) {
 		free_work_queue(&index->uds_queue);
 		uds_destroy_index_session(index->index_session);

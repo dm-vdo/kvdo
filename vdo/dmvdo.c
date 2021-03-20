@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#98 $
  */
 
 #include "dmvdo.h"
@@ -43,6 +43,7 @@
 #include "sysfs.h"
 #include "threadDevice.h"
 #include "threadRegistry.h"
+#include "vdoInit.h"
 
 struct vdo_module_globals vdo_globals;
 

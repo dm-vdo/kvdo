@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#15 $
  */
 
 #include "poolSysfs.h"
@@ -29,29 +29,27 @@
 
 struct pool_attribute {
 	struct attribute attr;
-	ssize_t (*show)(struct kernel_layer *layer, char *buf);
-	ssize_t (*store)(struct kernel_layer *layer, const char *value, size_t count);
+	ssize_t (*show)(struct vdo *vdo, char *buf);
+	ssize_t (*store)(struct vdo *vdo, const char *value, size_t count);
 };
 
 /**********************************************************************/
-static ssize_t vdo_pool_attr_show(struct kobject *kobj,
+static ssize_t vdo_pool_attr_show(struct kobject *directory,
 				  struct attribute *attr,
 				  char *buf)
 {
 	struct pool_attribute *pool_attr = container_of(attr,
 							struct pool_attribute,
 							attr);
-	struct kernel_layer *layer = container_of(kobj,
-						  struct kernel_layer,
-						  kobj);
+	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 	if (pool_attr->show == NULL) {
 		return -EINVAL;
 	}
-	return pool_attr->show(layer, buf);
+	return pool_attr->show(vdo, buf);
 }
 
 /**********************************************************************/
-static ssize_t vdo_pool_attr_store(struct kobject *kobj,
+static ssize_t vdo_pool_attr_store(struct kobject *directory,
 				   struct attribute *attr,
 				   const char *buf,
 				   size_t length)
@@ -59,13 +57,11 @@ static ssize_t vdo_pool_attr_store(struct kobject *kobj,
 	struct pool_attribute *pool_attr = container_of(attr,
 							struct pool_attribute,
 							attr);
-	struct kernel_layer *layer = container_of(kobj,
-						  struct kernel_layer,
-						  kobj);
+	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 	if (pool_attr->store == NULL) {
 		return -EINVAL;
 	}
-	return pool_attr->store(layer, buf, length);
+	return pool_attr->store(vdo, buf, length);
 }
 
 static struct sysfs_ops vdo_pool_sysfs_ops = {
@@ -74,26 +70,28 @@ static struct sysfs_ops vdo_pool_sysfs_ops = {
 };
 
 /**********************************************************************/
-static ssize_t pool_compressing_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_compressing_show(struct vdo *vdo, char *buf)
 {
 	return sprintf(buf, "%s\n",
-		       (get_vdo_compressing(&layer->vdo) ? "1" : "0"));
+		       (get_vdo_compressing(vdo) ? "1" : "0"));
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_active_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_discards_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->discard_limiter.active);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->discard_limiter.active);
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_limit_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->discard_limiter.limit);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->discard_limiter.limit);
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_limit_store(struct kernel_layer *layer,
+static ssize_t pool_discards_limit_store(struct vdo *vdo,
 					 const char *buf,
 					 size_t length)
 {
@@ -102,46 +100,49 @@ static ssize_t pool_discards_limit_store(struct kernel_layer *layer,
 	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
 		return -EINVAL;
 	}
-	layer->discard_limiter.limit = value;
+	vdo_as_kernel_layer(vdo)->discard_limiter.limit = value;
 	return length;
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_maximum_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->discard_limiter.maximum);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->discard_limiter.maximum);
 }
 
 /**********************************************************************/
-static ssize_t pool_instance_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_instance_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->instance);
+	return sprintf(buf, "%u\n", vdo_as_kernel_layer(vdo)->instance);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_active_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_requests_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->request_limiter.active);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->request_limiter.active);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_limit_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_requests_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->request_limiter.limit);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->request_limiter.limit);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_maximum_show(struct kernel_layer *layer, char *buf)
+static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", layer->request_limiter.maximum);
+	return sprintf(buf, "%u\n",
+		       vdo_as_kernel_layer(vdo)->request_limiter.maximum);
 }
 
 /**********************************************************************/
-static void vdo_pool_release(struct kobject *kobj)
+static void vdo_pool_release(struct kobject *directory)
 {
-	struct kernel_layer *layer = container_of(kobj,
-						  struct kernel_layer,
-						  kobj);
+	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	FREE(layer);
 }
 
@@ -222,7 +223,7 @@ static struct attribute *pool_attrs[] = {
 	NULL,
 };
 
-struct kobj_type kernel_layer_kobj_type = {
+struct kobj_type vdo_directory_type = {
 	.release = vdo_pool_release,
 	.sysfs_ops = &vdo_pool_sysfs_ops,
 	.default_attrs = pool_attrs,
@@ -258,7 +259,7 @@ static struct sysfs_ops no_sysfs_ops = {
 	.store = NULL,
 };
 
-struct kobj_type work_queue_directory_kobj_type = {
+struct kobj_type work_queue_directory_type = {
 	.release = work_queue_directory_release,
 	.sysfs_ops = &no_sysfs_ops,
 	.default_attrs = no_attrs,

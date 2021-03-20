@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#75 $
  */
 
 #include "ioSubmitter.h"
@@ -509,9 +509,14 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 {
 	bio_queue_data->queue_number = queue_number;
 
-	return make_work_queue(thread_name_prefix, queue_name,
-			       &layer->wq_directory, layer, bio_queue_data,
-			       &bio_queue_type, 1, NULL,
+	return make_work_queue(thread_name_prefix,
+			       queue_name,
+			       &layer->vdo.work_queue_directory,
+			       layer,
+			       bio_queue_data,
+			       &bio_queue_type,
+			       1,
+			       NULL,
 			       &bio_queue_data->queue);
 }
 

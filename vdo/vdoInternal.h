@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#53 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -26,6 +26,7 @@
 
 #include "atomicDefs.h"
 
+#include <linux/kobject.h>
 #include <linux/list.h>
 #include "deviceConfig.h"
 #include "threadRegistry.h"
@@ -69,6 +70,11 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
+
+	// For sysfs
+	struct kobject vdo_directory;
+	struct kobject work_queue_directory;
+	struct kobject stats_directory;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
