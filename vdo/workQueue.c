@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#51 $
  */
 
 #include "workQueue.h"
@@ -377,44 +377,52 @@ static void process_work_item(struct simple_work_queue *queue,
 	item->work(item);
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
+
 	update_work_item_stats_for_work_time(&queue->stats.work_item_stats,
 					     index,
 					     work_start_time);
+}
+
+/**
+ * Yield the CPU to the scheduler and update queue statistics accordingly.
+ *
+ * @param queue  The active queue
+ **/
+static void yield_to_scheduler(struct simple_work_queue *queue)
+{
+	unsigned int queue_length;
+	uint64_t run_time_ns, call_time_ns;
+	uint64_t time_before_reschedule, time_after_reschedule;
+	struct vdo_work_queue_stats *stats = &queue->stats;
 
 	/*
-	 * Be friendly to a CPU that has other work to do, if the kernel has
-	 * told us to. This speeds up some performance tests; that "other work"
-	 * might include other VDO threads.
-	 *
+	 * Record the queue length we have *before* rescheduling.
 	 * N.B.: We compute the pending count info here without any
 	 * synchronization, but it's for stats reporting only, so being
-	 * imprecise isn't too big a deal, as long as reads and writes are
-	 * atomic operations.
+	 * imprecise isn't too big a deal.
 	 */
-	if (need_resched()) {
-		uint64_t time_after_reschedule, run_time_ns, call_time_ns;
-		uint64_t time_before_reschedule = ktime_get_ns();
-		// Record the queue length we have *before* rescheduling.
-		unsigned int queue_len = get_pending_count(queue);
+	queue_length = get_pending_count(queue);
 
-		cond_resched();
-		time_after_reschedule = ktime_get_ns();
+	time_before_reschedule = ktime_get_ns();
+	cond_resched();
+	time_after_reschedule = ktime_get_ns();
 
-		enter_histogram_sample(
-			queue->stats.reschedule_queue_length_histogram,
-			queue_len);
-		run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
-		enter_histogram_sample(
-			queue->stats.run_time_before_reschedule_histogram,
-			run_time_ns / 1000);
-		atomic64_add(run_time_ns, &queue->stats.run_time);
-		call_time_ns = time_after_reschedule - time_before_reschedule;
-		enter_histogram_sample(queue->stats.reschedule_time_histogram,
-				       call_time_ns / 1000);
-		atomic64_add(call_time_ns, &queue->stats.reschedule_time);
-		queue->most_recent_wakeup = time_after_reschedule;
-	}
+	enter_histogram_sample(stats->reschedule_queue_length_histogram,
+			       queue_length);
+
+	run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
+	enter_histogram_sample(stats->run_time_before_reschedule_histogram,
+			       run_time_ns / 1000);
+	atomic64_add(run_time_ns, &stats->run_time);
+
+	call_time_ns = time_after_reschedule - time_before_reschedule;
+	enter_histogram_sample(stats->reschedule_time_histogram,
+			       call_time_ns / 1000);
+	atomic64_add(call_time_ns, &stats->reschedule_time);
+
+	queue->most_recent_wakeup = time_after_reschedule;
 }
+
 
 /**
  * Main loop of the work queue worker thread.
@@ -439,6 +447,15 @@ static void service_work_queue(struct simple_work_queue *queue)
 		}
 
 		process_work_item(queue, item);
+
+		/*
+		 * Be friendly to a CPU that has other work to do, if the
+		 * kernel has told us to. This speeds up some performance
+		 * tests; that "other work" might include other VDO threads.
+		 */
+		if (need_resched()) {
+			yield_to_scheduler(queue);
+		}
 	}
 
 	run_finish_hook(queue);

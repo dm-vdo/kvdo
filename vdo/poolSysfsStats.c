@@ -31,15 +31,15 @@ struct pool_stats_attribute {
 	ssize_t (*print)(struct kernel_layer *layer, char *buf);
 };
 
-static ssize_t pool_stats_attr_show(struct kobject *kobj,
+static ssize_t pool_stats_attr_show(struct kobject *directory,
 				    struct attribute *attr,
 				    char *buf)
 {
 	ssize_t size;
 	struct pool_stats_attribute *pool_stats_attr =
 		container_of(attr, struct pool_stats_attribute, attr);
-	struct kernel_layer *layer =
-		container_of(kobj, struct kernel_layer, stats_directory);
+	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	if (pool_stats_attr->print == NULL) {
 		return -EINVAL;
@@ -47,7 +47,7 @@ static ssize_t pool_stats_attr_show(struct kobject *kobj,
 
 	mutex_lock(&layer->stats_mutex);
 	if (pool_stats_attr->from_vdo) {
-		get_kvdo_statistics(&layer->vdo, &layer->vdo_stats_storage);
+		get_kvdo_statistics(vdo, &layer->vdo_stats_storage);
 	} else {
 		get_kernel_statistics(layer, &layer->kernel_stats_storage);
 	}
