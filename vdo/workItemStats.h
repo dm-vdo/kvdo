@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#14 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -115,13 +115,12 @@ struct vdo_work_item_stats {
 };
 
 /**
- * Initialize a statistics structure for tracking sample
- * values. Assumes the storage was already zeroed out at allocation
- * time.
+ * Initialize a statistics structure for tracking sample values. Assumes the
+ * storage was already zeroed out at allocation time.
  *
  * @param stats  The statistics structure
  **/
-static inline void init_simple_stats(struct simple_stats *stats)
+static inline void initialize_simple_stats(struct simple_stats *stats)
 {
 	// Assume other fields are initialized to zero at allocation.
 	stats->min = UINT64_MAX;
@@ -157,6 +156,35 @@ static inline uint64_t get_sample_average(const struct simple_stats *stats)
 	uint64_t slop = stats->count / 2;
 	return (stats->sum + slop) / stats->count;
 }
+
+/**
+ * Initialize a statistics structure for tracking work queue items. Assumes
+ * the storage was already zeroed out at allocation time.
+ *
+ * @param stats  The statistics structure
+ **/
+void initialize_work_item_stats(struct vdo_work_item_stats *stats);
+
+/**
+ * Sum and return the total number of work items that have been processed.
+ *
+ * @param stats  The statistics structure
+ *
+ * @return the total number of work items processed
+ **/
+uint64_t count_work_items_processed(const struct vdo_work_item_stats *stats);
+
+/**
+ * Compute an approximate indication of the number of pending work items.
+ *
+ * No synchronization is used, so it's guaranteed to be correct only if there
+ * is no activity.
+ *
+ * @param stats  The statistics structure
+ *
+ * @return the estimate of the number of pending work items
+ **/
+unsigned int count_work_items_pending(const struct vdo_work_item_stats *stats);
 
 /**
  * Update all work queue statistics (work-item and otherwise) after

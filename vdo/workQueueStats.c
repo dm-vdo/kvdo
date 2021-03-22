@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#23 $
  */
 
 #include "workQueueStats.h"
@@ -30,14 +30,7 @@
 int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 				struct kobject *queue_kobject)
 {
-	spin_lock_init(&stats->work_item_stats.function_table.lock);
-	if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-		int i;
-
-		for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-			init_simple_stats(&stats->work_item_stats.times[i]);
-		}
-	}
+	initialize_work_item_stats(&stats->work_item_stats);
 
 	stats->queue_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "queue_time",
@@ -117,37 +110,28 @@ void cleanup_work_queue_stats(struct vdo_work_queue_stats *stats)
 }
 
 /**********************************************************************/
-static uint64_t get_total_processed(const struct simple_work_queue *queue)
-{
-	uint64_t total_processed = 0;
-	int i;
-
-	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-		total_processed += queue->stats.work_item_stats.times[i].count;
-	}
-	return total_processed;
-}
-
-/**********************************************************************/
 void log_work_queue_stats(const struct simple_work_queue *queue)
 {
 	uint64_t total_processed, runtime_ns = 0;
 	unsigned long runtime_ms, ns_per_work_item = 0;
 
 	if (queue->thread != NULL) {
-		runtime_ns += queue->thread->se.sum_exec_runtime;
-	}
-
-	total_processed = get_total_processed(queue);
-
-	if (total_processed > 0) {
-		ns_per_work_item = runtime_ns / total_processed;
+		runtime_ns = queue->thread->se.sum_exec_runtime;
 	}
 	runtime_ms = runtime_ns / 1000;
 
+	total_processed =
+		count_work_items_processed(&queue->stats.work_item_stats);
+	if (total_processed > 0) {
+		ns_per_work_item = runtime_ns / total_processed;
+	}
+
 	log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
-		 queue, queue->common.name, runtime_ms / 1000000,
-		 runtime_ms % 1000000, total_processed,
+		 queue,
+		 queue->common.name,
+		 runtime_ms / 1000000,
+		 runtime_ms % 1000000,
+		 total_processed,
 		 ns_per_work_item / 1000,
 		 ns_per_work_item % 1000);
 }

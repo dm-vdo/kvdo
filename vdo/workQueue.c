@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#52 $
  */
 
 #include "workQueue.h"
@@ -191,37 +191,6 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 }
 
 /**
- * Compute an approximate indication of the number of pending work items.
- *
- * No synchronization is used, so it's guaranteed to be correct only if there
- * is no activity.
- *
- * @param queue  The work queue to examine
- *
- * @return the estimate of the number of pending work items
- **/
-static unsigned int get_pending_count(struct simple_work_queue *queue)
-{
-	struct vdo_work_item_stats *stats = &queue->stats.work_item_stats;
-	long long pending = 0;
-	int i;
-
-	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-		pending += atomic64_read(&stats->enqueued[i]);
-		pending -= stats->times[i].count;
-	}
-	if (pending < 0) {
-		/*
-		 * If we fetched numbers that were changing, we can get negative
-		 * results. Just return an indication that there's some
-		 * activity.
-		 */
-		pending = 1;
-	}
-	return pending;
-}
-
-/**
  * Run any start hook that may be defined for the work queue.
  *
  * @param queue  The work queue
@@ -290,8 +259,8 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 
 		/*
 		 * We need to check for thread-stop after setting
-		 * TASK_INTERRUPTIBLE state up above. Otherwise, schedule() will
-		 * put the thread to sleep and might miss a wakeup from
+		 * TASK_INTERRUPTIBLE state up above. Otherwise, schedule()
+		 * will put the thread to sleep and might miss a wakeup from
 		 * kthread_stop() call in finish_work_queue().
 		 */
 		if (kthread_should_stop()) {
@@ -299,9 +268,9 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 		}
 
 		/*
-		 * We don't need to update the wait count atomically since this
-		 * is the only place it is modified and there is only one thread
-		 * involved.
+		 * We don't need to update the wait count atomically since
+		 * this is the only place it is modified and there is only one
+		 * thread involved.
 		 */
 		queue->stats.waits++;
 		time_before_schedule = ktime_get_ns();
@@ -342,7 +311,8 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 				(ktime_get_ns() - first_wakeup) / 1000);
 			enter_histogram_sample(
 				queue->stats.wakeup_queue_length_histogram,
-				get_pending_count(queue));
+				count_work_items_pending(
+					&queue->stats.work_item_stats));
 		}
 	}
 	finish_wait(&queue->waiting_worker_threads, &wait);
@@ -401,7 +371,7 @@ static void yield_to_scheduler(struct simple_work_queue *queue)
 	 * synchronization, but it's for stats reporting only, so being
 	 * imprecise isn't too big a deal.
 	 */
-	queue_length = get_pending_count(queue);
+	queue_length = count_work_items_pending(&stats->work_item_stats);
 
 	time_before_reschedule = ktime_get_ns();
 	cond_resched();
@@ -422,7 +392,6 @@ static void yield_to_scheduler(struct simple_work_queue *queue)
 
 	queue->most_recent_wakeup = time_after_reschedule;
 }
-
 
 /**
  * Main loop of the work queue worker thread.
@@ -901,7 +870,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
 		 &queue->common,
 		 queue_data.common.name,
-		 get_pending_count(&queue_data),
+		 count_work_items_pending(&queue_data.stats.work_item_stats),
 		 queue_data.stats.waits,
 		 thread_status,
 		 task_state_report);

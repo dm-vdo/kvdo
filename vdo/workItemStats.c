@@ -16,13 +16,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#21 $
  */
 
 #include "workItemStats.h"
 
 #include "atomicDefs.h"
 #include "logger.h"
+
+/**********************************************************************/
+void initialize_work_item_stats(struct vdo_work_item_stats *stats)
+{
+	spin_lock_init(&stats->function_table.lock);
+
+	if (ENABLE_PER_FUNCTION_TIMING_STATS) {
+		int i;
+		for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+			initialize_simple_stats(&stats->times[i]);
+		}
+	}
+}
+
+/**********************************************************************/
+uint64_t count_work_items_processed(const struct vdo_work_item_stats *stats)
+{
+	uint64_t total_processed = 0;
+	int i;
+
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+		total_processed += stats->times[i].count;
+	}
+
+	return total_processed;
+}
+
+/**********************************************************************/
+unsigned int count_work_items_pending(const struct vdo_work_item_stats *stats)
+{
+	long long pending = 0;
+	int i;
+
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+		pending += atomic64_read(&stats->enqueued[i]);
+		pending -= stats->times[i].count;
+	}
+
+	// If we fetched numbers that were changing, we can get negative
+	// results. Returning one is an indication that there's some activity.
+	return (pending < 0) ? 1 : pending;
+}
 
 /**
  * Scan the work queue stats table for the provided work function and
