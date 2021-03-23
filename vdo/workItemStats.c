@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#22 $
  */
 
 #include "workItemStats.h"
@@ -44,7 +44,7 @@ uint64_t count_work_items_processed(const struct vdo_work_item_stats *stats)
 	int i;
 
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-		total_processed += stats->times[i].count;
+		total_processed += READ_ONCE(stats->times[i].count);
 	}
 
 	return total_processed;
@@ -58,7 +58,7 @@ unsigned int count_work_items_pending(const struct vdo_work_item_stats *stats)
 
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 		pending += atomic64_read(&stats->enqueued[i]);
-		pending -= stats->times[i].count;
+		pending -= READ_ONCE(stats->times[i].count);
 	}
 
 	// If we fetched numbers that were changing, we can get negative
@@ -169,7 +169,7 @@ get_work_item_counts_by_item(const struct vdo_work_item_stats *stats,
 			     unsigned int *pending_ptr)
 {
 	uint64_t enqueued = atomic64_read(&stats->enqueued[index]);
-	uint64_t processed = stats->times[index].count;
+	uint64_t processed = READ_ONCE(stats->times[index].count);
 	unsigned int pending;
 
 	if (enqueued < processed) {
@@ -209,25 +209,27 @@ static void get_other_work_item_counts(const struct vdo_work_item_stats *stats,
 }
 
 /**
- * Get timing stats on work items, identified by index into the
- * internal array.
+ * Get timing summary stats on work items.
  *
  * @param [in]  stats  The collected statistics
- * @param [in]  index  The index into the array
  * @param [out] min    The minimum execution time
  * @param [out] mean   The mean execution time
  * @param [out] max    The maximum execution time
  **/
 static void
-get_work_item_times_by_item(const struct vdo_work_item_stats *stats,
-			    unsigned int index,
-			    uint64_t *min,
-			    uint64_t *mean,
-			    uint64_t *max)
+summarize_work_item_times(const struct simple_stats *stats,
+			  uint64_t *min,
+			  uint64_t *mean,
+			  uint64_t *max)
 {
-	*min = stats->times[index].min;
-	*mean = get_sample_average(&stats->times[index]);
-	*max = stats->times[index].max;
+	uint64_t sum = READ_ONCE(stats->sum);
+	uint64_t count = READ_ONCE(stats->count);
+	uint64_t slop = count / 2;
+	uint64_t sample_average = (sum + slop) / count;
+
+	*min = READ_ONCE(stats->min);
+	*mean = sample_average;
+	*max = READ_ONCE(stats->max);
 }
 
 /**********************************************************************/
@@ -285,12 +287,12 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 	const struct vdo_work_function_table *function_ids =
 		&stats->function_table;
 	size_t current_offset = 0;
-
-	uint64_t enqueued, processed;
 	int i;
 
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		uint64_t enqueued, processed;
 		unsigned int pending;
+
 		if (function_ids->functions[i] == NULL) {
 			break;
 		}
@@ -298,13 +300,13 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 			continue;
 		}
 		/*
-		 * The reporting of all of "pending", "enqueued" and "processed"
-		 * here seems redundant, but "pending" is limited to 0 in the
-		 * case where "processed" exceeds "enqueued", either through
-		 * current activity and a lack of synchronization when fetching
-		 * stats, or a coding bug. This report is intended largely for
-		 * debugging, so we'll go ahead and print the
-		 * not-necessarily-redundant values.
+		 * The reporting of all of "pending", "enqueued" and
+		 * "processed" here seems redundant, but "pending" is limited
+		 * to zero in the case where "processed" exceeds "enqueued",
+		 * either through current activity and a lack of
+		 * synchronization when fetching stats, or a coding bug. This
+		 * report is intended largely for debugging, so we'll go ahead
+		 * and print the not-necessarily-redundant values.
 		 */
 
 		get_work_item_counts_by_item(stats,
@@ -317,11 +319,10 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
 			uint64_t min, mean, max;
 
-			get_work_item_times_by_item(stats,
-						    i,
-						    &min,
-						    &mean,
-						    &max);
+			summarize_work_item_times(&stats->times[i],
+						  &min,
+						  &mean,
+						  &max);
 			current_offset +=
 				scnprintf(buffer + current_offset,
 					  length - current_offset,
@@ -334,13 +335,14 @@ size_t format_work_item_stats(const struct vdo_work_item_stats *stats,
 					  max,
 					  mean);
 		} else {
-			current_offset += scnprintf(buffer + current_offset,
-						    length - current_offset,
-						    "%-36ps %d %10llu %10llu\n",
-						    function_ids->functions[i],
-						    function_ids->priorities[i],
-						    enqueued,
-						    processed);
+			current_offset +=
+				scnprintf(buffer + current_offset,
+					  length - current_offset,
+					  "%-36ps %d %10llu %10llu\n",
+					  function_ids->functions[i],
+					  function_ids->priorities[i],
+					  enqueued,
+					  processed);
 		}
 		if (current_offset >= length) {
 			break;
@@ -386,13 +388,13 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 			continue;
 		}
 		/*
-		 * The reporting of all of "pending", "enqueued" and "processed"
-		 * here seems redundant, but "pending" is limited to 0 in the
-		 * case where "processed" exceeds "enqueued", either through
-		 * current activity and a lack of synchronization when fetching
-		 * stats, or a coding bug. This report is intended largely for
-		 * debugging, so we'll go ahead and print the
-		 * not-necessarily-redundant values.
+		 * The reporting of all of "pending", "enqueued" and
+		 * "processed" here seems redundant, but "pending" is limited
+		 * to zero in the case where "processed" exceeds "enqueued",
+		 * either through current activity and a lack of
+		 * synchronization when fetching stats, or a coding bug. This
+		 * report is intended largely for debugging, so we'll go ahead
+		 * and print the not-necessarily-redundant values.
 		 */
 		get_work_item_counts_by_item(stats,
 					     i,
@@ -409,11 +411,10 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
 			uint64_t min, mean, max;
 
-			get_work_item_times_by_item(stats,
-						    i,
-						    &min,
-						    &mean,
-						    &max);
+			summarize_work_item_times(&stats->times[i],
+						  &min,
+						  &mean,
+						  &max);
 			log_info("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
 				 function_ids->priorities[i],
 				 pending,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#24 $
  */
 
 #include "workQueueStats.h"
@@ -116,7 +116,7 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 	unsigned long runtime_ms, ns_per_work_item = 0;
 
 	if (queue->thread != NULL) {
-		runtime_ns = queue->thread->se.sum_exec_runtime;
+		runtime_ns = READ_ONCE(queue->thread->se.sum_exec_runtime);
 	}
 	runtime_ms = runtime_ns / 1000;
 

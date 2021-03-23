@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#15 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -142,19 +142,6 @@ static inline void add_sample(struct simple_stats *stats, uint64_t value)
 	if (stats->max < value) {
 		stats->max = value;
 	}
-}
-
-/**
- * Return the average of the samples collected.
- *
- * @param stats  The statistics structure
- *
- * @return The average sample value
- **/
-static inline uint64_t get_sample_average(const struct simple_stats *stats)
-{
-	uint64_t slop = stats->count / 2;
-	return (stats->sum + slop) / stats->count;
 }
 
 /**
