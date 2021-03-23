@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#26 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -25,17 +25,18 @@
 #include "uds.h"
 
 #include "dataKVIO.h"
+#include "types.h"
 
 /**
  * Make a dedupe index
  *
  * @param index_ptr  dedupe index returned here
- * @param layer      the kernel layer
+ * @param vdo        the vdo to which the index will belong
  *
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-make_dedupe_index(struct dedupe_index **index_ptr, struct kernel_layer *layer);
+make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo);
 
 
 /**

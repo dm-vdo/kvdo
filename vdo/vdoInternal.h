@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#54 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -44,6 +44,7 @@
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
 #include "vdoState.h"
+#include "volumeGeometry.h"
 
 /**
  * Error counters are atomic since updates can arrive concurrently from
@@ -140,6 +141,10 @@ struct vdo {
 
 	/** This VDO's list entry for the device registry */
 	struct list_head registration;
+
+	/** Underlying block device info. */
+	uint64_t starting_sector_offset;
+	struct volume_geometry geometry;
 };
 
 /**

@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#2 $
  */
 
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
+#include <linux/list.h>
 
 #include "adminCompletion.h"
 #include "poolSysfs.h"
@@ -77,12 +78,15 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 /**********************************************************************/
 int initialize_vdo(struct vdo *vdo,
 		   PhysicalLayer *layer,
-		   struct dm_target *target,
+		   struct device_config *config,
 		   struct kobject *parent,
 		   const char *device_name,
 		   char **reason)
 {
 	vdo->layer = layer;
+	vdo->device_config = config;
+	vdo->starting_sector_offset = config->owning_target->begin;
+	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_admin_completion(vdo, &vdo->admin_completion);
 
 	/*
@@ -90,5 +94,8 @@ int initialize_vdo(struct vdo *vdo,
 	 * decrement its reference count, and when the count goes to 0 the
 	 * struct kernel_layer (which contains this vdo) will be freed.
 	 */
-	return initialize_vdo_kobjects(vdo, target, parent, reason);
+	return initialize_vdo_kobjects(vdo,
+				       config->owning_target,
+				       parent,
+				       reason);
 }

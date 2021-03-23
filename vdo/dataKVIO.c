@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#131 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#132 $
  */
 
 #include "dataKVIO.h"
@@ -832,7 +832,7 @@ int vdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	bool is_trim = false;
 	logical_block_number_t lbn =
 		sector_to_block(bio->bi_iter.bi_sector -
-				layer->starting_sector_offset);
+				layer->vdo.starting_sector_offset);
 	struct vio *vio;
 
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#168 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#169 $
  */
 
 #include "kernelLayer.h"
@@ -400,8 +400,7 @@ static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
 }
 
 /**********************************************************************/
-int make_kernel_layer(uint64_t starting_sector,
-		      unsigned int instance,
+int make_kernel_layer(unsigned int instance,
 		      struct device_config *config,
 		      struct kobject *parent_kobject,
 		      struct thread_config **thread_config_pointer,
@@ -442,7 +441,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	// struct kernel_layer will be freed.
 	result = initialize_vdo(&layer->vdo,
 				&layer->common,
-				config->owning_target,
+				config,
 				parent_kobject,
 				reason);
 	if (result != VDO_SUCCESS) {
@@ -470,9 +469,6 @@ int make_kernel_layer(uint64_t starting_sector,
 
 	layer->allocations_allowed = true;
 	layer->instance = instance;
-	layer->vdo.device_config = config;
-	layer->starting_sector_offset = starting_sector;
-	INIT_LIST_HEAD(&layer->vdo.device_config_list);
 
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
@@ -535,7 +531,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// Decode the geometry block so we know how to set up the index.
-	result = parse_geometry_block(geometry_block, &layer->geometry);
+	result = parse_geometry_block(geometry_block, &layer->vdo.geometry);
 	FREE(geometry_block);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
@@ -545,7 +541,7 @@ int make_kernel_layer(uint64_t starting_sector,
 
 	// Dedupe Index
 	BUG_ON(layer->thread_name_prefix[0] == '\0');
-	result = make_dedupe_index(&layer->dedupe_index, layer);
+	result = make_dedupe_index(&layer->dedupe_index, &layer->vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#69 $
  */
 
 #ifndef KERNELLAYER_H
@@ -34,7 +34,6 @@
 #include "types.h"
 #include "vdo.h"
 #include "vdoInternal.h"
-#include "volumeGeometry.h"
 #include "waitQueue.h"
 
 #include "batchProcessor.h"
@@ -120,9 +119,6 @@ struct kernel_layer {
 	char **compression_context;
 	/** Optional work queue for calling bio_endio. */
 	struct vdo_work_queue *bio_ack_queue;
-	/** Underlying block device info. */
-	uint64_t starting_sector_offset;
-	struct volume_geometry geometry;
 	// Memory allocation
 	struct buffer_pool *data_vio_pool;
 	// UDS index info
@@ -187,8 +183,6 @@ enum bio_ack_q_action {
 /**
  * Creates a kernel specific physical layer to be used by VDO
  *
- * @param starting_sector        The sector offset of our table entry in the
- *                               DM device
  * @param instance               Device instantiation counter
  * @param parent_kobject         The parent sysfs node
  * @param config                 The device configuration
@@ -199,8 +193,7 @@ enum bio_ack_q_action {
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-make_kernel_layer(uint64_t starting_sector,
-		  unsigned int instance,
+make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
 		  struct kobject *parent_kobject,
 		  struct thread_config **thread_config_pointer,

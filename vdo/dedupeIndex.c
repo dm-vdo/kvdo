@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#88 $
  */
 
 #include "dedupeIndex.h"
@@ -945,12 +945,12 @@ static void finish_uds_queue(void *ptr __always_unused)
 }
 
 /**********************************************************************/
-int make_dedupe_index(struct dedupe_index **index_ptr,
-		      struct kernel_layer *layer)
+int make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 {
 	int result;
 	struct dedupe_index *index;
 	struct index_config *index_config;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	static const struct vdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
@@ -971,9 +971,9 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = alloc_sprintf("index name", &index->index_name,
 			       "dev=%s offset=4096 size=%llu",
-			       layer->vdo.device_config->parent_device_name,
-			       get_index_region_size(layer->geometry) *
-					VDO_BLOCK_SIZE);
+			       vdo->device_config->parent_device_name,
+			       (get_index_region_size(vdo->geometry) *
+				VDO_BLOCK_SIZE));
 	if (result != UDS_SUCCESS) {
 		uds_log_error("Creating index name failed (%d)", result);
 		FREE(index);
@@ -981,7 +981,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
 	index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
-	index_config = &layer->geometry.index_config;
+	index_config = &vdo->geometry.index_config;
 	index_config_to_uds_parameters(index_config, &index->uds_params);
 	result = index_config_to_uds_configuration(index_config,
 						   &index->configuration);
@@ -991,7 +991,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 	uds_configuration_set_nonce(index->configuration,
-				    (uds_nonce_t) layer->geometry.nonce);
+				    (uds_nonce_t) vdo->geometry.nonce);
 
 	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
@@ -1003,7 +1003,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = make_work_queue(layer->thread_name_prefix,
 				 "dedupeQ",
-				 &layer->vdo.work_queue_directory,
+				 &vdo->work_queue_directory,
 				 layer,
 				 index,
 				 &uds_queue_type,
@@ -1022,7 +1022,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
 	result = kobject_add(&index->dedupe_directory,
-			     &layer->vdo.vdo_directory,
+			     &vdo->vdo_directory,
 			     "dedupe");
 	if (result != VDO_SUCCESS) {
 		free_work_queue(&index->uds_queue);
@@ -1039,8 +1039,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	timer_setup(&index->pending_timer, timeout_index_operations, 0);
 
 	// UDS Timeout Reporter
-	init_periodic_event_reporter(&index->timeout_reporter,
-				     layer);
+	init_periodic_event_reporter(&index->timeout_reporter, layer);
 
 	*index_ptr = index;
 	return VDO_SUCCESS;
