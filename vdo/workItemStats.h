@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#16 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -186,37 +186,6 @@ void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
 					int priority);
 
 /**
- * Update all work queue statistics (work-item and otherwise) after enqueueing
- * a work item.
- *
- * This is a very lightweight function (after optimizing away conditionals and
- * no-ops) and is called for every work item processed, hence the inline
- * definition.
- *
- * This function requires that record_start_time and
- * update_work_item_stats_for_work_time below both get called as well; in some
- * cases counters may be updated in update_work_item_stats_for_work_time
- * rather than here.
- *
- * @param stats  The statistics structure
- * @param item   The work item enqueued
- **/
-static inline void
-update_work_item_stats_for_dequeue(struct vdo_work_item_stats *stats,
-				   struct vdo_work_item *item)
-{
-	// The times[].count field is overloaded as a count of items
-	// processed.
-	if (!ENABLE_PER_FUNCTION_TIMING_STATS) {
-		stats->times[item->stat_table_index].count++;
-	} else {
-		// In this case, update_work_item_stats_for_work_time will
-		// bump the counter.
-	}
-}
-
-
-/**
  * Record the starting time for processing a work item, if timing
  * stats are enabled and if we haven't run out of room for recording
  * stats in the table.
@@ -234,6 +203,8 @@ static inline uint64_t record_start_time(unsigned int index)
  * Update the work queue statistics with the wall-clock time for
  * processing a work item, if timing stats are enabled and if we
  * haven't run out of room for recording stats in the table.
+ * If timing stats aren't enabled, only increments the count of
+ * items processed.
  *
  * @param stats       The statistics structure
  * @param index       The work item's index into the internal array
@@ -245,8 +216,11 @@ update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,
 				     uint64_t start_time)
 {
 	if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-		uint64_t end_time = ktime_get_ns();
-		add_sample(&stats->times[index], end_time - start_time);
+		add_sample(&stats->times[index], ktime_get_ns() - start_time);
+	} else {
+		// The times[].count field is used as a count of items
+		// processed even when functions aren't being timed.
+		stats->times[index].count++;
 	}
 }
 
