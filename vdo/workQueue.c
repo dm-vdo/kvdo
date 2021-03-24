@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#53 $
  */
 
 #include "workQueue.h"
@@ -38,9 +38,6 @@
 #include "workQueueInternals.h"
 #include "workQueueStats.h"
 #include "workQueueSysfs.h"
-
-static struct mutex queue_data_lock;
-static struct simple_work_queue queue_data;
 
 static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
@@ -851,34 +848,24 @@ void free_work_queue(struct vdo_work_queue **queue_ptr)
 /**********************************************************************/
 static void dump_simple_work_queue(struct simple_work_queue *queue)
 {
-	const char *thread_status;
+	const char *thread_status = "no threads";
 	char task_state_report = '-';
 
-	mutex_lock(&queue_data_lock);
-	// Take a snapshot to reduce inconsistency in logged numbers.
-	queue_data = *queue;
-	if (queue_data.thread != NULL) {
+	if (queue->thread != NULL) {
 		task_state_report = task_state_to_char(queue->thread);
+		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
-	if (queue_data.thread == NULL) {
-		thread_status = "no threads";
-	} else if (atomic_read(&queue_data.idle)) {
-		thread_status = "idle";
-	} else {
-		thread_status = "running";
-	}
+
 	log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
 		 &queue->common,
-		 queue_data.common.name,
-		 count_work_items_pending(&queue_data.stats.work_item_stats),
-		 queue_data.stats.waits,
+		 queue->common.name,
+		 count_work_items_pending(&queue->stats.work_item_stats),
+		 READ_ONCE(queue->stats.waits),
 		 thread_status,
 		 task_state_report);
 
-	log_work_item_stats(&queue_data.stats.work_item_stats);
+	log_work_item_stats(&queue->stats.work_item_stats);
 	log_work_queue_stats(queue);
-
-	mutex_unlock(&queue_data_lock);
 
 	// ->lock spin lock status?
 	// ->waiting_worker_threads wait queue status? anyone waiting?
@@ -960,7 +947,5 @@ void *get_work_queue_private_data(void)
 /**********************************************************************/
 void init_work_queue_once(void)
 {
-	// We can't use DEFINE_MUTEX because it's not compatible with c99 mode.
-	mutex_init(&queue_data_lock);
 	init_work_queue_stack_handle_once();
 }
