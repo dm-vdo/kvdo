@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.h#3 $
  */
 
 #ifndef VDO_INIT_H
@@ -41,11 +41,12 @@ get_vdo_device_name(const struct dm_target *target);
 /**
  * Perform the first steps in initializing a vdo as part of device creation.
  *
- * @param vdo     The vdo being initialized
- * @param layer   The physical layer on which the VDO resides
- * @param config  The configuration of the vdo being initialized
- * @param parent  The parent of the vdo's sysfs nodes
- * @param reason  A pointer to hold an error message on failure
+ * @param vdo       The vdo being initialized
+ * @param layer     The physical layer on which the VDO resides
+ * @param config    The configuration of the vdo being initialized
+ * @param parent    The parent of the vdo's sysfs nodes
+ * @param instance  The device instantiation counter
+ * @param reason    A pointer to hold an error message on failure
  *
  * @return VDO_SUCCESS or an error code
  **/
@@ -54,6 +55,7 @@ initialize_vdo(struct vdo *vdo,
 	       PhysicalLayer *layer,
 	       struct device_config *config,
 	       struct kobject *parent,
+	       unsigned int instance,
 	       char **reason);
 
 #endif // VDO_INIT_H

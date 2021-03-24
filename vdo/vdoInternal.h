@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#55 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -81,6 +81,11 @@ struct vdo {
 	atomic_t state;
 	/* The full state of all components */
 	struct vdo_component_states states;
+	/**
+	 * A counter value to attach to thread names and log messages to
+	 * identify the individual device.
+	 **/
+	unsigned int instance;
 	/* The read-only notifier */
 	struct read_only_notifier *read_only_notifier;
 	/* The load-time configuration of this vdo */

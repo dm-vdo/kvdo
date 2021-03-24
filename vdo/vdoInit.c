@@ -16,8 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#3 $
  */
+
+#include "vdoInit.h"
 
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
@@ -80,12 +82,13 @@ int initialize_vdo(struct vdo *vdo,
 		   PhysicalLayer *layer,
 		   struct device_config *config,
 		   struct kobject *parent,
-		   const char *device_name,
+		   unsigned int instance,
 		   char **reason)
 {
 	vdo->layer = layer;
 	vdo->device_config = config;
 	vdo->starting_sector_offset = config->owning_target->begin;
+	vdo->instance = instance;
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_admin_completion(vdo, &vdo->admin_completion);
 

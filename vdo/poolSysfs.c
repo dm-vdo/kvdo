@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#16 $
  */
 
 #include "poolSysfs.h"
@@ -114,7 +114,7 @@ static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static ssize_t pool_instance_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n", vdo_as_kernel_layer(vdo)->instance);
+	return sprintf(buf, "%u\n", vdo->instance);
 }
 
 /**********************************************************************/

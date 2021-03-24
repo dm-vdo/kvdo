@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#169 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#170 $
  */
 
 #include "kernelLayer.h"
@@ -443,6 +443,7 @@ int make_kernel_layer(unsigned int instance,
 				&layer->common,
 				config,
 				parent_kobject,
+				instance,
 				reason);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -468,8 +469,6 @@ int make_kernel_layer(unsigned int instance,
 	initialize_limiter(&layer->discard_limiter, request_limit * 3 / 4);
 
 	layer->allocations_allowed = true;
-	layer->instance = instance;
-
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
@@ -830,7 +829,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 	case LAYER_CPU_QUEUE_INITIALIZED:
 		finish_work_queue(layer->cpu_queue);
 		used_cpu_queue = true;
-		release_instance = true;
 		// fall through
 
 	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
@@ -864,6 +862,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		layer->spare_kvdo_flush = NULL;
 		free_batch_processor(&layer->data_vio_releaser);
 		unregister_vdo(&layer->vdo);
+		release_instance = true;
 		break;
 
 	default:
@@ -887,7 +886,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	free_dedupe_index(&layer->dedupe_index);
 
 	if (release_instance) {
-		release_vdo_instance(layer->instance);
+		release_vdo_instance(layer->vdo.instance);
 	}
 
 	// The call to kobject_put on the kobj sysfs node will decrement its

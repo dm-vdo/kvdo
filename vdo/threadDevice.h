@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#6 $
  */
 
 #include "kernelLayer.h"
@@ -49,7 +49,7 @@ void register_thread_device_id(struct registered_thread *new_thread,
 static inline void register_thread_device(struct registered_thread *new_thread,
 					  struct kernel_layer *layer)
 {
-	register_thread_device_id(new_thread, &layer->instance);
+	register_thread_device_id(new_thread, &layer->vdo.instance);
 }
 
 /**

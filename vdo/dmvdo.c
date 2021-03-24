@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#100 $
  */
 
 #include "dmvdo.h"
@@ -618,7 +618,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			return -ENOMEM;
 		}
 	} else {
-		instance = vdo_as_kernel_layer(old_vdo)->instance;
+		instance = old_vdo->instance;
 	}
 
 	register_thread_device_id(&instance_thread, &instance);
@@ -683,7 +683,7 @@ static void vdo_dtr(struct dm_target *ti)
 		const char *device_name;
 
 		// This was the last config referencing the layer. Free it.
-		unsigned int instance = layer->instance;
+		unsigned int instance = layer->vdo.instance;
 		struct registered_thread allocating_thread, instance_thread;
 
 		register_thread_device_id(&instance_thread, &instance);

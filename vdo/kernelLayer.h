@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#70 $
  */
 
 #ifndef KERNELLAYER_H
@@ -83,11 +83,6 @@ struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
-	/**
-	 * A counter value to attach to thread names and log messages to
-	 * identify the individual device.
-	 **/
-	unsigned int instance;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
 	bool no_flush_suspend;
