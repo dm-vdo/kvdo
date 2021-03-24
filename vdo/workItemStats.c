@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#23 $
  */
 
 #include "workItemStats.h"
@@ -379,7 +379,7 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
 		uint64_t enqueued, processed;
 		unsigned int pending;
-		static char work[256]; // arbitrary size
+		char function_name[96]; // arbitrary size
 
 		if (function_ids->functions[i] == NULL) {
 			break;
@@ -405,8 +405,8 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 		total_processed += processed;
 
 		get_function_name(function_ids->functions[i],
-				  work,
-				  sizeof(work));
+				  function_name,
+				  sizeof(function_name));
 
 		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
 			uint64_t min, mean, max;
@@ -420,7 +420,7 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 				 pending,
 				 enqueued,
 				 processed,
-				 work,
+				 function_name,
 				 min,
 				 mean,
 				 max);
@@ -430,7 +430,7 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 				 pending,
 				 enqueued,
 				 processed,
-				 work);
+				 function_name);
 		}
 	}
 	if (i == NUM_WORK_QUEUE_ITEM_STATS) {

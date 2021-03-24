@@ -96,5 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Mon Mar 22 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.0.0-1
+* Tue Mar 23 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.0.0-1
 - See https://github.com/dm-vdo/kvdo.git
