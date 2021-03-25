@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#17 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -232,7 +232,7 @@ update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,
  * @param buffer         The output buffer
  * @param buffer_length  The size of the output buffer
  **/
-char *get_function_name(void *pointer, char *buffer, size_t buffer_length);
+void get_function_name(void *pointer, char *buffer, size_t buffer_length);
 
 /**
  * Dump statistics broken down by work function and priority into the

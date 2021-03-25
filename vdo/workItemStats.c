@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#24 $
  */
 
 #include "workItemStats.h"
@@ -244,7 +244,7 @@ void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
 }
 
 /**********************************************************************/
-char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
+void get_function_name(void *pointer, char *buffer, size_t buffer_length)
 {
 	if (pointer == NULL) {
 		/*
@@ -275,8 +275,6 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 			*space = '\0';
 		}
 	}
-
-	return buffer;
 }
 
 /**********************************************************************/
