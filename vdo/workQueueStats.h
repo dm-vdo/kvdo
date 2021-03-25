@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#20 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -129,13 +129,18 @@ static inline void update_stats_for_enqueue(struct vdo_work_queue_stats *stats,
  *
  * @param stats  The statistics structure
  * @param item   The work item being enqueued
+ *
+ * @return the current time when this was called
  **/
-static inline void update_stats_for_dequeue(struct vdo_work_queue_stats *stats,
-					    struct vdo_work_item *item)
+static inline uint64_t
+update_stats_for_dequeue(struct vdo_work_queue_stats *stats,
+			 struct vdo_work_item *item)
 {
-	uint64_t elapsed = ktime_get_ns() - item->enqueue_time;
+	uint64_t dequeue_time = ktime_get_ns();
+	uint64_t elapsed = dequeue_time - item->enqueue_time;
 	enter_histogram_sample(stats->queue_time_histogram, elapsed / 1000);
 	item->enqueue_time = 0;
+	return dequeue_time;
 }
 
 /**

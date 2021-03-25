@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#18 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -186,20 +186,6 @@ void update_work_item_stats_for_enqueue(struct vdo_work_item_stats *stats,
 					int priority);
 
 /**
- * Record the starting time for processing a work item, if timing
- * stats are enabled and if we haven't run out of room for recording
- * stats in the table.
- *
- * @param index  The work item's index into the internal array
- *
- * @return The current time, or zero
- **/
-static inline uint64_t record_start_time(unsigned int index)
-{
-	return ENABLE_PER_FUNCTION_TIMING_STATS ? ktime_get_ns() : 0;
-}
-
-/**
  * Update the work queue statistics with the wall-clock time for
  * processing a work item, if timing stats are enabled and if we
  * haven't run out of room for recording stats in the table.
@@ -208,7 +194,7 @@ static inline uint64_t record_start_time(unsigned int index)
  *
  * @param stats       The statistics structure
  * @param index       The work item's index into the internal array
- * @param start_time  The start time as reported by record_start_time
+ * @param start_time  The time when the item was dequeued for processing
  **/
 static inline void
 update_work_item_stats_for_work_time(struct vdo_work_item_stats *stats,

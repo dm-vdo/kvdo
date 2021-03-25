@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#54 $
  */
 
 #include "workQueue.h"
@@ -327,19 +327,15 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 static void process_work_item(struct simple_work_queue *queue,
 			      struct vdo_work_item *item)
 {
-	unsigned int index;
-	uint64_t work_start_time;
+	uint64_t dequeue_time = update_stats_for_dequeue(&queue->stats, item);
+	// Save the index, so we can use it after the work function.
+	unsigned int index = item->stat_table_index;
 
 	if (ASSERT(item->my_queue == &queue->common,
 		   "item %px from queue %px marked as being in this queue (%px)",
 		   item, queue, item->my_queue) == UDS_SUCCESS) {
-		update_stats_for_dequeue(&queue->stats, item);
 		item->my_queue = NULL;
 	}
-
-	// Save the index, so we can use it after the work function.
-	index = item->stat_table_index;
-	work_start_time = record_start_time(index);
 
 	item->work(item);
 	// We just surrendered control of the work item; no more access.
@@ -347,7 +343,7 @@ static void process_work_item(struct simple_work_queue *queue,
 
 	update_work_item_stats_for_work_time(&queue->stats.work_item_stats,
 					     index,
-					     work_start_time);
+					     dequeue_time);
 }
 
 /**
