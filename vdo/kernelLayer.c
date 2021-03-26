@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#170 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#171 $
  */
 
 #include "kernelLayer.h"
@@ -92,16 +92,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 // 2000 is half the number of entries currently in our page cache,
 // to allow for each in-progress operation to update two pages.
 int default_max_requests_active = 2000;
-
-/**
- * Implements vdo_filter_t.
- **/
-static bool vdo_uses_device(struct vdo *vdo, void *context)
-{
-	struct device_config *config = context;
-	return (vdo->device_config->owned_device->bdev->bd_dev
-		== config->owned_device->bdev->bd_dev);
-}
 
 /**********************************************************************/
 int map_to_system_error(int error)
@@ -409,20 +399,10 @@ int make_kernel_layer(unsigned int instance,
 {
 	int result, request_limit, i;
 	struct kernel_layer *layer;
-	struct vdo *old_vdo;
 	byte *geometry_block;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
-
-	old_vdo = find_vdo_matching(vdo_uses_device, config);
-	if (old_vdo != NULL) {
-		uds_log_error("Existing layer already uses device %s",
-			      old_vdo->device_config->parent_device_name);
-		*reason =
-			"Cannot share storage device with already-running VDO";
-		return VDO_BAD_CONFIGURATION;
-	}
 
 	/*
 	 * Part 1 - Allocate the kernel layer, its essential parts, and set
@@ -433,12 +413,10 @@ int make_kernel_layer(unsigned int instance,
 	result = ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO configuration";
+		release_vdo_instance(instance);
 		return result;
 	}
 
-	// After this point, calling kobject_put on vdo->vdo_directory will
-	// decrement its reference count, and when the count goes to 0 the
-	// struct kernel_layer will be freed.
 	result = initialize_vdo(&layer->vdo,
 				&layer->common,
 				config,
@@ -448,6 +426,15 @@ int make_kernel_layer(unsigned int instance,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+
+	/*
+	 * After this point, calling kobject_put on vdo->vdo_directory will
+	 * decrement its reference count, and when the count goes to 0 the
+	 * struct kernel_layer will be freed.
+         *
+         * Any error in this method from here on requires calling
+         * free_kernel_layer() before returning.
+         */
 
 	/*
 	 * Part 2 - Do all the simple initialization.  These initializations

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#101 $
  */
 
 #include "dmvdo.h"
@@ -466,33 +466,13 @@ static void configure_target_capabilities(struct dm_target *ti,
 }
 
 /**
- * Handle a vdo_initialize failure, freeing all appropriate structures.
- *
- * @param ti             The device mapper target representing our device
- * @param thread_config  The thread config (possibly NULL)
- * @param layer          The kernel layer (possibly NULL)
- * @param instance       The instance number to be released
- * @param why            The reason for failure
+ * Implements vdo_filter_t.
  **/
-static void cleanup_initialize(struct dm_target *ti,
-			       struct thread_config *thread_config,
-			       struct kernel_layer *layer,
-			       unsigned int instance,
-			       char *why)
+static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
-	if (thread_config != NULL) {
-		free_thread_config(&thread_config);
-	}
-	if (layer != NULL) {
-		// This releases the instance number too.
-		free_kernel_layer(layer);
-	} else {
-		// With no kernel_layer taking ownership we have to release
-		// explicitly.
-		release_vdo_instance(instance);
-	}
-
-	ti->error = why;
+	struct device_config *config = context;
+	return (vdo->device_config->owned_device->bdev->bd_dev
+		== config->owned_device->bdev->bd_dev);
 }
 
 /**
@@ -518,6 +498,7 @@ static int vdo_initialize(struct dm_target *ti,
 	};
 
 	char *failure_reason;
+	struct vdo *vdo;
 	struct kernel_layer *layer;
 	int result;
 
@@ -537,6 +518,23 @@ static int vdo_initialize(struct dm_target *ti,
 	log_debug("Deduplication          = %s",
 		  (config->deduplication ? "on" : "off"));
 
+	vdo = find_vdo_matching(vdo_uses_device, config);
+	if (vdo != NULL) {
+		uds_log_error("Existing vdo already uses device %s",
+			      vdo->device_config->parent_device_name);
+		release_vdo_instance(instance);
+		ti->error = "Cannot share storage device with already-running VDO";
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	if (config->cache_size <
+	    (2 * MAXIMUM_USER_VIOS * config->thread_counts.logical_zones)) {
+		log_warning("Insufficient block map cache for logical zones");
+		ti->error = "Insufficient block map cache for logical zones";
+		release_vdo_instance(instance);
+		return VDO_BAD_CONFIGURATION;
+	}
+
 	result = make_kernel_layer(instance,
 				   config,
 				   &vdo_globals.kobj,
@@ -547,11 +545,8 @@ static int vdo_initialize(struct dm_target *ti,
 		uds_log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
-		cleanup_initialize(ti,
-				   load_config.thread_config,
-				   NULL,
-				   instance,
-				   failure_reason);
+		ti->error = failure_reason;
+		free_thread_config(&load_config.thread_config);
 		return result;
 	}
 
@@ -559,24 +554,14 @@ static int vdo_initialize(struct dm_target *ti,
 	// vdo_load_config.
 	set_load_config_from_geometry(&layer->vdo.geometry, &load_config);
 
-	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *
-				  load_config.thread_config->logical_zone_count)) {
-		log_warning("Insufficient block map cache for logical zones");
-		cleanup_initialize(ti,
-				   load_config.thread_config,
-				   layer,
-				   instance,
-				   "Insufficient block map cache for logical zones");
-		return VDO_BAD_CONFIGURATION;
-	}
-
 	// Henceforth it is the kernel layer's responsibility to clean up the
 	// struct thread_config.
 	result = preload_kernel_layer(layer, &load_config, &failure_reason);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
 			      result, failure_reason);
-		cleanup_initialize(ti, NULL, layer, instance, failure_reason);
+		ti->error = failure_reason;
+		free_kernel_layer(layer);
 		return result;
 	}
 

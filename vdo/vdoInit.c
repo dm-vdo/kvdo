@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#4 $
  */
 
 #include "vdoInit.h"
@@ -25,7 +25,10 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 
+#include "memoryAlloc.h"
+
 #include "adminCompletion.h"
+#include "instanceNumber.h"
 #include "poolSysfs.h"
 #include "types.h"
 #include "vdoInternal.h"
@@ -85,6 +88,8 @@ int initialize_vdo(struct vdo *vdo,
 		   unsigned int instance,
 		   char **reason)
 {
+	int result;
+
 	vdo->layer = layer;
 	vdo->device_config = config;
 	vdo->starting_sector_offset = config->owning_target->begin;
@@ -97,8 +102,15 @@ int initialize_vdo(struct vdo *vdo,
 	 * decrement its reference count, and when the count goes to 0 the
 	 * struct kernel_layer (which contains this vdo) will be freed.
 	 */
-	return initialize_vdo_kobjects(vdo,
-				       config->owning_target,
-				       parent,
-				       reason);
+	result = initialize_vdo_kobjects(vdo,
+					 config->owning_target,
+					 parent,
+					 reason);
+	if (result != VDO_SUCCESS) {
+		release_vdo_instance(instance);
+		FREE(layer);
+		return result;
+	}
+
+	return VDO_SUCCESS;
 }
