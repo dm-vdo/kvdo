@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#23 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
 #define VOLUME_GEOMETRY_H
 
 
+#include <linux/blk_types.h>
 #include <linux/uuid.h>
 
 #include "uds.h"
@@ -117,6 +118,17 @@ get_index_region_size(struct volume_geometry geometry)
 int __must_check
 parse_geometry_block(byte *block, struct volume_geometry *geometry);
 
+/**
+ * Synchronously read a geometry block from a block device.
+ *
+ * @param bdev       The block device containing the block to read
+ * @param geometry   A volume_geometry to read into
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+int __must_check
+read_geometry_block(struct block_device *bdev,
+		    struct volume_geometry *geometry);
 
 /**
  * Convert an index config to a UDS configuration, which can be used by UDS.

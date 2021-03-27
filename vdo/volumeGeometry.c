@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#38 $
  */
 
 #include "volumeGeometry.h"
@@ -27,10 +27,10 @@
 #include "numeric.h"
 #include "permassert.h"
 
+#include "bio.h"
 #include "checksum.h"
 #include "constants.h"
 #include "header.h"
-#include "physicalLayer.h"
 #include "releaseVersions.h"
 #include "statusCodes.h"
 #include "types.h"
@@ -247,6 +247,50 @@ static int decode_geometry_block(struct buffer *buffer,
 		      "should have decoded up to the geometry checksum");
 }
 
+/**********************************************************************/
+int read_geometry_block(struct block_device *bdev,
+			struct volume_geometry *geometry)
+{
+	struct bio *bio;
+	byte *block;
+	int result = ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = create_bio(&bio);
+	if (result != VDO_SUCCESS) {
+		FREE(block);
+		return result;
+	}
+
+	result = reset_bio_with_buffer(bio,
+				       block,
+				       NULL,
+				       NULL,
+				       REQ_OP_READ,
+				       GEOMETRY_BLOCK_LOCATION);
+	if (result != VDO_SUCCESS) {
+		free_bio(bio);
+		FREE(block);
+		return result;
+	}
+
+	bio_set_dev(bio, bdev);
+	submit_bio_wait(bio);
+	result = blk_status_to_errno(bio->bi_status);
+	free_bio(bio);
+	if (result != 0) {
+		log_error_strerror(result, "synchronous read failed");
+		FREE(block);
+		return -EIO;
+	}
+
+
+	result = parse_geometry_block(block, geometry);
+	FREE(block);
+	return result;
+}
 
 /**********************************************************************/
 int parse_geometry_block(byte *block, struct volume_geometry *geometry)

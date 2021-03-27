@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#171 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#172 $
  */
 
 #include "kernelLayer.h"
@@ -323,72 +323,6 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	}
 }
 
-/**
- * Synchronously read a single block from a block_device.
- *
- * @param bdev    The block device containing the block to read
- * @param pbn     The location of the block to read
- * @param buffer  A buffer to receive the block data
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int __must_check
-synchronous_read_block(struct block_device *bdev,
-		       physical_block_number_t pbn,
-		       byte *buffer)
-{
-	struct bio *bio;
-	int result = create_bio(&bio);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = reset_bio_with_buffer(bio, buffer, NULL, NULL, REQ_OP_READ,
-				       pbn);
-	if (result != VDO_SUCCESS) {
-		free_bio(bio);
-		return result;
-	}
-
-	bio_set_dev(bio, bdev);
-	submit_bio_wait(bio);
-	result = blk_status_to_errno(bio->bi_status);
-	free_bio(bio);
-	if (result != 0) {
-		log_error_strerror(result, "synchronous read failed");
-		return -EIO;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**
- * Allocate a block-size buffer to read the geometry from a block_device,
- * read the block, and return the buffer.
- *
- * @param [in]  bdev       The block device containing the block to read
- * @param [out] block_ptr  A pointer to receive the allocated buffer
- *
- * @return VDO_SUCCESS or an error code
- **/
-static int read_geometry_block(struct block_device *bdev, byte **block_ptr)
-{
-	byte *block;
-	int result = ALLOCATE(VDO_BLOCK_SIZE, byte, "geometry block", &block);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = synchronous_read_block(bdev, GEOMETRY_BLOCK_LOCATION, block);
-	if (result != VDO_SUCCESS) {
-		FREE(block);
-		return result;
-	}
-
-	*block_ptr = block;
-	return VDO_SUCCESS;
-}
-
 /**********************************************************************/
 int make_kernel_layer(unsigned int instance,
 		      struct device_config *config,
@@ -399,7 +333,6 @@ int make_kernel_layer(unsigned int instance,
 {
 	int result, request_limit, i;
 	struct kernel_layer *layer;
-	byte *geometry_block;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
@@ -503,24 +436,6 @@ int make_kernel_layer(unsigned int instance,
 	result = make_kvdo_flush(&layer->spare_kvdo_flush);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate kvdo_flush record";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	// Allocate and read the geometry block data from the backing device.
-	result = read_geometry_block(get_vdo_backing_device(&layer->vdo),
-				     &geometry_block);
-	if (result != VDO_SUCCESS) {
-		*reason = "Could not read geometry block";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	// Decode the geometry block so we know how to set up the index.
-	result = parse_geometry_block(geometry_block, &layer->vdo.geometry);
-	FREE(geometry_block);
-	if (result != VDO_SUCCESS) {
-		*reason = "Could not load geometry block";
 		free_kernel_layer(layer);
 		return result;
 	}

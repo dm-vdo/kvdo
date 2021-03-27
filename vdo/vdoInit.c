@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#5 $
  */
 
 #include "vdoInit.h"
@@ -32,6 +32,7 @@
 #include "poolSysfs.h"
 #include "types.h"
 #include "vdoInternal.h"
+#include "volumeGeometry.h"
 
 /**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *target)
@@ -96,6 +97,15 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->instance = instance;
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_admin_completion(vdo, &vdo->admin_completion);
+
+	result = read_geometry_block(get_vdo_backing_device(vdo),
+				     &vdo->geometry);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not load geometry block";
+		release_vdo_instance(instance);
+		FREE(layer);
+		return result;
+	}
 
 	/*
 	 * After this point, calling kobject_put on vdo_directory will
