@@ -16,17 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#16 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
 #define SLAB_SCRUBBER_INTERNALS_H
 
+#include <linux/list.h>
+
 #include "slabScrubber.h"
 
 #include "adminState.h"
 #include "extent.h"
-#include <linux/list.h>
 
 struct slab_scrubber {
 	struct vdo_completion completion;

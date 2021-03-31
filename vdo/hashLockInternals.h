@@ -16,14 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#17 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
 #define HASH_LOCK_INTERNALS_H
 
-#include "completion.h"
 #include <linux/list.h>
+
+#include "completion.h"
 #include "types.h"
 #include "uds.h"
 #include "waitQueue.h"

@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#9 $
  */
 
 #ifndef DIRTY_LISTS_H
 #define DIRTY_LISTS_H
 
 #include <linux/list.h>
+
 #include "types.h"
 
 /**

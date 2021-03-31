@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#21 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -64,10 +64,10 @@ struct vdo_work_queue_stats {
 	 * the latter doesn't count run time not followed by a cond_resched
 	 * call.
 	 */
-	atomic64_t run_time;
+	uint64_t run_time;
 	// Time the thread has been suspended via cond_resched().
 	// (Duplicates data hidden within reschedule_time_histogram.)
-	atomic64_t reschedule_time;
+	uint64_t reschedule_time;
 
 	// Histogram of the queue times of work items (microseconds)
 	struct histogram *queue_time_histogram;

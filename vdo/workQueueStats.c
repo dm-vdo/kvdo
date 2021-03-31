@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#25 $
  */
 
 #include "workQueueStats.h"
 
-#include "atomicDefs.h"
 #include "logger.h"
 #include "workItemStats.h"
 #include "workQueueInternals.h"
@@ -142,8 +141,8 @@ ssize_t format_run_time_stats(const struct vdo_work_queue_stats *stats,
 {
 	// Get snapshots of all three at approximately the same time.
 	uint64_t start_time = stats->start_time;
-	uint64_t run_time = atomic64_read(&stats->run_time);
-	uint64_t reschedule_time = atomic64_read(&stats->reschedule_time);
+	uint64_t run_time = READ_ONCE(stats->run_time);
+	uint64_t reschedule_time = READ_ONCE(stats->reschedule_time);
 	uint64_t now, lifetime;
 
 	smp_rmb(); // rdtsc barrier

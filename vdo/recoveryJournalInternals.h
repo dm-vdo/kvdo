@@ -16,18 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#30 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
 #define RECOVERY_JOURNAL_INTERNALS_H
+
+#include <linux/list.h>
 
 #include "numeric.h"
 
 #include "adminState.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
-#include <linux/list.h>
 #include "lockCounter.h"
 #include "recoveryJournal.h"
 #include "statistics.h"

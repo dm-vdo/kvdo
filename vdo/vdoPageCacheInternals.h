@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#34 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -24,12 +24,13 @@
 
 #include "vdoPageCache.h"
 
+#include <linux/list.h>
+
 
 #include "blockMapInternals.h"
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
-#include <linux/list.h>
 #include "physicalLayer.h"
 
 enum {

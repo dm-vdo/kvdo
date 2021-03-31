@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#55 $
  */
 
 #include "workQueue.h"
@@ -231,7 +231,8 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		uint64_t time_before_schedule, call_duration_ns;
+		uint64_t time_before_schedule, schedule_time_ns, run_time_ns;
+
 		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
@@ -264,22 +265,21 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 			break;
 		}
 
-		/*
-		 * We don't need to update the wait count atomically since
-		 * this is the only place it is modified and there is only one
-		 * thread involved.
-		 */
-		queue->stats.waits++;
 		time_before_schedule = ktime_get_ns();
+		run_time_ns = time_before_schedule - queue->most_recent_wakeup;
+		// These stats are read from other threads, but are only
+		// written by this thread.
+		WRITE_ONCE(queue->stats.waits, queue->stats.waits + 1);
+		WRITE_ONCE(queue->stats.run_time,
+			   queue->stats.run_time + run_time_ns);
 
-		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
-			     &queue->stats.run_time);
 		schedule();
+
 		queue->most_recent_wakeup = ktime_get_ns();
-		call_duration_ns =
-			queue->most_recent_wakeup - time_before_schedule;
+		schedule_time_ns = (queue->most_recent_wakeup
+				    - time_before_schedule);
 		enter_histogram_sample(queue->stats.schedule_time_histogram,
-				       call_duration_ns / 1000);
+				       schedule_time_ns / 1000);
 
 		/*
 		 * Check again before resetting first_wakeup for more accurate
@@ -354,7 +354,7 @@ static void process_work_item(struct simple_work_queue *queue,
 static void yield_to_scheduler(struct simple_work_queue *queue)
 {
 	unsigned int queue_length;
-	uint64_t run_time_ns, call_time_ns;
+	uint64_t run_time_ns, reschedule_time_ns;
 	uint64_t time_before_reschedule, time_after_reschedule;
 	struct vdo_work_queue_stats *stats = &queue->stats;
 
@@ -376,12 +376,13 @@ static void yield_to_scheduler(struct simple_work_queue *queue)
 	run_time_ns = time_before_reschedule - queue->most_recent_wakeup;
 	enter_histogram_sample(stats->run_time_before_reschedule_histogram,
 			       run_time_ns / 1000);
-	atomic64_add(run_time_ns, &stats->run_time);
+	WRITE_ONCE(stats->run_time, stats->run_time + run_time_ns);
 
-	call_time_ns = time_after_reschedule - time_before_reschedule;
+	reschedule_time_ns = time_after_reschedule - time_before_reschedule;
 	enter_histogram_sample(stats->reschedule_time_histogram,
-			       call_time_ns / 1000);
-	atomic64_add(call_time_ns, &stats->reschedule_time);
+			       reschedule_time_ns / 1000);
+	WRITE_ONCE(stats->reschedule_time,
+		   stats->reschedule_time + reschedule_time_ns);
 
 	queue->most_recent_wakeup = time_after_reschedule;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#56 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,10 +24,11 @@
 
 #include "vdo.h"
 
+#include <linux/list.h>
+
 #include "atomicDefs.h"
 
 #include <linux/kobject.h>
-#include <linux/list.h>
 #include "deviceConfig.h"
 #include "threadRegistry.h"
 

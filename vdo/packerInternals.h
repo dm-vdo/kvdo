@@ -16,18 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#24 $
  */
 
 #ifndef PACKER_INTERNALS_H
 #define PACKER_INTERNALS_H
+
+#include <linux/list.h>
 
 #include "packer.h"
 
 #include "adminState.h"
 #include "compressedBlock.h"
 #include "header.h"
-#include <linux/list.h>
 #include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
