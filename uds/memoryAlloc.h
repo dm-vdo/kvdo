@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#8 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -105,7 +105,8 @@ static INLINE int do_allocation(size_t count,
 
 /**
  * Reallocate dynamically allocated memory.  There are no alignment guarantees
- * for the reallocated memory.
+ * for the reallocated memory. If the new memory is larger than the old memory,
+ * the new space will be zeroed.
  *
  * @param ptr       The memory to reallocate.
  * @param old_size  The old size of the memory
