@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#104 $
  */
 
 #include "dmvdo.h"
@@ -418,7 +418,7 @@ static int vdo_message(struct dm_target *ti,
 	layer = get_kernel_layer_for_target(ti);
 
 	register_allocating_thread(&allocating_thread, NULL);
-	register_thread_device(&instance_thread, layer);
+	register_thread_device_id(&instance_thread, &layer->vdo.instance);
 
 	// Must be done here so we don't map return codes. The code in
 	// dm-ioctl expects a 1 for a return code to look at the buffer
@@ -594,7 +594,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	register_allocating_thread(&allocating_thread, NULL);
 
-     	device_name = get_vdo_device_name(ti);
+	device_name = get_vdo_device_name(ti);
 	old_vdo = find_vdo_matching(vdo_is_named, (void *) device_name);
 	if (old_vdo == NULL) {
 		result = allocate_vdo_instance(&instance);
@@ -704,7 +704,7 @@ static void vdo_presuspend(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
 
-	register_thread_device(&instance_thread, layer);
+	register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	if (dm_noflush_suspending(ti)) {
 		layer->no_flush_suspend = true;
 	}
@@ -719,8 +719,8 @@ static void vdo_postsuspend(struct dm_target *ti)
 	const char *device_name;
 	int result;
 
-	register_thread_device(&instance_thread, layer);
-     	device_name = get_vdo_device_name(ti);
+	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	device_name = get_vdo_device_name(ti);
 
 	log_info("suspending device '%s'", device_name);
 	result = suspend_kernel_layer(layer);
@@ -746,8 +746,8 @@ static int vdo_preresume(struct dm_target *ti)
 	block_count_t backing_blocks;
 	int result;
 
-	register_thread_device(&instance_thread, layer);
-     	device_name = get_vdo_device_name(ti);
+	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	device_name = get_vdo_device_name(ti);
 
 	backing_blocks = get_underlying_device_block_count(&layer->vdo);
 	if (backing_blocks < config->physical_blocks) {
@@ -809,7 +809,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
 
-	register_thread_device(&instance_thread, layer);
+	register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	log_info("device '%s' resumed", get_vdo_device_name(ti));
 	unregister_thread_device_id();
 }

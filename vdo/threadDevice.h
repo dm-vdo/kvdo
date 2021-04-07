@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#7 $
  */
 
-#include "kernelLayer.h"
+#include "threadRegistry.h"
 
 /**
  * Temporarily register the current thread as being associated with a
@@ -35,22 +35,6 @@
  **/
 void register_thread_device_id(struct registered_thread *new_thread,
 			       unsigned int *id_ptr);
-
-/**
- * Temporarily register the current thread as being associated with an
- * existing VDO device, for logging purposes.
- *
- * Any such registered thread must later be unregistered via
- * unregister_thread_device_id.
- *
- * @param new_thread  registered_thread structure to use for the current thread
- * @param layer       The kernel_layer object for the VDO device
- **/
-static inline void register_thread_device(struct registered_thread *new_thread,
-					  struct kernel_layer *layer)
-{
-	register_thread_device_id(new_thread, &layer->vdo.instance);
-}
 
 /**
  * Cancel registration of the current thread as being associated with
