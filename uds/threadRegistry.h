@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.h#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.h#4 $
  */
 
 #ifndef THREAD_REGISTRY_H
-#define THREAD_REGISTRY_H 1
+#define THREAD_REGISTRY_H
 
 #include <linux/list.h>
 #include <linux/spinlock.h>
@@ -32,7 +32,7 @@
 
 struct thread_registry {
 	struct list_head links;
-	rwlock_t lock;
+	spinlock_t lock;
 };
 
 struct registered_thread {
@@ -40,8 +40,6 @@ struct registered_thread {
 	const void *pointer;
 	struct task_struct *task;
 };
-
-/*****************************************************************************/
 
 /**
  * Initialize a registry of threads and associated data pointers.
@@ -57,7 +55,7 @@ void initialize_thread_registry(struct thread_registry *registry);
  *
  * @param registry    The thread registry
  * @param new_thread  registered_thread structure to use for the current thread
- * @param pointer     The value to associated with the current thread
+ * @param pointer     The value to associate with the current thread
  **/
 void register_thread(struct thread_registry *registry,
 		     struct registered_thread *new_thread,
@@ -74,8 +72,7 @@ void unregister_thread(struct thread_registry *registry);
 
 /**
  * Fetch a pointer that may have been registered for the current
- * thread. If the thread is not registered, a null pointer is
- * returned.
+ * thread. If the thread is not registered, a null pointer is returned.
  *
  * @param  registry  The thread registry
  *

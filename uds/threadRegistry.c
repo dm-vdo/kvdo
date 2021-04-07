@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#5 $
  */
 
 #include "threadRegistry.h"
 
-#include <linux/gfp.h>
-#include <linux/slab.h>
+#include <linux/rculist.h>
 
 #include "permassert.h"
 
@@ -32,68 +31,84 @@
  * we do not want to invoke the logger while holding a lock.
  */
 
-/*****************************************************************************/
+/**********************************************************************/
+void initialize_thread_registry(struct thread_registry *registry)
+{
+	INIT_LIST_HEAD(&registry->links);
+	spin_lock_init(&registry->lock);
+}
+
+/**********************************************************************/
 void register_thread(struct thread_registry *registry,
 		     struct registered_thread *new_thread,
 		     const void *pointer)
 {
 	struct registered_thread *thread;
 	bool found_it = false;
+
 	INIT_LIST_HEAD(&new_thread->links);
 	new_thread->pointer = pointer;
 	new_thread->task = current;
 
-	write_lock(&registry->lock);
-	list_for_each_entry (thread, &registry->links, links) {
+	spin_lock(&registry->lock);
+	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
 			// This should not have been there.
 			// We'll complain after releasing the lock.
-			list_del_init(&thread->links);
+			list_del_rcu(&thread->links);
 			found_it = true;
 			break;
 		}
 	}
-	list_add_tail(&new_thread->links, &registry->links);
-	write_unlock(&registry->lock);
+	list_add_tail_rcu(&new_thread->links, &registry->links);
+	spin_unlock(&registry->lock);
+
 	ASSERT_LOG_ONLY(!found_it, "new thread not already in registry");
+	if (found_it) {
+		// Ensure no RCU iterators see it before re-initializing.
+		synchronize_rcu();
+		INIT_LIST_HEAD(&thread->links);
+	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void unregister_thread(struct thread_registry *registry)
 {
-	bool found_it = false;
 	struct registered_thread *thread;
-	write_lock(&registry->lock);
-	list_for_each_entry (thread, &registry->links, links) {
+	bool found_it = false;
+
+	spin_lock(&registry->lock);
+	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
-			list_del_init(&thread->links);
+			list_del_rcu(&thread->links);
 			found_it = true;
 			break;
 		}
 	}
-	write_unlock(&registry->lock);
+	spin_unlock(&registry->lock);
+
 	ASSERT_LOG_ONLY(found_it, "thread found in registry");
+	if (found_it) {
+		// Ensure no RCU iterators see it before re-initializing.
+		synchronize_rcu();
+		INIT_LIST_HEAD(&thread->links);
+	}
 }
 
-/*****************************************************************************/
-void initialize_thread_registry(struct thread_registry *registry)
-{
-	INIT_LIST_HEAD(&registry->links);
-	rwlock_init(&registry->lock);
-}
-
-/*****************************************************************************/
+/**********************************************************************/
 const void *lookup_thread(struct thread_registry *registry)
 {
 	struct registered_thread *thread;
 	const void *result = NULL;
-	read_lock(&registry->lock);
-	list_for_each_entry (thread, &registry->links, links) {
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(thread, &registry->links, links) {
 		if (thread->task == current) {
 			result = thread->pointer;
 			break;
 		}
 	}
-	read_unlock(&registry->lock);
+	rcu_read_unlock();
+
 	return result;
 }

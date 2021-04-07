@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#56 $
  */
 
 #include "workQueue.h"
@@ -34,7 +34,6 @@
 #include "statusCodes.h"
 
 #include "workItemStats.h"
-#include "workQueueHandle.h"
 #include "workQueueInternals.h"
 #include "workQueueStats.h"
 #include "workQueueSysfs.h"
@@ -435,12 +434,10 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
-	struct work_queue_stack_handle queue_handle;
 	unsigned long flags;
 
 	kobject_get(&queue->common.kobj);
 
-	initialize_work_queue_stack_handle(&queue_handle, queue);
 	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
 
 	spin_lock_irqsave(&queue->lock, flags);
@@ -449,9 +446,6 @@ static int work_queue_runner(void *ptr)
 
 	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
-
-	// Zero out handle structure for safety.
-	memset(&queue_handle, 0, sizeof(queue_handle));
 
 	kobject_put(&queue->common.kobj);
 	return 0;
@@ -919,6 +913,22 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 // Misc
 
 
+/**
+ * Return the work queue pointer recorded at initialization time in
+ * the work-queue stack handle initialized on the stack of the current
+ * thread, if any.
+ *
+ * @return the work queue pointer, or NULL
+ **/
+static struct simple_work_queue *get_current_thread_work_queue(void)
+{
+	if (kthread_func(current) != work_queue_runner) {
+		// Not a VDO workQueue thread.
+		return NULL;
+	}
+	return kthread_data(current);
+}
+
 /**********************************************************************/
 struct vdo_work_queue *get_current_work_queue(void)
 {
@@ -939,10 +949,4 @@ void *get_work_queue_private_data(void)
 	struct simple_work_queue *queue = get_current_thread_work_queue();
 
 	return (queue != NULL) ? queue->private : NULL;
-}
-
-/**********************************************************************/
-void init_work_queue_once(void)
-{
-	init_work_queue_stack_handle_once();
 }

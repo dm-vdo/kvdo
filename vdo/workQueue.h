@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#21 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -232,11 +232,6 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			      char *buffer,
 			      size_t length);
 
-
-/**
- * Initialize work queue internals at module load time.
- **/
-void init_work_queue_once(void);
 
 /**
  * Checks whether two work items have the same action codes
