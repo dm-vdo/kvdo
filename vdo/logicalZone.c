@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#51 $
  */
 
 #include "logicalZone.h"
@@ -103,7 +103,7 @@ struct logical_zone *get_logical_zone(struct logical_zones *zones,
 }
 
 /**
- * Implements zone_thread_getter
+ * Implements vdo_zone_thread_getter
  **/
 static thread_id_t get_thread_id_for_zone(void *context,
 					  zone_count_t zone_number)
@@ -170,13 +170,13 @@ int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 		}
 	}
 
-	result = make_action_manager(zones->zone_count,
-				     get_thread_id_for_zone,
-				     get_admin_thread(thread_config),
-				     zones,
-				     NULL,
-				     vdo,
-				     &zones->manager);
+	result = vdo_make_action_manager(zones->zone_count,
+					 get_thread_id_for_zone,
+					 get_admin_thread(thread_config),
+					 zones,
+					 NULL,
+					 vdo,
+					 &zones->manager);
 	if (result != VDO_SUCCESS) {
 		free_logical_zones(&zones);
 		return result;
@@ -195,7 +195,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 		return;
 	}
 
-	free_action_manager(&zones->manager);
+	vdo_free_action_manager(&zones->manager);
 
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
@@ -245,14 +245,14 @@ static void initiate_drain(struct admin_state *state)
 /**
  * Drain a logical zone.
  *
- * <p>Implements zone_action.
+ * <p>Implements vdo_zone_action.
  **/
 static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);
 	start_draining(&zone->state,
-		       get_current_manager_operation(zone->zones->manager),
+		       vdo_get_current_manager_operation(zone->zones->manager),
 		       parent, initiate_drain);
 }
 
@@ -261,14 +261,14 @@ void drain_logical_zones(struct logical_zones *zones,
 			 enum admin_state_code operation,
 			 struct vdo_completion *parent)
 {
-	schedule_operation(zones->manager, operation, NULL, drain_logical_zone,
-			   NULL, parent);
+	vdo_schedule_operation(zones->manager, operation, NULL,
+			       drain_logical_zone, NULL, parent);
 }
 
 /**
  * Resume a logical zone.
  *
- * <p>Implements zone_action.
+ * <p>Implements vdo_zone_action.
  **/
 static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
@@ -281,8 +281,8 @@ static void resume_logical_zone(void *context, zone_count_t zone_number,
 void resume_logical_zones(struct logical_zones *zones,
 			  struct vdo_completion *parent)
 {
-	schedule_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
-			   resume_logical_zone, NULL, parent);
+	vdo_schedule_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
+			       resume_logical_zone, NULL, parent);
 }
 
 /**********************************************************************/

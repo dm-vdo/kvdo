@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#91 $
  */
 
 #include "slabDepot.h"
@@ -152,7 +152,7 @@ void abandon_new_slabs(struct slab_depot *depot)
 /**
  * Get the ID of the thread on which a given allocator operates.
  *
- * <p>Implements zone_thread_getter.
+ * <p>Implements vdo_zone_thread_getter.
  **/
 static thread_id_t get_allocator_thread_id(void *context,
 					   zone_count_t zone_number)
@@ -163,7 +163,7 @@ static thread_id_t get_allocator_thread_id(void *context,
 /**
  * Prepare to commit oldest tail blocks.
  *
- * <p>Implements action_preamble.
+ * <p>Implements vdo_action_preamble.
  **/
 static void prepare_for_tail_block_commit(void *context,
 					  struct vdo_completion *parent)
@@ -175,10 +175,10 @@ static void prepare_for_tail_block_commit(void *context,
 
 /**
  * Schedule a tail block commit if necessary. This method should not be called
- * directly. Rather, call schedule_default_action() on the depot's action
+ * directly. Rather, call vdo_schedule_default_action() on the depot's action
  * manager.
  *
- * <p>Implements action_scheduler.
+ * <p>Implements vdo_action_scheduler.
  **/
 static bool schedule_tail_block_commit(void *context)
 {
@@ -187,11 +187,11 @@ static bool schedule_tail_block_commit(void *context)
 		return false;
 	}
 
-	return schedule_action(depot->action_manager,
-			       prepare_for_tail_block_commit,
-			       release_tail_block_locks,
-			       NULL,
-			       NULL);
+	return vdo_schedule_action(depot->action_manager,
+				   prepare_for_tail_block_commit,
+				   release_tail_block_locks,
+				   NULL,
+				   NULL);
 }
 
 /**
@@ -210,13 +210,14 @@ static int allocate_components(struct slab_depot *depot,
 	slab_count_t slab_count, i;
 	const struct thread_config *thread_config =
 		get_thread_config(depot->vdo);
-	int result = make_action_manager(depot->zone_count,
-					 get_allocator_thread_id,
-					 get_journal_zone_thread(thread_config),
-					 depot,
-					 schedule_tail_block_commit,
-					 depot->vdo,
-					 &depot->action_manager);
+	int result =
+		vdo_make_action_manager(depot->zone_count,
+					get_allocator_thread_id,
+					get_journal_zone_thread(thread_config),
+					depot,
+					schedule_tail_block_commit,
+					depot->vdo,
+					&depot->action_manager);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -349,7 +350,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 	}
 
 	FREE(depot->slabs);
-	free_action_manager(&depot->action_manager);
+	vdo_free_action_manager(&depot->action_manager);
 	free_slab_summary(&depot->slab_summary);
 	FREE(depot);
 	*depot_ptr = NULL;
@@ -540,13 +541,13 @@ slab_count_t get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 /**
  * The preamble of a load operation which loads the slab summary.
  *
- * <p>Implements action_preamble.
+ * <p>Implements vdo_action_preamble.
  **/
 static void start_depot_load(void *context, struct vdo_completion *parent)
 {
 	struct slab_depot *depot = context;
 	load_slab_summary(depot->slab_summary,
-			  get_current_manager_operation(depot->action_manager),
+			  vdo_get_current_manager_operation(depot->action_manager),
 			  depot->old_zone_count,
 			  parent);
 }
@@ -558,13 +559,13 @@ void load_slab_depot(struct slab_depot *depot,
 		     void *context)
 {
 	if (assert_load_operation(operation, parent)) {
-		schedule_operation_with_context(depot->action_manager,
-						operation,
-						start_depot_load,
-						load_block_allocator,
-						NULL,
-						context,
-						parent);
+		vdo_schedule_operation_with_context(depot->action_manager,
+						    operation,
+						    start_depot_load,
+						    load_block_allocator,
+						    NULL,
+						    context,
+						    parent);
 	}
 }
 
@@ -575,11 +576,11 @@ void prepare_to_allocate(struct slab_depot *depot,
 {
 	depot->load_type = load_type;
 	atomic_set(&depot->zones_to_scrub, depot->zone_count);
-	schedule_action(depot->action_manager,
-			NULL,
-			prepare_allocator_to_allocate,
-			NULL,
-			parent);
+	vdo_schedule_action(depot->action_manager,
+			    NULL,
+			    prepare_allocator_to_allocate,
+			    NULL,
+			    parent);
 }
 
 /**********************************************************************/
@@ -637,7 +638,7 @@ int prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
  * Finish registering new slabs now that all of the allocators have received
  * their new slabs.
  *
- * <p>Implements action_conclusion.
+ * <p>Implements vdo_action_conclusion.
  **/
 static int finish_registration(void *context)
 {
@@ -654,12 +655,12 @@ static int finish_registration(void *context)
 void use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	ASSERT_LOG_ONLY(depot->new_slabs != NULL, "Must have new slabs to use");
-	schedule_operation(depot->action_manager,
-			   ADMIN_STATE_SUSPENDED_OPERATION,
-			   NULL,
-			   register_new_slabs_for_allocator,
-			   finish_registration,
-			   parent);
+	vdo_schedule_operation(depot->action_manager,
+			       ADMIN_STATE_SUSPENDED_OPERATION,
+			       NULL,
+			       register_new_slabs_for_allocator,
+			       finish_registration,
+			       parent);
 }
 
 /**********************************************************************/
@@ -667,12 +668,12 @@ void drain_slab_depot(struct slab_depot *depot,
 		      enum admin_state_code operation,
 		      struct vdo_completion *parent)
 {
-	schedule_operation(depot->action_manager,
-			   operation,
-			   NULL,
-			   drain_block_allocator,
-			   NULL,
-			   parent);
+	vdo_schedule_operation(depot->action_manager,
+			       operation,
+			       NULL,
+			       drain_block_allocator,
+			       NULL,
+			       parent);
 }
 
 /**********************************************************************/
@@ -683,12 +684,12 @@ void resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 		return;
 	}
 
-	schedule_operation(depot->action_manager,
-			   ADMIN_STATE_RESUMING,
-			   NULL,
-			   resume_block_allocator,
-			   NULL,
-			   parent);
+	vdo_schedule_operation(depot->action_manager,
+			       ADMIN_STATE_RESUMING,
+			       NULL,
+			       resume_block_allocator,
+			       NULL,
+			       parent);
 }
 
 /**********************************************************************/
@@ -701,7 +702,7 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 	}
 
 	depot->new_release_request = recovery_block_number;
-	schedule_default_action(depot->action_manager);
+	vdo_schedule_default_action(depot->action_manager);
 }
 
 /**********************************************************************/
@@ -731,11 +732,11 @@ get_slab_summary_for_zone(const struct slab_depot *depot, zone_count_t zone)
 void scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				 struct vdo_completion *parent)
 {
-	schedule_action(depot->action_manager,
-			NULL,
-			scrub_all_unrecovered_slabs_in_zone,
-			NULL,
-			parent);
+	vdo_schedule_action(depot->action_manager,
+			    NULL,
+			    scrub_all_unrecovered_slabs_in_zone,
+			    NULL,
+			    parent);
 }
 
 /**********************************************************************/

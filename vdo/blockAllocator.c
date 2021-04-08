@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#106 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -639,7 +639,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	struct block_allocator *allocator = as_block_allocator(completion);
 	if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
-			get_current_action_context(allocator->depot->action_manager);
+			vdo_get_current_action_context(allocator->depot->action_manager);
 		replay_into_slab_journals(allocator, completion, context);
 		return;
 	}
@@ -680,7 +680,7 @@ void load_block_allocator(void *context,
 		get_block_allocator_for_zone(context, zone_number);
 	start_loading(
 		&allocator->state,
-		get_current_manager_operation(allocator->depot->action_manager),
+		vdo_get_current_manager_operation(allocator->depot->action_manager),
 		parent,
 		initiate_load);
 }
@@ -858,7 +858,7 @@ void drain_block_allocator(void *context,
 		get_block_allocator_for_zone(context, zone_number);
 	start_draining(
 		&allocator->state,
-		get_current_manager_operation(allocator->depot->action_manager),
+		vdo_get_current_manager_operation(allocator->depot->action_manager),
 		parent,
 		initiate_drain);
 }
@@ -921,7 +921,7 @@ void resume_block_allocator(void *context,
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
 	start_resuming(&allocator->state,
-		       get_current_manager_operation(allocator->depot->action_manager),
+		       vdo_get_current_manager_operation(allocator->depot->action_manager),
 		       parent,
 		       initiate_resume);
 }

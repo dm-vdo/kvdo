@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#18 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -56,9 +56,9 @@
  * @param zone_number  The number of zone to which the action is being applied
  * @param parent       The object to notify when the action is complete
  **/
-typedef void zone_action(void *context,
-			 zone_count_t zone_number,
-			 struct vdo_completion *parent);
+typedef void vdo_zone_action(void *context,
+			     zone_count_t zone_number,
+			     struct vdo_completion *parent);
 
 /**
  * A function which is to be applied asynchronously on an action manager's
@@ -67,7 +67,7 @@ typedef void zone_action(void *context,
  * @param context  The object which holds the per-zone context for the action
  * @param parent   The object to notify when the action is complete
  **/
-typedef void action_preamble(void *context, struct vdo_completion *parent);
+typedef void vdo_action_preamble(void *context, struct vdo_completion *parent);
 
 /**
  * A function which will run on the action manager's initiator thread as the
@@ -77,7 +77,7 @@ typedef void action_preamble(void *context, struct vdo_completion *parent);
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int action_conclusion(void *context);
+typedef int vdo_action_conclusion(void *context);
 
 /**
  * A function to schedule an action.
@@ -86,7 +86,7 @@ typedef int action_conclusion(void *context);
  *
  * @return <code>true</code> if an action was scheduled
  **/
-typedef bool action_scheduler(void *context);
+typedef bool vdo_action_scheduler(void *context);
 
 /**
  * Get the id of the thread associated with a given zone.
@@ -94,7 +94,7 @@ typedef bool action_scheduler(void *context);
  * @param context      The action context
  * @param zone_number  The number of the zone for which the thread ID is desired
  **/
-typedef thread_id_t zone_thread_getter(void *context, zone_count_t zone_number);
+typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_number);
 
 /**
  * Make an action manager.
@@ -114,20 +114,20 @@ typedef thread_id_t zone_thread_getter(void *context, zone_count_t zone_number);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_action_manager(zone_count_t zones,
-				     zone_thread_getter *get_zone_thread_id,
-				     thread_id_t initiator_thread_id,
-				     void *context,
-				     action_scheduler *scheduler,
-				     struct vdo *vdo,
-				     struct action_manager **manager_ptr);
+int __must_check vdo_make_action_manager(zone_count_t zones,
+					 vdo_zone_thread_getter *get_zone_thread_id,
+					 thread_id_t initiator_thread_id,
+					 void *context,
+					 vdo_action_scheduler *scheduler,
+					 struct vdo *vdo,
+					 struct action_manager **manager_ptr);
 
 /**
  * Destroy an action manager and null out the reference to it.
  *
  * @param manager_ptr  The reference to the manager to destroy
  **/
-void free_action_manager(struct action_manager **manager_ptr);
+void vdo_free_action_manager(struct action_manager **manager_ptr);
 
 /**
  * Get the current operation an action manager is performing.
@@ -137,7 +137,7 @@ void free_action_manager(struct action_manager **manager_ptr);
  * @return The manager's current operation
  **/
 enum admin_state_code __must_check
-get_current_manager_operation(struct action_manager *manager);
+vdo_get_current_manager_operation(struct action_manager *manager);
 
 /**
  * Get the action-specific context for the operation an action manager is
@@ -148,7 +148,7 @@ get_current_manager_operation(struct action_manager *manager);
  * @return The action-specific context for the manager's current action or
  *         NULL if there is no context or no current action
  **/
-void * __must_check get_current_action_context(struct action_manager *manager);
+void * __must_check vdo_get_current_action_context(struct action_manager *manager);
 
 /**
  * Attempt to schedule the default action. If the manager is not operating
@@ -158,7 +158,7 @@ void * __must_check get_current_action_context(struct action_manager *manager);
  *
  * @return <code>true</code> if an action was scheduled.
  **/
-bool schedule_default_action(struct action_manager *manager);
+bool vdo_schedule_default_action(struct action_manager *manager);
 
 /**
  * Schedule an action to be applied to all zones. The action will be launched
@@ -179,11 +179,11 @@ bool schedule_default_action(struct action_manager *manager);
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool schedule_action(struct action_manager *manager,
-		     action_preamble *preamble,
-		     zone_action *action,
-		     action_conclusion *conclusion,
-		     struct vdo_completion *parent);
+bool vdo_schedule_action(struct action_manager *manager,
+			 vdo_action_preamble *preamble,
+			 vdo_zone_action *action,
+			 vdo_action_conclusion *conclusion,
+			 struct vdo_completion *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -206,12 +206,12 @@ bool schedule_action(struct action_manager *manager,
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool schedule_operation(struct action_manager *manager,
-			enum admin_state_code operation,
-			action_preamble *preamble,
-			zone_action *action,
-			action_conclusion *conclusion,
-			struct vdo_completion *parent);
+bool vdo_schedule_operation(struct action_manager *manager,
+			    enum admin_state_code operation,
+			    vdo_action_preamble *preamble,
+			    vdo_zone_action *action,
+			    vdo_action_conclusion *conclusion,
+			    struct vdo_completion *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -230,18 +230,18 @@ bool schedule_operation(struct action_manager *manager,
  * @param conclusion  A method to be invoked back on the initiator thread once
  *                    the action has been applied to all zones; may be NULL
  * @param context     An action-specific context which may be retrieved via
- *                    get_current_action_context(); may be NULL
+ *                    vdo_get_current_action_context(); may be NULL
  * @param parent      The object to notify once the action is complete or if
  *                    the action can not be scheduled; may be NULL
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool schedule_operation_with_context(struct action_manager *manager,
-				     enum admin_state_code operation,
-				     action_preamble *preamble,
-				     zone_action *action,
-				     action_conclusion *conclusion,
-				     void *context,
-				     struct vdo_completion *parent);
+bool vdo_schedule_operation_with_context(struct action_manager *manager,
+					 enum admin_state_code operation,
+					 vdo_action_preamble *preamble,
+					 vdo_zone_action *action,
+					 vdo_action_conclusion *conclusion,
+					 void *context,
+					 struct vdo_completion *parent);
 
 #endif // ACTION_MANAGER_H
