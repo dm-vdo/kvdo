@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#172 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#173 $
  */
 
 #include "kernelLayer.h"
@@ -326,7 +326,6 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 /**********************************************************************/
 int make_kernel_layer(unsigned int instance,
 		      struct device_config *config,
-		      struct kobject *parent_kobject,
 		      struct thread_config **thread_config_pointer,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
@@ -353,7 +352,6 @@ int make_kernel_layer(unsigned int instance,
 	result = initialize_vdo(&layer->vdo,
 				&layer->common,
 				config,
-				parent_kobject,
 				instance,
 				reason);
 	if (result != VDO_SUCCESS) {

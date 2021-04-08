@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#105 $
  */
 
 #include "dmvdo.h"
@@ -537,7 +537,6 @@ static int vdo_initialize(struct dm_target *ti,
 
 	result = make_kernel_layer(instance,
 				   config,
-				   &vdo_globals.kobj,
 				   &load_config.thread_config,
 				   &failure_reason,
 				   &layer);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#6 $
  */
 
 #include "vdoInit.h"
@@ -45,21 +45,20 @@ const char *get_vdo_device_name(const struct dm_target *target)
  *
  * @param vdo     The vdo being initialized
  * @param target  The device-mapper target this vdo is
- * @param parent  The parent directory object
  * @param reason  A pointer to hold an error message on failure
  *
  * @return VDO_SUCCESS or an error code
  **/
 static int initialize_vdo_kobjects(struct vdo *vdo,
 				   struct dm_target *target,
-				   struct kobject *parent,
 				   char **reason)
 {
 	int result;
+	struct mapped_device *md = dm_table_get_md(target->table);
 	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
 	result = kobject_add(&vdo->vdo_directory,
-			     parent,
-			     get_vdo_device_name(target));
+			     &disk_to_dev(dm_disk(md))->kobj,
+			     "vdo");
 	if (result != 0) {
 		*reason = "Cannot add sysfs node";
 		kobject_put(&vdo->vdo_directory);
@@ -85,7 +84,6 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 int initialize_vdo(struct vdo *vdo,
 		   PhysicalLayer *layer,
 		   struct device_config *config,
-		   struct kobject *parent,
 		   unsigned int instance,
 		   char **reason)
 {
@@ -114,7 +112,6 @@ int initialize_vdo(struct vdo *vdo,
 	 */
 	result = initialize_vdo_kobjects(vdo,
 					 config->owning_target,
-					 parent,
 					 reason);
 	if (result != VDO_SUCCESS) {
 		release_vdo_instance(instance);

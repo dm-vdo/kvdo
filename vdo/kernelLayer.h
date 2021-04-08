@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#71 $
  */
 
 #ifndef KERNELLAYER_H
@@ -179,7 +179,6 @@ enum bio_ack_q_action {
  * Creates a kernel specific physical layer to be used by VDO
  *
  * @param instance               Device instantiation counter
- * @param parent_kobject         The parent sysfs node
  * @param config                 The device configuration
  * @param thread_config_pointer  Where to store the new thread_config handle
  * @param reason                 The reason for any failure during this call
@@ -190,7 +189,6 @@ enum bio_ack_q_action {
 int __must_check
 make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
-		  struct kobject *parent_kobject,
 		  struct thread_config **thread_config_pointer,
 		  char **reason,
 		  struct kernel_layer **layer_ptr);
