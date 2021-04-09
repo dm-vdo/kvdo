@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#72 $
  */
 
 #ifndef KERNELLAYER_H
@@ -178,18 +178,16 @@ enum bio_ack_q_action {
 /**
  * Creates a kernel specific physical layer to be used by VDO
  *
- * @param instance               Device instantiation counter
- * @param config                 The device configuration
- * @param thread_config_pointer  Where to store the new thread_config handle
- * @param reason                 The reason for any failure during this call
- * @param layer_ptr              A pointer to hold the created layer
+ * @param instance   Device instantiation counter
+ * @param config     The device configuration
+ * @param reason     The reason for any failure during this call
+ * @param layer_ptr  A pointer to hold the created layer
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
 make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
-		  struct thread_config **thread_config_pointer,
 		  char **reason,
 		  struct kernel_layer **layer_ptr);
 
@@ -229,19 +227,15 @@ void free_kernel_layer(struct kernel_layer *layer);
 /**
  * Make and configure a kernel layer. This method does not alter the VDO state
  * on disk. It should be run from the VDO constructor for devices which have
- * not been started.
+ * not been started. Redundant starts are silently ignored
  *
- * @param layer        The kernel layer
- * @param load_config  Load-time parameters for the VDO
- * @param reason       The reason for any failure during this call
+ * @param layer   The kernel layer
+ * @param reason  The reason for any failure during this call
  *
  * @return VDO_SUCCESS or an error
- *
- * @note redundant starts are silently ignored
  **/
-int preload_kernel_layer(struct kernel_layer *layer,
-			 const struct vdo_load_config *load_config,
-			 char **reason);
+
+int preload_kernel_layer(struct kernel_layer *layer, char **reason);
 
 /**
  * Start the kernel layer. This method finishes bringing a VDO online now that

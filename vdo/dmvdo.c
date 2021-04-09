@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#106 $
  */
 
 #include "dmvdo.h"
@@ -471,7 +471,7 @@ static void configure_target_capabilities(struct dm_target *ti,
 static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
-	return (vdo->device_config->owned_device->bdev->bd_dev
+	return (get_vdo_backing_device(vdo)->bd_dev
 		== config->owned_device->bdev->bd_dev);
 }
 
@@ -489,14 +489,6 @@ static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
 {
-	// The thread_config will be copied by the VDO if it's successfully
-	// created.
-	struct vdo_load_config load_config = {
-		.cache_size = config->cache_size,
-		.thread_config = NULL,
-		.maximum_age = config->block_map_maximum_age,
-	};
-
 	char *failure_reason;
 	struct vdo *vdo;
 	struct kernel_layer *layer;
@@ -527,17 +519,8 @@ static int vdo_initialize(struct dm_target *ti,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	if (config->cache_size <
-	    (2 * MAXIMUM_USER_VIOS * config->thread_counts.logical_zones)) {
-		log_warning("Insufficient block map cache for logical zones");
-		ti->error = "Insufficient block map cache for logical zones";
-		release_vdo_instance(instance);
-		return VDO_BAD_CONFIGURATION;
-	}
-
 	result = make_kernel_layer(instance,
 				   config,
-				   &load_config.thread_config,
 				   &failure_reason,
 				   &layer);
 	if (result != VDO_SUCCESS) {
@@ -545,20 +528,14 @@ static int vdo_initialize(struct dm_target *ti,
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
-		free_thread_config(&load_config.thread_config);
 		return result;
 	}
 
-	// Now that we have read the geometry, we can finish setting up the
-	// vdo_load_config.
-	set_load_config_from_geometry(&layer->vdo.geometry, &load_config);
-
-	// Henceforth it is the kernel layer's responsibility to clean up the
-	// struct thread_config.
-	result = preload_kernel_layer(layer, &load_config, &failure_reason);
+	result = preload_kernel_layer(layer, &failure_reason);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
-			      result, failure_reason);
+			      result,
+			      failure_reason);
 		ti->error = failure_reason;
 		free_kernel_layer(layer);
 		return result;

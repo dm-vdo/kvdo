@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#24 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -150,21 +150,5 @@ index_config_to_uds_configuration(const struct index_config *index_config,
  **/
 void index_config_to_uds_parameters(const struct index_config *index_config,
 				    struct uds_parameters *user_params);
-
-
-/**
- * Set load config fields from a volume geometry.
- *
- * @param geometry     The geometry to use
- * @param load_config  The load config to set
- **/
-static inline void
-set_load_config_from_geometry(struct volume_geometry *geometry,
-			      struct vdo_load_config *load_config)
-{
-	load_config->first_block_offset = get_data_region_offset(*geometry);
-	load_config->release_version = geometry->release_version;
-	load_config->nonce = geometry->nonce;
-}
 
 #endif // VOLUME_GEOMETRY_H

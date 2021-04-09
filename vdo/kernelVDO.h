@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#39 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -42,28 +42,12 @@ enum {
 /**
  * Make base threads.
  *
- * @param [in]  vdo            The vdo to be initialized
- * @param [in]  thread_config  The base-code thread configuration
- * @param [out] reason         The reason for failure
+ * @param [in]  vdo     The vdo to be initialized
+ * @param [out] reason  The reason for failure
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_vdo_threads(struct vdo *vdo,
-		     const struct thread_config *thread_config,
-		     char **reason);
-
-/**
- * Load the VDO state from disk but don't alter the on-disk state. This method
- * is ultimately called from the constructor for devices which have not been
- * resumed.
- *
- * @param [in]  vdo          The vdo to be started
- * @param [in]  load_config  Load-time parameters for the VDO
- * @param [out] reason       The reason for failure
- **/
-int preload_vdo(struct vdo *vdo,
-		const struct vdo_load_config *load_config,
-		char **reason);
+int __must_check make_vdo_threads(struct vdo *vdo, char **reason);
 
 /**
  * Starts the base VDO instance associated with the kernel layer. This method

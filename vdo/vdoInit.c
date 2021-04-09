@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoInit.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#1 $
  */
 
 #include "vdoInit.h"
@@ -25,6 +25,7 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 
+#include "logger.h"
 #include "memoryAlloc.h"
 
 #include "adminCompletion.h"
@@ -33,6 +34,7 @@
 #include "types.h"
 #include "vdoInternal.h"
 #include "volumeGeometry.h"
+
 
 /**********************************************************************/
 const char *get_vdo_device_name(const struct dm_target *target)
@@ -81,6 +83,14 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 }
 
 /**********************************************************************/
+static int handle_initialization_failure(struct vdo *vdo, int result)
+{
+	release_vdo_instance(vdo->instance);
+	FREE(vdo->layer);
+	return result;
+}
+
+/**********************************************************************/
 int initialize_vdo(struct vdo *vdo,
 		   PhysicalLayer *layer,
 		   struct device_config *config,
@@ -100,10 +110,23 @@ int initialize_vdo(struct vdo *vdo,
 				     &vdo->geometry);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
-		release_vdo_instance(instance);
-		FREE(layer);
-		return result;
+		return handle_initialization_failure(vdo, result);
 	}
+
+	result = make_thread_config(config->thread_counts.logical_zones,
+				    config->thread_counts.physical_zones,
+				    config->thread_counts.hash_zones,
+				    &vdo->thread_config);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot create thread configuration";
+		return handle_initialization_failure(vdo, result);
+	}
+
+	log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+		 config->thread_counts.logical_zones,
+		 config->thread_counts.physical_zones,
+		 config->thread_counts.hash_zones,
+		 vdo->thread_config->base_thread_count);
 
 	/*
 	 * After this point, calling kobject_put on vdo_directory will
@@ -114,9 +137,7 @@ int initialize_vdo(struct vdo *vdo,
 					 config->owning_target,
 					 reason);
 	if (result != VDO_SUCCESS) {
-		release_vdo_instance(instance);
-		FREE(layer);
-		return result;
+		return handle_initialization_failure(vdo, result);
 	}
 
 	return VDO_SUCCESS;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#80 $
  */
 
 #ifndef TYPES_H
@@ -314,26 +314,6 @@ struct vdo_config {
 	block_count_t recovery_journal_size; ///< number of recovery journal blocks
 	block_count_t slab_journal_blocks; ///< number of slab journal blocks
 } __packed;
-
-/**
- * The configuration parameters of the vdo service specified at load time.
- **/
-struct vdo_load_config {
-	/** the offset on the physical layer where the VDO begins */
-	physical_block_number_t first_block_offset;
-	/** the expected release version number of the VDO */
-	release_version_number_t release_version;
-	/** the expected nonce of the VDO */
-	nonce_t nonce;
-	/** the thread configuration of the VDO */
-	struct thread_config *thread_config;
-	/** the page cache size, in pages */
-	page_count_t cache_size;
-	/**
-	 * the maximum age of a dirty block map page in recovery journal blocks
-	 */
-	block_count_t maximum_age;
-};
 
 /**
  * Forward declarations of abstract types

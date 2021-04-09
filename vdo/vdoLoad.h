@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#10 $
  */
 
 #ifndef VDO_LOAD_H
@@ -41,6 +41,6 @@ int __must_check perform_vdo_load(struct vdo *vdo);
  * not been resumed before.
  **/
 int __must_check
-prepare_to_load_vdo(struct vdo *vdo, const struct vdo_load_config *load_config);
+prepare_to_load_vdo(struct vdo *vdo);
 
 #endif /* VDO_LOAD_H */

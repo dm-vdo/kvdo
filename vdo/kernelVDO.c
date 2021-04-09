@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#93 $
  */
 
 /*
@@ -90,12 +90,10 @@ static const struct vdo_work_queue_type request_queue_type = {
 };
 
 /**********************************************************************/
-int make_vdo_threads(struct vdo *vdo,
-		     const struct thread_config *thread_config,
-		     char **reason)
+int make_vdo_threads(struct vdo *vdo, char **reason)
 {
 	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-	unsigned int base_threads = thread_config->base_thread_count;
+	unsigned int base_threads = vdo->thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
 			      struct vdo_thread,
 			      "request processing work queue",
@@ -117,7 +115,7 @@ int make_vdo_threads(struct vdo *vdo,
 		thread->thread_id = vdo->initialized_thread_count;
 
 		// Copy only LEN - 1 bytes and ensure NULL termination.
-		get_vdo_thread_name(thread_config,
+		get_vdo_thread_name(vdo->thread_config,
 				    vdo->initialized_thread_count,
 				    queue_name,
 				    sizeof(queue_name));
@@ -143,21 +141,6 @@ int make_vdo_threads(struct vdo *vdo,
 			FREE(vdo->threads);
 			return result;
 		}
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int preload_vdo(struct vdo *vdo,
-		const struct vdo_load_config *load_config,
-		char **reason)
-{
-	int result = prepare_to_load_vdo(vdo, load_config);
-
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		*reason = "Cannot load metadata from device";
-		return result;
 	}
 
 	return VDO_SUCCESS;

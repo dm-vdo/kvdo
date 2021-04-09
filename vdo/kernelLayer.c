@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#173 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#174 $
  */
 
 #include "kernelLayer.h"
@@ -37,6 +37,7 @@
 #include "releaseVersions.h"
 #include "statistics.h"
 #include "vdo.h"
+#include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
 #include "volumeGeometry.h"
@@ -326,7 +327,6 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 /**********************************************************************/
 int make_kernel_layer(unsigned int instance,
 		      struct device_config *config,
-		      struct thread_config **thread_config_pointer,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
 {
@@ -403,22 +403,6 @@ int make_kernel_layer(unsigned int instance,
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
-
-	result = make_thread_config(config->thread_counts.logical_zones,
-				    config->thread_counts.physical_zones,
-				    config->thread_counts.hash_zones,
-				    thread_config_pointer);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot create thread configuration";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
-		 config->thread_counts.logical_zones,
-		 config->thread_counts.physical_zones,
-		 config->thread_counts.hash_zones,
-		 (*thread_config_pointer)->base_thread_count);
 
 	result = make_batch_processor(layer,
 				      return_data_vio_batch_to_pool,
@@ -498,7 +482,7 @@ int make_kernel_layer(unsigned int instance,
 	 */
 
 	// Base-code thread, etc
-	result = make_vdo_threads(&layer->vdo, *thread_config_pointer, reason);
+	result = make_vdo_threads(&layer->vdo, reason);
 	if (result != VDO_SUCCESS) {
 		free_kernel_layer(layer);
 		return result;
@@ -804,9 +788,7 @@ static void pool_stats_release(struct kobject *directory)
 }
 
 /**********************************************************************/
-int preload_kernel_layer(struct kernel_layer *layer,
-			 const struct vdo_load_config *load_config,
-			 char **reason)
+int preload_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	int result;
 
@@ -816,8 +798,9 @@ int preload_kernel_layer(struct kernel_layer *layer,
 	}
 
 	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = preload_vdo(&layer->vdo, load_config, reason);
-	if (result != VDO_SUCCESS) {
+	result = prepare_to_load_vdo(&layer->vdo);
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		*reason = "Cannot load metadata from device";
 		stop_kernel_layer(layer);
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#104 $
  */
 
 /*
@@ -87,7 +87,7 @@ void destroy_vdo(struct vdo *vdo)
 	FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
 	free_read_only_notifier(&vdo->read_only_notifier);
-	free_thread_config(&vdo->load_config.thread_config);
+	free_thread_config(&vdo->thread_config);
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
 		free_work_queue(&vdo->threads[i].request_queue);
@@ -122,7 +122,7 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state)
  **/
 static void record_vdo(struct vdo *vdo)
 {
-	vdo->states.release_version = vdo->load_config.release_version;
+	vdo->states.release_version = vdo->geometry.release_version;
 	vdo->states.vdo.state = get_vdo_state(vdo);
 	vdo->states.block_map = record_block_map(vdo->block_map);
 	vdo->states.recovery_journal =
@@ -272,7 +272,7 @@ bool get_vdo_compressing(struct vdo *vdo)
 /**********************************************************************/
 static size_t get_block_map_cache_size(const struct vdo *vdo)
 {
-	return ((size_t) vdo->load_config.cache_size) * VDO_BLOCK_SIZE;
+	return ((size_t) vdo->device_config->cache_size) * VDO_BLOCK_SIZE;
 }
 
 /**
@@ -411,33 +411,33 @@ block_count_t get_vdo_physical_block_count(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-const struct vdo_load_config *get_vdo_load_config(const struct vdo *vdo)
+const struct device_config *get_vdo_device_config(const struct vdo *vdo)
 {
-	return &vdo->load_config;
+	return vdo->device_config;
 }
 
 /**********************************************************************/
 const struct thread_config *get_thread_config(const struct vdo *vdo)
 {
-	return vdo->load_config.thread_config;
+	return vdo->thread_config;
 }
 
 /**********************************************************************/
 block_count_t get_configured_block_map_maximum_age(const struct vdo *vdo)
 {
-	return vdo->load_config.maximum_age;
+	return vdo->device_config->block_map_maximum_age;
 }
 
 /**********************************************************************/
 page_count_t get_configured_cache_size(const struct vdo *vdo)
 {
-	return vdo->load_config.cache_size;
+	return vdo->device_config->cache_size;
 }
 
 /**********************************************************************/
 physical_block_number_t get_first_block_offset(const struct vdo *vdo)
 {
-	return vdo->load_config.first_block_offset;
+	return get_data_region_offset(vdo->geometry);
 }
 
 /**********************************************************************/

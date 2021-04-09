@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#57 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,16 +24,16 @@
 
 #include "vdo.h"
 
+#include <linux/kobject.h>
 #include <linux/list.h>
 
 #include "atomicDefs.h"
 
-#include <linux/kobject.h>
-#include "deviceConfig.h"
 #include "threadRegistry.h"
 
 #include "adminCompletion.h"
 #include "adminState.h"
+#include "deviceConfig.h"
 #include "header.h"
 #include "packer.h"
 #include "statistics.h"
@@ -66,7 +66,6 @@ struct vdo_thread {
 };
 
 struct vdo {
-	struct device_config *device_config;
 	struct vdo_thread *threads;
 	thread_id_t initialized_thread_count;
 	struct vdo_work_item work_item;
@@ -90,7 +89,9 @@ struct vdo {
 	/* The read-only notifier */
 	struct read_only_notifier *read_only_notifier;
 	/* The load-time configuration of this vdo */
-	struct vdo_load_config load_config;
+	struct device_config *device_config;
+	/* The thread mapping */
+	struct thread_config *thread_config;
 
 	/* The super block */
 	struct vdo_super_block *super_block;

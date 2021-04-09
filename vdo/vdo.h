@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#29 $
  */
 
 #ifndef VDO_H
@@ -112,10 +112,10 @@ block_count_t get_vdo_physical_block_count(const struct vdo *vdo);
  *
  * @param vdo  The vdo
  *
- * @return The load-time configuration of the vdo
+ * @return The configuration of the vdo
  **/
-const struct vdo_load_config * __must_check
-get_vdo_load_config(const struct vdo *vdo);
+const struct device_config * __must_check
+get_vdo_device_config(const struct vdo *vdo);
 
 /**
  * Get the thread config of the vdo.
