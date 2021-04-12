@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#90 $
  */
 
 #include "blockMap.h"
@@ -206,7 +206,7 @@ static void advance_block_map_zone_era(void *context,
 
 /**
  * Schedule an era advance if necessary. This method should not be called
- * directly. Rather, call vdo_schedule_default_action() on the block map's action
+ * directly. Rather, call schedule_vdo_default_action() on the block map's action
  * manager.
  *
  * <p>Implements vdo_action_scheduler.
@@ -218,7 +218,7 @@ static bool schedule_era_advance(void *context)
 		return false;
 	}
 
-	return vdo_schedule_action(map->action_manager,
+	return schedule_vdo_action(map->action_manager,
 				   prepare_for_era_advance,
 				   advance_block_map_zone_era,
 				   NULL,
@@ -251,7 +251,7 @@ void free_block_map(struct block_map **map_ptr)
 
 	abandon_block_map_growth(map);
 	free_forest(&map->forest);
-	vdo_free_action_manager(&map->action_manager);
+	free_vdo_action_manager(&map->action_manager);
 
 	FREE(map);
 	*map_ptr = NULL;
@@ -321,7 +321,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 	}
 
 
-	result = vdo_make_action_manager(map->zone_count,
+	result = make_vdo_action_manager(map->zone_count,
 					 get_block_map_zone_thread_id,
 					 get_recovery_journal_thread_id(journal),
 					 map,
@@ -415,7 +415,7 @@ void advance_block_map_era(struct block_map *map,
 	}
 
 	map->pending_era_point = recovery_block_number;
-	vdo_schedule_default_action(map->action_manager);
+	schedule_vdo_default_action(map->action_manager);
 }
 
 /**********************************************************************/
@@ -455,7 +455,7 @@ drain_zone(void *context, zone_count_t zone_number,
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
 	start_draining(&zone->state,
-		       vdo_get_current_manager_operation(zone->block_map->action_manager),
+		       get_current_vdo_manager_operation(zone->block_map->action_manager),
 		       parent,
 		       initiate_drain);
 }
@@ -465,7 +465,7 @@ void drain_block_map(struct block_map *map,
 		     enum admin_state_code operation,
 		     struct vdo_completion *parent)
 {
-	vdo_schedule_operation(map->action_manager, operation, NULL,
+	schedule_vdo_operation(map->action_manager, operation, NULL,
 			       drain_zone, NULL, parent);
 }
 
@@ -485,7 +485,7 @@ static void resume_block_map_zone(void *context,
 /**********************************************************************/
 void resume_block_map(struct block_map *map, struct vdo_completion *parent)
 {
-	vdo_schedule_operation(map->action_manager,
+	schedule_vdo_operation(map->action_manager,
 			       ADMIN_STATE_RESUMING,
 			       NULL,
 			       resume_block_map_zone,
@@ -533,7 +533,7 @@ static void grow_forest(void *context, struct vdo_completion *completion)
 /**********************************************************************/
 void grow_block_map(struct block_map *map, struct vdo_completion *parent)
 {
-	vdo_schedule_operation(map->action_manager,
+	schedule_vdo_operation(map->action_manager,
 			       ADMIN_STATE_SUSPENDED_OPERATION,
 			       grow_forest,
 			       NULL,

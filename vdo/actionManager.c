@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#36 $
  */
 
 #include "actionManager.h"
@@ -128,7 +128,7 @@ static int no_conclusion(void *context __always_unused)
 }
 
 /**********************************************************************/
-int vdo_make_action_manager(zone_count_t zones,
+int make_vdo_action_manager(zone_count_t zones,
 			    vdo_zone_thread_getter *get_zone_thread_id,
 			    thread_id_t initiator_thread_id,
 			    void *context,
@@ -161,7 +161,7 @@ int vdo_make_action_manager(zone_count_t zones,
 }
 
 /**********************************************************************/
-void vdo_free_action_manager(struct action_manager **manager_ptr)
+void free_vdo_action_manager(struct action_manager **manager_ptr)
 {
 	struct action_manager *manager = *manager_ptr;
 	if (manager == NULL) {
@@ -174,13 +174,13 @@ void vdo_free_action_manager(struct action_manager **manager_ptr)
 
 /**********************************************************************/
 enum admin_state_code
-vdo_get_current_manager_operation(struct action_manager *manager)
+get_current_vdo_manager_operation(struct action_manager *manager)
 {
 	return manager->state.state;
 }
 
 /**********************************************************************/
-void *vdo_get_current_action_context(struct action_manager *manager)
+void *get_current_vdo_action_context(struct action_manager *manager)
 {
 	return (manager->current_action->in_use ?
 		manager->current_action->context :
@@ -307,7 +307,7 @@ static void launch_current_action(struct action_manager *manager)
 	action->preamble(manager->context, &manager->completion);
 }
 
-bool vdo_schedule_default_action(struct action_manager *manager)
+bool schedule_vdo_default_action(struct action_manager *manager)
 {
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.
@@ -336,7 +336,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	 * freed.
 	 */
 	has_next_action = (manager->current_action->in_use
-			   || vdo_schedule_default_action(manager));
+			   || schedule_vdo_default_action(manager));
 	result = action.conclusion(manager->context);
 	finish_operation(&manager->state);
 	if (action.parent != NULL) {
@@ -349,13 +349,13 @@ static void finish_action_callback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-bool vdo_schedule_action(struct action_manager *manager,
+bool schedule_vdo_action(struct action_manager *manager,
 			 vdo_action_preamble *preamble,
 			 vdo_zone_action *action,
 			 vdo_action_conclusion *conclusion,
 			 struct vdo_completion *parent)
 {
-	return vdo_schedule_operation(manager,
+	return schedule_vdo_operation(manager,
 				      ADMIN_STATE_OPERATING,
 				      preamble,
 				      action,
@@ -364,14 +364,14 @@ bool vdo_schedule_action(struct action_manager *manager,
 }
 
 /**********************************************************************/
-bool vdo_schedule_operation(struct action_manager *manager,
+bool schedule_vdo_operation(struct action_manager *manager,
 			    enum admin_state_code operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
 			    struct vdo_completion *parent)
 {
-	return vdo_schedule_operation_with_context(manager,
+	return schedule_vdo_operation_with_context(manager,
 						   operation,
 						   preamble,
 						   action,
@@ -381,7 +381,7 @@ bool vdo_schedule_operation(struct action_manager *manager,
 }
 
 /**********************************************************************/
-bool vdo_schedule_operation_with_context(struct action_manager *manager,
+bool schedule_vdo_operation_with_context(struct action_manager *manager,
 					 enum admin_state_code operation,
 					 vdo_action_preamble *preamble,
 					 vdo_zone_action *action,
