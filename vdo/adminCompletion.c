@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#33 $
  */
 
 #include "adminCompletion.h"
@@ -33,8 +33,8 @@
 #include "vdoInternal.h"
 
 /**********************************************************************/
-void assert_admin_operation_type(struct admin_completion *completion,
-				 enum admin_operation_type expected)
+void assert_vdo_admin_operation_type(struct admin_completion *completion,
+				     enum admin_operation_type expected)
 {
 	ASSERT_LOG_ONLY(completion->type == expected,
 			"admin operation type is %u instead of %u",
@@ -44,7 +44,7 @@ void assert_admin_operation_type(struct admin_completion *completion,
 
 /**********************************************************************/
 struct admin_completion *
-admin_completion_from_sub_task(struct vdo_completion *completion)
+vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
 	assert_completion_type(completion->type, SUB_TASK_COMPLETION);
@@ -53,9 +53,9 @@ admin_completion_from_sub_task(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void assert_admin_phase_thread(struct admin_completion *admin_completion,
-			       const char *what,
-			       const char *phase_names[])
+void assert_vdo_admin_phase_thread(struct admin_completion *admin_completion,
+				   const char *what,
+				   const char *phase_names[])
 {
 	thread_id_t expected =
 		admin_completion->get_thread_id(admin_completion);
@@ -70,14 +70,14 @@ struct vdo *vdo_from_admin_sub_task(struct vdo_completion *completion,
 				    enum admin_operation_type expected)
 {
 	struct admin_completion *admin_completion =
-		admin_completion_from_sub_task(completion);
-	assert_admin_operation_type(admin_completion, expected);
+		vdo_admin_completion_from_sub_task(completion);
+	assert_vdo_admin_operation_type(admin_completion, expected);
 	return admin_completion->vdo;
 }
 
 /**********************************************************************/
-void initialize_admin_completion(struct vdo *vdo,
-				 struct admin_completion *admin_completion)
+void initialize_vdo_admin_completion(struct vdo *vdo,
+				     struct admin_completion *admin_completion)
 {
 	admin_completion->vdo = vdo;
 	initialize_vdo_completion(&admin_completion->completion, vdo,
@@ -89,10 +89,10 @@ void initialize_admin_completion(struct vdo *vdo,
 }
 
 /**********************************************************************/
-struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion)
+struct vdo_completion *reset_vdo_admin_sub_task(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
-		admin_completion_from_sub_task(completion);
+		vdo_admin_completion_from_sub_task(completion);
 	reset_completion(completion);
 	completion->callback_thread_id =
 		admin_completion->get_thread_id(admin_completion);
@@ -100,10 +100,10 @@ struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void prepare_admin_sub_task_on_thread(struct vdo *vdo,
-				      vdo_action *callback,
-				      vdo_action *error_handler,
-				      thread_id_t thread_id)
+void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
+					  vdo_action *callback,
+					  vdo_action *error_handler,
+					  thread_id_t thread_id)
 {
 	prepare_for_requeue(&vdo->admin_completion.sub_task_completion,
 			    callback,
@@ -113,15 +113,14 @@ void prepare_admin_sub_task_on_thread(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void prepare_admin_sub_task(struct vdo *vdo,
-			    vdo_action *callback,
-			    vdo_action *error_handler)
+void prepare_vdo_admin_sub_task(struct vdo *vdo,
+				vdo_action *callback,
+				vdo_action *error_handler)
 {
 	struct admin_completion *admin_completion = &vdo->admin_completion;
-	prepare_admin_sub_task_on_thread(vdo,
-					 callback,
-					 error_handler,
-					 admin_completion->completion.callback_thread_id);
+	prepare_vdo_admin_sub_task_on_thread(vdo,
+					     callback, error_handler,
+					     admin_completion->completion.callback_thread_id);
 }
 
 /**
@@ -156,11 +155,11 @@ static void wait_for_admin_completion(struct admin_completion *completion)
 }
 
 /**********************************************************************/
-int perform_admin_operation(struct vdo *vdo,
-			    enum admin_operation_type type,
-			    thread_id_getter_for_phase *thread_id_getter,
-			    vdo_action *action,
-			    vdo_action *error_handler)
+int perform_vdo_admin_operation(struct vdo *vdo,
+				enum admin_operation_type type,
+				vdo_thread_id_getter_for_phase *thread_id_getter,
+				vdo_action *action,
+				vdo_action *error_handler)
 {
 	int result;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
@@ -178,7 +177,7 @@ int perform_admin_operation(struct vdo *vdo,
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;
 	admin_completion->phase = 0;
-	prepare_admin_sub_task(vdo, action, error_handler);
+	prepare_vdo_admin_sub_task(vdo, action, error_handler);
 
 	reinit_completion(&admin_completion->callback_sync);
 

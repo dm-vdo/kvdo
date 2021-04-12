@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#18 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -51,7 +51,7 @@ struct admin_completion;
  * @return The ID of the thread on which the current phase should be performed
  **/
 typedef thread_id_t
-thread_id_getter_for_phase(struct admin_completion *admin_completion);
+vdo_thread_id_getter_for_phase(struct admin_completion *admin_completion);
 
 struct admin_completion {
 	// XXX should be replaced by container_of() when enqueuables go away
@@ -66,7 +66,7 @@ struct admin_completion {
 	/** The operation type */
 	enum admin_operation_type type;
 	/** Method to get the thread id for the current phase */
-	thread_id_getter_for_phase *get_thread_id;
+	vdo_thread_id_getter_for_phase *get_thread_id;
 	/** The current phase of the operation */
 	uint32_t phase;
 	/** A kernel mechanism for inter-thread signalling */
@@ -79,8 +79,8 @@ struct admin_completion {
  * @param completion  The admin_completion to check
  * @param expected    The expected type
  **/
-void assert_admin_operation_type(struct admin_completion *completion,
-				 enum admin_operation_type expected);
+void assert_vdo_admin_operation_type(struct admin_completion *completion,
+				     enum admin_operation_type expected);
 
 /**
  * Convert the sub-task completion of an admin_completion to an
@@ -91,7 +91,7 @@ void assert_admin_operation_type(struct admin_completion *completion,
  * @return The sub-task completion as its enclosing admin_completion
  **/
 struct admin_completion * __must_check
-admin_completion_from_sub_task(struct vdo_completion *completion);
+vdo_admin_completion_from_sub_task(struct vdo_completion *completion);
 
 /**
  * Assert that we are operating on the correct thread for the current phase.
@@ -100,9 +100,9 @@ admin_completion_from_sub_task(struct vdo_completion *completion);
  * @param what              The method doing the phase check
  * @param phase_names       The names of the phases of the current operation
  **/
-void assert_admin_phase_thread(struct admin_completion *admin_completion,
-			       const char *what,
-			       const char *phase_names[]);
+void assert_vdo_admin_phase_thread(struct admin_completion *admin_completion,
+				   const char *what,
+				   const char *phase_names[]);
 
 /**
  * Get the vdo from the sub-task completion of its admin_completion.
@@ -122,8 +122,8 @@ vdo_from_admin_sub_task(struct vdo_completion *completion,
  * @param vdo                The vdo which owns the completion
  * @param admin_completion   The admin_completion to initialize
  **/
-void initialize_admin_completion(struct vdo *vdo,
-				 struct admin_completion *admin_completion);
+void initialize_vdo_admin_completion(struct vdo *vdo,
+				     struct admin_completion *admin_completion);
 
 /**
  * Reset an admin_completion's sub-task completion.
@@ -132,7 +132,7 @@ void initialize_admin_completion(struct vdo *vdo,
  *
  * @return The sub-task completion for the convenience of callers
  **/
-struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion);
+struct vdo_completion *reset_vdo_admin_sub_task(struct vdo_completion *completion);
 
 /**
  * Prepare the sub-task completion of a vdo's admin_completion
@@ -142,10 +142,10 @@ struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion);
  * @param error_handler  The error handler for the sub-task
  * @param thread_id      The ID of the thread on which to run the callback
  **/
-void prepare_admin_sub_task_on_thread(struct vdo *vdo,
-				      vdo_action *callback,
-				      vdo_action *error_handler,
-				      thread_id_t thread_id);
+void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
+					  vdo_action *callback,
+					  vdo_action *error_handler,
+					  thread_id_t thread_id);
 
 /**
  * Prepare the sub-task completion of a vdo's admin_completion to run on the
@@ -155,9 +155,9 @@ void prepare_admin_sub_task_on_thread(struct vdo *vdo,
  * @param callback       The callback for the sub-task
  * @param error_handler  The error handler for the sub-task
  **/
-void prepare_admin_sub_task(struct vdo *vdo,
-			    vdo_action *callback,
-			    vdo_action *error_handler);
+void prepare_vdo_admin_sub_task(struct vdo *vdo,
+				vdo_action *callback,
+				vdo_action *error_handler);
 
 /**
  * Perform an administrative operation (load, suspend, grow logical, or grow
@@ -175,10 +175,10 @@ void prepare_admin_sub_task(struct vdo *vdo,
  * @return The result of the operation
  **/
 int __must_check
-perform_admin_operation(struct vdo *vdo,
-			enum admin_operation_type type,
-			thread_id_getter_for_phase *thread_id_getter,
-			vdo_action *action,
-			vdo_action *error_handler);
+perform_vdo_admin_operation(struct vdo *vdo,
+			    enum admin_operation_type type,
+			    vdo_thread_id_getter_for_phase *thread_id_getter,
+			    vdo_action *action,
+			    vdo_action *error_handler);
 
 #endif /* ADMIN_COMPLETION_H */

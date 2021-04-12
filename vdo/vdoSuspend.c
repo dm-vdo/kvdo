@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#31 $
  */
 
 #include "vdoSuspend.h"
@@ -57,7 +57,7 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 };
 
 /**
- * Implements thread_id_getter_for_phase.
+ * Implements vdo_thread_id_getter_for_phase.
  **/
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
@@ -115,15 +115,15 @@ static void write_super_block(struct vdo *vdo,
 static void suspend_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
-		admin_completion_from_sub_task(completion);
+		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 
 	ASSERT_LOG_ONLY(((admin_completion->type == ADMIN_OPERATION_SUSPEND) ||
 			 (admin_completion->type == ADMIN_OPERATION_SAVE)),
 			"unexpected admin operation type %u is neither suspend nor save",
 			admin_completion->type);
-	assert_admin_phase_thread(admin_completion, __func__,
-				  SUSPEND_PHASE_NAMES);
+	assert_vdo_admin_phase_thread(admin_completion, __func__,
+				      SUSPEND_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
@@ -143,7 +143,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		}
 
 		wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-						       reset_admin_sub_task(completion));
+						       reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_PACKER:
@@ -159,31 +159,31 @@ static void suspend_callback(struct vdo_completion *completion)
 					      VDO_READ_ONLY);
 		}
 
-		drain_packer(vdo->packer, reset_admin_sub_task(completion));
+		drain_packer(vdo->packer, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
 		drain_logical_zones(vdo->logical_zones,
 				    vdo->admin_state.state,
-				    reset_admin_sub_task(completion));
+				    reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
 		drain_block_map(vdo->block_map,
 				vdo->admin_state.state,
-				reset_admin_sub_task(completion));
+				reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
 		drain_recovery_journal(vdo->recovery_journal,
 				       vdo->admin_state.state,
-				       reset_admin_sub_task(completion));
+				       reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
 		drain_slab_depot(vdo->depot,
 				 vdo->admin_state.state,
-				 reset_admin_sub_task(completion));
+				 reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
@@ -194,7 +194,7 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		write_super_block(vdo, reset_admin_sub_task(completion));
+		write_super_block(vdo, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_END:
@@ -210,10 +210,10 @@ static void suspend_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_suspend(struct vdo *vdo, bool save)
 {
-	return perform_admin_operation(vdo,
-				       (save ? ADMIN_OPERATION_SAVE :
-					       ADMIN_OPERATION_SUSPEND),
-				       get_thread_id_for_phase,
-				       suspend_callback,
-				       preserve_error_and_continue);
+	return perform_vdo_admin_operation(vdo,
+					   (save ? ADMIN_OPERATION_SAVE :
+						   ADMIN_OPERATION_SUSPEND),
+					   get_thread_id_for_phase,
+					   suspend_callback,
+					   preserve_error_and_continue);
 }

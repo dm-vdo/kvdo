@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#70 $
  */
 
 #include "vdoLoad.h"
@@ -78,7 +78,7 @@ static void finish_aborting(struct vdo_completion *completion)
 static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	prepare_admin_sub_task(vdo, finish_aborting, finish_aborting);
+	prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
 	drain_recovery_journal(vdo->recovery_journal, ADMIN_STATE_SAVING,
 			       completion);
 }
@@ -102,12 +102,12 @@ static void abort_load(struct vdo_completion *completion)
 	// Preserve the error.
 	set_completion_result(completion->parent, completion->result);
 	if (vdo->recovery_journal == NULL) {
-		prepare_admin_sub_task(vdo, finish_aborting, finish_aborting);
+		prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
 	} else {
-		prepare_admin_sub_task_on_thread(vdo,
-						 close_recovery_journal_for_abort,
-						 close_recovery_journal_for_abort,
-						 get_journal_zone_thread(get_thread_config(vdo)));
+		prepare_vdo_admin_sub_task_on_thread(vdo,
+						     close_recovery_journal_for_abort,
+						     close_recovery_journal_for_abort,
+						     get_journal_zone_thread(get_thread_config(vdo)));
 	}
 
 	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
@@ -157,8 +157,8 @@ static void scrub_slabs(struct vdo_completion *completion)
 		enter_recovery_mode(vdo);
 	}
 
-	prepare_admin_sub_task(vdo, finish_parent_callback,
-			       continue_load_read_only);
+	prepare_vdo_admin_sub_task(vdo, finish_parent_callback,
+				   continue_load_read_only);
 	scrub_all_unrecovered_slabs(vdo->depot, completion);
 }
 
@@ -195,7 +195,7 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 	initialize_block_map_from_journal(vdo->block_map,
 					  vdo->recovery_journal);
 
-	prepare_admin_sub_task(vdo, scrub_slabs, handle_scrubbing_error);
+	prepare_vdo_admin_sub_task(vdo, scrub_slabs, handle_scrubbing_error);
 	prepare_to_allocate(vdo->depot, load_type, completion);
 }
 
@@ -214,8 +214,8 @@ static void make_dirty(struct vdo_completion *completion)
 	}
 
 	set_vdo_state(vdo, VDO_DIRTY);
-	prepare_admin_sub_task(vdo, prepare_to_come_online,
-			       continue_load_read_only);
+	prepare_vdo_admin_sub_task(vdo, prepare_to_come_online,
+				   continue_load_read_only);
 	save_vdo_components(vdo, completion);
 }
 
@@ -242,18 +242,18 @@ static void load_callback(struct vdo_completion *completion)
 	}
 
 	if (requires_read_only_rebuild(vdo)) {
-		prepare_admin_sub_task(vdo, make_dirty, abort_load);
+		prepare_vdo_admin_sub_task(vdo, make_dirty, abort_load);
 		launch_rebuild(vdo, completion);
 		return;
 	}
 
 	if (requires_rebuild(vdo)) {
-		prepare_admin_sub_task(vdo, make_dirty, continue_load_read_only);
+		prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 		launch_recovery(vdo, completion);
 		return;
 	}
 
-	prepare_admin_sub_task(vdo, make_dirty, continue_load_read_only);
+	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 	load_slab_depot(vdo->depot,
 			(was_new(vdo) ? ADMIN_STATE_FORMATTING :
 					ADMIN_STATE_LOADING),
@@ -264,8 +264,8 @@ static void load_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_load(struct vdo *vdo)
 {
-	return perform_admin_operation(vdo, ADMIN_OPERATION_LOAD, NULL,
-				       load_callback, load_callback);
+	return perform_vdo_admin_operation(vdo, ADMIN_OPERATION_LOAD, NULL,
+					   load_callback, load_callback);
 }
 
 /**
@@ -458,7 +458,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	assert_on_admin_thread(vdo, __func__);
-	prepare_admin_sub_task(vdo, load_vdo_components, abort_load);
+	prepare_vdo_admin_sub_task(vdo, load_vdo_components, abort_load);
 	load_super_block(vdo, completion, get_first_block_offset(vdo),
 			 &vdo->super_block);
 }
@@ -466,9 +466,9 @@ static void pre_load_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int prepare_to_load_vdo(struct vdo *vdo)
 {
-	return perform_admin_operation(vdo,
-				       ADMIN_OPERATION_LOAD,
-				       NULL,
-				       pre_load_callback,
-				       pre_load_callback);
+	return perform_vdo_admin_operation(vdo,
+					   ADMIN_OPERATION_LOAD,
+					   NULL,
+					   pre_load_callback,
+					   pre_load_callback);
 }

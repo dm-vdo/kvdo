@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#40 $
  */
 
 #include "vdoResize.h"
@@ -50,7 +50,7 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 };
 
 /**
- * Implements thread_id_getter_for_phase.
+ * Implements vdo_thread_id_getter_for_phase.
  **/
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
@@ -66,20 +66,20 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 static void grow_physical_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
-		admin_completion_from_sub_task(completion);
+		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 
-	assert_admin_operation_type(admin_completion,
-				    ADMIN_OPERATION_GROW_PHYSICAL);
-	assert_admin_phase_thread(admin_completion, __func__,
-	                          GROW_PHYSICAL_PHASE_NAMES);
+	assert_vdo_admin_operation_type(admin_completion,
+					ADMIN_OPERATION_GROW_PHYSICAL);
+	assert_vdo_admin_phase_thread(admin_completion, __func__,
+				      GROW_PHYSICAL_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case GROW_PHYSICAL_PHASE_START:
 		if (is_read_only(vdo->read_only_notifier)) {
 			log_error_strerror(VDO_READ_ONLY,
 					   "Can't grow physical size of a read-only VDO");
-			set_completion_result(reset_admin_sub_task(completion),
+			set_completion_result(reset_vdo_admin_sub_task(completion),
 					      VDO_READ_ONLY);
 			break;
 		}
@@ -91,25 +91,25 @@ static void grow_physical_callback(struct vdo_completion *completion)
 			// Copy the journal into the new layout.
 			copy_vdo_layout_partition(vdo->layout,
 						  RECOVERY_JOURNAL_PARTITION,
-						  reset_admin_sub_task(completion));
+						  reset_vdo_admin_sub_task(completion));
 		}
 		return;
 
 	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
 		copy_vdo_layout_partition(vdo->layout,
 					  SLAB_SUMMARY_PARTITION,
-					  reset_admin_sub_task(completion));
+					  reset_vdo_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo->states.vdo.config.physical_blocks =
 			grow_vdo_layout(vdo->layout);
 		update_slab_depot_size(vdo->depot);
-		save_vdo_components(vdo, reset_admin_sub_task(completion));
+		save_vdo_components(vdo, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
-		use_new_slabs(vdo->depot, reset_admin_sub_task(completion));
+		use_new_slabs(vdo->depot, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
@@ -126,7 +126,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		set_completion_result(reset_admin_sub_task(completion),
+		set_completion_result(reset_vdo_admin_sub_task(completion),
 				      UDS_BAD_STATE);
 	}
 
@@ -141,7 +141,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
  **/
 static void handle_growth_error(struct vdo_completion *completion)
 {
-	admin_completion_from_sub_task(completion)->phase =
+	vdo_admin_completion_from_sub_task(completion)->phase =
 		GROW_PHYSICAL_PHASE_ERROR;
 	grow_physical_callback(completion);
 }
@@ -180,10 +180,11 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result = perform_admin_operation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
-					 get_thread_id_for_phase,
-					 grow_physical_callback,
-					 handle_growth_error);
+	result = perform_vdo_admin_operation(vdo,
+					     ADMIN_OPERATION_GROW_PHYSICAL,
+					     get_thread_id_for_phase,
+					     grow_physical_callback,
+					     handle_growth_error);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -203,14 +204,14 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 static void check_may_grow_physical(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
-		admin_completion_from_sub_task(completion);
+		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 
-	assert_admin_operation_type(admin_completion,
-				    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+	assert_vdo_admin_operation_type(admin_completion,
+					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 	assert_on_admin_thread(vdo, __func__);
 
-	reset_admin_sub_task(completion);
+	reset_vdo_admin_sub_task(completion);
 
 	// This check can only be done from a base code thread.
 	if (is_read_only(vdo->read_only_notifier)) {
@@ -250,11 +251,11 @@ int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 	}
 
 	result =
-		perform_admin_operation(vdo,
-					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-					get_thread_id_for_phase,
-					check_may_grow_physical,
-					finish_parent_callback);
+		perform_vdo_admin_operation(vdo,
+					    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+					    get_thread_id_for_phase,
+					    check_may_grow_physical,
+					    finish_parent_callback);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
