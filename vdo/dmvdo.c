@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#107 $
  */
 
 #include "dmvdo.h"
@@ -50,6 +50,18 @@ struct vdo_module_globals vdo_globals;
 /**********************************************************************/
 
 /**
+ * Get the vdo associated with a dm target structure.
+ *
+ * @param ti  The dm target structure
+ *
+ * @return The vdo NULL.
+ **/
+static struct vdo *get_vdo_for_target(struct dm_target *ti)
+{
+	return ((struct device_config *) ti->private)->vdo;
+}
+
+/**
  * Get the kernel layer associated with a dm target structure.
  *
  * @param ti  The dm target structure
@@ -58,8 +70,7 @@ struct vdo_module_globals vdo_globals;
  **/
 static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 {
-	struct vdo *vdo = ((struct device_config *) ti->private)->vdo;
-	return vdo_as_kernel_layer(vdo);
+	return vdo_as_kernel_layer(get_vdo_for_target(ti));
 }
 
 /**
@@ -677,12 +688,12 @@ static void vdo_dtr(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_presuspend(struct dm_target *ti)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 	struct registered_thread instance_thread;
 
-	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	register_thread_device_id(&instance_thread, &vdo->instance);
 	if (dm_noflush_suspending(ti)) {
-		layer->no_flush_suspend = true;
+		vdo->no_flush_suspend = true;
 	}
 	unregister_thread_device_id();
 }
@@ -708,7 +719,8 @@ static void vdo_postsuspend(struct dm_target *ti)
 			      device_name,
 			      result);
 	}
-	layer->no_flush_suspend = false;
+
+	layer->vdo.no_flush_suspend = false;
 	unregister_thread_device_id();
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#15 $
  */
 
 #include "indexConfig.h"
@@ -66,7 +66,7 @@ static int __must_check decode_index_config(struct buffer *buffer,
 		return result;
 	}
 	result = get_uint32_le_from_buffer(buffer,
-					   &config->master_index_mean_delta);
+					   &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -149,8 +149,8 @@ static int read_version(struct buffered_reader *reader,
 			old_conf.sparse_chapters_per_volume;
 		conf->cache_chapters = old_conf.cache_chapters;
 		conf->checkpoint_frequency = old_conf.checkpoint_frequency;
-		conf->master_index_mean_delta =
-			old_conf.master_index_mean_delta;
+		conf->volume_index_mean_delta =
+			old_conf.volume_index_mean_delta;
 		conf->bytes_per_page = old_conf.bytes_per_page;
 		conf->sparse_sample_rate = old_conf.sparse_sample_rate;
 		conf->nonce = 0;
@@ -222,7 +222,7 @@ static int __must_check encode_index_config(struct buffer *buffer,
 		return result;
 	}
 	result = put_uint32_le_into_buffer(buffer,
-					   config->master_index_mean_delta);
+					   config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -304,7 +304,7 @@ int make_configuration(const struct uds_configuration *conf,
 
 	config->sparse_sample_rate = conf->sparse_sample_rate;
 	config->cache_chapters = conf->cache_chapters;
-	config->master_index_mean_delta = conf->master_index_mean_delta;
+	config->volume_index_mean_delta = conf->volume_index_mean_delta;
 
 	*config_ptr = config;
 	return UDS_SUCCESS;

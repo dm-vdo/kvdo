@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#38 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#39 $
  */
 
 #include "index.h"
@@ -167,7 +167,7 @@ static int rebuild_index(struct index *index)
 					  "cannot rebuild index: volume chapter boundaries too large");
 	}
 
-	set_master_index_open_chapter(index->master_index, 0);
+	set_volume_index_open_chapter(index->volume_index, 0);
 	if (is_empty) {
 		index->loaded_type = LOAD_EMPTY;
 		return UDS_SUCCESS;
@@ -207,16 +207,16 @@ int make_index(struct index_layout *layout,
 	index->load_context = load_context;
 
 	uint64_t nonce = get_volume_nonce(layout);
-	result = make_master_index(config, zone_count, nonce,
-				   &index->master_index);
+	result = make_volume_index(config, zone_count, nonce,
+				   &index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return log_error_strerror(result,
-					  "could not make master index");
+					  "could not make volume index");
 	}
 
-	result = add_index_state_component(index->state, MASTER_INDEX_INFO,
-					    NULL, index->master_index);
+	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,
+					    NULL, index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -296,8 +296,8 @@ void free_index(struct index *index)
 	}
 	free_chapter_writer(index->chapter_writer);
 
-	if (index->master_index != NULL) {
-		free_master_index(index->master_index);
+	if (index->volume_index != NULL) {
+		free_volume_index(index->volume_index);
 	}
 	release_index(index);
 }
@@ -349,8 +349,8 @@ static struct index_zone *get_request_zone(struct index *index,
  **/
 static int search_index_zone(struct index_zone *zone, Request *request)
 {
-	struct master_index_record record;
-	int result = get_master_index_record(zone->index->master_index,
+	struct volume_index_record record;
+	int result = get_volume_index_record(zone->index->volume_index,
 					     &request->chunk_name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -373,7 +373,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	/*
 	 * If a record has overflowed a chapter index in more than one chapter
 	 * (or overflowed in one chapter and collided with an existing record),
-	 * it will exist as a collision record in the master index, but
+	 * it will exist as a collision record in the volume index, but
 	 * we won't *find it in the volume. This case needs special handling.
 	 */
 	bool overflow_record =
@@ -389,11 +389,11 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 
 		if (record.virtual_chapter != chapter) {
 			/*
-			 * Update the master index to reference the new chapter
+			 * Update the volume index to reference the new chapter
 			 * for the block. If the record had been deleted or
 			 * dropped from the chapter index, it will be back.
 			 */
-			result = set_master_index_record_chapter(&record,
+			result = set_volume_index_record_chapter(&record,
 								 chapter);
 		} else if (request->action != REQUEST_UPDATE) {
 			/* The record is already in the open chapter, so we're
@@ -401,9 +401,9 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			return UDS_SUCCESS;
 		}
 	} else {
-		// The record wasn't in the master index, so check whether the
+		// The record wasn't in the volume index, so check whether the
 		// name is in a cached sparse chapter.
-		if (!is_master_index_sample(zone->index->master_index,
+		if (!is_volume_index_sample(zone->index->volume_index,
 					    &request->chunk_name) &&
 		    is_sparse(zone->index->volume->geometry)) {
 			// Passing UINT64_MAX triggers a search of the entire
@@ -429,16 +429,16 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		}
 
 		/*
-		 * Add a new entry to the master index referencing the open
+		 * Add a new entry to the volume index referencing the open
 		 * chapter. This needs to be done both for new records, and for
 		 * records from cached sparse chapters.
 		 */
-		result = put_master_index_record(&record, chapter);
+		result = put_volume_index_record(&record, chapter);
 	}
 
 	if (result == UDS_OVERFLOW) {
 		/*
-		 * The master index encountered a delta list overflow.	The
+		 * The volume index encountered a delta list overflow.	The
 		 * condition was already logged. We will go on without adding
 		 * the chunk to the open chapter.
 		 */
@@ -464,15 +464,15 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 /**********************************************************************/
 static int remove_from_index_zone(struct index_zone *zone, Request *request)
 {
-	struct master_index_record record;
-	int result = get_master_index_record(zone->index->master_index,
+	struct volume_index_record record;
+	int result = get_volume_index_record(zone->index->volume_index,
 					     &request->chunk_name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	if (!record.is_found) {
-		// The name does not exist in master index, so there is nothing
+		// The name does not exist in volume index, so there is nothing
 		// to remove.
 		return UDS_SUCCESS;
 	}
@@ -497,11 +497,11 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 	request->location = compute_index_region(zone, record.virtual_chapter);
 
 	/*
-	 * Delete the master index entry for the named record only. Note that a
+	 * Delete the volume index entry for the named record only. Note that a
 	 * later search might later return stale advice if there is a colliding
 	 * name in the same chapter, but it's a very rare case (1 in 2^21).
 	 */
-	result = remove_master_index_record(&record);
+	result = remove_volume_index_record(&record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -665,12 +665,12 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 }
 
 /**
- * Add an entry to the master index when rebuilding.
+ * Add an entry to the volume index when rebuilding.
  *
  * @param index			  The index to query.
  * @param name			  The block name of interest.
  * @param virtual_chapter	  The virtual chapter number to write to the
- *				  master index
+ *				  volume index
  * @param will_be_sparse_chapter  True if this entry will be in the sparse
  *				  portion of the index at the end of
  *				  rebuilding
@@ -683,15 +683,15 @@ static int replay_record(struct index *index,
 			 bool will_be_sparse_chapter)
 {
 	if (will_be_sparse_chapter &&
-	    !is_master_index_sample(index->master_index, name)) {
+	    !is_volume_index_sample(index->volume_index, name)) {
 		// This entry will be in a sparse chapter after the rebuild
 		// completes, and it is not a sample, so just skip over it.
 		return UDS_SUCCESS;
 	}
 
-	struct master_index_record record;
+	struct volume_index_record record;
 	int result =
-		get_master_index_record(index->master_index, name, &record);
+		get_volume_index_record(index->volume_index, name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -707,7 +707,7 @@ static int replay_record(struct index *index,
 			update_record = true;
 		} else if (record.virtual_chapter == virtual_chapter) {
 			/*
-			 * There is a master index entry pointing to the
+			 * There is a volume index entry pointing to the
 			 * current chapter, but we don't know if it is for the
 			 * same name as the one we are currently working on or
 			 * not. For now, we're just going to assume that it
@@ -722,9 +722,9 @@ static int replay_record(struct index *index,
 			 * disk to see if the record exists, since we will
 			 * likely have just read the record from disk (i.e. we
 			 * know it's there). The exception to this is when we
-			 * already find an entry in the master index that has a
+			 * already find an entry in the volume index that has a
 			 * different chapter. In this case, we need to search
-			 * that chapter to determine if the master index entry
+			 * that chapter to determine if the volume index entry
 			 * was for the same record or a different one.
 			 */
 			result = search_volume_page_cache(index->volume,
@@ -741,21 +741,21 @@ static int replay_record(struct index *index,
 
 	if (update_record) {
 		/*
-		 * Update the master index to reference the new chapter for the
+		 * Update the volume index to reference the new chapter for the
 		 * block. If the record had been deleted or dropped from the
 		 * chapter index, it will be back.
 		 */
-		result = set_master_index_record_chapter(&record,
+		result = set_volume_index_record_chapter(&record,
 							 virtual_chapter);
 	} else {
 		/*
-		 * Add a new entry to the master index referencing the open
+		 * Add a new entry to the volume index referencing the open
 		 * chapter. This should be done regardless of whether we are a
 		 * brand new record or a sparse record, i.e. one that doesn't
 		 * exist in the index but does on disk, since for a sparse
 		 * record, we would want to un-sparsify if it did exist.
 		 */
-		result = put_master_index_record(&record, virtual_chapter);
+		result = put_volume_index_record(&record, virtual_chapter);
 	}
 
 	if ((result == UDS_DUPLICATE_NAME) || (result == UDS_OVERFLOW)) {
@@ -823,8 +823,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	log_info("Replaying volume from chapter %llu through chapter %llu",
 		 from_vcn,
 		 upto_vcn);
-	set_master_index_open_chapter(index->master_index, upto_vcn);
-	set_master_index_open_chapter(index->master_index, from_vcn);
+	set_volume_index_open_chapter(index->volume_index, upto_vcn);
+	set_volume_index_open_chapter(index->volume_index, from_vcn);
 
 	/*
 	 * At least two cases to deal with here!
@@ -838,10 +838,10 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
 	/*
 	 * Go through each record page of each chapter and add the records back
-	 * to the master index.	 This should not cause anything to be written
+	 * to the volume index.	 This should not cause anything to be written
 	 * to either the open chapter or on disk volume.  Also skip the on disk
 	 * chapter corresponding to upto, as this would have already been
-	 * purged from the master index when the chapter was opened.
+	 * purged from the volume index when the chapter was opened.
 	 *
 	 * Also, go through each index page for each chapter and rebuild the
 	 * index page map.
@@ -863,7 +863,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		prefetch_volume_pages(&index->volume->volume_store,
 				      map_to_physical_page(geometry, chapter, 0),
 				      geometry->pages_per_chapter);
-		set_master_index_open_chapter(index->master_index, vcn);
+		set_volume_index_open_chapter(index->volume_index, vcn);
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
 			index->volume->lookup_mode = old_lookup_mode;
@@ -919,7 +919,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	index->volume->lookup_mode = old_lookup_mode;
 
 	// We also need to reap the chapter being replaced by the open chapter
-	set_master_index_open_chapter(index->master_index, upto_vcn);
+	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 
 	uint64_t new_ipm_update =
 		get_last_update(index->volume->index_page_map);
@@ -938,10 +938,10 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 {
 	uint64_t cw_allocated =
 		get_chapter_writer_memory_allocated(index->chapter_writer);
-	// We're accessing the master index while not on a zone thread, but
+	// We're accessing the volume index while not on a zone thread, but
 	// that's safe to do when acquiring statistics.
-	struct master_index_stats dense_stats, sparse_stats;
-	get_master_index_stats(index->master_index, &dense_stats,
+	struct volume_index_stats dense_stats, sparse_stats;
+	get_volume_index_stats(index->volume_index, &dense_stats,
 			       &sparse_stats);
 
 	counters->entries_indexed =
@@ -971,8 +971,8 @@ void advance_active_chapters(struct index *index)
 /**********************************************************************/
 uint64_t triage_index_request(struct index *index, Request *request)
 {
-	struct master_index_triage triage;
-	lookup_master_index_name(index->master_index, &request->chunk_name,
+	struct volume_index_triage triage;
+	lookup_volume_index_name(index->volume_index, &request->chunk_name,
 				 &triage);
 	if (!triage.in_sampled_chapter) {
 		// Not indexed or not a hook.

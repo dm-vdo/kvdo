@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.c#7 $
  */
 
 #include "config.h"
@@ -66,10 +66,10 @@ bool are_uds_configurations_equal(struct uds_configuration *a,
 			      b->cache_chapters);
 		result = false;
 	}
-	if (a->master_index_mean_delta != b->master_index_mean_delta) {
-		uds_log_error("Master index mean delta (%u) does not match (%u)",
-			      a->master_index_mean_delta,
-			      b->master_index_mean_delta);
+	if (a->volume_index_mean_delta != b->volume_index_mean_delta) {
+		uds_log_error("Volumee index mean delta (%u) does not match (%u)",
+			      a->volume_index_mean_delta,
+			      b->volume_index_mean_delta);
 		result = false;
 	}
 	if (a->bytes_per_page != b->bytes_per_page) {
@@ -104,8 +104,8 @@ void log_uds_configuration(struct uds_configuration *conf)
 	log_debug("  Sparse chapters per volume: %10u",
 		  conf->sparse_chapters_per_volume);
 	log_debug("  Cache size (chapters):      %10u", conf->cache_chapters);
-	log_debug("  Master index mean delta:    %10u",
-		  conf->master_index_mean_delta);
+	log_debug("  Volume index mean delta:    %10u",
+		  conf->volume_index_mean_delta);
 	log_debug("  Bytes per page:             %10u", conf->bytes_per_page);
 	log_debug("  Sparse sample rate:         %10u",
 		  conf->sparse_sample_rate);

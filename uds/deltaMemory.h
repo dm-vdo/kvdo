@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.h#10 $
  */
 
 #ifndef DELTAMEMORY_H
@@ -32,15 +32,15 @@
 /*
  * We encode the delta list information into 16 bytes per list.
  *
- * Because the master index has 1 million delta lists, each byte of header
+ * Because the volume index has 1 million delta lists, each byte of header
  * information ends up costing us 1MB.  We have an incentive to keep the
  * size down.
  *
- * The master index delta list memory is currently about 780MB in size,
+ * The volume index delta list memory is currently about 780MB in size,
  * which is more than 6 gigabits.  Therefore we need at least 33 bits to
- * address the master index memory and we use the uint64_t type.
+ * address the volume index memory and we use the uint64_t type.
  *
- * The master index delta lists have 256 entries of about 24 bits each,
+ * The volume index delta lists have 256 entries of about 24 bits each,
  * which is 6K bits.  The index needs 13 bits to represent the size of a
  * delta list and we use the uint16_t type.
  */

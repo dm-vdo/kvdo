@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#12 $
  */
 
 #ifndef DELTAINDEX_H
@@ -325,7 +325,7 @@ int __must_check abort_saving_delta_index(const struct delta_index *delta_index,
  * @param num_lists    The number of delta lists in the index
  * @param memory_size  The number of bytes in memory for the index
  *
- * @return num_bytes  The number of bytes required to save the master index
+ * @return num_bytes  The number of bytes required to save the volume index
  **/
 size_t __must_check compute_delta_index_save_bytes(unsigned int num_lists,
 						   size_t memory_size);
@@ -550,7 +550,7 @@ get_delta_index_zone_num_lists(const struct delta_index *delta_index,
 			       unsigned int zone_number);
 
 /**
- * Get the number of bytes used for master index entries in a zone
+ * Get the number of bytes used for volume index entries in a zone
  *
  * @param delta_index  The delta index
  * @param zone_number  The zone number
@@ -562,7 +562,7 @@ get_delta_index_zone_dlist_bits_used(const struct delta_index *delta_index,
 				     unsigned int zone_number);
 
 /**
- * Get the number of bytes used for master index entries.
+ * Get the number of bytes used for volume index entries.
  *
  * @param delta_index  The delta index
  *
@@ -572,7 +572,7 @@ uint64_t __must_check
 get_delta_index_dlist_bits_used(const struct delta_index *delta_index);
 
 /**
- * Get the number of bytes allocated for master index entries.
+ * Get the number of bytes allocated for volume index entries.
  *
  * @param delta_index  The delta index
  *

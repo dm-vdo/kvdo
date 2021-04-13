@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#58 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -139,6 +139,8 @@ struct vdo {
 
 	/* Whether a close is required */
 	bool close_required;
+	bool no_flush_suspend;
+	bool allocations_allowed;
 
 	/* Atomic global counts of error events */
 	struct atomic_error_statistics error_stats;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#13 $
  */
 
 /**
@@ -106,11 +106,19 @@ typedef unsigned int uds_memory_config_size_t;
 extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_256MB;
 extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_512MB;
 extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_768MB;
-
 /**
  *  The maximum configurable amount of memory.
  **/
 extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_MAX;
+
+/**
+ * Memory size constants for volumes that have one less chapter
+ */
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_256MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_512MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_768MB;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED;
+extern const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_MAX;
 
 /** The name (hash) of a chunk. */
 struct uds_chunk_name {
@@ -164,7 +172,7 @@ struct uds_index_stats {
 	uint64_t entries_indexed;
 	/** An estimate of the index's memory usage */
 	uint64_t memory_used;
-	/** The number of collisions recorded in the master index */
+	/** The number of collisions recorded in the volume index */
 	uint64_t collisions;
 	/** The number of entries discarded from the index since index startup
 	 */

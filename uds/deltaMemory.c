@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#17 $
  */
 #include "deltaMemory.h"
 
@@ -35,7 +35,7 @@
 /*
  * The delta_memory structure manages the memory that stores delta lists.
  *
- * The "mutable" form of delta_memory is used for the master index and for
+ * The "mutable" form of delta_memory is used for the volume index and for
  * an open chapter index.  The "immutable" form of delta_memory is used for
  * regular chapter indices.
  */

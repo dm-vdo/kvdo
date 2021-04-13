@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/loadType.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/loadType.h#4 $
  */
 
 #ifndef LOAD_TYPE_H
@@ -40,8 +40,8 @@
  *    LOAD_CREATE   new empty index
  *    LOAD_LOAD     loaded saved index
  *    LOAD_REPLAY   loaded checkpoint and replayed new chapters
- *    LOAD_EMPTY    empty master index from empty volume data
- *    LOAD_REBUILD  rebuilt master index from volume data
+ *    LOAD_EMPTY    empty volume index from empty volume data
+ *    LOAD_REBUILD  rebuilt volume index from volume data
  **/
 enum load_type {
 	LOAD_UNDEFINED = 0,

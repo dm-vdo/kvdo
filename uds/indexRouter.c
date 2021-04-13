@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#21 $
  */
 
 #include "indexRouter.h"
@@ -68,7 +68,7 @@ static void enqueue_barrier_messages(struct index_router *router,
 
 /**
  * This is the request processing function for the triage stage queue. Each
- * request is resolved in the master index, determining if it is a hook or
+ * request is resolved in the volume index, determining if it is a hook or
  * not, and if a hook, what virtual chapter (if any) it might be found in. If
  * a virtual chapter is found, this enqueues a sparse chapter cache barrier in
  * every zone before enqueueing the request in its zone.
@@ -229,7 +229,7 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 	}
 
 	struct index *index = router->index;
-	request->zone_number = get_master_index_zone(index->master_index,
+	request->zone_number = get_volume_index_zone(index->volume_index,
 						     &request->chunk_name);
 	return get_zone_queue(router, request->zone_number);
 }

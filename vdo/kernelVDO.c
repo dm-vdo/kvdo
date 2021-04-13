@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#94 $
  */
 
 /*
@@ -54,9 +54,8 @@ static void start_vdo_request_queue(void *ptr)
 {
 	struct vdo_thread *thread = ptr;
 	struct vdo *vdo = thread->vdo;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	register_allocating_thread(&thread->allocating_thread,
-				   &layer->allocations_allowed);
+				   &vdo->allocations_allowed);
 }
 
 /**********************************************************************/
@@ -162,10 +161,7 @@ int start_vdo(struct vdo *vdo, char **reason)
 /**********************************************************************/
 int suspend_vdo(struct vdo *vdo)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-	int result;
-
-	result = perform_vdo_suspend(vdo, !layer->no_flush_suspend);
+	int result = perform_vdo_suspend(vdo, !vdo->no_flush_suspend);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		log_error_strerror(result, "%s: Suspend device failed",
 				   __func__);

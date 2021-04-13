@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.h#6 $
  */
 
 #ifndef MASTERINDEX006_H
@@ -25,31 +25,31 @@
 #include "masterIndexOps.h"
 
 /**
- * Make a new master index.
+ * Make a new volume index.
  *
- * @param config          The configuration of the master index
+ * @param config          The configuration of the volume index
  * @param num_zones       The number of zones
  * @param volume_nonce    The nonce used to authenticate the index
- * @param master_index    Location to hold new master index ptr
+ * @param volume_index    Location to hold new volume index ptr
  *
  * @return error code or UDS_SUCCESS
  **/
-int __must_check make_master_index006(const struct configuration *config,
+int __must_check make_volume_index006(const struct configuration *config,
 				      unsigned int num_zones,
 				      uint64_t volume_nonce,
-				      struct master_index **master_index);
+				      struct volume_index **volume_index);
 
 /**
- * Compute the number of bytes required to save a master index of a given
+ * Compute the number of bytes required to save a volume index of a given
  * configuration.
  *
- * @param config     The configuration of the master index
- * @param num_bytes  The number of bytes required to save the master index
+ * @param config     The configuration of the volume index
+ * @param num_bytes  The number of bytes required to save the volume index
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check
-compute_master_index_save_bytes006(const struct configuration *config,
+compute_volume_index_save_bytes006(const struct configuration *config,
 				   size_t *num_bytes);
 
 #endif /* MASTERINDEX006_H */

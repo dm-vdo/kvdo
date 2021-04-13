@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#174 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#175 $
  */
 
 #include "kernelLayer.h"
@@ -386,7 +386,6 @@ int make_kernel_layer(unsigned int instance,
 	initialize_limiter(&layer->request_limiter, request_limit);
 	initialize_limiter(&layer->discard_limiter, request_limit * 3 / 4);
 
-	layer->allocations_allowed = true;
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
@@ -849,14 +848,14 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		start_dedupe_index(layer->dedupe_index, was_new(&layer->vdo));
 	}
 
-	layer->allocations_allowed = false;
+	layer->vdo.allocations_allowed = false;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 void stop_kernel_layer(struct kernel_layer *layer)
 {
-	layer->allocations_allowed = true;
+	layer->vdo.allocations_allowed = true;
 
 	// Stop services that need to gather VDO statistics from the worker
 	// threads.
@@ -954,7 +953,8 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		result = suspend_result;
 	}
 
-	suspend_dedupe_index(layer->dedupe_index, !layer->no_flush_suspend);
+	suspend_dedupe_index(layer->dedupe_index,
+			     !layer->vdo.no_flush_suspend);
 	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
 }

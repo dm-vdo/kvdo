@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#7 $
  */
 
 #ifndef CONFIG_H
@@ -27,7 +27,7 @@
 #include "geometry.h"
 #include "uds.h"
 
-enum { DEFAULT_MASTER_INDEX_MEAN_DELTA = 4096,
+enum { DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
        DEFAULT_CACHE_CHAPTERS = 7,
        DEFAULT_SPARSE_SAMPLE_RATE = 0 };
 
@@ -47,8 +47,8 @@ struct uds_configuration {
 	// XXX the checkpoint_frequency is not used - it is now a runtime
 	// parameter
 	unsigned int checkpoint_frequency;
-	/** The master index mean delta to use */
-	unsigned int master_index_mean_delta;
+	/** The volume index mean delta to use */
+	unsigned int volume_index_mean_delta;
 	/** Size of a page, used for both record pages and index pages */
 	unsigned int bytes_per_page;
 	/** Sampling rate for sparse indexing */
@@ -71,8 +71,8 @@ struct uds_configuration_6_01 {
 	unsigned int cache_chapters;
 	/** Frequency with which to checkpoint */
 	unsigned int checkpoint_frequency;
-	/** The master index mean delta to use */
-	unsigned int master_index_mean_delta;
+	/** The volume index mean delta to use */
+	unsigned int volume_index_mean_delta;
 	/** Size of a page, used for both record pages and index pages */
 	unsigned int bytes_per_page;
 	/** Sampling rate for sparse indexing */

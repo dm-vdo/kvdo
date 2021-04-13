@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#15 $
  */
 
 #ifndef INDEX_H
@@ -43,7 +43,7 @@ struct index {
 	struct index_load_context *load_context;
 	struct index_layout *layout;
 	struct index_state *state;
-	struct master_index *master_index;
+	struct volume_index *volume_index;
 	struct volume *volume;
 	unsigned int zone_count;
 	struct index_zone **zones;
@@ -159,7 +159,7 @@ void begin_save(struct index *index, bool checkpoint,
 		uint64_t open_chapter_number);
 
 /**
- * Replay the volume file to repopulate the master index.
+ * Replay the volume file to repopulate the volume index.
  *
  * @param index		The index
  * @param from_vcn	The virtual chapter to start replaying
@@ -169,7 +169,7 @@ void begin_save(struct index *index, bool checkpoint,
 int __must_check replay_volume(struct index *index, uint64_t from_vcn);
 
 /**
- * Gather statistics from the master index, volume, and cache.
+ * Gather statistics from the volume index, volume, and cache.
  *
  * @param index	    The index
  * @param counters  the statistic counters for the index
@@ -198,7 +198,7 @@ void advance_active_chapters(struct index *index);
  * Triage an index request, deciding whether it requires that a sparse cache
  * barrier message precede it.
  *
- * This resolves the chunk name in the request in the master index,
+ * This resolves the chunk name in the request in the volume index,
  * determining if it is a hook or not, and if a hook, what virtual chapter (if
  * any) it might be found in. If a virtual chapter is found, it checks whether
  * that chapter appears in the sparse region of the index. If all these

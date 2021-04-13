@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#21 $
  */
 #include "deltaIndex.h"
 
@@ -1576,7 +1576,7 @@ int put_delta_index_entry(struct delta_index_entry *delta_entry,
 		 * collision entry.  This happens when we find a collision and
 		 * attempt to add the name again to the index.  This is
 		 * normally a fatal error unless we are replaying a closed
-		 * chapter while we are rebuilding a master index.
+		 * chapter while we are rebuilding a volume index.
 		 */
 		return UDS_DUPLICATE_NAME;
 	}

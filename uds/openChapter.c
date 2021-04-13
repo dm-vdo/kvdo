@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#26 $
  */
 
 #include "openChapter.h"
@@ -309,9 +309,9 @@ static int load_version20(struct index *index, struct buffered_reader *reader)
 
 		unsigned int zone = 0;
 		if (index->zone_count > 1) {
-			// A read-only index has no master index, but it also
+			// A read-only index has no volume index, but it also
 			// has only one zone.
-			zone = get_master_index_zone(index->master_index,
+			zone = get_volume_index_zone(index->volume_index,
 						     &record.name);
 		}
 		// Add records until the open chapter zone almost runs out of

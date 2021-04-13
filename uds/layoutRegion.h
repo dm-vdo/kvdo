@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/layoutRegion.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/layoutRegion.h#3 $
  */
 
 #ifndef LAYOUT_REGION_H
@@ -26,7 +26,7 @@
  * Single file layouts are defined in terms of data regions. Each data region
  * is a sub-section of the available space. Some data regions may contain
  * subsidiary data regions, for example, a checkpoint or index save will
- * contain master index regions (according to the number of zones), an
+ * contain volume index regions (according to the number of zones), an
  * index page map region, and possibly an open chapter region.
  **/
 

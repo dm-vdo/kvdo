@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.h#10 $
  */
 
 #ifndef HASH_UTILS_H
@@ -30,10 +30,10 @@
 
 // How various portions of a hash are apportioned.  Size dependent.
 enum {
-	MASTER_INDEX_BYTES_OFFSET = 0, // size 8
+	VOLUME_INDEX_BYTES_OFFSET = 0, // size 8
 	CHAPTER_INDEX_BYTES_OFFSET = 8, // size 6
 	SAMPLE_BYTES_OFFSET = 14, // size 2
-	MASTER_INDEX_BYTES_COUNT = 8,
+	VOLUME_INDEX_BYTES_COUNT = 8,
 	CHAPTER_INDEX_BYTES_COUNT = 6,
 	SAMPLE_BYTES_COUNT = 2,
 };
@@ -56,16 +56,16 @@ extract_chapter_index_bytes(const struct uds_chunk_name *name)
 }
 
 /**
- * Extract the portion of a block name used by the master index.
+ * Extract the portion of a block name used by the volume index.
  *
  * @param name The block name
  *
- * @return The master index portion of the block name
+ * @return The volume index portion of the block name
  **/
 static INLINE uint64_t
-extract_master_index_bytes(const struct uds_chunk_name *name)
+extract_volume_index_bytes(const struct uds_chunk_name *name)
 {
-	return get_unaligned_be64(&name->name[MASTER_INDEX_BYTES_OFFSET]);
+	return get_unaligned_be64(&name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
 /**
@@ -202,15 +202,15 @@ static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
 }
 
 /**
- * FOR TESTING. Set the portion of a block name used by the master index.
+ * FOR TESTING. Set the portion of a block name used by the volume index.
  *
  * @param name  The block name
  * @param val   The value to store
  **/
-static INLINE void set_master_index_bytes(struct uds_chunk_name *name,
+static INLINE void set_volume_index_bytes(struct uds_chunk_name *name,
 					  uint64_t val)
 {
-	put_unaligned_be64(val, &name->name[MASTER_INDEX_BYTES_OFFSET]);
+	put_unaligned_be64(val, &name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
 /**

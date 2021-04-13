@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#21 $
  */
 
 #include "indexZone.h"
@@ -141,7 +141,7 @@ static int reap_oldest_chapter(struct index_zone *zone)
 		return result;
 	}
 
-	set_master_index_zone_open_chapter(index->master_index, zone->id,
+	set_volume_index_zone_open_chapter(index->volume_index, zone->id,
 					   zone->newest_virtual_chapter);
 	return UDS_SUCCESS;
 }

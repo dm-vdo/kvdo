@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#34 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#37 $
  */
 
 #include "indexLayout.h"
@@ -40,12 +40,15 @@
  * begins on 4K block boundary. Save regions are further sub-divided into
  * regions of their own.
  *
- * Each region has a kind and an instance number. Some kinds only have one
- * instance and therefore use RL_SOLE_INSTANCE (-1) as the instance number.
- * The RL_KIND_INDEX uses instances to represent sub-indices, where used.
- * A save region can either hold a checkpoint or a clean shutdown (determined
- * by the type). The instances determine which available save slot is used.
- * The RL_KIND_MASTER_INDEX uses instances to record which zone is being saved.
+ * Each region has a kind and an instance number. Some kinds only have
+ * one instance and therefore use RL_SOLE_INSTANCE (-1) as the
+ * instance number.  The RL_KIND_INDEX used to use instances to
+ * represent sub-indices; now, however there is only ever one
+ * sub-index and therefore one instance. A save region can either hold
+ * a checkpoint or a clean shutdown (determined by the type). The
+ * instances determine which available save slot is used.  The
+ * RL_KIND_VOLUME_INDEX uses instances to record which zone is being
+ * saved.
  *
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *     | | |   I N D E X   0      101, 0    | ...  | |
@@ -55,13 +58,13 @@
  *     | | | 201 -1 | 202  0 | 202  1 |     |      |l|
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *
- * The header contains the encoded regional layout table as well as
- * the saved index configuration record. The sub-index regions and their
+ * The header contains the encoded region layout table as well as the
+ * saved index configuration record. The sub-index region and its
  * subdivisions are maintained in the same table.
  *
- * There are at least two save regions per sub-index to preserve the old
- * state should the saving of a state be incomplete. They are used in
- * a round-robin fashion.
+ * There are at least two save regions to preserve the old state
+ * should the saving of a state be incomplete. They are used in a
+ * round-robin fashion.
  *
  * Anatomy of a save region:
  *
@@ -76,10 +79,10 @@
  * the open chapter only appears in RL_TYPE_SAVE not RL_TYPE_CHECKPOINT,
  * although the same space is reserved for both.
  *
- * The header contains the encoded regional layout table as well as the
- * index state record for that save or checkpoint. Each save or checkpoint
- * has a unique generation number and nonce which is used to seed the
- * checksums of those regions.
+ * The header contains the encoded region layout table as well as the
+ * index state record for that save or checkpoint. Each save or
+ * checkpoint has a unique generation number and nonce which is used
+ * to seed the checksums of those regions.
  */
 
 struct index_save_data {
@@ -95,7 +98,7 @@ struct index_save_layout {
 	unsigned int num_zones;
 	struct layout_region index_page_map;
 	struct layout_region free_space;
-	struct layout_region *master_index_zones;
+	struct layout_region *volume_index_zones;
 	struct layout_region *open_chapter;
 	enum index_save_type save_type;
 	struct index_save_data save_data;
@@ -139,7 +142,7 @@ struct index_layout {
 /**
  * Structure used to compute single file layout sizes.
  *
- * Note that the masterIndexBlocks represent all zones and are sized for
+ * Note that the volume_index_blocks represent all zones and are sized for
  * the maximum number of blocks that would be needed regardless of the number
  * of zones (up to the maximum value) that are used at run time.
  *
@@ -152,7 +155,7 @@ struct save_layout_sizes {
 	unsigned int num_saves; // per sub-index
 	size_t block_size; // in bytes
 	uint64_t volume_blocks; // per sub-index
-	uint64_t master_index_blocks; // per save
+	uint64_t volume_index_blocks; // per save
 	uint64_t page_map_blocks; // per save
 	uint64_t open_chapter_blocks; // per save
 	uint64_t save_blocks; // per sub-index
@@ -219,8 +222,8 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 	sls->block_size = block_size;
 	sls->volume_blocks = sls->geometry.bytes_per_volume / block_size;
 
-	result = compute_master_index_save_blocks(&sls->config, block_size,
-						  &sls->master_index_blocks);
+	result = compute_volume_index_save_blocks(&sls->config, block_size,
+						  &sls->volume_index_blocks);
 	if (result != UDS_SUCCESS) {
 		return log_error_strerror(result,
 					  "cannot compute index save size");
@@ -233,7 +236,7 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 		block_count(compute_saved_open_chapter_size(&sls->geometry),
 			    block_size);
 	sls->save_blocks =
-		1 + (sls->master_index_blocks + sls->page_map_blocks +
+		1 + (sls->volume_index_blocks + sls->page_map_blocks +
 		     sls->open_chapter_blocks);
 	sls->sub_index_blocks =
 		sls->volume_blocks + (sls->num_saves * sls->save_blocks);
@@ -593,8 +596,8 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					  super->num_indexes);
 	}
 
-	if (generate_master_nonce(super->nonce_info,
-				  sizeof(super->nonce_info)) != super->nonce) {
+	if (generate_primary_nonce(super->nonce_info,
+				   sizeof(super->nonce_info)) != super->nonce) {
 		return log_error_strerror(UDS_CORRUPT_COMPONENT,
 					  "inconsistent superblock nonce");
 	}
@@ -879,11 +882,11 @@ static void populate_index_save_layout(struct index_save_layout *isl,
 		uint64_t mi_block_count = blocks_avail / num_zones;
 		unsigned int z;
 		for (z = 0; z < num_zones; ++z) {
-			struct layout_region *miz = &isl->master_index_zones[z];
+			struct layout_region *miz = &isl->volume_index_zones[z];
 			setup_layout(miz,
 				     &next_block,
 				     mi_block_count,
-				     RL_KIND_MASTER_INDEX,
+				     RL_KIND_VOLUME_INDEX,
 				     z);
 		}
 	}
@@ -951,7 +954,7 @@ reconstruct_index_save(struct index_save_layout *isl,
 	unsigned int n = 0;
 	struct region_iterator tmp_iter;
 	for (tmp_iter = iter;
-	     expect_layout(false, NULL, &tmp_iter, 0, RL_KIND_MASTER_INDEX, n);
+	     expect_layout(false, NULL, &tmp_iter, 0, RL_KIND_VOLUME_INDEX, n);
 	     ++n)
 		;
 	isl->num_zones = n;
@@ -961,8 +964,8 @@ reconstruct_index_save(struct index_save_layout *isl,
 	if (isl->num_zones > 0) {
 		result = ALLOCATE(n,
 				  struct layout_region,
-				  "master index layout regions",
-				  &isl->master_index_zones);
+				  "volume index layout regions",
+				  &isl->volume_index_zones);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -974,7 +977,7 @@ reconstruct_index_save(struct index_save_layout *isl,
 				  "open chapter layout region",
 				  &isl->open_chapter);
 		if (result != UDS_SUCCESS) {
-			FREE(isl->master_index_zones);
+			FREE(isl->volume_index_zones);
 			return result;
 		}
 	}
@@ -982,10 +985,10 @@ reconstruct_index_save(struct index_save_layout *isl,
 	unsigned int z;
 	for (z = 0; z < isl->num_zones; ++z) {
 		expect_layout(true,
-			      &isl->master_index_zones[z],
+			      &isl->volume_index_zones[z],
 			      &iter,
 			      0,
-			      RL_KIND_MASTER_INDEX,
+			      RL_KIND_VOLUME_INDEX,
 			      z);
 	}
 	if (isl->save_type == IS_SAVE) {
@@ -1109,7 +1112,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 			while (j-- > 0) {
 				struct index_save_layout *isl =
 					&layout->index.saves[j];
-				FREE(isl->master_index_zones);
+				FREE(isl->volume_index_zones);
 				FREE(isl->open_chapter);
 				free_buffer(&isl->index_state_buffer);
 			}
@@ -1122,7 +1125,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 			while (j-- > 0) {
 				struct index_save_layout *isl =
 					&layout->index.saves[j];
-				FREE(isl->master_index_zones);
+				FREE(isl->volume_index_zones);
 				FREE(isl->open_chapter);
 				free_buffer(&isl->index_state_buffer);
 			}
@@ -1176,8 +1179,8 @@ static void generate_super_block_data(size_t block_size,
 	       SINGLE_FILE_MAGIC_1_LENGTH);
 	create_unique_nonce_data(super->nonce_info);
 
-	super->nonce = generate_master_nonce(super->nonce_info,
-					     sizeof(super->nonce_info));
+	super->nonce = generate_primary_nonce(super->nonce_info,
+					      sizeof(super->nonce_info));
 	super->version = SUPER_VERSION_CURRENT;
 	super->block_size = block_size;
 	super->num_indexes = 1;
@@ -1196,8 +1199,8 @@ reset_index_save_layout(struct index_save_layout *isl,
 {
 	uint64_t start_block = *next_block_ptr;
 
-	if (isl->master_index_zones) {
-		FREE(isl->master_index_zones);
+	if (isl->volume_index_zones) {
+		FREE(isl->volume_index_zones);
 	}
 	if (isl->open_chapter) {
 		FREE(isl->open_chapter);
@@ -1235,7 +1238,7 @@ reset_index_save_layout(struct index_save_layout *isl,
 
 /*****************************************************************************/
 static void define_sub_index_nonce(struct sub_index_layout *sil,
-				   uint64_t master_nonce,
+				   uint64_t primary_nonce,
 				   unsigned int index_id)
 {
 	struct sub_index_nonce_data {
@@ -1247,9 +1250,9 @@ static void define_sub_index_nonce(struct sub_index_layout *sil,
 	encode_uint64_le(buffer, &offset, sil->sub_index.start_block);
 	encode_uint16_le(buffer, &offset, index_id);
 	sil->nonce =
-		generate_secondary_nonce(master_nonce, buffer, sizeof(buffer));
+		generate_secondary_nonce(primary_nonce, buffer, sizeof(buffer));
 	if (sil->nonce == 0) {
-		sil->nonce = generate_secondary_nonce(~master_nonce + 1,
+		sil->nonce = generate_secondary_nonce(~primary_nonce + 1,
 						      buffer, sizeof(buffer));
 	}
 }
@@ -1259,7 +1262,7 @@ static int __must_check setup_sub_index(struct sub_index_layout *sil,
 					uint64_t *next_block_ptr,
 					struct save_layout_sizes *sls,
 					unsigned int instance,
-					uint64_t master_nonce)
+					uint64_t primary_nonce)
 {
 	uint64_t start_block = *next_block_ptr;
 
@@ -1290,7 +1293,7 @@ static int __must_check setup_sub_index(struct sub_index_layout *sil,
 					  "sub index layout regions don't agree");
 	}
 
-	define_sub_index_nonce(sil, master_nonce, instance);
+	define_sub_index_nonce(sil, primary_nonce, instance);
 	return UDS_SUCCESS;
 }
 
@@ -1775,7 +1778,7 @@ void put_index_layout(struct index_layout **layout_ptr)
 		unsigned int j;
 		for (j = 0; j < layout->super.max_saves; ++j) {
 			struct index_save_layout *isl = &sil->saves[j];
-			FREE(isl->master_index_zones);
+			FREE(isl->volume_index_zones);
 			FREE(isl->open_chapter);
 			free_buffer(&isl->index_state_buffer);
 		}
@@ -2006,13 +2009,13 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 		}
 	}
 	if (num_zones != isl->num_zones) {
-		if (isl->master_index_zones != NULL) {
-			FREE(isl->master_index_zones);
+		if (isl->volume_index_zones != NULL) {
+			FREE(isl->volume_index_zones);
 		}
 		result = ALLOCATE(num_zones,
 				  struct layout_region,
-				  "master index zone layouts",
-				  &isl->master_index_zones);
+				  "volume index zone layouts",
+				  &isl->volume_index_zones);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -2121,7 +2124,7 @@ make_index_save_region_table(struct index_save_layout *isl,
 {
 	unsigned int num_regions = 1 + // header
 				   1 + // index page map
-				   isl->num_zones + // master index zones
+				   isl->num_zones + // volume index zones
 				   (bool) isl->open_chapter; // open chapter if
 							     // needed
 
@@ -2144,7 +2147,7 @@ make_index_save_region_table(struct index_save_layout *isl,
 	*lr++ = isl->index_page_map;
 	unsigned int z;
 	for (z = 0; z < isl->num_zones; ++z) {
-		*lr++ = isl->master_index_zones[z];
+		*lr++ = isl->volume_index_zones[z];
 	}
 	if (isl->open_chapter) {
 		*lr++ = *isl->open_chapter;
@@ -2439,15 +2442,15 @@ static int find_layout_region(struct index_layout *layout,
 		lr = isl->open_chapter;
 		break;
 
-	case RL_KIND_MASTER_INDEX:
-		if (isl->master_index_zones == NULL || zone >= isl->num_zones) {
+	case RL_KIND_VOLUME_INDEX:
+		if (isl->volume_index_zones == NULL || zone >= isl->num_zones) {
 			return log_error_strerror(UDS_UNEXPECTED_RESULT,
-						  "%s: %s has no master index zone %u",
+						  "%s: %s has no volume index zone %u",
 						  __func__,
 						  operation,
 						  zone);
 		}
-		lr = &isl->master_index_zones[zone];
+		lr = &isl->volume_index_zones[zone];
 		break;
 
 	default:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.h#4 $
  */
 
 #ifndef INDEX_CONFIG_H
@@ -40,10 +40,10 @@ struct configuration {
 	 */
 	unsigned int cache_chapters;
 
-	/** Parameters for the master index */
+	/** Parameters for the volume index */
 
-	/* The mean delta for the master index */
-	unsigned int master_index_mean_delta;
+	/* The mean delta for the volume index */
+	unsigned int volume_index_mean_delta;
 
 	/* Sampling rate for sparse indexing */
 	unsigned int sparse_sample_rate;

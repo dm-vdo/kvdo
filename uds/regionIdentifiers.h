@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/regionIdentifiers.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/regionIdentifiers.h#3 $
  */
 
 #ifndef REGION_IDENTIFIERS_H
@@ -39,7 +39,7 @@ enum region_kind {
 	RL_KIND_VOLUME = 201,
 	RL_KIND_SAVE = 202,
 	RL_KIND_INDEX_PAGE_MAP = 301,
-	RL_KIND_MASTER_INDEX = 302,
+	RL_KIND_VOLUME_INDEX = 302,
 	RL_KIND_OPEN_CHAPTER = 303,
 	RL_KIND_INDEX_STATE = 401, // not saved as region
 };
