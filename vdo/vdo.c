@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#105 $
  */
 
 /*
@@ -50,6 +50,7 @@
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
 
+#include "kernelVDO.h"
 #include "workQueue.h"
 
 /**********************************************************************/
@@ -95,6 +96,32 @@ void destroy_vdo(struct vdo *vdo)
 	FREE(vdo->threads);
 	vdo->threads = NULL;
 }
+
+/**********************************************************************/
+void vdo_wait_for_no_requests_active(struct vdo *vdo)
+{
+	bool was_compressing;
+
+	// Do nothing if there are no requests active.  This check is not
+	// necessary for correctness but does reduce log message traffic.
+	if (limiter_is_idle(&vdo->request_limiter)) {
+		return;
+	}
+
+	/*
+	 * We have to make sure to flush the packer before waiting. We do this
+	 * by turning off compression, which also means no new entries coming
+	 * in while waiting will end up in the packer.
+	 */
+	was_compressing = set_kvdo_compressing(vdo, false);
+	// Now wait for there to be no active requests
+	limiter_wait_for_idle(&vdo->request_limiter);
+	// Reset the compression state after all requests are done
+	if (was_compressing) {
+		set_kvdo_compressing(vdo, true);
+	}
+}
+
 
 /**********************************************************************/
 struct block_device *get_vdo_backing_device(const struct vdo *vdo)

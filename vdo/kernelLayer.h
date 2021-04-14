@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#74 $
  */
 
 #ifndef KERNELLAYER_H
@@ -87,9 +87,6 @@ struct kernel_layer {
 	enum kernel_layer_state state;
 	atomic_t processing_message;
 
-	/** Limit the number of requests that are being processed. */
-	struct limiter request_limiter;
-	struct limiter discard_limiter;
 	struct vdo vdo;
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
@@ -379,13 +376,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
  * @return a system error code value
  **/
 int map_to_system_error(int error);
-
-/**
- * Wait until there are no requests in progress.
- *
- * @param layer  The kernel layer for the device
- **/
-void wait_for_no_requests_active(struct kernel_layer *layer);
 
 /**
  * Enqueues an item on our internal "cpu queues". Since there is more than

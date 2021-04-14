@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#19 $
  */
 
 #include "sysfs.h"
@@ -26,8 +26,7 @@
 #include "dedupeIndex.h"
 #include "dmvdo.h"
 #include "logger.h"
-
-extern int default_max_requests_active;
+#include "vdoInit.h"
 
 struct vdo_attribute {
 	struct attribute attr;
@@ -85,42 +84,6 @@ static ssize_t vdo_log_level_store(struct vdo_module_globals *vdo_globals
 }
 
 /**********************************************************************/
-static ssize_t scan_int(const char *buf,
-			size_t n,
-			int *value_ptr,
-			int minimum,
-			int maximum)
-{
-	unsigned int value;
-	if (n > 12) {
-		return -EINVAL;
-	}
-
-	if (sscanf(buf, "%d", &value) != 1) {
-		return -EINVAL;
-	}
-	if (value < minimum) {
-		value = minimum;
-	} else if (value > maximum) {
-		value = maximum;
-	}
-	*value_ptr = value;
-	return n;
-}
-
-/**********************************************************************/
-static ssize_t show_int(struct vdo_module_globals *vdo_globals __always_unused,
-			struct attribute *attr,
-			char *buf)
-{
-	struct vdo_attribute *vdo_attr = container_of(attr,
-						      struct vdo_attribute,
-						      attr);
-
-	return sprintf(buf, "%d\n", *(int *) vdo_attr->value_ptr);
-}
-
-/**********************************************************************/
 static ssize_t scan_uint(const char *buf,
 			 size_t n,
 			 unsigned int *value_ptr,
@@ -157,25 +120,6 @@ static ssize_t show_uint(struct vdo_module_globals *vdo_globals
 	return sprintf(buf, "%u\n", *(unsigned int *) vdo_attr->value_ptr);
 }
 
-/**********************************************************************/
-static ssize_t
-vdo_max_req_active_store(struct vdo_module_globals *vdo_globals
-			  __always_unused,
-			 const char *buf,
-			 size_t n)
-{
-	/*
-	 * The base code has some hardcoded assumptions about the maximum
-	 * number of requests that can be in progress. Maybe someday we'll
-	 * do calculations with the actual number; for now, just make sure
-	 * the assumption holds.
-	 */
-	return scan_int(buf,
-			n,
-			&default_max_requests_active,
-			1,
-			MAXIMUM_USER_VIOS);
-}
 
 /**********************************************************************/
 static ssize_t
@@ -268,15 +212,6 @@ static struct vdo_attribute vdo_log_level_attr = {
 	.store = vdo_log_level_store,
 };
 
-static struct vdo_attribute vdo_max_req_active_attr = {
-	.attr = {
-			.name = "max_requests_active",
-			.mode = 0644,
-		},
-	.show = show_int,
-	.store = vdo_max_req_active_store,
-	.value_ptr = &default_max_requests_active,
-};
 
 static struct vdo_attribute vdo_dedupe_timeout_interval = {
 	.attr = {
@@ -309,7 +244,6 @@ static struct vdo_attribute vdo_version_attr = {
 static struct attribute *default_attrs[] = {
 	&vdo_status_attr.attr,
 	&vdo_log_level_attr.attr,
-	&vdo_max_req_active_attr.attr,
 	&vdo_dedupe_timeout_interval.attr,
 	&vdo_min_dedupe_timer_interval.attr,
 	&vdo_version_attr.attr,

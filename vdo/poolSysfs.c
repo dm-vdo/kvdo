@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#17 $
  */
 
 #include "poolSysfs.h"
@@ -79,15 +79,13 @@ static ssize_t pool_compressing_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static ssize_t pool_discards_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->discard_limiter.active);
+	return sprintf(buf, "%u\n", vdo->discard_limiter.active);
 }
 
 /**********************************************************************/
 static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->discard_limiter.limit);
+	return sprintf(buf, "%u\n", vdo->discard_limiter.limit);
 }
 
 /**********************************************************************/
@@ -100,15 +98,14 @@ static ssize_t pool_discards_limit_store(struct vdo *vdo,
 	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
 		return -EINVAL;
 	}
-	vdo_as_kernel_layer(vdo)->discard_limiter.limit = value;
+	vdo->discard_limiter.limit = value;
 	return length;
 }
 
 /**********************************************************************/
 static ssize_t pool_discards_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->discard_limiter.maximum);
+	return sprintf(buf, "%u\n", vdo->discard_limiter.maximum);
 }
 
 /**********************************************************************/
@@ -120,22 +117,19 @@ static ssize_t pool_instance_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static ssize_t pool_requests_active_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->request_limiter.active);
+	return sprintf(buf, "%u\n", vdo->request_limiter.active);
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_limit_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->request_limiter.limit);
+	return sprintf(buf, "%u\n", vdo->request_limiter.limit);
 }
 
 /**********************************************************************/
 static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%u\n",
-		       vdo_as_kernel_layer(vdo)->request_limiter.maximum);
+	return sprintf(buf, "%u\n", vdo->request_limiter.maximum);
 }
 
 /**********************************************************************/

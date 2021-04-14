@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#4 $
  */
 
 #include "vdoInit.h"
@@ -30,10 +30,12 @@
 
 #include "adminCompletion.h"
 #include "instanceNumber.h"
+#include "limiter.h"
 #include "poolSysfs.h"
 #include "types.h"
 #include "vdoInternal.h"
 #include "volumeGeometry.h"
+
 
 
 /**********************************************************************/
@@ -106,6 +108,8 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->allocations_allowed = true;
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
+	initialize_limiter(&vdo->request_limiter, 2000);
+	initialize_limiter(&vdo->discard_limiter, 2000 * 3 / 4);
 
 	result = read_geometry_block(get_vdo_backing_device(vdo),
 				     &vdo->geometry);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#108 $
  */
 
 #include "dmvdo.h"
@@ -43,6 +43,7 @@
 #include "sysfs.h"
 #include "threadDevice.h"
 #include "threadRegistry.h"
+#include "vdo.h"
 #include "vdoInit.h"
 
 struct vdo_module_globals vdo_globals;
@@ -286,7 +287,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	switch (argc) {
 	case 1:
 		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			wait_for_no_requests_active(layer);
+			vdo_wait_for_no_requests_active(&layer->vdo);
 			return 0;
 		}
 
@@ -661,7 +662,7 @@ static void vdo_dtr(struct dm_target *ti)
 		register_thread_device_id(&instance_thread, &instance);
 		register_allocating_thread(&allocating_thread, NULL);
 
-		wait_for_no_requests_active(layer);
+		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
 
 		log_info("stopping device '%s'", device_name);

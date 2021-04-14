@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#175 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#176 $
  */
 
 #include "kernelLayer.h"
@@ -90,10 +90,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 	},
 };
 
-// 2000 is half the number of entries currently in our page cache,
-// to allow for each in-progress operation to update two pages.
-int default_max_requests_active = 2000;
-
 /**********************************************************************/
 int map_to_system_error(int error)
 {
@@ -134,29 +130,6 @@ static void set_kernel_layer_state(struct kernel_layer *layer,
 {
 	smp_wmb();
 	WRITE_ONCE(layer->state, new_state);
-}
-
-/**********************************************************************/
-void wait_for_no_requests_active(struct kernel_layer *layer)
-{
-	bool was_compressing;
-
-	// Do nothing if there are no requests active.  This check is not
-	// necessary for correctness but does reduce log message traffic.
-	if (limiter_is_idle(&layer->request_limiter)) {
-		return;
-	}
-
-	// We have to make sure to flush the packer before waiting. We do this
-	// by turning off compression, which also means no new entries coming
-	// in while waiting will end up in the packer.
-	was_compressing = set_kvdo_compressing(&layer->vdo, false);
-	// Now wait for there to be no active requests
-	limiter_wait_for_idle(&layer->request_limiter);
-	// Reset the compression state after all requests are done
-	if (was_compressing) {
-		set_kvdo_compressing(&layer->vdo, true);
-	}
 }
 
 /**
@@ -213,7 +186,7 @@ static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 	 * amounts of buffering on top of VDO, they're welcome to access it
 	 * through the kernel page cache or roll their own.
 	 */
-	if (!limiter_poll(&layer->request_limiter)) {
+	if (!limiter_poll(&layer->vdo.request_limiter)) {
 		add_to_deadlock_queue(&layer->deadlock_queue,
 				      bio,
 				      arrival_jiffies);
@@ -224,7 +197,7 @@ static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 
 	has_discard_permit =
 		((bio_op(bio) == REQ_OP_DISCARD) &&
-		 limiter_poll(&layer->discard_limiter));
+		 limiter_poll(&layer->vdo.discard_limiter));
 	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
 					      has_discard_permit);
 	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
@@ -274,10 +247,10 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		limiter_wait_for_one_free(&layer->discard_limiter);
+		limiter_wait_for_one_free(&layer->vdo.discard_limiter);
 		has_discard_permit = true;
 	}
-	limiter_wait_for_one_free(&layer->request_limiter);
+	limiter_wait_for_one_free(&layer->vdo.request_limiter);
 
 	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
 					      has_discard_permit);
@@ -307,7 +280,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 
 		has_discard_permit =
 			((bio_op(bio) == REQ_OP_DISCARD) &&
-			 limiter_poll(&layer->discard_limiter));
+			 limiter_poll(&layer->vdo.discard_limiter));
 		result = vdo_launch_data_vio_from_bio(layer, bio,
 						      arrival_jiffies,
 						      has_discard_permit);
@@ -320,7 +293,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	}
 	// Notify the limiter, so it can wake any blocked processes.
 	if (count > 0) {
-		limiter_release_many(&layer->request_limiter, count);
+		limiter_release_many(&layer->vdo.request_limiter, count);
 	}
 }
 
@@ -330,7 +303,7 @@ int make_kernel_layer(unsigned int instance,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
 {
-	int result, request_limit, i;
+	int result, i;
 	struct kernel_layer *layer;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
@@ -381,11 +354,6 @@ int make_kernel_layer(unsigned int instance,
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
 	initialize_deadlock_queue(&layer->deadlock_queue);
-
-	request_limit = default_max_requests_active;
-	initialize_limiter(&layer->request_limiter, request_limit);
-	initialize_limiter(&layer->discard_limiter, request_limit * 3 / 4);
-
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);
@@ -464,9 +432,9 @@ int make_kernel_layer(unsigned int instance,
 
 	// Data vio pool
 	BUG_ON(layer->vdo.device_config->logical_block_size <= 0);
-	BUG_ON(layer->request_limiter.limit <= 0);
+	BUG_ON(layer->vdo.request_limiter.limit <= 0);
 	BUG_ON(layer->vdo.device_config->owned_device == NULL);
-	result = make_data_vio_buffer_pool(layer->request_limiter.limit,
+	result = make_data_vio_buffer_pool(layer->vdo.request_limiter.limit,
 					   &layer->data_vio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
@@ -493,7 +461,7 @@ int make_kernel_layer(unsigned int instance,
 	result = make_io_submitter(layer->thread_name_prefix,
 				   config->thread_counts.bio_threads,
 				   config->thread_counts.bio_rotation_interval,
-				   layer->request_limiter.limit,
+				   layer->vdo.request_limiter.limit,
 				   layer,
 				   &layer->io_submitter);
 	if (result != VDO_SUCCESS) {
@@ -935,9 +903,8 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * believe a suspended device is expected to have persisted all data
 	 * written before the suspend, even if it hasn't been flushed yet.
 	 */
-	wait_for_no_requests_active(layer);
+	vdo_wait_for_no_requests_active(&layer->vdo);
 	result = synchronous_flush(layer);
-
 	if (result != VDO_SUCCESS) {
 		set_vdo_read_only(&layer->vdo, result);
 	}

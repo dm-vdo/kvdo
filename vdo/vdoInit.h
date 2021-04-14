@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.h#2 $
  */
 
 #ifndef VDO_INIT_H
@@ -27,6 +27,7 @@
 
 #include "deviceConfig.h"
 #include "types.h"
+
 
 /**
  * Get the device name associated with the vdo target
