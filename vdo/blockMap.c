@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#91 $
  */
 
 #include "blockMap.h"
@@ -421,19 +421,19 @@ void advance_block_map_era(struct block_map *map,
 /**********************************************************************/
 void check_for_drain_complete(struct block_map_zone *zone)
 {
-	if (is_draining(&zone->state) &&
+	if (is_vdo_state_draining(&zone->state) &&
 	    !is_tree_zone_active(&zone->tree_zone) &&
 	    !is_page_cache_active(zone->page_cache)) {
-		finish_draining_with_result(&zone->state,
-					    (is_read_only(zone->read_only_notifier) ?
-					     VDO_READ_ONLY : VDO_SUCCESS));
+		finish_vdo_draining_with_result(&zone->state,
+						(is_read_only(zone->read_only_notifier) ?
+							VDO_READ_ONLY : VDO_SUCCESS));
 	}
 }
 
 /**
  * Initiate a drain of the trees and page cache of a block map zone.
  *
- * Implements admin_initiator
+ * Implements vdo_admin_initiator
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -454,10 +454,10 @@ drain_zone(void *context, zone_count_t zone_number,
 	   struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
-	start_draining(&zone->state,
-		       get_current_vdo_manager_operation(zone->block_map->action_manager),
-		       parent,
-		       initiate_drain);
+	start_vdo_draining(&zone->state,
+			   get_current_vdo_manager_operation(zone->block_map->action_manager),
+			   parent,
+			   initiate_drain);
 }
 
 /**********************************************************************/
@@ -479,7 +479,7 @@ static void resume_block_map_zone(void *context,
 				  struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
-	finish_completion(parent, resume_if_quiescent(&zone->state));
+	finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -587,7 +587,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 {
 	struct block_map_zone *zone =
 		get_block_map_for_zone(data_vio->logical.zone);
-	if (is_draining(&zone->state)) {
+	if (is_vdo_state_draining(&zone->state)) {
 		finish_data_vio(data_vio, VDO_SHUTTING_DOWN);
 		return;
 	}

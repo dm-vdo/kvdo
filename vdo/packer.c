@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#69 $
  */
 
 #include "packerInternals.h"
@@ -380,10 +380,10 @@ static void continue_vio_without_packing(struct waiter *waiter,
  **/
 static void check_for_drain_complete(struct packer *packer)
 {
-	if (is_draining(&packer->state) &&
+	if (is_vdo_state_draining(&packer->state) &&
 	    (packer->canceled_bin->slots_used == 0) &&
 	    (packer->idle_output_bin_count == packer->output_bin_count)) {
-		finish_draining(&packer->state);
+		finish_vdo_draining(&packer->state);
 	}
 }
 
@@ -866,7 +866,7 @@ void attempt_packing(struct data_vio *data_vio)
 
 	// If packing of this data_vio is disallowed for administrative
 	// reasons, give up before making any state changes.
-	if (!is_normal(&packer->state) ||
+	if (!is_vdo_state_normal(&packer->state) ||
 	    (data_vio->flush_generation < packer->flush_generation)) {
 		abort_packing(data_vio);
 		return;
@@ -919,7 +919,7 @@ static void write_all_non_empty_bins(struct packer *packer)
 void flush_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
-	if (is_normal(&packer->state)) {
+	if (is_vdo_state_normal(&packer->state)) {
 		write_all_non_empty_bins(packer);
 	}
 }
@@ -977,7 +977,7 @@ void increment_packer_flush_generation(struct packer *packer)
 /**
  * Initiate a drain.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -990,15 +990,15 @@ static void initiate_drain(struct admin_state *state)
 void drain_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
-	start_draining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
-		       initiate_drain);
+	start_vdo_draining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
+			   initiate_drain);
 }
 
 /**********************************************************************/
 void resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	finish_completion(parent, resume_if_quiescent(&packer->state));
+	finish_completion(parent, resume_vdo_if_quiescent(&packer->state));
 }
 
 
@@ -1046,7 +1046,7 @@ void dump_packer(const struct packer *packer)
 	log_info("packer");
 	log_info("  flushGeneration=%llu state %s writing_batches=%s",
 		 packer->flush_generation,
-		 get_admin_state_name(&packer->state),
+		 get_vdo_admin_state_name(&packer->state),
 		 bool_to_string(packer->writing_batches));
 
 	log_info("  input_bin_count=%llu", packer->size);

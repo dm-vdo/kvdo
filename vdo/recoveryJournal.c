@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#98 $
  */
 
 #include "recoveryJournal.h"
@@ -171,7 +171,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 				   continue_waiter, &result);
 	}
 
-	if (!is_draining(&journal->state) || journal->reaping
+	if (!is_vdo_state_draining(&journal->state) || journal->reaping
 	    || has_block_waiters(journal)
 	    || has_waiters(&journal->increment_waiters)
 	    || has_waiters(&journal->decrement_waiters)
@@ -179,7 +179,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		return;
 	}
 
-	if (is_saving(&journal->state)) {
+	if (is_vdo_state_saving(&journal->state)) {
 		if (journal->active_block != NULL) {
 			ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
 					 || !is_recovery_block_dirty(journal->active_block)),
@@ -191,7 +191,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 				"all blocks in a journal being saved must be inactive");
 	}
 
-	finish_draining_with_result(&journal->state, result);
+	finish_vdo_draining_with_result(&journal->state, result);
 }
 
 /**
@@ -378,7 +378,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 	 */
 	acknowledge_unlock(journal->lock_counter);
 
-	if (is_quiescing(&journal->state)) {
+	if (is_vdo_state_quiescing(&journal->state)) {
 		/*
 		 * Don't start reaping when the journal is trying to quiesce.
 		 * Do check if this notification is the last thing the is
@@ -519,10 +519,10 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 	// XXX: eventually, the journal should be constructed in a quiescent
 	// state
 	//      which requires opening before use.
-	if (!is_quiescent(&journal->state)) {
+	if (!is_vdo_state_quiescent(&journal->state)) {
 		ASSERT_LOG_ONLY(list_empty(&journal->active_tail_blocks),
 				"journal being freed has no active tail blocks");
-	} else if (!is_saved(&journal->state)
+	} else if (!is_vdo_state_saved(&journal->state)
 		   && !list_empty(&journal->active_tail_blocks)) {
 		log_warning("journal being freed has uncommitted entries");
 	}
@@ -609,7 +609,7 @@ record_recovery_journal(const struct recovery_journal *journal)
 		.block_map_data_blocks = journal->block_map_data_blocks,
 	};
 
-	if (is_saved(&journal->state)) {
+	if (is_vdo_state_saved(&journal->state)) {
 		// If the journal is saved, we should start one past the active
 		// block (since the active block is not guaranteed to be empty).
 		state.journal_start = journal->tail;
@@ -1104,7 +1104,7 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 	int result;
 
 	assert_on_journal_thread(journal, __func__);
-	if (!is_normal(&journal->state)) {
+	if (!is_vdo_state_normal(&journal->state)) {
 		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
@@ -1145,7 +1145,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	if (is_quiescent(&journal->state)) {
+	if (is_vdo_state_quiescent(&journal->state)) {
 		// We are supposed to not do IO. Don't botch it by reaping.
 		return;
 	}
@@ -1242,7 +1242,7 @@ void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 /**
  * Initiate a drain.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -1257,7 +1257,7 @@ void drain_recovery_journal(struct recovery_journal *journal,
 			    struct vdo_completion *parent)
 {
 	assert_on_journal_thread(journal, __func__);
-	start_draining(&journal->state, operation, parent, initiate_drain);
+	start_vdo_draining(&journal->state, operation, parent, initiate_drain);
 }
 
 /**********************************************************************/
@@ -1267,8 +1267,8 @@ void resume_recovery_journal(struct recovery_journal *journal,
 	bool saved;
 
 	assert_on_journal_thread(journal, __func__);
-	saved = is_saved(&journal->state);
-	set_completion_result(parent, resume_if_quiescent(&journal->state));
+	saved = is_vdo_state_saved(&journal->state);
+	set_completion_result(parent, resume_vdo_if_quiescent(&journal->state));
 
 	if (is_read_only(journal->read_only_notifier)) {
 		finish_completion(parent, VDO_READ_ONLY);

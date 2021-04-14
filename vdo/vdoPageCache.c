@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#62 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -313,7 +313,7 @@ static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
  **/
 static inline void assert_io_allowed(struct vdo_page_cache *cache)
 {
-	ASSERT_LOG_ONLY(!is_quiescent(&cache->zone->state),
+	ASSERT_LOG_ONLY(!is_vdo_state_quiescent(&cache->zone->state),
 			"VDO page cache may issue I/O");
 }
 
@@ -1514,10 +1514,10 @@ void *get_vdo_page_completion_context(struct vdo_completion *completion)
 void drain_vdo_page_cache(struct vdo_page_cache *cache)
 {
 	assert_on_cache_thread(cache, __func__);
-	ASSERT_LOG_ONLY(is_draining(&cache->zone->state),
+	ASSERT_LOG_ONLY(is_vdo_state_draining(&cache->zone->state),
 			"drain_vdo_page_cache() called during block map drain");
 
-	if (!is_suspending(&cache->zone->state)) {
+	if (!is_vdo_state_suspending(&cache->zone->state)) {
 		flush_dirty_lists(cache->dirty_lists);
 		save_pages(cache);
 	}

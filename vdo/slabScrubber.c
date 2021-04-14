@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#56 $
  */
 
 #include "slabScrubberInternals.h"
@@ -203,7 +203,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 
 	// Note that the scrubber has stopped, and inform anyone who might be
 	// waiting for that to happen.
-	if (!finish_draining(&scrubber->admin_state)) {
+	if (!finish_vdo_draining(&scrubber->admin_state)) {
 		scrubber->admin_state.state = ADMIN_STATE_SUSPENDED;
 	}
 
@@ -448,7 +448,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 		return;
 	}
 
-	if (finish_draining(&scrubber->admin_state)) {
+	if (finish_vdo_draining(&scrubber->admin_state)) {
 		return;
 	}
 
@@ -470,7 +470,7 @@ void scrub_slabs(struct slab_scrubber *scrubber,
 		 vdo_action *error_handler)
 {
 	thread_id_t thread_id = get_callback_thread_id();
-	resume_if_quiescent(&scrubber->admin_state);
+	resume_vdo_if_quiescent(&scrubber->admin_state);
 	prepare_completion(&scrubber->completion,
 			   callback,
 			   error_handler,
@@ -505,13 +505,13 @@ void scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 void stop_scrubbing(struct slab_scrubber *scrubber,
 		    struct vdo_completion *parent)
 {
-	if (is_quiescent(&scrubber->admin_state)) {
+	if (is_vdo_state_quiescent(&scrubber->admin_state)) {
 		complete_completion(parent);
 	} else {
-		start_draining(&scrubber->admin_state,
-			       ADMIN_STATE_SUSPENDING,
-			       parent,
-			       NULL);
+		start_vdo_draining(&scrubber->admin_state,
+				   ADMIN_STATE_SUSPENDING,
+				   parent,
+				   NULL);
 	}
 }
 
@@ -526,7 +526,7 @@ void resume_scrubbing(struct slab_scrubber *scrubber,
 		return;
 	}
 
-	result = resume_if_quiescent(&scrubber->admin_state);
+	result = resume_vdo_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
@@ -544,7 +544,7 @@ int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 		return VDO_READ_ONLY;
 	}
 
-	if (is_quiescent(&scrubber->admin_state)) {
+	if (is_vdo_state_quiescent(&scrubber->admin_state)) {
 		return VDO_NO_SPACE;
 	}
 
@@ -557,6 +557,6 @@ void dump_slab_scrubber(const struct slab_scrubber *scrubber)
 	log_info("slab_scrubber slab_count %u waiters %zu %s%s",
 		 get_scrubber_slab_count(scrubber),
 		 count_waiters(&scrubber->waiters),
-		 get_admin_state_name(&scrubber->admin_state),
+		 get_vdo_admin_state_name(&scrubber->admin_state),
 		 scrubber->high_priority_only ? ", high_priority_only " : "");
 }

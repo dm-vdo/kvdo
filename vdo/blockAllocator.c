@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#108 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -582,7 +582,7 @@ static void slab_action_callback(struct vdo_completion *completion)
 static void handle_operation_error(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
-	set_operation_result(&allocator->state, completion->result);
+	set_vdo_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
 }
 
@@ -644,13 +644,13 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 		return;
 	}
 
-	finish_loading(&allocator->state);
+	finish_vdo_loading(&allocator->state);
 }
 
 /**
  * Initiate a load.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_load(struct admin_state *state)
 {
@@ -678,7 +678,7 @@ void load_block_allocator(void *context,
 {
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
-	start_loading(
+	start_vdo_loading(
 		&allocator->state,
 		get_current_vdo_manager_operation(allocator->depot->action_manager),
 		parent,
@@ -689,7 +689,7 @@ void load_block_allocator(void *context,
 void notify_slab_journals_are_recovered(struct block_allocator *allocator,
 					int result)
 {
-	finish_loading_with_result(&allocator->state, result);
+	finish_vdo_loading_with_result(&allocator->state, result);
 }
 
 /**
@@ -827,19 +827,20 @@ static void do_drain_step(struct vdo_completion *completion)
 	case DRAIN_ALLOCATOR_STEP_FINISHED:
 		ASSERT_LOG_ONLY(!is_vio_pool_busy(allocator->vio_pool),
 				"vio pool not busy");
-		finish_draining_with_result(&allocator->state,
-					    completion->result);
+		finish_vdo_draining_with_result(&allocator->state,
+						completion->result);
 		return;
 
 	default:
-		finish_draining_with_result(&allocator->state, UDS_BAD_STATE);
+		finish_vdo_draining_with_result(&allocator->state,
+						UDS_BAD_STATE);
 	}
 }
 
 /**
  * Initiate a drain.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -856,7 +857,7 @@ void drain_block_allocator(void *context,
 {
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
-	start_draining(
+	start_vdo_draining(
 		&allocator->state,
 		get_current_vdo_manager_operation(allocator->depot->action_manager),
 		parent,
@@ -891,19 +892,20 @@ static void do_resume_step(struct vdo_completion *completion)
 		return;
 
 	case DRAIN_ALLOCATOR_START:
-		finish_resuming_with_result(&allocator->state,
-					    completion->result);
+		finish_vdo_resuming_with_result(&allocator->state,
+						completion->result);
 		return;
 
 	default:
-		finish_resuming_with_result(&allocator->state, UDS_BAD_STATE);
+		finish_vdo_resuming_with_result(&allocator->state,
+						UDS_BAD_STATE);
 	}
 }
 
 /**
  * Initiate a resume.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_resume(struct admin_state *state)
 {
@@ -920,10 +922,10 @@ void resume_block_allocator(void *context,
 {
 	struct block_allocator *allocator =
 		get_block_allocator_for_zone(context, zone_number);
-	start_resuming(&allocator->state,
-		       get_current_vdo_manager_operation(allocator->depot->action_manager),
-		       parent,
-		       initiate_resume);
+	start_vdo_resuming(&allocator->state,
+			   get_current_vdo_manager_operation(allocator->depot->action_manager),
+			   parent,
+			   initiate_resume);
 }
 
 /**********************************************************************/

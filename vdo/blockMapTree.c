@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#82 $
  */
 
 #include "blockMapTree.h"
@@ -630,7 +630,7 @@ void drain_zone_trees(struct block_map_tree_zone *zone)
 {
 	ASSERT_LOG_ONLY((zone->active_lookups == 0),
 			"drain_zone_trees() called with no active lookups");
-	if (!is_suspending(&zone->map_zone->state)) {
+	if (!is_vdo_state_suspending(&zone->map_zone->state)) {
 		flush_dirty_lists(zone->dirty_lists);
 	}
 }
@@ -1248,7 +1248,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 	struct tree_lock *lock = &data_vio->tree_lock;
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	zone->active_lookups++;
-	if (is_draining(&zone->map_zone->state)) {
+	if (is_vdo_state_draining(&zone->map_zone->state)) {
 		finish_lookup(data_vio, VDO_SHUTTING_DOWN);
 		return;
 	}

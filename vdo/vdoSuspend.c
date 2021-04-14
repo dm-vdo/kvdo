@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#32 $
  */
 
 #include "vdoSuspend.h"
@@ -127,13 +127,13 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
-		if (!start_draining(&vdo->admin_state,
-				    ((admin_completion->type ==
-				      ADMIN_OPERATION_SUSPEND) ?
-					     ADMIN_STATE_SUSPENDING :
-					     ADMIN_STATE_SAVING),
-				    &admin_completion->completion,
-				    NULL)) {
+		if (!start_vdo_draining(&vdo->admin_state,
+					((admin_completion->type ==
+						ADMIN_OPERATION_SUSPEND) ?
+							ADMIN_STATE_SUSPENDING :
+							ADMIN_STATE_SAVING),
+					&admin_completion->completion,
+					NULL)) {
 			return;
 		}
 
@@ -187,7 +187,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (is_suspending(&vdo->admin_state) ||
+		if (is_vdo_state_suspending(&vdo->admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
 			// If we didn't save the VDO or there was an error,
 			// we're done.
@@ -204,7 +204,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	finish_draining_with_result(&vdo->admin_state, completion->result);
+	finish_vdo_draining_with_result(&vdo->admin_state, completion->result);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#25 $
  */
 
 #include "adminState.h"
@@ -28,7 +28,7 @@
 #include "types.h"
 
 /**********************************************************************/
-const char *get_admin_state_code_name(enum admin_state_code code)
+const char *get_vdo_admin_state_code_name(enum admin_state_code code)
 {
 	switch (code) {
 	case ADMIN_STATE_NORMAL_OPERATION:
@@ -91,9 +91,9 @@ const char *get_admin_state_code_name(enum admin_state_code code)
 }
 
 /**********************************************************************/
-const char *get_admin_state_name(const struct admin_state *state)
+const char *get_vdo_admin_state_name(const struct admin_state *state)
 {
-	return get_admin_state_code_name(state->state);
+	return get_vdo_admin_state_code_name(state->state);
 }
 
 /**********************************************************************/
@@ -101,7 +101,7 @@ static enum admin_state_code
 get_next_state(enum admin_state_code previous_state,
 	       enum admin_state_code operation)
 {
-	if (is_quiescing_code(operation)) {
+	if (is_vdo_quiescing_code(operation)) {
 		return ((operation & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT);
 	}
 
@@ -124,7 +124,7 @@ get_next_state(enum admin_state_code previous_state,
  **/
 static bool end_operation(struct admin_state *state, int result)
 {
-	if (!is_operating(state)) {
+	if (!is_vdo_state_operating(state)) {
 		return false;
 	}
 
@@ -149,29 +149,29 @@ static bool end_operation(struct admin_state *state, int result)
  * @param operation  The operation to begin
  * @param waiter     A completion to notify when the operation is complete; may
  *                   be NULL
- * @param initiator  The admin_initiator to call if the operation may begin; may
- *                   be NULL
+ * @param initiator  The vdo_admin_initiator to call if the operation may
+ *                   begin; may be NULL
  *
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check begin_operation(struct admin_state *state,
 					enum admin_state_code operation,
 					struct vdo_completion *waiter,
-					admin_initiator *initiator)
+					vdo_admin_initiator *initiator)
 {
 	int result;
-	if (is_operating(state) ||
-	    (is_quiescent(state) != is_quiescent_operation(operation))) {
+	if (is_vdo_state_operating(state) ||
+	    (is_vdo_state_quiescent(state) != is_vdo_quiescent_operation(operation))) {
 		result =
 		  log_error_strerror(VDO_INVALID_ADMIN_STATE,
 				     "Can't start %s from %s",
-				     get_admin_state_code_name(operation),
-				     get_admin_state_name(state));
+				     get_vdo_admin_state_code_name(operation),
+				     get_vdo_admin_state_name(state));
 	} else if (state->waiter != NULL) {
 		result =
 		  log_error_strerror(VDO_COMPONENT_BUSY,
 				     "Can't start %s with extant waiter",
-				     get_admin_state_code_name(operation));
+				     get_vdo_admin_state_code_name(operation));
 	} else {
 		state->waiter = waiter;
 		state->next_state = get_next_state(state->state, operation);
@@ -219,7 +219,7 @@ static bool check_code(bool valid,
 
 	result = log_error_strerror(VDO_INVALID_ADMIN_STATE,
 				    "%s is not a %s",
-				    get_admin_state_code_name(code),
+				    get_vdo_admin_state_code_name(code),
 				    what);
 	if (waiter != NULL) {
 		finish_completion(waiter, result);
@@ -229,108 +229,108 @@ static bool check_code(bool valid,
 }
 
 /**********************************************************************/
-bool assert_drain_operation(enum admin_state_code operation,
-			    struct vdo_completion *waiter)
+bool assert_vdo_drain_operation(enum admin_state_code operation,
+				struct vdo_completion *waiter)
 {
-	return check_code(is_drain_operation(operation),
+	return check_code(is_vdo_drain_operation(operation),
 			  operation,
 			  "drain operation",
 			  waiter);
 }
 
 /**********************************************************************/
-bool start_draining(struct admin_state *state,
-		    enum admin_state_code operation,
-		    struct vdo_completion *waiter,
-		    admin_initiator *initiator)
+bool start_vdo_draining(struct admin_state *state,
+			enum admin_state_code operation,
+			struct vdo_completion *waiter,
+			vdo_admin_initiator *initiator)
 {
-	return (assert_drain_operation(operation, waiter) &&
+	return (assert_vdo_drain_operation(operation, waiter) &&
 		(begin_operation(state, operation, waiter, initiator) ==
 		 VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finish_draining(struct admin_state *state)
+bool finish_vdo_draining(struct admin_state *state)
 {
-	return finish_draining_with_result(state, VDO_SUCCESS);
+	return finish_vdo_draining_with_result(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finish_draining_with_result(struct admin_state *state, int result)
+bool finish_vdo_draining_with_result(struct admin_state *state, int result)
 {
-	return (is_draining(state) && end_operation(state, result));
+	return (is_vdo_state_draining(state) && end_operation(state, result));
 }
 
 /**********************************************************************/
-bool assert_load_operation(enum admin_state_code operation,
-			   struct vdo_completion *waiter)
+bool assert_vdo_load_operation(enum admin_state_code operation,
+			       struct vdo_completion *waiter)
 {
-	return check_code(is_load_operation(operation),
+	return check_code(is_vdo_load_operation(operation),
 			  operation,
 			  "load operation",
 			  waiter);
 }
 
 /**********************************************************************/
-bool start_loading(struct admin_state *state,
-		   enum admin_state_code operation,
-		   struct vdo_completion *waiter,
-		   admin_initiator *initiator)
+bool start_vdo_loading(struct admin_state *state,
+		       enum admin_state_code operation,
+		       struct vdo_completion *waiter,
+		       vdo_admin_initiator *initiator)
 {
-	return (assert_load_operation(operation, waiter) &&
+	return (assert_vdo_load_operation(operation, waiter) &&
 		(begin_operation(state, operation, waiter, initiator) ==
 		 VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finish_loading(struct admin_state *state)
+bool finish_vdo_loading(struct admin_state *state)
 {
-	return finish_loading_with_result(state, VDO_SUCCESS);
+	return finish_vdo_loading_with_result(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finish_loading_with_result(struct admin_state *state, int result)
+bool finish_vdo_loading_with_result(struct admin_state *state, int result)
 {
-	return (is_loading(state) && end_operation(state, result));
+	return (is_vdo_state_loading(state) && end_operation(state, result));
 }
 
 /**********************************************************************/
-bool assert_resume_operation(enum admin_state_code operation,
-			     struct vdo_completion *waiter)
+bool assert_vdo_resume_operation(enum admin_state_code operation,
+				 struct vdo_completion *waiter)
 {
-	return check_code(is_resume_operation(operation),
+	return check_code(is_vdo_resume_operation(operation),
 			  operation,
 			  "resume operation",
 			  waiter);
 }
 
 /**********************************************************************/
-bool start_resuming(struct admin_state *state,
-		    enum admin_state_code operation,
-		    struct vdo_completion *waiter,
-		    admin_initiator *initiator)
+bool start_vdo_resuming(struct admin_state *state,
+			enum admin_state_code operation,
+			struct vdo_completion *waiter,
+			vdo_admin_initiator *initiator)
 {
-	return (assert_resume_operation(operation, waiter) &&
+	return (assert_vdo_resume_operation(operation, waiter) &&
 		(begin_operation(state, operation, waiter, initiator) ==
 		 VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finish_resuming(struct admin_state *state)
+bool finish_vdo_resuming(struct admin_state *state)
 {
-	return finish_resuming_with_result(state, VDO_SUCCESS);
+	return finish_vdo_resuming_with_result(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finish_resuming_with_result(struct admin_state *state, int result)
+bool finish_vdo_resuming_with_result(struct admin_state *state, int result)
 {
-	return (is_resuming(state) && end_operation(state, result));
+	return (is_vdo_state_resuming(state) && end_operation(state, result));
 }
 
 /**********************************************************************/
-int resume_if_quiescent(struct admin_state *state)
+int resume_vdo_if_quiescent(struct admin_state *state)
 {
-	if (!is_quiescent(state)) {
+	if (!is_vdo_state_quiescent(state)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
@@ -350,11 +350,13 @@ int resume_if_quiescent(struct admin_state *state)
 static bool assert_operation(enum admin_state_code code,
 			     struct vdo_completion *waiter)
 {
-	return check_code(is_operation(code), code, "operation", waiter);
+	return check_code(is_vdo_operation_state_code(code),
+			  code, "operation", waiter);
 }
 
 /**********************************************************************/
-int start_operation(struct admin_state *state, enum admin_state_code operation)
+int start_vdo_operation(struct admin_state *state,
+			enum admin_state_code operation)
 {
 	return (assert_operation(operation, NULL) ?
 			begin_operation(state, operation, NULL, NULL) :
@@ -362,10 +364,10 @@ int start_operation(struct admin_state *state, enum admin_state_code operation)
 }
 
 /**********************************************************************/
-bool start_operation_with_waiter(struct admin_state *state,
-				 enum admin_state_code operation,
-				 struct vdo_completion *waiter,
-				 admin_initiator *initiator)
+bool start_vdo_operation_with_waiter(struct admin_state *state,
+				     enum admin_state_code operation,
+				     struct vdo_completion *waiter,
+				     vdo_admin_initiator *initiator)
 {
 	return (assert_operation(operation, waiter) &&
 		(begin_operation(state, operation, waiter, initiator) ==
@@ -373,13 +375,13 @@ bool start_operation_with_waiter(struct admin_state *state,
 }
 
 /**********************************************************************/
-bool finish_operation(struct admin_state *state)
+bool finish_vdo_operation(struct admin_state *state)
 {
-	return finish_operation_with_result(state, VDO_SUCCESS);
+	return finish_vdo_operation_with_result(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finish_operation_with_result(struct admin_state *state, int result)
+bool finish_vdo_operation_with_result(struct admin_state *state, int result)
 {
 	return end_operation(state, result);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#53 $
  */
 
 #include "logicalZone.h"
@@ -222,18 +222,18 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
  **/
 static void check_for_drain_complete(struct logical_zone *zone)
 {
-	if (!is_draining(&zone->state) || zone->notifying
+	if (!is_vdo_state_draining(&zone->state) || zone->notifying
 	    || !list_empty(&zone->write_vios)) {
 		return;
 	}
 
-	finish_draining(&zone->state);
+	finish_vdo_draining(&zone->state);
 }
 
 /**
  * Initiate a drain.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -251,9 +251,9 @@ static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);
-	start_draining(&zone->state,
-		       get_current_vdo_manager_operation(zone->zones->manager),
-		       parent, initiate_drain);
+	start_vdo_draining(&zone->state,
+			   get_current_vdo_manager_operation(zone->zones->manager),
+			   parent, initiate_drain);
 }
 
 /**********************************************************************/
@@ -274,7 +274,7 @@ static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);
-	finish_completion(parent, resume_if_quiescent(&zone->state));
+	finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -362,7 +362,7 @@ int acquire_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 	assert_on_zone_thread(zone, __func__);
-	if (!is_normal(&zone->state)) {
+	if (!is_vdo_state_normal(&zone->state)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 

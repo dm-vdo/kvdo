@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#82 $
  */
 
 #include "slabJournalInternals.h"
@@ -411,7 +411,8 @@ static void reap_slab_journal(struct slab_journal *journal)
 	}
 
 	if (is_unrecovered_slab(journal->slab) ||
-	    !is_normal(&journal->slab->state) || is_vdo_read_only(journal)) {
+	    !is_vdo_state_normal(&journal->slab->state) ||
+	    is_vdo_read_only(journal)) {
 		// We must not reap in the first two cases, and there's no
 		// point in read-only mode.
 		return;
@@ -687,8 +688,9 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	initialize_tail_block(journal);
 	journal->waiting_to_commit = false;
 	if (journal->slab->state.state == ADMIN_STATE_WAITING_FOR_RECOVERY) {
-		finish_operation_with_result(&journal->slab->state,
-					     (is_vdo_read_only(journal) ? VDO_READ_ONLY : VDO_SUCCESS));
+		finish_vdo_operation_with_result(&journal->slab->state,
+						 (is_vdo_read_only(journal) ?
+						  VDO_READ_ONLY : VDO_SUCCESS));
 		return;
 	}
 
@@ -831,10 +833,10 @@ bool attempt_replay_into_slab_journal(struct slab_journal *journal,
 	}
 
 	if (journal->waiting_to_commit) {
-		start_operation_with_waiter(&journal->slab->state,
-					    ADMIN_STATE_WAITING_FOR_RECOVERY,
-					    parent,
-					    NULL);
+		start_vdo_operation_with_waiter(&journal->slab->state,
+						ADMIN_STATE_WAITING_FOR_RECOVERY,
+						parent,
+						NULL);
 		return false;
 	}
 
@@ -1088,7 +1090,7 @@ static void add_entries(struct slab_journal *journal)
 	// If there are no waiters, and we are flushing or saving, commit the
 	// tail block.
 	if (is_slab_draining(journal->slab) &&
-	    !is_suspending(&journal->slab->state) &&
+	    !is_vdo_state_suspending(&journal->slab->state) &&
 	    !has_waiters(&journal->entry_waiters)) {
 		commit_slab_journal_tail(journal);
 	}
@@ -1179,7 +1181,7 @@ void drain_slab_journal(struct slab_journal *journal)
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"drain_slab_journal() called on correct thread");
-	if (is_quiescing(&journal->slab->state)) {
+	if (is_vdo_state_quiescing(&journal->slab->state)) {
 		// XXX: we should revisit this assertion since it is no longer
 		// clear what it is for.
 		ASSERT_LOG_ONLY((!(slab_is_rebuilding(journal->slab) &&

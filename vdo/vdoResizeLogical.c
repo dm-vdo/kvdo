@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#32 $
  */
 
 #include "vdoResizeLogical.h"
@@ -77,10 +77,10 @@ static void grow_logical_callback(struct vdo_completion *completion)
 			return;
 		}
 
-		if (start_operation_with_waiter(&vdo->admin_state,
-						ADMIN_STATE_SUSPENDED_OPERATION,
-						&admin_completion->completion,
-						NULL)) {
+		if (start_vdo_operation_with_waiter(&vdo->admin_state,
+						    ADMIN_STATE_SUSPENDED_OPERATION,
+						    &admin_completion->completion,
+						    NULL)) {
 			vdo->states.vdo.config.logical_blocks =
 				get_new_entry_count(get_block_map(vdo));
 			save_vdo_components(vdo,
@@ -106,7 +106,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 				      UDS_BAD_STATE);
 	}
 
-	finish_operation_with_result(&vdo->admin_state, completion->result);
+	finish_vdo_operation_with_result(&vdo->admin_state, completion->result);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#58 $
  */
 
 #include "slabSummary.h"
@@ -308,15 +308,14 @@ struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
  **/
 static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
-	if (!is_draining(&summary_zone->state)
+	if (!is_vdo_state_draining(&summary_zone->state)
 	    || (summary_zone->write_count > 0)) {
 		return;
 	}
 
-	finish_operation_with_result(&summary_zone->state,
-				     (is_read_only(summary_zone->summary->read_only_notifier)
-				      ? VDO_READ_ONLY
-				      : VDO_SUCCESS));
+	finish_vdo_operation_with_result(&summary_zone->state,
+					 (is_read_only(summary_zone->summary->read_only_notifier)
+					  ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -419,7 +418,7 @@ static void launch_write(struct slab_summary_block *block)
 /**
  * Initiate a drain.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_drain(struct admin_state *state)
 {
@@ -433,14 +432,16 @@ void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
 			     enum admin_state_code operation,
 			     struct vdo_completion *parent)
 {
-	start_draining(&summary_zone->state, operation, parent, initiate_drain);
+	start_vdo_draining(&summary_zone->state, operation, parent,
+			   initiate_drain);
 }
 
 /**********************************************************************/
 void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 			      struct vdo_completion *parent)
 {
-	finish_completion(parent, resume_if_quiescent(&summary_zone->state));
+	finish_completion(parent,
+			  resume_vdo_if_quiescent(&summary_zone->state));
 }
 
 // READ/UPDATE FUNCTIONS
@@ -476,8 +477,8 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 	int result;
 	if (is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
-	} else if (is_draining(&summary_zone->state)
-		   || is_quiescent(&summary_zone->state)) {
+	} else if (is_vdo_state_draining(&summary_zone->state)
+		   || is_vdo_state_quiescent(&summary_zone->state)) {
 		result = VDO_INVALID_ADMIN_STATE;
 	} else {
 		uint8_t hint = compute_fullness_hint(summary_zone->summary,
@@ -581,7 +582,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vdo_extent *extent = as_vdo_extent(completion);
 	free_extent(&extent);
-	finish_loading_with_result(&summary->zones[0]->state, result);
+	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 
 /**********************************************************************/
@@ -646,7 +647,7 @@ void load_slab_summary(struct slab_summary *summary,
 	int result;
 
 	struct slab_summary_zone *zone = summary->zones[0];
-	if (!start_loading(&zone->state, operation, parent, NULL)) {
+	if (!start_vdo_loading(&zone->state, operation, parent, NULL)) {
 		return;
 	}
 
@@ -655,7 +656,7 @@ void load_slab_summary(struct slab_summary *summary,
 			       VIO_PRIORITY_METADATA, blocks,
 			       (char *)summary->entries, &extent);
 	if (result != VDO_SUCCESS) {
-		finish_loading_with_result(&zone->state, result);
+		finish_vdo_loading_with_result(&zone->state, result);
 		return;
 	}
 

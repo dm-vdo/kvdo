@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#93 $
  */
 
 #include "slabDepot.h"
@@ -558,7 +558,7 @@ void load_slab_depot(struct slab_depot *depot,
 		     struct vdo_completion *parent,
 		     void *context)
 {
-	if (assert_load_operation(operation, parent)) {
+	if (assert_vdo_load_operation(operation, parent)) {
 		schedule_vdo_operation_with_context(depot->action_manager,
 						    operation,
 						    start_depot_load,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#52 $
  */
 
 #include "slab.h"
@@ -265,12 +265,12 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 /**
  * Initiate a slab action.
  *
- * Implements admin_initiator.
+ * Implements vdo_admin_initiator.
  **/
 static void initiate_slab_action(struct admin_state *state)
 {
 	struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
-	if (is_draining(state)) {
+	if (is_vdo_state_draining(state)) {
 		if (state->state == ADMIN_STATE_SCRUBBING) {
 			slab->status = SLAB_REBUILDING;
 		}
@@ -285,18 +285,18 @@ static void initiate_slab_action(struct admin_state *state)
 		return;
 	}
 
-	if (is_loading(state)) {
+	if (is_vdo_state_loading(state)) {
 		decode_slab_journal(slab->journal);
 		return;
 	}
 
-	if (is_resuming(state)) {
+	if (is_vdo_state_resuming(state)) {
 		queue_slab(slab);
-		finish_resuming(state);
+		finish_vdo_resuming(state);
 		return;
 	}
 
-	finish_operation_with_result(state, VDO_INVALID_ADMIN_STATE);
+	finish_vdo_operation_with_result(state, VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
@@ -304,58 +304,60 @@ void start_slab_action(struct vdo_slab *slab,
 		       enum admin_state_code operation,
 		       struct vdo_completion *parent)
 {
-	start_operation_with_waiter(&slab->state, operation, parent,
-				    initiate_slab_action);
+	start_vdo_operation_with_waiter(&slab->state, operation, parent,
+					initiate_slab_action);
 }
 
 /**********************************************************************/
 void notify_slab_journal_is_loaded(struct vdo_slab *slab, int result)
 {
-	if ((result == VDO_SUCCESS) && is_clean_load(&slab->state)) {
+	if ((result == VDO_SUCCESS) && is_vdo_state_clean_load(&slab->state)) {
 		// Since this is a normal or new load, we don't need the memory
 		// to read and process the recovery journal, so we can allocate
 		// reference counts now.
 		result = allocate_ref_counts_for_slab(slab);
 	}
 
-	finish_loading_with_result(&slab->state, result);
+	finish_vdo_loading_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
 bool is_slab_open(struct vdo_slab *slab)
 {
-	return (!is_quiescing(&slab->state) && !is_quiescent(&slab->state));
+	return (!is_vdo_state_quiescing(&slab->state) &&
+		!is_vdo_state_quiescent(&slab->state));
 }
 
 /**********************************************************************/
 bool is_slab_draining(struct vdo_slab *slab)
 {
-	return is_draining(&slab->state);
+	return is_vdo_state_draining(&slab->state);
 }
 
 /**********************************************************************/
 void check_if_slab_drained(struct vdo_slab *slab)
 {
-	if (is_draining(&slab->state) && !is_slab_journal_active(slab->journal)
-	    && ((slab->reference_counts == NULL)
-		|| !are_ref_counts_active(slab->reference_counts))) {
+	if (is_vdo_state_draining(&slab->state) &&
+	    !is_slab_journal_active(slab->journal) &&
+	    ((slab->reference_counts == NULL) ||
+	     !are_ref_counts_active(slab->reference_counts))) {
 		int result = (is_read_only(slab->allocator->read_only_notifier)
 				      ? VDO_READ_ONLY
 				      : VDO_SUCCESS);
-		finish_draining_with_result(&slab->state, result);
+		finish_vdo_draining_with_result(&slab->state, result);
 	}
 }
 
 /**********************************************************************/
 void notify_ref_counts_are_drained(struct vdo_slab *slab, int result)
 {
-	finish_draining_with_result(&slab->state, result);
+	finish_vdo_draining_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
 bool is_slab_resuming(struct vdo_slab *slab)
 {
-	return is_resuming(&slab->state);
+	return is_vdo_state_resuming(&slab->state);
 }
 
 /**********************************************************************/
