@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#106 $
  */
 
 /*
@@ -33,6 +33,7 @@
 #include "blockMap.h"
 #include "hashZone.h"
 #include "header.h"
+#include "instanceNumber.h"
 #include "logicalZone.h"
 #include "numUtils.h"
 #include "packer.h"
@@ -95,6 +96,16 @@ void destroy_vdo(struct vdo *vdo)
 	}
 	FREE(vdo->threads);
 	vdo->threads = NULL;
+
+	release_vdo_instance(vdo->instance);
+
+	/*
+	 * The call to kobject_put on the kobj sysfs node will decrement its
+	 * reference count; when the count goes to zero the VDO object will be
+	 * freed as a side effect.
+	 */
+	kobject_put(&vdo->work_queue_directory);
+	kobject_put(&vdo->vdo_directory);
 }
 
 /**********************************************************************/

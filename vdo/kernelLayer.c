@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#176 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#177 $
  */
 
 #include "kernelLayer.h"
@@ -656,8 +656,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 */
 	bool used_bio_ack_queue = false;
 	bool used_cpu_queue = false;
-	bool used_vdo = false;
-	bool release_instance = false;
 
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
@@ -695,7 +693,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_REQUEST_QUEUE_INITIALIZED:
 		finish_vdo(&layer->vdo);
-		used_vdo = true;
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
@@ -713,7 +710,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 		layer->spare_kvdo_flush = NULL;
 		free_batch_processor(&layer->data_vio_releaser);
 		unregister_vdo(&layer->vdo);
-		release_instance = true;
 		break;
 
 	default:
@@ -730,21 +726,9 @@ void free_kernel_layer(struct kernel_layer *layer)
 	if (layer->io_submitter) {
 		free_io_submitter(layer->io_submitter);
 	}
-	if (used_vdo) {
-		destroy_vdo(&layer->vdo);
-	}
 
 	free_dedupe_index(&layer->dedupe_index);
-
-	if (release_instance) {
-		release_vdo_instance(layer->vdo.instance);
-	}
-
-	// The call to kobject_put on the kobj sysfs node will decrement its
-	// reference count; when the count goes to zero the VDO object and
-	// the kernel layer object will be freed as a side effect.
-	kobject_put(&layer->vdo.work_queue_directory);
-	kobject_put(&layer->vdo.vdo_directory);
+	destroy_vdo(&layer->vdo);
 }
 
 /**********************************************************************/
