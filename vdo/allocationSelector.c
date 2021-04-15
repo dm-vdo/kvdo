@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#7 $
  */
 
 #include "allocationSelector.h"
@@ -31,9 +31,9 @@ enum {
 };
 
 /**********************************************************************/
-int make_allocation_selector(zone_count_t physical_zone_count,
-			     thread_id_t thread_id,
-			     struct allocation_selector **selector_ptr)
+int make_vdo_allocation_selector(zone_count_t physical_zone_count,
+				 thread_id_t thread_id,
+				 struct allocation_selector **selector_ptr)
 {
 	struct allocation_selector *selector;
 	int result = ALLOCATE(1,
@@ -54,7 +54,7 @@ int make_allocation_selector(zone_count_t physical_zone_count,
 }
 
 /**********************************************************************/
-void free_allocation_selector(struct allocation_selector **selector_ptr)
+void free_vdo_allocation_selector(struct allocation_selector **selector_ptr)
 {
 	struct allocation_selector *selector = *selector_ptr;
 	if (selector == NULL) {
@@ -66,7 +66,7 @@ void free_allocation_selector(struct allocation_selector **selector_ptr)
 }
 
 /**********************************************************************/
-zone_count_t get_next_allocation_zone(struct allocation_selector *selector)
+zone_count_t get_next_vdo_allocation_zone(struct allocation_selector *selector)
 {
 	if (selector->last_physical_zone > 0) {
 		if (selector->allocation_count < ALLOCATIONS_PER_ZONE) {

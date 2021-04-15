@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#54 $
  */
 
 #include "logicalZone.h"
@@ -137,8 +137,8 @@ static int initialize_zone(struct logical_zones *zones,
 	zone->block_map_zone = get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
 
-	return make_allocation_selector(get_thread_config(vdo)->physical_zone_count,
-					zone->thread_id, &zone->selector);
+	return make_vdo_allocation_selector(get_thread_config(vdo)->physical_zone_count,
+					    zone->thread_id, &zone->selector);
 }
 
 /**********************************************************************/
@@ -199,7 +199,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
-		free_allocation_selector(&zone->selector);
+		free_vdo_allocation_selector(&zone->selector);
 		free_int_map(&zone->lbn_operations);
 	}
 
