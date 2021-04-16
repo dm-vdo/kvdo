@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#71 $
  */
 
 #include "packerInternals.h"
@@ -652,14 +652,15 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 		return false;
 	}
 
-	reset_compressed_block_header(&output->block->header);
+	reset_vdo_compressed_block_header(&output->block->header);
 
 	for (slot = 0; slot < batch.slots_used; slot++) {
 		struct data_vio *data_vio = batch.slots[slot];
 		data_vio->compression.slot = slot;
-		put_compressed_block_fragment(output->block, slot, space_used,
-					      data_vio->compression.data,
-					      data_vio->compression.size);
+		put_vdo_compressed_block_fragment(output->block, slot,
+						  space_used,
+						  data_vio->compression.data,
+						  data_vio->compression.size);
 		space_used += data_vio->compression.size;
 
 		result = enqueue_data_vio(&output->outgoing, data_vio);

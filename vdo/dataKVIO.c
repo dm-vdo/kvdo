@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#133 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#134 $
  */
 
 #include "dataKVIO.h"
@@ -276,11 +276,11 @@ static void uncompress_read_block(struct vdo_work_item *work_item)
 	// uncompressed data.
 	uint16_t fragment_offset, fragment_size;
 	char *compressed_data = read_block->data;
-	int result = get_compressed_block_fragment(read_block->mapping_state,
-						   compressed_data,
-						   VDO_BLOCK_SIZE,
-						   &fragment_offset,
-						   &fragment_size);
+	int result = get_vdo_compressed_block_fragment(read_block->mapping_state,
+						       compressed_data,
+						       VDO_BLOCK_SIZE,
+						       &fragment_offset,
+						       &fragment_size);
 	if (result != VDO_SUCCESS) {
 		log_debug("%s: frag err %d", __func__, result);
 		read_block->status = result;

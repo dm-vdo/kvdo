@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#10 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -58,7 +58,7 @@ struct compressed_block {
  * When done, the version number is set to the current version, and all
  * fragments are empty.
  **/
-void reset_compressed_block_header(struct compressed_block_header *header);
+void reset_vdo_compressed_block_header(struct compressed_block_header *header);
 
 /**
  * Get a reference to a compressed fragment from a compression block.
@@ -73,11 +73,11 @@ void reset_compressed_block_header(struct compressed_block_header *header);
  * @return If a valid compressed fragment is found, VDO_SUCCESS;
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
  **/
-int get_compressed_block_fragment(enum block_mapping_state mapping_state,
-				  char *buffer,
-				  block_size_t block_size,
-				  uint16_t *fragment_offset,
-				  uint16_t *fragment_size);
+int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
+				      char *buffer,
+				      block_size_t block_size,
+				      uint16_t *fragment_offset,
+				      uint16_t *fragment_size);
 
 /**
  * Copy a fragment into the compressed block.
@@ -90,8 +90,8 @@ int get_compressed_block_fragment(enum block_mapping_state mapping_state,
  *
  * @note no bounds checking -- the data better fit without smashing other stuff
  **/
-void put_compressed_block_fragment(struct compressed_block *block,
-				   unsigned int fragment, uint16_t offset,
-				   const char *data, uint16_t size);
+void put_vdo_compressed_block_fragment(struct compressed_block *block,
+				       unsigned int fragment, uint16_t offset,
+				       const char *data, uint16_t size);
 
 #endif // COMPRESSED_BLOCK_H

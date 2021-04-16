@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#18 $
  */
 
 #include "compressedBlock.h"
@@ -37,7 +37,7 @@ enum {
 };
 
 /**********************************************************************/
-void reset_compressed_block_header(struct compressed_block_header *header)
+void reset_vdo_compressed_block_header(struct compressed_block_header *header)
 {
 	// Make sure the block layout isn't accidentally changed by changing
 	// the length of the block header.
@@ -57,11 +57,11 @@ get_compressed_fragment_size(const struct compressed_block_header *header,
 }
 
 /**********************************************************************/
-int get_compressed_block_fragment(enum block_mapping_state mapping_state,
-				  char *buffer,
-				  block_size_t block_size,
-				  uint16_t *fragment_offset,
-				  uint16_t *fragment_size)
+int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
+				      char *buffer,
+				      block_size_t block_size,
+				      uint16_t *fragment_offset,
+				      uint16_t *fragment_size)
 {
 	uint16_t compressed_size, offset;
 	unsigned int i;
@@ -103,11 +103,11 @@ int get_compressed_block_fragment(enum block_mapping_state mapping_state,
 }
 
 /**********************************************************************/
-void put_compressed_block_fragment(struct compressed_block *block,
-				   unsigned int fragment,
-				   uint16_t offset,
-				   const char *data,
-				   uint16_t size)
+void put_vdo_compressed_block_fragment(struct compressed_block *block,
+				       unsigned int fragment,
+				       uint16_t offset,
+				       const char *data,
+				       uint16_t size)
 {
 	block->header.sizes[fragment] = __cpu_to_le16(size);
 	memcpy(&block->data[offset], data, size);
