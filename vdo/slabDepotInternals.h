@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#35 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -78,7 +78,7 @@ struct slab_depot {
  * Notify a slab depot that one of its allocators has finished scrubbing slabs.
  * This method should only be called if the scrubbing was successful. This
  * callback is registered by each block allocator in
- * scrub_all_unrecovered_slabs_in_zone().
+ * scrub_all_unrecovered_vdo_slabs_in_zone().
  *
  * @param completion  A completion whose parent must be a slab depot
  **/

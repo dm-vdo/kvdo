@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#83 $
  */
 
 #include "slabJournalInternals.h"
@@ -202,7 +202,7 @@ int make_slab_journal(struct block_allocator *allocator,
 	journal->full_entries_per_block = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;
 	journal->recovery_journal = recovery_journal;
-	journal->summary = get_slab_summary_zone(allocator);
+	journal->summary = get_vdo_slab_summary_zone(allocator);
 	journal->tail = 1;
 	journal->head = 1;
 
@@ -357,7 +357,7 @@ static void complete_reaping(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
 	struct slab_journal *journal = entry->parent;
-	return_vio(journal->slab->allocator, entry);
+	return_vdo_block_allocator_vio(journal->slab->allocator, entry);
 	finish_reaping(journal);
 	reap_slab_journal(journal);
 }
@@ -452,7 +452,8 @@ static void reap_slab_journal(struct slab_journal *journal)
 	 * (VDO-2912).
 	 */
 	journal->flush_waiter.callback = flush_for_reaping;
-	result = acquire_vio(journal->slab->allocator, &journal->flush_waiter);
+	result = acquire_vdo_block_allocator_vio(journal->slab->allocator,
+						 &journal->flush_waiter);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		return;
@@ -609,7 +610,7 @@ static void complete_write(struct vdo_completion *completion)
 
 	sequence_number_t committed = get_committing_sequence_number(entry);
 	list_del_init(&entry->available_entry);
-	return_vio(journal->slab->allocator, entry);
+	return_vdo_block_allocator_vio(journal->slab->allocator, entry);
 
 	if (write_result != VDO_SUCCESS) {
 		log_error_strerror(write_result,
@@ -638,7 +639,8 @@ static void complete_write(struct vdo_completion *completion)
 }
 
 /**
- * Callback from acquire_vio() registered in commit_slab_journal_tail().
+ * Callback from acquire_vdo_block_allocator_vio() registered in
+ * commit_slab_journal_tail().
  *
  * @param waiter       The vio pool waiter which was just notified
  * @param vio_context  The vio pool entry for the write
@@ -727,8 +729,8 @@ void commit_slab_journal_tail(struct slab_journal *journal)
 	journal->waiting_to_commit = true;
 
 	journal->resource_waiter.callback = write_slab_journal_block;
-	result = acquire_vio(journal->slab->allocator,
-			     &journal->resource_waiter);
+	result = acquire_vdo_block_allocator_vio(journal->slab->allocator,
+						 &journal->resource_waiter);
 	if (result != VDO_SUCCESS) {
 		journal->waiting_to_commit = false;
 		enter_journal_read_only_mode(journal, result);
@@ -1119,7 +1121,7 @@ void add_slab_journal_entry(struct slab_journal *journal,
 	}
 
 	if (is_unrecovered_slab(journal->slab) && requires_reaping(journal)) {
-		increase_scrubbing_priority(journal->slab);
+		increase_vdo_slab_scrubbing_priority(journal->slab);
 	}
 
 	add_entries(journal);
@@ -1211,7 +1213,7 @@ static void finish_decoding_journal(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vio_pool_entry *entry = completion->parent;
 	struct slab_journal *journal = entry->parent;
-	return_vio(journal->slab->allocator, entry);
+	return_vdo_block_allocator_vio(journal->slab->allocator, entry);
 	notify_slab_journal_is_loaded(journal->slab, result);
 }
 
@@ -1254,8 +1256,8 @@ static void set_decoded_state(struct vdo_completion *completion)
 
 /**
  * This reads the slab journal tail block by using a vio acquired from the vio
- * pool. This is the success callback from acquire_vio() when decoding
- * the slab journal.
+ * pool. This is the success callback from acquire_vdo_block_allocator_vio()
+ * when decoding the slab journal.
  *
  * @param waiter       The vio pool waiter which has just been notified
  * @param vio_context  The vio pool entry given to the waiter
@@ -1313,7 +1315,8 @@ void decode_slab_journal(struct slab_journal *journal)
 	}
 
 	journal->resource_waiter.callback = read_slab_journal_tail;
-	result = acquire_vio(slab->allocator, &journal->resource_waiter);
+	result = acquire_vdo_block_allocator_vio(slab->allocator,
+						 &journal->resource_waiter);
 	if (result != VDO_SUCCESS) {
 		notify_slab_journal_is_loaded(slab, result);
 	}

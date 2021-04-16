@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#31 $
  */
 
 #include "allocatingVIO.h"
@@ -88,7 +88,7 @@ static int allocate_and_lock_block(struct allocating_vio *allocating_vio)
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 	struct block_allocator *allocator =
 		get_block_allocator(allocating_vio->zone);
-	int result = allocate_block(allocator, &allocating_vio->allocation);
+	int result = allocate_vdo_block(allocator, &allocating_vio->allocation);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -140,7 +140,7 @@ static int wait_for_clean_slab(struct allocating_vio *allocating_vio)
 
 	waiter->callback = retry_allocate_block_for_write;
 
-	result = enqueue_for_clean_slab(allocator, waiter);
+	result = enqueue_for_clean_vdo_slab(allocator, waiter);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

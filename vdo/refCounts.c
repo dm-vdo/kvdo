@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#66 $
  */
 
 #include "refCounts.h"
@@ -1108,7 +1108,7 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 {
 	tail_block_offset_t offset;
 	struct slab_summary_zone *summary =
-		get_slab_summary_zone(ref_counts->slab->allocator);
+		get_vdo_slab_summary_zone(ref_counts->slab->allocator);
 	if (summary == NULL) {
 		return;
 	}
@@ -1139,7 +1139,7 @@ static void handle_io_error(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct ref_counts *ref_counts =
 		((struct reference_block *)entry->parent)->ref_counts;
-	return_vio(ref_counts->slab->allocator, entry);
+	return_vdo_block_allocator_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	enter_ref_counts_read_only_mode(ref_counts, result);
 }
@@ -1161,7 +1161,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	adjust_slab_journal_block_reference(ref_counts->slab->journal,
 					    block->slab_journal_lock_to_release,
 					    -1);
-	return_vio(ref_counts->slab->allocator, entry);
+	return_vdo_block_allocator_vio(ref_counts->slab->allocator, entry);
 
 	/*
 	 * We can't clear the is_writing flag earlier as releasing the slab
@@ -1299,7 +1299,8 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 	block = waiter_as_reference_block(block_waiter);
 	block->is_writing = true;
 	block_waiter->callback = write_reference_block;
-	result = acquire_vio(ref_counts->slab->allocator, block_waiter);
+	result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
+						 block_waiter);
 	if (result != VDO_SUCCESS) {
 		// This should never happen.
 		ref_counts->active_count--;
@@ -1432,7 +1433,7 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	unpack_reference_block((struct packed_reference_block *)entry->buffer,
 			       block);
 
-	return_vio(ref_counts->slab->allocator, entry);
+	return_vdo_block_allocator_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	clear_provisional_references(block);
 
@@ -1475,7 +1476,8 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 		int result;
 		struct waiter *block_waiter = &ref_counts->blocks[i].waiter;
 		block_waiter->callback = load_reference_block;
-		result = acquire_vio(ref_counts->slab->allocator, block_waiter);
+		result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
+					 block_waiter);
 		if (result != VDO_SUCCESS) {
 			// This should never happen.
 			ref_counts->active_count -=

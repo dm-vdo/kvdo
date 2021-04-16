@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#25 $
  */
 
 #include "physicalZone.h"
@@ -204,5 +204,5 @@ void release_pbn_lock(struct physical_zone *zone,
 /**********************************************************************/
 void dump_physical_zone(const struct physical_zone *zone)
 {
-	dump_block_allocator(zone->allocator);
+	dump_vdo_block_allocator(zone->allocator);
 }

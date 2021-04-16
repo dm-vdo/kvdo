@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#53 $
  */
 
 #include "slab.h"
@@ -183,8 +183,8 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 	}
 
 	if (free_status_changed) {
-		adjust_free_block_count(slab,
-					!is_increment_operation(operation.type));
+		adjust_vdo_free_block_count(slab,
+					    !is_increment_operation(operation.type));
 	}
 
 	return VDO_SUCCESS;
@@ -222,7 +222,7 @@ int acquire_provisional_reference(struct vdo_slab *slab,
 	}
 
 	if (has_provisional_reference(lock)) {
-		adjust_free_block_count(slab, false);
+		adjust_vdo_free_block_count(slab, false);
 	}
 
 	return VDO_SUCCESS;
@@ -291,7 +291,7 @@ static void initiate_slab_action(struct admin_state *state)
 	}
 
 	if (is_vdo_state_resuming(state)) {
-		queue_slab(slab);
+		queue_vdo_slab(slab);
 		finish_vdo_resuming(state);
 		return;
 	}
@@ -364,7 +364,7 @@ bool is_slab_resuming(struct vdo_slab *slab)
 void finish_scrubbing_slab(struct vdo_slab *slab)
 {
 	slab->status = SLAB_REBUILT;
-	queue_slab(slab);
+	queue_vdo_slab(slab);
 	reopen_slab_journal(slab->journal);
 }
 

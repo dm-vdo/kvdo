@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#81 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -599,8 +599,8 @@ handle_add_slab_journal_entry_error(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion->parent);
-	notify_slab_journals_are_recovered(recovery->allocator,
-					   completion->result);
+	notify_vdo_slab_journals_are_recovered(recovery->allocator,
+					       completion->result);
 }
 
 /**
@@ -636,7 +636,8 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 		FREE(decref);
 	}
 
-	notify_slab_journals_are_recovered(recovery->allocator, VDO_SUCCESS);
+	notify_vdo_slab_journals_are_recovered(recovery->allocator,
+					       VDO_SUCCESS);
 }
 
 /**
@@ -784,7 +785,7 @@ void replay_into_slab_journals(struct block_allocator *allocator,
 				       __func__);
 	if ((recovery->journal_data == NULL) || is_replaying(recovery->vdo)) {
 		// there's nothing to replay
-		notify_slab_journals_are_recovered(allocator, VDO_SUCCESS);
+		notify_vdo_slab_journals_are_recovered(allocator, VDO_SUCCESS);
 		return;
 	}
 
