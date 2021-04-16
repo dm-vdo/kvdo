@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#9 $
  */
 
 #include "buffer.h"
@@ -54,7 +54,7 @@ int wrap_buffer(byte *bytes,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int make_buffer(size_t size, struct buffer **new_buffer)
 {
 	byte *data;
@@ -75,7 +75,7 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void free_buffer(struct buffer **p_buffer)
 {
 	struct buffer *buffer = *p_buffer;
@@ -119,7 +119,7 @@ size_t buffer_used(struct buffer *buffer)
 	return buffer->end;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 bool ensure_available_space(struct buffer *buffer, size_t bytes)
 {
 	if (available_space(buffer) >= bytes) {
@@ -129,14 +129,14 @@ bool ensure_available_space(struct buffer *buffer, size_t bytes)
 	return (available_space(buffer) >= bytes);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void clear_buffer(struct buffer *buffer)
 {
 	buffer->start = 0;
 	buffer->end = buffer->length;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void compact_buffer(struct buffer *buffer)
 {
 	if ((buffer->start == 0) || (buffer->end == 0)) {

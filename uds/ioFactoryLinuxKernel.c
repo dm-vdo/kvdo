@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#9 $
  */
 
 #include <linux/blkdev.h>
@@ -38,13 +38,13 @@ struct io_factory {
 	atomic_t ref_count;
 };
 
-/*****************************************************************************/
+/**********************************************************************/
 void get_io_factory(struct io_factory *factory)
 {
 	atomic_inc(&factory->ref_count);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_io_factory(const char *path, struct io_factory **factory_ptr)
 {
 	int result;
@@ -75,7 +75,7 @@ int make_io_factory(const char *path, struct io_factory **factory_ptr)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void put_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
@@ -84,13 +84,13 @@ void put_io_factory(struct io_factory *factory)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 size_t get_writable_size(struct io_factory *factory)
 {
 	return i_size_read(factory->bdev->bd_inode);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_bufio(struct io_factory *factory,
 	       off_t offset,
 	       size_t block_size,
@@ -123,7 +123,7 @@ int make_bufio(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int open_buffered_reader(struct io_factory *factory,
 			 off_t offset,
 			 size_t size,
@@ -152,7 +152,7 @@ int open_buffered_reader(struct io_factory *factory,
 	return result;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int open_buffered_writer(struct io_factory *factory,
 			 off_t offset,
 			 size_t size,

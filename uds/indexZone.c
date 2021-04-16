@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#22 $
  */
 
 #include "indexZone.h"
@@ -399,7 +399,7 @@ int put_record_in_zone(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**************************************************************************/
+/**********************************************************************/
 int search_sparse_cache_in_zone(struct index_zone *zone,
 				Request *request,
 				uint64_t virtual_chapter,

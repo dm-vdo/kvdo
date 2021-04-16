@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#76 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#77 $
  */
 
 #include <linux/module.h>
@@ -85,6 +85,7 @@ EXPORT_SYMBOL_GPL(uds_get_index_session_stats);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
 
+EXPORT_SYMBOL_GPL(__uds_log_message);
 EXPORT_SYMBOL_GPL(alloc_sprintf);
 EXPORT_SYMBOL_GPL(allocate_memory);
 EXPORT_SYMBOL_GPL(allocate_memory_nowait);
@@ -121,12 +122,8 @@ EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
 EXPORT_SYMBOL_GPL(has_same_bytes);
 EXPORT_SYMBOL_GPL(initialize_thread_registry);
 EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
-EXPORT_SYMBOL_GPL(log_debug);
-EXPORT_SYMBOL_GPL(uds_log_error);
 EXPORT_SYMBOL_GPL(log_error_strerror);
-EXPORT_SYMBOL_GPL(log_info);
 EXPORT_SYMBOL_GPL(log_info_strerror);
-EXPORT_SYMBOL_GPL(log_warning);
 EXPORT_SYMBOL_GPL(log_warning_strerror);
 EXPORT_SYMBOL_GPL(lookup_thread);
 EXPORT_SYMBOL_GPL(make_buffer);
@@ -135,6 +132,7 @@ EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(parse_uint64);
 EXPORT_SYMBOL_GPL(pause_for_logger);
 EXPORT_SYMBOL_GPL(perform_once);
+EXPORT_SYMBOL_GPL(priority_to_string);
 EXPORT_SYMBOL_GPL(put_boolean);
 EXPORT_SYMBOL_GPL(put_buffer);
 EXPORT_SYMBOL_GPL(put_byte);
@@ -145,7 +143,6 @@ EXPORT_SYMBOL_GPL(put_uint16_les_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
-EXPORT_SYMBOL_GPL(priority_to_string);
 EXPORT_SYMBOL_GPL(reallocate_memory);
 EXPORT_SYMBOL_GPL(register_allocating_thread);
 EXPORT_SYMBOL_GPL(register_error_block);
@@ -163,7 +160,6 @@ EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(unregister_thread);
 EXPORT_SYMBOL_GPL(v_append_to_buffer);
-EXPORT_SYMBOL_GPL(vlog_message);
 EXPORT_SYMBOL_GPL(vlog_strerror);
 EXPORT_SYMBOL_GPL(wrap_buffer);
 EXPORT_SYMBOL_GPL(zero_bytes);

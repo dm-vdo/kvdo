@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#32 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#33 $
  */
 #include "masterIndex005.h"
 
@@ -198,7 +198,7 @@ is_virtual_chapter_indexed(const struct volume_index_record *record,
 		(virtual_chapter <= volume_index_zone->virtual_chapter_high));
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Flush an invalid entry from the volume index, advancing to the next
  * valid entry.
@@ -328,7 +328,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Terminate and clean up the volume index
  *
@@ -368,7 +368,7 @@ struct vi005_data {
 	unsigned int num_lists;
 };
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the tag value used when saving and/or restoring a volume index.
  *
@@ -383,7 +383,7 @@ static void set_volume_index_tag_005(struct volume_index *volume_index,
 	set_delta_index_tag(&vi5->delta_index, tag);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 static int __must_check encode_volume_index_header(struct buffer *buffer,
 						   struct vi005_data *header)
 {
@@ -496,7 +496,7 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 					buffered_writer);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Have all the data been written while saving a volume index to an output
  * stream?  If the answer is yes, it is still necessary to call
@@ -516,7 +516,7 @@ is_saving_volume_index_done_005(const struct volume_index *volume_index,
 	return is_saving_delta_index_done(&vi5->delta_index, zone_number);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Finish saving a volume index to an output stream.  Force the writing of
  * all of the remaining data.  If an error occurred asynchronously during
@@ -536,7 +536,7 @@ finish_saving_volume_index_005(const struct volume_index *volume_index,
 	return finish_saving_delta_index(&vi5->delta_index, zone_number);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Abort saving a volume index to an output stream.  If an error occurred
  * asynchronously during the save operation, it will be dropped.
@@ -555,7 +555,7 @@ abort_saving_volume_index_005(const struct volume_index *volume_index,
 	return abort_saving_delta_index(&vi5->delta_index, zone_number);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 static int __must_check decode_volume_index_header(struct buffer *buffer,
 						   struct vi005_data *header)
 {
@@ -719,7 +719,7 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Have all the data been read while restoring a volume index from an
  * input stream?
@@ -736,7 +736,7 @@ is_restoring_volume_index_done_005(const struct volume_index *volume_index)
 	return is_restoring_delta_index_done(&vi5->delta_index);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Restore a saved delta list
  *
@@ -756,7 +756,7 @@ restore_delta_list_to_volume_index_005(struct volume_index *volume_index,
 	return restore_delta_list_to_delta_index(&vi5->delta_index, dlsi, data);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Abort restoring a volume index from an input stream.
  *
@@ -769,7 +769,7 @@ static void abort_restoring_volume_index_005(struct volume_index *volume_index)
 	abort_restoring_delta_index(&vi5->delta_index);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 static void remove_newest_chapters(struct volume_index5 *vi5,
 				   unsigned int zone_number,
 				   uint64_t virtual_chapter)
@@ -822,7 +822,7 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the open chapter number on a zone.  The volume index zone will be
  * modified to index the proper number of chapters ending with the new open
@@ -928,7 +928,7 @@ set_volume_index_zone_open_chapter_005(struct volume_index *volume_index,
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the open chapter number.  The volume index will be modified to index
  * the proper number of chapters ending with the new open chapter.
@@ -969,7 +969,7 @@ set_volume_index_open_chapter_005(struct volume_index *volume_index,
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Find the volume index zone associated with a chunk name
  *
@@ -988,7 +988,7 @@ get_volume_index_zone_005(const struct volume_index *volume_index,
 	return get_delta_index_zone(&vi5->delta_index, delta_list_number);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
@@ -1010,7 +1010,7 @@ lookup_volume_index_name_005(const struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
@@ -1065,7 +1065,7 @@ lookup_volume_index_sampled_name_005(const struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Find the volume index record associated with a block name
  *
@@ -1151,7 +1151,7 @@ static int get_volume_index_record_005(struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Create a new record associated with a block name.
  *
@@ -1222,7 +1222,7 @@ static INLINE int validate_record(struct volume_index_record *record)
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Remove an existing record.
  *
@@ -1248,7 +1248,7 @@ int remove_volume_index_record(struct volume_index_record *record)
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int set_volume_index_record_chapter(struct volume_index_record *record,
 				    uint64_t virtual_chapter)
 {
@@ -1284,7 +1284,7 @@ int set_volume_index_record_chapter(struct volume_index_record *record,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Get the number of bytes used for volume index entries.
  *
@@ -1301,7 +1301,7 @@ get_volume_index_memory_used_005(const struct volume_index *volume_index)
 	return (bits + CHAR_BIT - 1) / CHAR_BIT;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Return the volume index stats.  There is only one portion of the volume
  * index in this implementation, and we call it the dense portion of the
@@ -1338,7 +1338,7 @@ static void get_volume_index_stats_005(const struct volume_index *volume_index,
 	memset(sparse, 0, sizeof(struct volume_index_stats));
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Determine whether a given chunk name is a hook.
  *
@@ -1355,7 +1355,7 @@ static bool is_volume_index_sample_005(const struct volume_index *volume_index
 	return false;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 struct parameters005 {
 	unsigned int address_bits;     // Number of bits in address mask
 	unsigned int chapter_bits;     // Number of bits in chapter number
@@ -1367,7 +1367,7 @@ struct parameters005 {
 	size_t target_free_size;       // Number of free bytes we desire
 };
 
-/***********************************************************************/
+/**********************************************************************/
 static int
 compute_volume_index_parameters005(const struct configuration *config,
 				   struct parameters005 *params)
@@ -1476,7 +1476,7 @@ compute_volume_index_parameters005(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int compute_volume_index_save_bytes005(const struct configuration *config,
 				       size_t *num_bytes)
 {
@@ -1494,7 +1494,7 @@ int compute_volume_index_save_bytes005(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int make_volume_index005(const struct configuration *config,
 			 unsigned int num_zones,
 			 uint64_t volume_nonce,

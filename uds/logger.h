@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#12 $
  */
 
 #ifndef LOGGER_H
 #define LOGGER_H 1
 
+#include <linux/module.h>
 #include <linux/ratelimit.h>
 #include <linux/version.h>
 
@@ -96,76 +97,43 @@ int string_to_priority(const char *string);
 const char *priority_to_string(int priority);
 
 /**
- * Log a debug message.
- *
- * @param format The format of the message (a printf style format)
- **/
-void log_debug(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log an informational message.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void log_info(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log a normal (but notable) condition.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void log_notice(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log a warning.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void log_warning(const char *format, ...)
-	__attribute__((format(printf, 1, 2)));
-
-/**
- * Log an error.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void uds_log_error(const char *format, ...)
-	__attribute__((format(printf, 1, 2)));
-
-/**
  * Log a message embedded within another message.
  *
  * @param priority      the priority at which to log the message
+ * @param module        the name of the module doing the logging
  * @param prefix        optional string prefix to message, may be NULL
  * @param fmt1          format of message first part (required)
  * @param args1         arguments for message first part (required)
  * @param fmt2          format of message second part
  **/
-void log_embedded_message(int priority,
-			  const char *prefix,
-			  const char *fmt1,
-			  va_list args1,
-			  const char *fmt2,
-			  ...)
-	__attribute__((format(printf, 3, 0), format(printf, 5, 6)));
+void uds_log_embedded_message(int priority,
+			      const char *module,
+			      const char *prefix,
+			      const char *fmt1,
+			      va_list args1,
+			      const char *fmt2,
+			      ...)
+	__attribute__((format(printf, 4, 0), format(printf, 6, 7)));
 
 /**
  * Log a message pack consisting of multiple variable sections.
  *
  * @param priority      the priority at which to log the message
+ * @param module        the name of the module doing the logging
  * @param prefix        optional string prefix to message, may be NULL
  * @param fmt1          format of message first part (required)
  * @param args1         arguments for message first part
  * @param fmt2          format of message second part (required)
  * @param args2         arguments for message second part
  **/
-void log_message_pack(int priority,
-		      const char *prefix,
-		      const char *fmt1,
-		      va_list args1,
-		      const char *fmt2,
-		      va_list args2)
-	__attribute__((format(printf, 3, 0), format(printf, 5, 0)));
+void uds_log_message_pack(int priority,
+			  const char *module,
+			  const char *prefix,
+			  const char *fmt1,
+			  va_list args1,
+			  const char *fmt2,
+			  va_list args2)
+	__attribute__((format(printf, 4, 0), format(printf, 6, 0)));
 
 /**
  * Log a stack backtrace.
@@ -244,30 +212,61 @@ int log_unrecoverable(int errnum, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
 /**
- * Log a fatal error.
+ * Log a message.
  *
- * @param  format The format of the message (a printf style format)
+ * @param priority  The syslog priority value for the message.
  **/
-void log_fatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
+#define uds_log_message(priority, ...) \
+	__uds_log_message(priority, THIS_MODULE->name, __VA_ARGS__)
 
 /**
- * Log a message -- for internal use only.
+ * Log a message.
  *
- * @param  priority The syslog priority value for the message.
- * @param  format   The format of the message (a printf style format)
- * @param  args     The variadic argument list of format parameters.
+ * @param priority  The syslog priority value for the message
+ * @param module    The name of the module doing the logging
+ * @param format    The format of the message (a printf style format)
  **/
-void vlog_message(int priority, const char *format, va_list args)
-	__attribute__((format(printf, 2, 0)));
+void __uds_log_message(int priority,
+		       const char *module,
+		       const char *format,
+		       ...)
+	__attribute__((format(printf, 3, 4)));
 
 /**
- * Log a message
- *
- * @param  priority The syslog priority value for the message.
- * @param  format   The format of the message (a printf style format)
+ * Log a debug message. Takes printf-style arguments.
  **/
-void log_message(int priority, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+#define log_debug(...) uds_log_debug(__VA_ARGS__)
+#define uds_log_debug(...) uds_log_message(LOG_DEBUG, __VA_ARGS__)
+
+/**
+ * Log an informational message. Takes printf-style arguments.
+ **/
+#define log_info(...) uds_log_info(__VA_ARGS__)
+#define uds_log_info(...) uds_log_message(LOG_INFO, __VA_ARGS__)
+
+/**
+ * Log a normal (but notable) condition. Takes printf-style arguments.
+ **/
+#define log_notice(...) uds_log_notice(__VA_ARGS__)
+#define uds_log_notice(...) uds_log_message(LOG_NOTICE, __VA_ARGS__)
+
+/**
+ * Log a warning. Takes printf-style arguments.
+ **/
+#define log_warning(...) uds_log_warning(__VA_ARGS__)
+#define uds_log_warning(...) uds_log_message(LOG_WARNING, __VA_ARGS__)
+
+/**
+ * Log an error. Takes printf-style arguments.
+ **/
+#define log_error(...) uds_log_error(__VA_ARGS__)
+#define uds_log_error(...) uds_log_message(LOG_ERR, __VA_ARGS__)
+
+/**
+ * Log a fatal error. Takes printf-style arguments.
+ **/
+#define log_fatal(...) uds_log_fatal(__VA_ARGS__)
+#define uds_log_fatal(...) uds_log_message(LOG_CRIT, __VA_ARGS__)
 
 /**
  * Sleep or delay a short time (likely a few milliseconds) in an attempt allow

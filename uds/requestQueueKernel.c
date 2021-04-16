@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#12 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#13 $
  */
 
 #include "requestQueue.h"
@@ -99,7 +99,7 @@ struct uds_request_queue {
 	atomic_t dormant;
 };
 
-/*****************************************************************************/
+/**********************************************************************/
 /**
  * Poll the underlying lock-free queues for a request to process.  Must only be
  * called by the worker thread.
@@ -127,7 +127,7 @@ static INLINE Request *poll_queues(RequestQueue *queue)
 	return NULL;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 /**
  * Check if the underlying lock-free queues appear not just not to have any
  * requests available right now, but also not to be in the intermediate state
@@ -143,7 +143,7 @@ static INLINE bool are_queues_idle(RequestQueue *queue)
 		is_funnel_queue_idle(queue->main_queue));
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 /**
  * Remove the next request to be processed from the queue.  Must only be called
  * by the worker thread.
@@ -179,7 +179,7 @@ dequeue_request(RequestQueue *queue, Request **request_ptr, bool *waited_ptr)
 	return false;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void request_queue_worker(void *arg)
 {
 	RequestQueue *queue = (RequestQueue *) arg;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.c#6 $
  */
 
 #include "bits.h"
@@ -67,7 +67,7 @@ set_big_field(uint64_t value, byte *memory, uint64_t offset, int size)
 	put_unaligned_le64(data, addr);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void get_bytes(const byte *memory, uint64_t offset, byte *destination, int size)
 {
 	const byte *addr = memory + offset / CHAR_BIT;
@@ -77,7 +77,7 @@ void get_bytes(const byte *memory, uint64_t offset, byte *destination, int size)
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 {
 	byte *addr = memory + offset / CHAR_BIT;
@@ -90,7 +90,7 @@ void set_bytes(byte *memory, uint64_t offset, const byte *source, int size)
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void move_bits(const byte *s_memory,
 	       uint64_t source,
 	       byte *d_memory,
@@ -170,7 +170,7 @@ void move_bits(const byte *s_memory,
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 bool same_bits(const byte *mem1,
 	       uint64_t offset1,
 	       const byte *mem2,

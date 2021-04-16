@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#7 $
  */
 
 #include "indexLayoutParser.h"
@@ -28,7 +28,7 @@
 #include "typeDefs.h"
 #include "uds.h"
 
-/*****************************************************************************/
+/**********************************************************************/
 static int __must_check set_parameter_value(struct layout_parameter *lp,
 					    char *data)
 {
@@ -49,7 +49,7 @@ static int __must_check set_parameter_value(struct layout_parameter *lp,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int parse_layout_string(char *info,
 			struct layout_parameter *params,
 			size_t count)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#26 $
  */
 #include "masterIndex006.h"
 
@@ -79,7 +79,7 @@ is_volume_index_sample_006(const struct volume_index *volume_index,
 	return (extract_sampling_bytes(name) % vi6->sparse_sample_rate) == 0;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Get the subindex for the given chunk name
  *
@@ -99,7 +99,7 @@ get_sub_index(const struct volume_index *volume_index,
 			vi6->vi_non_hook);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Terminate and clean up the volume index
  *
@@ -131,7 +131,7 @@ static void free_volume_index_006(struct volume_index *volume_index)
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Constants and structures for the saved volume index region. "MI6"
  * indicates volume index 006, and "-XXXX" is a number to increment
@@ -147,7 +147,7 @@ struct vi006_data {
 	unsigned int sparse_sample_rate;
 };
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the tag value used when saving and/or restoring a volume index.
  *
@@ -160,7 +160,7 @@ static void set_volume_index_tag_006(struct volume_index *volume_index
 {
 }
 
-/***********************************************************************/
+/**********************************************************************/
 static int __must_check encode_volume_index_header(struct buffer *buffer,
 						   struct vi006_data *header)
 {
@@ -234,7 +234,7 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Have all the data been written while saving a volume index to an output
  * stream?  If the answer is yes, it is still necessary to call
@@ -255,7 +255,7 @@ is_saving_volume_index_done_006(const struct volume_index *volume_index,
 		is_saving_volume_index_done(vi6->vi_hook, zone_number));
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Finish saving a volume index to an output stream.  Force the writing of
  * all of the remaining data.  If an error occurred asynchronously during
@@ -279,7 +279,7 @@ finish_saving_volume_index_006(const struct volume_index *volume_index,
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Abort saving a volume index to an output stream.  If an error occurred
  * asynchronously during the save operation, it will be dropped.
@@ -303,7 +303,7 @@ abort_saving_volume_index_006(const struct volume_index *volume_index,
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 static int __must_check decode_volume_index_header(struct buffer *buffer,
 						   struct vi006_data *header)
 {
@@ -404,7 +404,7 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 					    num_readers);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Have all the data been read while restoring a volume index from an
  * input stream?
@@ -422,7 +422,7 @@ is_restoring_volume_index_done_006(const struct volume_index *volume_index)
 		is_restoring_volume_index_done(vi6->vi_hook));
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Restore a saved delta list
  *
@@ -450,7 +450,7 @@ restore_delta_list_to_volume_index_006(struct volume_index *volume_index,
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Abort restoring a volume index from an input stream.
  *
@@ -464,7 +464,7 @@ static void abort_restoring_volume_index_006(struct volume_index *volume_index)
 	abort_restoring_volume_index(vi6->vi_hook);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the open chapter number on a zone.  The volume index zone will be
  * modified to index the proper number of chapters ending with the new open
@@ -493,7 +493,7 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 	unlock_mutex(mutex);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Set the open chapter number.  The volume index will be modified to index
  * the proper number of chapters ending with the new open chapter.
@@ -514,7 +514,7 @@ set_volume_index_open_chapter_006(struct volume_index *volume_index,
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Find the volume index zone associated with a chunk name
  *
@@ -530,7 +530,7 @@ get_volume_index_zone_006(const struct volume_index *volume_index,
 	return get_volume_index_zone(get_sub_index(volume_index, name), name);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
@@ -563,7 +563,7 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
@@ -589,7 +589,7 @@ lookup_volume_index_sampled_name_006(const struct volume_index *volume_index
 				      "%s should not be called", __func__);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Find the volume index record associated with a block name
  *
@@ -645,7 +645,7 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 	return result;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Get the number of bytes used for volume index entries.
  *
@@ -662,7 +662,7 @@ get_volume_index_memory_used_006(const struct volume_index *volume_index)
 		get_volume_index_memory_used(vi6->vi_hook));
 }
 
-/***********************************************************************/
+/**********************************************************************/
 /**
  * Return the volume index stats.  There is only one portion of the volume
  * index in this implementation, and we call it the dense portion of the
@@ -683,7 +683,7 @@ static void get_volume_index_stats_006(const struct volume_index *volume_index,
 	get_volume_index_stats(vi6->vi_hook, sparse, &dummy_stats);
 }
 
-/***********************************************************************/
+/**********************************************************************/
 struct split_config {
 	struct configuration hook_config; // Describe hook part of the index
 	struct geometry hook_geometry;
@@ -692,7 +692,7 @@ struct split_config {
 	struct geometry non_hook_geometry;
 };
 
-/***********************************************************************/
+/**********************************************************************/
 static int split_configuration006(const struct configuration *config,
 				  struct split_config *split)
 {
@@ -737,7 +737,7 @@ static int split_configuration006(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int compute_volume_index_save_bytes006(const struct configuration *config,
 				       size_t *num_bytes)
 {
@@ -763,7 +763,7 @@ int compute_volume_index_save_bytes006(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int make_volume_index006(const struct configuration *config,
 			 unsigned int num_zones,
 			 uint64_t volume_nonce,

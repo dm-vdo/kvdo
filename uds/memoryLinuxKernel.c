@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#11 $
  */
 
 #include <linux/delay.h>
@@ -43,14 +43,14 @@
 
 static struct thread_registry allocating_threads;
 
-/*****************************************************************************/
+/**********************************************************************/
 static bool allocations_allowed(void)
 {
 	const bool *pointer = lookup_thread(&allocating_threads);
 	return pointer != NULL ? *pointer : false;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void register_allocating_thread(struct registered_thread *new_thread,
 				const bool *flag_ptr)
 {
@@ -61,7 +61,7 @@ void register_allocating_thread(struct registered_thread *new_thread,
 	register_thread(&allocating_threads, new_thread, flag_ptr);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void unregister_allocating_thread(void)
 {
 	unregister_thread(&allocating_threads);
@@ -99,7 +99,7 @@ static struct {
 	struct vmalloc_block_info *vmalloc_list;
 } memory_stats __cacheline_aligned;
 
-/*****************************************************************************/
+/**********************************************************************/
 static void update_peak_usage(void)
 {
 	size_t total_bytes =
@@ -109,7 +109,7 @@ static void update_peak_usage(void)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void add_kmalloc_block(size_t size)
 {
 	unsigned long flags;
@@ -120,7 +120,7 @@ static void add_kmalloc_block(size_t size)
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void remove_kmalloc_block(size_t size)
 {
 	unsigned long flags;
@@ -130,7 +130,7 @@ static void remove_kmalloc_block(size_t size)
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void add_vmalloc_block(struct vmalloc_block_info *block)
 {
 	unsigned long flags;
@@ -143,7 +143,7 @@ static void add_vmalloc_block(struct vmalloc_block_info *block)
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void remove_vmalloc_block(void *ptr)
 {
 	struct vmalloc_block_info *block, **block_ptr;
@@ -208,7 +208,7 @@ static INLINE bool use_kmalloc(size_t size)
 	return size <= PAGE_SIZE;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
 	/*
@@ -342,7 +342,7 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void *allocate_memory_nowait(size_t size,
 			     const char *what __attribute__((unused)))
 {
@@ -353,7 +353,7 @@ void *allocate_memory_nowait(size_t size,
 	return p;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void free_memory(void *ptr)
 {
 	if (ptr != NULL) {
@@ -367,7 +367,7 @@ void free_memory(void *ptr)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int reallocate_memory(void *ptr,
 		      size_t old_size,
 		      size_t size,
@@ -397,7 +397,7 @@ int reallocate_memory(void *ptr,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void memory_init(void)
 {
 
@@ -405,7 +405,7 @@ void memory_init(void)
 	initialize_thread_registry(&allocating_threads);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void memory_exit(void)
 {
 

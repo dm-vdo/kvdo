@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#12 $
  */
 
 #include "nonce.h"
@@ -27,7 +27,7 @@
 #include "stringUtils.h"
 #include "timeUtils.h"
 
-/*****************************************************************************/
+/**********************************************************************/
 static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 {
 	uint32_t seed = start ^ (start >> 27);
@@ -36,7 +36,7 @@ static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 	return get_unaligned_le64(hash_buffer + 4);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void create_unique_nonce_data(byte *buffer)
 {
 	ktime_t now = current_time_ns(CLOCK_REALTIME);
@@ -56,13 +56,13 @@ void create_unique_nonce_data(byte *buffer)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 uint64_t generate_primary_nonce(const void *data, size_t len)
 {
 	return hash_stuff(0xa1b1e0fc, data, len);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 uint64_t generate_secondary_nonce(uint64_t nonce, const void *data, size_t len)
 {
 	return hash_stuff(nonce + 1, data, len);

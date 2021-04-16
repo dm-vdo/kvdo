@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#19 $
  */
 
 #include "indexPageMap.h"
@@ -56,14 +56,14 @@ const struct index_component_info INDEX_PAGE_MAP_INFO = {
 	.incremental  = NULL,
 };
 
-/*****************************************************************************/
+/**********************************************************************/
 static INLINE size_t num_entries(const struct geometry *geometry)
 {
 	return geometry->chapters_per_volume *
 	       (geometry->index_pages_per_chapter - 1);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_index_page_map(const struct geometry *geometry,
 			struct index_page_map **map_ptr)
 {
@@ -99,7 +99,7 @@ int make_index_page_map(const struct geometry *geometry,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void free_index_page_map(struct index_page_map *map)
 {
 	if (map != NULL) {
@@ -108,13 +108,13 @@ void free_index_page_map(struct index_page_map *map)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 uint64_t get_last_update(const struct index_page_map *map)
 {
 	return map->last_update;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int update_index_page_map(struct index_page_map *map,
 			  uint64_t virtual_chapter_number,
 			  unsigned int chapter_number,
@@ -169,7 +169,7 @@ int update_index_page_map(struct index_page_map *map,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int find_index_page_number(const struct index_page_map *map,
 			   const struct uds_chunk_name *name,
 			   unsigned int chapter_number,
@@ -241,13 +241,13 @@ int get_list_number_bounds(const struct index_page_map *map,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 size_t index_page_map_size(const struct geometry *geometry)
 {
 	return sizeof(index_page_map_entry_t) * num_entries(geometry);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static int write_index_page_map(struct index_component *component,
 				struct buffered_writer *writer,
 				unsigned int zone)
@@ -304,7 +304,7 @@ static int write_index_page_map(struct index_component *component,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 uint64_t compute_index_page_map_save_size(const struct geometry *geometry)
 {
 	return index_page_map_size(geometry) + INDEX_PAGE_MAP_MAGIC_LENGTH +
@@ -332,7 +332,7 @@ static int __must_check decode_index_page_map(struct buffer *buffer,
 	return result;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static int read_index_page_map(struct read_portal *portal)
 {
 	struct index_page_map *map = index_component_data(portal->component);

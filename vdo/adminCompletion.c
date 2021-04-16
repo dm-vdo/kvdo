@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#34 $
  */
 
 #include "adminCompletion.h"
@@ -89,7 +89,8 @@ void initialize_vdo_admin_completion(struct vdo *vdo,
 }
 
 /**********************************************************************/
-struct vdo_completion *reset_vdo_admin_sub_task(struct vdo_completion *completion)
+struct vdo_completion *
+reset_vdo_admin_sub_task(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);

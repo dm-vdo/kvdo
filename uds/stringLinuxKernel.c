@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/stringLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/stringLinuxKernel.c#4 $
  */
 
 #include <linux/mm.h>
@@ -46,7 +46,7 @@ int string_to_unsigned_long(const char *nptr, unsigned long *num)
 	return kstrtoul(nptr, 10, num) ? UDS_INVALID_ARGUMENT : UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 char *next_token(char *str, const char *delims, char **state)
 {
 	char *ep, *sp = str ? str : *state;
@@ -67,7 +67,7 @@ char *next_token(char *str, const char *delims, char **state)
 	return sp;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int parse_uint64(const char *str, uint64_t *num)
 {
 	unsigned long value = *num;

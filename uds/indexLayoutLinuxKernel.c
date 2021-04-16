@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#10 $
  */
 
 #include "indexLayout.h"
 #include "indexLayoutParser.h"
 #include "memoryAlloc.h"
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_index_layout(const char *name,
 		      bool new_layout,
 		      const struct uds_configuration *config,

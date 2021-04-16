@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#17 $
  */
 
 #include "pageCache.h"
@@ -340,7 +340,7 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/*********************************************************************/
+/**********************************************************************/
 int make_page_cache(const struct geometry  *geometry,
 		    unsigned int chapters_in_cache,
 		    unsigned int read_queue_max_size,
@@ -431,7 +431,7 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/*********************************************************************/
+/**********************************************************************/
 void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 {
 	// ASSERTION: We are either a zone thread holding a
@@ -484,7 +484,7 @@ static int __must_check get_least_recent_page(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int get_page_from_cache(struct page_cache *cache,
 			unsigned int physical_page,
 			int probe_type,
@@ -520,7 +520,7 @@ int get_page_from_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int enqueue_read(struct page_cache *cache,
 		 Request *request,
 		 unsigned int physical_page)
@@ -572,7 +572,7 @@ int enqueue_read(struct page_cache *cache,
 	return UDS_QUEUED;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *queue_pos,
 			      Request **first_request,
@@ -618,7 +618,7 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	return true;
 }
 
-/************************************************************************/
+/**********************************************************************/
 void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 {
 	// We hold the readThreadsMutex.
@@ -634,7 +634,7 @@ void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 	}
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int select_victim_in_cache(struct page_cache *cache,
 			   struct cached_page **page_ptr)
 {
@@ -671,7 +671,7 @@ int select_victim_in_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 int put_page_in_cache(struct page_cache *cache,
 		      unsigned int physical_page,
 		      struct cached_page *page)
@@ -723,7 +723,7 @@ int put_page_in_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/***********************************************************************/
+/**********************************************************************/
 void cancel_page_in_cache(struct page_cache *cache,
 			  unsigned int physical_page,
 			  struct cached_page *page)

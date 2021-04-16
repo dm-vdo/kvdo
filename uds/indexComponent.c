@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#14 $
  */
 
 #include "indexComponent.h"
@@ -30,7 +30,7 @@
 #include "permassert.h"
 #include "typeDefs.h"
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_index_component(struct index_state *state,
 			 const struct index_component_info *info,
 			 unsigned int zone_count,
@@ -70,7 +70,7 @@ int make_index_component(struct index_state *state,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static void free_write_zones(struct index_component *component)
 {
 	if (component->write_zones != NULL) {
@@ -88,7 +88,7 @@ static void free_write_zones(struct index_component *component)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void free_index_component(struct index_component **component_ptr)
 {
 	if (component_ptr == NULL) {
@@ -124,7 +124,7 @@ static void free_read_portal(struct read_portal *read_portal)
 	FREE(read_portal);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int get_buffered_reader_for_portal(struct read_portal *portal,
 				   unsigned int part,
 				   struct buffered_reader **reader_ptr)
@@ -153,7 +153,7 @@ int get_buffered_reader_for_portal(struct read_portal *portal,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int read_index_component(struct index_component *component)
 {
 	struct read_portal *portal;
@@ -325,7 +325,7 @@ static int make_write_zones(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static int open_buffered_writers(struct index_component *component)
 {
 	int result = UDS_SUCCESS;
@@ -356,7 +356,7 @@ static int open_buffered_writers(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static int start_index_component_save(struct index_component *component)
 {
 	int result = make_write_zones(component);
@@ -372,13 +372,13 @@ static int start_index_component_save(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int start_index_component_incremental_save(struct index_component *component)
 {
 	return start_index_component_save(component);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int write_index_component(struct index_component *component)
 {
 	saver_t saver = component->info->saver;
@@ -498,7 +498,7 @@ get_incremental_writer(struct index_component *component)
 	return incr_func;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int perform_index_component_zone_save(struct index_component *component,
 				      unsigned int zone,
 				      enum completion_status *completed)
@@ -544,7 +544,7 @@ int perform_index_component_zone_save(struct index_component *component,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int
 perform_index_component_chapter_writer_save(struct index_component *component)
 {
@@ -581,7 +581,7 @@ perform_index_component_chapter_writer_save(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int finish_index_component_zone_save(struct index_component *component,
 				     unsigned int zone,
 				     enum completion_status *completed)
@@ -631,7 +631,7 @@ int finish_index_component_zone_save(struct index_component *component,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int finish_index_component_incremental_save(struct index_component *component)
 {
 	unsigned int zone;
@@ -674,7 +674,7 @@ int finish_index_component_incremental_save(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int abort_index_component_zone_save(struct index_component *component,
 				    unsigned int zone,
 				    enum completion_status *status)
@@ -704,7 +704,7 @@ int abort_index_component_zone_save(struct index_component *component,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int abort_index_component_incremental_save(struct index_component *component)
 {
 	int result = UDS_SUCCESS;
@@ -733,7 +733,7 @@ int abort_index_component_incremental_save(struct index_component *component)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int discard_index_component(struct index_component *component)
 {
 	if (!component->info->io_storage) {

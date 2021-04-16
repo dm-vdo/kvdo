@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#7 $
  */
 
 #include <linux/delay.h>
@@ -65,12 +65,13 @@ static const char *get_current_interrupt_type(void)
 }
 
 /**********************************************************************/
-void log_message_pack(int priority,
-		      const char *prefix,
-		      const char *fmt1,
-		      va_list args1,
-		      const char *fmt2,
-		      va_list args2)
+void uds_log_message_pack(int priority,
+			  const char *module,
+			  const char *prefix,
+			  const char *fmt1,
+			  va_list args1,
+			  const char *fmt2,
+			  va_list args2)
 {
 	va_list args1_copy, args2_copy;
 	struct va_format vaf1, vaf2;
@@ -94,6 +95,9 @@ void log_message_pack(int priority,
 	vaf2.fmt = fmt2;
 	vaf2.va = &args2_copy;
 
+	if (module == NULL) {
+		module = THIS_MODULE->name;
+	}
 	if (prefix == NULL) {
 		prefix = "";
 	}
@@ -111,7 +115,7 @@ void log_message_pack(int priority,
 	if (in_interrupt()) {
 		printk("%s%s[%s]: %s%pV%pV\n",
 		       priority_to_log_level(priority),
-		       THIS_MODULE->name,
+		       module,
 		       get_current_interrupt_type(),
 		       prefix,
 		       &vaf1,
@@ -119,7 +123,7 @@ void log_message_pack(int priority,
 	} else {
 		printk("%s%s: %s: %s%pV%pV\n",
 		       priority_to_log_level(priority),
-		       THIS_MODULE->name,
+		       module,
 		       current->comm,
 		       prefix,
 		       &vaf1,
@@ -137,6 +141,20 @@ void log_backtrace(int priority)
 		return;
 	}
 	dump_stack();
+}
+
+/**********************************************************************/
+void __uds_log_message(int priority,
+		       const char *module,
+		       const char *format,
+		       ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	uds_log_embedded_message(priority, module, NULL,
+				 format, args, "%s", "");
+	va_end(args);
 }
 
 /**********************************************************************/

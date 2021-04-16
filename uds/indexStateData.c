@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#14 $
  */
 
 #include "indexStateData.h"
@@ -175,7 +175,7 @@ write_index_state_data(struct index_component *component,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 
 const struct index_component_info INDEX_STATE_INFO = {
 	.kind         = RL_KIND_INDEX_STATE,

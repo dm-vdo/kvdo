@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#18 $
  */
 
 #include "indexState.h"
@@ -28,7 +28,7 @@
 #include "memoryAlloc.h"
 
 
-/*****************************************************************************/
+/**********************************************************************/
 int make_index_state(struct index_layout *layout,
 		     unsigned int num_zones,
 		     unsigned int max_components,
@@ -62,7 +62,7 @@ int make_index_state(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 void free_index_state(struct index_state **state_ptr)
 {
 	struct index_state *state = *state_ptr;
@@ -76,7 +76,7 @@ void free_index_state(struct index_state **state_ptr)
 	}
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 /**
  * Add a component to the index state.
  *
@@ -106,7 +106,7 @@ static int add_component_to_index_state(struct index_state *state,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int add_index_state_component(struct index_state *state,
 			      const struct index_component_info *info,
 			      void *data,
@@ -128,7 +128,7 @@ int add_index_state_component(struct index_state *state,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 struct index_component *
 find_index_component(const struct index_state *state,
 		     const struct index_component_info *info)
@@ -143,13 +143,13 @@ find_index_component(const struct index_state *state,
 	return NULL;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static const char *index_save_type_name(enum index_save_type save_type)
 {
 	return save_type == IS_SAVE ? "save" : "checkpoint";
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int load_index_state(struct index_state *state, bool *replay_ptr)
 {
 	int result = find_latest_index_save_slot(state->layout,
@@ -184,7 +184,7 @@ int load_index_state(struct index_state *state, bool *replay_ptr)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int prepare_to_save_index_state(struct index_state *state,
 				enum index_save_type save_type)
 {
@@ -203,7 +203,7 @@ int prepare_to_save_index_state(struct index_state *state,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 /**
  *  Complete the saving of an index state.
  *
@@ -223,7 +223,7 @@ static int complete_index_saving(struct index_state *state)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 static int cleanup_save(struct index_state *state)
 {
 	int result = cancel_index_save(state->layout, state->save_slot);
@@ -235,7 +235,7 @@ static int cleanup_save(struct index_state *state)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int save_index_state(struct index_state *state)
 {
 	int result = prepare_to_save_index_state(state, IS_SAVE);
@@ -254,7 +254,7 @@ int save_index_state(struct index_state *state)
 	return complete_index_saving(state);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int write_index_state_checkpoint(struct index_state *state)
 {
 	int result = prepare_to_save_index_state(state, IS_CHECKPOINT);
@@ -278,7 +278,7 @@ int write_index_state_checkpoint(struct index_state *state)
 	return complete_index_saving(state);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int start_index_state_checkpoint(struct index_state *state)
 {
 	int result = prepare_to_save_index_state(state, IS_CHECKPOINT);
@@ -304,7 +304,7 @@ int start_index_state_checkpoint(struct index_state *state)
 	return result;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int perform_index_state_checkpoint_chapter_synchronized_saves(struct index_state *state)
 {
 	if (!state->saving) {
@@ -382,7 +382,7 @@ do_index_state_checkpoint_in_zone(struct index_state *state,
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int perform_index_state_checkpoint_in_zone(struct index_state *state,
 					   unsigned int zone,
 					   enum completion_status *completed)
@@ -392,7 +392,7 @@ int perform_index_state_checkpoint_in_zone(struct index_state *state,
 						 completed);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int finish_index_state_checkpoint_in_zone(struct index_state *state,
 					  unsigned int zone,
 					  enum completion_status *completed)
@@ -402,7 +402,7 @@ int finish_index_state_checkpoint_in_zone(struct index_state *state,
 						 completed);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int abort_index_state_checkpoint_in_zone(struct index_state *state,
 					 unsigned int zone,
 					 enum completion_status *completed)
@@ -412,7 +412,7 @@ int abort_index_state_checkpoint_in_zone(struct index_state *state,
 						 completed);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int finish_index_state_checkpoint(struct index_state *state)
 {
 	if (!state->saving) {
@@ -441,7 +441,7 @@ int finish_index_state_checkpoint(struct index_state *state)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int abort_index_state_checkpoint(struct index_state *state)
 {
 	if (!state->saving) {
@@ -470,7 +470,7 @@ int abort_index_state_checkpoint(struct index_state *state)
 	return result;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int discard_index_state_data(struct index_state *state)
 {
 	int result = discard_index_saves(state->layout, true);
@@ -483,7 +483,7 @@ int discard_index_state_data(struct index_state *state)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int discard_last_index_state_save(struct index_state *state)
 {
 	int result = discard_index_saves(state->layout, false);
@@ -496,7 +496,7 @@ int discard_last_index_state_save(struct index_state *state)
 	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 struct buffer *get_state_index_state_buffer(struct index_state *state,
 					    enum io_access_mode  mode)
 {
@@ -505,7 +505,7 @@ struct buffer *get_state_index_state_buffer(struct index_state *state,
 	return get_index_state_buffer(state->layout, slot);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int open_state_buffered_reader(struct index_state   *state,
 			       enum region_kind         kind,
 			       unsigned int             zone,
@@ -515,7 +515,7 @@ int open_state_buffered_reader(struct index_state   *state,
 					  kind, zone, reader_ptr);
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int open_state_buffered_writer(struct index_state *state,
 			       enum region_kind kind,
 			       unsigned int zone,

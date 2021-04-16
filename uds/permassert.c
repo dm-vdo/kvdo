@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.c#7 $
  */
 
 #include "permassert.h"
@@ -26,26 +26,28 @@
 
 
 /**********************************************************************/
-__attribute__((format(printf, 4, 0))) static void
+__attribute__((format(printf, 5, 0))) static void
 handle_assertion_failure(const char *expression_string,
+			 const char *module_name,
 			 const char *file_name,
 			 int line_number,
 			 const char *format,
 			 va_list args)
 {
-	log_embedded_message(LOG_ERR,
-			     "assertion \"",
-			     format,
-			     args,
-			     "\" (%s) failed at %s:%d",
-			     expression_string,
-			     file_name,
-			     line_number);
+	uds_log_embedded_message(LOG_ERR,
+				 module_name,
+				 "assertion \"",
+				 format,
+				 args,
+				 "\" (%s) failed at %s:%d",
+				 expression_string,
+				 file_name,
+				 line_number);
 	log_backtrace(LOG_ERR);
 
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int assertion_failed(const char *expression_string,
 		     int code,
 		     const char *file_name,
@@ -53,26 +55,30 @@ int assertion_failed(const char *expression_string,
 		     const char *format,
 		     ...)
 {
+	// XXX plumb module_name through to here
+	const char *module_name = NULL;
 	va_list args;
 	va_start(args, format);
-	handle_assertion_failure(
-		expression_string, file_name, line_number, format, args);
+	handle_assertion_failure(expression_string, module_name,
+				 file_name, line_number, format, args);
 	va_end(args);
 
 	return code;
 }
 
-/*****************************************************************************/
+/**********************************************************************/
 int assertion_failed_log_only(const char *expression_string,
 			      const char *file_name,
 			      int line_number,
 			      const char *format,
 			      ...)
 {
+	// XXX plumb module_name through to here
+	const char *module_name = NULL;
 	va_list args;
 	va_start(args, format);
-	handle_assertion_failure(
-		expression_string, file_name, line_number, format, args);
+	handle_assertion_failure(expression_string, module_name,
+				 file_name, line_number, format, args);
 	va_end(args);
 
 	return UDS_ASSERTION_FAILED;

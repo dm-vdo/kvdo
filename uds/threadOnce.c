@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#6 $
  */
 
 #include "errors.h"
@@ -28,7 +28,7 @@ enum {
 	ONCE_COMPLETE = 2,
 };
 
-/*****************************************************************************/
+/**********************************************************************/
 void perform_once(once_state_t *once, void (*function)(void))
 {
 	for (;;) {
