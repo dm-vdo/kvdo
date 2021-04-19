@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#39 $
  */
 
 #include "kvdoFlush.h"
@@ -69,7 +69,7 @@ static void kvdo_flush_work(struct vdo_work_item *item)
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,
 						     work_item);
-	flush(&kvdo_flush->layer->vdo, &kvdo_flush->vdo_flush);
+	flush_vdo(&kvdo_flush->layer->vdo, &kvdo_flush->vdo_flush);
 }
 
 /**

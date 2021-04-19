@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#11 $
  */
 
 #ifndef FLUSH_H
@@ -42,14 +42,14 @@ struct vdo_flush {
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_flusher(struct vdo *vdo);
+int __must_check make_vdo_flusher(struct vdo *vdo);
 
 /**
  * Free a flusher and null out the reference to it.
  *
  * @param flusher_ptr  A pointer to the flusher to free
  **/
-void free_flusher(struct flusher **flusher_ptr);
+void free_vdo_flusher(struct flusher **flusher_ptr);
 
 /**
  * Get the ID of the thread on which flusher functions should be called.
@@ -58,7 +58,7 @@ void free_flusher(struct flusher **flusher_ptr);
  *
  * @return The ID of the thread which handles the flusher
  **/
-thread_id_t __must_check get_flusher_thread_id(struct flusher *flusher);
+thread_id_t __must_check get_vdo_flusher_thread_id(struct flusher *flusher);
 
 /**
  * Handle empty flush requests.
@@ -66,21 +66,21 @@ thread_id_t __must_check get_flusher_thread_id(struct flusher *flusher);
  * @param vdo        The vdo
  * @param vdo_flush  The opaque flush request
  **/
-void flush(struct vdo *vdo, struct vdo_flush *vdo_flush);
+void flush_vdo(struct vdo *vdo, struct vdo_flush *vdo_flush);
 
 /**
  * Attempt to complete any flushes which might have finished.
  *
  * @param flusher  The flusher
  **/
-void complete_flushes(struct flusher *flusher);
+void complete_vdo_flushes(struct flusher *flusher);
 
 /**
  * Dump the flusher, in a thread-unsafe fashion.
  *
  * @param flusher  The flusher
  **/
-void dump_flusher(const struct flusher *flusher);
+void dump_vdo_flusher(const struct flusher *flusher);
 
 /**
  * Complete and free a vdo flush request.

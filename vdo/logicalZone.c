@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#55 $
  */
 
 #include "logicalZone.h"
@@ -386,7 +386,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion);
 static void notify_flusher(struct vdo_completion *completion)
 {
 	struct logical_zone *zone = as_logical_zone(completion);
-	complete_flushes(zone->zones->vdo->flusher);
+	complete_vdo_flushes(zone->zones->vdo->flusher);
 	launch_callback(completion, attempt_generation_complete_notification,
 		        zone->thread_id);
 }
@@ -410,7 +410,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 	zone->notifying = true;
 	zone->notification_generation = zone->oldest_active_generation;
 	launch_callback(&zone->completion, notify_flusher,
-		        get_flusher_thread_id(zone->zones->vdo->flusher));
+		        get_vdo_flusher_thread_id(zone->zones->vdo->flusher));
 }
 
 /**********************************************************************/
