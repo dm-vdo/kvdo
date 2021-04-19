@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#40 $
  */
 
 #include "forest.h"
@@ -82,17 +82,17 @@ struct cursors {
 	struct block_map *map;
 	struct block_map_tree_zone *zone;
 	struct vio_pool *pool;
-	entry_callback *entry_callback;
+	vdo_entry_callback *entry_callback;
 	struct vdo_completion *parent;
 	root_count_t active_roots;
 	struct cursor cursors[];
 };
 
 /**********************************************************************/
-struct tree_page *get_tree_page_by_index(struct forest *forest,
-					 root_count_t root_index,
-					 height_t height,
-					 page_number_t page_index)
+struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
+					     root_count_t root_index,
+					     height_t height,
+					     page_number_t page_index)
 {
 	page_number_t offset = 0;
 	size_t segment;
@@ -238,7 +238,7 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 }
 
 /**********************************************************************/
-int make_forest(struct block_map *map, block_count_t entries)
+int make_vdo_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *forest, *old_forest = map->forest;
 	struct boundary new_boundary, *old_boundary = NULL;
@@ -276,7 +276,7 @@ int make_forest(struct block_map *map, block_count_t entries)
 }
 
 /**********************************************************************/
-void free_forest(struct forest **forest_ptr)
+void free_vdo_forest(struct forest **forest_ptr)
 {
 	struct forest *forest = *forest_ptr;
 	if (forest == NULL) {
@@ -288,7 +288,7 @@ void free_forest(struct forest **forest_ptr)
 }
 
 /**********************************************************************/
-void abandon_forest(struct block_map *map)
+void abandon_vdo_forest(struct block_map *map)
 {
 	struct forest *forest = map->next_forest;
 	map->next_forest = NULL;
@@ -300,7 +300,7 @@ void abandon_forest(struct block_map *map)
 }
 
 /**********************************************************************/
-void replace_forest(struct block_map *map)
+void replace_vdo_forest(struct block_map *map)
 {
 	if (map->next_forest != NULL) {
 		if (map->forest != NULL) {
@@ -522,9 +522,9 @@ static struct boundary compute_boundary(struct block_map *map,
 }
 
 /**********************************************************************/
-void traverse_forest(struct block_map *map,
-		     entry_callback *callback,
-		     struct vdo_completion *parent)
+void traverse_vdo_forest(struct block_map *map,
+			 vdo_entry_callback *callback,
+			 struct vdo_completion *parent)
 {
 	root_count_t root;
 	struct cursors *cursors;

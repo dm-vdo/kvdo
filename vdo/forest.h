@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#15 $
  */
 
 #ifndef FOREST_H
@@ -33,8 +33,8 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int entry_callback(physical_block_number_t pbn,
-			   struct vdo_completion *completion);
+typedef int vdo_entry_callback(physical_block_number_t pbn,
+			       struct vdo_completion *completion);
 
 /**
  * Get the tree page for a given height and page index.
@@ -47,10 +47,10 @@ typedef int entry_callback(physical_block_number_t pbn,
  * @return The requested page
  **/
 struct tree_page * __must_check
-get_tree_page_by_index(struct forest *forest,
-		       root_count_t root_index,
-		       height_t height,
-		       page_number_t page_index);
+get_vdo_tree_page_by_index(struct forest *forest,
+			   root_count_t root_index,
+			   height_t height,
+			   page_number_t page_index);
 
 /**
  * Make a collection of trees for a block_map, expanding the existing forest if
@@ -61,7 +61,7 @@ get_tree_page_by_index(struct forest *forest,
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_forest(struct block_map *map, block_count_t entries);
+int __must_check make_vdo_forest(struct block_map *map, block_count_t entries);
 
 /**
  * Free a forest and all of the segments it contains and NULL out the reference
@@ -69,21 +69,21 @@ int __must_check make_forest(struct block_map *map, block_count_t entries);
  *
  * @param forest_ptr  A pointer to the forest to free
  **/
-void free_forest(struct forest **forest_ptr);
+void free_vdo_forest(struct forest **forest_ptr);
 
 /**
  * Abandon the unused next forest from a block_map.
  *
  * @param map  The block map
  **/
-void abandon_forest(struct block_map *map);
+void abandon_vdo_forest(struct block_map *map);
 
 /**
  * Replace a block_map's forest with the already-prepared larger forest.
  *
  * @param map  The block map
  **/
-void replace_forest(struct block_map *map);
+void replace_vdo_forest(struct block_map *map);
 
 /**
  * Walk the entire forest of a block map.
@@ -94,8 +94,8 @@ void replace_forest(struct block_map *map);
  * @param parent    The completion to notify on each traversed PBN, and when
  *                  the traversal is complete
  **/
-void traverse_forest(struct block_map *map,
-		     entry_callback *callback,
-		     struct vdo_completion *parent);
+void traverse_vdo_forest(struct block_map *map,
+			 vdo_entry_callback *callback,
+			 struct vdo_completion *parent);
 
 #endif // FOREST_H

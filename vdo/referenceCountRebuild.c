@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#49 $
  */
 
 #include "referenceCountRebuild.h"
@@ -457,7 +457,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 /**
  * Process a single entry from the block map tree.
  *
- * <p>Implements entry_callback.
+ * <p>Implements vdo_entry_callback.
  *
  * @param pbn         A pbn which holds a block map tree page
  * @param completion  The parent completion of the traversal
@@ -523,5 +523,5 @@ void rebuild_reference_counts(struct vdo *vdo,
 	completion = &rebuild->sub_task_completion;
 	prepare_completion(completion, rebuild_from_leaves, finish_parent_callback,
 			   rebuild->logical_thread_id, &rebuild->completion);
-	traverse_forest(rebuild->block_map, process_entry, completion);
+	traverse_vdo_forest(rebuild->block_map, process_entry, completion);
 }
