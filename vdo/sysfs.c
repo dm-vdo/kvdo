@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#20 $
  */
 
 #include "sysfs.h"
@@ -28,17 +28,7 @@
 #include "logger.h"
 #include "vdoInit.h"
 
-struct vdo_attribute {
-	struct attribute attr;
-	ssize_t (*show)(struct vdo_module_globals *vdo_globals,
-			struct attribute *attr,
-			char *buf);
-	ssize_t (*store)(struct vdo_module_globals *vdo_globals,
-			 const char *value,
-			 size_t count);
-	// Location of value, if .show == show_int or show_uint or show_bool.
-	void *value_ptr;
-};
+extern enum vdo_module_status module_status;
 
 static char *status_strings[] = {
 	"UNINITIALIZED",
@@ -47,29 +37,26 @@ static char *status_strings[] = {
 };
 
 /**********************************************************************/
-static ssize_t vdo_status_show(struct vdo_module_globals *vdo_globals,
-			       struct attribute *attr,
-			       char *buf)
+static int vdo_status_show(char *buf,
+			   const struct kernel_param *kp)
 {
-	return sprintf(buf, "%s\n", status_strings[vdo_globals->status]);
+	return sprintf(buf, "%s\n", status_strings[module_status]);
 }
 
 /**********************************************************************/
-static ssize_t vdo_log_level_show(struct vdo_module_globals *vdo_globals,
-				  struct attribute *attr,
-				  char *buf)
+static int vdo_log_level_show(char *buf,
+			      const struct kernel_param *kp)
 {
 	return sprintf(buf, "%s\n", priority_to_string(get_log_level()));
 }
 
 /**********************************************************************/
-static ssize_t vdo_log_level_store(struct vdo_module_globals *vdo_globals
-				   __always_unused,
-				   const char *buf,
-				   size_t n)
+static int vdo_log_level_store(const char *buf,
+			       const struct kernel_param *kp)
 {
 	static char internal_buf[11];
 
+	int n = strlen(buf);
 	if (n > 10) {
 		return -EINVAL;
 	}
@@ -80,210 +67,76 @@ static ssize_t vdo_log_level_store(struct vdo_module_globals *vdo_globals
 		internal_buf[n - 1] = '\000';
 	}
 	set_log_level(string_to_priority(internal_buf));
-	return n;
+	return 0;
 }
 
 /**********************************************************************/
-static ssize_t scan_uint(const char *buf,
-			 size_t n,
-			 unsigned int *value_ptr,
-			 unsigned int minimum,
-			 unsigned int maximum)
+static int show_bool(char *buf, const struct kernel_param *kp)
 {
-	unsigned int value;
-	if (n > 12) {
-		return -EINVAL;
+	return sprintf(buf, "%u\n", *(bool *) kp->arg ? 1 : 0);
+}
+
+
+/**********************************************************************/
+static int vdo_dedupe_timeout_interval_store(const char *buf,
+					     const struct kernel_param *kp)
+{
+	int result = param_set_uint(buf, kp);
+	if (result != 0) {
+		return result;
 	}
+	set_dedupe_index_timeout_interval(*(uint *)kp->arg);
+	return 0;
+}
 
-	if (sscanf(buf, "%u", &value) != 1) {
-		return -EINVAL;
+/**********************************************************************/
+static int vdo_min_dedupe_timer_interval_store(const char *buf,
+					       const struct kernel_param *kp)
+{
+	int result = param_set_uint(buf, kp);
+	if (result != 0) {
+		return result;
 	}
-	if (value < minimum) {
-		value = minimum;
-	} else if (value > maximum) {
-		value = maximum;
-	}
-	*value_ptr = value;
-	return n;
+	set_min_dedupe_index_timer_interval(*(uint *)kp->arg);
+	return 0;
 }
 
-/**********************************************************************/
-static ssize_t show_uint(struct vdo_module_globals *vdo_globals
-			 __always_unused,
-			 struct attribute *attr,
-			 char *buf)
-{
-	struct vdo_attribute *vdo_attr = container_of(attr,
-						      struct vdo_attribute,
-						      attr);
-
-	return sprintf(buf, "%u\n", *(unsigned int *) vdo_attr->value_ptr);
-}
-
-
-/**********************************************************************/
-static ssize_t
-vdo_dedupe_timeout_interval_store(struct vdo_module_globals *vdo_globals
-				   __always_unused,
-				   const char *buf,
-				   size_t n)
-{
-	unsigned int value;
-	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
-
-	if (result > 0) {
-		set_dedupe_index_timeout_interval(value);
-	}
-	return result;
-}
-
-/**********************************************************************/
-static ssize_t
-vdo_min_dedupe_timer_interval_store(struct vdo_module_globals *vdo_globals
-				     __always_unused,
-				     const char *buf,
-				     size_t n)
-{
-	unsigned int value;
-	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
-
-	if (result > 0) {
-		set_min_dedupe_index_timer_interval(value);
-	}
-	return result;
-}
-
-/**********************************************************************/
-static ssize_t vdo_version_show(struct vdo_module_globals *vdo_globals
-				__always_unused,
-				struct attribute *attr,
-				char *buf)
-{
-	return sprintf(buf, "%s\n", CURRENT_VERSION);
-}
-
-/**********************************************************************/
-static ssize_t
-vdo_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
-{
-	struct vdo_module_globals *vdo_globals;
-	struct vdo_attribute *vdo_attr = container_of(attr,
-						      struct vdo_attribute,
-						      attr);
-	if (vdo_attr->show == NULL) {
-		return -EINVAL;
-	}
-
-	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
-	return (*vdo_attr->show)(vdo_globals, attr, buf);
-}
-
-/**********************************************************************/
-static ssize_t vdo_attr_store(struct kobject *kobj,
-			      struct attribute *attr,
-			      const char *buf,
-			      size_t length)
-{
-	struct vdo_module_globals *vdo_globals;
-	struct vdo_attribute *vdo_attr =
-		container_of(attr, struct vdo_attribute, attr);
-	if (vdo_attr->store == NULL) {
-		return -EINVAL;
-	}
-
-	vdo_globals = container_of(kobj, struct vdo_module_globals, kobj);
-	return (*vdo_attr->store)(vdo_globals, buf, length);
-}
-
-static struct vdo_attribute vdo_status_attr = {
-	.attr = {
-			.name = "status",
-			.mode = 0444,
-		},
-	.show = vdo_status_show,
+static const struct kernel_param_ops status_ops = {
+	.get = vdo_status_show,
 };
 
-static struct vdo_attribute vdo_log_level_attr = {
-	.attr = {
-			.name = "log_level",
-			.mode = 0644,
-		},
-	.show = vdo_log_level_show,
-	.store = vdo_log_level_store,
+static const struct kernel_param_ops log_level_ops = {
+	.set = vdo_log_level_store,
+	.get = vdo_log_level_show,
 };
 
 
-static struct vdo_attribute vdo_dedupe_timeout_interval = {
-	.attr = {
-			.name = "deduplication_timeout_interval",
-			.mode = 0644,
-		},
-	.show = show_uint,
-	.store = vdo_dedupe_timeout_interval_store,
-	.value_ptr = &dedupe_index_timeout_interval,
+static const struct kernel_param_ops dedupe_timeout_ops = {
+	.set = vdo_dedupe_timeout_interval_store,
+	.get = param_get_uint,
 };
 
-static struct vdo_attribute vdo_min_dedupe_timer_interval = {
-	.attr = {
-			.name = "min_deduplication_timer_interval",
-			.mode = 0644,
-		},
-	.show = show_uint,
-	.store = vdo_min_dedupe_timer_interval_store,
-	.value_ptr = &min_dedupe_index_timer_interval,
+static const struct kernel_param_ops dedupe_timer_ops = {
+	.set = vdo_min_dedupe_timer_interval_store,
+	.get = param_get_uint,
 };
 
-static struct vdo_attribute vdo_version_attr = {
-	.attr = {
-			.name = "version",
-			.mode = 0444,
-		},
-	.show = vdo_version_show,
+static const struct kernel_param_ops trace_ops = {
+	.set = param_set_bool,
+	.get = show_bool,
 };
 
-static struct attribute *default_attrs[] = {
-	&vdo_status_attr.attr,
-	&vdo_log_level_attr.attr,
-	&vdo_dedupe_timeout_interval.attr,
-	&vdo_min_dedupe_timer_interval.attr,
-	&vdo_version_attr.attr,
-	NULL
-};
+module_param_cb(status, &status_ops, NULL, 0444);
 
-static struct sysfs_ops vdo_sysfs_ops = {
-	.show = vdo_attr_show,
-	.store = vdo_attr_store,
-};
+module_param_cb(log_level, &log_level_ops, NULL, 0644);
 
-/**********************************************************************/
-static void vdo_release(struct kobject *kobj)
-{
-	return;
-}
 
-struct kobj_type vdo_ktype = {
-	.release = vdo_release,
-	.sysfs_ops = &vdo_sysfs_ops,
-	.default_attrs = default_attrs,
-};
+module_param_cb(deduplication_timeout_interval, &dedupe_timeout_ops,
+		&dedupe_index_timeout_interval, 0644);
 
-/**********************************************************************/
-int vdo_init_sysfs(struct kobject *module_object)
-{
-	int result;
-	kobject_init(module_object, &vdo_ktype);
-	result = kobject_add(module_object, NULL, THIS_MODULE->name);
+module_param_cb(min_deduplication_timer_interval, &dedupe_timer_ops,
+		&min_dedupe_index_timer_interval, 0644);
 
-	if (result < 0) {
-		uds_log_error("kobject_add failed with status %d", -result);
-		kobject_put(module_object);
-	}
-	log_debug("added sysfs objects");
-	return result;
-};
+module_param_cb(trace_recording, &trace_ops, &vio_trace_recording, 0644);
 
-/**********************************************************************/
-void vdo_put_sysfs(struct kobject *module_object)
-{
-	kobject_put(module_object);
-}
+module_param_string(version, CURRENT_VERSION, sizeof(CURRENT_VERSION), 0444);
