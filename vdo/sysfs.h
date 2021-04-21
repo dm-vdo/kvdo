@@ -16,30 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.h#5 $
  */
 
-#ifndef DMVDO_H
-#define DMVDO_H
+#ifndef SYSFS_H
+#define SYSFS_H
 
-#include <linux/kernel.h>
 #include <linux/kobject.h>
-#include <linux/types.h>
 
-#include "kernelLayer.h"
-
-enum vdo_module_status {
-	VDO_MODULE_UNINITIALIZED = 0,
-	VDO_MODULE_READY,
-	VDO_MODULE_SHUTTING_DOWN,
-};
-
-/*
- * The global storage structure for the vdo kernel module.
+/**
+ * Initialize the sysfs objects global to all VDO devices.
+ *
+ * @param module_object  The VDO module's global kobject
  */
-struct vdo_module_globals {
-	enum vdo_module_status status;
-	struct kobject kobj;
-};
+int vdo_init_sysfs(struct kobject *module_object);
 
-#endif /* DMVDO_H */
+/**
+ * Release the global sysfs objects.
+ *
+ * @param module_object  The VDO module's global kobject
+ */
+void vdo_put_sysfs(struct kobject *module_object);
+
+#endif /* SYSFS_H */

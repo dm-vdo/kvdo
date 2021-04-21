@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#110 $
  */
 
 #include "dmvdo.h"
@@ -40,12 +40,13 @@
 #include "memoryUsage.h"
 #include "messageStats.h"
 #include "stringUtils.h"
+#include "sysfs.h"
 #include "threadDevice.h"
 #include "threadRegistry.h"
 #include "vdo.h"
 #include "vdoInit.h"
 
-enum vdo_module_status module_status;
+struct vdo_module_globals vdo_globals;
 
 /**********************************************************************/
 
@@ -827,15 +828,20 @@ static struct target_type vdo_target_bio = {
 };
 
 static bool dm_registered;
+static bool sysfs_initialized;
 
 /**********************************************************************/
 static void vdo_destroy(void)
 {
 	log_debug("in %s", __func__);
 
-	module_status = VDO_MODULE_SHUTTING_DOWN;
+	vdo_globals.status = VDO_MODULE_SHUTTING_DOWN;
 
-	module_status = VDO_MODULE_UNINITIALIZED;
+	if (sysfs_initialized) {
+		vdo_put_sysfs(&vdo_globals.kobj);
+	}
+
+	vdo_globals.status = VDO_MODULE_UNINITIALIZED;
 
 	if (dm_registered) {
 		dm_unregister_target(&vdo_target_bio);
@@ -871,12 +877,21 @@ static int __init vdo_init(void)
 	}
 	dm_registered = true;
 
-	module_status = VDO_MODULE_UNINITIALIZED;
+	vdo_globals.status = VDO_MODULE_UNINITIALIZED;
+
+	result = vdo_init_sysfs(&vdo_globals.kobj);
+	if (result < 0) {
+		uds_log_error("sysfs initialization failed %d", result);
+		vdo_destroy();
+		// vdo_init_sysfs only returns system error codes
+		return result;
+	}
+	sysfs_initialized = true;
 
 	init_work_queue_once();
 	initialize_instance_number_tracking();
 
-	module_status = VDO_MODULE_READY;
+	vdo_globals.status = VDO_MODULE_READY;
 	return result;
 }
 
