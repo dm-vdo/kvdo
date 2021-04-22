@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#110 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -623,7 +623,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
 		start_slab_action(slab,
-				  allocator->state.state,
+				  get_vdo_admin_state_code(&allocator->state),
 				  &allocator->completion);
 	}
 
@@ -638,7 +638,10 @@ static void apply_to_slabs(struct block_allocator *allocator,
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
-	if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
+	enum admin_state_code operation =
+		get_vdo_admin_state_code(&allocator->state);
+
+	if (operation == ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			get_current_vdo_action_context(allocator->depot->action_manager);
 		replay_into_slab_journals(allocator, completion, context);
@@ -657,7 +660,9 @@ static void initiate_load(struct admin_state *state)
 {
 	struct block_allocator *allocator =
 		container_of(state, struct block_allocator, state);
-	if (state->state == ADMIN_STATE_LOADING_FOR_REBUILD) {
+	enum admin_state_code operation = get_vdo_admin_state_code(state);
+
+	if (operation == ADMIN_STATE_LOADING_FOR_REBUILD) {
 		prepare_completion(&allocator->completion,
 				   finish_loading_allocator,
 				   handle_operation_error,
@@ -806,11 +811,13 @@ void register_new_vdo_slabs_for_allocator(void *context,
 static void do_drain_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
+
 	prepare_for_requeue(&allocator->completion,
 			    do_drain_step,
 			    handle_operation_error,
 			    allocator->thread_id,
 			    NULL);
+
 	switch (++allocator->drain_step) {
 	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
 		stop_scrubbing(allocator->slab_scrubber, completion);
@@ -821,8 +828,10 @@ static void do_drain_step(struct vdo_completion *completion)
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_SUMMARY:
-		drain_slab_summary_zone(allocator->summary,
-					allocator->state.state, completion);
+		drain_slab_summary_zone(
+			allocator->summary,
+			get_vdo_admin_state_code(&allocator->state),
+			completion);
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_FINISHED:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#54 $
  */
 
 #include "slab.h"
@@ -77,7 +77,7 @@ int make_slab(physical_block_number_t slab_origin,
 	}
 
 	if (is_new) {
-		slab->state.state = ADMIN_STATE_NEW;
+		slab->state.current_state = ADMIN_STATE_NEW;
 		result = allocate_ref_counts_for_slab(slab);
 		if (result != VDO_SUCCESS) {
 			free_slab(&slab);
@@ -270,8 +270,11 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 static void initiate_slab_action(struct admin_state *state)
 {
 	struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
+
 	if (is_vdo_state_draining(state)) {
-		if (state->state == ADMIN_STATE_SCRUBBING) {
+		enum admin_state_code operation =
+			get_vdo_admin_state_code(state);
+		if (operation == ADMIN_STATE_SCRUBBING) {
 			slab->status = SLAB_REBUILDING;
 		}
 

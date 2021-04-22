@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#67 $
  */
 
 #include "refCounts.h"
@@ -250,12 +250,14 @@ static bool __must_check has_active_io(struct ref_counts *ref_counts)
 /**********************************************************************/
 bool are_ref_counts_active(struct ref_counts *ref_counts)
 {
-	enum admin_state_code code = ref_counts->slab->state.state;
+	enum admin_state_code code;
+
 	if (has_active_io(ref_counts)) {
 		return true;
 	}
 
 	// When not suspending or recovering, the ref_counts must be clean.
+	code = get_vdo_admin_state_code(&ref_counts->slab->state);
 	return (has_waiters(&ref_counts->dirty_blocks) &&
 		(code != ADMIN_STATE_SUSPENDING) &&
 		(code != ADMIN_STATE_RECOVERING));
@@ -1493,7 +1495,8 @@ void drain_ref_counts(struct ref_counts *ref_counts)
 {
 	struct vdo_slab *slab = ref_counts->slab;
 	bool save = false;
-	switch (slab->state.state) {
+
+	switch (get_vdo_admin_state_code(&slab->state)) {
 	case ADMIN_STATE_SCRUBBING:
 		if (must_load_ref_counts(slab->allocator->summary,
 					 slab->slab_number)) {

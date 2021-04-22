@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#29 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -143,7 +143,7 @@ enum admin_state_code {
 
 struct admin_state {
 	/** The current administrative state */
-	enum admin_state_code state;
+	enum admin_state_code current_state;
 	/**
 	 * The next administrative state (when the current operation finishes)
 	 */
@@ -182,6 +182,19 @@ const char * __must_check
 get_vdo_admin_state_name(const struct admin_state *state);
 
 /**
+ * Get the current admin state code.
+ *
+ * @param state  The admin_state to query
+ *
+ * @return The current state
+ **/
+static inline enum admin_state_code __must_check
+get_vdo_admin_state_code(const struct admin_state *state)
+{
+	return READ_ONCE(state->current_state);
+}
+
+/**
  * Check whether an admin_state is in normal operation.
  *
  * @param state  The admin_state to query
@@ -191,7 +204,8 @@ get_vdo_admin_state_name(const struct admin_state *state);
 static inline bool __must_check
 is_vdo_state_normal(const struct admin_state *state)
 {
-	return ((state->state & ADMIN_TYPE_MASK) == ADMIN_TYPE_NORMAL);
+	return ((get_vdo_admin_state_code(state) & ADMIN_TYPE_MASK)
+		== ADMIN_TYPE_NORMAL);
 }
 
 /**
@@ -217,7 +231,7 @@ is_vdo_operation_state_code(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_operating(const struct admin_state *state)
 {
-	return is_vdo_operation_state_code(state->state);
+	return is_vdo_operation_state_code(get_vdo_admin_state_code(state));
 }
 
 /**
@@ -230,7 +244,7 @@ is_vdo_state_operating(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_suspending(const struct admin_state *state)
 {
-	return (state->state == ADMIN_STATE_SUSPENDING);
+	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SUSPENDING);
 }
 
 /**
@@ -243,7 +257,7 @@ is_vdo_state_suspending(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_suspended(const struct admin_state *state)
 {
-	return (state->state == ADMIN_STATE_SUSPENDED);
+	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SUSPENDED);
 }
 
 /**
@@ -256,7 +270,7 @@ is_vdo_state_suspended(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_saving(const struct admin_state *state)
 {
-	return (state->state == ADMIN_STATE_SAVING);
+	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SAVING);
 }
 
 /**
@@ -269,7 +283,7 @@ is_vdo_state_saving(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_saved(const struct admin_state *state)
 {
-	return (state->state == ADMIN_STATE_SAVED);
+	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SAVED);
 }
 
 /**
@@ -295,7 +309,7 @@ is_vdo_drain_operation(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_draining(const struct admin_state *state)
 {
-	return is_vdo_drain_operation(state->state);
+	return is_vdo_drain_operation(get_vdo_admin_state_code(state));
 }
 
 /**
@@ -321,7 +335,7 @@ is_vdo_load_operation(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_loading(const struct admin_state *state)
 {
-	return is_vdo_load_operation(state->state);
+	return is_vdo_load_operation(get_vdo_admin_state_code(state));
 }
 
 /**
@@ -347,7 +361,7 @@ is_vdo_resume_operation(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_resuming(const struct admin_state *state)
 {
-	return is_vdo_resume_operation(state->state);
+	return is_vdo_resume_operation(get_vdo_admin_state_code(state));
 }
 
 /**
@@ -360,8 +374,9 @@ is_vdo_state_resuming(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_clean_load(const struct admin_state *state)
 {
-	return ((state->state == ADMIN_STATE_FORMATTING) ||
-		(state->state == ADMIN_STATE_LOADING));
+	enum admin_state_code code = get_vdo_admin_state_code(state);
+	return ((code == ADMIN_STATE_FORMATTING) ||
+		(code == ADMIN_STATE_LOADING));
 }
 
 /**
@@ -387,7 +402,7 @@ is_vdo_quiescing_code(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_quiescing(const struct admin_state *state)
 {
-	return is_vdo_quiescing_code(state->state);
+	return is_vdo_quiescing_code(get_vdo_admin_state_code(state));
 }
 
 /**
@@ -413,7 +428,7 @@ is_vdo_quiescent_code(enum admin_state_code code)
 static inline bool __must_check
 is_vdo_state_quiescent(const struct admin_state *state)
 {
-	return is_vdo_quiescent_code(state->state);
+	return is_vdo_quiescent_code(get_vdo_admin_state_code(state));
 }
 
 /**

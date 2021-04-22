@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#84 $
  */
 
 #include "slabJournalInternals.h"
@@ -653,6 +653,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	struct slab_journal_block_header *header = &journal->tail_header;
 	int unused_entries = journal->entries_per_block - header->entry_count;
 	physical_block_number_t block_number;
+	enum admin_state_code operation;
 
 	header->head = journal->head;
 	list_move_tail(&entry->available_entry, &journal->uncommitted_blocks);
@@ -689,7 +690,9 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	journal->tail++;
 	initialize_tail_block(journal);
 	journal->waiting_to_commit = false;
-	if (journal->slab->state.state == ADMIN_STATE_WAITING_FOR_RECOVERY) {
+
+	operation = get_vdo_admin_state_code(&journal->slab->state);
+	if (operation == ADMIN_STATE_WAITING_FOR_RECOVERY) {
 		finish_vdo_operation_with_result(&journal->slab->state,
 						 (is_vdo_read_only(journal) ?
 						  VDO_READ_ONLY : VDO_SUCCESS));
@@ -1191,7 +1194,7 @@ void drain_slab_journal(struct slab_journal *journal)
 				"slab is recovered or has no waiters");
 	}
 
-	switch (journal->slab->state.state) {
+	switch (get_vdo_admin_state_code(&journal->slab->state)) {
 	case ADMIN_STATE_REBUILDING:
 	case ADMIN_STATE_SUSPENDING:
 	case ADMIN_STATE_SAVE_FOR_SCRUBBING:

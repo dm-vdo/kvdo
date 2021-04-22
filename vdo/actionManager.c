@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#38 $
  */
 
 #include "actionManager.h"
@@ -176,7 +176,7 @@ void free_vdo_action_manager(struct action_manager **manager_ptr)
 enum admin_state_code
 get_current_vdo_manager_operation(struct action_manager *manager)
 {
-	return manager->state.state;
+	return get_vdo_admin_state_code(&manager->state);
 }
 
 /**********************************************************************/
@@ -307,11 +307,13 @@ static void launch_current_action(struct action_manager *manager)
 	action->preamble(manager->context, &manager->completion);
 }
 
+/**********************************************************************/
 bool schedule_vdo_default_action(struct action_manager *manager)
 {
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.
-	return ((manager->state.state == ADMIN_STATE_NORMAL_OPERATION)
+	enum admin_state_code code = get_current_vdo_manager_operation(manager);
+	return ((code == ADMIN_STATE_NORMAL_OPERATION)
 		&& manager->scheduler(manager->context));
 }
 

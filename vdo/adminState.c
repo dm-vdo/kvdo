@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#26 $
  */
 
 #include "adminState.h"
@@ -93,7 +93,7 @@ const char *get_vdo_admin_state_code_name(enum admin_state_code code)
 /**********************************************************************/
 const char *get_vdo_admin_state_name(const struct admin_state *state)
 {
-	return get_vdo_admin_state_code_name(state->state);
+	return get_vdo_admin_state_code_name(state->current_state);
 }
 
 /**********************************************************************/
@@ -135,7 +135,7 @@ static bool end_operation(struct admin_state *state, int result)
 		}
 	} else {
 		state->complete = false;
-		state->state = state->next_state;
+		WRITE_ONCE(state->current_state, state->next_state);
 		release_completion_with_result(&state->waiter, result);
 	}
 
@@ -174,8 +174,9 @@ static int __must_check begin_operation(struct admin_state *state,
 				     get_vdo_admin_state_code_name(operation));
 	} else {
 		state->waiter = waiter;
-		state->next_state = get_next_state(state->state, operation);
-		state->state = operation;
+		state->next_state =
+			get_next_state(state->current_state, operation);
+		WRITE_ONCE(state->current_state, operation);
 		if (initiator != NULL) {
 			state->starting = true;
 			initiator(state);
@@ -334,7 +335,7 @@ int resume_vdo_if_quiescent(struct admin_state *state)
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	state->state = ADMIN_STATE_NORMAL_OPERATION;
+	WRITE_ONCE(state->current_state, ADMIN_STATE_NORMAL_OPERATION);
 	return VDO_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#57 $
  */
 
 #include "slabScrubberInternals.h"
@@ -89,7 +89,7 @@ int make_slab_scrubber(struct vdo *vdo,
 	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
 	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;
-	scrubber->admin_state.state = ADMIN_STATE_SUSPENDED;
+	scrubber->admin_state.current_state = ADMIN_STATE_SUSPENDED;
 	*scrubber_ptr = scrubber;
 	return VDO_SUCCESS;
 }
@@ -204,7 +204,8 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	// Note that the scrubber has stopped, and inform anyone who might be
 	// waiting for that to happen.
 	if (!finish_vdo_draining(&scrubber->admin_state)) {
-		scrubber->admin_state.state = ADMIN_STATE_SUSPENDED;
+		WRITE_ONCE(scrubber->admin_state.current_state,
+			   ADMIN_STATE_SUSPENDED);
 	}
 
 	/*

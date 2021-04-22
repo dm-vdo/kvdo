@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#33 $
  */
 
 #include "vdoSuspend.h"
@@ -117,6 +117,7 @@ static void suspend_callback(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
+	struct admin_state *admin_state = &vdo->admin_state;
 
 	ASSERT_LOG_ONLY(((admin_completion->type == ADMIN_OPERATION_SUSPEND) ||
 			 (admin_completion->type == ADMIN_OPERATION_SAVE)),
@@ -127,7 +128,7 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
-		if (!start_vdo_draining(&vdo->admin_state,
+		if (!start_vdo_draining(admin_state,
 					((admin_completion->type ==
 						ADMIN_OPERATION_SUSPEND) ?
 							ADMIN_STATE_SUSPENDING :
@@ -164,30 +165,30 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
 		drain_logical_zones(vdo->logical_zones,
-				    vdo->admin_state.state,
+				    get_vdo_admin_state_code(admin_state),
 				    reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
 		drain_block_map(vdo->block_map,
-				vdo->admin_state.state,
+				get_vdo_admin_state_code(admin_state),
 				reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
 		drain_recovery_journal(vdo->recovery_journal,
-				       vdo->admin_state.state,
+				       get_vdo_admin_state_code(admin_state),
 				       reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
 		drain_slab_depot(vdo->depot,
-				 vdo->admin_state.state,
+				 get_vdo_admin_state_code(admin_state),
 				 reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (is_vdo_state_suspending(&vdo->admin_state) ||
+		if (is_vdo_state_suspending(admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
 			// If we didn't save the VDO or there was an error,
 			// we're done.
@@ -204,7 +205,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	finish_vdo_draining_with_result(&vdo->admin_state, completion->result);
+	finish_vdo_draining_with_result(admin_state, completion->result);
 }
 
 /**********************************************************************/
