@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#47 $
  */
 
 /**
@@ -1116,15 +1116,15 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * may as well either write it ourselves (or reference the
 		 * copy we already wrote) instead of potentially having many
 		 * duplicates wait for the lock holder to write, journal,
-		 * hash, and finally arrive in the hash lock. All we lose is a
+		 * hash, and finally arrive in the hash lock. We lose a
 		 * chance to avoid a UDS update in the very rare case of
 		 * advice for a free block that just happened to be allocated
-		 * to a data_vio with the same hash. In async mode, there's
-		 * also a chance to save on a block write, at the cost of a
-		 * block verify. Saving on a full block compare in all stale
-		 * advice cases almost certainly outweighs saving a UDS update
-		 * in a lucky case where advice would have been saved from
-		 * becoming stale.
+		 * to a data_vio with the same hash. There's also a chance to
+		 * save on a block write, at the cost of a block verify. 
+		 * Saving on a full block compare in all stale advice cases
+		 * almost certainly outweighs saving a UDS update and trading
+		 * a write for a read in a lucky case where advice would have
+		 * been saved from becoming stale.
 		 */
 		// XXX clearDuplicateLocation()?
 		agent->is_duplicate = false;
