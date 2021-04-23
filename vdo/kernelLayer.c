@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#178 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#179 $
  */
 
 #include "kernelLayer.h"
@@ -148,13 +148,13 @@ static void set_kernel_layer_state(struct kernel_layer *layer,
  * function will not block, and will take responsibility for processing the
  * bio.
  *
- * @param layer            The kernel layer
+ * @param vdo              The vdo
  * @param bio              The bio to launch
  * @param arrival_jiffies  The arrival time of the bio
  *
  * @return DM_MAPIO_SUBMITTED or a system error code
  **/
-static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
+static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 					   struct bio *bio,
 					   uint64_t arrival_jiffies)
 {
@@ -186,8 +186,8 @@ static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 	 * amounts of buffering on top of VDO, they're welcome to access it
 	 * through the kernel page cache or roll their own.
 	 */
-	if (!limiter_poll(&layer->vdo.request_limiter)) {
-		add_to_deadlock_queue(&layer->deadlock_queue,
+	if (!limiter_poll(&vdo->request_limiter)) {
+		add_to_deadlock_queue(&vdo->deadlock_queue,
 				      bio,
 				      arrival_jiffies);
 		log_warning("queued an I/O request to avoid deadlock!");
@@ -197,8 +197,10 @@ static int launch_data_vio_from_vdo_thread(struct kernel_layer *layer,
 
 	has_discard_permit =
 		((bio_op(bio) == REQ_OP_DISCARD) &&
-		 limiter_poll(&layer->vdo.discard_limiter));
-	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
+		 limiter_poll(&vdo->discard_limiter));
+	result = vdo_launch_data_vio_from_bio(vdo,
+					      bio,
+					      arrival_jiffies,
 					      has_discard_permit);
 	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
 	// now.
@@ -242,7 +244,8 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 		 * This prohibits sleeping during I/O submission to VDO from
 		 * its own thread.
 		 */
-		return launch_data_vio_from_vdo_thread(layer, bio,
+		return launch_data_vio_from_vdo_thread(&layer->vdo,
+						       bio,
 						       arrival_jiffies);
 	}
 
@@ -252,7 +255,9 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	limiter_wait_for_one_free(&layer->vdo.request_limiter);
 
-	result = vdo_launch_data_vio_from_bio(layer, bio, arrival_jiffies,
+	result = vdo_launch_data_vio_from_bio(&layer->vdo,
+					      bio,
+					      arrival_jiffies,
 					      has_discard_permit);
 	// Succeed or fail, vdo_launch_data_vio_from_bio owns the permit(s)
 	// now.
@@ -264,7 +269,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-void complete_many_requests(struct kernel_layer *layer, uint32_t count)
+void complete_many_requests(struct vdo *vdo, uint32_t count)
 {
 	// If we had to buffer some requests to avoid deadlock, release them
 	// now.
@@ -272,7 +277,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 		bool has_discard_permit;
 		int result;
 		uint64_t arrival_jiffies = 0;
-		struct bio *bio = poll_deadlock_queue(&layer->deadlock_queue,
+		struct bio *bio = poll_deadlock_queue(&vdo->deadlock_queue,
 						      &arrival_jiffies);
 		if (likely(bio == NULL)) {
 			break;
@@ -280,8 +285,9 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 
 		has_discard_permit =
 			((bio_op(bio) == REQ_OP_DISCARD) &&
-			 limiter_poll(&layer->vdo.discard_limiter));
-		result = vdo_launch_data_vio_from_bio(layer, bio,
+			 limiter_poll(&vdo->discard_limiter));
+		result = vdo_launch_data_vio_from_bio(vdo,
+						      bio,
 						      arrival_jiffies,
 						      has_discard_permit);
 		if (result != VDO_SUCCESS) {
@@ -293,7 +299,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	}
 	// Notify the limiter, so it can wake any blocked processes.
 	if (count > 0) {
-		limiter_release_many(&layer->vdo.request_limiter, count);
+		limiter_release_many(&vdo->request_limiter, count);
 	}
 }
 
@@ -353,7 +359,6 @@ int make_kernel_layer(unsigned int instance,
 	 */
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-	initialize_deadlock_queue(&layer->deadlock_queue);
 	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
 	bio_list_init(&layer->waiting_flushes);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#75 $
  */
 
 #ifndef KERNELLAYER_H
@@ -88,8 +88,7 @@ struct kernel_layer {
 	atomic_t processing_message;
 
 	struct vdo vdo;
-	/** Incoming bios we've had to buffer to avoid deadlock. */
-	struct deadlock_queue deadlock_queue;
+
 	// for REQ_FLUSH processing
 	struct bio_list waiting_flushes;
 	struct kvdo_flush *spare_kvdo_flush;
@@ -440,9 +439,10 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count);
  * Update bookkeeping for the completion of some number of requests, so that
  * more incoming requests can be accepted.
  *
- * @param layer  The kernel layer
+ * @param vdo    The vdo
  * @param count  The number of completed requests
  **/
-void complete_many_requests(struct kernel_layer *layer, uint32_t count);
+void complete_many_requests(struct vdo *vdo, uint32_t count);
+
 
 #endif /* KERNELLAYER_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#60 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -29,6 +29,7 @@
 
 #include "atomicDefs.h"
 
+#include "deadlockQueue.h"
 #include "limiter.h"
 #include "threadRegistry.h"
 
@@ -76,6 +77,10 @@ struct vdo {
 	/** Limit the number of requests that are being processed. */
 	struct limiter request_limiter;
 	struct limiter discard_limiter;
+
+	/** Incoming bios we've had to buffer to avoid deadlock. */
+	struct deadlock_queue deadlock_queue;
+
 
 	// For sysfs
 	struct kobject vdo_directory;

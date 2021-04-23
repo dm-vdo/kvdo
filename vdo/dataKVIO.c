@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#134 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#135 $
  */
 
 #include "dataKVIO.h"
@@ -161,7 +161,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 		free_buffer_pointers(&fbp);
 	}
 
-	complete_many_requests(layer, count);
+	complete_many_requests(&layer->vdo, count);
 }
 
 /**********************************************************************/
@@ -820,19 +820,20 @@ static void vdo_complete_partial_read(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int vdo_launch_data_vio_from_bio(struct kernel_layer *layer,
+int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 				 struct bio *bio,
 				 uint64_t arrival_jiffies,
 				 bool has_discard_permit)
 {
 	struct data_vio *data_vio = NULL;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	int result;
 	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 	logical_block_number_t lbn =
 		sector_to_block(bio->bi_iter.bi_sector -
-				layer->vdo.starting_sector_offset);
+				vdo->starting_sector_offset);
 	struct vio *vio;
 
 
@@ -841,9 +842,9 @@ int vdo_launch_data_vio_from_bio(struct kernel_layer *layer,
 	if (unlikely(result != VDO_SUCCESS)) {
 		log_info("%s: vio allocation failure", __func__);
 		if (has_discard_permit) {
-			limiter_release(&layer->vdo.discard_limiter);
+			limiter_release(&vdo->discard_limiter);
 		}
-		limiter_release(&layer->vdo.request_limiter);
+		limiter_release(&vdo->request_limiter);
 		return map_to_system_error(result);
 	}
 
