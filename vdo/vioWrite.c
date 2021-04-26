@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#59 $
  */
 
 /*
@@ -228,7 +228,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 		if ((data_vio->recovery_sequence_number > 0) &&
 		    !is_or_will_be_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
-			log_warning("VDO not read-only when cleaning data_vio with RJ lock");
+			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
 		// fall through
 

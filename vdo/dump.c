@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#33 $
  */
 
 #include "dump.h"
@@ -182,7 +182,8 @@ static int parse_dump_options(unsigned int argc,
 			}
 		}
 		if (j == COUNT_OF(option_names)) {
-			log_warning("dump option name '%s' unknown", argv[i]);
+			uds_log_warning("dump option name '%s' unknown",
+					argv[i]);
 			options_okay = false;
 		}
 	}

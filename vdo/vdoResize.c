@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#42 $
  */
 
 #include "vdoResize.h"
@@ -229,7 +229,8 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
+int prepare_to_grow_physical(struct vdo *vdo,
+			     block_count_t new_physical_blocks)
 {
 	int result;
 	block_count_t new_depot_size;
@@ -242,20 +243,19 @@ int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 	}
 
 	if (new_physical_blocks == current_physical_blocks) {
-		log_warning("Requested physical block count %llu not greater than %llu",
-			    new_physical_blocks,
-			    current_physical_blocks);
+		uds_log_warning("Requested physical block count %llu not greater than %llu",
+				new_physical_blocks,
+				current_physical_blocks);
 		finish_vdo_layout_growth(vdo->layout);
 		abandon_new_slabs(vdo->depot);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result =
-		perform_vdo_admin_operation(vdo,
-					    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-					    get_thread_id_for_phase,
-					    check_may_grow_physical,
-					    finish_parent_callback);
+	result = perform_vdo_admin_operation(vdo,
+					     ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+					     get_thread_id_for_phase,
+					     check_may_grow_physical,
+					     finish_parent_callback);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

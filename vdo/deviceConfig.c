@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#37 $
  */
 
 #include "deviceConfig.h"
@@ -98,10 +98,10 @@ static int get_version_number(int argc,
 	}
 
 	if (*version_ptr != TABLE_VERSION) {
-		log_warning("Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
-			    TABLE_VERSION,
-			    *version_ptr);
-		log_warning("Please consider upgrading management tools to match kernel.");
+		uds_log_warning("Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
+				TABLE_VERSION,
+				*version_ptr);
+		uds_log_warning("Please consider upgrading management tools to match kernel.");
 	}
 	return VDO_SUCCESS;
 }
@@ -498,8 +498,9 @@ int parse_device_config(int argc,
 	// Save the original string.
 	result = join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(
-			&config, error_ptr, "Could not populate string");
+		handle_parse_error(&config,
+				   error_ptr,
+				   "Could not populate string");
 		return VDO_BAD_CONFIGURATION;
 	}
 

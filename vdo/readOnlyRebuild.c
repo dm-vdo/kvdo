@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#47 $
  */
 
 #include "readOnlyRebuild.h"
@@ -452,9 +452,9 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 
 	// Note: These messages must be recognizable by Permabit::VDODeviceBase.
 	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
-		log_warning("Rebuilding reference counts for upgrade");
+		uds_log_warning("Rebuilding reference counts for upgrade");
 	} else {
-		log_warning("Rebuilding reference counts to clear read-only mode");
+		uds_log_warning("Rebuilding reference counts to clear read-only mode");
 		vdo->states.vdo.read_only_recoveries++;
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#112 $
  */
 
 #include "dmvdo.h"
@@ -232,14 +232,14 @@ vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 	block_count_t logical_count;
 
 	if (sscanf(size_string, "%llu", &logical_count) != 1) {
-		log_warning("Logical block count \"%s\" is not a number",
-			    size_string);
+		uds_log_warning("Logical block count \"%s\" is not a number",
+				size_string);
 		return -EINVAL;
 	}
 
 	if (logical_count > MAXIMUM_LOGICAL_BLOCKS) {
-		log_warning("Logical block count \"%llu\" exceeds the maximum (%llu)",
-			    logical_count, MAXIMUM_LOGICAL_BLOCKS);
+		uds_log_warning("Logical block count \"%llu\" exceeds the maximum (%llu)",
+				logical_count, MAXIMUM_LOGICAL_BLOCKS);
 		return -EINVAL;
 	}
 
@@ -317,8 +317,8 @@ process_vdo_message_locked(struct kernel_layer *layer,
 				return 0;
 			}
 
-			log_warning("invalid argument '%s' to dmsetup compression message",
-				    argv[1]);
+			uds_log_warning("invalid argument '%s' to dmsetup compression message",
+					argv[1]);
 			return -EINVAL;
 		}
 
@@ -333,7 +333,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
 		break;
 	}
 
-	log_warning("unrecognized dmsetup message '%s' received", argv[0]);
+	uds_log_warning("unrecognized dmsetup message '%s' received", argv[0]);
 	return -EINVAL;
 }
 
@@ -423,7 +423,7 @@ static int vdo_message(struct dm_target *ti,
 	struct kernel_layer *layer;
 	int result;
 	if (argc == 0) {
-		log_warning("unspecified dmsetup message");
+		uds_log_warning("unspecified dmsetup message");
 		return -EINVAL;
 	}
 

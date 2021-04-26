@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#82 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -397,7 +397,7 @@ static void abort_recovery(struct vdo_completion *completion)
 	struct recovery_completion *recovery =
 		as_recovery_completion(completion);
 	free_recovery_completion(&recovery);
-	log_warning("Recovery aborted");
+	uds_log_warning("Recovery aborted");
 	finish_completion(parent, result);
 }
 
@@ -1365,7 +1365,7 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 	int result;
 
 	// Note: This message must be recognizable by Permabit::VDODeviceBase.
-	log_warning("Device was dirty, rebuilding reference counts");
+	uds_log_warning("Device was dirty, rebuilding reference counts");
 
 	result = make_recovery_completion(vdo, &recovery);
 	if (result != VDO_SUCCESS) {

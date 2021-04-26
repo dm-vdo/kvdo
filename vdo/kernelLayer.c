@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#179 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#180 $
  */
 
 #include "kernelLayer.h"
@@ -161,7 +161,7 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	bool has_discard_permit;
 	int result;
 
-	log_warning("kvdo_map_bio called from within a VDO thread!");
+	uds_log_warning("kvdo_map_bio called from within a VDO thread!");
 	/*
 	 * We're not yet entirely sure what circumstances are causing this
 	 * situation in [ESC-638], but it does appear to be happening and
@@ -190,7 +190,7 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 		add_to_deadlock_queue(&vdo->deadlock_queue,
 				      bio,
 				      arrival_jiffies);
-		log_warning("queued an I/O request to avoid deadlock!");
+		uds_log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
 	}
@@ -341,10 +341,10 @@ int make_kernel_layer(unsigned int instance,
 	 * After this point, calling kobject_put on vdo->vdo_directory will
 	 * decrement its reference count, and when the count goes to 0 the
 	 * struct kernel_layer will be freed.
-         *
-         * Any error in this method from here on requires calling
-         * free_kernel_layer() before returning.
-         */
+	 *
+	 * Any error in this method from here on requires calling
+	 * free_kernel_layer() before returning.
+	 */
 
 	/*
 	 * Part 2 - Do all the simple initialization.  These initializations

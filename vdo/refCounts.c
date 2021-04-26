@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#68 $
  */
 
 #include "refCounts.h"
@@ -1407,10 +1407,10 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		    !are_equivalent_journal_points(&block->commit_points[0],
 						   &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
-			log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
-				    i,
-				    block_index,
-				    block->ref_counts->slab->slab_number);
+			uds_log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
+					i,
+					block_index,
+					block->ref_counts->slab->slab_number);
 		}
 	}
 
@@ -1479,7 +1479,7 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 		struct waiter *block_waiter = &ref_counts->blocks[i].waiter;
 		block_waiter->callback = load_reference_block;
 		result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
-					 block_waiter);
+							 block_waiter);
 		if (result != VDO_SUCCESS) {
 			// This should never happen.
 			ref_counts->active_count -=
