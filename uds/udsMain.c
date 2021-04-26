@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#21 $
  */
 
 #include "uds.h"
@@ -337,7 +337,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 		open_type == UDS_CREATE ?
 			LOAD_CREATE :
 			open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
-	log_notice("%s: %s", get_load_type(load_type), name);
+	uds_log_notice("%s: %s", get_load_type(load_type), name);
 
 	result = initialize_index_session(session, name, user_params,
 					  load_type);

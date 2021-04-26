@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#89 $
  */
 
 #include "dedupeIndex.h"
@@ -363,8 +363,8 @@ static void report_events(struct periodic_event_reporter *reporter,
 
 	if (difference != 0) {
 		if (!ratelimit || __ratelimit(&reporter->ratelimiter)) {
-			log_debug("UDS index timeout on %llu requests",
-				  difference);
+			uds_log_debug("UDS index timeout on %llu requests",
+				      difference);
 			reporter->last_reported_value = new_value;
 		} else {
 			/**

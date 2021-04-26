@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#39 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#40 $
  */
 
 #include "index.h"
@@ -55,14 +55,14 @@ static int replay_index_from_checkpoint(struct index *index,
 					  "cannot replay index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
-		log_fatal("cannot replay index: no valid chapters exist");
+		uds_log_fatal("cannot replay index: no valid chapters exist");
 		return UDS_CORRUPT_COMPONENT;
 	}
 
 	if (is_empty) {
 		// The volume is empty, so the index should also be empty
 		if (index->newest_virtual_chapter != 0) {
-			log_fatal("cannot replay index from empty volume");
+			uds_log_fatal("cannot replay index from empty volume");
 			return UDS_CORRUPT_COMPONENT;
 		}
 		return UDS_SUCCESS;
@@ -142,7 +142,7 @@ static int rebuild_index(struct index *index)
 					  "cannot rebuild index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
-		log_fatal("cannot rebuild index: no valid chapters exist");
+		uds_log_fatal("cannot rebuild index: no valid chapters exist");
 		return UDS_CORRUPT_COMPONENT;
 	}
 

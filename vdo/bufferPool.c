@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#14 $
  */
 
 #include "bufferPool.h"
@@ -155,7 +155,7 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 static bool in_free_list(struct buffer_pool *pool, void *data)
 {
 	struct list_head *node;
-        struct buffer_element *bh;
+	struct buffer_element *bh;
 
 	list_for_each(node, &pool->free_object_list) {
 		bh = list_entry(node, struct buffer_element, list);
@@ -211,7 +211,7 @@ int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 	spin_lock(&pool->lock);
 	if (unlikely(list_empty(&pool->free_object_list))) {
 		spin_unlock(&pool->lock);
-		log_debug("no free buffers");
+		uds_log_debug("no free buffers");
 		return -ENOMEM;
 	}
 
@@ -251,7 +251,7 @@ void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 
 	spin_unlock(&pool->lock);
 	if (!success) {
-		log_debug("trying to add to free list when already full");
+		uds_log_debug("trying to add to free list when already full");
 	}
 }
 
@@ -267,6 +267,6 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 	}
 	spin_unlock(&pool->lock);
 	if (!success) {
-		log_debug("trying to add to free list when already full");
+		uds_log_debug("trying to add to free list when already full");
 	}
 }

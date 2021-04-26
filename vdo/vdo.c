@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#108 $
  */
 
 /*
@@ -535,8 +535,8 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   const char *name)
 {
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-		 		get_logical_zone_thread(get_thread_config(vdo),
-		 			 		logical_zone)),
+				get_logical_zone_thread(get_thread_config(vdo),
+							logical_zone)),
 			"%s called on logical thread",
 			name);
 }
@@ -547,8 +547,8 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    const char *name)
 {
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-		 		get_physical_zone_thread(get_thread_config(vdo),
-		 			  physical_zone)),
+				get_physical_zone_thread(get_thread_config(vdo),
+							 physical_zone)),
 			"%s called on physical thread",
 			name);
 }
@@ -626,19 +626,16 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 	// Don't use advice that's clearly meaningless.
 	if ((advice->state == MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == ZERO_BLOCK)) {
-		log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
-			  advice->pbn,
-			  advice->state,
-			  lbn);
+		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
+			      advice->pbn, advice->state, lbn);
 		atomic64_inc(&vdo->error_stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
 
 	result = get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
-		log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
-			  advice->pbn,
-			  lbn);
+		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
+			      advice->pbn, lbn);
 		atomic64_inc(&vdo->error_stats.invalid_advice_pbn_count);
 		return no_advice;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#29 $
  */
 
 #include "physicalLayer.h"
@@ -115,7 +115,7 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 	int err = data_vio->read_block.status;
 
 	if (unlikely(err != 0)) {
-		log_debug("%s: err %d", __func__, err);
+		uds_log_debug("%s: err %d", __func__, err);
 		data_vio->is_duplicate = false;
 		enqueue_data_vio_callback(data_vio);
 		return;

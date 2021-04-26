@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#113 $
  */
 
 #include "dmvdo.h"
@@ -511,16 +511,16 @@ static int vdo_initialize(struct dm_target *ti,
 	block_count_t logical_blocks = logical_size / block_size;
 
 	log_info("loading device '%s'", get_vdo_device_name(ti));
-	log_debug("Logical block size     = %llu",
-		  (uint64_t) config->logical_block_size);
-	log_debug("Logical blocks         = %llu", logical_blocks);
-	log_debug("Physical block size    = %llu", (uint64_t) block_size);
-	log_debug("Physical blocks        = %llu", config->physical_blocks);
-	log_debug("Block map cache blocks = %u", config->cache_size);
-	log_debug("Block map maximum age  = %u",
-		  config->block_map_maximum_age);
-	log_debug("Deduplication          = %s",
-		  (config->deduplication ? "on" : "off"));
+	uds_log_debug("Logical block size     = %llu",
+		      (uint64_t) config->logical_block_size);
+	uds_log_debug("Logical blocks         = %llu", logical_blocks);
+	uds_log_debug("Physical block size    = %llu", (uint64_t) block_size);
+	uds_log_debug("Physical blocks        = %llu", config->physical_blocks);
+	uds_log_debug("Block map cache blocks = %u", config->cache_size);
+	uds_log_debug("Block map maximum age  = %u",
+		      config->block_map_maximum_age);
+	uds_log_debug("Deduplication          = %s",
+		      (config->deduplication ? "on" : "off"));
 
 	vdo = find_vdo_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
@@ -833,7 +833,7 @@ static bool sysfs_initialized;
 /**********************************************************************/
 static void vdo_destroy(void)
 {
-	log_debug("in %s", __func__);
+	uds_log_debug("in %s", __func__);
 
 	vdo_globals.status = VDO_MODULE_SHUTTING_DOWN;
 

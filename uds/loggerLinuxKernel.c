@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#8 $
  */
 
 #include <linux/delay.h>
@@ -64,6 +64,51 @@ static const char *get_current_interrupt_type(void)
 	return "INTR";
 }
 
+/**
+ * Emit a log message to the kernel log in a format suited to the current
+ * thread context. Context info formats:
+ *
+ * interrupt:       uds[NMI]: blah
+ * kvdo thread:     kvdo12:foobarQ: blah
+ * other thread:    uds: myprog: blah
+ *
+ * Fields: module name, interrupt level, process name
+ *
+ * @param level   A string describing the logging level
+ * @param module  The name of the module doing the logging
+ * @param prefix  The prefix of the log message
+ * @param vaf1    The first message format descriptor
+ * @param vaf2    The second message format descriptor
+ **/
+static void emit_log_message(const char *level,
+			     const char *module,
+			     const char *prefix,
+			     const struct va_format *vaf1,
+			     const struct va_format *vaf2)
+{
+	// In interrupt context, identify the interrupt type and module.
+	// Ignore the process/thread since it could be anything.
+	if (in_interrupt()) {
+		const char *type = get_current_interrupt_type();
+		printk("%s%s[%s]: %s%pV%pV\n",
+		       level, module, type, prefix, vaf1, vaf2);
+		return;
+	}
+
+	// If it's a kernel thread and the module name is a prefix of its
+	// name, assume it is ours and only identify the thread.
+	if (((current->flags & PF_KTHREAD) != 0) &&
+	    (strncmp(module, current->comm, strlen(module)) == 0)) {
+		printk("%s%s: %s%pV%pV\n",
+		       level, current->comm, prefix, vaf1, vaf2);
+		return;
+	}
+
+	// Identify the module and the process.
+	printk("%s%s: %s: %s%pV%pV\n",
+	       level, module, current->comm, prefix, vaf1, vaf2);
+}
+
 /**********************************************************************/
 void uds_log_message_pack(int priority,
 			  const char *module,
@@ -73,11 +118,20 @@ void uds_log_message_pack(int priority,
 			  const char *fmt2,
 			  va_list args2)
 {
+	const char *level;
 	va_list args1_copy, args2_copy;
 	struct va_format vaf1, vaf2;
 
 	if (priority > get_log_level()) {
 		return;
+	}
+
+	level = priority_to_log_level(priority);
+	if (module == NULL) {
+		module = THIS_MODULE->name;
+	}
+	if (prefix == NULL) {
+		prefix = "";
 	}
 
 	/*
@@ -95,40 +149,7 @@ void uds_log_message_pack(int priority,
 	vaf2.fmt = fmt2;
 	vaf2.va = &args2_copy;
 
-	if (module == NULL) {
-		module = THIS_MODULE->name;
-	}
-	if (prefix == NULL) {
-		prefix = "";
-	}
-
-	/*
-	 * Context info formats:
-	 *
-	 * interrupt:   uds[NMI]: blah
-	 * process:     uds: myprog: blah
-	 *
-	 * Fields: module name, interrupt level or process name.
-	 *
-	 * XXX need the equivalent of VDO's deviceInstance here
-	 */
-	if (in_interrupt()) {
-		printk("%s%s[%s]: %s%pV%pV\n",
-		       priority_to_log_level(priority),
-		       module,
-		       get_current_interrupt_type(),
-		       prefix,
-		       &vaf1,
-		       &vaf2);
-	} else {
-		printk("%s%s: %s: %s%pV%pV\n",
-		       priority_to_log_level(priority),
-		       module,
-		       current->comm,
-		       prefix,
-		       &vaf1,
-		       &vaf2);
-	}
+	emit_log_message(level, module, prefix, &vaf1, &vaf2);
 
 	va_end(args1_copy);
 	va_end(args2_copy);
