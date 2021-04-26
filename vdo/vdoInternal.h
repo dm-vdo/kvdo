@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#61 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -81,6 +81,11 @@ struct vdo {
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
 
+	/**
+	 * Bio submission manager used for sending bios to the storage
+	 * device.
+	 **/
+	struct io_submitter *io_submitter;
 
 	// For sysfs
 	struct kobject vdo_directory;

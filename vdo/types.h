@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#81 $
  */
 
 #ifndef TYPES_H
@@ -332,6 +332,7 @@ struct hash_lock;
 struct hash_zone;
 struct index_config;
 struct input_bin;
+struct io_submitter;
 struct lbn_lock;
 struct lock_counter;
 struct logical_zone;

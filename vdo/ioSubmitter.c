@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#76 $
  */
 
 #include "ioSubmitter.h"
@@ -473,10 +473,8 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 {
 	struct vio *vio = bio->bi_private;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	struct bio_queue_data *bio_queue_data =
-		bio_queue_data_for_pbn(layer->io_submitter, vio->physical);
-
+		bio_queue_data_for_pbn(vio->vdo->io_submitter, vio->physical);
 	bool merged = false;
 
 	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
