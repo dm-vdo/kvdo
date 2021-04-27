@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#38 $
  */
 
 #include "flush.h"
@@ -24,6 +24,10 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
+
+#include "ioSubmitter.h"
+#include "kernelLayer.h"
+#include "kernelVDO.h"
 
 #include "blockAllocator.h"
 #include "completion.h"
@@ -51,6 +55,14 @@ struct flusher {
 	struct logical_zone *logical_zone_to_notify;
 	/** The ID of the thread on which flush requests should be made */
 	thread_id_t thread_id;
+	/** A flush request to ensure we always have at least one */
+	struct vdo_flush *spare_flush;
+	/** Bios waiting for a flush request to become available */
+	struct bio_list waiting_flush_bios;
+	/** The lock to protect the previous two fields */
+	spinlock_t lock;
+	/** When the longest waiting flush bio arrived */
+	uint64_t flush_arrival_jiffies;
 };
 
 /**
@@ -91,19 +103,23 @@ int make_vdo_flusher(struct vdo *vdo)
 		= get_packer_zone_thread(get_thread_config(vdo));
 	initialize_vdo_completion(&vdo->flusher->completion, vdo,
 				  FLUSH_NOTIFICATION_COMPLETION);
-	return VDO_SUCCESS;
+
+	spin_lock_init(&vdo->flusher->lock);
+	bio_list_init(&vdo->flusher->waiting_flush_bios);
+	result = ALLOCATE(1, struct vdo_flush, __func__,
+			  &vdo->flusher->spare_flush);
+	return result;
 }
 
 /**********************************************************************/
 void free_vdo_flusher(struct flusher **flusher_ptr)
 {
-	struct flusher *flusher;
-
-	if (*flusher_ptr == NULL) {
+	struct flusher *flusher = *flusher_ptr;
+	if (flusher == NULL) {
 		return;
 	}
 
-	flusher = *flusher_ptr;
+	FREE(flusher->spare_flush);
 	FREE(flusher);
 	*flusher_ptr = NULL;
 }
@@ -205,9 +221,12 @@ static void notify_flush(struct flusher *flusher)
 }
 
 /**********************************************************************/
-void flush_vdo(struct vdo *vdo, struct vdo_flush *flush)
+void flush_vdo(struct vdo_work_item *item)
 {
-	struct flusher *flusher = vdo->flusher;
+	struct vdo_flush *flush = container_of(item,
+					       struct vdo_flush,
+					       work_item);
+	struct flusher *flusher = flush->vdo->flusher;
 	bool may_notify;
 	int result;
 
@@ -219,7 +238,7 @@ void flush_vdo(struct vdo *vdo, struct vdo_flush *flush)
 
 	result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(vdo->read_only_notifier, result);
+		enter_read_only_mode(flush->vdo->read_only_notifier, result);
 		vdo_complete_flush(&flush);
 		return;
 	}
@@ -274,4 +293,164 @@ void dump_vdo_flusher(const struct flusher *flusher)
 	log_info("  notifiers queue is %s; pending_flushes queue is %s",
 		 (has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
 		 (has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));
+}
+
+
+/**
+ * Initialize a vdo_flush structure, transferring all the bios in the flusher's
+ * waiting_flush_bios list to it. The caller MUST already hold the lock.
+ *
+ * @param flush  The flush to initialize
+ * @param vdo    The vdo being flushed
+ **/
+static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
+{
+	flush->vdo = vdo;
+	bio_list_init(&flush->bios);
+	bio_list_merge(&flush->bios, &vdo->flusher->waiting_flush_bios);
+	bio_list_init(&vdo->flusher->waiting_flush_bios);
+	flush->arrival_jiffies = vdo->flusher->flush_arrival_jiffies;
+}
+
+/**********************************************************************/
+static void enqueue_flush(struct vdo_flush *flush)
+{
+	struct vdo *vdo = flush->vdo;
+	setup_work_item(&flush->work_item,
+			flush_vdo,
+			NULL,
+			REQ_Q_ACTION_FLUSH);
+	enqueue_vdo_work(vdo,
+			 &flush->work_item,
+			 get_packer_zone_thread(get_thread_config(vdo)));
+}
+
+/**********************************************************************/
+void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
+{
+	// Try to allocate a vdo_flush to represent the flush request. If the
+	// allocation fails, we'll deal with it later.
+	struct vdo_flush *flush = ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+	struct flusher *flusher = vdo->flusher;
+	spin_lock(&flusher->lock);
+
+	// We have a new bio to start. Add it to the list. If it becomes the
+	// only entry on the list, record the time.
+	if (bio_list_empty(&flusher->waiting_flush_bios)) {
+		flusher->flush_arrival_jiffies = jiffies;
+	}
+
+	bio_list_add(&flusher->waiting_flush_bios, bio);
+
+	if (flush == NULL) {
+		// The vdo_flush allocation failed. Try to use the spare
+		// vdo_flush structure.
+		if (flusher->spare_flush == NULL) {
+			// The spare is already in use. This bio is on
+			// waiting_flush_bios and it will be handled by a flush
+			// completion or by a bio that can allocate.
+			spin_unlock(&flusher->lock);
+			return;
+		}
+
+		// Take and use the spare flush request.
+		flush = flusher->spare_flush;
+		flusher->spare_flush = NULL;
+	}
+
+	// We have flushes to start. Capture them in the vdo_flush structure.
+	initialize_flush(flush, vdo);
+
+	spin_unlock(&flusher->lock);
+
+	// Finish launching the flushes.
+	enqueue_flush(flush);
+}
+
+/**
+ * Release a vdo_flush structure that has completed its work. If there are any
+ * pending flush requests whose vdo_flush allocation failed, they will be
+ * launched by immediately re-using the released vdo_flush. If there is no
+ * spare vdo_flush, the released structure will become the spare. Otherwise,
+ * the vdo_flush will be freed.
+ *
+ * @param flush  The completed flush structure to re-use or free
+ **/
+static void release_flush(struct vdo_flush *flush)
+{
+	struct flusher *flusher = flush->vdo->flusher;
+	bool relaunch_flush = false;
+
+	spin_lock(&flusher->lock);
+	if (bio_list_empty(&flusher->waiting_flush_bios)) {
+		// Nothing needs to be started.  Save one spare flush request.
+		if (flusher->spare_flush == NULL) {
+			// Make the new spare all zero, just like a newly
+			// allocated one.
+			memset(flush, 0, sizeof(*flush));
+			flusher->spare_flush = flush;
+			flush = NULL;
+		}
+	} else {
+		// We have flushes to start. Capture them in a flush request.
+		initialize_flush(flush, flusher->vdo);
+		relaunch_flush = true;
+	}
+	spin_unlock(&flusher->lock);
+
+	if (relaunch_flush) {
+		// Finish launching the flushes.
+		enqueue_flush(flush);
+		return;
+	}
+
+	if (flush != NULL) {
+		FREE(flush);
+	}
+}
+
+/**
+ * Function called to complete and free a flush request
+ *
+ * @param item    The flush-request work item
+ **/
+static void vdo_complete_flush_work(struct vdo_work_item *item)
+{
+	struct vdo_flush *flush = container_of(item,
+					       struct vdo_flush,
+					       work_item);
+	struct kernel_layer *layer = vdo_as_kernel_layer(flush->vdo);
+	struct bio *bio;
+
+	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
+		// We're not acknowledging this bio now, but we'll never touch
+		// it again, so this is the last chance to account for it.
+		count_bios(&layer->bios_acknowledged, bio);
+
+		// Update the device, and send it on down...
+		bio_set_dev(bio, get_vdo_backing_device(flush->vdo));
+		atomic64_inc(&layer->flush_out);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
+		generic_make_request(bio);
+#else
+		submit_bio_noacct(bio);
+#endif
+	}
+
+
+	// Release the flush structure, freeing it, re-using it as the spare,
+	// or using it to launch any flushes that had to wait when allocations
+	// failed.
+	release_flush(flush);
+}
+
+/**********************************************************************/
+void vdo_complete_flush(struct vdo_flush **flush_ptr)
+{
+	struct vdo_flush *flush = *flush_ptr;
+	setup_work_item(&flush->work_item,
+			vdo_complete_flush_work,
+			NULL,
+			BIO_Q_ACTION_FLUSH);
+	enqueue_bio_work_item(flush->vdo->io_submitter, &flush->work_item);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#81 $
  */
 
 #include "kvio.h"
@@ -34,7 +34,6 @@
 #include "bio.h"
 #include "dataKVIO.h"
 #include "ioSubmitter.h"
-#include "kvdoFlush.h"
 
 /**
  * A function to tell vdo that we have completed the requested async

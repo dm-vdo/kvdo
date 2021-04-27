@@ -16,11 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#12 $
  */
 
 #ifndef FLUSH_H
 #define FLUSH_H
+
+#include "bio.h"
+#include "workQueue.h"
 
 #include "types.h"
 #include "waitQueue.h"
@@ -29,6 +32,14 @@
  * A marker for tracking which journal entries are affected by a flush request.
  **/
 struct vdo_flush {
+	/** The work item for enqueueing this flush request. */
+	struct vdo_work_item work_item;
+	/** The vdo to flush */
+	struct vdo *vdo;
+	/** The flush bios covered by this request */
+	struct bio_list bios;
+	/** Time when the earlier bio arrived */
+	uint64_t arrival_jiffies;
 	/** The wait queue entry for this flush */
 	struct waiter waiter;
 	/** Which flush this struct represents */
@@ -63,10 +74,9 @@ thread_id_t __must_check get_vdo_flusher_thread_id(struct flusher *flusher);
 /**
  * Handle empty flush requests.
  *
- * @param vdo        The vdo
- * @param vdo_flush  The opaque flush request
+ * @param item  A flush request (as a work_item)
  **/
-void flush_vdo(struct vdo *vdo, struct vdo_flush *vdo_flush);
+void flush_vdo(struct vdo_work_item *item);
 
 /**
  * Attempt to complete any flushes which might have finished.
@@ -88,5 +98,15 @@ void dump_vdo_flusher(const struct flusher *flusher);
  * @param flush_ptr  The pointer to the flush reference, which will be nulled
  **/
 void vdo_complete_flush(struct vdo_flush **flush_ptr);
+
+/**
+ * Function called to start processing a flush request. It is called when we
+ * receive an empty flush bio from the block layer, and before acknowledging a
+ * non-empty bio with the FUA flag set.
+ *
+ * @param vdo  The vdo
+ * @param bio  The bio containing an empty flush request
+ **/
+void launch_vdo_flush(struct vdo *vdo, struct bio *bio);
 
 #endif /* FLUSH_H */

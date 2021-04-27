@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#181 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#182 $
  */
 
 #include "kernelLayer.h"
@@ -34,6 +34,7 @@
 #include "permassert.h"
 
 #include "adminCompletion.h"
+#include "flush.h"
 #include "releaseVersions.h"
 #include "statistics.h"
 #include "vdo.h"
@@ -49,7 +50,6 @@
 #include "deviceRegistry.h"
 #include "instanceNumber.h"
 #include "ioSubmitter.h"
-#include "kvdoFlush.h"
 #include "kvio.h"
 #include "poolSysfs.h"
 #include "stringUtils.h"
@@ -232,7 +232,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		launch_kvdo_flush(layer, bio);
+		launch_vdo_flush(&layer->vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
 
@@ -359,9 +359,7 @@ int make_kernel_layer(unsigned int instance,
 	 */
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->stats_mutex);
-	bio_list_init(&layer->waiting_flushes);
 
 	result = register_vdo(&layer->vdo);
 	if (result != VDO_SUCCESS) {
@@ -387,12 +385,6 @@ int make_kernel_layer(unsigned int instance,
 	}
 
 	// Spare kvdo_flush, so that we will always have at least one available
-	result = make_kvdo_flush(&layer->spare_kvdo_flush);
-	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate kvdo_flush record";
-		free_kernel_layer(layer);
-		return result;
-	}
 
 	// Dedupe Index
 	BUG_ON(layer->thread_name_prefix[0] == '\0');
@@ -714,8 +706,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 		if (layer->dedupe_index != NULL) {
 			finish_dedupe_index(layer->dedupe_index);
 		}
-		FREE(layer->spare_kvdo_flush);
-		layer->spare_kvdo_flush = NULL;
 		free_batch_processor(&layer->data_vio_releaser);
 		unregister_vdo(&layer->vdo);
 		break;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#77 $
  */
 
 #ifndef KERNELLAYER_H
@@ -89,11 +89,6 @@ struct kernel_layer {
 
 	struct vdo vdo;
 
-	// for REQ_FLUSH processing
-	struct bio_list waiting_flushes;
-	struct kvdo_flush *spare_kvdo_flush;
-	spinlock_t flush_lock;
-	uint64_t flush_arrival_jiffies;
 	/**
 	 * Work queue (possibly with multiple threads) for miscellaneous
 	 * CPU-intensive, non-blocking work.

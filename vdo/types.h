@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#82 $
  */
 
 #ifndef TYPES_H
@@ -24,6 +24,7 @@
 
 #include "blockMappingState.h"
 #include "common.h"
+
 
 /**
  * A size type in blocks.
@@ -356,6 +357,7 @@ struct vdo_extent;
 struct vdo_flush;
 struct vdo_layout;
 struct vdo_statistics;
+struct vdo_work_item;
 struct vio;
 struct vio_pool;
 

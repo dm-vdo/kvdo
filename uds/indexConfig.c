@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#16 $
  */
 
 #include "indexConfig.h"
@@ -27,7 +27,6 @@
 
 static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";
 static const byte INDEX_CONFIG_VERSION[] = "06.02";
-static const byte INDEX_CONFIG_VERSION_6_01[] = "06.01";
 
 enum {
 	INDEX_CONFIG_MAGIC_LENGTH = sizeof(INDEX_CONFIG_MAGIC) - 1,
@@ -131,35 +130,7 @@ static int read_version(struct buffered_reader *reader,
 			*version_ptr = "current";
 		}
 		return result;
-	} else if (memcmp(INDEX_CONFIG_VERSION_6_01,
-			  buffer,
-			  INDEX_CONFIG_VERSION_LENGTH) == 0) {
-		struct uds_configuration_6_01 old_conf;
-		result = read_from_buffered_reader(reader, &old_conf,
-						   sizeof(old_conf));
-		if (result != UDS_SUCCESS) {
-			log_error_strerror(result,
-					   "failed to read version 6.01 config file");
-			return result;
-		}
-		conf->record_pages_per_chapter =
-			old_conf.record_pages_per_chapter;
-		conf->chapters_per_volume = old_conf.chapters_per_volume;
-		conf->sparse_chapters_per_volume =
-			old_conf.sparse_chapters_per_volume;
-		conf->cache_chapters = old_conf.cache_chapters;
-		conf->checkpoint_frequency = old_conf.checkpoint_frequency;
-		conf->volume_index_mean_delta =
-			old_conf.volume_index_mean_delta;
-		conf->bytes_per_page = old_conf.bytes_per_page;
-		conf->sparse_sample_rate = old_conf.sparse_sample_rate;
-		conf->nonce = 0;
-		if (version_ptr != NULL) {
-			*version_ptr = "6.01";
-		}
-		return UDS_UNSUPPORTED_VERSION;
 	}
-
 	return log_error_strerror(UDS_CORRUPT_COMPONENT,
 				  "unsupported configuration version: '%.*s'",
 				  INDEX_CONFIG_VERSION_LENGTH,
@@ -179,14 +150,7 @@ int read_config_contents(struct buffered_reader *reader,
 	const char *version = NULL;
 	result = read_version(reader, config, &version);
 	if (result != UDS_SUCCESS) {
-		if (result == UDS_UNSUPPORTED_VERSION) {
-			log_notice_strerror(result,
-					    "Found index config version %s",
-					    version);
-		} else {
-			log_error_strerror(result,
-					   "Failed to read index config");
-		}
+		log_error_strerror(result, "Failed to read index config");
 	}
 	return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#8 $
  */
 
 #ifndef CONFIG_H
@@ -55,28 +55,6 @@ struct uds_configuration {
 	unsigned int sparse_sample_rate;
 	/** Index Owner's nonce */
 	uds_nonce_t nonce;
-};
-
-/**
- * Data that are used for a 6.01 index.
- **/
-struct uds_configuration_6_01 {
-	/** Smaller (16), Small (64) or large (256) indices */
-	unsigned int record_pages_per_chapter;
-	/** Total number of chapters per volume */
-	unsigned int chapters_per_volume;
-	/** Number of sparse chapters per volume */
-	unsigned int sparse_chapters_per_volume;
-	/** Size of the page cache, in chapters */
-	unsigned int cache_chapters;
-	/** Frequency with which to checkpoint */
-	unsigned int checkpoint_frequency;
-	/** The volume index mean delta to use */
-	unsigned int volume_index_mean_delta;
-	/** Size of a page, used for both record pages and index pages */
-	unsigned int bytes_per_page;
-	/** Sampling rate for sparse indexing */
-	unsigned int sparse_sample_rate;
 };
 
 struct index_location {
