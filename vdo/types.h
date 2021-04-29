@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#83 $
  */
 
 #ifndef TYPES_H
@@ -265,14 +265,6 @@ enum vdo_zone_type {
 struct block_map_slot {
 	physical_block_number_t pbn;
 	slot_number_t slot;
-};
-
-/**
- * A position in the arboreal block map at a specific level.
- **/
-struct block_map_tree_slot {
-	page_number_t page_index;
-	struct block_map_slot block_map_slot;
 };
 
 /**

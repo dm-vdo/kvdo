@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#72 $
  */
 
 #ifndef DATA_VIO_H
@@ -93,6 +93,14 @@ struct lbn_lock {
 	struct wait_queue waiters;
 	/* The logical zone of the LBN */
 	struct logical_zone *zone;
+};
+
+/**
+ * A position in the arboreal block map at a specific level.
+ **/
+struct block_map_tree_slot {
+	page_number_t page_index;
+	struct block_map_slot block_map_slot;
 };
 
 /*
