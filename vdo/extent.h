@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#18 $
  */
 
 #ifndef EXTENT_H
@@ -51,7 +51,7 @@ struct vdo_extent {
  * @return The completion as an extent
  **/
 static inline struct vdo_extent *
-as_vdo_extent(struct vdo_completion *completion)
+vdo_completion_as_extent(struct vdo_completion *completion)
 {
 	assert_completion_type(completion->type, VDO_EXTENT_COMPLETION);
 	return container_of(completion, struct vdo_extent, completion);
@@ -65,7 +65,7 @@ as_vdo_extent(struct vdo_completion *completion)
  * @return The extent as a vdo_completion
  **/
 static inline struct vdo_completion *
-extent_as_completion(struct vdo_extent *extent)
+vdo_extent_as_completion(struct vdo_extent *extent)
 {
 	return &extent->completion;
 }
@@ -83,19 +83,19 @@ extent_as_completion(struct vdo_extent *extent)
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check create_extent(struct vdo *vdo,
-			       enum vio_type vio_type,
-			       enum vio_priority priority,
-			       block_count_t block_count,
-			       char *data,
-			       struct vdo_extent **extent_ptr);
+int __must_check create_vdo_extent(struct vdo *vdo,
+				   enum vio_type vio_type,
+				   enum vio_priority priority,
+				   block_count_t block_count,
+				   char *data,
+				   struct vdo_extent **extent_ptr);
 
 /**
  * Free an extent and null out the reference to it.
  *
  * @param [in,out] extent_ptr   The reference to the extent to free
  **/
-void free_extent(struct vdo_extent **extent_ptr);
+void free_vdo_extent(struct vdo_extent **extent_ptr);
 
 /**
  * Read metadata from the underlying storage.
@@ -106,9 +106,9 @@ void free_extent(struct vdo_extent **extent_ptr);
  * @param count        The number of blocks to read (must be less than or
  *                     equal to the length of the extent)
  **/
-void read_partial_metadata_extent(struct vdo_extent *extent,
-				  physical_block_number_t start_block,
-				  block_count_t count);
+void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
+				      physical_block_number_t start_block,
+				      block_count_t count);
 
 /**
  * Read metadata from the underlying storage.
@@ -117,10 +117,10 @@ void read_partial_metadata_extent(struct vdo_extent *extent,
  * @param start_block  The physical block number of the first block
  *                     in the extent
  **/
-static inline void read_metadata_extent(struct vdo_extent *extent,
-					physical_block_number_t start_block)
+static inline void read_vdo_metadata_extent(struct vdo_extent *extent,
+					    physical_block_number_t start_block)
 {
-	read_partial_metadata_extent(extent, start_block, extent->count);
+	read_partial_vdo_metadata_extent(extent, start_block, extent->count);
 }
 
 /**
@@ -132,9 +132,9 @@ static inline void read_metadata_extent(struct vdo_extent *extent,
  * @param count        The number of blocks to read (must be less than or
  *                     equal to the length of the extent)
  **/
-void write_partial_metadata_extent(struct vdo_extent *extent,
-				   physical_block_number_t start_block,
-				   block_count_t count);
+void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
+				       physical_block_number_t start_block,
+				       block_count_t count);
 /**
  * Write metadata to the underlying storage.
  *
@@ -142,10 +142,10 @@ void write_partial_metadata_extent(struct vdo_extent *extent,
  * @param start_block  The physical block number of the first block in the
  *                     extent
  **/
-static inline void write_metadata_extent(struct vdo_extent *extent,
-					 physical_block_number_t start_block)
+static inline void write_vdo_metadata_extent(struct vdo_extent *extent,
+					     physical_block_number_t start_block)
 {
-	write_partial_metadata_extent(extent, start_block, extent->count);
+	write_partial_vdo_metadata_extent(extent, start_block, extent->count);
 }
 
 /**

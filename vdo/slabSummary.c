@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#59 $
  */
 
 #include "slabSummary.h"
@@ -580,8 +580,8 @@ static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
-	struct vdo_extent *extent = as_vdo_extent(completion);
-	free_extent(&extent);
+	struct vdo_extent *extent = vdo_completion_as_extent(completion);
+	free_vdo_extent(&extent);
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 
@@ -626,14 +626,14 @@ void combine_zones(struct slab_summary *summary)
 static void finish_loading_summary(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
-	struct vdo_extent *extent = as_vdo_extent(completion);
+	struct vdo_extent *extent = vdo_completion_as_extent(completion);
 
 	// Combine the zones so each zone is correct for all slabs.
 	combine_zones(summary);
 
 	// Write the combined summary back out.
 	extent->completion.callback = finish_combining_zones;
-	write_metadata_extent(extent, summary->origin);
+	write_vdo_metadata_extent(extent, summary->origin);
 }
 
 /**********************************************************************/
@@ -652,9 +652,9 @@ void load_slab_summary(struct slab_summary *summary,
 	}
 
 	blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
-	result = create_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
-			       VIO_PRIORITY_METADATA, blocks,
-			       (char *)summary->entries, &extent);
+	result = create_vdo_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
+				   VIO_PRIORITY_METADATA, blocks,
+				   (char *)summary->entries, &extent);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_loading_with_result(&zone->state, result);
 		return;
@@ -664,14 +664,14 @@ void load_slab_summary(struct slab_summary *summary,
 	    || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
 		prepare_completion(&extent->completion, finish_combining_zones,
 				   finish_combining_zones, 0, summary);
-		write_metadata_extent(extent, summary->origin);
+		write_vdo_metadata_extent(extent, summary->origin);
 		return;
 	}
 
 	summary->zones_to_combine = zones_to_combine;
 	prepare_completion(&extent->completion, finish_loading_summary,
 			   finish_combining_zones, 0, summary);
-	read_metadata_extent(extent, summary->origin);
+	read_vdo_metadata_extent(extent, summary->origin);
 }
 
 /**********************************************************************/

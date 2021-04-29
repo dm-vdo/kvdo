@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#21 $
  */
 
 #include "slabJournalEraser.h"
@@ -46,7 +46,7 @@ struct slab_journal_eraser {
 static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 {
 	struct vdo_completion *parent = eraser->parent;
-	free_extent(&eraser->extent);
+	free_vdo_extent(&eraser->extent);
 	FREE(eraser->zero_buffer);
 	FREE(eraser);
 	finish_completion(parent, result);
@@ -79,7 +79,7 @@ static void erase_next_slab_journal(struct vdo_completion *extent_completion)
 	}
 
 	slab = next_slab(&eraser->slabs);
-	write_metadata_extent(eraser->extent, slab->journal_origin);
+	write_vdo_metadata_extent(eraser->extent, slab->journal_origin);
 }
 
 /**********************************************************************/
@@ -110,12 +110,12 @@ void erase_slab_journals(struct slab_depot *depot,
 		return;
 	}
 
-	result = create_extent(parent->vdo,
-			       VIO_TYPE_SLAB_JOURNAL,
-			       VIO_PRIORITY_METADATA,
-			       journal_size,
-			       eraser->zero_buffer,
-			       &eraser->extent);
+	result = create_vdo_extent(parent->vdo,
+				   VIO_TYPE_SLAB_JOURNAL,
+				   VIO_PRIORITY_METADATA,
+				   journal_size,
+				   eraser->zero_buffer,
+				   &eraser->extent);
 	if (result != VDO_SUCCESS) {
 		finish_erasing(eraser, result);
 		return;

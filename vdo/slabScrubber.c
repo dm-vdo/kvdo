@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#58 $
  */
 
 #include "slabScrubberInternals.h"
@@ -58,12 +58,12 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 		return result;
 	}
 
-	return create_extent(vdo,
-			     VIO_TYPE_SLAB_JOURNAL,
-			     VIO_PRIORITY_METADATA,
-			     slab_journal_size,
-			     scrubber->journal_data,
-			     &scrubber->extent);
+	return create_vdo_extent(vdo,
+				 VIO_TYPE_SLAB_JOURNAL,
+				 VIO_PRIORITY_METADATA,
+				 slab_journal_size,
+				 scrubber->journal_data,
+				 &scrubber->extent);
 }
 
 /**********************************************************************/
@@ -101,7 +101,7 @@ int make_slab_scrubber(struct vdo *vdo,
  **/
 static void free_extent_and_buffer(struct slab_scrubber *scrubber)
 {
-	free_extent(&scrubber->extent);
+	free_vdo_extent(&scrubber->extent);
 	if (scrubber->journal_data != NULL) {
 		FREE(scrubber->journal_data);
 		scrubber->journal_data = NULL;
@@ -419,7 +419,7 @@ static void start_scrubbing(struct vdo_completion *completion)
 			   handle_scrubber_error,
 			   completion->callback_thread_id,
 			   completion->parent);
-	read_metadata_extent(scrubber->extent, slab->journal_origin);
+	read_vdo_metadata_extent(scrubber->extent, slab->journal_origin);
 }
 
 /**
@@ -455,7 +455,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
-	completion = extent_as_completion(scrubber->extent);
+	completion = vdo_extent_as_completion(scrubber->extent);
 	prepare_completion(completion,
 			   start_scrubbing,
 			   handle_scrubber_error,

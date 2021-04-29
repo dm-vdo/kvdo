@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#26 $
  */
 
 #include "extent.h"
@@ -34,16 +34,16 @@
 #include "vioWrite.h"
 
 /**********************************************************************/
-int create_extent(struct vdo *vdo,
-		  enum vio_type vio_type,
-		  enum vio_priority priority,
-		  block_count_t block_count,
-		  char *data,
-		  struct vdo_extent **extent_ptr)
+int create_vdo_extent(struct vdo *vdo,
+		      enum vio_type vio_type,
+		      enum vio_priority priority,
+		      block_count_t block_count,
+		      char *data,
+		      struct vdo_extent **extent_ptr)
 {
 	struct vdo_extent *extent;
 	int result = ASSERT(is_metadata_vio_type(vio_type),
-			    "create_extent() called for metadata");
+			    "create_vdo_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -65,7 +65,7 @@ int create_extent(struct vdo *vdo,
 					     data,
 					     &extent->vios[extent->count]);
 		if (result != VDO_SUCCESS) {
-			free_extent(&extent);
+			free_vdo_extent(&extent);
 			return result;
 		}
 
@@ -77,7 +77,7 @@ int create_extent(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_extent(struct vdo_extent **extent_ptr)
+void free_vdo_extent(struct vdo_extent **extent_ptr)
 {
 	block_count_t i;
 	struct vdo_extent *extent = *extent_ptr;
@@ -126,17 +126,17 @@ static void launch_metadata_extent(struct vdo_extent *extent,
 }
 
 /**********************************************************************/
-void read_partial_metadata_extent(struct vdo_extent *extent,
-				  physical_block_number_t start_block,
-				  block_count_t count)
+void read_partial_vdo_metadata_extent(struct vdo_extent *extent,
+				      physical_block_number_t start_block,
+				      block_count_t count)
 {
 	launch_metadata_extent(extent, start_block, count, VIO_READ);
 }
 
 /**********************************************************************/
-void write_partial_metadata_extent(struct vdo_extent *extent,
-				   physical_block_number_t start_block,
-				   block_count_t count)
+void write_partial_vdo_metadata_extent(struct vdo_extent *extent,
+				       physical_block_number_t start_block,
+				       block_count_t count)
 {
 	launch_metadata_extent(extent, start_block, count, VIO_WRITE);
 }
@@ -144,12 +144,12 @@ void write_partial_metadata_extent(struct vdo_extent *extent,
 /**********************************************************************/
 void handle_vio_completion(struct vdo_completion *completion)
 {
-	struct vdo_extent *extent = as_vdo_extent(completion->parent);
+	struct vdo_extent *extent = vdo_completion_as_extent(completion->parent);
 	if (++extent->complete_count != extent->count) {
-		set_completion_result(extent_as_completion(extent),
+		set_completion_result(vdo_extent_as_completion(extent),
 				      completion->result);
 		return;
 	}
 
-	finish_completion(extent_as_completion(extent), completion->result);
+	finish_completion(vdo_extent_as_completion(extent), completion->result);
 }
