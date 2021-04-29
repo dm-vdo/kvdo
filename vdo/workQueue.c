@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#59 $
  */
 
 #include "workQueue.h"
@@ -922,6 +922,31 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
  **/
 static struct simple_work_queue *get_current_thread_work_queue(void)
 {
+	/*
+	 * The kthreadd process has the PF_KTHREAD flag set but a null
+	 * "struct kthread" pointer, which breaks the (initial)
+	 * implementation of kthread_func, which assumes the pointer
+	 * is always non-null. This matters if memory reclamation is
+	 * triggered and causes calls into VDO that get
+	 * here. [VDO-5194]
+	 *
+	 * There might also be a similar reclamation issue in the
+	 * usermodehelper code path before exec is called, and/or
+	 * kthread setup when allocating the kthread struct itself.
+	 *
+	 * So we check for the null pointer first. The kthread code
+	 * overloads the set_child_tid field to use for its pointer in
+	 * PF_KTHREAD processes. (If PF_KTHREAD is clear, kthread_func
+	 * will return null anyway so we needn't worry about that
+	 * case.)
+	 *
+	 * FIXME: When submitting upstream, make sure kthread_func is
+	 * fixed instead, and drop this check.
+	 */
+	if (current->set_child_tid == NULL) {
+		return NULL;
+	}
+
 	if (kthread_func(current) != work_queue_runner) {
 		// Not a VDO workQueue thread.
 		return NULL;
