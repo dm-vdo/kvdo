@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#74 $
  */
 
 #include "packerInternals.h"
@@ -495,7 +495,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 	};
 	data_vio_as_vio(data_vio)->physical = data_vio->new_mapped.pbn;
 
-	share_compressed_write_lock(data_vio, bin->writer->allocation_lock);
+	share_compressed_vdo_write_lock(data_vio, bin->writer->allocation_lock);
 
 	// Wait again for all the waiters to get a share.
 	result = enqueue_waiter(&bin->outgoing, waiter);

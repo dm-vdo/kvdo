@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#50 $
  */
 
 /**
@@ -145,7 +145,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion);
 static void transfer_allocation_lock(struct data_vio *data_vio);
 
 /**********************************************************************/
-struct pbn_lock *get_duplicate_lock(struct data_vio *data_vio)
+struct pbn_lock *get_vdo_duplicate_lock(struct data_vio *data_vio)
 {
 	if (data_vio->hash_lock == NULL) {
 		return NULL;
@@ -329,7 +329,7 @@ static void exit_hash_lock(struct data_vio *data_vio)
 	// XXX trace record?
 
 	// Release the hash lock now, saving a thread transition in cleanup.
-	release_hash_lock(data_vio);
+	release_vdo_hash_lock(data_vio);
 
 	// Complete the data_vio and start the clean-up path in vioWrite to
 	// release any locks it still holds.
@@ -1121,7 +1121,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * chance to avoid a UDS update in the very rare case of
 		 * advice for a free block that just happened to be allocated
 		 * to a data_vio with the same hash. There's also a chance to
-		 * save on a block write, at the cost of a block verify. 
+		 * save on a block write, at the cost of a block verify.
 		 * Saving on a full block compare in all stale advice cases
 		 * almost certainly outweighs saving a UDS update and trading
 		 * a write for a read in a lucky case where advice would have
@@ -1371,8 +1371,8 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 
 	/*
 	 * Send the agent to the compress/pack/write path in vioWrite.  If it
-	 * succeeds, it will return to the hash lock via continue_hash_lock()
-	 * and call finish_writing().
+	 * succeeds, it will return to the hash lock via
+	 * continue_vdo_hash_lock() and call finish_writing().
 	 */
 	compress_data(agent);
 }
@@ -1452,7 +1452,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
 }
 
 /**********************************************************************/
-void enter_hash_lock(struct data_vio *data_vio)
+void enter_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 	switch (lock->state) {
@@ -1490,7 +1490,7 @@ void enter_hash_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void continue_hash_lock(struct data_vio *data_vio)
+void continue_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 	// XXX VDOSTORY-190 Eventually we may be able to fold the error handling
@@ -1532,10 +1532,10 @@ void continue_hash_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void continue_hash_lock_on_error(struct data_vio *data_vio)
+void continue_vdo_hash_lock_on_error(struct data_vio *data_vio)
 {
-	// XXX We could simply use continue_hash_lock() and check for errors in
-	// that.
+	// XXX We could simply use continue_vdo_hash_lock() and check for
+	// errors in that.
 	abort_hash_lock(data_vio->hash_lock, data_vio);
 }
 
@@ -1591,7 +1591,7 @@ assert_hash_lock_preconditions(const struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-int acquire_hash_lock(struct data_vio *data_vio)
+int acquire_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock;
 	int result = assert_hash_lock_preconditions(data_vio);
@@ -1620,7 +1620,7 @@ int acquire_hash_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void release_hash_lock(struct data_vio *data_vio)
+void release_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 	if (lock == NULL) {
@@ -1670,12 +1670,12 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void share_compressed_write_lock(struct data_vio *data_vio,
+void share_compressed_vdo_write_lock(struct data_vio *data_vio,
 				 struct pbn_lock *pbn_lock)
 {
 	bool claimed;
 
-	ASSERT_LOG_ONLY(get_duplicate_lock(data_vio) == NULL,
+	ASSERT_LOG_ONLY(get_vdo_duplicate_lock(data_vio) == NULL,
 			"a duplicate PBN lock should not exist when writing");
 	ASSERT_LOG_ONLY(is_compressed(data_vio->new_mapped.state),
 			"lock transfer must be for a compressed write");

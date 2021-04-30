@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#62 $
  */
 
 /*
@@ -46,7 +46,7 @@
  *       prepare_for_dedupe()
  *       hashData()
  *       resolve_hash_zone()
- *       acquire_hash_lock()
+ *       acquire_vdo_hash_lock()
  *       attemptDedupe() (query UDS)
  *       if (is_duplicate) {
  *         verifyAdvice() (read verify)
@@ -186,7 +186,7 @@ static void clean_hash_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_hash_zone(data_vio);
-	release_hash_lock(data_vio);
+	release_vdo_hash_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_RELEASE_LOGICAL);
 }
 
@@ -264,7 +264,7 @@ static void finish_write_data_vio_with_error(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_hash_zone(data_vio);
-	continue_hash_lock_on_error(data_vio);
+	continue_vdo_hash_lock_on_error(data_vio);
 }
 
 /**
@@ -330,7 +330,7 @@ static void finish_write_data_vio(struct vdo_completion *completion)
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
-	continue_hash_lock(data_vio);
+	continue_vdo_hash_lock(data_vio);
 }
 
 /**
@@ -550,7 +550,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 
 	set_new_mapped_zone_callback(data_vio, increment_for_compression);
 	data_vio->last_async_operation = JOURNAL_MAPPING_FOR_COMPRESSION;
-	journal_increment(data_vio, get_duplicate_lock(data_vio));
+	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
 }
 
 /**
@@ -634,7 +634,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 
 	set_new_mapped_zone_callback(data_vio, increment_for_dedupe);
 	data_vio->last_async_operation = JOURNAL_MAPPING_FOR_DEDUPE;
-	journal_increment(data_vio, get_duplicate_lock(data_vio));
+	journal_increment(data_vio, get_vdo_duplicate_lock(data_vio));
 }
 
 /**
@@ -679,7 +679,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 		return;
 	}
 
-	result = acquire_hash_lock(data_vio);
+	result = acquire_vdo_hash_lock(data_vio);
 	if (abort_on_error(result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -692,7 +692,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 		return;
 	}
 
-	enter_hash_lock(data_vio);
+	enter_vdo_hash_lock(data_vio);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#47 $
  */
 
 #include "dataVIO.h"
@@ -36,7 +36,7 @@
 static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",
 	"acknowledge_write",
-	"acquire_hash_lock",
+	"acquire_vdo_hash_lock",
 	"acquire_logical_block_lock",
 	"acquirePBNReadLock",
 	"checkForDedupeForRollover",
