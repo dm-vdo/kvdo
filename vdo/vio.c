@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#40 $
  */
 
 #include "vio.h"
@@ -123,7 +123,7 @@ void vio_done_callback(struct vdo_completion *completion)
 /**********************************************************************/
 void get_vio_operation_description(const struct vio *vio, char *buffer)
 {
-	int buffer_remaining = VIO_OPERATION_DESCRIPTION_MAX_LENGTH;
+	int buffer_remaining = VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH;
 
 	static const char *operations[] = {
 		[VIO_UNSPECIFIED_OPERATION] = "empty",
@@ -160,7 +160,7 @@ void get_vio_operation_description(const struct vio *vio, char *buffer)
 	}
 
 	STATIC_ASSERT(sizeof("write+preflush+postflush") <=
-		      VIO_OPERATION_DESCRIPTION_MAX_LENGTH);
+		      VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH);
 }
 
 /**********************************************************************/
@@ -205,7 +205,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 static void handle_metadata_io_error(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
-	char vio_operation[VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+	char vio_operation[VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
 	get_vio_operation_description(vio, vio_operation);
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",

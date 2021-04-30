@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.h#5 $
  */
 
 #ifndef BLOCK_MAP_FORMAT_H
@@ -36,7 +36,7 @@ struct block_map_state_2_0 {
 } __packed;
 
 struct boundary {
-	page_number_t levels[BLOCK_MAP_TREE_HEIGHT];
+	page_number_t levels[VDO_BLOCK_MAP_TREE_HEIGHT];
 };
 
 extern const struct header BLOCK_MAP_HEADER_2_0;
@@ -53,7 +53,7 @@ extern const struct header BLOCK_MAP_HEADER_2_0;
 static inline page_number_t __must_check
 compute_page_number(logical_block_number_t lbn)
 {
-	return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
+	return (lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**
@@ -67,7 +67,7 @@ compute_page_number(logical_block_number_t lbn)
 static inline slot_number_t __must_check
 compute_slot(logical_block_number_t lbn)
 {
-	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
+	return (lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**

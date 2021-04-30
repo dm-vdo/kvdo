@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#69 $
  */
 
 #include "refCounts.h"
@@ -1227,7 +1227,7 @@ pack_reference_block(struct reference_block *block, void *buffer)
 	pack_journal_point(&block->ref_counts->slab_journal_point,
 			   &commit_point);
 
-	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
+	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		packed->sectors[i].commit_point = commit_point;
 		memcpy(packed->sectors[i].counts,
 		       counters + (i * COUNTS_PER_SECTOR),
@@ -1388,7 +1388,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 	sector_count_t i;
 	struct ref_counts *ref_counts = block->ref_counts;
 	vdo_refcount_t *counters = get_reference_counters_for_block(block);
-	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
+	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
 		unpack_journal_point(&sector->commit_point,
 				     &block->commit_points[i]);

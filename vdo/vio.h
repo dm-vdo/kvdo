@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#47 $
  */
 
 #ifndef VIO_H
@@ -183,7 +183,7 @@ void vio_done_callback(struct vdo_completion *completion);
 /**
  * Get the description of a vio's operation.
  *
- * The output buffer must have size VIO_OPERATION_DESCRIPTION_MAX_LENGTH.
+ * The output buffer must have size VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH.
  *
  * @param vio     The vio
  * @param buffer  The buffer to populate with the vio operation name.

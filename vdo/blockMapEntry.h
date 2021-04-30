@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#12 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -82,7 +82,7 @@ static inline bool is_mapped_location(const struct data_location *location)
 /**********************************************************************/
 static inline bool is_valid_location(const struct data_location *location)
 {
-	if (location->pbn == ZERO_BLOCK) {
+	if (location->pbn == VDO_ZERO_BLOCK) {
 		return !is_compressed(location->state);
 	} else {
 		return is_mapped_location(location);

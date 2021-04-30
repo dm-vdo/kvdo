@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#96 $
  */
 
 #include "slabDepot.h"
@@ -429,7 +429,7 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
 	slab_count_t slab_number;
 	int result;
 
-	if (pbn == ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK) {
 		return NULL;
 	}
 
@@ -470,7 +470,7 @@ bool is_physical_data_block(const struct slab_depot *depot,
 	slab_block_number sbn;
 	int result;
 
-	if (pbn == ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK) {
 		return true;
 	}
 

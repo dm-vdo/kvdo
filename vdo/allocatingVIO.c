@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#33 $
  */
 
 #include "allocatingVIO.h"
@@ -232,7 +232,7 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
 	allocating_vio->write_lock_type = write_lock_type;
 	allocating_vio->allocation_callback = callback;
 	allocating_vio->allocation_attempts = 0;
-	allocating_vio->allocation = ZERO_BLOCK;
+	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
 	allocating_vio->zone =
 		vio->vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
@@ -249,7 +249,7 @@ void release_allocation_lock(struct allocating_vio *allocating_vio)
 	assert_in_physical_zone(allocating_vio);
 	locked_pbn = allocating_vio->allocation;
 	if (has_provisional_reference(allocating_vio->allocation_lock)) {
-		allocating_vio->allocation = ZERO_BLOCK;
+		allocating_vio->allocation = VDO_ZERO_BLOCK;
 	}
 
 	release_pbn_lock(allocating_vio->zone,
@@ -263,9 +263,9 @@ void reset_allocation(struct allocating_vio *allocating_vio)
 	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
 			"must not reset allocation while holding a PBN lock");
 
-	allocating_vio_as_vio(allocating_vio)->physical = ZERO_BLOCK;
+	allocating_vio_as_vio(allocating_vio)->physical = VDO_ZERO_BLOCK;
 	allocating_vio->zone = NULL;
-	allocating_vio->allocation = ZERO_BLOCK;
+	allocating_vio->allocation = VDO_ZERO_BLOCK;
 	allocating_vio->allocation_attempts = 0;
 	allocating_vio->wait_for_clean_slab = false;
 }

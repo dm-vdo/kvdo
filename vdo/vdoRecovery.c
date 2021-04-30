@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#84 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -44,9 +44,9 @@
 
 enum {
 	// The int map needs capacity of twice the number of VIOs in the system.
-	INT_MAP_CAPACITY = MAXIMUM_USER_VIOS * 2,
+	INT_MAP_CAPACITY = MAXIMUM_VDO_USER_VIOS * 2,
 	// There can be as many missing decrefs as there are VIOs in the system.
-	MAXIMUM_SYNTHESIZED_DECREFS = MAXIMUM_USER_VIOS,
+	MAXIMUM_SYNTHESIZED_DECREFS = MAXIMUM_VDO_USER_VIOS,
 };
 
 struct missing_decref {
@@ -180,7 +180,7 @@ make_missing_decref(struct recovery_completion *recovery,
 static void increment_recovery_point(struct recovery_point *point)
 {
 	point->entry_count++;
-	if ((point->sector_count == (SECTORS_PER_BLOCK - 1)) &&
+	if ((point->sector_count == (VDO_SECTORS_PER_BLOCK - 1)) &&
 	    (point->entry_count == RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR)) {
 		point->sequence_number++;
 		point->sector_count = 1;
@@ -205,7 +205,7 @@ static void decrement_recovery_point(struct recovery_point *point)
 
 	if ((point->sector_count <= 1) && (point->entry_count == 0)) {
 		point->sequence_number--;
-		point->sector_count = SECTORS_PER_BLOCK - 1;
+		point->sector_count = VDO_SECTORS_PER_BLOCK - 1;
 		point->entry_count =
 			RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR - 1;
 		return;
@@ -750,7 +750,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			return;
 		}
 
-		if (entry.mapping.pbn == ZERO_BLOCK) {
+		if (entry.mapping.pbn == VDO_ZERO_BLOCK) {
 			continue;
 		}
 
@@ -822,7 +822,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 		decref->recovery->logical_blocks_used--;
 	}
 
-	if (mapping.pbn == ZERO_BLOCK) {
+	if (mapping.pbn == VDO_ZERO_BLOCK) {
 		// Decrefs of zero are not applied to slab journals.
 		FREE(decref);
 		return;
@@ -1189,7 +1189,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		block_entries = header.entry_count;
 		// Examine each sector in turn to determine the last valid
 		// sector.
-		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
+		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
 				get_journal_block_sector(packed_header, j);
 			journal_entry_count_t sector_entries =

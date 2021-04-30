@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#24 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -60,7 +60,7 @@ struct reference_block {
 	 **/
 	sequence_number_t slab_journal_lock_to_release;
 	/** The point up to which each sector is accurate on disk */
-	struct journal_point commit_points[SECTORS_PER_BLOCK];
+	struct journal_point commit_points[VDO_SECTORS_PER_BLOCK];
 	/** Whether this block has been modified since it was written to disk */
 	bool is_dirty;
 	/** Whether this block is currently writing */

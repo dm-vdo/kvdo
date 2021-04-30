@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#78 $
  */
 
 #ifndef KERNELLAYER_H
@@ -47,10 +47,6 @@
 #include "limiter.h"
 #include "statistics.h"
 #include "workQueue.h"
-
-enum {
-	VDO_SECTORS_PER_BLOCK = (VDO_BLOCK_SIZE >> SECTOR_SHIFT)
-};
 
 enum kernel_layer_state {
 	LAYER_SIMPLE_THINGS_INITIALIZED,

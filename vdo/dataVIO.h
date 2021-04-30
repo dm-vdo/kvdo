@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#74 $
  */
 
 #ifndef DATA_VIO_H
@@ -124,7 +124,7 @@ struct tree_lock {
 	 */
 	struct wait_queue waiters;
 	/* The block map tree slots for this LBN */
-	struct block_map_tree_slot tree_slots[BLOCK_MAP_TREE_HEIGHT + 1];
+	struct block_map_tree_slot tree_slots[VDO_BLOCK_MAP_TREE_HEIGHT + 1];
 };
 
 struct compression_state {
@@ -547,7 +547,7 @@ physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
  **/
 static inline bool has_allocation(struct data_vio *data_vio)
 {
-	return (get_data_vio_allocation(data_vio) != ZERO_BLOCK);
+	return (get_data_vio_allocation(data_vio) != VDO_ZERO_BLOCK);
 }
 
 /**

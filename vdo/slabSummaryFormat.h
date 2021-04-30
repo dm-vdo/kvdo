@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryFormat.h#6 $
  */
 
 #ifndef SLAB_SUMMARY_FORMAT_H
@@ -70,7 +70,7 @@ get_slab_summary_zone_size(block_size_t block_size)
 {
 	slab_count_t entries_per_block =
 		block_size / sizeof(struct slab_summary_entry);
-	block_count_t blocks_needed = MAX_SLABS / entries_per_block;
+	block_count_t blocks_needed = MAX_VDO_SLABS / entries_per_block;
 	return blocks_needed;
 }
 
@@ -84,7 +84,7 @@ get_slab_summary_zone_size(block_size_t block_size)
 static inline block_count_t __must_check
 get_slab_summary_size(block_size_t block_size)
 {
-	return get_slab_summary_zone_size(block_size) * MAX_PHYSICAL_ZONES;
+	return get_slab_summary_zone_size(block_size) * MAX_VDO_PHYSICAL_ZONES;
 }
 
 /**

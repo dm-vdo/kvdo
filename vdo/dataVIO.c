@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#46 $
  */
 
 #include "dataVIO.h"
@@ -129,7 +129,7 @@ void complete_data_vio(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	if (completion->result != VDO_SUCCESS) {
 		struct vio *vio = data_vio_as_vio(data_vio);
-		char vio_operation[VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+		char vio_operation[VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
 		get_vio_operation_description(vio, vio_operation);
 		update_vio_error_stats(vio,
 				       "Completing %s vio for LBN %llu with error after %s",
@@ -186,7 +186,7 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 void set_duplicate_location(struct data_vio *data_vio,
 			    const struct zoned_pbn source)
 {
-	data_vio->is_duplicate = (source.pbn != ZERO_BLOCK);
+	data_vio->is_duplicate = (source.pbn != VDO_ZERO_BLOCK);
 	data_vio->duplicate = source;
 }
 

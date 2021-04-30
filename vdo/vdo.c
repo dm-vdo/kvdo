@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#110 $
  */
 
 /*
@@ -585,7 +585,7 @@ int get_physical_zone(const struct vdo *vdo,
 	struct vdo_slab *slab;
 	int result;
 
-	if (pbn == ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK) {
 		*zone_ptr = NULL;
 		return VDO_SUCCESS;
 	}
@@ -615,7 +615,7 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 					const struct data_location *advice,
 					logical_block_number_t lbn)
 {
-	struct zoned_pbn no_advice = { .pbn = ZERO_BLOCK };
+	struct zoned_pbn no_advice = { .pbn = VDO_ZERO_BLOCK };
 	struct physical_zone *zone;
 	int result;
 
@@ -625,7 +625,7 @@ struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
 
 	// Don't use advice that's clearly meaningless.
 	if ((advice->state == MAPPING_STATE_UNMAPPED) ||
-	    (advice->pbn == ZERO_BLOCK)) {
+	    (advice->pbn == VDO_ZERO_BLOCK)) {
 		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
 			      advice->pbn, advice->state, lbn);
 		atomic64_inc(&vdo->error_stats.invalid_advice_pbn_count);

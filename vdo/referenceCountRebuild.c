@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#51 $
  */
 
 #include "referenceCountRebuild.h"
@@ -146,7 +146,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
 		min(get_configured_cache_size(vdo) >> 1,
-		    (page_count_t)  MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
+		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
 
 	struct rebuild_completion *rebuild;
 	int result = ALLOCATE_EXTENDED(struct rebuild_completion, page_count,
@@ -291,12 +291,12 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	if (get_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		slot_number_t slot;
 		for (slot = rebuild->last_slot.slot;
-		     slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
+		     slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 			struct data_location mapping =
 				unpack_block_map_entry(&page->entries[slot]);
 			if (is_mapped_location(&mapping)) {
 				page->entries[slot] =
-					pack_pbn(ZERO_BLOCK,
+					pack_pbn(VDO_ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
 				request_vdo_page_write(completion);
 			}
@@ -304,15 +304,15 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	}
 
 	// Inform the slab depot of all entries on this page.
-	for (slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
+	for (slot = 0; slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 		struct vdo_slab *slab;
 		int result;
 		struct data_location mapping =
 			unpack_block_map_entry(&page->entries[slot]);
 		if (!is_valid_location(&mapping)) {
 			// This entry is invalid, so remove it from the page.
-			page->entries[slot] =
-				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+			page->entries[slot] = pack_pbn(VDO_ZERO_BLOCK,
+						       MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
 		}
@@ -322,15 +322,15 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		}
 
 		(*rebuild->logical_blocks_used)++;
-		if (mapping.pbn == ZERO_BLOCK) {
+		if (mapping.pbn == VDO_ZERO_BLOCK) {
 			continue;
 		}
 
 		if (!is_physical_data_block(rebuild->depot, mapping.pbn)) {
 			// This is a nonsense mapping. Remove it from the map so
 			// we're at least consistent and mark the page dirty.
-			page->entries[slot] =
-				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+			page->entries[slot] = pack_pbn(VDO_ZERO_BLOCK,
+						       MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
 		}
@@ -344,8 +344,8 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 					   get_block_map_page_pbn(page),
 					   slot,
 					   mapping.pbn);
-			page->entries[slot] =
-				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+			page->entries[slot] = pack_pbn(VDO_ZERO_BLOCK,
+						       MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 		}
 	}
@@ -398,7 +398,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
 		physical_block_number_t pbn =
 			find_block_map_page_pbn(rebuild->block_map,
 						rebuild->page_to_fetch++);
-		if (pbn == ZERO_BLOCK) {
+		if (pbn == VDO_ZERO_BLOCK) {
 			continue;
 		}
 
@@ -440,7 +440,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	// loaded, so we can't set this value at the start of rebuild.
 	rebuild->last_slot = (struct block_map_slot){
 		.slot = rebuild->block_map->entry_count
-			% BLOCK_MAP_ENTRIES_PER_PAGE,
+			% VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
 		.pbn = find_block_map_page_pbn(rebuild->block_map,
 					       rebuild->leaf_pages - 1),
 	};
@@ -473,7 +473,7 @@ static int process_entry(physical_block_number_t pbn,
 	struct vdo_slab *slab;
 	int result;
 
-	if ((pbn == ZERO_BLOCK)
+	if ((pbn == VDO_ZERO_BLOCK)
 	    || !is_physical_data_block(rebuild->depot, pbn)) {
 		return log_error_strerror(VDO_BAD_CONFIGURATION,
 					  "PBN %llu out of range",

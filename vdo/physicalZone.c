@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#26 $
  */
 
 #include "physicalZone.h"
@@ -40,7 +40,7 @@
 enum {
 	// Each user data_vio needs a PBN read lock and write lock, and each
 	// packer output bin has an allocating_vio that needs a PBN write lock.
-	LOCK_POOL_CAPACITY = 2 * MAXIMUM_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
+	LOCK_POOL_CAPACITY = 2 * MAXIMUM_VDO_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
 };
 
 struct physical_zone {
@@ -67,7 +67,7 @@ int make_physical_zone(struct vdo *vdo,
 		return result;
 	}
 
-	result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
+	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
 	if (result != VDO_SUCCESS) {
 		free_physical_zone(&zone);
 		return result;

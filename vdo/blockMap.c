@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#94 $
  */
 
 #include "blockMap.h"
@@ -273,7 +273,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 	int result;
 	zone_count_t zone = 0;
 
-	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
+	STATIC_ASSERT(VDO_BLOCK_MAP_ENTRIES_PER_PAGE ==
 		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
 		       sizeof(struct block_map_entry)));
 	result = ASSERT(cache_size > 0,
@@ -341,7 +341,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 struct block_map_state_2_0 record_block_map(const struct block_map *map)
 {
 	struct block_map_state_2_0 state = {
-		.flat_page_origin = BLOCK_MAP_FLAT_PAGE_ORIGIN,
+		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 		// This is the flat page count, which has turned out to always
 		// be 0.
 		.flat_page_count = 0,
@@ -767,7 +767,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 void get_mapped_block(struct data_vio *data_vio)
 {
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
-	    ZERO_BLOCK) {
+	    VDO_ZERO_BLOCK) {
 		// We know that the block map page for this LBN has not been
 		// allocated, so the block must be unmapped.
 		clear_mapped_location(data_vio);

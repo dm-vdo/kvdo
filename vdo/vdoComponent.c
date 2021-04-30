@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#9 $
  */
 
 #include "vdoComponent.h"
@@ -277,14 +277,14 @@ int validate_vdo_config(const struct vdo_config *config,
 		return result;
 	}
 
-	result = ASSERT(config->slab_size <= (1 << MAX_SLAB_BITS),
+	result = ASSERT(config->slab_size <= (1 << MAX_VDO_SLAB_BITS),
 			"slab size must be less than or equal to 2^%d",
-			MAX_SLAB_BITS);
+			MAX_VDO_SLAB_BITS);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->slab_journal_blocks >= MINIMUM_SLAB_JOURNAL_BLOCKS,
+	result = ASSERT(config->slab_journal_blocks >= MINIMUM_VDO_SLAB_JOURNAL_BLOCKS,
 		       "slab journal size meets minimum size");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -314,10 +314,10 @@ int validate_vdo_config(const struct vdo_config *config,
 		return result;
 	}
 
-	result = ASSERT(config->physical_blocks <= MAXIMUM_PHYSICAL_BLOCKS,
+	result = ASSERT(config->physical_blocks <= MAXIMUM_VDO_PHYSICAL_BLOCKS,
 			"physical block count %llu exceeds maximum %llu",
 			config->physical_blocks,
-			MAXIMUM_PHYSICAL_BLOCKS);
+			MAXIMUM_VDO_PHYSICAL_BLOCKS);
 	if (result != UDS_SUCCESS) {
 		return VDO_OUT_OF_RANGE;
 	}
@@ -337,7 +337,7 @@ int validate_vdo_config(const struct vdo_config *config,
 		return result;
 	}
 
-	result = ASSERT(config->logical_blocks <= MAXIMUM_LOGICAL_BLOCKS,
+	result = ASSERT(config->logical_blocks <= MAXIMUM_VDO_LOGICAL_BLOCKS,
 			"logical blocks too large");
 	if (result != UDS_SUCCESS) {
 		return result;

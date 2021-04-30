@@ -235,9 +235,9 @@ vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 		return -EINVAL;
 	}
 
-	if (logical_count > MAXIMUM_LOGICAL_BLOCKS) {
+	if (logical_count > MAXIMUM_VDO_LOGICAL_BLOCKS) {
 		uds_log_warning("Logical block count \"%llu\" exceeds the maximum (%llu)",
-				logical_count, MAXIMUM_LOGICAL_BLOCKS);
+				logical_count, MAXIMUM_VDO_LOGICAL_BLOCKS);
 		return -EINVAL;
 	}
 

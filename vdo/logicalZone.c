@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#57 $
  */
 
 #include "logicalZone.h"
@@ -124,7 +124,8 @@ static int initialize_zone(struct logical_zones *zones,
 {
 	struct vdo *vdo = zones->vdo;
 	struct logical_zone *zone = &zones->zones[zone_number];
-	int result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->lbn_operations);
+	int result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0,
+				  &zone->lbn_operations);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

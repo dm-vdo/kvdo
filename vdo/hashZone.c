@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#36 $
  */
 
 #include "hashZone.h"
@@ -39,7 +39,7 @@
 #include "vdoInternal.h"
 
 enum {
-	LOCK_POOL_CAPACITY = MAXIMUM_USER_VIOS,
+	LOCK_POOL_CAPACITY = MAXIMUM_VDO_USER_VIOS,
 };
 
 struct hash_zone {
@@ -99,8 +99,8 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 		return result;
 	}
 
-	result = make_pointer_map(LOCK_MAP_CAPACITY, 0, compare_keys, hash_key,
-				  &zone->hash_lock_map);
+	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
+				  hash_key, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS) {
 		free_hash_zone(&zone);
 		return result;

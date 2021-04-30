@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#7 $
  */
 
 #include "blockMapFormat.h"
@@ -72,9 +72,9 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	result = ASSERT(flat_page_origin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
+	result = ASSERT(flat_page_origin == VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			"Flat page origin must be %u (recorded as %llu)",
-			BLOCK_MAP_FLAT_PAGE_ORIGIN,
+			VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			state->flat_page_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -165,7 +165,7 @@ int encode_block_map_state_2_0(struct block_map_state_2_0 state,
 /**********************************************************************/
 page_count_t compute_block_map_page_count(block_count_t entries)
 {
-	return compute_bucket_count(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
+	return compute_bucket_count(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**********************************************************************/
@@ -179,10 +179,10 @@ block_count_t compute_new_forest_pages(root_count_t root_count,
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
-	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		block_count_t new_pages;
 		level_size = compute_bucket_count(level_size,
-						  BLOCK_MAP_ENTRIES_PER_PAGE);
+						  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;
 		new_pages = level_size;
 		if (old_sizes != NULL) {

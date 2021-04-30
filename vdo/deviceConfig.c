@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#38 $
  */
 
 #include "deviceConfig.h"
@@ -648,7 +648,7 @@ int parse_device_config(int argc,
 	}
 
 	if (config->cache_size <
-	    (2 * MAXIMUM_USER_VIOS * config->thread_counts.logical_zones)) {
+	    (2 * MAXIMUM_VDO_USER_VIOS * config->thread_counts.logical_zones)) {
 		handle_parse_error(&config,
 				   error_ptr,
 				   "Insufficient block map cache for logical zones");

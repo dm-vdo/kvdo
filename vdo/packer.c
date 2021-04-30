@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#73 $
  */
 
 #include "packerInternals.h"
@@ -257,7 +257,7 @@ int make_packer(struct vdo *vdo,
 	 * canceled vio in the bin must have a canceler for which it is waiting,
 	 * and any canceler will only have canceled one lock holder at a time.
 	 */
-	result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_USER_VIOS / 2,
+	result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_VDO_USER_VIOS / 2,
 				   struct vio *, __func__,
 				   &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
@@ -549,7 +549,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 {
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 	struct vdo_completion *completion = vio_as_completion(vio);
-	if (allocating_vio->allocation == ZERO_BLOCK) {
+	if (allocating_vio->allocation == VDO_ZERO_BLOCK) {
 		completion->requeue = true;
 		set_vdo_completion_result(completion, VDO_NO_SPACE);
 		vio_done_callback(completion);

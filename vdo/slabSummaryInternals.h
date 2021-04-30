@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#21 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -82,7 +82,7 @@ struct slab_summary {
 	physical_block_number_t origin;
 	/** The number of bits to shift to get a 7-bit fullness hint */
 	unsigned int hint_shift;
-	/** The number of blocks (calculated based on MAX_SLABS) */
+	/** The number of blocks (calculated based on MAX_VDO_SLABS) */
 	block_count_t blocks_per_zone;
 	/** The number of slabs per block (calculated from block size) */
 	slab_count_t entries_per_block;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#8 $
  */
 
 #include "vdoInit.h"
@@ -108,8 +108,8 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->allocations_allowed = true;
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
-	initialize_limiter(&vdo->request_limiter, MAXIMUM_USER_VIOS);
-	initialize_limiter(&vdo->discard_limiter, MAXIMUM_USER_VIOS * 3 / 4);
+	initialize_limiter(&vdo->request_limiter, MAXIMUM_VDO_USER_VIOS);
+	initialize_limiter(&vdo->discard_limiter, MAXIMUM_VDO_USER_VIOS * 3 / 4);
 
 	initialize_deadlock_queue(&vdo->deadlock_queue);
 

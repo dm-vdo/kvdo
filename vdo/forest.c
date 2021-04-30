@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#42 $
  */
 
 #include "forest.h"
@@ -46,7 +46,7 @@ enum {
 };
 
 struct block_map_tree_segment {
-	struct tree_page *levels[BLOCK_MAP_TREE_HEIGHT];
+	struct tree_page *levels[VDO_BLOCK_MAP_TREE_HEIGHT];
 };
 
 struct block_map_tree {
@@ -74,7 +74,7 @@ struct cursor {
 	height_t height;
 	struct cursors *parent;
 	struct boundary boundary;
-	struct cursor_level levels[BLOCK_MAP_TREE_HEIGHT];
+	struct cursor_level levels[VDO_BLOCK_MAP_TREE_HEIGHT];
 	struct vio_pool_entry *vio_pool_entry;
 };
 
@@ -118,7 +118,7 @@ static int make_segment(struct forest *old_forest,
 {
 	size_t index = (old_forest == NULL) ? 0 : old_forest->segments;
 	struct tree_page *page_ptr;
-	page_count_t segment_sizes[BLOCK_MAP_TREE_HEIGHT];
+	page_count_t segment_sizes[VDO_BLOCK_MAP_TREE_HEIGHT];
 	height_t height;
 	root_count_t root;
 	int result;
@@ -160,7 +160,7 @@ static int make_segment(struct forest *old_forest,
 	       new_boundary,
 	       sizeof(struct boundary));
 
-	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		segment_sizes[height] = new_boundary->levels[height];
 		if (index > 0) {
 			segment_sizes[height] -=
@@ -189,13 +189,13 @@ static int make_segment(struct forest *old_forest,
 		}
 
 		segment = &(tree->segments[index]);
-		for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+		for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 			if (segment_sizes[height] == 0) {
 				continue;
 			}
 
 			segment->levels[height] = page_ptr;
-			if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
+			if (height == (VDO_BLOCK_MAP_TREE_HEIGHT - 1)) {
 				// Record the root.
 				struct block_map_page *page =
 					format_block_map_page(page_ptr->page_buffer,
@@ -381,7 +381,7 @@ static void finish_traversal_load(struct vdo_completion *completion)
  **/
 static void traverse(struct cursor *cursor)
 {
-	for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
+	for (; cursor->height < VDO_BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
 		height_t height = cursor->height;
 		struct cursor_level *level = &cursor->levels[height];
 		struct tree_page *tree_page =
@@ -393,11 +393,11 @@ static void traverse(struct cursor *cursor)
 			continue;
 		}
 
-		for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE;
+		for (; level->slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 		     level->slot++) {
 			struct cursor_level *next_level;
 			page_number_t entry_index =
-				(BLOCK_MAP_ENTRIES_PER_PAGE *
+				(VDO_BLOCK_MAP_ENTRIES_PER_PAGE *
 				 level->page_index) + level->slot;
 
 			struct data_location location =
@@ -406,7 +406,7 @@ static void traverse(struct cursor *cursor)
 				// This entry is invalid, so remove it from the
 				// page.
 				page->entries[level->slot] =
-					pack_pbn(ZERO_BLOCK,
+					pack_pbn(VDO_ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
 				write_tree_page(tree_page,
 						cursor->parent->zone);
@@ -421,20 +421,20 @@ static void traverse(struct cursor *cursor)
 			// space.
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					pack_pbn(ZERO_BLOCK,
+					pack_pbn(VDO_ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
 				write_tree_page(tree_page,
 						cursor->parent->zone);
 				continue;
 			}
 
-			if (cursor->height < BLOCK_MAP_TREE_HEIGHT - 1) {
+			if (cursor->height < VDO_BLOCK_MAP_TREE_HEIGHT - 1) {
 				int result =
 					cursor->parent->entry_callback(location.pbn,
 								       cursor->parent->parent);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						pack_pbn(ZERO_BLOCK,
+						pack_pbn(VDO_ZERO_BLOCK,
 							 MAPPING_STATE_UNMAPPED);
 					write_tree_page(tree_page,
 							cursor->parent->zone);
@@ -509,14 +509,14 @@ static struct boundary compute_boundary(struct block_map *map,
 		level_pages++;
 	}
 
-	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
+	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT - 1; height++) {
 		boundary.levels[height] = level_pages;
 		level_pages = compute_bucket_count(level_pages,
-						   BLOCK_MAP_ENTRIES_PER_PAGE);
+						   VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 	}
 
 	// The root node always exists, even if the root is otherwise unused.
-	boundary.levels[BLOCK_MAP_TREE_HEIGHT - 1] = 1;
+	boundary.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1] = 1;
 
 	return boundary;
 }
@@ -548,7 +548,7 @@ void traverse_vdo_forest(struct block_map *map,
 		struct cursor *cursor = &cursors->cursors[root];
 		*cursor = (struct cursor) {
 			.tree = &map->forest->trees[root],
-			.height = BLOCK_MAP_TREE_HEIGHT - 1,
+			.height = VDO_BLOCK_MAP_TREE_HEIGHT - 1,
 			.parent = cursors,
 			.boundary = compute_boundary(map, root),
 		};

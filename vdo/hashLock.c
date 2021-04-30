@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#49 $
  */
 
 /**
@@ -1656,7 +1656,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 			"transferred lock must be for the block written");
 
 	allocating_vio->allocation_lock = NULL;
-	allocating_vio->allocation = ZERO_BLOCK;
+	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
 	ASSERT_LOG_ONLY(is_pbn_read_lock(pbn_lock),
 			"must have downgraded the allocation lock before transfer");

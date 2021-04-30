@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#61 $
  */
 
 /*
@@ -56,7 +56,7 @@
  *           increment_for_dedupe()
  *           read_old_block_mapping_for_dedupe()
  *           journal_unmapping_for_dedupe()
- *           if (vio->mapped is not ZERO_BLOCK) {
+ *           if (vio->mapped is not VDO_ZERO_BLOCK) {
  *             decrement_for_dedupe()
  *           }
  *           update_block_map_for_dedupe()
@@ -77,7 +77,7 @@
  *           journalIncrementForDedupe()
  *           read_old_block_mapping_for_dedupe()
  *           journal_unmapping_for_dedupe()
- *           if (vio->mapped is not ZERO_BLOCK) {
+ *           if (vio->mapped is not VDO_ZERO_BLOCK) {
  *             decrement_for_dedupe()
  *           }
  *           update_block_map_for_dedupe()
@@ -91,12 +91,12 @@
  *
  *     finish_block_write()
  *     addJournalEntry() # Increment
- *     if (vio->new_mapped is not ZERO_BLOCK) {
+ *     if (vio->new_mapped is not VDO_ZERO_BLOCK) {
  *       journalIncrementForWrite()
  *     }
  *     read_old_block_mapping_for_write()
  *     journal_unmapping_for_write()
- *     if (vio->mapped is not ZERO_BLOCK) {
+ *     if (vio->mapped is not VDO_ZERO_BLOCK) {
  *       journal_decrement_for_write()
  *     }
  *     update_block_map_for_write()
@@ -476,7 +476,7 @@ static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->mapped.pbn == ZERO_BLOCK) {
+	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK) {
 		set_logical_callback(data_vio, update_block_map_for_dedupe);
 	} else {
 		set_mapped_zone_callback(data_vio, decrement_for_dedupe);
@@ -750,8 +750,8 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 }
 
 /**
- * Update the block map after a data write (or directly for a ZERO_BLOCK write
- * or trim). This callback is registered in decrement_for_write() and
+ * Update the block map after a data write (or directly for a VDO_ZERO_BLOCK
+ * write or trim). This callback is registered in decrement_for_write() and
  * journal_unmapping_for_write().
  *
  * @param completion  The completion of the write in progress
@@ -810,7 +810,7 @@ static void journal_unmapping_for_write(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->mapped.pbn == ZERO_BLOCK) {
+	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK) {
 		set_logical_callback(data_vio, update_block_map_for_write);
 	} else {
 		set_mapped_zone_callback(data_vio, decrement_for_write);
@@ -894,7 +894,7 @@ static void finish_block_write(struct vdo_completion *completion)
 		return;
 	}
 
-	if (data_vio->new_mapped.pbn == ZERO_BLOCK) {
+	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {
 		set_logical_callback(data_vio,
 				     read_old_block_mapping_for_write);
 	} else {
@@ -976,7 +976,7 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 	}
 
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
-	    ZERO_BLOCK) {
+	    VDO_ZERO_BLOCK) {
 		int result =
 			ASSERT(is_trim_data_vio(data_vio),
 			       "data_vio with no block map page is a trim");
@@ -993,7 +993,7 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 	if (data_vio->is_zero_block || is_trim_data_vio(data_vio)) {
 		// We don't need to write any data, so skip allocation and just
 		// update the block map and reference counts (via the journal).
-		data_vio->new_mapped.pbn = ZERO_BLOCK;
+		data_vio->new_mapped.pbn = VDO_ZERO_BLOCK;
 		launch_journal_callback(data_vio, finish_block_write);
 		return;
 	}

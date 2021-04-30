@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#30 $
  */
 
 #include "physicalLayer.h"
@@ -134,7 +134,7 @@ void verify_duplication(struct data_vio *data_vio)
 			"advice to verify must be valid");
 	ASSERT_LOG_ONLY(data_vio->duplicate.state != MAPPING_STATE_UNMAPPED,
 			"advice to verify must not be a discard");
-	ASSERT_LOG_ONLY(data_vio->duplicate.pbn != ZERO_BLOCK,
+	ASSERT_LOG_ONLY(data_vio->duplicate.pbn != VDO_ZERO_BLOCK,
 			"advice to verify must not point to the zero block");
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zeroed block should not have advice to verify");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#61 $
  */
 
 #include "slabSummary.h"
@@ -197,8 +197,8 @@ int make_slab_summary(struct vdo *vdo,
 	zone_count_t zone;
 	block_count_t blocks_per_zone =
 		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
-	slab_count_t entries_per_block = MAX_SLABS / blocks_per_zone;
-	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_SLABS,
+	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
+	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,
 			    "block size must be a multiple of entry size");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -225,7 +225,7 @@ int make_slab_summary(struct vdo *vdo,
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
-	total_entries = MAX_SLABS * MAX_PHYSICAL_ZONES;
+	total_entries = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES;
 	result = ALLOCATE(total_entries, struct slab_summary_entry,
 			  "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
@@ -253,7 +253,7 @@ int make_slab_summary(struct vdo *vdo,
 					       get_physical_zone_thread(thread_config,
 								        zone),
 					       summary->entries +
-					       (MAX_SLABS * zone));
+					       (MAX_VDO_SLABS * zone));
 		if (result != VDO_SUCCESS) {
 			free_slab_summary(&summary);
 			return result;
@@ -593,12 +593,13 @@ void combine_zones(struct slab_summary *summary)
 	zone_count_t zone = 0;
 	if (summary->zones_to_combine > 1) {
 		slab_count_t entry_number;
-		for (entry_number = 0; entry_number < MAX_SLABS;
+		for (entry_number = 0; entry_number < MAX_VDO_SLABS;
 		     entry_number++) {
 			if (zone != 0) {
 				memcpy(summary->entries + entry_number,
-				       summary->entries + (zone * MAX_SLABS)
-					       + entry_number,
+				       summary->entries +
+						(zone * MAX_VDO_SLABS) +
+						entry_number,
 				       sizeof(struct slab_summary_entry));
 			}
 			zone++;
@@ -609,9 +610,10 @@ void combine_zones(struct slab_summary *summary)
 	}
 
 	// Copy the combined data to each zones's region of the buffer.
-	for (zone = 1; zone < MAX_PHYSICAL_ZONES; zone++) {
-		memcpy(summary->entries + (zone * MAX_SLABS), summary->entries,
-		       MAX_SLABS * sizeof(struct slab_summary_entry));
+	for (zone = 1; zone < MAX_VDO_PHYSICAL_ZONES; zone++) {
+		memcpy(summary->entries + (zone * MAX_VDO_SLABS),
+		       summary->entries,
+		       MAX_VDO_SLABS * sizeof(struct slab_summary_entry));
 	}
 }
 
@@ -651,7 +653,7 @@ void load_slab_summary(struct slab_summary *summary,
 		return;
 	}
 
-	blocks = summary->blocks_per_zone * MAX_PHYSICAL_ZONES;
+	blocks = summary->blocks_per_zone * MAX_VDO_PHYSICAL_ZONES;
 	result = create_vdo_extent(parent->vdo, VIO_TYPE_SLAB_SUMMARY,
 				   VIO_PRIORITY_METADATA, blocks,
 				   (char *)summary->entries, &extent);

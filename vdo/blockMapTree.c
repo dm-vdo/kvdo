@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#85 $
  */
 
 #include "blockMapTree.h"
@@ -122,7 +122,8 @@ int initialize_tree_zone(struct block_map_zone *zone,
 		return result;
 	}
 
-	result = make_int_map(LOCK_MAP_CAPACITY, 0, &tree_zone->loading_pages);
+	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0,
+			      &tree_zone->loading_pages);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -750,12 +751,12 @@ is_invalid_tree_entry(const struct vdo *vdo,
 		      height_t height)
 {
 	if (!is_valid_location(mapping) || is_compressed(mapping->state) ||
-	    (is_mapped_location(mapping) && (mapping->pbn == ZERO_BLOCK))) {
+	    (is_mapped_location(mapping) && (mapping->pbn == VDO_ZERO_BLOCK))) {
 		return true;
 	}
 
 	// Roots aren't physical data blocks, so we can't check their PBNs.
-	if (height == BLOCK_MAP_TREE_HEIGHT) {
+	if (height == VDO_BLOCK_MAP_TREE_HEIGHT) {
 		return false;
 	}
 
@@ -1257,29 +1258,29 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 	page_index = (lock->tree_slots[0].page_index /
 		      zone->map_zone->block_map->root_count);
 	tree_slot = (struct block_map_tree_slot) {
-		.page_index = page_index / BLOCK_MAP_ENTRIES_PER_PAGE,
+		.page_index = page_index / VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
 		.block_map_slot = {
 			.pbn = 0,
-			.slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE,
+			.slot = page_index % VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
 		},
 	};
 
-	for (lock->height = 1; lock->height <= BLOCK_MAP_TREE_HEIGHT;
+	for (lock->height = 1; lock->height <= VDO_BLOCK_MAP_TREE_HEIGHT;
 	     lock->height++) {
 		physical_block_number_t pbn;
 		lock->tree_slots[lock->height] = tree_slot;
 		page = (struct block_map_page *) (get_tree_page(zone, lock)->page_buffer);
 		pbn = get_block_map_page_pbn(page);
-		if (pbn != ZERO_BLOCK) {
+		if (pbn != VDO_ZERO_BLOCK) {
 			lock->tree_slots[lock->height].block_map_slot.pbn = pbn;
 			break;
 		}
 
 		// Calculate the index and slot for the next level.
 		tree_slot.block_map_slot.slot =
-			tree_slot.page_index % BLOCK_MAP_ENTRIES_PER_PAGE;
+			tree_slot.page_index % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 		tree_slot.page_index =
-			tree_slot.page_index / BLOCK_MAP_ENTRIES_PER_PAGE;
+			tree_slot.page_index / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 	}
 
 	// The page at this height has been allocated and loaded.
@@ -1324,19 +1325,19 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 
 	root_count_t root_index = page_number % map->root_count;
 	page_number_t page_index = page_number / map->root_count;
-	slot_number_t slot = page_index % BLOCK_MAP_ENTRIES_PER_PAGE;
-	page_index /= BLOCK_MAP_ENTRIES_PER_PAGE;
+	slot_number_t slot = page_index % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+	page_index /= VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
 	tree_page =
 		get_vdo_tree_page_by_index(map->forest, root_index, 1, page_index);
 	page = (struct block_map_page *) tree_page->page_buffer;
 	if (!is_block_map_page_initialized(page)) {
-		return ZERO_BLOCK;
+		return VDO_ZERO_BLOCK;
 	}
 
 	mapping = unpack_block_map_entry(&page->entries[slot]);
 	if (!is_valid_location(&mapping) || is_compressed(mapping.state)) {
-		return ZERO_BLOCK;
+		return VDO_ZERO_BLOCK;
 	}
 	return mapping.pbn;
 }
