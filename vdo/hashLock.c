@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#51 $
  */
 
 /**
@@ -766,9 +766,9 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 			   struct data_vio *new_agent)
 {
 	struct hash_lock *new_lock;
-	int result = acquire_hash_lock_from_zone(new_agent->hash_zone,
-						 &new_agent->chunk_name,
-						 old_lock, &new_lock);
+	int result = acquire_lock_from_vdo_hash_zone(new_agent->hash_zone,
+						     &new_agent->chunk_name,
+						     old_lock, &new_lock);
 	if (result != VDO_SUCCESS) {
 		abort_hash_lock(old_lock, new_agent);
 		return;
@@ -900,9 +900,9 @@ static void finish_verifying(struct vdo_completion *completion)
 	if (!lock->verify_counted) {
 		lock->verify_counted = true;
 		if (lock->verified) {
-			bump_hash_zone_valid_advice_count(agent->hash_zone);
+			bump_vdo_hash_zone_valid_advice_count(agent->hash_zone);
 		} else {
-			bump_hash_zone_stale_advice_count(agent->hash_zone);
+			bump_vdo_hash_zone_stale_advice_count(agent->hash_zone);
 		}
 	}
 
@@ -995,7 +995,7 @@ static void finish_locking(struct vdo_completion *completion)
 		 * compress the data, remembering to update UDS later with the
 		 * new advice.
 		 */
-		bump_hash_zone_stale_advice_count(agent->hash_zone);
+		bump_vdo_hash_zone_stale_advice_count(agent->hash_zone);
 		lock->update_advice = true;
 		start_writing(lock, agent);
 		return;
@@ -1564,9 +1564,9 @@ static bool is_hash_collision(struct hash_lock *lock,
 	collides = !compare_data_vios(lock_holder, candidate);
 
 	if (collides) {
-		bump_hash_zone_collision_count(candidate->hash_zone);
+		bump_vdo_hash_zone_collision_count(candidate->hash_zone);
 	} else {
-		bump_hash_zone_data_match_count(candidate->hash_zone);
+		bump_vdo_hash_zone_data_match_count(candidate->hash_zone);
 	}
 
 	return collides;
@@ -1599,10 +1599,10 @@ int acquire_vdo_hash_lock(struct data_vio *data_vio)
 		return result;
 	}
 
-	result = acquire_hash_lock_from_zone(data_vio->hash_zone,
-					     &data_vio->chunk_name,
-					     NULL,
-					     &lock);
+	result = acquire_lock_from_vdo_hash_zone(data_vio->hash_zone,
+						 &data_vio->chunk_name,
+						 NULL,
+						 &lock);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -1635,7 +1635,7 @@ void release_vdo_hash_lock(struct data_vio *data_vio)
 	}
 
 	set_hash_lock_state(lock, HASH_LOCK_DESTROYING);
-	return_hash_lock_to_zone(data_vio->hash_zone, &lock);
+	return_lock_to_vdo_hash_zone(data_vio->hash_zone, &lock);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#37 $
  */
 
 #include "hashZone.h"
@@ -89,8 +89,8 @@ static uint32_t hash_key(const void *key)
 }
 
 /**********************************************************************/
-int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
-		   struct hash_zone **zone_ptr)
+int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
+		       struct hash_zone **zone_ptr)
 {
 	vio_count_t i;
 	struct hash_zone *zone;
@@ -102,7 +102,7 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
 				  hash_key, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS) {
-		free_hash_zone(&zone);
+		free_vdo_hash_zone(&zone);
 		return result;
 	}
 
@@ -114,7 +114,7 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
 			  "hash_lock array", &zone->lock_array);
 	if (result != VDO_SUCCESS) {
-		free_hash_zone(&zone);
+		free_vdo_hash_zone(&zone);
 		return result;
 	}
 
@@ -129,7 +129,7 @@ int make_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 }
 
 /**********************************************************************/
-void free_hash_zone(struct hash_zone **zone_ptr)
+void free_vdo_hash_zone(struct hash_zone **zone_ptr)
 {
 	struct hash_zone *zone;
 	if (*zone_ptr == NULL) {
@@ -144,20 +144,20 @@ void free_hash_zone(struct hash_zone **zone_ptr)
 }
 
 /**********************************************************************/
-zone_count_t get_hash_zone_number(const struct hash_zone *zone)
+zone_count_t get_vdo_hash_zone_number(const struct hash_zone *zone)
 {
 	return zone->zone_number;
 }
 
 /**********************************************************************/
-thread_id_t get_hash_zone_thread_id(const struct hash_zone *zone)
+thread_id_t get_vdo_hash_zone_thread_id(const struct hash_zone *zone)
 {
 	return zone->thread_id;
 }
 
 /**********************************************************************/
 struct hash_lock_statistics
-get_hash_zone_statistics(const struct hash_zone *zone)
+get_vdo_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct hash_lock_statistics *stats = &zone->statistics;
 	return (struct hash_lock_statistics) {
@@ -190,10 +190,10 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 }
 
 /**********************************************************************/
-int acquire_hash_lock_from_zone(struct hash_zone *zone,
-				const struct uds_chunk_name *hash,
-				struct hash_lock *replace_lock,
-				struct hash_lock **lock_ptr)
+int acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
+				    const struct uds_chunk_name *hash,
+				    struct hash_lock *replace_lock,
+				    struct hash_lock **lock_ptr)
 {
 	struct hash_lock *lock, *new_lock;
 
@@ -244,8 +244,8 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 }
 
 /**********************************************************************/
-void return_hash_lock_to_zone(struct hash_zone *zone,
-			      struct hash_lock **lock_ptr)
+void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
+				  struct hash_lock **lock_ptr)
 {
 	struct hash_lock *lock = *lock_ptr;
 	*lock_ptr = NULL;
@@ -315,31 +315,31 @@ static void increment_stat(uint64_t *stat)
 }
 
 /**********************************************************************/
-void bump_hash_zone_valid_advice_count(struct hash_zone *zone)
+void bump_vdo_hash_zone_valid_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_valid);
 }
 
 /**********************************************************************/
-void bump_hash_zone_stale_advice_count(struct hash_zone *zone)
+void bump_vdo_hash_zone_stale_advice_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.dedupe_advice_stale);
 }
 
 /**********************************************************************/
-void bump_hash_zone_data_match_count(struct hash_zone *zone)
+void bump_vdo_hash_zone_data_match_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_data_matches);
 }
 
 /**********************************************************************/
-void bump_hash_zone_collision_count(struct hash_zone *zone)
+void bump_vdo_hash_zone_collision_count(struct hash_zone *zone)
 {
 	increment_stat(&zone->statistics.concurrent_hash_collisions);
 }
 
 /**********************************************************************/
-void dump_hash_zone(const struct hash_zone *zone)
+void dump_vdo_hash_zone(const struct hash_zone *zone)
 {
 	vio_count_t i;
 	if (zone->hash_lock_map == NULL) {

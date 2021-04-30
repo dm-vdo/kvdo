@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#11 $
  */
 
 #ifndef HASH_ZONE_H
@@ -36,16 +36,16 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_hash_zone(struct vdo *vdo,
-				zone_count_t zone_number,
-				struct hash_zone **zone_ptr);
+int __must_check make_vdo_hash_zone(struct vdo *vdo,
+				    zone_count_t zone_number,
+				    struct hash_zone **zone_ptr);
 
 /**
  * Free a hash zone and null out the reference to it.
  *
  * @param zone_ptr  A pointer to the zone to free
  **/
-void free_hash_zone(struct hash_zone **zone_ptr);
+void free_vdo_hash_zone(struct hash_zone **zone_ptr);
 
 /**
  * Get the zone number of a hash zone.
@@ -54,7 +54,8 @@ void free_hash_zone(struct hash_zone **zone_ptr);
  *
  * @return The number of the zone
  **/
-zone_count_t __must_check get_hash_zone_number(const struct hash_zone *zone);
+zone_count_t __must_check
+get_vdo_hash_zone_number(const struct hash_zone *zone);
 
 /**
  * Get the ID of a hash zone's thread.
@@ -63,7 +64,8 @@ zone_count_t __must_check get_hash_zone_number(const struct hash_zone *zone);
  *
  * @return The zone's thread ID
  **/
-thread_id_t __must_check get_hash_zone_thread_id(const struct hash_zone *zone);
+thread_id_t __must_check
+get_vdo_hash_zone_thread_id(const struct hash_zone *zone);
 
 /**
  * Get the statistics for this hash zone.
@@ -73,7 +75,7 @@ thread_id_t __must_check get_hash_zone_thread_id(const struct hash_zone *zone);
  * @return A copy of the current statistics for the hash zone
  **/
 struct hash_lock_statistics __must_check
-get_hash_zone_statistics(const struct hash_zone *zone);
+get_vdo_hash_zone_statistics(const struct hash_zone *zone);
 
 /**
  * Get the lock for the hash (chunk name) of the data in a data_vio, or if one
@@ -90,10 +92,10 @@ get_hash_zone_statistics(const struct hash_zone *zone);
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-acquire_hash_lock_from_zone(struct hash_zone *zone,
-			    const struct uds_chunk_name *hash,
-			    struct hash_lock *replace_lock,
-			    struct hash_lock **lock_ptr);
+acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
+				const struct uds_chunk_name *hash,
+				struct hash_lock *replace_lock,
+				struct hash_lock **lock_ptr);
 
 /**
  * Return a hash lock to the zone it was borrowed from, remove it from the
@@ -104,8 +106,8 @@ acquire_hash_lock_from_zone(struct hash_zone *zone,
  * @param [in]     zone      The zone from which the lock was borrowed
  * @param [in,out] lock_ptr  The lock that is no longer in use
  **/
-void return_hash_lock_to_zone(struct hash_zone *zone,
-			      struct hash_lock **lock_ptr);
+void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
+				  struct hash_lock **lock_ptr);
 
 /**
  * Increment the valid advice count in the hash zone statistics.
@@ -113,7 +115,7 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
  *
  * @param zone  The hash zone of the lock that received valid advice
  **/
-void bump_hash_zone_valid_advice_count(struct hash_zone *zone);
+void bump_vdo_hash_zone_valid_advice_count(struct hash_zone *zone);
 
 /**
  * Increment the stale advice count in the hash zone statistics.
@@ -121,7 +123,7 @@ void bump_hash_zone_valid_advice_count(struct hash_zone *zone);
  *
  * @param zone  The hash zone of the lock that received stale advice
  **/
-void bump_hash_zone_stale_advice_count(struct hash_zone *zone);
+void bump_vdo_hash_zone_stale_advice_count(struct hash_zone *zone);
 
 /**
  * Increment the concurrent dedupe count in the hash zone statistics.
@@ -129,7 +131,7 @@ void bump_hash_zone_stale_advice_count(struct hash_zone *zone);
  *
  * @param zone  The hash zone of the lock that matched a new data_vio
  **/
-void bump_hash_zone_data_match_count(struct hash_zone *zone);
+void bump_vdo_hash_zone_data_match_count(struct hash_zone *zone);
 
 /**
  * Increment the concurrent hash collision count in the hash zone statistics.
@@ -137,13 +139,13 @@ void bump_hash_zone_data_match_count(struct hash_zone *zone);
  *
  * @param zone  The hash zone of the lock that rejected a colliding data_vio
  **/
-void bump_hash_zone_collision_count(struct hash_zone *zone);
+void bump_vdo_hash_zone_collision_count(struct hash_zone *zone);
 
 /**
  * Dump information about a hash zone to the log for debugging.
  *
  * @param zone   The zone to dump
  **/
-void dump_hash_zone(const struct hash_zone *zone);
+void dump_vdo_hash_zone(const struct hash_zone *zone);
 
 #endif // HASH_ZONE_H
