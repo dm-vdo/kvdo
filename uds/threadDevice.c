@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadDevice.c#1 $
  */
 
 #include "threadDevice.h"
@@ -30,20 +30,20 @@
 static struct thread_registry device_id_thread_registry;
 
 /**********************************************************************/
-void register_thread_device_id(struct registered_thread *new_thread,
-			       unsigned int *id_ptr)
+void uds_register_thread_device_id(struct registered_thread *new_thread,
+				   unsigned int *id_ptr)
 {
 	register_thread(&device_id_thread_registry, new_thread, id_ptr);
 }
 
 /**********************************************************************/
-void unregister_thread_device_id(void)
+void uds_unregister_thread_device_id(void)
 {
 	unregister_thread(&device_id_thread_registry);
 }
 
 /**********************************************************************/
-int get_thread_device_id(void)
+int uds_get_thread_device_id(void)
 {
 	const unsigned int *pointer =
 		lookup_thread(&device_id_thread_registry);
@@ -52,7 +52,7 @@ int get_thread_device_id(void)
 }
 
 /**********************************************************************/
-void initialize_thread_device_registry(void)
+void uds_initialize_thread_device_registry(void)
 {
 	initialize_thread_registry(&device_id_thread_registry);
 }

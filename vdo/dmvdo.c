@@ -25,6 +25,8 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "threadDevice.h"
+#include "threadRegistry.h"
 
 #include "constants.h"
 #include "threadConfig.h"
@@ -39,8 +41,6 @@
 #include "memoryUsage.h"
 #include "messageStats.h"
 #include "stringUtils.h"
-#include "threadDevice.h"
-#include "threadRegistry.h"
 #include "vdo.h"
 #include "vdoInit.h"
 
@@ -428,7 +428,7 @@ static int vdo_message(struct dm_target *ti,
 	layer = get_kernel_layer_for_target(ti);
 
 	register_allocating_thread(&allocating_thread, NULL);
-	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 
 	// Must be done here so we don't map return codes. The code in
 	// dm-ioctl expects a 1 for a return code to look at the buffer
@@ -436,14 +436,14 @@ static int vdo_message(struct dm_target *ti,
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
 			write_vdo_stats(layer, result_buffer, maxlen);
-			unregister_thread_device_id();
+			uds_unregister_thread_device_id();
 			unregister_allocating_thread();
 			return 1;
 		}
 
 		if (strcasecmp(argv[0], "kernel_stats") == 0) {
 			write_kernel_stats(layer, result_buffer, maxlen);
-			unregister_thread_device_id();
+			uds_unregister_thread_device_id();
 			unregister_allocating_thread();
 			return 1;
 		}
@@ -451,7 +451,7 @@ static int vdo_message(struct dm_target *ti,
 
 	result = process_vdo_message(layer, argc, argv);
 
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 	unregister_allocating_thread();
 	return map_to_system_error(result);
 }
@@ -592,10 +592,10 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		instance = old_vdo->instance;
 	}
 
-	register_thread_device_id(&instance_thread, &instance);
+	uds_register_thread_device_id(&instance_thread, &instance);
 	result = parse_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
-		unregister_thread_device_id();
+		uds_unregister_thread_device_id();
 		unregister_allocating_thread();
 		if (old_vdo == NULL) {
 			release_vdo_instance(instance);
@@ -625,7 +625,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			ti->private = config;
 			configure_target_capabilities(ti, layer);
 		}
-		unregister_thread_device_id();
+		uds_unregister_thread_device_id();
 		unregister_allocating_thread();
 		return result;
 	}
@@ -637,7 +637,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		free_device_config(&config);
 	}
 
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 	unregister_allocating_thread();
 	return result;
 }
@@ -657,7 +657,7 @@ static void vdo_dtr(struct dm_target *ti)
 		unsigned int instance = layer->vdo.instance;
 		struct registered_thread allocating_thread, instance_thread;
 
-		register_thread_device_id(&instance_thread, &instance);
+		uds_register_thread_device_id(&instance_thread, &instance);
 		register_allocating_thread(&allocating_thread, NULL);
 
 		vdo_wait_for_no_requests_active(vdo);
@@ -671,7 +671,7 @@ static void vdo_dtr(struct dm_target *ti)
 
 		free_kernel_layer(layer);
 		log_info("device '%s' stopped", device_name);
-		unregister_thread_device_id();
+		uds_unregister_thread_device_id();
 		unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
 		// The layer still references this config. Give it a reference
@@ -690,11 +690,11 @@ static void vdo_presuspend(struct dm_target *ti)
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct registered_thread instance_thread;
 
-	register_thread_device_id(&instance_thread, &vdo->instance);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 	if (dm_noflush_suspending(ti)) {
 		vdo->no_flush_suspend = true;
 	}
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 }
 
 /**********************************************************************/
@@ -705,7 +705,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	const char *device_name;
 	int result;
 
-	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	device_name = get_vdo_device_name(ti);
 
 	log_info("suspending device '%s'", device_name);
@@ -720,7 +720,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	}
 
 	layer->vdo.no_flush_suspend = false;
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 }
 
 /**********************************************************************/
@@ -733,7 +733,7 @@ static int vdo_preresume(struct dm_target *ti)
 	block_count_t backing_blocks;
 	int result;
 
-	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	device_name = get_vdo_device_name(ti);
 
 	backing_blocks = get_underlying_device_block_count(&layer->vdo);
@@ -741,7 +741,7 @@ static int vdo_preresume(struct dm_target *ti)
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name, backing_blocks,
 			      config->physical_blocks);
-		unregister_thread_device_id();
+		uds_unregister_thread_device_id();
 		return -EINVAL;
 	}
 
@@ -759,7 +759,7 @@ static int vdo_preresume(struct dm_target *ti)
 				      result,
 				      failure_reason);
 			set_vdo_read_only(&layer->vdo, result);
-			unregister_thread_device_id();
+			uds_unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
 
@@ -786,7 +786,7 @@ static int vdo_preresume(struct dm_target *ti)
 				      device_name, result);
 		}
 	}
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 	return map_to_system_error(result);
 }
 
@@ -796,9 +796,9 @@ static void vdo_resume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
 
-	register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	log_info("device '%s' resumed", get_vdo_device_name(ti));
-	unregister_thread_device_id();
+	uds_unregister_thread_device_id();
 }
 
 /*
@@ -850,7 +850,6 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
-	initialize_thread_device_registry();
 	initialize_device_registry_once();
 	log_info("loaded version %s", CURRENT_VERSION);
 

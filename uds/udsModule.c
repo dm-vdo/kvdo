@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#78 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#79 $
  */
 
 #include <linux/module.h>
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 #include "sysfs.h"
+#include "threadDevice.h"
 #include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
@@ -35,6 +36,7 @@
 /**********************************************************************/
 static int __init dedupe_init(void)
 {
+	uds_initialize_thread_device_registry();
 	memory_init();
 	log_info("loaded version %s", UDS_VERSION);
 	init_sysfs();
@@ -155,6 +157,9 @@ EXPORT_SYMBOL_GPL(string_error_name);
 EXPORT_SYMBOL_GPL(string_to_priority);
 EXPORT_SYMBOL_GPL(string_to_unsigned_long);
 EXPORT_SYMBOL_GPL(uds_assertion_failed);
+EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
+EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
+EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(unregister_thread);

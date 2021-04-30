@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#9 $
  */
 
 #include <linux/delay.h>
@@ -25,6 +25,7 @@
 #include <linux/sched.h>
 
 #include "logger.h"
+#include "threadDevice.h"
 
 /**********************************************************************/
 static const char *priority_to_log_level(int priority)
@@ -68,11 +69,12 @@ static const char *get_current_interrupt_type(void)
  * Emit a log message to the kernel log in a format suited to the current
  * thread context. Context info formats:
  *
- * interrupt:       uds[NMI]: blah
- * kvdo thread:     kvdo12:foobarQ: blah
- * other thread:    uds: myprog: blah
+ * interrupt:           uds[NMI]: blah
+ * kvdo thread:         kvdo12:foobarQ: blah
+ * thread w/device id:  kvdo12:myprog: blah
+ * other thread:        uds: myprog: blah
  *
- * Fields: module name, interrupt level, process name
+ * Fields: module name, interrupt level, process name, device ID.
  *
  * @param level   A string describing the logging level
  * @param module  The name of the module doing the logging
@@ -86,12 +88,29 @@ static void emit_log_message(const char *level,
 			     const struct va_format *vaf1,
 			     const struct va_format *vaf2)
 {
+	int device_instance;
+
 	// In interrupt context, identify the interrupt type and module.
 	// Ignore the process/thread since it could be anything.
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
 		printk("%s%s[%s]: %s%pV%pV\n",
 		       level, module, type, prefix, vaf1, vaf2);
+		return;
+	}
+
+	// Not at interrupt level; we have a process we can look at, and
+	// might have a device ID.
+	device_instance = uds_get_thread_device_id();
+	if (device_instance >= 0) {
+		printk("%s%s%u:%s: %s%pV%pV\n",
+		       level,
+		       module,
+		       device_instance,
+		       current->comm,
+		       prefix,
+		       vaf1,
+		       vaf2);
 		return;
 	}
 

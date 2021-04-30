@@ -16,11 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#11 $
- *
- * Common stat functions
- *
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#12 $
  */
+
 #include "releaseVersions.h"
 #include "statistics.h"
 #include "vdo.h"
@@ -28,9 +26,7 @@
 #include "dedupeIndex.h"
 #include "ioSubmitter.h"
 #include "kernelStatistics.h"
-#include "logger.h"
 #include "memoryUsage.h"
-#include "threadDevice.h"
 #include "vdoCommon.h"
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#40 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,7 +28,6 @@
 #include "vdoInternal.h"
 
 #include "kernelTypes.h"
-#include "threadRegistry.h"
 #include "workQueue.h"
 
 enum {

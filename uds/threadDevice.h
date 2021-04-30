@@ -16,8 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadDevice.h#1 $
  */
+
+#ifndef UDS_THREAD_DEVICE_H
+#define UDS_THREAD_DEVICE_H
 
 #include "threadRegistry.h"
 
@@ -33,14 +36,14 @@
  * @param new_thread  registered_thread structure to use for the current thread
  * @param id_ptr      Location where the ID number is stored
  **/
-void register_thread_device_id(struct registered_thread *new_thread,
-			       unsigned int *id_ptr);
+void uds_register_thread_device_id(struct registered_thread *new_thread,
+				   unsigned int *id_ptr);
 
 /**
  * Cancel registration of the current thread as being associated with
  * a VDO device or device ID number.
  **/
-void unregister_thread_device_id(void);
+void uds_unregister_thread_device_id(void);
 
 /**
  * Get the VDO device ID number temporarily associated with the
@@ -48,9 +51,11 @@ void unregister_thread_device_id(void);
  *
  * @return the device ID number, if any, or -1
  **/
-int get_thread_device_id(void);
+int uds_get_thread_device_id(void);
 
 /**
  * Initialize the thread device-ID registry.
  **/
-void initialize_thread_device_registry(void);
+void uds_initialize_thread_device_registry(void);
+
+#endif /* UDS_THREAD_DEVICE_H */
