@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#39 $
  */
 
 #include "actionManager.h"
@@ -92,7 +92,7 @@ struct action_manager {
 static inline struct action_manager *
 as_action_manager(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, ACTION_COMPLETION);
+	assert_vdo_completion_type(completion->type, ACTION_COMPLETION);
 	return container_of(completion, struct action_manager, completion);
 }
 
@@ -114,7 +114,7 @@ static bool no_default_action(void *context __always_unused)
 static void no_preamble(void *context __always_unused,
 			struct vdo_completion *completion)
 {
-	complete_completion(completion);
+	complete_vdo_completion(completion);
 }
 
 /**
@@ -211,11 +211,11 @@ static thread_id_t get_acting_zone_thread_id(struct action_manager *manager)
  **/
 static void prepare_for_next_zone(struct action_manager *manager)
 {
-	prepare_for_requeue(&manager->completion,
-			    apply_to_zone,
-			    preserve_error_and_continue,
-			    get_acting_zone_thread_id(manager),
-			    manager->current_action->parent);
+	prepare_vdo_completion_for_requeue(&manager->completion,
+					   apply_to_zone,
+					   preserve_vdo_completion_error_and_continue,
+					   get_acting_zone_thread_id(manager),
+					   manager->current_action->parent);
 }
 
 /**
@@ -226,11 +226,11 @@ static void prepare_for_next_zone(struct action_manager *manager)
  **/
 static void prepare_for_conclusion(struct action_manager *manager)
 {
-	prepare_for_requeue(&manager->completion,
-			    finish_action_callback,
-			    preserve_error_and_continue,
-			    manager->initiator_thread_id,
-			    manager->current_action->parent);
+	prepare_vdo_completion_for_requeue(&manager->completion,
+					   finish_action_callback,
+					   preserve_vdo_completion_error_and_continue,
+					   manager->initiator_thread_id,
+					   manager->current_action->parent);
 }
 
 /**
@@ -269,7 +269,7 @@ static void handle_preamble_error(struct vdo_completion *completion)
 {
 	// Skip the zone actions since the preamble failed.
 	completion->callback = finish_action_callback;
-	preserve_error_and_continue(completion);
+	preserve_vdo_completion_error_and_continue(completion);
 }
 
 /**
@@ -283,7 +283,7 @@ static void launch_current_action(struct action_manager *manager)
 	int result = start_vdo_operation(&manager->state, action->operation);
 	if (result != VDO_SUCCESS) {
 		if (action->parent != NULL) {
-			set_completion_result(action->parent, result);
+			set_vdo_completion_result(action->parent, result);
 		}
 
 		// We aren't going to run the preamble, so don't run the
@@ -297,11 +297,11 @@ static void launch_current_action(struct action_manager *manager)
 		prepare_for_conclusion(manager);
 	} else {
 		manager->acting_zone = 0;
-		prepare_for_requeue(&manager->completion,
-				    apply_to_zone,
-				    handle_preamble_error,
-				    get_acting_zone_thread_id(manager),
-				    manager->current_action->parent);
+		prepare_vdo_completion_for_requeue(&manager->completion,
+						   apply_to_zone,
+						   handle_preamble_error,
+						   get_acting_zone_thread_id(manager),
+						   manager->current_action->parent);
 	}
 
 	action->preamble(manager->context, &manager->completion);
@@ -342,7 +342,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	result = action.conclusion(manager->context);
 	finish_vdo_operation(&manager->state);
 	if (action.parent != NULL) {
-		finish_completion(action.parent, result);
+		finish_vdo_completion(action.parent, result);
 	}
 
 	if (has_next_action) {
@@ -401,7 +401,7 @@ bool schedule_vdo_operation_with_context(struct action_manager *manager,
 		current_action = manager->current_action->next;
 	} else {
 		if (parent != NULL) {
-			finish_completion(parent, VDO_COMPONENT_BUSY);
+			finish_vdo_completion(parent, VDO_COMPONENT_BUSY);
 		}
 
 		return false;

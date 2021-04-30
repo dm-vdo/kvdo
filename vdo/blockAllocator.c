@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#111 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -167,7 +167,7 @@ notify_block_allocator_of_read_only_mode(void *listener,
 		abort_slab_journal_waiters(slab->journal);
 	}
 
-	complete_completion(parent);
+	complete_vdo_completion(parent);
 }
 
 /**
@@ -553,7 +553,7 @@ static void swap_slab_statuses(void *item1, void *item2)
 static struct block_allocator *
 as_block_allocator(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, BLOCK_ALLOCATOR_COMPLETION);
+	assert_vdo_completion_type(completion->type, BLOCK_ALLOCATOR_COMPLETION);
 	return container_of(completion, struct block_allocator, completion);
 }
 
@@ -572,7 +572,7 @@ static void slab_action_callback(struct vdo_completion *completion)
 		return;
 	}
 
-	reset_completion(completion);
+	reset_vdo_completion(completion);
 }
 
 /**
@@ -600,11 +600,11 @@ static void apply_to_slabs(struct block_allocator *allocator,
 {
 	struct slab_iterator iterator;
 
-	prepare_completion(&allocator->completion,
-			   slab_action_callback,
-			   handle_operation_error,
-			   allocator->thread_id,
-			   NULL);
+	prepare_vdo_completion(&allocator->completion,
+			       slab_action_callback,
+			       handle_operation_error,
+			       allocator->thread_id,
+			       NULL);
 	allocator->completion.requeue = false;
 
 	// Since we are going to dequeue all of the slabs, the open slab will
@@ -663,11 +663,11 @@ static void initiate_load(struct admin_state *state)
 	enum admin_state_code operation = get_vdo_admin_state_code(state);
 
 	if (operation == ADMIN_STATE_LOADING_FOR_REBUILD) {
-		prepare_completion(&allocator->completion,
-				   finish_loading_allocator,
-				   handle_operation_error,
-				   allocator->thread_id,
-				   NULL);
+		prepare_vdo_completion(&allocator->completion,
+				       finish_loading_allocator,
+				       handle_operation_error,
+				       allocator->thread_id,
+				       NULL);
 		erase_slab_journals(allocator->depot,
 				    get_slab_iterator(allocator),
 				    &allocator->completion);
@@ -774,15 +774,15 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 		get_block_allocator_for_zone(context, zone_number);
 	int result = prepare_vdo_slabs_for_allocation(allocator);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
 	scrub_high_priority_slabs(allocator->slab_scrubber,
 				  is_priority_table_empty(allocator->prioritized_slabs),
 				  parent,
-				  finish_parent_callback,
-				  finish_parent_callback);
+				  finish_vdo_completion_parent_callback,
+				  finish_vdo_completion_parent_callback);
 }
 
 /**********************************************************************/
@@ -800,7 +800,7 @@ void register_new_vdo_slabs_for_allocator(void *context,
 			register_vdo_slab_with_allocator(allocator, slab);
 		}
 	}
-	complete_completion(parent);
+	complete_vdo_completion(parent);
 }
 
 /**
@@ -812,12 +812,11 @@ static void do_drain_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 
-	prepare_for_requeue(&allocator->completion,
-			    do_drain_step,
-			    handle_operation_error,
-			    allocator->thread_id,
-			    NULL);
-
+	prepare_vdo_completion_for_requeue(&allocator->completion,
+					   do_drain_step,
+					   handle_operation_error,
+					   allocator->thread_id,
+					   NULL);
 	switch (++allocator->drain_step) {
 	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
 		stop_scrubbing(allocator->slab_scrubber, completion);
@@ -883,11 +882,11 @@ void drain_vdo_block_allocator(void *context,
 static void do_resume_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
-	prepare_for_requeue(&allocator->completion,
-			    do_resume_step,
-			    handle_operation_error,
-			    allocator->thread_id,
-			    NULL);
+	prepare_vdo_completion_for_requeue(&allocator->completion,
+					   do_resume_step,
+					   handle_operation_error,
+					   allocator->thread_id,
+					   NULL);
 	switch (--allocator->drain_step) {
 	case DRAIN_ALLOCATOR_STEP_SUMMARY:
 		resume_slab_summary_zone(allocator->summary, completion);
@@ -952,7 +951,7 @@ void release_vdo_tail_block_locks(void *context,
 			break;
 		}
 	}
-	complete_completion(parent);
+	complete_vdo_completion(parent);
 }
 
 /**********************************************************************/
@@ -986,8 +985,8 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 	scrub_slabs(allocator->slab_scrubber,
 		    allocator->depot,
 		    notify_zone_finished_scrubbing,
-		    noop_callback);
-	complete_completion(parent);
+		    noop_vdo_completion_callback);
+	complete_vdo_completion(parent);
 }
 
 /**********************************************************************/

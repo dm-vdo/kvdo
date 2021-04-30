@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#59 $
  */
 
 #include "slabScrubberInternals.h"
@@ -197,7 +197,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	}
 
 	// Inform whoever is waiting that scrubbing has completed.
-	complete_completion(&scrubber->completion);
+	complete_vdo_completion(&scrubber->completion);
 
 	notify = has_waiters(&scrubber->waiters);
 
@@ -244,7 +244,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
 static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 {
 	enter_read_only_mode(scrubber->read_only_notifier, result);
-	set_completion_result(&scrubber->completion, result);
+	set_vdo_completion_result(&scrubber->completion, result);
 	scrub_next_slab(scrubber);
 }
 
@@ -390,11 +390,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	// Save out the rebuilt reference blocks.
-	prepare_completion(completion,
-			   slab_scrubbed,
-			   handle_scrubber_error,
-			   completion->callback_thread_id,
-			   scrubber);
+	prepare_vdo_completion(completion,
+			       slab_scrubbed,
+			       handle_scrubber_error,
+			       completion->callback_thread_id,
+			       scrubber);
 	start_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
 
@@ -414,11 +414,11 @@ static void start_scrubbing(struct vdo_completion *completion)
 		return;
 	}
 
-	prepare_completion(&scrubber->extent->completion,
-			   apply_journal_entries,
-			   handle_scrubber_error,
-			   completion->callback_thread_id,
-			   completion->parent);
+	prepare_vdo_completion(&scrubber->extent->completion,
+			       apply_journal_entries,
+			       handle_scrubber_error,
+			       completion->callback_thread_id,
+			       completion->parent);
 	read_vdo_metadata_extent(scrubber->extent, slab->journal_origin);
 }
 
@@ -436,7 +436,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	// only be started when the VDO is quiescent.
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (is_read_only(scrubber->read_only_notifier)) {
-		set_completion_result(&scrubber->completion, VDO_READ_ONLY);
+		set_vdo_completion_result(&scrubber->completion, VDO_READ_ONLY);
 		finish_scrubbing(scrubber);
 		return;
 	}
@@ -456,11 +456,11 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
 	completion = vdo_extent_as_completion(scrubber->extent);
-	prepare_completion(completion,
-			   start_scrubbing,
-			   handle_scrubber_error,
-			   scrubber->completion.callback_thread_id,
-			   scrubber);
+	prepare_vdo_completion(completion,
+			       start_scrubbing,
+			       handle_scrubber_error,
+			       scrubber->completion.callback_thread_id,
+			       scrubber);
 	start_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
@@ -472,11 +472,11 @@ void scrub_slabs(struct slab_scrubber *scrubber,
 {
 	thread_id_t thread_id = get_callback_thread_id();
 	resume_vdo_if_quiescent(&scrubber->admin_state);
-	prepare_completion(&scrubber->completion,
-			   callback,
-			   error_handler,
-			   thread_id,
-			   parent);
+	prepare_vdo_completion(&scrubber->completion,
+			       callback,
+			       error_handler,
+			       thread_id,
+			       parent);
 	if (!has_slabs_to_scrub(scrubber)) {
 		finish_scrubbing(scrubber);
 		return;
@@ -507,7 +507,7 @@ void stop_scrubbing(struct slab_scrubber *scrubber,
 		    struct vdo_completion *parent)
 {
 	if (is_vdo_state_quiescent(&scrubber->admin_state)) {
-		complete_completion(parent);
+		complete_vdo_completion(parent);
 	} else {
 		start_vdo_draining(&scrubber->admin_state,
 				   ADMIN_STATE_SUSPENDING,
@@ -523,18 +523,18 @@ void resume_scrubbing(struct slab_scrubber *scrubber,
 	int result;
 
 	if (!has_slabs_to_scrub(scrubber)) {
-		complete_completion(parent);
+		complete_vdo_completion(parent);
 		return;
 	}
 
 	result = resume_vdo_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
 	scrub_next_slab(scrubber);
-	complete_completion(parent);
+	complete_vdo_completion(parent);
 }
 
 /**********************************************************************/

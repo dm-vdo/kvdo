@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#45 $
  */
 
 #include "dataVIO.h"
@@ -118,7 +118,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 	data_vio->mapped.state = MAPPING_STATE_UNCOMPRESSED;
 	data_vio->new_mapped.state =
 		(is_trim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
-	reset_completion(vio_as_completion(vio));
+	reset_vdo_completion(vio_as_completion(vio));
 	set_logical_callback(data_vio,
 			     attempt_logical_block_lock);
 }
@@ -149,7 +149,7 @@ void complete_data_vio(struct vdo_completion *completion)
 void finish_data_vio(struct data_vio *data_vio, int result)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
-	set_completion_result(completion, result);
+	set_vdo_completion_result(completion, result);
 	complete_data_vio(completion);
 }
 

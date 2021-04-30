@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#32 $
  */
 
 #include "completion.h"
@@ -61,11 +61,11 @@ void initialize_vdo_completion(struct vdo_completion *completion,
 	memset(completion, 0, sizeof(*completion));
 	completion->vdo = vdo;
 	completion->type = type;
-	reset_completion(completion);
+	reset_vdo_completion(completion);
 }
 
 /**********************************************************************/
-void reset_completion(struct vdo_completion *completion)
+void reset_vdo_completion(struct vdo_completion *completion)
 {
 	completion->result = VDO_SUCCESS;
 	completion->complete = false;
@@ -82,7 +82,7 @@ static inline void assert_incomplete(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void set_completion_result(struct vdo_completion *completion, int result)
+void set_vdo_completion_result(struct vdo_completion *completion, int result)
 {
 	assert_incomplete(completion);
 	if (completion->result == VDO_SUCCESS) {
@@ -113,35 +113,35 @@ requires_enqueue(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void invoke_callback(struct vdo_completion *completion)
+void invoke_vdo_completion_callback(struct vdo_completion *completion)
 {
 	if (requires_enqueue(completion)) {
-		enqueue_completion(completion);
+		enqueue_vdo_completion(completion);
 		return;
 	}
 
-	run_callback(completion);
+	run_vdo_completion_callback(completion);
 }
 
 /**********************************************************************/
-void continue_completion(struct vdo_completion *completion, int result)
+void continue_vdo_completion(struct vdo_completion *completion, int result)
 {
-	set_completion_result(completion, result);
-	invoke_callback(completion);
+	set_vdo_completion_result(completion, result);
+	invoke_vdo_completion_callback(completion);
 }
 
 /**********************************************************************/
-void complete_completion(struct vdo_completion *completion)
+void complete_vdo_completion(struct vdo_completion *completion)
 {
 	assert_incomplete(completion);
 	completion->complete = true;
 	if (completion->callback != NULL) {
-		invoke_callback(completion);
+		invoke_vdo_completion_callback(completion);
 	}
 }
 
 /**********************************************************************/
-void release_completion(struct vdo_completion **completion_ptr)
+void release_vdo_completion(struct vdo_completion **completion_ptr)
 {
 	struct vdo_completion *completion = *completion_ptr;
 	if (completion == NULL) {
@@ -149,41 +149,43 @@ void release_completion(struct vdo_completion **completion_ptr)
 	}
 
 	*completion_ptr = NULL;
-	complete_completion(completion);
+	complete_vdo_completion(completion);
 }
 
 /**********************************************************************/
-void release_completion_with_result(struct vdo_completion **completion_ptr,
-				    int result)
+void release_vdo_completion_with_result(struct vdo_completion **completion_ptr,
+					int result)
 {
 	if (*completion_ptr == NULL) {
 		return;
 	}
 
-	set_completion_result(*completion_ptr, result);
-	release_completion(completion_ptr);
+	set_vdo_completion_result(*completion_ptr, result);
+	release_vdo_completion(completion_ptr);
 }
 
 /**********************************************************************/
-void finish_parent_callback(struct vdo_completion *completion)
+void finish_vdo_completion_parent_callback(struct vdo_completion *completion)
 {
-	finish_completion((struct vdo_completion *) completion->parent,
+	finish_vdo_completion((struct vdo_completion *) completion->parent,
 			  completion->result);
 }
 
 /**********************************************************************/
-void preserve_error_and_continue(struct vdo_completion *completion)
+void
+preserve_vdo_completion_error_and_continue(struct vdo_completion *completion)
 {
 	if (completion->parent != NULL) {
-		set_completion_result(completion->parent, completion->result);
+		set_vdo_completion_result(completion->parent, completion->result);
 	}
 
-	reset_completion(completion);
-	invoke_callback(completion);
+	reset_vdo_completion(completion);
+	invoke_vdo_completion_callback(completion);
 }
 
 /**********************************************************************/
-const char *get_completion_type_name(enum vdo_completion_type completion_type)
+const char *
+get_vdo_completion_type_name(enum vdo_completion_type completion_type)
 {
 	// Try to catch failures to update the array when the enum values
 	// change.
@@ -204,11 +206,11 @@ const char *get_completion_type_name(enum vdo_completion_type completion_type)
 }
 
 /**********************************************************************/
-int assert_completion_type(enum vdo_completion_type actual,
-			   enum vdo_completion_type expected)
+int assert_vdo_completion_type(enum vdo_completion_type actual,
+			       enum vdo_completion_type expected)
 {
 	return ASSERT((expected == actual),
 		      "completion type is %s instead of %s",
-		      get_completion_type_name(actual),
-		      get_completion_type_name(expected));
+		      get_vdo_completion_type_name(actual),
+		      get_vdo_completion_type_name(expected));
 }

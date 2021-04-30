@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#5 $
  */
 
 #ifndef PERMASSERT_H
@@ -43,7 +43,7 @@
  *
  * @return       The supplied value
  */
-static INLINE int __must_check must_use(int value)
+static INLINE int __must_check uds_must_use(int value)
 {
 	return value;
 }
@@ -63,14 +63,8 @@ static INLINE int __must_check must_use(int value)
  *         is true and expr is false, the program will exit from within
  *         this macro.
  */
-#define ASSERT_WITH_ERROR_CODE(expr, code, ...)            \
-	must_use(__builtin_expect(!!(expr), 1) ?           \
-			 UDS_SUCCESS :                     \
-			 assertion_failed(STRINGIFY(expr), \
-					  code,            \
-					  __FILE__,        \
-					  __LINE__,        \
-					  __VA_ARGS__))
+#define ASSERT_WITH_ERROR_CODE(expr, code, ...) \
+	uds_must_use(__UDS_ASSERT(expr, code, __VA_ARGS__))
 
 /*
  * A replacement for assert() from assert.h.
@@ -99,11 +93,19 @@ static INLINE int __must_check must_use(int value)
  *                  assertion failure
  * @param arguments Any additional arguments required by the format
  */
-#define ASSERT_LOG_ONLY(expr, ...)          \
-	(__builtin_expect(!!(expr), 1) ?    \
-		 UDS_SUCCESS :              \
-		 assertion_failed_log_only( \
-			 STRINGIFY(expr), __FILE__, __LINE__, __VA_ARGS__))
+#define ASSERT_LOG_ONLY(expr, ...) \
+	__UDS_ASSERT(expr, UDS_ASSERTION_FAILED, __VA_ARGS__)
+
+/*
+ * Common bottleneck for use by the other assertion macros.
+ */
+#define __UDS_ASSERT(expr, code, ...)                          \
+	(likely(expr) ? UDS_SUCCESS                            \
+		      : uds_assertion_failed(STRINGIFY(expr),  \
+					     code,             \
+					     __FILE__,         \
+					     __LINE__,         \
+					     __VA_ARGS__))
 
 /*
  * This macro is a convenient wrapper for ASSERT(false, ...).
@@ -138,40 +140,18 @@ bool set_exit_on_assertion_failure(bool should_exit);
  * @param expression_string The assertion
  * @param error_code        The error code to return
  * @param file_name         The file in which the assertion appears
- * @param line_number       The line number on which the assertion
- *                          appears
- * @param format            A printf() style format describing the
- *                          assertion
+ * @param line_number       The line number on which the assertion appears
+ * @param format            A printf() style format describing the assertion
  *
  * @return The supplied error_code unless exit_on_assertion_failure is
  *         true, in which case the process will be aborted
  **/
-int __must_check assertion_failed(const char *expression_string,
-				  int error_code,
-				  const char *file_name,
-				  int line_number,
-				  const char *format,
-				  ...) __attribute__((format(printf, 5, 6)));
-
-/**
- * Log an assertion failure. This function is different from
- * assertion_failed() in that its return value may be ignored, and so should
- * only be used in cases where the return value will be ignored.
- *
- * @param expression_string The assertion
- * @param file_name         The file in which the assertion appears
- * @param line_number       The line number on which the assertion
- *                          appears
- * @param format            A printf() style format describing the
- *                          assertion
- *
- * @return UDS_ASSERTION_FAILED unless exit_on_assertion_failure is
- *         true, in which case the process will be aborted
- **/
-int assertion_failed_log_only(const char *expression_string,
-			      const char *file_name,
-			      int line_number,
-			      const char *format,
-			      ...) __attribute__((format(printf, 4, 5)));
+int uds_assertion_failed(const char *expression_string,
+			 int error_code,
+			 const char *file_name,
+			 int line_number,
+			 const char *format,
+			 ...)
+	__attribute__((format(printf, 5, 6)));
 
 #endif /* PERMASSERT_H */

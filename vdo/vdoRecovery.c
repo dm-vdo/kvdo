@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#83 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -96,7 +96,7 @@ static int enqueue_missing_decref(struct wait_queue *queue,
 	if (result != VDO_SUCCESS) {
 		enter_read_only_mode(decref->recovery->vdo->read_only_notifier,
 				     result);
-		set_completion_result(&decref->recovery->completion, result);
+		set_vdo_completion_result(&decref->recovery->completion, result);
 		FREE(decref);
 	}
 
@@ -282,11 +282,11 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 		thread_id = get_admin_thread(thread_config);
 	}
 
-	prepare_completion(&recovery->sub_task_completion,
-			   callback,
-			   error_handler,
-			   thread_id,
-			   &recovery->completion);
+	prepare_vdo_completion(&recovery->sub_task_completion,
+			       callback,
+			       error_handler,
+			       thread_id,
+			       &recovery->completion);
 }
 
 /**********************************************************************/
@@ -382,7 +382,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	// Now that we've freed the recovery completion and its vast array of
 	// journal entries, we can allocate refcounts.
 	result = allocate_slab_ref_counts(vdo->depot);
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**
@@ -398,7 +398,7 @@ static void abort_recovery(struct vdo_completion *completion)
 		as_recovery_completion(completion);
 	free_recovery_completion(&recovery);
 	uds_log_warning("Recovery aborted");
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**
@@ -416,7 +416,7 @@ abort_recovery_on_error(int result, struct recovery_completion *recovery)
 		return false;
 	}
 
-	finish_completion(&recovery->completion, result);
+	finish_vdo_completion(&recovery->completion, result);
 	return true;
 }
 
@@ -526,7 +526,7 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 		return;
 	}
 
-	prepare_to_finish_parent(completion, &recovery->completion);
+	prepare_vdo_completion_to_finish_parent(completion, &recovery->completion);
 	recover_block_map(vdo, recovery->entry_count, recovery->entries,
 			  completion);
 }
@@ -551,7 +551,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 	// on a logical thread.
 	prepare_sub_task(recovery,
 			 launch_block_map_recovery,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_LOGICAL);
 	save_vdo_components(vdo, completion);
 }
@@ -582,7 +582,7 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 
 	prepare_sub_task(recovery,
 			 start_super_block_save,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
 	drain_slab_depot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
 }
@@ -616,11 +616,11 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 		&recovery->missing_decrefs[recovery->allocator->zone_number];
 
 	// Get ready in case we need to enqueue again
-	prepare_completion(completion,
-			   add_synthesized_entries,
-			   handle_add_slab_journal_entry_error,
-			   completion->callback_thread_id,
-			   &recovery->completion);
+	prepare_vdo_completion(completion,
+			       add_synthesized_entries,
+			       handle_add_slab_journal_entry_error,
+			       completion->callback_thread_id,
+			       &recovery->completion);
 	while (has_waiters(missing_decrefs)) {
 		struct missing_decref *decref =
 			as_missing_decref(get_first_waiter(missing_decrefs));
@@ -730,11 +730,11 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 	struct recovery_journal *journal = vdo->recovery_journal;
 
 	// Get ready in case we need to enqueue again.
-	prepare_completion(completion,
-			   add_slab_journal_entries,
-			   handle_add_slab_journal_entry_error,
-			   completion->callback_thread_id,
-			   &recovery->completion);
+	prepare_vdo_completion(completion,
+			       add_slab_journal_entries,
+			       handle_add_slab_journal_entry_error,
+			       completion->callback_thread_id,
+			       &recovery->completion);
 	for (recovery_point = &recovery->next_recovery_point;
 	     before_recovery_point(recovery_point,
 				   &recovery->tail_recovery_point);
@@ -746,7 +746,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		if (result != VDO_SUCCESS) {
 			enter_read_only_mode(journal->read_only_notifier,
 					     result);
-			finish_completion(completion, result);
+			finish_vdo_completion(completion, result);
 			return;
 		}
 
@@ -850,7 +850,7 @@ static void apply_to_depot(struct vdo_completion *completion)
 	assert_on_admin_thread(recovery->vdo, __func__);
 	prepare_sub_task(recovery,
 			 finish_recovering_depot,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
 
 	notify_all_waiters(&recovery->missing_decrefs[0],
@@ -887,7 +887,7 @@ static int record_missing_decref(struct missing_decref *decref,
 
 	// The location was invalid
 	enter_read_only_mode(recovery->vdo->read_only_notifier, error_code);
-	set_completion_result(&recovery->completion, error_code);
+	set_vdo_completion_result(&recovery->completion, error_code);
 	log_error_strerror(error_code,
 			   "Invalid mapping for pbn %llu with state %u",
 			   location.pbn,
@@ -1044,7 +1044,7 @@ static void process_fetched_page(struct vdo_completion *completion)
 	release_vdo_page_completion(completion);
 	record_missing_decref(current_decref, location, VDO_BAD_MAPPING);
 	if (recovery->incomplete_decref_count == 0) {
-		complete_completion(&recovery->sub_task_completion);
+		complete_vdo_completion(&recovery->sub_task_completion);
 	}
 }
 
@@ -1062,13 +1062,13 @@ static void handle_fetch_error(struct vdo_completion *completion)
 
 	// If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read
 	// from the journal was bad, so convert the error code
-	set_completion_result(&recovery->sub_task_completion,
-			      ((completion->result == VDO_OUT_OF_RANGE) ?
+	set_vdo_completion_result(&recovery->sub_task_completion,
+				  ((completion->result == VDO_OUT_OF_RANGE) ?
 				       VDO_CORRUPT_JOURNAL :
 				       completion->result));
 	release_vdo_page_completion(completion);
 	if (--recovery->incomplete_decref_count == 0) {
-		complete_completion(&recovery->sub_task_completion);
+		complete_vdo_completion(&recovery->sub_task_completion);
 	}
 }
 
@@ -1126,7 +1126,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 
 	prepare_sub_task(recovery,
 			 apply_to_depot,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
 
 	/*
@@ -1143,7 +1143,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 	}
 
 	if (--recovery->incomplete_decref_count == 0) {
-		complete_completion(completion);
+		complete_vdo_completion(completion);
 	}
 }
 
@@ -1300,7 +1300,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 					    recovery->block_map_head,
 					    recovery->slab_journal_head,
 					    recovery->tail);
-		finish_completion(&recovery->completion, result);
+		finish_vdo_completion(&recovery->completion, result);
 		return;
 	}
 
@@ -1311,8 +1311,8 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		FREE(recovery->journal_data);
 		recovery->journal_data = NULL;
 		prepare_sub_task(recovery,
-				 finish_parent_callback,
-				 finish_parent_callback,
+				 finish_vdo_completion_parent_callback,
+				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_ADMIN);
 		load_slab_depot(get_slab_depot(vdo),
 				ADMIN_STATE_LOADING_FOR_RECOVERY,
@@ -1330,14 +1330,14 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		// completion will need to hold.
 		result = count_increment_entries(recovery);
 		if (result != VDO_SUCCESS) {
-			finish_completion(&recovery->completion, result);
+			finish_vdo_completion(&recovery->completion, result);
 			return;
 		}
 
 		// We need to access the block map from a logical zone.
 		prepare_sub_task(recovery,
 				 launch_block_map_recovery,
-				 finish_parent_callback,
+				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_LOGICAL);
 		load_slab_depot(vdo->depot,
 				ADMIN_STATE_LOADING_FOR_RECOVERY,
@@ -1353,9 +1353,9 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 
 	prepare_sub_task(recovery,
 			 find_slab_journal_entries,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_LOGICAL);
-	invoke_callback(completion);
+	invoke_vdo_completion_callback(completion);
 }
 
 /**********************************************************************/
@@ -1369,18 +1369,18 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 
 	result = make_recovery_completion(vdo, &recovery);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
-	prepare_completion(&recovery->completion,
-			   finish_recovery,
-			   abort_recovery,
-			   parent->callback_thread_id,
-			   parent);
+	prepare_vdo_completion(&recovery->completion,
+			       finish_recovery,
+			       abort_recovery,
+			       parent->callback_thread_id,
+			       parent);
 	prepare_sub_task(recovery,
 			 prepare_to_apply_journal_entries,
-			 finish_parent_callback,
+			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
 	load_journal(vdo->recovery_journal,
 		     &recovery->sub_task_completion,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#34 $
  */
 
 #include "vdoSuspend.h"
@@ -100,7 +100,7 @@ static void write_super_block(struct vdo *vdo,
 
 	case VDO_REPLAYING:
 	default:
-		finish_completion(completion, UDS_BAD_STATE);
+		finish_vdo_completion(completion, UDS_BAD_STATE);
 		return;
 	}
 
@@ -156,8 +156,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
 		if (in_read_only_mode(vdo)) {
-			set_completion_result(&admin_completion->completion,
-					      VDO_READ_ONLY);
+			set_vdo_completion_result(&admin_completion->completion,
+						  VDO_READ_ONLY);
 		}
 
 		drain_packer(vdo->packer, reset_vdo_admin_sub_task(completion));
@@ -202,7 +202,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		set_completion_result(completion, UDS_BAD_STATE);
+		set_vdo_completion_result(completion, UDS_BAD_STATE);
 	}
 
 	finish_vdo_draining_with_result(admin_state, completion->result);
@@ -216,5 +216,5 @@ int perform_vdo_suspend(struct vdo *vdo, bool save)
 						   ADMIN_OPERATION_SUSPEND),
 					   get_thread_id_for_phase,
 					   suspend_callback,
-					   preserve_error_and_continue);
+					   preserve_vdo_completion_error_and_continue);
 }

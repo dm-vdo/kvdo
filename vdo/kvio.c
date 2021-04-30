@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#82 $
  */
 
 #include "kvio.h"
@@ -43,7 +43,8 @@
  **/
 static void vdo_handle_vio_callback(struct vdo_work_item *item)
 {
-	run_callback(container_of(item, struct vdo_completion, work_item));
+	run_vdo_completion_callback(container_of(item, struct vdo_completion,
+				    work_item));
 }
 
 /**********************************************************************/
@@ -59,7 +60,7 @@ void enqueue_vio_callback(struct vio *vio)
 void continue_vio(struct vio *vio, int error)
 {
 	if (unlikely(error != VDO_SUCCESS)) {
-		set_completion_result(vio_as_completion(vio), error);
+		set_vdo_completion_result(vio_as_completion(vio), error);
 	}
 
 	enqueue_vio_callback(vio);

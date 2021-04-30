@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#93 $
  */
 
 #include "blockMap.h"
@@ -184,7 +184,7 @@ static void prepare_for_era_advance(void *context,
 {
 	struct block_map *map = context;
 	map->current_era_point = map->pending_era_point;
-	complete_completion(parent);
+	complete_vdo_completion(parent);
 }
 
 /**
@@ -201,7 +201,7 @@ static void advance_block_map_zone_era(void *context,
 				      zone->block_map->current_era_point);
 	advance_zone_tree_period(&zone->tree_zone,
 				 zone->block_map->current_era_point);
-	finish_completion(parent, VDO_SUCCESS);
+	finish_vdo_completion(parent, VDO_SUCCESS);
 }
 
 /**
@@ -479,7 +479,7 @@ static void resume_block_map_zone(void *context,
 				  struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
-	finish_completion(parent, resume_vdo_if_quiescent(&zone->state));
+	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -527,7 +527,7 @@ block_count_t get_new_entry_count(struct block_map *map)
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
 	replace_vdo_forest(context);
-	complete_completion(completion);
+	complete_vdo_completion(completion);
 }
 
 /**********************************************************************/
@@ -559,7 +559,7 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 {
 	struct vdo_completion *parent = completion->parent;
 	release_vdo_page_completion(completion);
-	continue_completion(parent, result);
+	continue_vdo_completion(parent, result);
 }
 
 /**

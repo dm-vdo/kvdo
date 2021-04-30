@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#39 $
  */
 
 #include "flush.h"
@@ -74,7 +74,8 @@ struct flusher {
  **/
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, FLUSH_NOTIFICATION_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
 }
 
@@ -176,7 +177,8 @@ static void flush_packer_callback(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
 	increment_packer_flush_generation(flusher->vdo->packer);
-	launch_callback(completion, finish_notification, flusher->thread_id);
+	launch_vdo_completion_callback(completion, finish_notification,
+				       flusher->thread_id);
 }
 
 /**
@@ -194,13 +196,14 @@ static void increment_generation(struct vdo_completion *completion)
 	flusher->logical_zone_to_notify =
 		get_next_logical_zone(flusher->logical_zone_to_notify);
 	if (flusher->logical_zone_to_notify == NULL) {
-		launch_callback(completion, flush_packer_callback,
-			        flusher->thread_id);
+		launch_vdo_completion_callback(completion,
+					       flush_packer_callback,
+					       flusher->thread_id);
 		return;
 	}
 
-	launch_callback(completion, increment_generation,
-		        get_logical_zone_thread_id(flusher->logical_zone_to_notify));
+	launch_vdo_completion_callback(completion, increment_generation,
+				       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
 }
 
 /**
@@ -216,8 +219,9 @@ static void notify_flush(struct flusher *flusher)
 	flusher->logical_zone_to_notify =
 		get_logical_zone(flusher->vdo->logical_zones, 0);
 	flusher->completion.requeue = true;
-	launch_callback(&flusher->completion, increment_generation,
-		        get_logical_zone_thread_id(flusher->logical_zone_to_notify));
+	launch_vdo_completion_callback(&flusher->completion,
+				       increment_generation,
+				       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
 }
 
 /**********************************************************************/

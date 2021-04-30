@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#109 $
  */
 
 /*
@@ -179,7 +179,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 	record_vdo(vdo);
 	result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
@@ -202,7 +202,7 @@ static void notify_vdo_of_read_only_mode(void *listener,
 {
 	struct vdo *vdo = listener;
 	if (in_read_only_mode(vdo)) {
-		complete_completion(parent);
+		complete_vdo_completion(parent);
 	}
 
 	set_vdo_state(vdo, VDO_READ_ONLY_MODE);

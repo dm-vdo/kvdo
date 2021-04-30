@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#95 $
  */
 
 /*
@@ -218,7 +218,7 @@ struct sync_completion {
 static inline struct sync_completion * __must_check
 as_sync_completion(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, SYNC_COMPLETION);
+	assert_vdo_completion_type(completion->type, SYNC_COMPLETION);
 	return container_of(completion,
 			    struct sync_completion,
 			    vdo_completion);
@@ -249,7 +249,7 @@ static void perform_vdo_operation(struct vdo *vdo,
 
 	sync.data = data;
 
-	launch_callback(&sync.vdo_completion, action, thread_id);
+	launch_vdo_completion_callback(&sync.vdo_completion, action, thread_id);
 	wait_for_completion(&sync.completion);
 }
 
@@ -398,12 +398,13 @@ void enqueue_vio(struct vio *vio,
 /**********************************************************************/
 static void vdo_enqueue_work(struct vdo_work_item *work_item)
 {
-	run_callback(container_of(work_item, struct vdo_completion,
-				  work_item));
+	run_vdo_completion_callback(container_of(work_item,
+				    struct vdo_completion,
+				    work_item));
 }
 
 /**********************************************************************/
-void enqueue_completion(struct vdo_completion *completion)
+void enqueue_vdo_completion(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 	thread_id_t thread_id = completion->callback_thread_id;

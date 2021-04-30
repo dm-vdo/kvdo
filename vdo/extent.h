@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#19 $
  */
 
 #ifndef EXTENT_H
@@ -53,7 +53,7 @@ struct vdo_extent {
 static inline struct vdo_extent *
 vdo_completion_as_extent(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, VDO_EXTENT_COMPLETION);
+	assert_vdo_completion_type(completion->type, VDO_EXTENT_COMPLETION);
 	return container_of(completion, struct vdo_extent, completion);
 }
 

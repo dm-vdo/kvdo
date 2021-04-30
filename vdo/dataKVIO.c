@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#137 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#138 $
  */
 
 #include "dataKVIO.h"
@@ -246,8 +246,8 @@ read_data_vio_read_block_callback(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	if (data_vio->read_block.status != VDO_SUCCESS) {
-		set_completion_result(completion,
-				      data_vio->read_block.status);
+		set_vdo_completion_result(completion,
+					  data_vio->read_block.status);
 		enqueue_data_vio_callback(data_vio);
 		return;
 	}
@@ -460,7 +460,7 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	    (bio_op(data_vio->user_bio) == REQ_OP_DISCARD) &&
 	    (data_vio->remaining_discard >
 	     (VDO_BLOCK_SIZE - data_vio->offset))) {
-		invoke_callback(data_vio_as_completion(data_vio));
+		invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 		return;
 	}
 
@@ -751,7 +751,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 /**********************************************************************/
 static void launch_data_vio_work(struct vdo_work_item *item)
 {
-	run_callback(vio_as_completion(work_item_as_vio(item)));
+	run_vdo_completion_callback(vio_as_completion(work_item_as_vio(item)));
 }
 
 /**

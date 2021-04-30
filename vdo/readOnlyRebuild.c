@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#48 $
  */
 
 #include "readOnlyRebuild.h"
@@ -77,7 +77,7 @@ struct read_only_rebuild_completion {
 static inline struct read_only_rebuild_completion * __must_check
 as_read_only_rebuild_completion(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type, READ_ONLY_REBUILD_COMPLETION);
+	assert_vdo_completion_type(completion->type, READ_ONLY_REBUILD_COMPLETION);
 	return container_of(completion, struct read_only_rebuild_completion,
 			    completion);
 }
@@ -146,7 +146,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 	set_vdo_page_cache_rebuild_mode(get_block_map(vdo)->zones[0].page_cache,
 					false);
 	free_rebuild_completion(&rebuild);
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**
@@ -195,7 +195,7 @@ abort_rebuild_on_error(int result,
 		return false;
 	}
 
-	finish_completion(&rebuild->completion, result);
+	finish_vdo_completion(&rebuild->completion, result);
 	return true;
 }
 
@@ -216,7 +216,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	}
 
 	log_info("Saving rebuilt state");
-	prepare_to_finish_parent(completion, &rebuild->completion);
+	prepare_vdo_completion_to_finish_parent(completion, &rebuild->completion);
 	drain_slab_depot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
 }
 
@@ -238,11 +238,11 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 		return;
 	}
 
-	prepare_completion(completion,
-			   finish_reference_count_rebuild,
-			   finish_parent_callback,
-			   get_admin_thread(get_thread_config(vdo)),
-			   completion->parent);
+	prepare_vdo_completion(completion,
+			       finish_reference_count_rebuild,
+			       finish_vdo_completion_parent_callback,
+			       get_admin_thread(get_thread_config(vdo)),
+			       completion->parent);
 	rebuild_reference_counts(vdo,
 				 completion,
 				 &rebuild->logical_blocks_used,
@@ -413,11 +413,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 					true);
 
 	// Play the recovery journal into the block map.
-	prepare_completion(completion,
-			   launch_reference_count_rebuild,
-			   finish_parent_callback,
-			   completion->callback_thread_id,
-			   completion->parent);
+	prepare_vdo_completion(completion,
+			       launch_reference_count_rebuild,
+			       finish_vdo_completion_parent_callback,
+			       completion->callback_thread_id,
+			       completion->parent);
 	recover_block_map(vdo, rebuild->entry_count, rebuild->entries,
 			  completion);
 }
@@ -434,11 +434,11 @@ static void load_journal_callback(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
-	prepare_completion(completion,
-			   apply_journal_entries,
-			   finish_parent_callback,
-			   completion->callback_thread_id,
-			   completion->parent);
+	prepare_vdo_completion(completion,
+			       apply_journal_entries,
+			       finish_vdo_completion_parent_callback,
+			       completion->callback_thread_id,
+			       completion->parent);
 	load_journal(vdo->recovery_journal, completion,
 		     &rebuild->journal_data);
 }
@@ -460,23 +460,23 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 
 	result = make_rebuild_completion(vdo, &rebuild);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
 	completion = &rebuild->completion;
-	prepare_completion(completion,
-			   finish_rebuild,
-			   abort_rebuild,
-			   parent->callback_thread_id,
-			   parent);
+	prepare_vdo_completion(completion,
+			       finish_rebuild,
+			       abort_rebuild,
+			       parent->callback_thread_id,
+			       parent);
 
 	sub_task_completion = &rebuild->sub_task_completion;
-	prepare_completion(sub_task_completion,
-			   load_journal_callback,
-			   finish_parent_callback,
-			   get_logical_zone_thread(get_thread_config(vdo), 0),
-			   completion);
+	prepare_vdo_completion(sub_task_completion,
+			       load_journal_callback,
+			       finish_vdo_completion_parent_callback,
+			       get_logical_zone_thread(get_thread_config(vdo), 0),
+			       completion);
 	load_slab_depot(vdo->depot,
 			ADMIN_STATE_LOADING_FOR_REBUILD,
 			sub_task_completion,

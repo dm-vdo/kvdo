@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#32 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -199,9 +199,9 @@ static inline void
 set_physical_zone_callback(struct allocating_vio *allocating_vio,
 			   vdo_action *callback)
 {
-	set_callback(allocating_vio_as_completion(allocating_vio),
-		     callback,
-		     get_physical_zone_thread_id(allocating_vio->zone));
+	set_vdo_completion_callback(allocating_vio_as_completion(allocating_vio),
+				    callback,
+				    get_physical_zone_thread_id(allocating_vio->zone));
 }
 
 /**
@@ -216,7 +216,7 @@ launch_physical_zone_callback(struct allocating_vio *allocating_vio,
 			      vdo_action *callback)
 {
 	set_physical_zone_callback(allocating_vio, callback);
-	invoke_callback(allocating_vio_as_completion(allocating_vio));
+	invoke_vdo_completion_callback(allocating_vio_as_completion(allocating_vio));
 }
 
 /**

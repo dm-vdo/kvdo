@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#35 $
  */
 
 #include "adminCompletion.h"
@@ -47,8 +47,8 @@ struct admin_completion *
 vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
-	assert_completion_type(completion->type, SUB_TASK_COMPLETION);
-	assert_completion_type(parent->type, ADMIN_COMPLETION);
+	assert_vdo_completion_type(completion->type, SUB_TASK_COMPLETION);
+	assert_vdo_completion_type(parent->type, ADMIN_COMPLETION);
 	return container_of(parent, struct admin_completion, completion);
 }
 
@@ -94,7 +94,7 @@ reset_vdo_admin_sub_task(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
-	reset_completion(completion);
+	reset_vdo_completion(completion);
 	completion->callback_thread_id =
 		admin_completion->get_thread_id(admin_completion);
 	return completion;
@@ -106,11 +106,11 @@ void prepare_vdo_admin_sub_task_on_thread(struct vdo *vdo,
 					  vdo_action *error_handler,
 					  thread_id_t thread_id)
 {
-	prepare_for_requeue(&vdo->admin_completion.sub_task_completion,
-			    callback,
-			    error_handler,
-			    thread_id,
-			    &vdo->admin_completion.completion);
+	prepare_vdo_completion_for_requeue(&vdo->admin_completion.sub_task_completion,
+					   callback,
+					   error_handler,
+					   thread_id,
+					   &vdo->admin_completion.completion);
 }
 
 /**********************************************************************/
@@ -132,7 +132,7 @@ void prepare_vdo_admin_sub_task(struct vdo *vdo,
  **/
 static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
-	assert_completion_type(vdo_completion->type, ADMIN_COMPLETION);
+	assert_vdo_completion_type(vdo_completion->type, ADMIN_COMPLETION);
 	struct admin_completion *completion =
 		container_of(vdo_completion, struct admin_completion, completion);
 	complete(&completion->callback_sync);
@@ -170,11 +170,11 @@ int perform_vdo_admin_operation(struct vdo *vdo,
 					  type);
 	}
 
-	prepare_completion(&admin_completion->completion,
-			   admin_operation_callback,
-			   admin_operation_callback,
-			   get_admin_thread(get_thread_config(vdo)),
-			   NULL);
+	prepare_vdo_completion(&admin_completion->completion,
+			       admin_operation_callback,
+			       admin_operation_callback,
+			       get_admin_thread(get_thread_config(vdo)),
+			       NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;
 	admin_completion->phase = 0;
@@ -182,7 +182,7 @@ int perform_vdo_admin_operation(struct vdo *vdo,
 
 	reinit_completion(&admin_completion->callback_sync);
 
-	enqueue_completion(&admin_completion->sub_task_completion);
+	enqueue_vdo_completion(&admin_completion->sub_task_completion);
 	wait_for_admin_completion(admin_completion);
 	result = admin_completion->completion.result;
 	smp_wmb();

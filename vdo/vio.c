@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#39 $
  */
 
 #include "vio.h"
@@ -117,7 +117,7 @@ void vio_done_callback(struct vdo_completion *completion)
 	struct vio *vio = as_vio(completion);
 	completion->callback = vio->callback;
 	completion->error_handler = vio->error_handler;
-	complete_completion(completion);
+	complete_vdo_completion(completion);
 }
 
 /**********************************************************************/
@@ -229,7 +229,7 @@ void launch_metadata_vio(struct vio *vio,
 	vio->callback = callback;
 	vio->error_handler = error_handler;
 
-	reset_completion(completion);
+	reset_vdo_completion(completion);
 	completion->callback = vio_done_callback;
 	completion->error_handler = handle_metadata_io_error;
 

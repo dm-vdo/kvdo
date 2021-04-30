@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#22 $
  */
 
 #include "slabJournalEraser.h"
@@ -49,7 +49,7 @@ static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 	free_vdo_extent(&eraser->extent);
 	FREE(eraser->zero_buffer);
 	FREE(eraser);
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**
@@ -93,7 +93,7 @@ void erase_slab_journals(struct slab_depot *depot,
 
 	int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
@@ -122,10 +122,10 @@ void erase_slab_journals(struct slab_depot *depot,
 	}
 
 	extent_completion = &eraser->extent->completion;
-	prepare_completion(extent_completion,
-			   erase_next_slab_journal,
-			   handle_erasing_error,
-			   get_callback_thread_id(),
-			   eraser);
+	prepare_vdo_completion(extent_completion,
+			       erase_next_slab_journal,
+			       handle_erasing_error,
+			       get_callback_thread_id(),
+			       eraser);
 	erase_next_slab_journal(extent_completion);
 }

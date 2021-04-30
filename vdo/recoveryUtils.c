@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#33 $
  */
 
 #include "recoveryUtils.h"
@@ -46,7 +46,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 	struct vdo_extent *extent = vdo_completion_as_extent(completion);
 	free_vdo_extent(&extent);
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**********************************************************************/
@@ -58,7 +58,7 @@ void load_journal(struct recovery_journal *journal,
 	int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,
 			      journal_data_ptr);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
@@ -66,13 +66,13 @@ void load_journal(struct recovery_journal *journal,
 				   VIO_PRIORITY_METADATA, journal->size,
 				   *journal_data_ptr, &extent);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
-	prepare_completion(&extent->completion, finish_journal_load,
-			   finish_journal_load, parent->callback_thread_id,
-			   parent);
+	prepare_vdo_completion(&extent->completion, finish_journal_load,
+			       finish_journal_load, parent->callback_thread_id,
+			       parent);
 	read_vdo_metadata_extent(extent,
 				 get_fixed_layout_partition_offset(journal->partition));
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#30 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -666,7 +666,7 @@ static inline void set_vdo_operation_result(struct admin_state *state,
 					    int result)
 {
 	if (state->waiter != NULL) {
-		set_completion_result(state->waiter, result);
+		set_vdo_completion_result(state->waiter, result);
 	}
 }
 

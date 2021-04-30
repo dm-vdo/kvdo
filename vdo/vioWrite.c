@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#60 $
  */
 
 /*
@@ -953,7 +953,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 	// switch.
 	set_allocated_zone_callback(data_vio, prepare_for_dedupe);
 	if (vio_requires_flush_after(allocating_vio_as_vio(allocating_vio))) {
-		invoke_callback(data_vio_as_completion(data_vio));
+		invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 		return;
 	}
 

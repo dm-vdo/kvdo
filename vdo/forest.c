@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#41 $
  */
 
 #include "forest.h"
@@ -332,7 +332,7 @@ static void finish_cursor(struct cursor *cursor)
 
 	FREE(cursors);
 
-	finish_completion(parent, VDO_SUCCESS);
+	finish_vdo_completion(parent, VDO_SUCCESS);
 }
 
 /**********************************************************************/
@@ -534,7 +534,7 @@ void traverse_vdo_forest(struct block_map *map,
 				       __func__,
 				       &cursors);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 

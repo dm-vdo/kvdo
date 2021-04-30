@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#20 $
  */
 
 #include "vioRead.h"
@@ -74,7 +74,7 @@ static void read_block(struct vdo_completion *completion)
 
 	if (data_vio->mapped.pbn == ZERO_BLOCK) {
 		zero_data_vio(data_vio);
-		invoke_callback(completion);
+		invoke_vdo_completion_callback(completion);
 		return;
 	}
 

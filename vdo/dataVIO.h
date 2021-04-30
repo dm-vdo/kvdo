@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#73 $
  */
 
 #ifndef DATA_VIO_H
@@ -593,7 +593,7 @@ void finish_data_vio(struct data_vio *data_vio, int result);
  **/
 static inline void continue_data_vio(struct data_vio *data_vio, int result)
 {
-	continue_completion(data_vio_as_completion(data_vio), result);
+	continue_vdo_completion(data_vio_as_completion(data_vio), result);
 }
 
 /**
@@ -651,9 +651,9 @@ static inline void
 set_hash_zone_callback(struct data_vio *data_vio,
 		       vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_hash_zone_thread_id(data_vio->hash_zone));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_hash_zone_thread_id(data_vio->hash_zone));
 }
 
 /**
@@ -667,7 +667,7 @@ launch_hash_zone_callback(struct data_vio *data_vio,
 		          vdo_action *callback)
 {
 	set_hash_zone_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
+	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -697,9 +697,9 @@ static inline void assert_in_logical_zone(struct data_vio *data_vio)
 static inline void set_logical_callback(struct data_vio *data_vio,
 				        vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_logical_zone_thread_id(data_vio->logical.zone));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_logical_zone_thread_id(data_vio->logical.zone));
 }
 
 /**
@@ -713,7 +713,7 @@ launch_logical_callback(struct data_vio *data_vio,
 			vdo_action *callback)
 {
 	set_logical_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
+	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -784,9 +784,9 @@ static inline void
 set_duplicate_zone_callback(struct data_vio *data_vio,
 			    vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_physical_zone_thread_id(data_vio->duplicate.zone));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_physical_zone_thread_id(data_vio->duplicate.zone));
 }
 
 /**
@@ -801,7 +801,7 @@ launch_duplicate_zone_callback(struct data_vio *data_vio,
 			       vdo_action *callback)
 {
 	set_duplicate_zone_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
+	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -831,9 +831,9 @@ static inline void
 set_mapped_zone_callback(struct data_vio *data_vio,
 			 vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_physical_zone_thread_id(data_vio->mapped.zone));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_physical_zone_thread_id(data_vio->mapped.zone));
 }
 
 /**
@@ -864,9 +864,9 @@ static inline void
 set_new_mapped_zone_callback(struct data_vio *data_vio,
 			     vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_physical_zone_thread_id(data_vio->new_mapped.zone));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_physical_zone_thread_id(data_vio->new_mapped.zone));
 }
 
 /**
@@ -895,9 +895,9 @@ static inline void assert_in_journal_zone(struct data_vio *data_vio)
 static inline void set_journal_callback(struct data_vio *data_vio,
 				        vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
 }
 
 /**
@@ -911,7 +911,7 @@ launch_journal_callback(struct data_vio *data_vio,
 			vdo_action *callback)
 {
 	set_journal_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
+	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -940,9 +940,9 @@ static inline void assert_in_packer_zone(struct data_vio *data_vio)
 static inline void set_packer_callback(struct data_vio *data_vio,
 				       vdo_action *callback)
 {
-	set_callback(data_vio_as_completion(data_vio),
-		     callback,
-		     get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
+	set_vdo_completion_callback(data_vio_as_completion(data_vio),
+				    callback,
+				    get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
 }
 
 /**
@@ -956,7 +956,7 @@ launch_packer_callback(struct data_vio *data_vio,
 		       vdo_action *callback)
 {
 	set_packer_callback(data_vio, callback);
-	invoke_callback(data_vio_as_completion(data_vio));
+	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
 /**

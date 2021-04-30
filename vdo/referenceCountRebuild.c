@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#50 $
  */
 
 #include "referenceCountRebuild.h"
@@ -87,8 +87,8 @@ struct rebuild_completion {
 static inline struct rebuild_completion * __must_check
 as_rebuild_completion(struct vdo_completion *completion)
 {
-	assert_completion_type(completion->type,
-			       REFERENCE_COUNT_REBUILD_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   REFERENCE_COUNT_REBUILD_COMPLETION);
 	return container_of(completion, struct rebuild_completion, completion);
 }
 
@@ -121,7 +121,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
 	free_rebuild_completion(&completion);
-	finish_completion(parent, result);
+	finish_vdo_completion(parent, result);
 }
 
 /**
@@ -182,8 +182,9 @@ static int make_rebuild_completion(struct vdo *vdo,
 			"%s must be called on logical thread %u (not %u)",
 			__func__, rebuild->logical_thread_id,
 			get_callback_thread_id());
-	prepare_completion(&rebuild->completion, finish_rebuild, finish_rebuild,
-			   rebuild->logical_thread_id, parent);
+	prepare_vdo_completion(&rebuild->completion, finish_rebuild,
+			       finish_rebuild, rebuild->logical_thread_id,
+			       parent);
 
 	*rebuild_ptr = rebuild;
 	return VDO_SUCCESS;
@@ -198,7 +199,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 static void flush_block_map_updates(struct vdo_completion *completion)
 {
 	log_info("Flushing block map changes");
-	prepare_to_finish_parent(completion, completion->parent);
+	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
 	drain_block_map(as_rebuild_completion(completion->parent)->block_map,
 			ADMIN_STATE_RECOVERING, completion);
 }
@@ -218,7 +219,7 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 	}
 
 	if (rebuild->aborted) {
-		complete_completion(&rebuild->completion);
+		complete_vdo_completion(&rebuild->completion);
 		return true;
 	}
 
@@ -226,12 +227,12 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 		return false;
 	}
 
-	prepare_completion(&rebuild->sub_task_completion,
-			   flush_block_map_updates,
-			   finish_parent_callback,
-			   rebuild->admin_thread_id,
-			   &rebuild->completion);
-	invoke_callback(&rebuild->sub_task_completion);
+	prepare_vdo_completion(&rebuild->sub_task_completion,
+			       flush_block_map_updates,
+			       finish_vdo_completion_parent_callback,
+			       rebuild->admin_thread_id,
+			       &rebuild->completion);
+	invoke_vdo_completion_callback(&rebuild->sub_task_completion);
 	return true;
 }
 
@@ -244,7 +245,7 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 static void abort_rebuild(struct rebuild_completion *rebuild, int result)
 {
 	rebuild->aborted = true;
-	set_completion_result(&rebuild->completion, result);
+	set_vdo_completion_result(&rebuild->completion, result);
 }
 
 /**
@@ -505,7 +506,7 @@ void rebuild_reference_counts(struct vdo *vdo,
 					     block_map_data_blocks, parent,
 					     &rebuild);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
@@ -514,14 +515,16 @@ void rebuild_reference_counts(struct vdo *vdo,
 	result =
 		invalidate_vdo_page_cache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
-		finish_completion(parent, result);
+		finish_vdo_completion(parent, result);
 		return;
 	}
 
 	// First traverse the block map trees.
 	*rebuild->block_map_data_blocks = 0;
 	completion = &rebuild->sub_task_completion;
-	prepare_completion(completion, rebuild_from_leaves, finish_parent_callback,
-			   rebuild->logical_thread_id, &rebuild->completion);
+	prepare_vdo_completion(completion, rebuild_from_leaves,
+			       finish_vdo_completion_parent_callback,
+			       rebuild->logical_thread_id,
+			       &rebuild->completion);
 	traverse_vdo_forest(rebuild->block_map, process_entry, completion);
 }
