@@ -840,7 +840,7 @@ static void vdo_destroy(void)
 		dm_unregister_target(&vdo_target_bio);
 	}
 
-	clean_up_instance_number_tracking();
+	clean_up_vdo_instance_number_tracking();
 
 	log_info("unloaded version %s", CURRENT_VERSION);
 }
@@ -871,7 +871,7 @@ static int __init vdo_init(void)
 
 	vdo_module_status = VDO_MODULE_UNINITIALIZED;
 
-	initialize_instance_number_tracking();
+	initialize_vdo_instance_number_tracking();
 
 	vdo_module_status = VDO_MODULE_READY;
 	return result;

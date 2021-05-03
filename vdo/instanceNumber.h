@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/instanceNumber.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/instanceNumber.h#2 $
  */
 
 /**
@@ -38,9 +38,9 @@ void release_vdo_instance(unsigned int instance);
 /**
  * Initialize the instance-number tracking data structures.
  **/
-void initialize_instance_number_tracking(void);
+void initialize_vdo_instance_number_tracking(void);
 
 /**
  * Free up the instance-number tracking data structures.
  **/
-void clean_up_instance_number_tracking(void);
+void clean_up_vdo_instance_number_tracking(void);
