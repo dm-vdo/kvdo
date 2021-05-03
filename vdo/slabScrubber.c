@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#60 $
  */
 
 #include "slabScrubberInternals.h"
@@ -381,8 +381,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 
 	// At the end of rebuild, the ref_counts should be accurate to the end
 	// of the journal we just applied.
-	result = ASSERT(!before_journal_point(&last_entry_applied,
-					      &ref_counts_point),
+	result = ASSERT(!before_vdo_journal_point(&last_entry_applied,
+						  &ref_counts_point),
 			"Refcounts are not more accurate than the slab journal");
 	if (result != VDO_SUCCESS) {
 		abort_scrubbing(scrubber, result);

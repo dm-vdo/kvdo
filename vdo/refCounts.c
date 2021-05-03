@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#70 $
  */
 
 #include "refCounts.h"
@@ -645,7 +645,7 @@ update_reference_count(struct ref_counts *ref_counts,
 		return result;
 	}
 
-	if (is_valid_journal_point(slab_journal_point)) {
+	if (is_valid_vdo_journal_point(slab_journal_point)) {
 		ref_counts->slab_journal_point = *slab_journal_point;
 	}
 
@@ -691,7 +691,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 		 * release the per-entry slab journal lock for the entry
 		 * associated with the update we are now doing.
 		 */
-		result = ASSERT(is_valid_journal_point(slab_journal_point),
+		result = ASSERT(is_valid_vdo_journal_point(slab_journal_point),
 				"Reference count adjustments need slab journal points.");
 		if (result != VDO_SUCCESS) {
 			return result;
@@ -709,7 +709,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 	 * cleaned. Therefore, we convert the per-entry slab journal lock to an
 	 * uncommitted reference block lock, if there is a per-entry lock.
 	 */
-	if (is_valid_journal_point(slab_journal_point)) {
+	if (is_valid_vdo_journal_point(slab_journal_point)) {
 		block->slab_journal_lock = slab_journal_point->sequence_number;
 	} else {
 		block->slab_journal_lock = 0;
@@ -764,7 +764,7 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 		COUNTS_PER_SECTOR;
 	struct reference_operation operation = { .type = entry.operation };
 
-	if (!before_journal_point(&block->commit_points[sector], entry_point)) {
+	if (!before_vdo_journal_point(&block->commit_points[sector], entry_point)) {
 		// This entry is already reflected in the existing counts, so
 		// do nothing.
 		return VDO_SUCCESS;
@@ -1224,8 +1224,8 @@ pack_reference_block(struct reference_block *block, void *buffer)
 	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	sector_count_t i;
 	struct packed_journal_point commit_point;
-	pack_journal_point(&block->ref_counts->slab_journal_point,
-			   &commit_point);
+	pack_vdo_journal_point(&block->ref_counts->slab_journal_point,
+			       &commit_point);
 
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		packed->sectors[i].commit_point = commit_point;
@@ -1390,22 +1390,22 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
-		unpack_journal_point(&sector->commit_point,
-				     &block->commit_points[i]);
+		unpack_vdo_journal_point(&sector->commit_point,
+					 &block->commit_points[i]);
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
 		       sector->counts,
 		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
 		// The slab_journal_point must be the latest point found in any
 		// sector.
-		if (before_journal_point(&ref_counts->slab_journal_point,
-					 &block->commit_points[i])) {
+		if (before_vdo_journal_point(&ref_counts->slab_journal_point,
+					     &block->commit_points[i])) {
 			ref_counts->slab_journal_point =
 				block->commit_points[i];
 		}
 
 		if ((i > 0) &&
-		    !are_equivalent_journal_points(&block->commit_points[0],
-						   &block->commit_points[i])) {
+		    !are_equivalent_vdo_journal_points(&block->commit_points[0],
+						       &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
 			uds_log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
 					i,

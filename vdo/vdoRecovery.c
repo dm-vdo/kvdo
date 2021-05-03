@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#85 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -711,7 +711,8 @@ static void advance_points(struct recovery_completion *recovery,
 			   journal_entry_count_t entries_per_block)
 {
 	increment_recovery_point(&recovery->next_recovery_point);
-	advance_journal_point(&recovery->next_journal_point, entries_per_block);
+	advance_vdo_journal_point(&recovery->next_journal_point,
+				  entries_per_block);
 }
 
 /**

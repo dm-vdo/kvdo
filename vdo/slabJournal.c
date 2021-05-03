@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#85 $
  */
 
 #include "slabJournalInternals.h"
@@ -782,8 +782,8 @@ static void add_entry(struct slab_journal *journal,
 	struct packed_slab_journal_block *block = journal->block;
 
 	int result =
-		ASSERT(before_journal_point(&journal->tail_header.recovery_point,
-					    recovery_point),
+		ASSERT(before_vdo_journal_point(&journal->tail_header.recovery_point,
+						recovery_point),
 		       "recovery journal point is monotonically increasing, recovery point: %llu.%u, block recovery point: %llu.%u",
 		       recovery_point->sequence_number,
 		       recovery_point->entry_count,
@@ -824,8 +824,8 @@ bool attempt_replay_into_slab_journal(struct slab_journal *journal,
 	struct slab_journal_block_header *header = &journal->tail_header;
 
 	// Only accept entries after the current recovery point.
-	if (!before_journal_point(&journal->tail_header.recovery_point,
-				  recovery_point)) {
+	if (!before_vdo_journal_point(&journal->tail_header.recovery_point,
+				      recovery_point)) {
 		return true;
 	}
 

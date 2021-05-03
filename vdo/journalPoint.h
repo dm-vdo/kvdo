@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#9 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -57,8 +57,8 @@ struct packed_journal_point {
  * @param entries_per_block  the number of entries in one full block
  **/
 static inline void
-advance_journal_point(struct journal_point *point,
-		      journal_entry_count_t entries_per_block)
+advance_vdo_journal_point(struct journal_point *point,
+			  journal_entry_count_t entries_per_block)
 {
 	point->entry_count++;
 	if (point->entry_count == entries_per_block) {
@@ -74,7 +74,8 @@ advance_journal_point(struct journal_point *point,
  *
  * @return <code>true</code> if the journal point is valid
  **/
-static inline bool is_valid_journal_point(const struct journal_point *point)
+static inline bool
+is_valid_vdo_journal_point(const struct journal_point *point)
 {
 	return ((point != NULL) && (point->sequence_number > 0));
 }
@@ -88,8 +89,8 @@ static inline bool is_valid_journal_point(const struct journal_point *point)
  *
  * @return <code>true</code> if the first point precedes the second point.
  **/
-static inline bool before_journal_point(const struct journal_point *first,
-					const struct journal_point *second)
+static inline bool before_vdo_journal_point(const struct journal_point *first,
+					    const struct journal_point *second)
 {
 	return ((first->sequence_number < second->sequence_number) ||
 		((first->sequence_number == second->sequence_number) &&
@@ -106,8 +107,8 @@ static inline bool before_journal_point(const struct journal_point *first,
  *         position of an entry the journal
  **/
 static inline bool
-are_equivalent_journal_points(const struct journal_point *first,
-			      const struct journal_point *second)
+are_equivalent_vdo_journal_points(const struct journal_point *first,
+				  const struct journal_point *second)
 {
 	return ((first->sequence_number == second->sequence_number) &&
 		(first->entry_count == second->entry_count));
@@ -120,8 +121,8 @@ are_equivalent_journal_points(const struct journal_point *first,
  * @param unpacked  The unpacked input point
  * @param packed    The packed output point
  **/
-static inline void pack_journal_point(const struct journal_point *unpacked,
-				      struct packed_journal_point *packed)
+static inline void pack_vdo_journal_point(const struct journal_point *unpacked,
+					  struct packed_journal_point *packed)
 {
 	packed->encoded_point = __cpu_to_le64((unpacked->sequence_number << 16)
 					      | unpacked->entry_count);
@@ -135,8 +136,8 @@ static inline void pack_journal_point(const struct journal_point *unpacked,
  * @param unpacked  The unpacked output point
  **/
 static inline void
-unpack_journal_point(const struct packed_journal_point *packed,
-		     struct journal_point *unpacked)
+unpack_vdo_journal_point(const struct packed_journal_point *packed,
+			 struct journal_point *unpacked)
 {
 	uint64_t native = __le64_to_cpu(packed->encoded_point);
 	unpacked->sequence_number = (native >> 16);

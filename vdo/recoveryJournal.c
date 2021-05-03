@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#102 $
  */
 
 #include "recoveryJournal.h"
@@ -907,8 +907,8 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	struct recovery_journal *journal = (struct recovery_journal *)context;
 	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
 							      : VDO_SUCCESS);
-	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
-					     &data_vio->recovery_journal_point),
+	ASSERT_LOG_ONLY(before_vdo_journal_point(&journal->commit_point,
+						 &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
 			journal->commit_point.sequence_number,
 			journal->commit_point.entry_count,
@@ -1119,7 +1119,8 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 			 (data_vio->recovery_sequence_number == 0)),
 			"journal lock not held for increment");
 
-	advance_journal_point(&journal->append_point, journal->entries_per_block);
+	advance_vdo_journal_point(&journal->append_point,
+				  journal->entries_per_block);
 	result = enqueue_data_vio((increment ? &journal->increment_waiters
 				  : &journal->decrement_waiters),
 				  data_vio);

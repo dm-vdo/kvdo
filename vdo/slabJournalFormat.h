@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#10 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -160,7 +160,8 @@ pack_slab_journal_block_header(const struct slab_journal_block_header *header,
 	packed->metadata_type = header->metadata_type;
 	packed->has_block_map_increments = header->has_block_map_increments;
 
-	pack_journal_point(&header->recovery_point, &packed->recovery_point);
+	pack_vdo_journal_point(&header->recovery_point,
+			       &packed->recovery_point);
 }
 
 /**

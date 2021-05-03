@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#38 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -200,7 +200,8 @@ unpack_slab_journal_block_header(
 		.metadata_type = packed->metadata_type,
 		.has_block_map_increments = packed->has_block_map_increments,
 	};
-	unpack_journal_point(&packed->recovery_point, &header->recovery_point);
+	unpack_vdo_journal_point(&packed->recovery_point,
+				 &header->recovery_point);
 }
 
 #endif // SLAB_JOURNAL_INTERNALS_H
