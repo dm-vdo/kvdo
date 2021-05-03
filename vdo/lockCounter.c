@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#28 $
  */
 
 #include "lockCounter.h"
@@ -74,14 +74,14 @@ struct lock_counter {
 };
 
 /**********************************************************************/
-int make_lock_counter(struct vdo *vdo,
-		      void *parent,
-		      vdo_action callback,
-		      thread_id_t thread_id,
-		      zone_count_t logical_zones,
-		      zone_count_t physical_zones,
-		      block_count_t locks,
-		      struct lock_counter **lock_counter_ptr)
+int make_vdo_lock_counter(struct vdo *vdo,
+			  void *parent,
+			  vdo_action callback,
+			  thread_id_t thread_id,
+			  zone_count_t logical_zones,
+			  zone_count_t physical_zones,
+			  block_count_t locks,
+			  struct lock_counter **lock_counter_ptr)
 {
 	struct lock_counter *lock_counter;
 
@@ -93,42 +93,42 @@ int make_lock_counter(struct vdo *vdo,
 	result = ALLOCATE(locks, uint16_t, __func__,
 			  &lock_counter->journal_counters);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks * logical_zones, uint16_t, __func__,
 			  &lock_counter->logical_counters);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->logical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks * physical_zones, uint16_t, __func__,
 			  &lock_counter->physical_counters);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->physical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_lock_counter(&lock_counter);
+		free_vdo_lock_counter(&lock_counter);
 		return result;
 	}
 
@@ -146,7 +146,7 @@ int make_lock_counter(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_lock_counter(struct lock_counter **lock_counter_ptr)
+void free_vdo_lock_counter(struct lock_counter **lock_counter_ptr)
 {
 	struct lock_counter *lock_counter;
 	if (*lock_counter_ptr == NULL) {
@@ -232,15 +232,15 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-bool is_locked(struct lock_counter *lock_counter,
-	       block_count_t lock_number,
-	       enum vdo_zone_type zone_type)
+bool is_vdo_lock_locked(struct lock_counter *lock_counter,
+			block_count_t lock_number,
+			enum vdo_zone_type zone_type)
 {
 	atomic_t *zone_count;
 	bool locked;
 
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
-			"is_locked() called for non-journal zone");
+			"is_vdo_lock_locked() called for non-journal zone");
 	if (is_journal_zone_locked(lock_counter, lock_number)) {
 		return true;
 	}
@@ -266,9 +266,9 @@ static void assert_on_journal_thread(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-void initialize_lock_count(struct lock_counter *counter,
-			   block_count_t lock_number,
-			   uint16_t value)
+void initialize_vdo_lock_count(struct lock_counter *counter,
+			       block_count_t lock_number,
+			       uint16_t value)
 {
 	uint16_t *journal_value;
 	atomic_t *decrement_count;
@@ -285,10 +285,10 @@ void initialize_lock_count(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-void acquire_lock_count_reference(struct lock_counter *counter,
-				  block_count_t lock_number,
-				  enum vdo_zone_type zone_type,
-				  zone_count_t zone_id)
+void acquire_vdo_lock_count_reference(struct lock_counter *counter,
+				      block_count_t lock_number,
+				      enum vdo_zone_type zone_type,
+				      zone_count_t zone_id)
 {
 	uint16_t *current_value;
 	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
@@ -362,10 +362,10 @@ static void attempt_notification(struct lock_counter *counter)
 }
 
 /**********************************************************************/
-void release_lock_count_reference(struct lock_counter *counter,
-				  block_count_t lock_number,
-				  enum vdo_zone_type zone_type,
-				  zone_count_t zone_id)
+void release_vdo_lock_count_reference(struct lock_counter *counter,
+				      block_count_t lock_number,
+				      enum vdo_zone_type zone_type,
+				      zone_count_t zone_id)
 {
 	atomic_t *zone_count;
 
@@ -384,8 +384,8 @@ void release_lock_count_reference(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-void release_journal_zone_reference(struct lock_counter *counter,
-				    block_count_t lock_number)
+void release_vdo_journal_zone_reference(struct lock_counter *counter,
+					block_count_t lock_number)
 {
 	assert_on_journal_thread(counter, __func__);
 	release_reference(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
@@ -397,8 +397,8 @@ void release_journal_zone_reference(struct lock_counter *counter,
 
 /**********************************************************************/
 void
-release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
-					       block_count_t lock_number)
+release_vdo_journal_zone_reference_from_other_zone(struct lock_counter *counter,
+						   block_count_t lock_number)
 {
 	// Extra barriers because this was original developed using
 	// an atomic add operation that implicitly had them.
@@ -408,14 +408,14 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
 }
 
 /**********************************************************************/
-void acknowledge_unlock(struct lock_counter *counter)
+void acknowledge_vdo_lock_unlock(struct lock_counter *counter)
 {
 	smp_wmb();
 	atomic_set(&counter->state, LOCK_COUNTER_STATE_NOT_NOTIFYING);
 }
 
 /**********************************************************************/
-bool suspend_lock_counter(struct lock_counter *counter)
+bool suspend_vdo_lock_counter(struct lock_counter *counter)
 {
 	int prior_state;
 
@@ -434,7 +434,7 @@ bool suspend_lock_counter(struct lock_counter *counter)
 }
 
 /**********************************************************************/
-bool resume_lock_counter(struct lock_counter *counter)
+bool resume_vdo_lock_counter(struct lock_counter *counter)
 {
 	int prior_state;
 

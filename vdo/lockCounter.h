@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#15 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -37,7 +37,8 @@
  * completion is not in use, the completion is launched to inform the counter's
  * owner that some lock has been released. It is the owner's responsibility to
  * check for which locks have been released, and to inform the lock counter
- * that it has received the notification by calling acknowledge_unlock().
+ * that it has received the notification by calling
+ * acknowledge_vdo_lock_unlock().
  **/
 
 /**
@@ -56,21 +57,21 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_lock_counter(struct vdo *vdo,
-				   void *parent,
-				   vdo_action callback,
-				   thread_id_t thread_id,
-				   zone_count_t logical_zones,
-				   zone_count_t physical_zones,
-				   block_count_t locks,
-				   struct lock_counter **lock_counter_ptr);
+int __must_check make_vdo_lock_counter(struct vdo *vdo,
+				       void *parent,
+				       vdo_action callback,
+				       thread_id_t thread_id,
+				       zone_count_t logical_zones,
+				       zone_count_t physical_zones,
+				       block_count_t locks,
+				       struct lock_counter **lock_counter_ptr);
 
 /**
  * Destroy a lock counter and NULL out the reference to it.
  *
  * @param lock_counter_ptr  A pointer to the lock counter reference to free
  **/
-void free_lock_counter(struct lock_counter **lock_counter_ptr);
+void free_vdo_lock_counter(struct lock_counter **lock_counter_ptr);
 
 /**
  * Check whether a lock is locked for a zone type. If the recovery journal has
@@ -83,9 +84,9 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr);
  *
  * @return <code>true</code> if the specified lock has references (is locked)
  **/
-bool __must_check is_locked(struct lock_counter *lock_counter,
-			    block_count_t lock_number,
-			    enum vdo_zone_type zone_type);
+bool __must_check is_vdo_lock_locked(struct lock_counter *lock_counter,
+				     block_count_t lock_number,
+				     enum vdo_zone_type zone_type);
 
 /**
  * Initialize the value of the journal zone's counter for a given lock. This
@@ -95,9 +96,9 @@ bool __must_check is_locked(struct lock_counter *lock_counter,
  * @param lock_number  Which lock to initialize
  * @param value        The value to set
  **/
-void initialize_lock_count(struct lock_counter *counter,
-			   block_count_t lock_number,
-			   uint16_t value);
+void initialize_vdo_lock_count(struct lock_counter *counter,
+			       block_count_t lock_number,
+			       uint16_t value);
 
 /**
  * Acquire a reference to a given lock in the specified zone. This method must
@@ -108,10 +109,10 @@ void initialize_lock_count(struct lock_counter *counter,
  * @param zone_type    The type of the zone acquiring the reference
  * @param zone_id      The ID of the zone acquiring the reference
  **/
-void acquire_lock_count_reference(struct lock_counter *counter,
-				  block_count_t lock_number,
-				  enum vdo_zone_type zone_type,
-				  zone_count_t zone_id);
+void acquire_vdo_lock_count_reference(struct lock_counter *counter,
+				      block_count_t lock_number,
+				      enum vdo_zone_type zone_type,
+				      zone_count_t zone_id);
 
 /**
  * Release a reference to a given lock in the specified zone. This method
@@ -122,10 +123,10 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  * @param zone_type    The type of the zone releasing the reference
  * @param zone_id      The ID of the zone releasing the reference
  **/
-void release_lock_count_reference(struct lock_counter *counter,
-				  block_count_t lock_number,
-				  enum vdo_zone_type zone_type,
-				  zone_count_t zone_id);
+void release_vdo_lock_count_reference(struct lock_counter *counter,
+				      block_count_t lock_number,
+				      enum vdo_zone_type zone_type,
+				      zone_count_t zone_id);
 
 /**
  * Release a single journal zone reference from the journal zone. This method
@@ -134,20 +135,20 @@ void release_lock_count_reference(struct lock_counter *counter,
  * @param counter      The counter from which to release a reference
  * @param lock_number  The lock from which to release a reference
  **/
-void release_journal_zone_reference(struct lock_counter *counter,
-				    block_count_t lock_number);
+void release_vdo_journal_zone_reference(struct lock_counter *counter,
+					block_count_t lock_number);
 
 /**
  * Release a single journal zone reference from any zone. This method shouldn't
  * be called from the journal zone as it would be inefficient; use
- * release_journal_zone_reference() instead.
+ * release_vdo_journal_zone_reference() instead.
  *
  * @param counter      The counter from which to release a reference
  * @param lock_number  The lock from which to release a reference
  **/
 void
-release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
-					       block_count_t lock_number);
+release_vdo_journal_zone_reference_from_other_zone(struct lock_counter *counter,
+						   block_count_t lock_number);
 
 /**
  * Inform a lock counter that an unlock notification was received by the
@@ -155,7 +156,7 @@ release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
  *
  * @param counter  The counter to inform
  **/
-void acknowledge_unlock(struct lock_counter *counter);
+void acknowledge_vdo_lock_unlock(struct lock_counter *counter);
 
 /**
  * Prevent the lock counter from issuing notifications.
@@ -165,7 +166,7 @@ void acknowledge_unlock(struct lock_counter *counter);
  * @return <code>true</code> if the lock counter was not notifying and hence
  *         the suspend was efficacious
  **/
-bool __must_check suspend_lock_counter(struct lock_counter *counter);
+bool __must_check suspend_vdo_lock_counter(struct lock_counter *counter);
 
 /**
  * Re-allow notifications from a suspended lock counter.
@@ -174,6 +175,6 @@ bool __must_check suspend_lock_counter(struct lock_counter *counter);
  *
  * @return <code>true</code> if the lock counter was suspended
  **/
-bool __must_check resume_lock_counter(struct lock_counter *counter);
+bool __must_check resume_vdo_lock_counter(struct lock_counter *counter);
 
 #endif // LOCK_COUNTER_H

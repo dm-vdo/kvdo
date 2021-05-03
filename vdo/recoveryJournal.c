@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#103 $
  */
 
 #include "recoveryJournal.h"
@@ -175,7 +175,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 	    || has_block_waiters(journal)
 	    || has_waiters(&journal->increment_waiters)
 	    || has_waiters(&journal->decrement_waiters)
-	    || !suspend_lock_counter(journal->lock_counter)) {
+	    || !suspend_vdo_lock_counter(journal->lock_counter)) {
 		return;
 	}
 
@@ -376,7 +376,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 	 * race between acknowledging the notification and unlocks wishing to
 	 * notify.
 	 */
-	acknowledge_unlock(journal->lock_counter);
+	acknowledge_vdo_lock_unlock(journal->lock_counter);
 
 	if (is_vdo_state_quiescing(&journal->state)) {
 		/*
@@ -465,14 +465,14 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		list_move_tail(&block->list_node, &journal->free_tail_blocks);
 	}
 
-	result = make_lock_counter(vdo,
-				   journal,
-				   reap_recovery_journal_callback,
-				   journal->thread_id,
-				   thread_config->logical_zone_count,
-				   thread_config->physical_zone_count,
-				   journal->size,
-				   &journal->lock_counter);
+	result = make_vdo_lock_counter(vdo,
+				       journal,
+				       reap_recovery_journal_callback,
+				       journal->thread_id,
+				       thread_config->logical_zone_count,
+				       thread_config->physical_zone_count,
+				       journal->size,
+				       &journal->lock_counter);
 	if (result != VDO_SUCCESS) {
 		free_recovery_journal(&journal);
 		return result;
@@ -513,7 +513,7 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 		return;
 	}
 
-	free_lock_counter(&journal->lock_counter);
+	free_vdo_lock_counter(&journal->lock_counter);
 	free_vio(&journal->flush_vio);
 
 	// XXX: eventually, the journal should be constructed in a quiescent
@@ -714,9 +714,9 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	 * after any slab journal entries have been made, the per-entry lock
 	 * for the block map entry serves to protect those as well.
 	 */
-	initialize_lock_count(journal->lock_counter,
-			      journal->active_block->block_number,
-			      journal->entries_per_block + 1);
+	initialize_vdo_lock_count(journal->lock_counter,
+				  journal->active_block->block_number,
+				  journal->entries_per_block + 1);
 	return true;
 }
 
@@ -760,8 +760,8 @@ static void schedule_block_write(struct recovery_journal *journal,
  **/
 static void release_journal_block_reference(struct recovery_journal_block *block)
 {
-	release_journal_zone_reference(block->journal->lock_counter,
-				       block->block_number);
+	release_vdo_journal_zone_reference(block->journal->lock_counter,
+					   block->block_number);
 }
 
 /**
@@ -1154,9 +1154,9 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	// Start reclaiming blocks only when the journal head has no
 	// references. Then stop when a block is referenced.
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
-	       && !is_locked(journal->lock_counter,
-			     journal->block_map_head_block_number,
-			     ZONE_TYPE_LOGICAL)) {
+	       && !is_vdo_lock_locked(journal->lock_counter,
+				      journal->block_map_head_block_number,
+				      ZONE_TYPE_LOGICAL)) {
 		journal->block_map_reap_head++;
 		if (++journal->block_map_head_block_number == journal->size) {
 			journal->block_map_head_block_number = 0;
@@ -1164,9 +1164,9 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	}
 
 	while ((journal->slab_journal_reap_head < journal->last_write_acknowledged)
-	       && !is_locked(journal->lock_counter,
-			     journal->slab_journal_head_block_number,
-			     ZONE_TYPE_PHYSICAL)) {
+	       && !is_vdo_lock_locked(journal->lock_counter,
+				      journal->slab_journal_head_block_number,
+				      ZONE_TYPE_PHYSICAL)) {
 		journal->slab_journal_reap_head++;
 		if (++journal->slab_journal_head_block_number == journal->size) {
 			journal->slab_journal_head_block_number = 0;
@@ -1203,8 +1203,8 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 
 	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
-	acquire_lock_count_reference(journal->lock_counter, block_number,
-				     zone_type, zone_id);
+	acquire_vdo_lock_count_reference(journal->lock_counter, block_number,
+					 zone_type, zone_id);
 }
 
 /**********************************************************************/
@@ -1221,8 +1221,8 @@ void release_recovery_journal_block_reference(struct recovery_journal *journal,
 
 	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
-	release_lock_count_reference(journal->lock_counter, block_number,
-				     zone_type, zone_id);
+	release_vdo_lock_count_reference(journal->lock_counter, block_number,
+					 zone_type, zone_id);
 }
 
 /**********************************************************************/
@@ -1236,8 +1236,8 @@ void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
 
 	block_number =
 		get_recovery_journal_block_number(journal, sequence_number);
-	release_journal_zone_reference_from_other_zone(journal->lock_counter,
-						       block_number);
+	release_vdo_journal_zone_reference_from_other_zone(journal->lock_counter,
+							   block_number);
 }
 
 /**
@@ -1280,7 +1280,7 @@ void resume_recovery_journal(struct recovery_journal *journal,
 		initialize_journal_state(journal);
 	}
 
-	if (resume_lock_counter(journal->lock_counter)) {
+	if (resume_vdo_lock_counter(journal->lock_counter)) {
 		// We might have missed a notification.
 		reap_recovery_journal(journal);
 	}
