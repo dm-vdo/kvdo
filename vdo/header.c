@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#10 $
  */
 
 #include "header.h"
@@ -26,11 +26,11 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-int validate_version(struct version_number expected_version,
-		     struct version_number actual_version,
-		     const char *component_name)
+int validate_vdo_version(struct version_number expected_version,
+			 struct version_number actual_version,
+			 const char *component_name)
 {
-	if (!are_same_version(expected_version, actual_version)) {
+	if (!are_same_vdo_version(expected_version, actual_version)) {
 		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					  "%s version mismatch, expected %d.%d, got %d.%d",
 					  component_name,
@@ -43,10 +43,10 @@ int validate_version(struct version_number expected_version,
 }
 
 /**********************************************************************/
-int validate_header(const struct header *expected_header,
-		    const struct header *actual_header,
-		    bool exact_size,
-		    const char *component_name)
+int validate_vdo_header(const struct header *expected_header,
+			const struct header *actual_header,
+			bool exact_size,
+			const char *component_name)
 {
 	int result;
 	if (expected_header->id != actual_header->id) {
@@ -57,8 +57,8 @@ int validate_header(const struct header *expected_header,
 					  actual_header->id);
 	}
 
-	result = validate_version(expected_header->version,
-				  actual_header->version, component_name);
+	result = validate_vdo_version(expected_header->version,
+				      actual_header->version, component_name);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -76,7 +76,7 @@ int validate_header(const struct header *expected_header,
 }
 
 /**********************************************************************/
-int encode_header(const struct header *header, struct buffer *buffer)
+int encode_vdo_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
 
@@ -89,7 +89,7 @@ int encode_header(const struct header *header, struct buffer *buffer)
 		return result;
 	}
 
-	result = encode_version_number(header->version, buffer);
+	result = encode_vdo_version_number(header->version, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -98,14 +98,15 @@ int encode_header(const struct header *header, struct buffer *buffer)
 }
 
 /**********************************************************************/
-int encode_version_number(struct version_number version, struct buffer *buffer)
+int encode_vdo_version_number(struct version_number version,
+			      struct buffer *buffer)
 {
-	struct packed_version_number packed = pack_version_number(version);
+	struct packed_version_number packed = pack_vdo_version_number(version);
 	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
 /**********************************************************************/
-int decode_header(struct buffer *buffer, struct header *header)
+int decode_vdo_header(struct buffer *buffer, struct header *header)
 {
 	enum component_id id;
 	uint64_t size;
@@ -116,7 +117,7 @@ int decode_header(struct buffer *buffer, struct header *header)
 		return result;
 	}
 
-	result = decode_version_number(buffer, &version);
+	result = decode_vdo_version_number(buffer, &version);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -135,8 +136,8 @@ int decode_header(struct buffer *buffer, struct header *header)
 }
 
 /**********************************************************************/
-int decode_version_number(struct buffer *buffer,
-			  struct version_number *version)
+int decode_vdo_version_number(struct buffer *buffer,
+			      struct version_number *version)
 {
 	struct packed_version_number packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
@@ -144,6 +145,6 @@ int decode_version_number(struct buffer *buffer,
 		return result;
 	}
 
-	*version = unpack_version_number(packed);
+	*version = unpack_vdo_version_number(packed);
 	return UDS_SUCCESS;
 }

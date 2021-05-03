@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#23 $
  */
 
 #include "fixedLayout.h"
@@ -398,7 +398,7 @@ int encode_fixed_layout(const struct fixed_layout *layout,
 	}
 
 	header.size = get_encoded_size(layout);
-	result = encode_header(&header, buffer);
+	result = encode_vdo_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -521,13 +521,13 @@ int decode_fixed_layout(struct buffer *buffer,
 	struct layout_3_0 layout_header;
 	struct fixed_layout *layout;
 
-	int result = decode_header(buffer, &header);
+	int result = decode_vdo_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// Layout is variable size, so only do a minimum size check here.
-	result = validate_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
+	result = validate_vdo_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

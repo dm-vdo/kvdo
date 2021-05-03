@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#8 $
  */
 
 #include "blockMapFormat.h"
@@ -54,13 +54,13 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 	block_count_t flat_page_count, root_count;
 	physical_block_number_t flat_page_origin, root_origin;
 	struct header header;
-	int result = decode_header(buffer, &header);
+	int result = decode_vdo_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_header(&BLOCK_MAP_HEADER_2_0, &header, true,
-				 __func__);
+	result = validate_vdo_header(&BLOCK_MAP_HEADER_2_0, &header, true,
+				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -130,7 +130,7 @@ int encode_block_map_state_2_0(struct block_map_state_2_0 state,
 			       struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
-	int result = encode_header(&BLOCK_MAP_HEADER_2_0, buffer);
+	int result = encode_vdo_header(&BLOCK_MAP_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#9 $
  */
 
 #include "superBlockCodec.h"
@@ -97,7 +97,7 @@ int encode_super_block(struct super_block_codec *codec)
 
 	// Encode the header.
 	header.size += component_data_size;
-	result = encode_header(&header, buffer);
+	result = encode_vdo_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -133,13 +133,13 @@ int decode_super_block(struct super_block_codec *codec)
 	clear_buffer(buffer);
 
 	// Decode and validate the header.
-	result = decode_header(buffer, &header);
+	result = decode_vdo_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false,
-				 __func__);
+	result = validate_vdo_header(&SUPER_BLOCK_HEADER_12_0, &header, false,
+				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

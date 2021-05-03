@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#10 $
  */
 
 #include "vdoComponent.h"
@@ -90,7 +90,7 @@ int encode_vdo_component(struct vdo_component_41_0 state,
 {
 	size_t initial_length, encoded_size;
 
-	int result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
+	int result = encode_vdo_version_number(VDO_COMPONENT_DATA_41_0, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -240,13 +240,13 @@ int decode_vdo_component(struct buffer *buffer,
 {
 	struct vdo_component_41_0 component;
 	struct version_number version;
-	int result = decode_version_number(buffer, &version);
+	int result = decode_vdo_version_number(buffer, &version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_version(version, VDO_COMPONENT_DATA_41_0,
-				  "VDO component data");
+	result = validate_vdo_version(version, VDO_COMPONENT_DATA_41_0,
+				      "VDO component data");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

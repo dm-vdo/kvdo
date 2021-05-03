@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#28 $
  */
 
 #include "blockMapPage.h"
@@ -39,8 +39,8 @@ static const struct version_number BLOCK_MAP_4_1 = {
 /**********************************************************************/
 bool is_current_block_map_page(const struct block_map_page *page)
 {
-	return are_same_version(BLOCK_MAP_4_1,
-				unpack_version_number(page->version));
+	return are_same_vdo_version(BLOCK_MAP_4_1,
+				    unpack_vdo_version_number(page->version));
 }
 
 /**********************************************************************/
@@ -51,7 +51,7 @@ struct block_map_page *format_block_map_page(void *buffer,
 {
 	struct block_map_page *page = (struct block_map_page *) buffer;
 	memset(buffer, 0, VDO_BLOCK_SIZE);
-	page->version = pack_version_number(BLOCK_MAP_4_1);
+	page->version = pack_vdo_version_number(BLOCK_MAP_4_1);
 	page->header.nonce = __cpu_to_le64(nonce);
 	page->header.pbn = __cpu_to_le64(pbn);
 	page->header.initialized = initialized;
@@ -69,8 +69,8 @@ validate_block_map_page(struct block_map_page *page,
 	STATIC_ASSERT_SIZEOF(struct block_map_page_header,
 			     PAGE_HEADER_4_1_SIZE);
 
-	if (!are_same_version(BLOCK_MAP_4_1,
-			      unpack_version_number(page->version)) ||
+	if (!are_same_vdo_version(BLOCK_MAP_4_1,
+				  unpack_vdo_version_number(page->version)) ||
 	    !is_block_map_page_initialized(page) ||
 	    (nonce != __le64_to_cpu(page->header.nonce))) {
 		return BLOCK_MAP_PAGE_INVALID;

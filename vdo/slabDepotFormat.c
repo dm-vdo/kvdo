@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#13 $
  */
 
 #include "slabDepotFormat.h"
@@ -111,7 +111,7 @@ int encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 {
 	size_t initial_length, encoded_size;
 
-	int result = encode_header(&SLAB_DEPOT_HEADER_2_0, buffer);
+	int result = encode_vdo_header(&SLAB_DEPOT_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -211,13 +211,13 @@ int decode_slab_depot_state_2_0(struct buffer *buffer,
 	physical_block_number_t first_block, last_block;
 	zone_count_t zone_count;
 
-	result = decode_header(buffer, &header);
+	result = decode_vdo_header(buffer, &header);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_header(&SLAB_DEPOT_HEADER_2_0, &header, true,
-				 __func__);
+	result = validate_vdo_header(&SLAB_DEPOT_HEADER_2_0, &header, true,
+				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

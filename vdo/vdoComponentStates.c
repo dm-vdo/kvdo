@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#9 $
  */
 
 #include "vdoComponentStates.h"
@@ -112,14 +112,14 @@ int decode_component_states(struct buffer *buffer,
 	}
 
 	// Check the VDO volume version
-	result = decode_version_number(buffer, &states->volume_version);
+	result = decode_vdo_version_number(buffer, &states->volume_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = validate_version(VDO_VOLUME_VERSION_67_0,
-				  states->volume_version,
-				  "volume");
+	result = validate_vdo_version(VDO_VOLUME_VERSION_67_0,
+				      states->volume_version,
+				      "volume");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -181,7 +181,7 @@ int encode_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_version_number(states->volume_version, buffer);
+	result = encode_vdo_version_number(states->volume_version, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
