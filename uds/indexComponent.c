@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#14 $
  */
 
 #include "indexComponent.h"
@@ -30,181 +30,184 @@
 #include "permassert.h"
 #include "typeDefs.h"
 
-/*****************************************************************************/
-int makeIndexComponent(IndexState                *state,
-                       const IndexComponentInfo  *info,
-                       unsigned int               zoneCount,
-                       void                      *data,
-                       void                      *context,
-                       IndexComponent           **componentPtr)
+/**********************************************************************/
+int make_index_component(struct index_state *state,
+			 const struct index_component_info *info,
+			 unsigned int zone_count,
+			 void *data,
+			 void *context,
+			 struct index_component **component_ptr)
 {
-  if ((info == NULL) || (info->name == NULL)) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "invalid component or directory specified");
-  }
-  if (info->loader == NULL) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "no .loader function specified "
-                                   "for component %s",
-                                   info->name);
-  }
-  if ((info->saver == NULL) && (info->incremental == NULL)) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "neither .saver function nor .incremental "
-                                   "function specified for component %s",
-                                   info->name);
-  }
+	if ((info == NULL) || (info->name == NULL)) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "invalid component or directory specified");
+	}
+	if (info->loader == NULL) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "no .loader function specified for component %s",
+					  info->name);
+	}
+	if ((info->saver == NULL) && (info->incremental == NULL)) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "neither .saver function nor .incremental function specified for component %s",
+					  info->name);
+	}
 
-  IndexComponent *component = NULL;
-  int result = ALLOCATE(1, IndexComponent, "index component", &component);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct index_component *component = NULL;
+	int result = ALLOCATE(1, struct index_component, "index component",
+			      &component);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  component->componentData = data;
-  component->context       = context;
-  component->info          = info;
-  component->numZones      = info->multiZone ? zoneCount : 1;
-  component->state         = state;
-  component->writeZones    = NULL;
-  *componentPtr = component;
-  return UDS_SUCCESS;
+	component->component_data = data;
+	component->context = context;
+	component->info = info;
+	component->num_zones = info->multi_zone ? zone_count : 1;
+	component->state = state;
+	component->write_zones = NULL;
+	*component_ptr = component;
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-static void freeWriteZones(IndexComponent *component)
+/**********************************************************************/
+static void free_write_zones(struct index_component *component)
 {
-  if (component->writeZones != NULL) {
-    unsigned int z;
-    for (z = 0; z < component->numZones; ++z) {
-      WriteZone *wz = component->writeZones[z];
-      if (wz == NULL) {
-        continue;
-      }
-      freeBufferedWriter(wz->writer);
-      FREE(wz);
-    }
-    FREE(component->writeZones);
-    component->writeZones = NULL;
-  }
+	if (component->write_zones != NULL) {
+		unsigned int z;
+		for (z = 0; z < component->num_zones; ++z) {
+			struct write_zone *wz = component->write_zones[z];
+			if (wz == NULL) {
+				continue;
+			}
+			free_buffered_writer(wz->writer);
+			FREE(wz);
+		}
+		FREE(component->write_zones);
+		component->write_zones = NULL;
+	}
 }
 
-/*****************************************************************************/
-void freeIndexComponent(IndexComponent **componentPtr)
+/**********************************************************************/
+void free_index_component(struct index_component **component_ptr)
 {
-  if (componentPtr == NULL) {
-    return;
-  }
-  IndexComponent *component = *componentPtr;
-  if (component == NULL) {
-    return;
-  }
-  *componentPtr = NULL;
+	if (component_ptr == NULL) {
+		return;
+	}
+	struct index_component *component = *component_ptr;
+	if (component == NULL) {
+		return;
+	}
+	*component_ptr = NULL;
 
-  freeWriteZones(component);
-  FREE(component);
+	free_write_zones(component);
+	FREE(component);
 }
 
 /**
  * Destroy, deallocate, and expunge a read portal.
  *
- * @param readPortal     the readzone array
+ * @param read_portal     the readzone array
  **/
-static void freeReadPortal(ReadPortal *readPortal)
+static void free_read_portal(struct read_portal *read_portal)
 {
-  if (readPortal == NULL) {
-    return;
-  }
-  unsigned int z;
-  for (z = 0; z < readPortal->zones; ++z) {
-    if (readPortal->readers[z] != NULL) {
-      freeBufferedReader(readPortal->readers[z]);
-    }
-  }
-  FREE(readPortal->readers);
-  FREE(readPortal);
+	if (read_portal == NULL) {
+		return;
+	}
+	unsigned int z;
+	for (z = 0; z < read_portal->zones; ++z) {
+		if (read_portal->readers[z] != NULL) {
+			free_buffered_reader(read_portal->readers[z]);
+		}
+	}
+	FREE(read_portal->readers);
+	FREE(read_portal);
 }
 
-/*****************************************************************************/
-int getBufferedReaderForPortal(ReadPortal      *portal,
-                               unsigned int     part,
-                               BufferedReader **readerPtr)
+/**********************************************************************/
+int get_buffered_reader_for_portal(struct read_portal *portal,
+				   unsigned int part,
+				   struct buffered_reader **reader_ptr)
 {
-  if (part >= portal->zones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: cannot access zone %u of %u",
-                                   __func__, part, portal->zones);
-  }
-  IndexComponent *component = portal->component;
-  if (component->info->ioStorage && (portal->readers[part] == NULL)) {
-    int result = openStateBufferedReader(component->state,
-                                         component->info->kind, part,
-                                         &portal->readers[part]);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "%s: cannot make buffered reader "
-                                     "for zone %u", __func__, part);
-    }
-  }
-  *readerPtr = portal->readers[part];
-  return UDS_SUCCESS;
+	if (part >= portal->zones) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "%s: cannot access zone %u of %u",
+					  __func__,
+					  part,
+					  portal->zones);
+	}
+	struct index_component *component = portal->component;
+	if (component->info->io_storage && (portal->readers[part] == NULL)) {
+		int result = open_state_buffered_reader(component->state,
+							component->info->kind,
+							part,
+							&portal->readers[part]);
+		if (result != UDS_SUCCESS) {
+			return log_error_strerror(result,
+						  "%s: cannot make buffered reader for zone %u",
+						  __func__,
+						  part);
+		}
+	}
+	*reader_ptr = portal->readers[part];
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int readIndexComponent(IndexComponent *component)
+/**********************************************************************/
+int read_index_component(struct index_component *component)
 {
-  ReadPortal *portal;
-  int result = ALLOCATE(1, ReadPortal, "index component read portal", &portal);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  int readZones = component->state->loadZones;
-  result = ALLOCATE(readZones, BufferedReader *, "read zone buffered readers",
-                    &portal->readers);
-  if (result != UDS_SUCCESS) {
-    FREE(portal);
-    return result;
-  }
+	struct read_portal *portal;
+	int result = ALLOCATE(1, struct read_portal,
+			      "index component read portal", &portal);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	int read_zones = component->state->load_zones;
+	result = ALLOCATE(read_zones,
+			  struct buffered_reader *,
+			  "read zone buffered readers",
+			  &portal->readers);
+	if (result != UDS_SUCCESS) {
+		FREE(portal);
+		return result;
+	}
 
-  portal->component = component;
-  portal->zones = readZones;
-  result = (*component->info->loader)(portal);
-  freeReadPortal(portal);
-  return result;
+	portal->component = component;
+	portal->zones = read_zones;
+	result = (*component->info->loader)(portal);
+	free_read_portal(portal);
+	return result;
 }
 
 /**
- * Determine the writeZone structure for the specified component and zone.
+ * Determine the write_zone structure for the specified component and zone.
  *
- * @param [in]  component      the index component
- * @param [in]  zone           the zone number
- * @param [out] writeZonePtr   the resulting write zone instance
+ * @param [in]  component       the index component
+ * @param [in]  zone            the zone number
+ * @param [out] write_zone_ptr  the resulting write zone instance
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int resolveWriteZone(const IndexComponent  *component,
-                            unsigned int           zone,
-                            WriteZone            **writeZonePtr)
+static int resolve_write_zone(const struct index_component *component,
+			      unsigned int zone,
+			      struct write_zone **write_zone_ptr)
 {
-  int result = ASSERT(writeZonePtr != NULL,
-                      "output parameter is null");
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ASSERT(write_zone_ptr != NULL, "output parameter is null");
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  if (component->writeZones == NULL) {
-    return logErrorWithStringError(UDS_BAD_STATE,
-                                   "cannot resolve index component write zone:"
-                                   " not allocated");
-  }
+	if (component->write_zones == NULL) {
+		return log_error_strerror(UDS_BAD_STATE,
+					  "cannot resolve index component write zone: not allocated");
+	}
 
-  if (zone >= component->numZones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "cannot resolve index component write zone:"
-                                   " zone out of range");
-  }
-  *writeZonePtr = component->writeZones[zone];
-  return UDS_SUCCESS;
+	if (zone >= component->num_zones) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "cannot resolve index component write zone: zone out of range");
+	}
+	*write_zone_ptr = component->write_zones[zone];
+	return UDS_SUCCESS;
 }
 
 /**
@@ -217,31 +220,34 @@ static int resolveWriteZone(const IndexComponent  *component,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
-                                                 BufferedWriter *writer,
-                                                 unsigned int    zone)
+static int
+index_component_saver_incremental_wrapper(struct index_component *component,
+					  struct buffered_writer *writer,
+					  unsigned int zone)
 {
-  IncrementalWriter incrFunc  = component->info->incremental;
-  bool              completed = false;
+	incremental_writer_t incr_func = component->info->incremental;
+	bool completed = false;
 
-  int result = (*incrFunc)(component, writer, zone, IWC_START, &completed);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = (*incr_func)(component, writer, zone, IWC_START,
+				  &completed);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  if (!completed) {
-    result = (*incrFunc)(component, writer, zone, IWC_FINISH, &completed);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
+	if (!completed) {
+		result = (*incr_func)(component, writer, zone, IWC_FINISH,
+				      &completed);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
 
-  result = flushBufferedWriter(writer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	result = flush_buffered_writer(writer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
 /**
@@ -252,27 +258,27 @@ static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
  * If not, or if the enqueue fails, the file will be fsynced and closed
  * immediately.
  *
- * @param writeZone    the index component write zone
+ * @param write_zone    the index component write zone
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int doneWithZone(WriteZone *writeZone)
+static int done_with_zone(struct write_zone *write_zone)
 {
-  const IndexComponent *component = writeZone->component;
-  if (writeZone->writer != NULL) {
-    int result = flushBufferedWriter(writeZone->writer);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "cannot flush buffered writer for "
-                                     "%s component (zone %u)",
-                                     component->info->name, writeZone->zone);
-    }
-  }
-  return UDS_SUCCESS;
+	const struct index_component *component = write_zone->component;
+	if (write_zone->writer != NULL) {
+		int result = flush_buffered_writer(write_zone->writer);
+		if (result != UDS_SUCCESS) {
+			return log_error_strerror(result,
+						  "cannot flush buffered writer for %s component (zone %u)",
+						  component->info->name,
+						  write_zone->zone);
+		}
+	}
+	return UDS_SUCCESS;
 }
 
 /**
- * Construct the array of WriteZone instances for this component.
+ * Construct the array of write_zone instances for this component.
  *
  * @param component    the index component
  *
@@ -281,155 +287,163 @@ static int doneWithZone(WriteZone *writeZone)
  * If this is a multizone component, each zone will be fully defined,
  * otherwise zone 0 stands in for the single state file.
  **/
-static int makeWriteZones(IndexComponent *component)
+static int make_write_zones(struct index_component *component)
 {
-  unsigned int z;
-  if (component->writeZones != NULL) {
-    // just reinitialize states
-    for (z = 0; z < component->numZones; ++z) {
-      WriteZone *wz = component->writeZones[z];
-      wz->phase = IWC_IDLE;
-    }
-    return UDS_SUCCESS;
-  }
+	unsigned int z;
+	if (component->write_zones != NULL) {
+		// just reinitialize states
+		for (z = 0; z < component->num_zones; ++z) {
+			struct write_zone *wz = component->write_zones[z];
+			wz->phase = IWC_IDLE;
+		}
+		return UDS_SUCCESS;
+	}
 
-  int result = ALLOCATE(component->numZones, WriteZone *,
-                        "index component write zones", &component->writeZones);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(component->num_zones,
+			      struct write_zone *,
+			      "index component write zones",
+			      &component->write_zones);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  for (z = 0; z < component->numZones; ++z) {
-    result = ALLOCATE(1, WriteZone, "plain write zone",
-                      &component->writeZones[z]);
-    if (result != UDS_SUCCESS) {
-      freeWriteZones(component);
-      return result;
-    }
-    *component->writeZones[z] = (WriteZone) {
-      .component = component,
-      .phase     = IWC_IDLE,
-      .zone      = z,
-    };
-  }
-  return UDS_SUCCESS;
+	for (z = 0; z < component->num_zones; ++z) {
+		result = ALLOCATE(1,
+				  struct write_zone,
+				  "plain write zone",
+				  &component->write_zones[z]);
+		if (result != UDS_SUCCESS) {
+			free_write_zones(component);
+			return result;
+		}
+		*component->write_zones[z] = (struct write_zone){
+			.component = component,
+			.phase = IWC_IDLE,
+			.zone = z,
+		};
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-static int openBufferedWriters(IndexComponent *component)
+/**********************************************************************/
+static int open_buffered_writers(struct index_component *component)
 {
-  int result = UDS_SUCCESS;
-  WriteZone **wzp;
-  for (wzp = component->writeZones;
-       wzp < component->writeZones + component->numZones;
-       ++wzp) {
-    WriteZone *wz = *wzp;
-    wz->phase = IWC_START;
+	int result = UDS_SUCCESS;
+	struct write_zone **wzp;
+	for (wzp = component->write_zones;
+	     wzp < component->write_zones + component->num_zones;
+	     ++wzp) {
+		struct write_zone *wz = *wzp;
+		wz->phase = IWC_START;
 
-    result = ASSERT(wz->writer == NULL, "write zone writer already exists");
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
+		result = ASSERT(wz->writer == NULL,
+				"write zone writer already exists");
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
 
-    if (component->info->ioStorage) {
-      int result = openStateBufferedWriter(component->state,
-                                           component->info->kind, wz->zone,
-                                           &wz->writer);
-      if (result != UDS_SUCCESS) {
-        return result;
-      }
-    }
-  }
-  return UDS_SUCCESS;
+		if (component->info->io_storage) {
+			int result =
+				open_state_buffered_writer(component->state,
+							   component->info->kind,
+							   wz->zone,
+							   &wz->writer);
+			if (result != UDS_SUCCESS) {
+				return result;
+			}
+		}
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-static int startIndexComponentSave(IndexComponent *component)
+/**********************************************************************/
+static int start_index_component_save(struct index_component *component)
 {
-  int result = makeWriteZones(component);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = make_write_zones(component);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = openBufferedWriters(component);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	result = open_buffered_writers(component);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int startIndexComponentIncrementalSave(IndexComponent *component)
+/**********************************************************************/
+int start_index_component_incremental_save(struct index_component *component)
 {
-  return startIndexComponentSave(component);
+	return start_index_component_save(component);
 }
 
-/*****************************************************************************/
-int writeIndexComponent(IndexComponent *component)
+/**********************************************************************/
+int write_index_component(struct index_component *component)
 {
-  Saver saver = component->info->saver;
-  if ((saver == NULL) && (component->info->incremental != NULL)) {
-    saver = indexComponentSaverIncrementalWrapper;
-  }
+	saver_t saver = component->info->saver;
+	if ((saver == NULL) && (component->info->incremental != NULL)) {
+		saver = index_component_saver_incremental_wrapper;
+	}
 
-  int result = startIndexComponentSave(component);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = start_index_component_save(component);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  unsigned int z;
-  for (z = 0; z < component->numZones; ++z) {
-    WriteZone *writeZone = component->writeZones[z];
+	unsigned int z;
+	for (z = 0; z < component->num_zones; ++z) {
+		struct write_zone *write_zone = component->write_zones[z];
 
-    result = (*saver)(component, writeZone->writer, z);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
+		result = (*saver)(component, write_zone->writer, z);
+		if (result != UDS_SUCCESS) {
+			break;
+		}
 
-    result = doneWithZone(writeZone);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
+		result = done_with_zone(write_zone);
+		if (result != UDS_SUCCESS) {
+			break;
+		}
 
-    freeBufferedWriter(writeZone->writer);
-    writeZone->writer = NULL;
-  }
+		free_buffered_writer(write_zone->writer);
+		write_zone->writer = NULL;
+	}
 
-  if (result != UDS_SUCCESS) {
-    freeWriteZones(component);
-    return logErrorWithStringError(result, "index component write failed");
-  }
+	if (result != UDS_SUCCESS) {
+		free_write_zones(component);
+		return log_error_strerror(result,
+					  "index component write failed");
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
 /**
  * Close a specific buffered writer in a component write zone.
  *
- * @param writeZone    the write zone
+ * @param write_zone    the write zone
  *
  * @return UDS_SUCCESS or an error code
  *
  * @note closing a buffered writer causes its file descriptor to be
- *       passed to doneWithZone
+ *       passed to done_with_zone
  **/
-static int closeBufferedWriter(WriteZone *writeZone)
+static int close_buffered_writer(struct write_zone *write_zone)
 {
-  if (writeZone->writer == NULL) {
-    return UDS_SUCCESS;
-  }
+	if (write_zone->writer == NULL) {
+		return UDS_SUCCESS;
+	}
 
-  int result = doneWithZone(writeZone);
-  freeBufferedWriter(writeZone->writer);
-  writeZone->writer = NULL;
+	int result = done_with_zone(write_zone);
+	free_buffered_writer(write_zone->writer);
+	write_zone->writer = NULL;
 
-  return result;
+	return result;
 }
 
 /**
  * Faux incremental saver function for index components which only define
- * a simple saver.  Conforms to IncrementalWriter signature.
+ * a simple saver.  Conforms to incremental_writer_t signature.
  *
  * @param [in]  component      the index component
  * @param [in]  writer         the buffered writer that does the output
@@ -443,24 +457,24 @@ static int closeBufferedWriter(WriteZone *writeZone)
  *       the IWC_START command is issued, and always reports that
  *       the save is complete unless the saver failed.
  **/
-static int wrapSaverAsIncremental(IndexComponent           *component,
-                                  BufferedWriter           *writer,
-                                  unsigned int              zone,
-                                  IncrementalWriterCommand  command,
-                                  bool                     *completed)
+static int wrap_saver_as_incremental(struct index_component *component,
+				     struct buffered_writer *writer,
+				     unsigned int zone,
+				     enum incremental_writer_command command,
+				     bool *completed)
 {
-  int result = UDS_SUCCESS;
+	int result = UDS_SUCCESS;
 
-  if ((command >= IWC_START) && (command <= IWC_FINISH)) {
-    result = (*component->info->saver)(component, writer, zone);
-    if ((result == UDS_SUCCESS) && (writer != NULL)) {
-      noteBufferedWriterUsed(writer);
-    }
-  }
-  if ((result == UDS_SUCCESS) && (completed != NULL)) {
-    *completed = true;
-  }
-  return result;
+	if ((command >= IWC_START) && (command <= IWC_FINISH)) {
+		result = (*component->info->saver)(component, writer, zone);
+		if ((result == UDS_SUCCESS) && (writer != NULL)) {
+			note_buffered_writer_used(writer);
+		}
+	}
+	if ((result == UDS_SUCCESS) && (completed != NULL)) {
+		*completed = true;
+	}
+	return result;
 }
 
 /**
@@ -469,277 +483,295 @@ static int wrapSaverAsIncremental(IndexComponent           *component,
  *
  * @param component    the index component
  *
- * @return the correct IncrementalWriter function to use, or
+ * @return the correct incremental_writer_t function to use, or
  *         NULL signifying no progress can be made at this time.
  **/
-static IncrementalWriter getIncrementalWriter(IndexComponent *component)
+static incremental_writer_t
+get_incremental_writer(struct index_component *component)
 {
-  IncrementalWriter incrFunc = component->info->incremental;
+	incremental_writer_t incr_func = component->info->incremental;
 
-  if (incrFunc == NULL) {
-    incrFunc = &wrapSaverAsIncremental;
-  }
+	if (incr_func == NULL) {
+		incr_func = &wrap_saver_as_incremental;
+	}
 
-  return incrFunc;
+	return incr_func;
 }
 
-/*****************************************************************************/
-int performIndexComponentZoneSave(IndexComponent   *component,
-                                  unsigned int      zone,
-                                  CompletionStatus *completed)
+/**********************************************************************/
+int perform_index_component_zone_save(struct index_component *component,
+				      unsigned int zone,
+				      enum completion_status *completed)
 {
-  CompletionStatus comp = CS_NOT_COMPLETED;
+	enum completion_status comp = CS_NOT_COMPLETED;
 
-  WriteZone *wz = NULL;
-  int result = resolveWriteZone(component, zone, &wz);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct write_zone *wz = NULL;
+	int result = resolve_write_zone(component, zone, &wz);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  if (wz->phase == IWC_IDLE) {
-    comp = CS_COMPLETED_PREVIOUSLY;
-  } else if (wz->phase == IWC_DONE) {
-    comp = CS_JUST_COMPLETED;
-    wz->phase = IWC_IDLE;
-  } else if (!component->info->chapterSync) {
-    bool done = false;
-    IncrementalWriter incrFunc = getIncrementalWriter(component);
-    int result = (*incrFunc)(component, wz->writer, zone, wz->phase, &done);
-    if (result != UDS_SUCCESS) {
-      if (wz->phase == IWC_ABORT) {
-        wz->phase = IWC_IDLE;
-      } else {
-        wz->phase = IWC_ABORT;
-      }
-      return result;
-    }
-    if (done) {
-      comp = CS_JUST_COMPLETED;
-      wz->phase = IWC_IDLE;
-    } else if (wz->phase == IWC_START) {
-      wz->phase = IWC_CONTINUE;
-    }
-  }
+	if (wz->phase == IWC_IDLE) {
+		comp = CS_COMPLETED_PREVIOUSLY;
+	} else if (wz->phase == IWC_DONE) {
+		comp = CS_JUST_COMPLETED;
+		wz->phase = IWC_IDLE;
+	} else if (!component->info->chapter_sync) {
+		bool done = false;
+		incremental_writer_t incr_func =
+			get_incremental_writer(component);
+		int result = (*incr_func)(component, wz->writer, zone,
+					  wz->phase, &done);
+		if (result != UDS_SUCCESS) {
+			if (wz->phase == IWC_ABORT) {
+				wz->phase = IWC_IDLE;
+			} else {
+				wz->phase = IWC_ABORT;
+			}
+			return result;
+		}
+		if (done) {
+			comp = CS_JUST_COMPLETED;
+			wz->phase = IWC_IDLE;
+		} else if (wz->phase == IWC_START) {
+			wz->phase = IWC_CONTINUE;
+		}
+	}
 
-  if (completed != NULL) {
-    *completed = comp;
-  }
-  return UDS_SUCCESS;
+	if (completed != NULL) {
+		*completed = comp;
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int performIndexComponentChapterWriterSave(IndexComponent *component)
+/**********************************************************************/
+int
+perform_index_component_chapter_writer_save(struct index_component *component)
 {
-  WriteZone *wz = NULL;
-  int result = resolveWriteZone(component, 0, &wz);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct write_zone *wz = NULL;
+	int result = resolve_write_zone(component, 0, &wz);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-    bool done = false;
-    IncrementalWriter incrFunc = getIncrementalWriter(component);
-    int result = ASSERT(incrFunc != NULL, "no writer function");
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    result = (*incrFunc)(component, wz->writer, 0, wz->phase, &done);
-    if (result != UDS_SUCCESS) {
-      if (wz->phase == IWC_ABORT) {
-        wz->phase = IWC_IDLE;
-      } else {
-        wz->phase = IWC_ABORT;
-      }
-      return result;
-    }
-    if (done) {
-      wz->phase = IWC_DONE;
-    } else if (wz->phase == IWC_START) {
-      wz->phase = IWC_CONTINUE;
-    }
-  }
-  return UDS_SUCCESS;
+	if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
+		bool done = false;
+		incremental_writer_t incr_func =
+			get_incremental_writer(component);
+		int result = ASSERT(incr_func != NULL, "no writer function");
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		result = (*incr_func)(component, wz->writer, 0, wz->phase,
+				      &done);
+		if (result != UDS_SUCCESS) {
+			if (wz->phase == IWC_ABORT) {
+				wz->phase = IWC_IDLE;
+			} else {
+				wz->phase = IWC_ABORT;
+			}
+			return result;
+		}
+		if (done) {
+			wz->phase = IWC_DONE;
+		} else if (wz->phase == IWC_START) {
+			wz->phase = IWC_CONTINUE;
+		}
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int finishIndexComponentZoneSave(IndexComponent   *component,
-                                 unsigned int      zone,
-                                 CompletionStatus *completed)
+/**********************************************************************/
+int finish_index_component_zone_save(struct index_component *component,
+				     unsigned int zone,
+				     enum completion_status *completed)
 {
-  WriteZone *wz = NULL;
-  int result = resolveWriteZone(component, zone, &wz);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct write_zone *wz = NULL;
+	int result = resolve_write_zone(component, zone, &wz);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  CompletionStatus comp;
-  switch (wz->phase) {
-    case IWC_IDLE:
-      comp = CS_COMPLETED_PREVIOUSLY;
-      break;
+	enum completion_status comp;
+	switch (wz->phase) {
+	case IWC_IDLE:
+		comp = CS_COMPLETED_PREVIOUSLY;
+		break;
 
-    case IWC_DONE:
-      comp = CS_JUST_COMPLETED;
-      break;
+	case IWC_DONE:
+		comp = CS_JUST_COMPLETED;
+		break;
 
-    default:
-      comp = CS_NOT_COMPLETED;
-  }
+	default:
+		comp = CS_NOT_COMPLETED;
+	}
 
-  IncrementalWriter incrFunc = getIncrementalWriter(component);
-  if ((wz->phase >= IWC_START) && (wz->phase < IWC_ABORT)) {
-    bool done = false;
-    int result = (*incrFunc)(component, wz->writer, zone, IWC_FINISH, &done);
-    if (result != UDS_SUCCESS) {
-      wz->phase = IWC_ABORT;
-      return result;
-    }
-    if (!done) {
-      logWarning("finish incremental save did not complete for %s zone %u",
-                 component->info->name, zone);
-      return UDS_CHECKPOINT_INCOMPLETE;
-    }
-    wz->phase = IWC_IDLE;
-    comp = CS_JUST_COMPLETED;
-  }
+	incremental_writer_t incr_func = get_incremental_writer(component);
+	if ((wz->phase >= IWC_START) && (wz->phase < IWC_ABORT)) {
+		bool done = false;
+		int result = (*incr_func)(component, wz->writer, zone,
+					  IWC_FINISH, &done);
+		if (result != UDS_SUCCESS) {
+			wz->phase = IWC_ABORT;
+			return result;
+		}
+		if (!done) {
+			log_warning("finish incremental save did not complete for %s zone %u",
+				    component->info->name,
+				    zone);
+			return UDS_CHECKPOINT_INCOMPLETE;
+		}
+		wz->phase = IWC_IDLE;
+		comp = CS_JUST_COMPLETED;
+	}
 
-  if (completed != NULL) {
-    *completed = comp;
-  }
-  return UDS_SUCCESS;
+	if (completed != NULL) {
+		*completed = comp;
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int finishIndexComponentIncrementalSave(IndexComponent *component)
+/**********************************************************************/
+int finish_index_component_incremental_save(struct index_component *component)
 {
-  unsigned int zone;
-  for (zone = 0; zone < component->numZones; ++zone) {
-    WriteZone *wz = component->writeZones[zone];
-    IncrementalWriter incrFunc = getIncrementalWriter(component);
-    if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-      // Note: this is only safe if no other threads are currently processing
-      // this particular index
-      bool done = false;
-      int result = (*incrFunc)(component, wz->writer, zone, IWC_FINISH, &done);
-      if (result != UDS_SUCCESS) {
-        return result;
-      }
-      if (!done) {
-        logWarning("finishing incremental save did not complete for %s zone %u",
-                   component->info->name, zone);
-        return UDS_UNEXPECTED_RESULT;
-      }
-      wz->phase = IWC_IDLE;
-    }
+	unsigned int zone;
+	for (zone = 0; zone < component->num_zones; ++zone) {
+		struct write_zone *wz = component->write_zones[zone];
+		incremental_writer_t incr_func =
+			get_incremental_writer(component);
+		if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
+			// Note: this is only safe if no other threads are
+			// currently processing this particular index
+			bool done = false;
+			int result = (*incr_func)(component, wz->writer, zone,
+						  IWC_FINISH, &done);
+			if (result != UDS_SUCCESS) {
+				return result;
+			}
+			if (!done) {
+				log_warning("finishing incremental save did not complete for %s zone %u",
+					    component->info->name,
+					    zone);
+				return UDS_UNEXPECTED_RESULT;
+			}
+			wz->phase = IWC_IDLE;
+		}
 
-    if ((wz->writer != NULL) && !wasBufferedWriterUsed(wz->writer)) {
-      return logErrorWithStringError(UDS_CHECKPOINT_INCOMPLETE,
-                                     "component %s zone %u did not get written",
-                                     component->info->name, zone);
-    }
+		if ((wz->writer != NULL) &&
+		    !was_buffered_writer_used(wz->writer)) {
+			return log_error_strerror(UDS_CHECKPOINT_INCOMPLETE,
+						  "component %s zone %u did not get written",
+						  component->info->name,
+						  zone);
+		}
 
-    int result = closeBufferedWriter(wz);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
+		int result = close_buffered_writer(wz);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int abortIndexComponentZoneSave(IndexComponent   *component,
-                                unsigned int      zone,
-                                CompletionStatus *status)
+/**********************************************************************/
+int abort_index_component_zone_save(struct index_component *component,
+				    unsigned int zone,
+				    enum completion_status *status)
 {
-  WriteZone *wz = NULL;
-  int result = resolveWriteZone(component, zone, &wz);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct write_zone *wz = NULL;
+	int result = resolve_write_zone(component, zone, &wz);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  CompletionStatus comp = CS_COMPLETED_PREVIOUSLY;
+	enum completion_status comp = CS_COMPLETED_PREVIOUSLY;
 
-  IncrementalWriter incrFunc = getIncrementalWriter(component);
-  if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-    result = (*incrFunc)(component, wz->writer, zone, IWC_ABORT, NULL);
-    wz->phase = IWC_IDLE;
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    comp = CS_JUST_COMPLETED;
-  }
+	incremental_writer_t incr_func = get_incremental_writer(component);
+	if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
+		result = (*incr_func)(component, wz->writer, zone, IWC_ABORT,
+				      NULL);
+		wz->phase = IWC_IDLE;
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		comp = CS_JUST_COMPLETED;
+	}
 
-  if (status != NULL) {
-    *status = comp;
-  }
-  return UDS_SUCCESS;
+	if (status != NULL) {
+		*status = comp;
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int abortIndexComponentIncrementalSave(IndexComponent *component)
+/**********************************************************************/
+int abort_index_component_incremental_save(struct index_component *component)
 {
-  int result = UDS_SUCCESS;
-  unsigned int zone;
-  for (zone = 0; zone < component->numZones; ++zone) {
-    WriteZone *wz = component->writeZones[zone];
-    IncrementalWriter incrFunc = getIncrementalWriter(component);
-    if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-      // Note: this is only safe if no other threads are currently processing
-      // this particular index
-      result = (*incrFunc)(component, wz->writer, zone, IWC_ABORT, NULL);
-      wz->phase = IWC_IDLE;
-      if (result != UDS_SUCCESS) {
-        return result;
-      }
-    }
+	int result = UDS_SUCCESS;
+	unsigned int zone;
+	for (zone = 0; zone < component->num_zones; ++zone) {
+		struct write_zone *wz = component->write_zones[zone];
+		incremental_writer_t incr_func =
+			get_incremental_writer(component);
+		if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
+			// Note: this is only safe if no other threads are
+			// currently processing this particular index
+			result = (*incr_func)(component, wz->writer, zone,
+					      IWC_ABORT, NULL);
+			wz->phase = IWC_IDLE;
+			if (result != UDS_SUCCESS) {
+				return result;
+			}
+		}
 
-    int result = closeBufferedWriter(wz);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
+		int result = close_buffered_writer(wz);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int discardIndexComponent(IndexComponent *component)
+/**********************************************************************/
+int discard_index_component(struct index_component *component)
 {
-  if (!component->info->ioStorage) {
-    return UDS_INVALID_ARGUMENT;
-  }
+	if (!component->info->io_storage) {
+		return UDS_INVALID_ARGUMENT;
+	}
 
-  unsigned int numZones = 0;
-  unsigned int saveSlot = 0;
-  int result = findLatestIndexSaveSlot(component->state->layout, &numZones,
-                                       &saveSlot);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	unsigned int num_zones = 0;
+	unsigned int save_slot = 0;
+	int result = find_latest_index_save_slot(component->state->layout,
+						 &num_zones, &save_slot);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  unsigned int oldSaveSlot = component->state->saveSlot;
-  component->state->saveSlot = saveSlot;
+	unsigned int old_save_slot = component->state->save_slot;
+	component->state->save_slot = save_slot;
 
-  unsigned int z;
-  for (z = 0; z < numZones; ++z) {
-    BufferedWriter *writer;
-    int result = openStateBufferedWriter(component->state,
-                                         component->info->kind, z, &writer);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
-    result = writeZerosToBufferedWriter(writer, UDS_BLOCK_SIZE);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
-    result = flushBufferedWriter(writer);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
-    freeBufferedWriter(writer);
-  }
+	unsigned int z;
+	for (z = 0; z < num_zones; ++z) {
+		struct buffered_writer *writer;
+		int result = open_state_buffered_writer(component->state,
+							component->info->kind,
+							z, &writer);
+		if (result != UDS_SUCCESS) {
+			break;
+		}
+		result =
+			write_zeros_to_buffered_writer(writer, UDS_BLOCK_SIZE);
+		if (result != UDS_SUCCESS) {
+			break;
+		}
+		result = flush_buffered_writer(writer);
+		if (result != UDS_SUCCESS) {
+			break;
+		}
+		free_buffered_writer(writer);
+	}
 
-  component->state->saveSlot = oldSaveSlot;
-  return result;
+	component->state->save_slot = old_save_slot;
+	return result;
 }

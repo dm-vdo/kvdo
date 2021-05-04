@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bits.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.h#6 $
  */
 
 #ifndef BITS_H
@@ -43,7 +43,7 @@
  */
 
 /**
- * This is the largest field size supported by getField & setField.  Any
+ * This is the largest field size supported by get_field & set_field.  Any
  * field that is larger is not guaranteed to fit in a single, byte aligned
  * uint32_t.
  **/
@@ -51,11 +51,11 @@ enum { MAX_FIELD_BITS = (sizeof(uint32_t) - 1) * CHAR_BIT + 1 };
 
 /**
  * This is the number of guard bytes needed at the end of the memory byte
- * array when using the bit utilities.  3 bytes are needed when getField &
- * setField access a field, because they will access some "extra" bytes
+ * array when using the bit utilities.  3 bytes are needed when get_field &
+ * set_field access a field, because they will access some "extra" bytes
  * past the end of the field.  And 7 bytes are needed when getBigField &
- * setBigField access a big field, for the same reason.  Note that moveBits
- * calls getBigField & setBigField.  7 is rewritten to make it clear how it
+ * set_big_field access a big field, for the same reason.  Note that move_bits
+ * calls get_big_field & set_big_field.  7 is rewritten to make it clear how it
  * is derived.
  **/
 enum { POST_FIELD_GUARD_BYTES = sizeof(uint64_t) - 1 };
@@ -69,11 +69,12 @@ enum { POST_FIELD_GUARD_BYTES = sizeof(uint64_t) - 1 };
  *
  * @return the bit field
  **/
-static INLINE unsigned int getField(const byte *memory, uint64_t offset,
-                                    int size)
+static INLINE unsigned int
+get_field(const byte *memory, uint64_t offset, int size)
 {
-  const void *addr = memory + offset / CHAR_BIT;
-  return (getUInt32LE(addr) >> (offset % CHAR_BIT)) & ((1 << size) - 1);
+	const void *addr = memory + offset / CHAR_BIT;
+	return (get_unaligned_le32(addr) >> (offset % CHAR_BIT)) &
+	       ((1 << size) - 1);
 }
 
 /**
@@ -83,18 +84,16 @@ static INLINE unsigned int getField(const byte *memory, uint64_t offset,
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
-static INLINE void setField(unsigned int value, byte *memory, uint64_t offset,
-                            int size)
+static INLINE void
+set_field(unsigned int value, byte *memory, uint64_t offset, int size)
 {
-  void *addr = memory + offset / CHAR_BIT;
-  int shift = offset % CHAR_BIT;
-  uint32_t data = getUInt32LE(addr);
-  data &= ~(((1 << size) - 1) << shift);
-  data |= value << shift;
-  storeUInt32LE(addr, data);
+	void *addr = memory + offset / CHAR_BIT;
+	int shift = offset % CHAR_BIT;
+	uint32_t data = get_unaligned_le32(addr);
+	data &= ~(((1 << size) - 1) << shift);
+	data |= value << shift;
+	put_unaligned_le32(data, addr);
 }
 
 /**
@@ -103,23 +102,21 @@ static INLINE void setField(unsigned int value, byte *memory, uint64_t offset,
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
-static INLINE void setOne(byte *memory, uint64_t offset, int size)
+static INLINE void set_one(byte *memory, uint64_t offset, int size)
 {
-  if (size > 0) {
-    byte *addr = memory + offset / CHAR_BIT;
-    int shift = offset % CHAR_BIT;
-    int count = size + shift > CHAR_BIT ? CHAR_BIT - shift : size;
-    *addr++ |= ((1 << count) - 1) << shift;
-    for (size -= count; size > CHAR_BIT; size -= CHAR_BIT) {
-      *addr++ = 0xFF;
-    }
-    if (size) {
-      *addr |= ~(0xFF << size);
-    }
-  }
+	if (size > 0) {
+		byte *addr = memory + offset / CHAR_BIT;
+		int shift = offset % CHAR_BIT;
+		int count = size + shift > CHAR_BIT ? CHAR_BIT - shift : size;
+		*addr++ |= ((1 << count) - 1) << shift;
+		for (size -= count; size > CHAR_BIT; size -= CHAR_BIT) {
+			*addr++ = 0xFF;
+		}
+		if (size) {
+			*addr |= ~(0xFF << size);
+		}
+	}
 }
 
 /**
@@ -128,23 +125,21 @@ static INLINE void setOne(byte *memory, uint64_t offset, int size)
  * @param memory  The base memory byte address
  * @param offset  The bit offset into the memory for the start of the field
  * @param size    The number of bits in the field
- *
- * @return the bit field
  **/
-static INLINE void setZero(byte *memory, uint64_t offset, int size)
+static INLINE void set_zero(byte *memory, uint64_t offset, int size)
 {
-  if (size > 0) {
-    byte *addr = memory + offset / CHAR_BIT;
-    int shift = offset % CHAR_BIT;
-    int count = size + shift > CHAR_BIT ? CHAR_BIT - shift : size;
-    *addr++ &= ~(((1 << count) - 1) << shift);
-    for (size -= count; size > CHAR_BIT; size -= CHAR_BIT) {
-      *addr++ = 0;
-    }
-    if (size) {
-      *addr &= 0xFF << size;
-    }
-  }
+	if (size > 0) {
+		byte *addr = memory + offset / CHAR_BIT;
+		int shift = offset % CHAR_BIT;
+		int count = size + shift > CHAR_BIT ? CHAR_BIT - shift : size;
+		*addr++ &= ~(((1 << count) - 1) << shift);
+		for (size -= count; size > CHAR_BIT; size -= CHAR_BIT) {
+			*addr++ = 0;
+		}
+		if (size) {
+			*addr &= 0xFF << size;
+		}
+	}
 }
 
 /**
@@ -156,7 +151,10 @@ static INLINE void setZero(byte *memory, uint64_t offset, int size)
  * @param destination  Where to store the bytes
  * @param size         The number of bytes
  **/
-void getBytes(const byte *memory, uint64_t offset, byte *destination, int size);
+void get_bytes(const byte *memory,
+	       uint64_t offset,
+	       byte *destination,
+	       int size);
 
 /**
  * Store a byte stream into a bit stream, writing a whole number of bytes
@@ -167,21 +165,24 @@ void getBytes(const byte *memory, uint64_t offset, byte *destination, int size);
  * @param source  Where to read the bytes
  * @param size    The number of bytes
  **/
-void setBytes(byte *memory, uint64_t offset, const byte *source, int size);
+void set_bytes(byte *memory, uint64_t offset, const byte *source, int size);
 
 /**
  * Move bits from one field to another.  When the fields overlap, behave as
  * if we first move all the bits from the source to a temporary value, and
  * then move all the bits from the temporary value to the destination.
  *
- * @param sMemory         The base source memory byte address
+ * @param s_memory        The base source memory byte address
  * @param source          Bit offset into memory for the source start
- * @param dMemory         The base destination memory byte address
+ * @param d_memory        The base destination memory byte address
  * @param destination     Bit offset into memory for the destination start
  * @param size            The number of bits in the field
  **/
-void moveBits(const byte *sMemory, uint64_t source, byte *dMemory,
-              uint64_t destination, int size);
+void move_bits(const byte *s_memory,
+	       uint64_t source,
+	       byte *d_memory,
+	       uint64_t destination,
+	       int size);
 
 /**
  * Compare bits from one field to another, testing for sameness
@@ -194,8 +195,10 @@ void moveBits(const byte *sMemory, uint64_t source, byte *dMemory,
  *
  * @return true if fields are the same, false if different
  **/
-bool sameBits(const byte *mem1, uint64_t offset1, const byte *mem2,
-              uint64_t offset2, int size)
-  __attribute__((warn_unused_result));
+bool __must_check same_bits(const byte *mem1,
+			    uint64_t offset1,
+			    const byte *mem2,
+			    uint64_t offset2,
+			    int size);
 
 #endif /* BITS_H */

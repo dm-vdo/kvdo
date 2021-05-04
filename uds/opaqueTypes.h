@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,19 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/opaqueTypes.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/opaqueTypes.h#5 $
  */
 
 #ifndef OPAQUE_TYPES_H
 #define OPAQUE_TYPES_H
 
 /*
- * This file contains typedefs of structures internal to the UDS library
- * for which many users of those structures do need to know the details
+ * This file contains structure declarations internal to the UDS library
+ * for which many users of those structures do not need to know the details
  * of the structures themselves.
  */
-typedef struct indexRouter     IndexRouter;
-typedef struct internalRequest Request;
-typedef struct requestQueue    RequestQueue;
+struct index_router;
+typedef struct internal_request Request;
+typedef struct uds_request_queue RequestQueue;
 
 #endif /* OPAQUE_TYPES_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/util/eventCount.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#6 $
  */
 
 /**
- * This EventCount implementation uses a posix semaphore for portability,
+ * This event count implementation uses a posix semaphore for portability,
  * although a futex would be slightly superior to use and easy to substitute.
  * It is designed to make signalling as cheap as possible, since that is the
  * code path likely triggered on most updates to a lock-free data structure.
@@ -29,11 +29,11 @@
  *
  * The critical field is the state, which is really two fields that can be
  * atomically updated in unison: an event counter and a waiter count. Every
- * call to eventCountPrepare() issues a wait token by atomically incrementing
+ * call to event_count_prepare() issues a wait token by atomically incrementing
  * the waiter count. The key invariant is a strict accounting of the number of
- * tokens issued. Every token returned by eventCountPrepare() is a contract
- * that the caller will call acquireSemaphore() and a signaller will call
- * releaseSemaphore(), each exactly once. Atomic updates to the state field
+ * tokens issued. Every token returned by event_count_prepare() is a contract
+ * that the caller will call acquire_semaphore() and a signaller will call
+ * release_semaphore(), each exactly once. Atomic updates to the state field
  * ensure that each token is counted once and that tokens are not lost.
  * Cancelling a token attempts to take a fast-path by simply decrementing the
  * waiters field, but if the token has already been claimed by a signaller,
@@ -44,7 +44,7 @@
  * 48-bit counter. We are unlikely to have 2^16 threads, much less 2^16
  * threads waiting on any single event transition. 2^48 microseconds is
  * several years, so a token holder would have to wait that long for the
- * counter to wrap around, and then call eventCountWait() at the exact right
+ * counter to wrap around, and then call event_count_wait() at the exact right
  * time to see the re-used counter, in order to lose a wakeup due to counter
  * wrap-around. Using a 32-bit state field would greatly increase that chance,
  * but if forced to do so, the implementation could likely tolerate it since
@@ -79,8 +79,8 @@
  *    signal                3          0          1
  *    cancel (must wait)    3          0          0
  *
- * The EventCount structure is aligned, sized, and allocated to cache line
- * boundaries to avoid any false sharing between the EventCount and other
+ * The event count structure is aligned, sized, and allocated to cache line
+ * boundaries to avoid any false sharing between the event count and other
  * shared state. The state field and semaphore should fit on a single cache
  * line. The instrumentation counters increase the size of the structure so it
  * rounds up to use two (64-byte x86) cache lines.
@@ -99,24 +99,24 @@
 #include "threads.h"
 
 enum {
-  ONE_WAITER   = 1,               // value used to increment the waiters field
-  ONE_EVENT    = (1 << 16),       // value used to increment the event counter
-  WAITERS_MASK = (ONE_EVENT - 1), // bit mask to access the waiters field
-  EVENTS_MASK  = ~WAITERS_MASK,   // bit mask to access the event counter
+	ONE_WAITER = 1, // value used to increment the waiters field
+	ONE_EVENT = (1 << 16), // value used to increment the event counter
+	WAITERS_MASK = (ONE_EVENT - 1), // bit mask to access the waiters field
+	EVENTS_MASK = ~WAITERS_MASK, // bit mask to access the event counter
 };
 
-struct eventCount {
-  // Atomically mutable state:
-  // low  16 bits: the number of wait tokens not posted to the semaphore
-  // high 48 bits: current event counter
-  atomic64_t state;
+struct event_count {
+	// Atomically mutable state:
+	// low  16 bits: the number of wait tokens not posted to the semaphore
+	// high 48 bits: current event counter
+	atomic64_t state;
 
-  // Semaphore used to block threads when waiting is required.
-  Semaphore semaphore;
+	// Semaphore used to block threads when waiting is required.
+	struct semaphore semaphore;
 
-  // Instrumentation counters.
+	// Instrumentation counters.
 
-  // Declare alignment so we don't share a cache line.
+	// Declare alignment so we don't share a cache line.
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
 /**
@@ -124,52 +124,53 @@ struct eventCount {
  *
  * @return  true iff the tokens contain the same event field value
  **/
-static INLINE bool sameEvent(EventToken token1, EventToken token2)
+static INLINE bool same_event(event_token_t token1, event_token_t token2)
 {
-  return ((token1 & EVENTS_MASK) == (token2 & EVENTS_MASK));
+	return ((token1 & EVENTS_MASK) == (token2 & EVENTS_MASK));
 }
 
 /**********************************************************************/
-void eventCountBroadcast(EventCount *ec)
+void event_count_broadcast(struct event_count *ec)
 {
 
-  // Even if there are no waiters (yet), we will need a memory barrier.
-  smp_mb();
+	// Even if there are no waiters (yet), we will need a memory barrier.
+	smp_mb();
 
-  uint64_t waiters;
-  uint64_t state = atomic64_read(&ec->state);
-  uint64_t oldState = state;
-  do {
-    // Check if there are any tokens that have not yet been been transferred
-    // to the semaphore. This is the fast no-waiters path.
-    waiters = (state & WAITERS_MASK);
-    if (waiters == 0) {
-      // Fast path first time through--no need to signal or post if there are
-      // no observers.
-      return;
-    }
+	uint64_t waiters;
+	uint64_t state = atomic64_read(&ec->state);
+	uint64_t old_state = state;
+	do {
+		// Check if there are any tokens that have not yet been been
+		// transferred to the semaphore. This is the fast no-waiters
+		// path.
+		waiters = (state & WAITERS_MASK);
+		if (waiters == 0) {
+			// Fast path first time through--no need to signal or
+			// post if there are no observers.
+			return;
+		}
 
-    /*
-     * Attempt to atomically claim all the wait tokens and bump the event count
-     * using an atomic compare-and-swap.  This operation contains a memory
-     * barrier.
-     */
-    EventToken newState = ((state & ~WAITERS_MASK) + ONE_EVENT);
-    oldState = state;
-    state = atomic64_cmpxchg(&ec->state, oldState, newState);
-    // The cmpxchg fails when we lose a race with a new waiter or another
-    // signaller, so try again.
-  } while (unlikely(state != oldState));
+		/*
+		 * Attempt to atomically claim all the wait tokens and bump the
+		 * event count using an atomic compare-and-swap.  This
+		 * operation contains a memory barrier.
+		 */
+		event_token_t new_state = ((state & ~WAITERS_MASK) + ONE_EVENT);
+		old_state = state;
+		state = atomic64_cmpxchg(&ec->state, old_state, new_state);
+		// The cmpxchg fails when we lose a race with a new waiter or
+		// another signaller, so try again.
+	} while (unlikely(state != old_state));
 
 
-  /*
-   * Wake the waiters by posting to the semaphore. This effectively transfers
-   * the wait tokens to the semaphore. There's sadly no bulk post for posix
-   * semaphores, so we've got to loop to do them all.
-   */
-  while (waiters-- > 0) {
-    releaseSemaphore(&ec->semaphore);
-  }
+	/*
+	 * Wake the waiters by posting to the semaphore. This effectively
+	 * transfers the wait tokens to the semaphore. There's sadly no bulk
+	 * post for posix semaphores, so we've got to loop to do them all.
+	 */
+	while (waiters-- > 0) {
+		release_semaphore(&ec->semaphore);
+	}
 }
 
 /**
@@ -183,20 +184,21 @@ void eventCountBroadcast(EventCount *ec)
  * @return true if the wait was cancelled, false if the caller must
  *         still wait on the semaphore
  **/
-static INLINE bool fastCancel(EventCount *ec, EventToken token)
+static INLINE bool fast_cancel(struct event_count *ec, event_token_t token)
 {
-  EventToken currentToken = atomic64_read(&ec->state);
-  while (sameEvent(currentToken, token)) {
-    // Try to decrement the waiter count via compare-and-swap as if we had
-    // never prepared to wait.
-    EventToken et = atomic64_cmpxchg(&ec->state, currentToken,
-                                     currentToken - 1);
-    if (et == currentToken) {
-      return true;
-    }
-    currentToken = et;
-  }
-  return false;
+	event_token_t current_token = atomic64_read(&ec->state);
+	while (same_event(current_token, token)) {
+		// Try to decrement the waiter count via compare-and-swap as if
+		// we had never prepared to wait.
+		event_token_t et = atomic64_cmpxchg(&ec->state,
+                                                    current_token,
+                                                    current_token - 1);
+                if (et == current_token) {
+			return true;
+		}
+		current_token = et;
+	}
+	return false;
 }
 
 /**
@@ -206,112 +208,122 @@ static INLINE bool fastCancel(EventCount *ec, EventToken token)
  * in the semaphore, and the number of times the wait times out.
  *
  * @param ec       the event count instance
- * @param timeout  an optional timeout value to pass to attemptSemaphore()
+ * @param timeout  an optional timeout value to pass to attempt_semaphore()
  *
  * @return true if a token was consumed, otherwise false only if a timeout
  *         was specified and we timed out
  **/
-static bool consumeWaitToken(EventCount *ec, const RelTime *timeout)
+static bool consume_wait_token(struct event_count *ec,
+			       const ktime_t *timeout)
 {
-  // Try to grab a token without waiting.
-  if (attemptSemaphore(&ec->semaphore, 0)) {
-    return true;
-  }
+	// Try to grab a token without waiting.
+	if (attempt_semaphore(&ec->semaphore, 0)) {
+		return true;
+	}
 
 
-  if (timeout == NULL) {
-    acquireSemaphore(&ec->semaphore);
-  } else if (!attemptSemaphore(&ec->semaphore, *timeout)) {
-    return false;
-  }
-  return true;
+	if (timeout == NULL) {
+		acquire_semaphore(&ec->semaphore);
+	} else if (!attempt_semaphore(&ec->semaphore, *timeout)) {
+		return false;
+	}
+	return true;
 }
 
 /**********************************************************************/
-int makeEventCount(EventCount **ecPtr)
+int make_event_count(struct event_count **ec_ptr)
 {
-  // The event count will be allocated on a cache line boundary so there will
-  // not be false sharing of the line with any other data structure.
-  EventCount *ec = NULL;
-  int result = ALLOCATE(1, EventCount, "event count", &ec);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	// The event count will be allocated on a cache line boundary so there
+	// will not be false sharing of the line with any other data structure.
+	struct event_count *ec = NULL;
+	int result = ALLOCATE(1, struct event_count, "event count", &ec);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  atomic64_set(&ec->state, 0);
-  result = initializeSemaphore(&ec->semaphore, 0);
-  if (result != UDS_SUCCESS) {
-    FREE(ec);
-    return result;
-  }
+	atomic64_set(&ec->state, 0);
+	result = initialize_semaphore(&ec->semaphore, 0);
+	if (result != UDS_SUCCESS) {
+		FREE(ec);
+		return result;
+	}
 
-  *ecPtr = ec;
-  return UDS_SUCCESS;
+	*ec_ptr = ec;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void freeEventCount(EventCount *ec)
+void free_event_count(struct event_count *ec)
 {
-  if (ec == NULL) {
-    return;
-  }
-  destroySemaphore(&ec->semaphore);
-  FREE(ec);
+	if (ec == NULL) {
+		return;
+	}
+	destroy_semaphore(&ec->semaphore);
+	FREE(ec);
 }
 
 /**********************************************************************/
-EventToken eventCountPrepare(EventCount *ec)
+event_token_t event_count_prepare(struct event_count *ec)
 {
-  return atomic64_add_return(ONE_WAITER, &ec->state);
+	return atomic64_add_return(ONE_WAITER, &ec->state);
 }
 
 /**********************************************************************/
-void eventCountCancel(EventCount *ec, EventToken token)
+void event_count_cancel(struct event_count *ec, event_token_t token)
 {
-  // Decrement the waiter count if the event hasn't been signalled.
-  if (fastCancel(ec, token)) {
-    return;
-  }
-  // A signaller has already transferred (or promised to transfer) our token
-  // to the semaphore, so we must consume it from the semaphore by waiting.
-  eventCountWait(ec, token, NULL);
+	// Decrement the waiter count if the event hasn't been signalled.
+	if (fast_cancel(ec, token)) {
+		return;
+	}
+	// A signaller has already transferred (or promised to transfer) our
+	// token to the semaphore, so we must consume it from the semaphore by
+	// waiting.
+	event_count_wait(ec, token, NULL);
 }
 
 /**********************************************************************/
-bool eventCountWait(EventCount *ec, EventToken token, const RelTime *timeout)
+bool event_count_wait(struct event_count *ec,
+		      event_token_t token,
+		      const ktime_t *timeout)
 {
 
-  for (;;) {
-    // Wait for a signaller to transfer our wait token to the semaphore.
-    if (!consumeWaitToken(ec, timeout)) {
-      // The wait timed out, so we must cancel the token instead. Try to
-      // decrement the waiter count if the event hasn't been signalled.
-      if (fastCancel(ec, token)) {
-        return false;
-      }
-      /*
-       * We timed out, but a signaller came in before we could cancel the
-       * wait. We have no choice but to wait for the semaphore to be posted.
-       * Since signaller has promised to do it, the wait will be short. The
-       * timeout and the signal happened at about the same time, so either
-       * outcome could be returned. It's simpler to ignore the timeout.
-       */
-      timeout = NULL;
-      continue;
-    }
+	for (;;) {
+		// Wait for a signaller to transfer our wait token to the
+		// semaphore.
+		if (!consume_wait_token(ec, timeout)) {
+			// The wait timed out, so we must cancel the token
+			// instead. Try to decrement the waiter count if the
+			// event hasn't been signalled.
+			if (fast_cancel(ec, token)) {
+				return false;
+			}
+			/*
+			 * We timed out, but a signaller came in before we
+			 * could cancel the wait. We have no choice but to wait
+			 * for the semaphore to be posted. Since signaller has
+			 * promised to do it, the wait will be short. The
+			 * timeout and the signal happened at about the same
+			 * time, so either outcome could be returned. It's
+			 * simpler to ignore the timeout.
+			 */
+			timeout = NULL;
+			continue;
+		}
 
-    // A wait token has now been consumed from the semaphore.
+		// A wait token has now been consumed from the semaphore.
 
-    // Stop waiting if the count has changed since the token was acquired.
-    if (!sameEvent(token, atomic64_read(&ec->state))) {
-      return true;
-    }
+		// Stop waiting if the count has changed since the token was
+		// acquired.
+		if (!same_event(token, atomic64_read(&ec->state))) {
+			return true;
+		}
 
-    // We consumed someone else's wait token. Put it back in the semaphore,
-    // which will wake another waiter, hopefully one who can stop waiting.
-    releaseSemaphore(&ec->semaphore);
+		// We consumed someone else's wait token. Put it back in the
+		// semaphore, which will wake another waiter, hopefully one who
+		// can stop waiting.
+		release_semaphore(&ec->semaphore);
 
-    // Attempt to give an earlier waiter a shot at the semaphore.
-    yieldScheduler();
-  }
+		// Attempt to give an earlier waiter a shot at the semaphore.
+		yield_scheduler();
+	}
 }

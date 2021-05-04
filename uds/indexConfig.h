@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.h#4 $
  */
 
 #ifndef INDEX_CONFIG_H
@@ -29,21 +29,24 @@
  * A set of configuration parameters for the indexer.
  **/
 struct configuration {
-  /* Parameters for the volume */
+	/* Parameters for the volume */
 
-  /* The volume layout */
-  Geometry *geometry;
+	/* The volume layout */
+	struct geometry *geometry;
 
-  /* Size of the page cache and sparse chapter index cache, in chapters */
-  unsigned int cacheChapters;
+	/*
+	 * Size of the page cache and sparse chapter index cache, in
+	 * chapters
+	 */
+	unsigned int cache_chapters;
 
-  /** Parameters for the master index */
+	/** Parameters for the volume index */
 
-  /* The mean delta for the master index */
-  unsigned int masterIndexMeanDelta;
+	/* The mean delta for the volume index */
+	unsigned int volume_index_mean_delta;
 
-  /* Sampling rate for sparse indexing */
-  unsigned int sparseSampleRate;
+	/* Sampling rate for sparse indexing */
+	unsigned int sparse_sample_rate;
 };
 
 #endif /* INDEX_CONFIG_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#7 $
  */
 
 #include "indexLayoutParser.h"
@@ -28,73 +28,78 @@
 #include "typeDefs.h"
 #include "uds.h"
 
-/*****************************************************************************/
-__attribute__((warn_unused_result))
-static int setParameterValue(LayoutParameter *lp, char *data)
+/**********************************************************************/
+static int __must_check set_parameter_value(struct layout_parameter *lp,
+					    char *data)
 {
-  if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
-    int result = parseUint64(data, lp->value.num);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                     "bad numeric value %s", data);
-    }
-  } else if ((lp->type & LP_TYPE_MASK) == LP_STRING) {
-    *lp->value.str = data;
-  } else {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "unkown LayoutParameter type code %x",
-                                   (lp->type & LP_TYPE_MASK));
-  }
-  return UDS_SUCCESS;
+	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
+		int result = parse_uint64(data, lp->value.num);
+		if (result != UDS_SUCCESS) {
+			return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+						  "bad numeric value %s",
+						  data);
+		}
+	} else if ((lp->type & LP_TYPE_MASK) == LP_STRING) {
+		*lp->value.str = data;
+	} else {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "unkown layout parameter type code %x",
+					  (lp->type & LP_TYPE_MASK));
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int parseLayoutString(char *info, LayoutParameter *params, size_t count)
+/**********************************************************************/
+int parse_layout_string(char *info,
+			struct layout_parameter *params,
+			size_t count)
 {
-  if (!strchr(info, '=')) {
-    LayoutParameter *lp;
-    for (lp = params; lp < params + count; ++lp) {
-      if (lp->type & LP_DEFAULT) {
-        int result = setParameterValue(lp, info);
-        if (result != UDS_SUCCESS) {
-          return result;
-        }
-        break;
-      }
-    }
-  } else {
-    char *data = NULL;
-    char *token;
-    for (token = nextToken(info, " ", &data);
-         token;
-         token = nextToken(NULL, " ", &data))
-    {
-      char *equal = strchr(token, '=');
-      LayoutParameter *lp;
-      for (lp = params; lp < params + count; ++lp) {
-        if (!equal && (lp->type & LP_DEFAULT)) {
-          break;
-        } else if (strncmp(token, lp->name, equal - token) == 0 &&
-                   strlen(lp->name) == (size_t) (equal - token)) {
-          break;
-        }
-      }
-      if (lp == NULL) {
-        return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                       "unkown index parameter %s",
-                                       token);
-      }
-      if (lp->seen) {
-        return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                       "duplicate index parameter %s",
-                                       token);
-      }
-      lp->seen = true;
-      int result = setParameterValue(lp, equal ? equal + 1 : token);
-      if (result != UDS_SUCCESS) {
-        return result;
-      }
-    }
-  }
-  return UDS_SUCCESS;
+	if (!strchr(info, '=')) {
+		struct layout_parameter *lp;
+		for (lp = params; lp < params + count; ++lp) {
+			if (lp->type & LP_DEFAULT) {
+				int result = set_parameter_value(lp, info);
+				if (result != UDS_SUCCESS) {
+					return result;
+				}
+				break;
+			}
+		}
+	} else {
+		char *data = NULL;
+		char *token;
+		for (token = next_token(info, " ", &data); token;
+		     token = next_token(NULL, " ", &data)) {
+			char *equal = strchr(token, '=');
+			struct layout_parameter *lp;
+			for (lp = params; lp < params + count; ++lp) {
+				if (!equal && (lp->type & LP_DEFAULT)) {
+					break;
+				} else if (strncmp(token,
+						   lp->name,
+						   equal - token) == 0 &&
+					   strlen(lp->name) ==
+						   (size_t)(equal - token)) {
+					break;
+				}
+			}
+			if (lp == NULL) {
+				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+							  "unkown index parameter %s",
+							  token);
+			}
+			if (lp->seen) {
+				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+							  "duplicate index parameter %s",
+							  token);
+			}
+			lp->seen = true;
+			int result = set_parameter_value(
+				lp, equal ? equal + 1 : token);
+			if (result != UDS_SUCCESS) {
+				return result;
+			}
+		}
+	}
+	return UDS_SUCCESS;
 }

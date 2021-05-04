@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,136 +16,157 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#32 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#79 $
  */
 
 #include <linux/module.h>
 
 #include "buffer.h"
+#include "errors.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 #include "sysfs.h"
+#include "threadDevice.h"
+#include "threadOnce.h"
 #include "timeUtils.h"
 #include "uds.h"
-#include "uds-block.h"
 #include "util/funnelQueue.h"
 
 /**********************************************************************/
-static int __init dedupeInit(void)
+static int __init dedupe_init(void)
 {
-  memoryInit();
-  logInfo("loaded version %s", UDS_VERSION);
-  initSysfs();
-  return 0;
+	uds_initialize_thread_device_registry();
+	memory_init();
+	log_info("loaded version %s", UDS_VERSION);
+	init_sysfs();
+	return 0;
 }
 
 /**********************************************************************/
-static void __exit dedupeExit(void)
+static void __exit dedupe_exit(void)
 {
-  putSysfs();
-  memoryExit();
-  logInfo("unloaded version %s", UDS_VERSION);
+	put_sysfs();
+	memory_exit();
+	log_info("unloaded version %s", UDS_VERSION);
 }
 
 /**********************************************************************/
-module_init(dedupeInit);
-module_exit(dedupeExit);
+module_init(dedupe_init);
+module_exit(dedupe_exit);
 
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_768MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_MAX);
-EXPORT_SYMBOL_GPL(udsInitializeConfiguration);
-EXPORT_SYMBOL_GPL(udsComputeIndexSize);
-EXPORT_SYMBOL_GPL(udsConfigurationSetNonce);
-EXPORT_SYMBOL_GPL(udsConfigurationGetNonce);
-EXPORT_SYMBOL_GPL(udsConfigurationSetSparse);
-EXPORT_SYMBOL_GPL(udsConfigurationGetSparse);
-EXPORT_SYMBOL_GPL(udsConfigurationGetMemory);
-EXPORT_SYMBOL_GPL(udsConfigurationGetChaptersPerVolume);
-EXPORT_SYMBOL_GPL(udsFreeConfiguration);
-EXPORT_SYMBOL_GPL(udsGetVersion);
-EXPORT_SYMBOL_GPL(udsCreateIndexSession);
-EXPORT_SYMBOL_GPL(udsOpenIndex);
-EXPORT_SYMBOL_GPL(udsSuspendIndexSession);
-EXPORT_SYMBOL_GPL(udsResumeIndexSession);
-EXPORT_SYMBOL_GPL(udsCloseIndex);
-EXPORT_SYMBOL_GPL(udsDestroyIndexSession);
-EXPORT_SYMBOL_GPL(udsFlushIndexSession);
-EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
-EXPORT_SYMBOL_GPL(udsGetIndexStats);
-EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
-EXPORT_SYMBOL_GPL(udsStringError);
-EXPORT_SYMBOL_GPL(udsStartChunkOperation);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_256MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_512MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_768MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_MAX);
+EXPORT_SYMBOL_GPL(uds_initialize_configuration);
+EXPORT_SYMBOL_GPL(uds_compute_index_size);
+EXPORT_SYMBOL_GPL(uds_configuration_set_nonce);
+EXPORT_SYMBOL_GPL(uds_configuration_get_nonce);
+EXPORT_SYMBOL_GPL(uds_configuration_set_sparse);
+EXPORT_SYMBOL_GPL(uds_configuration_get_sparse);
+EXPORT_SYMBOL_GPL(uds_configuration_get_memory);
+EXPORT_SYMBOL_GPL(uds_configuration_get_chapters_per_volume);
+EXPORT_SYMBOL_GPL(uds_free_configuration);
+EXPORT_SYMBOL_GPL(uds_get_version);
+EXPORT_SYMBOL_GPL(uds_create_index_session);
+EXPORT_SYMBOL_GPL(uds_open_index);
+EXPORT_SYMBOL_GPL(uds_suspend_index_session);
+EXPORT_SYMBOL_GPL(uds_resume_index_session);
+EXPORT_SYMBOL_GPL(uds_close_index);
+EXPORT_SYMBOL_GPL(uds_destroy_index_session);
+EXPORT_SYMBOL_GPL(uds_flush_index_session);
+EXPORT_SYMBOL_GPL(uds_get_index_configuration);
+EXPORT_SYMBOL_GPL(uds_get_index_stats);
+EXPORT_SYMBOL_GPL(uds_get_index_session_stats);
+EXPORT_SYMBOL_GPL(uds_string_error);
+EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
 
-EXPORT_SYMBOL_GPL(allocSprintf);
-EXPORT_SYMBOL_GPL(allocateMemory);
-EXPORT_SYMBOL_GPL(allocateMemoryNowait);
-EXPORT_SYMBOL_GPL(assertionFailed);
-EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
-EXPORT_SYMBOL_GPL(availableSpace);
-EXPORT_SYMBOL_GPL(bufferLength);
-EXPORT_SYMBOL_GPL(bufferUsed);
-EXPORT_SYMBOL_GPL(clearBuffer);
-EXPORT_SYMBOL_GPL(compactBuffer);
-EXPORT_SYMBOL_GPL(contentLength);
-EXPORT_SYMBOL_GPL(copyBytes);
-EXPORT_SYMBOL_GPL(currentTime);
-EXPORT_SYMBOL_GPL(duplicateString);
-EXPORT_SYMBOL_GPL(ensureAvailableSpace);
-EXPORT_SYMBOL_GPL(equalBuffers);
-EXPORT_SYMBOL_GPL(fixedSprintf);
-EXPORT_SYMBOL_GPL(freeBuffer);
-EXPORT_SYMBOL_GPL(freeFunnelQueue);
-EXPORT_SYMBOL_GPL(freeMemory);
-EXPORT_SYMBOL_GPL(funnelQueuePoll);
-EXPORT_SYMBOL_GPL(getBoolean);
-EXPORT_SYMBOL_GPL(getBufferContents);
-EXPORT_SYMBOL_GPL(getByte);
-EXPORT_SYMBOL_GPL(getBytesFromBuffer);
-EXPORT_SYMBOL_GPL(getMemoryStats);
-EXPORT_SYMBOL_GPL(getUInt16BEFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt16LEFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt16LEsFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt32BEFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt32BEsFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt32LEFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt64BEsFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt64LEFromBuffer);
-EXPORT_SYMBOL_GPL(getUInt64LEsFromBuffer);
-EXPORT_SYMBOL_GPL(growBuffer);
-EXPORT_SYMBOL_GPL(hasSameBytes);
-EXPORT_SYMBOL_GPL(isFunnelQueueEmpty);
-EXPORT_SYMBOL_GPL(makeBuffer);
-EXPORT_SYMBOL_GPL(makeFunnelQueue);
+EXPORT_SYMBOL_GPL(__uds_log_message);
+EXPORT_SYMBOL_GPL(alloc_sprintf);
+EXPORT_SYMBOL_GPL(allocate_memory);
+EXPORT_SYMBOL_GPL(allocate_memory_nowait);
+EXPORT_SYMBOL_GPL(append_to_buffer);
+EXPORT_SYMBOL_GPL(available_space);
+EXPORT_SYMBOL_GPL(buffer_length);
+EXPORT_SYMBOL_GPL(buffer_used);
+EXPORT_SYMBOL_GPL(clear_buffer);
+EXPORT_SYMBOL_GPL(compact_buffer);
+EXPORT_SYMBOL_GPL(content_length);
+EXPORT_SYMBOL_GPL(copy_bytes);
+EXPORT_SYMBOL_GPL(current_time_us);
+EXPORT_SYMBOL_GPL(duplicate_string);
+EXPORT_SYMBOL_GPL(ensure_available_space);
+EXPORT_SYMBOL_GPL(equal_buffers);
+EXPORT_SYMBOL_GPL(fixed_sprintf);
+EXPORT_SYMBOL_GPL(free_buffer);
+EXPORT_SYMBOL_GPL(free_funnel_queue);
+EXPORT_SYMBOL_GPL(free_memory);
+EXPORT_SYMBOL_GPL(funnel_queue_poll);
+EXPORT_SYMBOL_GPL(get_boolean);
+EXPORT_SYMBOL_GPL(get_buffer_contents);
+EXPORT_SYMBOL_GPL(get_byte);
+EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
+EXPORT_SYMBOL_GPL(get_log_level);
+EXPORT_SYMBOL_GPL(get_memory_stats);
+EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
+EXPORT_SYMBOL_GPL(get_uint16_les_from_buffer);
+EXPORT_SYMBOL_GPL(get_uint32_le_from_buffer);
+EXPORT_SYMBOL_GPL(get_uint64_le_from_buffer);
+EXPORT_SYMBOL_GPL(get_uint64_les_from_buffer);
+EXPORT_SYMBOL_GPL(has_same_bytes);
+EXPORT_SYMBOL_GPL(initialize_thread_registry);
+EXPORT_SYMBOL_GPL(is_funnel_queue_empty);
+EXPORT_SYMBOL_GPL(log_error_strerror);
+EXPORT_SYMBOL_GPL(log_info_strerror);
+EXPORT_SYMBOL_GPL(log_warning_strerror);
+EXPORT_SYMBOL_GPL(lookup_thread);
+EXPORT_SYMBOL_GPL(make_buffer);
+EXPORT_SYMBOL_GPL(make_funnel_queue);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
-EXPORT_SYMBOL_GPL(nowUsec);
-EXPORT_SYMBOL_GPL(peekByte);
-EXPORT_SYMBOL_GPL(putBoolean);
-EXPORT_SYMBOL_GPL(putBuffer);
-EXPORT_SYMBOL_GPL(putByte);
-EXPORT_SYMBOL_GPL(putBytes);
-EXPORT_SYMBOL_GPL(putInt64LEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt16BEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt16LEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt16LEsIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt32BEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt32BEsIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt32LEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt64BEsIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt64LEIntoBuffer);
-EXPORT_SYMBOL_GPL(putUInt64LEsIntoBuffer);
-EXPORT_SYMBOL_GPL(reallocateMemory);
-EXPORT_SYMBOL_GPL(registerAllocatingThread);
-EXPORT_SYMBOL_GPL(reportMemoryUsage);
-EXPORT_SYMBOL_GPL(resetBufferEnd);
-EXPORT_SYMBOL_GPL(rewindBuffer);
-EXPORT_SYMBOL_GPL(skipForward);
-EXPORT_SYMBOL_GPL(uncompactedAmount);
-EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
-EXPORT_SYMBOL_GPL(wrapBuffer);
-EXPORT_SYMBOL_GPL(zeroBytes);
+EXPORT_SYMBOL_GPL(parse_uint64);
+EXPORT_SYMBOL_GPL(pause_for_logger);
+EXPORT_SYMBOL_GPL(perform_once);
+EXPORT_SYMBOL_GPL(priority_to_string);
+EXPORT_SYMBOL_GPL(put_boolean);
+EXPORT_SYMBOL_GPL(put_buffer);
+EXPORT_SYMBOL_GPL(put_byte);
+EXPORT_SYMBOL_GPL(put_bytes);
+EXPORT_SYMBOL_GPL(put_int64_le_into_buffer);
+EXPORT_SYMBOL_GPL(put_uint16_le_into_buffer);
+EXPORT_SYMBOL_GPL(put_uint16_les_into_buffer);
+EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
+EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
+EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
+EXPORT_SYMBOL_GPL(reallocate_memory);
+EXPORT_SYMBOL_GPL(register_allocating_thread);
+EXPORT_SYMBOL_GPL(register_error_block);
+EXPORT_SYMBOL_GPL(register_thread);
+EXPORT_SYMBOL_GPL(report_memory_usage);
+EXPORT_SYMBOL_GPL(reset_buffer_end);
+EXPORT_SYMBOL_GPL(rewind_buffer);
+EXPORT_SYMBOL_GPL(set_log_level);
+EXPORT_SYMBOL_GPL(skip_forward);
+EXPORT_SYMBOL_GPL(string_error);
+EXPORT_SYMBOL_GPL(string_error_name);
+EXPORT_SYMBOL_GPL(string_to_priority);
+EXPORT_SYMBOL_GPL(string_to_unsigned_long);
+EXPORT_SYMBOL_GPL(uds_assertion_failed);
+EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
+EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
+EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
+EXPORT_SYMBOL_GPL(uncompacted_amount);
+EXPORT_SYMBOL_GPL(unregister_allocating_thread);
+EXPORT_SYMBOL_GPL(unregister_thread);
+EXPORT_SYMBOL_GPL(v_append_to_buffer);
+EXPORT_SYMBOL_GPL(vlog_strerror);
+EXPORT_SYMBOL_GPL(wrap_buffer);
+EXPORT_SYMBOL_GPL(zero_bytes);
 
 /**********************************************************************/
 

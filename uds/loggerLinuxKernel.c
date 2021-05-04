@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/loggerLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#9 $
  */
 
 #include <linux/delay.h>
@@ -25,127 +25,182 @@
 #include <linux/sched.h>
 
 #include "logger.h"
+#include "threadDevice.h"
 
 /**********************************************************************/
-static const char *priorityToLogLevel(int priority)
+static const char *priority_to_log_level(int priority)
 {
-  switch (priority) {
-    case LOG_EMERG:
-    case LOG_ALERT:
-    case LOG_CRIT:
-      return KERN_CRIT;
-    case LOG_ERR:
-      return KERN_ERR;
-    case LOG_WARNING:
-      return KERN_WARNING;
-    case LOG_NOTICE:
-      return KERN_NOTICE;
-    case LOG_INFO:
-      return KERN_INFO;
-    case LOG_DEBUG:
-      return KERN_DEBUG;
-    default:
-      return "";
-  }
+	switch (priority) {
+	case LOG_EMERG:
+	case LOG_ALERT:
+	case LOG_CRIT:
+		return KERN_CRIT;
+	case LOG_ERR:
+		return KERN_ERR;
+	case LOG_WARNING:
+		return KERN_WARNING;
+	case LOG_NOTICE:
+		return KERN_NOTICE;
+	case LOG_INFO:
+		return KERN_INFO;
+	case LOG_DEBUG:
+		return KERN_DEBUG;
+	default:
+		return "";
+	}
 }
 
 /**********************************************************************/
-static const char *getCurrentInterruptType(void)
+static const char *get_current_interrupt_type(void)
 {
-  if (in_nmi()) {
-    return "NMI";
-  }
-  if (in_irq()) {
-    return "HI";
-  }
-  if (in_softirq()) {
-    return "SI";
-  }
-  return "INTR";
+	if (in_nmi()) {
+		return "NMI";
+	}
+	if (in_irq()) {
+		return "HI";
+	}
+	if (in_softirq()) {
+		return "SI";
+	}
+	return "INTR";
+}
+
+/**
+ * Emit a log message to the kernel log in a format suited to the current
+ * thread context. Context info formats:
+ *
+ * interrupt:           uds[NMI]: blah
+ * kvdo thread:         kvdo12:foobarQ: blah
+ * thread w/device id:  kvdo12:myprog: blah
+ * other thread:        uds: myprog: blah
+ *
+ * Fields: module name, interrupt level, process name, device ID.
+ *
+ * @param level   A string describing the logging level
+ * @param module  The name of the module doing the logging
+ * @param prefix  The prefix of the log message
+ * @param vaf1    The first message format descriptor
+ * @param vaf2    The second message format descriptor
+ **/
+static void emit_log_message(const char *level,
+			     const char *module,
+			     const char *prefix,
+			     const struct va_format *vaf1,
+			     const struct va_format *vaf2)
+{
+	int device_instance;
+
+	// In interrupt context, identify the interrupt type and module.
+	// Ignore the process/thread since it could be anything.
+	if (in_interrupt()) {
+		const char *type = get_current_interrupt_type();
+		printk("%s%s[%s]: %s%pV%pV\n",
+		       level, module, type, prefix, vaf1, vaf2);
+		return;
+	}
+
+	// Not at interrupt level; we have a process we can look at, and
+	// might have a device ID.
+	device_instance = uds_get_thread_device_id();
+	if (device_instance >= 0) {
+		printk("%s%s%u:%s: %s%pV%pV\n",
+		       level,
+		       module,
+		       device_instance,
+		       current->comm,
+		       prefix,
+		       vaf1,
+		       vaf2);
+		return;
+	}
+
+	// If it's a kernel thread and the module name is a prefix of its
+	// name, assume it is ours and only identify the thread.
+	if (((current->flags & PF_KTHREAD) != 0) &&
+	    (strncmp(module, current->comm, strlen(module)) == 0)) {
+		printk("%s%s: %s%pV%pV\n",
+		       level, current->comm, prefix, vaf1, vaf2);
+		return;
+	}
+
+	// Identify the module and the process.
+	printk("%s%s: %s: %s%pV%pV\n",
+	       level, module, current->comm, prefix, vaf1, vaf2);
 }
 
 /**********************************************************************/
-void logMessagePack(int         priority,
-                    const char *prefix,
-                    const char *fmt1,
-                    va_list     args1,
-                    const char *fmt2,
-                    va_list     args2)
+void uds_log_message_pack(int priority,
+			  const char *module,
+			  const char *prefix,
+			  const char *fmt1,
+			  va_list args1,
+			  const char *fmt2,
+			  va_list args2)
 {
-  if (priority > getLogLevel()) {
-    return;
-  }
+	const char *level;
+	va_list args1_copy, args2_copy;
+	struct va_format vaf1, vaf2;
 
-  /*
-   * The kernel's printk has some magic for indirection to a secondary
-   * va_list. It wants us to supply a pointer to the va_list.
-   *
-   * However, va_list varies across platforms and can be an array
-   * type, which makes passing it around as an argument kind of
-   * tricky, due to the automatic conversion to a pointer. This makes
-   * taking the address of the argument a dicey thing; if we use "&a"
-   * it works fine for non-array types, but for array types we get the
-   * address of a pointer. Functions like va_copy and sprintf don't
-   * care as they get "va_list" values passed and are written to do
-   * the right thing, but printk explicitly wants the address of the
-   * va_list.
-   *
-   * So, we copy the va_list values to ensure that "&" consistently
-   * works the way we want.
-   */
-  va_list args1Copy;
-  va_copy(args1Copy, args1);
-  va_list args2Copy;
-  va_copy(args2Copy, args2);
-  struct va_format vaf1 = {
-    .fmt = (fmt1 != NULL) ? fmt1 : "",
-    .va  = &args1Copy,
-  };
-  struct va_format vaf2 = {
-    .fmt = (fmt2 != NULL) ? fmt2 : "",
-    .va  = &args2Copy,
-  };
+	if (priority > get_log_level()) {
+		return;
+	}
 
-  if (prefix == NULL) {
-    prefix = "";
-  }
+	level = priority_to_log_level(priority);
+	if (module == NULL) {
+		module = THIS_MODULE->name;
+	}
+	if (prefix == NULL) {
+		prefix = "";
+	}
 
-  /*
-   * Context info formats:
-   *
-   * interrupt:   uds[NMI]: blah
-   * process:     uds: myprog: blah
-   *
-   * Fields: module name, interrupt level or process name.
-   *
-   * XXX need the equivalent of VDO's deviceInstance here
-   */
-  if (in_interrupt()) {
-    printk("%s%s[%s]: %s%pV%pV\n", priorityToLogLevel(priority),
-	   THIS_MODULE->name, getCurrentInterruptType(), prefix, &vaf1, &vaf2);
-  } else {
-    printk("%s%s: %s: %s%pV%pV\n", priorityToLogLevel(priority),
-	   THIS_MODULE->name, current->comm, prefix, &vaf1, &vaf2);
-  }
+	/*
+	 * It is implementation dependent whether va_list is defined as an
+	 * array type that decays to a pointer when passed as an
+	 * argument. Copy args1 and args2 with va_copy so that vaf1 and
+	 * vaf2 get proper va_list pointers irrespective of how va_list is
+	 * defined.
+	 */
+	va_copy(args1_copy, args1);
+	vaf1.fmt = fmt1;
+	vaf1.va = &args1_copy;
 
-  va_end(args1Copy);
-  va_end(args2Copy);
+	va_copy(args2_copy, args2);
+	vaf2.fmt = fmt2;
+	vaf2.va = &args2_copy;
+
+	emit_log_message(level, module, prefix, &vaf1, &vaf2);
+
+	va_end(args1_copy);
+	va_end(args2_copy);
 }
 
 /**********************************************************************/
-void logBacktrace(int priority)
+void log_backtrace(int priority)
 {
-  if (priority > getLogLevel()) {
-    return;
-  }
-  logMessage(priority, "[backtrace]");
-  dump_stack();
+	if (priority > get_log_level()) {
+		return;
+	}
+	dump_stack();
 }
 
 /**********************************************************************/
-void pauseForLogger(void)
+void __uds_log_message(int priority,
+		       const char *module,
+		       const char *format,
+		       ...)
 {
-  // Hopefully, a few milliseconds of sleep will be large enough
-  // for the kernel log buffer to be flushed.
-  msleep(4);
+	va_list args;
+
+	va_start(args, format);
+	uds_log_embedded_message(priority, module, NULL,
+				 format, args, "%s", "");
+	va_end(args);
+}
+
+/**********************************************************************/
+void pause_for_logger(void)
+{
+	// Hopefully, a few milliseconds of sleep will be large enough
+	// for the kernel log buffer to be flushed.
+	msleep(4);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#12 $
  */
 
 #ifndef INDEX_STATE_H
@@ -29,60 +29,60 @@
 /**
  * Used here and in SingleFileLayout.
  **/
-typedef enum {
-  IS_SAVE,
-  IS_CHECKPOINT,
-  NO_SAVE = 9999,
-} IndexSaveType;
+enum index_save_type {
+	IS_SAVE,
+	IS_CHECKPOINT,
+	NO_SAVE = 9999,
+};
 
 /*
- * Used in getStateIndexStateBuffer to identify whether the index state buffer
- * is for the index being loaded or the index being saved.
+ * Used in get_state_index_state_buffer to identify whether the index state
+ * buffer is for the index being loaded or the index being saved.
  */
-typedef enum {
-  IO_READ  = 0x1,
-  IO_WRITE = 0x2,
-} IOAccessMode;
+enum io_access_mode {
+	IO_READ = 0x1,
+	IO_WRITE = 0x2,
+};
 
 /**
  * The index state structure controls the loading and saving of the index
  * state.
  **/
-typedef struct indexState {
-  struct indexLayout *layout;
-  unsigned int        zoneCount;  // number of index zones to use
-  unsigned int        loadZones;
-  unsigned int        loadSlot;
-  unsigned int        saveSlot;
-  unsigned int        count;     // count of registered entries (<= length)
-  unsigned int        length;    // total span of array allocation
-  bool                saving;    // incremental save in progress
-  IndexComponent     *entries[]; // array of index component entries
-} IndexState;
+struct index_state {
+	struct index_layout *layout;
+	unsigned int zone_count;           // number of index zones to use
+	unsigned int load_zones;
+	unsigned int load_slot;
+	unsigned int save_slot;
+	unsigned int count;                // count of registered entries
+					   // (<= length)
+	unsigned int length;               // total span of array allocation
+	bool saving;                       // incremental save in progress
+	struct index_component *entries[]; // array of index component entries
+};
 
 /**
  * Make an index state object,
  *
- * @param [in]  layout         The index layout.
- * @param [in]  numZones       The number of zones to use.
- * @param [in]  maxComponents  The maximum number of components to be handled.
- * @param [out] statePtr       Where to store the index state object.
+ * @param [in]  layout          The index layout.
+ * @param [in]  num_zones       The number of zones to use.
+ * @param [in]  max_components  The maximum number of components to be handled.
+ * @param [out] state_ptr       Where to store the index state object.
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexState(struct indexLayout  *layout,
-                   unsigned int         numZones,
-                   unsigned int         maxComponents,
-                   IndexState         **statePtr)
-  __attribute__((warn_unused_result));
+int __must_check make_index_state(struct index_layout *layout,
+				  unsigned int num_zones,
+				  unsigned int max_components,
+				  struct index_state **state_ptr);
 
 /**
  * Free an index state (generically).
  *
- * @param statePtr      The pointer to the index state to be freed and
+ * @param state_ptr     The pointer to the index state to be freed and
  *                      set to NULL.
  **/
-void freeIndexState(IndexState **statePtr);
+void free_index_state(struct index_state **state_ptr);
 
 /**
  * Add an index component to an index state.
@@ -94,22 +94,21 @@ void freeIndexState(IndexState **statePtr);
  *
  * @return          UDS_SUCCESS or an error code.
  **/
-int addIndexStateComponent(IndexState               *state,
-                           const IndexComponentInfo *info,
-                           void                     *data,
-                           void                     *context)
-  __attribute__((warn_unused_result));
+int __must_check
+add_index_state_component(struct index_state *state,
+			  const struct index_component_info *info,
+			  void *data,
+			  void *context);
 
 /**
  * Load index state
  *
- * @param state      The index state.
- * @param replayPtr  If set, the place to hold whether a replay is required.
+ * @param state       The index state.
+ * @param replay_ptr  If set, the place to hold whether a replay is required.
  *
- * @return           UDS_SUCCESS or error
+ * @return            UDS_SUCCESS or error
  **/
-int loadIndexState(IndexState *state, bool *replayPtr)
-  __attribute__((warn_unused_result));
+int __must_check load_index_state(struct index_state *state, bool *replay_ptr);
 
 /**
  * Save the current index state, including the open chapter.
@@ -118,18 +117,18 @@ int loadIndexState(IndexState *state, bool *replayPtr)
  *
  * @return              UDS_SUCCESS or error
  **/
-int saveIndexState(IndexState *state) __attribute__((warn_unused_result));
+int __must_check save_index_state(struct index_state *state);
 
 /**
  *  Prepare to save the index state.
  *
- *  @param state     the index state
- *  @param saveType  whether a checkpoint or save
+ *  @param state      the index state
+ *  @param save_type  whether a checkpoint or save
  *
  *  @return UDS_SUCCESS or an error code
  **/
-int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
-  __attribute__((warn_unused_result));
+int __must_check prepare_to_save_index_state(struct index_state *state,
+					     enum index_save_type save_type);
 
 /**
  * Write index checkpoint non-incrementally (for testing).
@@ -138,8 +137,7 @@ int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
  *
  * @return              UDS_SUCCESS or error
  **/
-int writeIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check write_index_state_checkpoint(struct index_state *state);
 
 /**
  * Sets up an index state checkpoint which will proceed incrementally.
@@ -149,8 +147,7 @@ int writeIndexStateCheckpoint(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int startIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check start_index_state_checkpoint(struct index_state *state);
 
 /**
  * Perform operations on index state checkpoints that are synchronized to
@@ -160,8 +157,8 @@ int startIndexStateCheckpoint(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check
+perform_index_state_checkpoint_chapter_synchronized_saves(struct index_state *state);
 
 /**
  * Performs zone-specific (and, for zone 0, general) incremental checkpointing.
@@ -173,10 +170,10 @@ int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int performIndexStateCheckpointInZone(IndexState       *state,
-                                      unsigned int      zone,
-                                      CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+perform_index_state_checkpoint_in_zone(struct index_state *state,
+				       unsigned int zone,
+				       enum completion_status *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint
@@ -189,10 +186,10 @@ int performIndexStateCheckpointInZone(IndexState       *state,
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int finishIndexStateCheckpointInZone(IndexState       *state,
-                                     unsigned int      zone,
-                                     CompletionStatus *completed)
-  __attribute__((warn_unused_result));
+int __must_check
+finish_index_state_checkpoint_in_zone(struct index_state *state,
+				      unsigned int zone,
+				      enum completion_status *completed);
 
 /**
  * Force the completion of an incremental index state checkpoint once
@@ -202,8 +199,7 @@ int finishIndexStateCheckpointInZone(IndexState       *state,
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int finishIndexStateCheckpoint(IndexState *state)
-  __attribute__((warn_unused_result));
+int __must_check finish_index_state_checkpoint(struct index_state *state);
 
 /**
  * Aborts an index state checkpoint which is proceeding incrementally
@@ -216,9 +212,9 @@ int finishIndexStateCheckpoint(IndexState *state)
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int abortIndexStateCheckpointInZone(IndexState       *state,
-                                    unsigned int      zone,
-                                    CompletionStatus *completed);
+int abort_index_state_checkpoint_in_zone(struct index_state *state,
+					 unsigned int zone,
+					 enum completion_status *completed);
 
 /**
  * Aborts an index state checkpoint which is proceeding incrementally,
@@ -228,7 +224,7 @@ int abortIndexStateCheckpointInZone(IndexState       *state,
  *
  * @return              UDS_SUCCESS or an error code.
  **/
-int abortIndexStateCheckpoint(IndexState *state);
+int abort_index_state_checkpoint(struct index_state *state);
 
 /**
  * Remove or disable the index state data, for testing.
@@ -239,7 +235,7 @@ int abortIndexStateCheckpoint(IndexState *state);
  *
  * @note the return value of this function is frequently ignored
  **/
-int discardIndexStateData(IndexState *state);
+int discard_index_state_data(struct index_state *state);
 
 /**
  * Discard the last index state save, for testing.
@@ -250,7 +246,7 @@ int discardIndexStateData(IndexState *state);
  *
  * @note the return value of this function is frequently ignored
  **/
-int discardLastIndexStateSave(IndexState *state);
+int discard_last_index_state_save(struct index_state *state);
 
 /**
  * Find index component, for testing.
@@ -260,53 +256,54 @@ int discardLastIndexStateSave(IndexState *state);
  *
  * @return      The index component, or NULL if not found
  **/
-IndexComponent *findIndexComponent(const IndexState         *state,
-                                   const IndexComponentInfo *info)
-  __attribute__((warn_unused_result));
+struct index_component *__must_check
+find_index_component(const struct index_state *state,
+		     const struct index_component_info *info);
 
 /**
- * Get the indexStateBuffer for a specified mode.
+ * Get the index state buffer for a specified mode.
  *
  * @param state      The index state.
  * @param mode       One of IO_READ or IO_WRITE.
  *
  * @return the index state buffer
  **/
-Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
-  __attribute__((warn_unused_result));
+struct buffer *__must_check
+get_state_index_state_buffer(struct index_state *state,
+			     enum io_access_mode mode);
 
 /**
- * Open a BufferedReader for a specified state, kind, and zone.
- * This helper function is used by IndexComponent.
+ * Open a buffered reader for a specified state, kind, and zone.
+ * This helper function is used by index_component.
  *
- * @param state      The index state.
- * @param kind       The kind if index save region to open.
- * @param zone       The zone number for the region.
- * @param readerPtr  Where to store the BufferedReader.
+ * @param state       The index state.
+ * @param kind        The kind of index save region to open.
+ * @param zone        The zone number for the region.
+ * @param reader_ptr  Where to store the buffered reader.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openStateBufferedReader(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedReader **readerPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+open_state_buffered_reader(struct index_state *state,
+			   enum region_kind kind,
+			   unsigned int zone,
+			   struct buffered_reader **reader_ptr);
 
 /**
- * Open a BufferedWriter for a specified state, kind, and zone.
- * This helper function is used by IndexComponent.
+ * Open a buffered writer for a specified state, kind, and zone.
+ * This helper function is used by index_component.
  *
- * @param state      The index state.
- * @param kind       The kind if index save region to open.
- * @param zone       The zone number for the region.
- * @param writerPtr  Where to store the BufferedWriter.
+ * @param state       The index state.
+ * @param kind        The kind of index save region to open.
+ * @param zone        The zone number for the region.
+ * @param writer_ptr  Where to store the buffered writer.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openStateBufferedWriter(IndexState      *state,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedWriter **writerPtr)
-  __attribute__((warn_unused_result));
+int __must_check
+open_state_buffered_writer(struct index_state *state,
+			   enum region_kind kind,
+			   unsigned int zone,
+			   struct buffered_writer **writer_ptr);
 
 #endif // INDEX_STATE_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,32 +16,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/requestQueue.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#5 $
  */
 
 #ifndef REQUEST_QUEUE_H
 #define REQUEST_QUEUE_H
 
+#include "compiler.h"
 #include "opaqueTypes.h"
 #include "typeDefs.h"
 
 /* void return value because this function will process its own errors */
-typedef void RequestQueueProcessor(Request *);
+typedef void request_queue_processor_t(Request *);
 
 /**
  * Allocate a new request processing queue and start a worker thread to
  * consume and service requests in the queue.
  *
- * @param queueName   the name of the queue and the worker thread
- * @param processOne  the function the worker will invoke on each request
- * @param queuePtr    a pointer to receive the new queue
+ * @param queue_name   the name of the queue and the worker thread
+ * @param process_one  the function the worker will invoke on each request
+ * @param queue_ptr    a pointer to receive the new queue
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeRequestQueue(const char             *queueName,
-                     RequestQueueProcessor  *processOne,
-                     RequestQueue          **queuePtr)
-  __attribute__((warn_unused_result));
+int __must_check make_request_queue(const char *queue_name,
+				    request_queue_processor_t *process_one,
+				    RequestQueue **queue_ptr);
 
 /**
  * Add a request to the end of the queue for processing by the worker thread.
@@ -51,13 +51,13 @@ int makeRequestQueue(const char             *queueName,
  * @param queue    the request queue that should process the request
  * @param request  the request to be processed on the queue's worker thread
  **/
-void requestQueueEnqueue(RequestQueue *queue, Request *request);
+void request_queue_enqueue(RequestQueue *queue, Request *request);
 
 /**
  * Shut down the request queue worker thread, then destroy and free the queue.
  *
  * @param queue  the queue to shut down and free
  **/
-void requestQueueFinish(RequestQueue *queue);
+void request_queue_finish(RequestQueue *queue);
 
 #endif /* REQUEST_QUEUE_H */

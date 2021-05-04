@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/stringUtils.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#6 $
  */
 
 #include "stringUtils.h"
@@ -27,128 +27,128 @@
 #include "permassert.h"
 #include "uds.h"
 
-/*****************************************************************************/
-int allocSprintf(const char *what, char **strp, const char *fmt, ...)
+/**********************************************************************/
+int alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 {
-  if (strp == NULL) {
-    return UDS_INVALID_ARGUMENT;
-  }
-  va_list args;
-#ifdef __KERNEL__
-  // We want the memory allocation to use our own ALLOCATE/FREE wrappers.
-  va_start(args, fmt);
-  int count = vsnprintf(NULL, 0, fmt, args) + 1;
-  va_end(args);
-  int result = ALLOCATE(count, char, what, strp);
-  if (result == UDS_SUCCESS) {
-    va_start(args, fmt);
-    vsnprintf(*strp, count, fmt, args);
-    va_end(args);
-  }
-#else
-  va_start(args, fmt);
-  int result = vasprintf(strp, fmt, args) == -1 ? ENOMEM : UDS_SUCCESS;
-  va_end(args);
-#endif
-  if ((result != UDS_SUCCESS) && (what != NULL)) {
-    logError("cannot allocate %s", what);
-  }
-  return result;
+	if (strp == NULL) {
+		return UDS_INVALID_ARGUMENT;
+	}
+	va_list args;
+	// We want the memory allocation to use our own ALLOCATE/FREE wrappers.
+	va_start(args, fmt);
+	int count = vsnprintf(NULL, 0, fmt, args) + 1;
+	va_end(args);
+	int result = ALLOCATE(count, char, what, strp);
+	if (result == UDS_SUCCESS) {
+		va_start(args, fmt);
+		vsnprintf(*strp, count, fmt, args);
+		va_end(args);
+	}
+	if ((result != UDS_SUCCESS) && (what != NULL)) {
+		uds_log_error("cannot allocate %s", what);
+	}
+	return result;
 }
 
-/*****************************************************************************/
-int wrapVsnprintf(const char *what, char *buf, size_t bufSize,
-                  int error, const char *fmt, va_list ap, size_t *needed)
+/**********************************************************************/
+int wrap_vsnprintf(const char *what,
+		   char *buf,
+		   size_t buf_size,
+		   int error,
+		   const char *fmt,
+		   va_list ap,
+		   size_t *needed)
 {
-  if (buf == NULL) {
-    static char nobuf[1];
-    buf = nobuf;
-    bufSize = 0;
-  }
-  int n = vsnprintf(buf, bufSize, fmt, ap);
-  if (n < 0) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: vsnprintf failed", what);
-  }
-  if (needed) {
-    *needed = n;
-  }
-  if (((size_t) n >= bufSize) && (buf != NULL) && (error != UDS_SUCCESS)) {
-    return logErrorWithStringError(error, "%s: string too long", what);
-  }
-  return UDS_SUCCESS;
+	if (buf == NULL) {
+		static char nobuf[1];
+		buf = nobuf;
+		buf_size = 0;
+	}
+	int n = vsnprintf(buf, buf_size, fmt, ap);
+	if (n < 0) {
+		return log_error_strerror(UDS_UNEXPECTED_RESULT,
+					  "%s: vsnprintf failed", what);
+	}
+	if (needed) {
+		*needed = n;
+	}
+	if (((size_t) n >= buf_size) && (buf != NULL) &&
+	    (error != UDS_SUCCESS)) {
+		return log_error_strerror(error,
+					  "%s: string too long", what);
+	}
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int fixedSprintf(const char *what,
-                 char       *buf,
-                 size_t      bufSize,
-                 int         error,
-                 const char *fmt,
-                 ...)
+/**********************************************************************/
+int fixed_sprintf(const char *what,
+		  char *buf,
+		  size_t buf_size,
+		  int error,
+		  const char *fmt,
+		  ...)
 {
-  if (buf == NULL) {
-    return UDS_INVALID_ARGUMENT;
-  }
-  va_list args;
-  va_start(args, fmt);
-  int result = wrapVsnprintf(what, buf, bufSize, error, fmt, args, NULL);
-  va_end(args);
-  return result;
+	if (buf == NULL) {
+		return UDS_INVALID_ARGUMENT;
+	}
+	va_list args;
+	va_start(args, fmt);
+	int result =
+		wrap_vsnprintf(what, buf, buf_size, error, fmt, args, NULL);
+	va_end(args);
+	return result;
 }
 
-/*****************************************************************************/
-char *vAppendToBuffer(char       *buffer,
-                      char       *bufEnd,
-                      const char *fmt,
-                      va_list     args)
+/**********************************************************************/
+char *
+v_append_to_buffer(char *buffer, char *buf_end, const char *fmt, va_list args)
 {
-  size_t n = vsnprintf(buffer, bufEnd - buffer, fmt, args);
-  if (n >= (size_t) (bufEnd - buffer)) {
-    buffer = bufEnd;
-  } else {
-    buffer += n;
-  }
-  return buffer;
+	size_t n = vsnprintf(buffer, buf_end - buffer, fmt, args);
+	if (n >= (size_t)(buf_end - buffer)) {
+		buffer = buf_end;
+	} else {
+		buffer += n;
+	}
+	return buffer;
 }
 
-/*****************************************************************************/
-char *appendToBuffer(char *buffer, char *bufEnd, const char *fmt, ...)
+/**********************************************************************/
+char *append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 {
-  va_list ap;
+	va_list ap;
 
-  va_start(ap, fmt);
-  char *pos = vAppendToBuffer(buffer, bufEnd, fmt, ap);
-  va_end(ap);
-  return pos;
+	va_start(ap, fmt);
+	char *pos = v_append_to_buffer(buffer, buf_end, fmt, ap);
+	va_end(ap);
+	return pos;
 }
 
-/*****************************************************************************/
-int stringToSignedInt(const char *nptr, int *num)
+/**********************************************************************/
+int string_to_signed_int(const char *nptr, int *num)
 {
-  long value;
-  int result = stringToSignedLong(nptr, &value);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if ((value < INT_MIN) || (value > INT_MAX)) {
-    return ERANGE;
-  }
-  *num = (int) value;
-  return UDS_SUCCESS;
+	long value;
+	int result = string_to_signed_long(nptr, &value);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	if ((value < INT_MIN) || (value > INT_MAX)) {
+		return ERANGE;
+	}
+	*num = (int) value;
+	return UDS_SUCCESS;
 }
 
-/*****************************************************************************/
-int stringToUnsignedInt(const char *nptr, unsigned int *num)
+/**********************************************************************/
+int string_to_unsigned_int(const char *nptr, unsigned int *num)
 {
-  unsigned long value;
-  int result = stringToUnsignedLong(nptr, &value);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if (value > UINT_MAX) {
-    return ERANGE;
-  }
-  *num = (unsigned int) value;
-  return UDS_SUCCESS;
+	unsigned long value;
+	int result = string_to_unsigned_long(nptr, &value);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	if (value > UINT_MAX) {
+		return ERANGE;
+	}
+	*num = (unsigned int) value;
+	return UDS_SUCCESS;
 }

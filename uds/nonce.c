@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/nonce.c#12 $
  */
 
 #include "nonce.h"
@@ -27,57 +27,43 @@
 #include "stringUtils.h"
 #include "timeUtils.h"
 
-/*****************************************************************************/
-static uint64_t hashStuff(uint64_t start, const void *data, size_t len)
+/**********************************************************************/
+static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 {
-  uint32_t seed = start ^ (start >> 27);
-  byte hashBuffer[16];
-  MurmurHash3_x64_128(data, len, seed, hashBuffer);
-  return getUInt64LE(hashBuffer + 4);
+	uint32_t seed = start ^ (start >> 27);
+	byte hash_buffer[16];
+	MurmurHash3_x64_128(data, len, seed, hash_buffer);
+	return get_unaligned_le64(hash_buffer + 4);
 }
 
-/*****************************************************************************/
-static void *memput(void *buf, void *end, const void *data, size_t len)
+/**********************************************************************/
+void create_unique_nonce_data(byte *buffer)
 {
-  byte *bp = buf;
-  byte *be = end;
+	ktime_t now = current_time_ns(CLOCK_REALTIME);
+	uint32_t rand = random_in_range(1, (1 << 30) - 1);
+	size_t offset = 0;
 
-  size_t chunk = minSizeT(len, be - bp);
-  memcpy(bp, data, chunk);
-  return bp + chunk;
+	// Fill NONCE_INFO_SIZE bytes with copies of the time and a
+	// pseudorandom number.
+	memcpy(buffer + offset, &now, sizeof(now));
+	offset += sizeof(now);
+	memcpy(buffer + offset, &rand, sizeof(rand));
+	offset += sizeof(rand);
+	while (offset < NONCE_INFO_SIZE) {
+		size_t len = min(NONCE_INFO_SIZE - offset, offset);
+		memcpy(buffer + offset, buffer, len);
+		offset += len;
+	}
 }
 
-/*****************************************************************************/
-size_t createUniqueNonceData(byte *buffer, size_t length)
+/**********************************************************************/
+uint64_t generate_primary_nonce(const void *data, size_t len)
 {
-  AbsTime now = currentTime(CLOCK_REALTIME);
-
-  byte *be = buffer + length;
-  byte *bp = memput(buffer, be, &now, sizeof(now));
-
-  uint32_t rand = randomInRange(1, (1<<30) - 1);
-
-  bp = memput(bp, be, &rand, sizeof(rand));
-
-  while (bp < be) {
-    size_t n = minSizeT(be - bp, bp - buffer);
-    memcpy(bp, buffer, n);
-    bp += n;
-  }
-
-  return bp - buffer;
+	return hash_stuff(0xa1b1e0fc, data, len);
 }
 
-/*****************************************************************************/
-uint64_t generateMasterNonce(const void *data, size_t len)
+/**********************************************************************/
+uint64_t generate_secondary_nonce(uint64_t nonce, const void *data, size_t len)
 {
-  return hashStuff(0xa1b1e0fc, data, len);
-}
-
-/*****************************************************************************/
-uint64_t generateSecondaryNonce(uint64_t    nonce,
-                                const void *data,
-                                size_t      len)
-{
-  return hashStuff(nonce + 1, data, len);
+	return hash_stuff(nonce + 1, data, len);
 }

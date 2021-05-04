@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeStore.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.h#5 $
  */
 
 #ifndef VOLUME_STORE_H
@@ -26,170 +26,148 @@
 #include "compiler.h"
 #include "memoryAlloc.h"
 
-#ifdef __KERNEL__
 #include <linux/dm-bufio.h>
-#else
-#include "ioRegion.h"
-#endif
 
 struct geometry;
-struct indexLayout;
+struct index_layout;
 
 
 struct volume_store {
-#ifdef __KERNEL__
-  struct dm_bufio_client *vs_client;
-#else
-  IORegion               *vs_region;
-  size_t                  vs_bytesPerPage;
-#endif
+	struct dm_bufio_client *vs_client;
 };
 
 
 struct volume_page {
-#ifdef __KERNEL__
-  struct dm_buffer *vp_buffer;
-#else
-  byte             *vp_data;
-#endif
+	struct dm_buffer *vp_buffer;
 };
 
 /**
  * Close a volume store.
  *
- * @param volumeStore   The volume store
+ * @param volume_store   The volume store
  **/
-void closeVolumeStore(struct volume_store *volumeStore);
+void close_volume_store(struct volume_store *volume_store);
 
 /**
  * Uninitialize a volume page buffer.
  *
- * @param volumePage  The volume page buffer
+ * @param volume_page  The volume page buffer
  **/
-void destroyVolumePage(struct volume_page *volumePage);
+void destroy_volume_page(struct volume_page *volume_page);
 
 /**
  * Get a pointer to the data contained in a volume page buffer.
  *
- * @param volumePage  The volume page buffer
+ * @param volume_page  The volume page buffer
  *
  * @return the address of the data
  **/
-__attribute__((warn_unused_result))
-static INLINE byte *getPageData(const struct volume_page *volumePage)
+static INLINE byte *__must_check
+get_page_data(const struct volume_page *volume_page)
 {
-#ifdef __KERNEL__
-  return dm_bufio_get_block_data(volumePage->vp_buffer);
-#else
-  return volumePage->vp_data;
-#endif
+	return dm_bufio_get_block_data(volume_page->vp_buffer);
 }
 
 /**
  * Initialize a volume page buffer.
  *
  * @param geometry    The volume geometry
- * @param volumePage  The volume page buffer
+ * @param volume_page  The volume page buffer
  *
  * @return UDS_SUCCESS or an error status
  **/
-int initializeVolumePage(const struct geometry *geometry,
-                         struct volume_page    *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check initialize_volume_page(const struct geometry *geometry,
+					struct volume_page *volume_page);
 
 /**
  * Open a volume store.
  *
- * @param volumeStore      The volume store
- * @param layout           The index layout
- * @param reservedBuffers  The number of buffers that can be reserved
- * @param bytesPerPage     The number of bytes in a volume page
+ * @param volume_store      The volume store
+ * @param layout            The index layout
+ * @param reserved_buffers  The number of buffers that can be reserved
+ * @param bytes_per_page    The number of bytes in a volume page
  **/
-int openVolumeStore(struct volume_store *volumeStore,
-                    struct indexLayout  *layout,
-                    unsigned int         reservedBuffers,
-                    size_t               bytesPerPage)
-  __attribute__((warn_unused_result));
+int __must_check open_volume_store(struct volume_store *volume_store,
+				   struct index_layout *layout,
+				   unsigned int reserved_buffers,
+				   size_t bytes_per_page);
 
 /**
  * Prefetch volume pages into memory.
  *
- * @param volumeStore   The volume store
- * @param physicalPage  The volume page number of the first desired page
- * @param pageCount     The number of volume pages to prefetch
+ * @param volume_store   The volume store
+ * @param physical_page  The volume page number of the first desired page
+ * @param page_count     The number of volume pages to prefetch
  **/
-void prefetchVolumePages(const struct volume_store *volumeStore,
-                         unsigned int               physicalPage,
-                         unsigned int               pageCount);
+void prefetch_volume_pages(const struct volume_store *volume_store,
+			   unsigned int physical_page,
+			   unsigned int page_count);
 
 /**
  * Prepare a buffer to write a page to the volume.
  *
- * @param volumeStore   The volume store
- * @param physicalPage  The volume page number of the desired page
- * @param volumePage    The volume page buffer
+ * @param volume_store   The volume store
+ * @param physical_page  The volume page number of the desired page
+ * @param volume_page    The volume page buffer
  *
  * @return UDS_SUCCESS or an error code
  **/
-int prepareToWriteVolumePage(const struct volume_store *volumeStore,
-                             unsigned int               physicalPage,
-                             struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check
+prepare_to_write_volume_page(const struct volume_store *volume_store,
+			     unsigned int physical_page,
+			     struct volume_page *volume_page);
 
 /**
  * Read a page from a volume store.
  *
- * @param volumeStore   The volume store
- * @param physicalPage  The volume page number of the desired page
- * @param volumePage    The volume page buffer
+ * @param volume_store   The volume store
+ * @param physical_page  The volume page number of the desired page
+ * @param volume_page    The volume page buffer
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readVolumePage(const struct volume_store *volumeStore,
-                   unsigned int               physicalPage,
-                   struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check read_volume_page(const struct volume_store *volume_store,
+				  unsigned int physical_page,
+				  struct volume_page *volume_page);
 
 /**
  * Release a volume page buffer, because it will no longer be accessed before a
- * call to readVolumePage or prepareToWriteVolumePage.
+ * call to read_volume_page or prepare_to_write_volume_page.
  *
- * @param volumePage  The volume page buffer
+ * @param volume_page  The volume page buffer
  **/
-void releaseVolumePage(struct volume_page *volumePage);
+void release_volume_page(struct volume_page *volume_page);
 
 /**
  * Swap volume pages.  This is used to put the contents of a newly written
  * index page (in the scratch page) into the page cache.
  *
- * @param volumePage1  The volume page buffer
- * @param volumePage2  The volume page buffer
+ * @param volume_page1  The volume page buffer
+ * @param volume_page2  The volume page buffer
  **/
-void swapVolumePages(struct volume_page *volumePage1,
-                     struct volume_page *volumePage2);
+void swap_volume_pages(struct volume_page *volume_page1,
+		       struct volume_page *volume_page2);
 
 /**
  * Sync the volume store to storage.
  *
- * @param volumeStore  The volume store
+ * @param volume_store  The volume store
  *
  * @return UDS_SUCCESS or an error code
  **/
-int syncVolumeStore(const struct volume_store *volumeStore)
-  __attribute__((warn_unused_result));
+int __must_check sync_volume_store(const struct volume_store *volume_store);
 
 /**
  * Write a page to a volume store.
  *
- * @param volumeStore   The volume store
- * @param physicalPage  The volume page number of the desired page
- * @param volumePage    The volume page buffer
+ * @param volume_store   The volume store
+ * @param physical_page  The volume page number of the desired page
+ * @param volume_page    The volume page buffer
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeVolumePage(const struct volume_store *volumeStore,
-                    unsigned int               physicalPage,
-                    struct volume_page        *volumePage)
-  __attribute__((warn_unused_result));
+int __must_check write_volume_page(const struct volume_store *volume_store,
+				   unsigned int physical_page,
+				   struct volume_page *volume_page);
 
 #endif /* VOLUME_STORE_H */

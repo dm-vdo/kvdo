@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadCondVarLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#7 $
  */
 
 #include "threads.h"
@@ -24,50 +24,53 @@
 #include "uds-error.h"
 
 /**********************************************************************/
-int initCond(CondVar *cv)
+int init_cond(struct cond_var *cv)
 {
-  cv->eventCount = NULL;
-  return makeEventCount(&cv->eventCount);
+	cv->event_count = NULL;
+	return make_event_count(&cv->event_count);
 }
 
 /**********************************************************************/
-int signalCond(CondVar *cv)
+int signal_cond(struct cond_var *cv)
 {
-  eventCountBroadcast(cv->eventCount);
-  return UDS_SUCCESS;
+	event_count_broadcast(cv->event_count);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int broadcastCond(CondVar *cv)
+int broadcast_cond(struct cond_var *cv)
 {
-  eventCountBroadcast(cv->eventCount);
-  return UDS_SUCCESS;
+	event_count_broadcast(cv->event_count);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int waitCond(CondVar *cv, Mutex *mutex)
+int wait_cond(struct cond_var *cv, struct mutex *mutex)
 {
-  EventToken token = eventCountPrepare(cv->eventCount);
-  unlockMutex(mutex);
-  eventCountWait(cv->eventCount, token, NULL);
-  lockMutex(mutex);
-  return UDS_SUCCESS;
+	event_token_t token = event_count_prepare(cv->event_count);
+	unlock_mutex(mutex);
+	event_count_wait(cv->event_count, token, NULL);
+	lock_mutex(mutex);
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int timedWaitCond(CondVar *cv, Mutex *mutex, RelTime timeout)
+int timed_wait_cond(struct cond_var *cv,
+		    struct mutex *mutex,
+		    ktime_t timeout)
 {
-  EventToken token = eventCountPrepare(cv->eventCount);
-  unlockMutex(mutex);
-  bool happened = eventCountWait(cv->eventCount, token, &timeout);
-  lockMutex(mutex);
-  return happened ? UDS_SUCCESS : ETIMEDOUT;
+	bool happened;
+	event_token_t token = event_count_prepare(cv->event_count);
+	unlock_mutex(mutex);
+	happened = event_count_wait(cv->event_count, token, &timeout);
+	lock_mutex(mutex);
+	return happened ? UDS_SUCCESS : ETIMEDOUT;
 }
 
 /**********************************************************************/
-int destroyCond(CondVar *cv)
+int destroy_cond(struct cond_var *cv)
 {
-  freeEventCount(cv->eventCount);
-  cv->eventCount = NULL;
-  return UDS_SUCCESS;
+	free_event_count(cv->event_count);
+	cv->event_count = NULL;
+	return UDS_SUCCESS;
 }

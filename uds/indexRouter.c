@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#21 $
  */
 
 #include "indexRouter.h"
@@ -34,9 +34,9 @@
  *
  * @param request  the request to be indexed or executed by the zone worker
  **/
-static void executeZoneRequest(Request *request)
+static void execute_zone_request(Request *request)
 {
-  executeIndexRouterRequest(request->router, request);
+	execute_index_router_request(request->router, request);
 }
 
 /**
@@ -45,50 +45,51 @@ static void executeZoneRequest(Request *request)
  *
  * @param router          the router containing the relevant queues
  * @param index           the index with the relevant cache and chapter
- * @param virtualChapter  the virtual chapter number of the chapter to cache
+ * @param virtual_chapter  the virtual chapter number of the chapter to cache
  **/
-static void enqueueBarrierMessages(IndexRouter *router,
-                                   Index       *index,
-                                   uint64_t     virtualChapter)
+static void enqueue_barrier_messages(struct index_router *router,
+				     struct index *index,
+				     uint64_t virtual_chapter)
 {
-  ZoneMessage barrier = {
-    .index = index,
-    .data = {
-      .barrier = {
-        .virtualChapter = virtualChapter,
-      }
-    }
-  };
-  unsigned int zone;
-  for (zone = 0; zone < router->zoneCount; zone++) {
-    int result = launchZoneControlMessage(REQUEST_SPARSE_CACHE_BARRIER,
-                                          barrier, zone, router);
-    ASSERT_LOG_ONLY((result == UDS_SUCCESS), "barrier message allocation");
-  }
+	struct zone_message barrier =
+		{ .index = index,
+		  .data = { .barrier = {
+					 .virtual_chapter = virtual_chapter,
+			  } } };
+	unsigned int zone;
+	for (zone = 0; zone < router->zone_count; zone++) {
+		int result =
+			launch_zone_control_message(REQUEST_SPARSE_CACHE_BARRIER,
+						    barrier, zone, router);
+		ASSERT_LOG_ONLY((result == UDS_SUCCESS),
+				"barrier message allocation");
+	}
 }
 
 /**
  * This is the request processing function for the triage stage queue. Each
- * request is resolved in the master index, determining if it is a hook or
+ * request is resolved in the volume index, determining if it is a hook or
  * not, and if a hook, what virtual chapter (if any) it might be found in. If
  * a virtual chapter is found, this enqueues a sparse chapter cache barrier in
  * every zone before enqueueing the request in its zone.
  *
  * @param request  the request to triage
  **/
-static void triageRequest(Request *request)
+static void triage_request(Request *request)
 {
-  IndexRouter *router = request->router;
-  Index *index = router->index;
+	struct index_router *router = request->router;
+	struct index *index = router->index;
 
-  // Check if the name is a hook in the index pointing at a sparse chapter.
-  uint64_t sparseVirtualChapter = triageIndexRequest(index, request);
-  if (sparseVirtualChapter != UINT64_MAX) {
-    // Generate and place a barrier request on every zone queue.
-    enqueueBarrierMessages(router, index, sparseVirtualChapter);
-  }
+	// Check if the name is a hook in the index pointing at a sparse
+	// chapter.
+	uint64_t sparse_virtual_chapter = triage_index_request(index, request);
+	if (sparse_virtual_chapter != UINT64_MAX) {
+		// Generate and place a barrier request on every zone queue.
+		enqueue_barrier_messages(router, index,
+					 sparse_virtual_chapter);
+	}
 
-  enqueueRequest(request, STAGE_INDEX);
+	enqueue_request(request, STAGE_INDEX);
 }
 
 /**
@@ -99,156 +100,170 @@ static void triageRequest(Request *request)
  *
  * @return  UDS_SUCCESS or error code
  **/
-static int initializeLocalIndexQueues(IndexRouter    *router,
-                                      const Geometry *geometry)
+static int initialize_local_index_queues(struct index_router *router,
+					 const struct geometry *geometry)
 {
-  unsigned int i;
-  for (i = 0; i < router->zoneCount; i++) {
-    int result = makeRequestQueue("indexW", &executeZoneRequest,
-                                  &router->zoneQueues[i]);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
+	unsigned int i;
+	for (i = 0; i < router->zone_count; i++) {
+		int result = make_request_queue("indexW",
+						&execute_zone_request,
+						&router->zone_queues[i]);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
 
-  // The triage queue is only needed for sparse multi-zone indexes.
-  if ((router->zoneCount > 1) && isSparse(geometry)) {
-    int result = makeRequestQueue("triageW", &triageRequest,
-                                  &router->triageQueue);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
+	// The triage queue is only needed for sparse multi-zone indexes.
+	if ((router->zone_count > 1) && is_sparse(geometry)) {
+		int result = make_request_queue("triageW", &triage_request,
+						&router->triage_queue);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
 
-  return UDS_SUCCESS;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static INLINE RequestQueue *getZoneQueue(IndexRouter  *router,
-                                         unsigned int  zoneNumber)
+static INLINE RequestQueue *get_zone_queue(struct index_router *router,
+					   unsigned int zone_number)
 {
-  return router->zoneQueues[zoneNumber];
+	return router->zone_queues[zone_number];
 }
 
 /**********************************************************************/
-int makeIndexRouter(IndexLayout                  *layout,
-                    const Configuration          *config,
-                    const struct uds_parameters  *userParams,
-                    LoadType                      loadType,
-                    IndexLoadContext             *loadContext,
-                    IndexRouterCallback           callback,
-                    IndexRouter                 **routerPtr)
+int make_index_router(struct index_layout *layout,
+		      const struct configuration *config,
+		      const struct uds_parameters *user_params,
+		      enum load_type load_type,
+		      struct index_load_context *load_context,
+		      index_router_callback_t callback,
+		      struct index_router **router_ptr)
 {
-  unsigned int zoneCount = getZoneCount(userParams);
-  IndexRouter *router;
-  int result = ALLOCATE_EXTENDED(IndexRouter, zoneCount, RequestQueue *,
-                                 "index router", &router);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	unsigned int zone_count = get_zone_count(user_params);
+	struct index_router *router;
+	int result = ALLOCATE_EXTENDED(struct index_router,
+				       zone_count,
+				       RequestQueue *,
+				       "index router",
+				       &router);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  router->callback  = callback;
-  router->zoneCount = zoneCount;
+	router->callback = callback;
+	router->zone_count = zone_count;
 
-  result = initializeLocalIndexQueues(router, config->geometry);
-  if (result != UDS_SUCCESS) {
-    freeIndexRouter(router);
-    return result;
-  }
+	result = initialize_local_index_queues(router, config->geometry);
+	if (result != UDS_SUCCESS) {
+		free_index_router(router);
+		return result;
+	}
 
-  result = makeIndex(layout, config, userParams, router->zoneCount, loadType,
-                     loadContext, &router->index);
-  if (result != UDS_SUCCESS) {
-    freeIndexRouter(router);
-    return logErrorWithStringError(result, "failed to create index");
-  }
+	result = make_index(layout,
+			    config,
+			    user_params,
+			    router->zone_count,
+			    load_type,
+			    load_context,
+			    &router->index);
+	if (result != UDS_SUCCESS) {
+		free_index_router(router);
+		return log_error_strerror(result,
+					  "failed to create index");
+	}
 
-  router->needToSave = (router->index->loadedType != LOAD_LOAD);
-  *routerPtr = router;
-  return UDS_SUCCESS;
+	router->need_to_save = (router->index->loaded_type != LOAD_LOAD);
+	*router_ptr = router;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int saveIndexRouter(IndexRouter *router)
+int save_index_router(struct index_router *router)
 {
-  if (!router->needToSave) {
-    return UDS_SUCCESS;
-  }
-  int result = saveIndex(router->index);
-  router->needToSave = (result != UDS_SUCCESS);
-  return result;
+	if (!router->need_to_save) {
+		return UDS_SUCCESS;
+	}
+	int result = save_index(router->index);
+	router->need_to_save = (result != UDS_SUCCESS);
+	return result;
 }
 
 /**********************************************************************/
-void freeIndexRouter(IndexRouter *router)
+void free_index_router(struct index_router *router)
 {
-  if (router == NULL) {
-    return;
-  }
-  requestQueueFinish(router->triageQueue);
-  unsigned int i;
-  for (i = 0; i < router->zoneCount; i++) {
-    requestQueueFinish(router->zoneQueues[i]);
-  }
-  freeIndex(router->index);
-  FREE(router);
+	if (router == NULL) {
+		return;
+	}
+	request_queue_finish(router->triage_queue);
+	unsigned int i;
+	for (i = 0; i < router->zone_count; i++) {
+		request_queue_finish(router->zone_queues[i]);
+	}
+	free_index(router->index);
+	FREE(router);
 }
 
 /**********************************************************************/
-RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
-                                     Request      *request,
-                                     RequestStage  nextStage)
+RequestQueue *select_index_router_queue(struct index_router *router,
+					Request *request,
+					enum request_stage next_stage)
 {
-  if (request->isControlMessage) {
-    return getZoneQueue(router, request->zoneNumber);
-  }
+	if (request->is_control_message) {
+		return get_zone_queue(router, request->zone_number);
+	}
 
-  if (nextStage == STAGE_TRIAGE) {
-    // The triage queue is only needed for multi-zone sparse indexes and won't
-    // be allocated by the router if not needed, so simply check for NULL.
-    if (router->triageQueue != NULL) {
-      return router->triageQueue;
-    }
-    // Dense index or single zone, so route it directly to the zone queue.
-  } else if (nextStage != STAGE_INDEX) {
-    ASSERT_LOG_ONLY(false, "invalid index stage: %d", nextStage);
-    return NULL;
-  }
+	if (next_stage == STAGE_TRIAGE) {
+		// The triage queue is only needed for multi-zone sparse
+		// indexes and won't be allocated by the router if not needed,
+		// so simply check for NULL.
+		if (router->triage_queue != NULL) {
+			return router->triage_queue;
+		}
+		// Dense index or single zone, so route it directly to the zone
+		// queue.
+	} else if (next_stage != STAGE_INDEX) {
+		ASSERT_LOG_ONLY(false, "invalid index stage: %d", next_stage);
+		return NULL;
+	}
 
-  Index *index = router->index;
-  request->zoneNumber = getMasterIndexZone(index->masterIndex,
-                                           &request->chunkName);
-  return getZoneQueue(router, request->zoneNumber);
+	struct index *index = router->index;
+	request->zone_number = get_volume_index_zone(index->volume_index,
+						     &request->chunk_name);
+	return get_zone_queue(router, request->zone_number);
 }
 
 /**********************************************************************/
-void executeIndexRouterRequest(IndexRouter *router, Request *request)
+void execute_index_router_request(struct index_router *router,
+				  Request *request)
 {
-  if (request->isControlMessage) {
-    int result = dispatchIndexZoneControlRequest(request);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "error executing control message: %d",
-                              request->action);
-    }
-    request->status = result;
-    enterCallbackStage(request);
-    return;
-  }
+	if (request->is_control_message) {
+		int result = dispatch_index_zone_control_request(request);
+		if (result != UDS_SUCCESS) {
+			log_error_strerror(result,
+					   "error executing control message: %d",
+					   request->action);
+		}
+		request->status = result;
+		enter_callback_stage(request);
+		return;
+	}
 
-  router->needToSave = true;
-  if (request->requeued && !isSuccessful(request->status)) {
-    request->status = makeUnrecoverable(request->status);
-    router->callback(request);
-    return;
-  }
+	router->need_to_save = true;
+	if (request->requeued && !is_successful(request->status)) {
+		request->status = make_unrecoverable(request->status);
+		router->callback(request);
+		return;
+	}
 
-  Index *index = router->index;
-  int result = dispatchIndexRequest(index, request);
-  if (result == UDS_QUEUED) {
-    // Take the request off the pipeline.
-    return;
-  }
+	struct index *index = router->index;
+	int result = dispatch_index_request(index, request);
+	if (result == UDS_QUEUED) {
+		// Take the request off the pipeline.
+		return;
+	}
 
-  request->status = result;
-  router->callback(request);
+	request->status = result;
+	router->callback(request);
 }

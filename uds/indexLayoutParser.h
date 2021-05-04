@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,39 +16,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#6 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
 #define INDEX_LAYOUT_PARSER_H
 
+#include "compiler.h"
 #include "typeDefs.h"
 
-typedef enum {
-  LP_STRING    = 0x001,
-  LP_UINT64    = 0x002,
-  LP_TYPE_MASK = 0x0FF,
-  LP_DEFAULT   = 0x100,
-} LPType;
+enum lp_type {
+	LP_STRING = 0x001,
+	LP_UINT64 = 0x002,
+	LP_TYPE_MASK = 0x0FF,
+	LP_DEFAULT = 0x100,
+};
 
-typedef struct layoutParameter {
-  const char *name;
-  LPType      type;
-  union {
-    char     **str;
-    uint64_t  *num;
-  } value;
-  bool        seen;
-} LayoutParameter;
+struct layout_parameter {
+	const char *name;
+	enum lp_type type;
+	union {
+		char **str;
+		uint64_t *num;
+	} value;
+	bool seen;
+};
 
 /**
  * Function to parse an index layout specification.
  *
- * This parser treats the specification as a set of name=value parameters
- * or, in the absence of an '=' character, a single value for a default
- * parameter. The list of acceptable parameters is specified as an array
- * of LayoutParameter entries. Each such parameter contains the address
- * of the variable in which the value is to be stored.
+ * This parser treats the specification as a set of name=value
+ * parameters or, in the absence of an '=' character, a single value
+ * for a default parameter. The list of acceptable parameters is
+ * specified as an array of struct layout_parameter entries. Each such
+ * parameter contains the address of the variable in which the value
+ * is to be stored.
  *
  * @param info          A copy of the index layout specification that
  *                        will be altered by the parser to insert null
@@ -65,7 +67,7 @@ typedef struct layoutParameter {
  * @return UDS_SUCCESS or an error code, particularly
  *      UDS_INDEX_NAME_REQUIRED for all parsing errors.
  **/
-int parseLayoutString(char *info, LayoutParameter *params, size_t count)
-  __attribute__((warn_unused_result));
+int __must_check
+parse_layout_string(char *info, struct layout_parameter *params, size_t count);
 
 #endif // INDEX_LAYOUT_PARSER_H

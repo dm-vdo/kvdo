@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#14 $
  */
 
 #include "indexInternals.h"
@@ -38,108 +38,112 @@
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 
 /**********************************************************************/
-int allocateIndex(IndexLayout                  *layout,
-                  const Configuration          *config,
-                  const struct uds_parameters  *userParams,
-                  unsigned int                  zoneCount,
-                  LoadType                      loadType,
-                  Index                       **newIndex)
+int allocate_index(struct index_layout *layout,
+		   const struct configuration *config,
+		   const struct uds_parameters *user_params,
+		   unsigned int zone_count,
+		   enum load_type load_type,
+		   struct index **new_index)
 {
-  unsigned int checkpoint_frequency
-    = userParams == NULL ? 0 : userParams->checkpoint_frequency;
-  if (checkpoint_frequency >= config->geometry->chaptersPerVolume) {
-    return UDS_BAD_CHECKPOINT_FREQUENCY;
-  }
+	unsigned int checkpoint_frequency =
+		user_params == NULL ? 0 : user_params->checkpoint_frequency;
+	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
+		return UDS_BAD_CHECKPOINT_FREQUENCY;
+	}
 
-  Index *index;
-  int result = ALLOCATE(1, Index, "index", &index);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct index *index;
+	int result = ALLOCATE(1, struct index, "index", &index);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  index->existed             = (loadType != LOAD_CREATE);
-  index->hasSavedOpenChapter = true;
-  index->loadedType          = LOAD_UNDEFINED;
+	index->existed = (load_type != LOAD_CREATE);
+	index->has_saved_open_chapter = true;
+	index->loaded_type = LOAD_UNDEFINED;
 
-  result = makeIndexCheckpoint(index);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return result;
-  }
-  setIndexCheckpointFrequency(index->checkpoint, checkpoint_frequency);
+	result = make_index_checkpoint(index);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+	set_index_checkpoint_frequency(index->checkpoint,
+				       checkpoint_frequency);
 
-  getIndexLayout(layout, &index->layout);
-  index->zoneCount = zoneCount;
+	get_index_layout(layout, &index->layout);
+	index->zone_count = zone_count;
 
-  result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
-                    &index->zones);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return result;
-  }
+	result = ALLOCATE(index->zone_count, struct index_zone *, "zones",
+			  &index->zones);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
 
-  result = makeIndexState(layout, index->zoneCount, MAX_COMPONENT_COUNT,
-                          &index->state);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return result;
-  }
+	result = make_index_state(layout, index->zone_count,
+				  MAX_COMPONENT_COUNT, &index->state);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
 
-  result = addIndexStateComponent(index->state, &INDEX_STATE_INFO, index,
-                                  NULL);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return result;
-  }
+	result = add_index_state_component(index->state, &INDEX_STATE_INFO,
+					   index, NULL);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
 
-  result = makeVolume(config, index->layout, userParams,
-                      VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS, index->zoneCount,
-                      &index->volume);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return result;
-  }
-  index->volume->lookupMode  = LOOKUP_NORMAL;
+	result = make_volume(config, index->layout,
+			     user_params,
+			     VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
+			     index->zone_count, &index->volume);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+	index->volume->lookup_mode = LOOKUP_NORMAL;
 
-  unsigned int i;
-  for (i = 0; i < index->zoneCount; i++) {
-    result = makeIndexZone(index, i);
-    if (result != UDS_SUCCESS) {
-      freeIndex(index);
-      return logErrorWithStringError(result, "Could not create index zone");
-    }
-  }
+	unsigned int i;
+	for (i = 0; i < index->zone_count; i++) {
+		result = make_index_zone(index, i);
+		if (result != UDS_SUCCESS) {
+			free_index(index);
+			return log_error_strerror(result,
+						  "Could not create index zone");
+		}
+	}
 
-  result = addIndexStateComponent(index->state, &OPEN_CHAPTER_INFO, index,
-                                  NULL);
-  if (result != UDS_SUCCESS) {
-    freeIndex(index);
-    return logErrorWithStringError(result, "Could not create open chapter");
-  }
+	result = add_index_state_component(index->state, &OPEN_CHAPTER_INFO,
+					   index, NULL);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return log_error_strerror(result,
+					  "Could not create open chapter");
+	}
 
-  *newIndex = index;
-  return UDS_SUCCESS;
+	*new_index = index;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void releaseIndex(Index *index)
+void release_index(struct index *index)
 {
-  if (index == NULL) {
-    return;
-  }
+	if (index == NULL) {
+		return;
+	}
 
-  if (index->zones != NULL) {
-    unsigned int i;
-    for (i = 0; i < index->zoneCount; i++) {
-      freeIndexZone(index->zones[i]);
-    }
-    FREE(index->zones);
-  }
+	if (index->zones != NULL) {
+		unsigned int i;
+		for (i = 0; i < index->zone_count; i++) {
+			free_index_zone(index->zones[i]);
+		}
+		FREE(index->zones);
+	}
 
-  freeVolume(index->volume);
+	free_volume(index->volume);
 
-  freeIndexState(&index->state);
-  freeIndexCheckpoint(index->checkpoint);
-  putIndexLayout(&index->layout);
-  FREE(index);
+	free_index_state(&index->state);
+	free_index_checkpoint(index->checkpoint);
+	put_index_layout(&index->layout);
+	FREE(index);
 }

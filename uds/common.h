@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/common.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/common.h#6 $
  */
 
 #ifndef COMMON_H
@@ -25,19 +25,16 @@
 #include "stringUtils.h"
 #include "typeDefs.h"
 #include "uds.h"
-#include "uds-block.h"
 
-enum {
-  KILOBYTE = 1024,
-  MEGABYTE = KILOBYTE * KILOBYTE,
-  GIGABYTE = KILOBYTE * MEGABYTE
+enum { KILOBYTE = 1024,
+       MEGABYTE = KILOBYTE * KILOBYTE,
+       GIGABYTE = KILOBYTE * MEGABYTE };
+
+struct uds_chunk_data;
+
+struct uds_chunk_record {
+	struct uds_chunk_name name;
+	struct uds_chunk_data data;
 };
-
-typedef struct udsChunkData UdsChunkData;
-
-typedef struct {
-  UdsChunkName name;
-  UdsChunkData data;
-} UdsChunkRecord;
 
 #endif /* COMMON_H */

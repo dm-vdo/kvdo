@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#13 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -33,275 +33,264 @@
 #include "request.h"
 #include "volumeStore.h"
 
-typedef struct requestList {
-  Request *first;
-  Request *last;
-} RequestList;
-
-typedef struct cachedPage {
-  /* whether this page is currently being read asynchronously */
-  bool               cp_readPending;
-  /* if equal to numCacheEntries, the page is invalid */
-  unsigned int       cp_physicalPage;
-  /* the value of the volume clock when this page was last used */
-  int64_t            cp_lastUsed;
-  /* the cache page data */
-  struct volume_page cp_pageData;
-  /* the chapter index page. This is here, even for record pages */
-  DeltaIndexPage     cp_indexPage;
-} CachedPage;
-
-enum {
-  VOLUME_CACHE_MAX_ENTRIES              = (UINT16_MAX >> 1),
-  VOLUME_CACHE_QUEUED_FLAG              = (1 << 15),
-  VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS = 4096
+struct request_list {
+	Request *first;
+	Request *last;
 };
 
-typedef struct queuedRead {
-  /* whether this queue entry is invalid */
-  bool         invalid;
-  /* whether this queue entry has a pending read on it */
-  bool         reserved;
-  /* physical page to read */
-  unsigned int physicalPage;
-  /* list of requests waiting on a queued read */
-  RequestList  requestList;
-} QueuedRead;
+struct cached_page {
+	/* whether this page is currently being read asynchronously */
+	bool cp_read_pending;
+	/* if equal to num_cache_entries, the page is invalid */
+	unsigned int cp_physical_page;
+	/* the value of the volume clock when this page was last used */
+	int64_t cp_last_used;
+	/* the cache page data */
+	struct volume_page cp_page_data;
+	/* the chapter index page. This is here, even for record pages */
+	struct delta_index_page cp_index_page;
+};
+
+enum {
+	VOLUME_CACHE_MAX_ENTRIES = (UINT16_MAX >> 1),
+	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
+	VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS = 4096
+};
+
+struct queued_read {
+	/* whether this queue entry is invalid */
+	bool invalid;
+	/* whether this queue entry has a pending read on it */
+	bool reserved;
+	/* physical page to read */
+	unsigned int physical_page;
+	/* list of requests waiting on a queued read */
+	struct request_list request_list;
+};
 
 // Reason for invalidating a cache entry, used for gathering statistics
-typedef enum invalidationReason {
-  INVALIDATION_EVICT,           // cache is full, goodbye
-  INVALIDATION_EXPIRE,          // your chapter is being overwritten
-  INVALIDATION_ERROR,           // error happened; don't try to use data
-  INVALIDATION_INIT_SHUTDOWN
-} InvalidationReason;
+enum invalidation_reason {
+	INVALIDATION_EVICT, // cache is full, goodbye
+	INVALIDATION_EXPIRE, // your chapter is being overwritten
+	INVALIDATION_ERROR, // error happened; don't try to use data
+	INVALIDATION_INIT_SHUTDOWN
+};
 
 /*
- * Value stored atomically in a SearchPendingCounter.  The low order 32 bits is
- * the physical page number of the cached page being read.  The high order 32
- * bits is a sequence number.
+ * Value stored atomically in a search_pending_counter.  The low order
+ * 32 bits is the physical page number of the cached page being read.
+ * The high order 32 bits is a sequence number.
  *
- * An InvalidateCounter is only written by its zone thread by calling the
- * beginPendingSearch or endPendingSearch methods.
+ * An invalidate counter is only written by its zone thread by calling
+ * the begin_pending_search or end_pending_search methods.
  *
- * Any other thread that is accessing an InvalidateCounter is reading the value
- * in the waitForPendingSearches method.
+ * Any other thread that is accessing an invalidate counter is reading
+ * the value in the wait_for_pending_searches method.
  */
-typedef int64_t InvalidateCounter;
-// Fields of InvalidateCounter.
+typedef int64_t invalidate_counter_t;
+// Fields of invalidate_counter_t.
 // These must be 64 bit, so an enum cannot be not used.
-#define PAGE_FIELD  ((long)UINT_MAX)   // The page number field
-#define COUNTER_LSB (PAGE_FIELD + 1L)  // The LSB of the counter field
+#define PAGE_FIELD ((long) UINT_MAX) // The page number field
+#define COUNTER_LSB (PAGE_FIELD + 1L) // The LSB of the counter field
 
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) {
-  atomic64_t atomicValue;
-} SearchPendingCounter;
+struct __attribute__((aligned(CACHE_LINE_BYTES))) search_pending_counter {
+	atomic64_t atomic_value;
+};
 
-typedef struct pageCache {
-  // Geometry governing the volume
-  const Geometry *geometry;
-  // The number of zones
-  unsigned int    zoneCount;
-  // The number of index entries
-  unsigned int    numIndexEntries;
-  // The max number of cached entries
-  uint16_t        numCacheEntries;
-  // The index used to quickly access page in cache - top bit is a 'queued'
-  // flag
-  uint16_t       *index;
-  // The cache
-  CachedPage     *cache;
-  // A counter for each zone to keep track of when a search is occurring
-  // within that zone.
-  SearchPendingCounter *searchPendingCounters;
-  // Queued reads, as a circular array, with first and last indexes
-  QueuedRead     *readQueue;
-  // Cache counters for stats.  This is the first field of a PageCache that is
-  // not constant after the struct is initialized.
-  CacheCounters   counters;
-  /**
-   * Entries are enqueued at readQueueLast.
-   * To 'reserve' entries, we get the entry pointed to by readQueueLastRead
-   * and increment last read.  This is done with a lock so if another reader
-   * thread reserves a read, it will grab the next one.  After every read
-   * is completed, the reader thread calls releaseReadQueueEntry which
-   * increments readQueueFirst until it is equal to readQueueLastRead, but only
-   * if the value pointed to by readQueueFirst is no longer pending.
-   * This means that if n reads are outstanding, readQueueFirst may not
-   * be incremented until the last of the reads finishes.
-   *
-   *  First                    Last
-   * ||    |    |    |    |    |    ||
-   *   LR   (1)   (2)
-   *
-   * Read thread 1 increments last read (1), then read thread 2 increments it
-   * (2). When each read completes, it checks to see if it can increment first,
-   * when all concurrent reads have completed, readQueueFirst should equal
-   * readQueueLastRead.
-   **/
-  uint16_t              readQueueFirst;
-  uint16_t              readQueueLastRead;
-  uint16_t              readQueueLast;
-  // The size of the read queue
-  unsigned int          readQueueMaxSize;
-  // Page access counter
-  atomic64_t            clock;
-} PageCache;
+struct page_cache {
+	// Geometry governing the volume
+	const struct geometry *geometry;
+	// The number of zones
+	unsigned int zone_count;
+	// The number of index entries
+	unsigned int num_index_entries;
+	// The max number of cached entries
+	uint16_t num_cache_entries;
+	// The index used to quickly access page in cache - top bit is a
+	// 'queued' flag
+	uint16_t *index;
+	// The cache
+	struct cached_page *cache;
+	// A counter for each zone to keep track of when a search is occurring
+	// within that zone.
+	struct search_pending_counter *search_pending_counters;
+	// Queued reads, as a circular array, with first and last indexes
+	struct queued_read *read_queue;
+	// Cache counters for stats.  This is the first field of a
+	// page_cache that is not constant after the struct is
+	// initialized.
+	struct cache_counters counters;
+	/**
+	 * Entries are enqueued at read_queue_last.
+	 * To 'reserve' entries, we get the entry pointed to by
+	 * read_queue_last_read and increment last read.  This is done
+	 * with a lock so if another reader thread reserves a read, it
+	 * will grab the next one.  After every read is completed, the
+	 * reader thread calls release_read_queue_entry which
+	 * increments read_queue_first until it is equal to
+	 * read_queue_last_read, but only if the value pointed to by
+	 * read_queue_first is no longer pending. This means that if n
+	 * reads are outstanding, read_queue_first may not be
+	 * incremented until the last of the reads finishes.
+	 *
+	 *  First                    Last
+	 * ||    |    |    |    |    |    ||
+	 *   LR   (1)   (2)
+	 *
+	 * Read thread 1 increments last read (1), then read thread 2
+	 * increments it (2). When each read completes, it checks to
+	 * see if it can increment first, when all concurrent reads
+	 * have completed, read_queue_first should equal
+	 * read_queue_last_read.
+	 **/
+	uint16_t read_queue_first;
+	uint16_t read_queue_last_read;
+	uint16_t read_queue_last;
+	// The size of the read queue
+	unsigned int read_queue_max_size;
+	// Page access counter
+	atomic64_t clock;
+};
 
 /**
  * Allocate a cache for a volume.
  *
- * @param geometry          The geometry governing the volume
- * @param chaptersInCache   The size (in chapters) of the page cache
- * @param readQueueMaxSize  The maximum size of the read queue
- * @param zoneCount         The number of zones in the index
- * @param cachePtr          A pointer to hold the new page cache
+ * @param geometry            The geometry governing the volume
+ * @param chapters_in_cache   The size (in chapters) of the page cache
+ * @param read_queue_max_size The maximum size of the read queue
+ * @param zone_count          The number of zones in the index
+ * @param cache_ptr           A pointer to hold the new page cache
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makePageCache(const Geometry  *geometry,
-                  unsigned int     chaptersInCache,
-                  unsigned int     readQueueMaxSize,
-                  unsigned int     zoneCount,
-                  PageCache      **cachePtr)
-  __attribute__((warn_unused_result));
+int __must_check make_page_cache(const struct geometry *geometry,
+				 unsigned int chapters_in_cache,
+				 unsigned int read_queue_max_size,
+				 unsigned int zone_count,
+				 struct page_cache **cache_ptr);
 
 /**
  * Clean up a volume's cache
  *
  * @param cache the volumecache
  **/
-void freePageCache(PageCache *cache);
+void free_page_cache(struct page_cache *cache);
 
 /**
  * Invalidates a page cache for a particular chapter
  *
- * @param cache           the page cache
- * @param chapter         the chapter
- * @param pagesPerChapter the number of pages per chapter
- * @param reason          the reason for invalidation
+ * @param cache             the page cache
+ * @param chapter           the chapter
+ * @param pages_per_chapter the number of pages per chapter
+ * @param reason            the reason for invalidation
  *
  * @return UDS_SUCCESS or an error code
  **/
-int invalidatePageCacheForChapter(PageCache          *cache,
-                                  unsigned int        chapter,
-                                  unsigned int        pagesPerChapter,
-                                  InvalidationReason  reason)
-  __attribute__((warn_unused_result));
+int __must_check
+invalidate_page_cache_for_chapter(struct page_cache *cache,
+				  unsigned int chapter,
+				  unsigned int pages_per_chapter,
+				  enum invalidation_reason reason);
 
 /**
  * Find a page, invalidate it, and make its memory the least recent.  This
  * method is only exposed for the use of unit tests.
  *
- * @param cache        The cache containing the page
- * @param physicalPage The id of the page to invalidate
- * @param readQueue    The queue of pending reads (may be NULL)
- * @param reason       The reason for the invalidation, for stats
- * @param mustFind     If <code>true</code>, it is an error if the page
- *                     can't be found
+ * @param cache         The cache containing the page
+ * @param physical_page The id of the page to invalidate
+ * @param read_queue    The queue of pending reads (may be NULL)
+ * @param reason        The reason for the invalidation, for stats
+ * @param must_find     If <code>true</code>, it is an error if the page
+ *                      can't be found
  *
  * @return UDS_SUCCESS or an error code
  **/
-int findInvalidateAndMakeLeastRecent(PageCache          *cache,
-                                     unsigned int        physicalPage,
-                                     QueuedRead         *readQueue,
-                                     InvalidationReason  reason,
-                                     bool                mustFind);
+int find_invalidate_and_make_least_recent(struct page_cache *cache,
+					  unsigned int physical_page,
+					  struct queued_read *read_queue,
+					  enum invalidation_reason reason,
+					  bool must_find);
 
 /**
  * Make the page the most recent in the cache
  *
- * @param cache   the page cache
- * @param pagePtr the page to make most recent
- *
- * @return UDS_SUCCESS or an error code
+ * @param cache    the page cache
+ * @param page_ptr the page to make most recent
  **/
-void makePageMostRecent(PageCache *cache, CachedPage *pagePtr);
+void make_page_most_recent(struct page_cache *cache,
+			   struct cached_page *page_ptr);
 
 /**
  * Verifies that a page is in the cache.  This method is only exposed for the
  * use of unit tests.
  *
  * @param cache the cache to verify
- * @param page the page to find
+ * @param page  the page to find
  *
  * @return UDS_SUCCESS or an error code
  **/
-int assertPageInCache(PageCache *cache, CachedPage *page)
-  __attribute__((warn_unused_result));
+int __must_check assert_page_in_cache(struct page_cache *cache,
+				      struct cached_page *page);
 
 /**
  * Gets a page from the cache.
  *
- * @param [in] cache        the page cache
- * @param [in] physicalPage the page number
- * @param [in] probeType    the type of cache access being done (CacheProbeType
- *                          optionally OR'ed with CACHE_PROBE_IGNORE_FAILURE)
- * @param [out] pagePtr     the found page
+ * @param [in] cache         the page cache
+ * @param [in] physical_page the page number
+ * @param [in] probe_type    the type of cache access being done
+ *                           (cache_probe_type optionally OR'ed with
+ *                           CACHE_PROBE_IGNORE_FAILURE)
+ * @param [out] page_ptr     the found page
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPageFromCache(PageCache     *cache,
-                     unsigned int   physicalPage,
-                     int            probeType,
-                     CachedPage   **pagePtr)
-  __attribute__((warn_unused_result));
+int __must_check get_page_from_cache(struct page_cache *cache,
+				     unsigned int physical_page,
+				     int probe_type,
+				     struct cached_page **page_ptr);
 
 /**
  * Enqueue a read request
  *
- * @param cache        the page cache
- * @param request      the request that depends on the read
- * @param physicalPage the physicalPage for the request
+ * @param cache          the page cache
+ * @param request        the request that depends on the read
+ * @param physical_page  the physical page for the request
  *
- * @return UDS_QUEUED  if the page was queued
- *         UDS_SUCCESS if the queue was full
+ * @return UDS_QUEUED    if the page was queued
+ *         UDS_SUCCESS   if the queue was full
  *         an error code if there was an error
  **/
-int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
-  __attribute__((warn_unused_result));
+int __must_check enqueue_read(struct page_cache *cache,
+			      Request *request,
+			      unsigned int physical_page);
 
 /**
  * Reserves a queued read for future dequeuing, but does not remove it from
- * the queue. Must call releaseReadQueueEntry to complete the process
+ * the queue. Must call release_read_queue_entry to complete the process
  *
- * @param cache          the page cache
- * @param queuePos       the position in the read queue for this pending read
- * @param firstRequests  list of requests for the pending read
- * @param physicalPage   the physicalPage for the requests
- * @param invalid        whether or not this entry is invalid
+ * @param cache           the page cache
+ * @param queue_pos       the position in the read queue for this pending read
+ * @param first_requests  list of requests for the pending read
+ * @param physical_page   the physical page for the requests
+ * @param invalid         whether or not this entry is invalid
  *
  * @return UDS_SUCCESS or an error code
  **/
-bool reserveReadQueueEntry(PageCache     *cache,
-                           unsigned int  *queuePos,
-                           Request      **firstRequests,
-                           unsigned int  *physicalPage,
-                           bool          *invalid);
+bool reserve_read_queue_entry(struct page_cache *cache,
+			      unsigned int *queue_pos,
+			      Request **first_requests,
+			      unsigned int *physical_page,
+			      bool *invalid);
 
 /**
  * Releases a read from the queue, allowing it to be reused by future
  * enqueues
  *
  * @param cache      the page cache
- * @param queuePos   queue entry position
- *
- * @return UDS_SUCCESS or an error code
+ * @param queue_pos  queue entry position
  **/
-void releaseReadQueueEntry(PageCache    *cache,
-                           unsigned int  queuePos);
-
-/**
- * Check for the page cache read queue being empty.
- *
- * @param cache  the page cache for which to check the read queue.
- *
- * @return  true if the read queue for cache is empty, false otherwise.
- **/
-static INLINE bool readQueueIsEmpty(PageCache *cache)
-{
-  return (cache->readQueueFirst == cache->readQueueLast);
-}
+void release_read_queue_entry(struct page_cache *cache,
+			      unsigned int queue_pos);
 
 /**
  * Check for the page cache read queue being full.
@@ -310,26 +299,25 @@ static INLINE bool readQueueIsEmpty(PageCache *cache)
  *
  * @return  true if the read queue for cache is full, false otherwise.
  **/
-static INLINE bool readQueueIsFull(PageCache *cache)
+static INLINE bool read_queue_is_full(struct page_cache *cache)
 {
-  return (cache->readQueueFirst ==
-    (cache->readQueueLast + 1) % cache->readQueueMaxSize);
+	return (cache->read_queue_first ==
+		(cache->read_queue_last + 1) % cache->read_queue_max_size);
 }
 
 /**
  * Selects a page in the cache to be used for a read.
  *
  * This will clear the pointer in the page map and
- * set readPending to true on the cache page
+ * set read_pending to true on the cache page
  *
- * @param cache          the page cache
- * @param pagePtr        the page to add
+ * @param cache     the page cache
+ * @param page_ptr  the page to add
  *
  * @return UDS_SUCCESS or an error code
  **/
-int selectVictimInCache(PageCache     *cache,
-                        CachedPage   **pagePtr)
-  __attribute__((warn_unused_result));
+int __must_check select_victim_in_cache(struct page_cache *cache,
+					struct cached_page **page_ptr);
 
 /**
  * Completes an async page read in the cache, so that
@@ -339,15 +327,14 @@ int selectVictimInCache(PageCache     *cache,
  * the page map for the new page to this entry
  *
  * @param cache          the page cache
- * @param physicalPage   the page number
+ * @param physical_page  the page number
  * @param page           the page to complete processing on
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putPageInCache(PageCache    *cache,
-                   unsigned int  physicalPage,
-                   CachedPage   *page)
-  __attribute__((warn_unused_result));
+int __must_check put_page_in_cache(struct page_cache *cache,
+				   unsigned int physical_page,
+				   struct cached_page *page);
 
 /**
  * Cancels an async page read in the cache, so that
@@ -358,14 +345,12 @@ int putPageInCache(PageCache    *cache,
  * was set.
  *
  * @param cache          the page cache
- * @param physicalPage   the page number to clear the queued read flag on
+ * @param physical_page  the page number to clear the queued read flag on
  * @param page           the page to cancel processing on
- *
- * @return UDS_SUCCESS or an error code
  **/
-void cancelPageInCache(PageCache    *cache,
-                       unsigned int  physicalPage,
-                       CachedPage   *page);
+void cancel_page_in_cache(struct page_cache *cache,
+			  unsigned int physical_page,
+			  struct cached_page *page);
 
 /**
  * Get the page cache size
@@ -374,131 +359,120 @@ void cancelPageInCache(PageCache    *cache,
  *
  * @return the size of the page cache
  **/
-size_t getPageCacheSize(PageCache *cache)
-  __attribute__((warn_unused_result));
+size_t __must_check get_page_cache_size(struct page_cache *cache);
 
 
 /**
- * Read the InvalidateCounter for the given zone.
+ * Read the invalidate counter for the given zone.
  *
- * @param cache       the page cache
- * @param zoneNumber  the zone number
+ * @param cache        the page cache
+ * @param zone_number  the zone number
  *
- * @return the InvalidateCounter value
+ * @return the invalidate counter value
  **/
-static INLINE InvalidateCounter getInvalidateCounter(PageCache    *cache,
-                                                     unsigned int  zoneNumber)
+static INLINE invalidate_counter_t
+get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
-  return atomic64_read(&cache->searchPendingCounters[zoneNumber].atomicValue);
+	return atomic64_read(&cache->search_pending_counters[zone_number].atomic_value);
 }
 
 /**
- * Write the InvalidateCounter for the given zone.
+ * Write the invalidate counter for the given zone.
  *
- * @param cache              the page cache
- * @param zoneNumber         the zone number
- * @param invalidateCounter  the InvalidateCounter value to write
+ * @param cache               the page cache
+ * @param zone_number         the zone number
+ * @param invalidate_counter  the invalidate counter value to write
  **/
-static INLINE void setInvalidateCounter(PageCache         *cache,
-                                        unsigned int       zoneNumber,
-                                        InvalidateCounter  invalidateCounter)
+static INLINE void set_invalidate_counter(struct page_cache *cache,
+					  unsigned int zone_number,
+					  invalidate_counter_t invalidate_counter)
 {
-  atomic64_set(&cache->searchPendingCounters[zoneNumber].atomicValue,
-               invalidateCounter);
+	atomic64_set(&cache->search_pending_counters[zone_number].atomic_value,
+		     invalidate_counter);
 }
 
 /**
  * Return the physical page number of the page being searched.  The return
- * value is only valid if searchPending indicates that a search is in progress.
+ * value is only valid if search_pending indicates that a search is in progress.
  *
- * @param counter  the InvalidateCounter value to check
+ * @param counter  the invalidate counter value to check
  *
  * @return the page that the zone is searching
  **/
-static INLINE unsigned int pageBeingSearched(InvalidateCounter counter)
+static INLINE unsigned int page_being_searched(invalidate_counter_t counter)
 {
-  return counter & PAGE_FIELD;
+	return counter & PAGE_FIELD;
 }
 
 /**
  * Determines whether a given value indicates that a search is occuring.
  *
- * @param invalidateCounter  the InvalidateCounter value to check
+ * @param invalidate_counter  the invalidate counter value to check
  *
  * @return true if a search is pending, false otherwise
  **/
-static INLINE bool searchPending(InvalidateCounter invalidateCounter)
+static INLINE bool search_pending(invalidate_counter_t invalidate_counter)
 {
-  return (invalidateCounter & COUNTER_LSB) != 0;
-}
-
-/**
- * Determines whether there is a search occuring for the given zone.
- *
- * @param cache       the page cache
- * @param zoneNumber  the zone number
- *
- * @return true if a search is pending, false otherwise
- **/
-static INLINE bool isSearchPending(PageCache    *cache,
-                                   unsigned int  zoneNumber)
-{
-  return searchPending(getInvalidateCounter(cache, zoneNumber));
+	return (invalidate_counter & COUNTER_LSB) != 0;
 }
 
 /**
  * Increment the counter for the specified zone to signal that a search has
- * begun.  Also set which page is being searched.  The searchPendingCounters
+ * begun.  Also set which page is being searched.  The search_pending_counters
  * are protecting read access to pages indexed by the cache.  This is the
  * "lock" action.
  *
- * @param cache         the page cache
- * @param physicalPage  the page that the zone is searching
- * @param zoneNumber    the zone number
+ * @param cache          the page cache
+ * @param physical_page  the page that the zone is searching
+ * @param zone_number    the zone number
  **/
-static INLINE void beginPendingSearch(PageCache    *cache,
-                                      unsigned int  physicalPage,
-                                      unsigned int  zoneNumber)
+static INLINE void begin_pending_search(struct page_cache *cache,
+					unsigned int physical_page,
+					unsigned int zone_number)
 {
-  InvalidateCounter invalidateCounter = getInvalidateCounter(cache,
-                                                             zoneNumber);
-  invalidateCounter &= ~PAGE_FIELD;
-  invalidateCounter |= physicalPage;
-  invalidateCounter += COUNTER_LSB;
-  setInvalidateCounter(cache, zoneNumber, invalidateCounter);
-  ASSERT_LOG_ONLY(searchPending(invalidateCounter),
-                  "Search is pending for zone %u", zoneNumber);
-  /*
-   * This memory barrier ensures that the write to the invalidate counter is
-   * seen by other threads before this threads accesses the cached page.  The
-   * corresponding read memory barrier is in waitForPendingSearches.
-   */
-  smp_mb();
+	invalidate_counter_t invalidate_counter =
+		get_invalidate_counter(cache, zone_number);
+	invalidate_counter &= ~PAGE_FIELD;
+	invalidate_counter |= physical_page;
+	invalidate_counter += COUNTER_LSB;
+	set_invalidate_counter(cache, zone_number, invalidate_counter);
+	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			"Search is pending for zone %u",
+			zone_number);
+	/*
+	 * This memory barrier ensures that the write to the invalidate counter
+	 * is seen by other threads before this thread accesses the cached
+	 * page.  The corresponding read memory barrier is in
+	 * wait_for_pending_searches.
+	 */
+	smp_mb();
 }
 
 /**
  * Increment the counter for the specified zone to signal that a search has
  * finished.  We do not need to reset the page since we only should ever look
  * at the page value if the counter indicates a search is ongoing.  The
- * searchPendingCounters are protecting read access to pages indexed by the
+ * search_pending_counters are protecting read access to pages indexed by the
  * cache.  This is the "unlock" action.
  *
- * @param cache       the page cache
- * @param zoneNumber  the zone number
+ * @param cache        the page cache
+ * @param zone_number  the zone number
  **/
-static INLINE void endPendingSearch(PageCache    *cache,
-                                    unsigned int  zoneNumber)
+static INLINE void end_pending_search(struct page_cache *cache,
+				      unsigned int zone_number)
 {
-  // This memory barrier ensures that this thread completes reads of the
-  // cached page before other threads see the write to the invalidate counter.
-  smp_mb();
+	invalidate_counter_t invalidate_counter;
+	// This memory barrier ensures that this thread completes reads of the
+	// cached page before other threads see the write to the invalidate
+	// counter.
+	smp_mb();
 
-  InvalidateCounter invalidateCounter = getInvalidateCounter(cache,
-                                                             zoneNumber);
-  ASSERT_LOG_ONLY(searchPending(invalidateCounter),
-                  "Search is pending for zone %u", zoneNumber);
-  invalidateCounter += COUNTER_LSB;
-  setInvalidateCounter(cache, zoneNumber, invalidateCounter);
+	invalidate_counter = get_invalidate_counter(cache, zone_number);
+	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			"Search is pending for zone %u",
+			zone_number);
+	invalidate_counter += COUNTER_LSB;
+	set_invalidate_counter(cache, zone_number, invalidate_counter);
 }
 
 #endif /* PAGE_CACHE_H */

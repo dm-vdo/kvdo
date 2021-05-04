@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/threadOnce.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#4 $
  */
 
 #ifndef THREAD_ONCE_H
@@ -26,23 +26,21 @@
 
 #define ONCE_STATE_INITIALIZER ATOMIC_INIT(0)
 
-typedef atomic_t OnceState;
+typedef atomic_t once_state_t;
 
 /**
  * Thread safe once only initialization.
  *
- * @param onceState    pointer to object to record that initialization
- *                     has been performed
- * @param initFunction called if onceState does not indicate
- *                     initialization has been performed
+ * @param once_state     pointer to object to record that initialization
+ *                       has been performed
+ * @param init_function  called if once_state does not indicate
+ *                       initialization has been performed
  *
- * @return             UDS_SUCCESS or error code
- *
- * @note Generally the following declaration of onceState is performed in
+ * @note Generally the following declaration of once_state is performed in
  *       at file scope:
  *
- *       static OnceState onceState = ONCE_STATE_INITIALIZER;
+ *       static once_state_t once_state = ONCE_STATE_INITIALIZER;
  **/
-int performOnce(OnceState *onceState, void (*initFunction) (void));
+void perform_once(once_state_t *once_state, void (*init_function) (void));
 
 #endif /* THREAD_ONCE_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#17 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -29,407 +29,432 @@
 #include "threads.h"
 #include "uds.h"
 
-extern const IndexComponentInfo *const MASTER_INDEX_INFO;
-extern unsigned int minMasterIndexDeltaLists;
+extern const struct index_component_info *const VOLUME_INDEX_INFO;
+extern unsigned int min_volume_index_delta_lists;
 
-typedef struct masterIndex MasterIndex;
-
-typedef struct {
-  size_t memoryAllocated;  // Number of bytes allocated
-  RelTime rebalanceTime;   // The number of seconds spent rebalancing
-  int  rebalanceCount;     // Number of memory rebalances
-  long recordCount;        // The number of records in the index
-  long collisionCount;     // The number of collision records
-  long discardCount;       // The number of records removed
-  long overflowCount;      // The number of UDS_OVERFLOWs detected
-  unsigned int numLists;   // The number of delta lists
-  long earlyFlushes;       // Number of early flushes
-} MasterIndexStats;
+struct volume_index_stats {
+	size_t memory_allocated;    // Number of bytes allocated
+	ktime_t rebalance_time;	    // Nanoseconds spent rebalancing
+	int rebalance_count;        // Number of memory rebalances
+	long record_count;          // The number of records in the index
+	long collision_count;       // The number of collision records
+	long discard_count;         // The number of records removed
+	long overflow_count;        // The number of UDS_OVERFLOWs detected
+	unsigned int num_lists;     // The number of delta lists
+	long early_flushes;         // Number of early flushes
+};
 
 /*
- * The MasterIndexTriage structure is used by lookupMasterIndexName(),
+ * The volume_index_triage structure is used by lookup_volume_index_name(),
  * which is a read-only operation that looks at the chunk name and returns
  * some information used by the index to select the thread/queue/code_path
  * that will process the chunk.
  */
-typedef struct {
-  uint64_t virtualChapter;  // If inSampledChapter is true, then this is the
-                            // chapter containing the entry for the chunk name
-  unsigned int zone;        // The zone containing the chunk name
-  bool isSample;            // If true, this chunk name belongs to the
-                            // sampled index
-  bool inSampledChapter;    // If true, this chunk already has an entry in the
-                            // sampled index and virtualChapter is valid
-} MasterIndexTriage;
+struct volume_index_triage {
+	uint64_t virtual_chapter;  // If in_sampled_chapter is true, then this
+				   // is the chapter containing the entry for
+				   // the chunk name
+	unsigned int zone;         // The zone containing the chunk name
+	bool is_sample;            // If true, this chunk name belongs to the
+				   // sampled index
+	bool in_sampled_chapter;   // If true, this chunk already has an entry
+				   // in the sampled index and virtual_chapter
+				   // is valid
+};
 
 /*
- * The MasterIndexRecord structure is used for normal index read-write
+ * The volume_index_record structure is used for normal index read-write
  * processing of a chunk name.  The first call must be to
- * getMasterIndexRecord() to find the master index record for a chunk name.
- * This call can be followed by putMasterIndexRecord() to add a master
- * index record, or by setMasterIndexRecordChapter() to associate the chunk
- * name with a different chapter, or by removeMasterIndexRecord() to delete
- * a master index record.
+ * get_volume_index_record() to find the volume index record for a chunk name.
+ * This call can be followed by put_volume_index_record() to add a volume
+ * index record, or by set_volume_index_record_chapter() to associate the chunk
+ * name with a different chapter, or by remove_volume_index_record() to delete
+ * a volume index record.
  */
-typedef struct {
-  // Public fields
-  uint64_t virtualChapter;  // Chapter where the block info is found
-  bool     isCollision;     // This record is a collision
-  bool     isFound;         // This record is the block searched for
+struct volume_index_record {
+	// Public fields
+	uint64_t virtual_chapter;  // Chapter where the block info is found
+	bool is_collision;         // This record is a collision
+	bool is_found;             // This record is the block searched for
 
-  // Private fields
-  unsigned char       magic;       // The magic number for valid records
-  unsigned int        zoneNumber;  // Zone that contains this block
-  MasterIndex        *masterIndex; // The master index
-  Mutex              *mutex;       // Mutex that must be held while accessing
-                                   // this delta index entry; used only for
-                                   // a sampled index; otherwise is NULL
-  const UdsChunkName *name;        // The blockname to which this record refers
-  DeltaIndexEntry     deltaEntry;  // The delta index entry for this record
-} MasterIndexRecord;
+	// Private fields
+	unsigned char magic;                   // The magic number for valid
+					       // records
+	unsigned int zone_number;              // Zone that contains this block
+	struct volume_index *volume_index;     // The volume index
+	struct mutex *mutex;                   // Mutex that must be held while
+					       // accessing this delta index
+					       // entry; used only for a
+					       // sampled index; otherwise is
+					       // NULL
+	const struct uds_chunk_name *name;     // The blockname to which this
+					       // record refers
+	struct delta_index_entry delta_entry;  // The delta index entry for
+					       // this record
+};
 
-struct masterIndex {
-  void (*abortRestoringMasterIndex)(MasterIndex *masterIndex);
-  int (*abortSavingMasterIndex)(const MasterIndex *masterIndex,
-                                unsigned int zoneNumber);
-  int (*finishSavingMasterIndex)(const MasterIndex *masterIndex,
-                                 unsigned int zoneNumber);
-  void (*freeMasterIndex)(MasterIndex *masterIndex);
-  size_t (*getMasterIndexMemoryUsed)(const MasterIndex *masterIndex);
-  int (*getMasterIndexRecord)(MasterIndex *masterIndex,
-                              const UdsChunkName *name,
-                              MasterIndexRecord *record);
-  void (*getMasterIndexStats)(const MasterIndex *masterIndex,
-                              MasterIndexStats *dense,
-                              MasterIndexStats *sparse);
-  unsigned int (*getMasterIndexZone)(const MasterIndex *masterIndex,
-                                     const UdsChunkName *name);
-  bool (*isMasterIndexSample)(const MasterIndex *masterIndex,
-                              const UdsChunkName *name);
-  bool (*isRestoringMasterIndexDone)(const MasterIndex *masterIndex);
-  bool (*isSavingMasterIndexDone)(const MasterIndex *masterIndex,
-                                  unsigned int zoneNumber);
-  int (*lookupMasterIndexName)(const MasterIndex *masterIndex,
-                               const UdsChunkName *name,
-                               MasterIndexTriage *triage);
-  int (*lookupMasterIndexSampledName)(const MasterIndex *masterIndex,
-                                      const UdsChunkName *name,
-                                      MasterIndexTriage *triage);
-  int (*restoreDeltaListToMasterIndex)(MasterIndex *masterIndex,
-                                       const DeltaListSaveInfo *dlsi,
-                                       const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
-  void (*setMasterIndexOpenChapter)(MasterIndex *masterIndex,
-                                    uint64_t virtualChapter);
-  void (*setMasterIndexTag)(MasterIndex *masterIndex, byte tag);
-  void (*setMasterIndexZoneOpenChapter)(MasterIndex *masterIndex,
-                                        unsigned int zoneNumber,
-                                        uint64_t virtualChapter);
-  int (*startRestoringMasterIndex)(MasterIndex *masterIndex,
-                                   BufferedReader **bufferedReaders,
-                                   int numReaders);
-  int (*startSavingMasterIndex)(const MasterIndex *masterIndex,
-                                unsigned int zoneNumber,
-                                BufferedWriter *bufferedWriter);
+struct volume_index {
+	void (*abort_restoring_volume_index)(struct volume_index *volume_index);
+	int (*abort_saving_volume_index)(const struct volume_index *volume_index,
+					 unsigned int zone_number);
+	int (*finish_saving_volume_index)(const struct volume_index *volume_index,
+					  unsigned int zone_number);
+	void (*free_volume_index)(struct volume_index *volume_index);
+	size_t (*get_volume_index_memory_used)(const struct volume_index *volume_index);
+	int (*get_volume_index_record)(struct volume_index *volume_index,
+				       const struct uds_chunk_name *name,
+				       struct volume_index_record *record);
+	void (*get_volume_index_stats)(const struct volume_index *volume_index,
+				       struct volume_index_stats *dense,
+				       struct volume_index_stats *sparse);
+	unsigned int (*get_volume_index_zone)(const struct volume_index *volume_index,
+					      const struct uds_chunk_name *name);
+	bool (*is_volume_index_sample)(const struct volume_index *volume_index,
+				       const struct uds_chunk_name *name);
+	bool (*is_restoring_volume_index_done)(const struct volume_index *volume_index);
+	bool (*is_saving_volume_index_done)(const struct volume_index *volume_index,
+					    unsigned int zone_number);
+	int (*lookup_volume_index_name)(const struct volume_index *volume_index,
+					const struct uds_chunk_name *name,
+					struct volume_index_triage *triage);
+	int (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
+					        const struct uds_chunk_name *name,
+					        struct volume_index_triage *triage);
+	int (*restore_delta_list_to_volume_index)(struct volume_index *volume_index,
+						  const struct delta_list_save_info *dlsi,
+						  const byte data[DELTA_LIST_MAX_BYTE_COUNT]);
+	void (*set_volume_index_open_chapter)(struct volume_index *volume_index,
+					      uint64_t virtual_chapter);
+	void (*set_volume_index_tag)(struct volume_index *volume_index,
+				     byte tag);
+	void (*set_volume_index_zone_open_chapter)(struct volume_index *volume_index,
+						   unsigned int zone_number,
+						   uint64_t virtual_chapter);
+	int (*start_restoring_volume_index)(struct volume_index *volume_index,
+					    struct buffered_reader **buffered_readers,
+					    int num_readers);
+	int (*start_saving_volume_index)(const struct volume_index *volume_index,
+					 unsigned int zone_number,
+					 struct buffered_writer *buffered_writer);
 };
 
 /**
- * Return the combined master index stats.
+ * Return the combined volume index stats.
  *
- * @param masterIndex The master index
- * @param stats       Combined stats for the index
+ * @param volume_index  The volume index
+ * @param stats         Combined stats for the index
  **/
-void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
-                                 MasterIndexStats *stats);
+void get_volume_index_combined_stats(const struct volume_index *volume_index,
+				     struct volume_index_stats *stats);
 
 /**
- * Make a new master index.
+ * Make a new volume index.
  *
- * @param config       The configuration of the master index
- * @param numZones     The number of zones
- * @param volumeNonce  The nonce used to store the index
- * @param masterIndex  Location to hold new master index ptr
+ * @param config        The configuration of the volume index
+ * @param num_zones     The number of zones
+ * @param volume_nonce  The nonce used to store the index
+ * @param volume_index  Location to hold new volume index ptr
  *
  * @return error code or UDS_SUCCESS
  **/
-int makeMasterIndex(const Configuration *config, unsigned int numZones,
-                    uint64_t volumeNonce, MasterIndex **masterIndex)
-  __attribute__((warn_unused_result));
+int __must_check make_volume_index(const struct configuration *config,
+				   unsigned int num_zones,
+				   uint64_t volume_nonce,
+				   struct volume_index **volume_index);
 
 /**
- * Compute the number of blocks required to save a master index of a given
+ * Compute the number of blocks required to save a volume index of a given
  * configuration.
  *
- * @param [in]  config          The configuration of a master index
- * @param [in]  blockSize       The size of a block in bytes.
- * @param [out] blockCount      The resulting number of blocks.
+ * @param [in]  config           The configuration of a volume index
+ * @param [in]  block_size       The size of a block in bytes.
+ * @param [out] block_count      The resulting number of blocks.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int computeMasterIndexSaveBlocks(const Configuration *config,
-                                 size_t               blockSize,
-                                 uint64_t            *blockCount)
-  __attribute__((warn_unused_result));
+int __must_check
+compute_volume_index_save_blocks(const struct configuration *config,
+				 size_t block_size,
+				 uint64_t *block_count);
 
 /**
- * Restore a master index.  This is exposed for unit tests.
+ * Restore a volume index.  This is exposed for unit tests.
  *
- * @param readers      The readers to read from.
- * @param numReaders   The number of readers.
- * @param masterIndex  The master index
+ * @param readers       The readers to read from.
+ * @param num_readers   The number of readers.
+ * @param volume_index  The volume index
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-int restoreMasterIndex(BufferedReader **readers,
-                       unsigned int     numReaders,
-                       MasterIndex     *masterIndex)
-  __attribute__((warn_unused_result));
+int __must_check restore_volume_index(struct buffered_reader **readers,
+				      unsigned int num_readers,
+				      struct volume_index *volume_index);
 
 /**
- * Abort restoring a master index from an input stream.
+ * Abort restoring a volume index from an input stream.
  *
- * @param masterIndex  The master index
+ * @param volume_index  The volume index
  **/
-static INLINE void abortRestoringMasterIndex(MasterIndex *masterIndex)
+static INLINE void
+abort_restoring_volume_index(struct volume_index *volume_index)
 {
-  masterIndex->abortRestoringMasterIndex(masterIndex);
+	volume_index->abort_restoring_volume_index(volume_index);
 }
 
 /**
- * Abort saving a master index to an output stream.  If an error occurred
+ * Abort saving a volume index to an output stream.  If an error occurred
  * asynchronously during the save operation, it will be dropped.
  *
- * @param masterIndex  The master index
- * @param zoneNumber   The number of the zone to save
+ * @param volume_index  The volume index
+ * @param zone_number   The number of the zone to save
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static INLINE int abortSavingMasterIndex(const MasterIndex *masterIndex,
-                                         unsigned int zoneNumber)
+static INLINE int
+abort_saving_volume_index(const struct volume_index *volume_index,
+			  unsigned int zone_number)
 {
-  return masterIndex->abortSavingMasterIndex(masterIndex, zoneNumber);
+	return volume_index->abort_saving_volume_index(volume_index,
+						       zone_number);
 }
 
 /**
- * Finish saving a master index to an output stream.  Force the writing of
+ * Finish saving a volume index to an output stream.  Force the writing of
  * all of the remaining data.  If an error occurred asynchronously during
  * the save operation, it will be returned here.
  *
- * @param masterIndex  The master index
- * @param zoneNumber   The number of the zone to save
+ * @param volume_index  The volume index
+ * @param zone_number   The number of the zone to save
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static INLINE int finishSavingMasterIndex(const MasterIndex *masterIndex,
-                                          unsigned int zoneNumber)
+static INLINE int
+finish_saving_volume_index(const struct volume_index *volume_index,
+			   unsigned int zone_number)
 {
-  return masterIndex->finishSavingMasterIndex(masterIndex, zoneNumber);
+	return volume_index->finish_saving_volume_index(volume_index,
+							zone_number);
 }
 
 /**
- * Terminate and clean up the master index
+ * Terminate and clean up the volume index
  *
- * @param masterIndex The master index to terminate
+ * @param volume_index The volume index to terminate
  **/
-static INLINE void freeMasterIndex(MasterIndex *masterIndex)
+static INLINE void free_volume_index(struct volume_index *volume_index)
 {
-  masterIndex->freeMasterIndex(masterIndex);
+	volume_index->free_volume_index(volume_index);
 }
 
 /**
- * Get the number of bytes used for master index entries.
+ * Get the number of bytes used for volume index entries.
  *
- * @param masterIndex The master index
+ * @param volume_index The volume index
  *
  * @return The number of bytes in use
  **/
-static INLINE size_t getMasterIndexMemoryUsed(const MasterIndex *masterIndex)
+static INLINE size_t
+get_volume_index_memory_used(const struct volume_index *volume_index)
 {
-  return masterIndex->getMasterIndexMemoryUsed(masterIndex);
+	return volume_index->get_volume_index_memory_used(volume_index);
 }
 
 /**
- * Find the master index record associated with a block name
+ * Find the volume index record associated with a block name
  *
  * This is always the first routine to be called when dealing with a delta
- * master index entry.  The fields of the record parameter should be
+ * volume index entry.  The fields of the record parameter should be
  * examined to determine the state of the record:
  *
- * If isFound is false, then we did not find an entry for the block name.
- * Information is saved in the MasterIndexRecord so that
- * putMasterIndexRecord() will insert an entry for that block name at the
+ * If is_found is false, then we did not find an entry for the block name.
+ * Information is saved in the volume_index_record so that
+ * put_volume_index_record() will insert an entry for that block name at the
  * proper place.
  *
- * If isFound is true, then we did find an entry for the block name.
- * Information is saved in the MasterIndexRecord so that the "chapter" and
- * "isCollision" fields reflect the entry found.  Calls to
- * removeMasterIndexRecord() will remove the entry, calls to
- * setMasterIndexRecordChapter() can modify the entry, and calls to
- * putMasterIndexRecord() can insert a collision record with this entry.
+ * If is_found is true, then we did find an entry for the block name.
+ * Information is saved in the volume_index_record so that the "chapter" and
+ * "is_collision" fields reflect the entry found.  Calls to
+ * remove_volume_index_record() will remove the entry, calls to
+ * set_volume_index_record_chapter() can modify the entry, and calls to
+ * put_volume_index_record() can insert a collision record with this entry.
  *
- * @param masterIndex The master index to search
- * @param name        The chunk name
- * @param record      Set to the info about the record searched for
+ * @param volume_index  The volume index to search
+ * @param name          The chunk name
+ * @param record        Set to the info about the record searched for
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int getMasterIndexRecord(MasterIndex *masterIndex,
-                                       const UdsChunkName *name,
-                                       MasterIndexRecord *record)
+static INLINE int get_volume_index_record(struct volume_index *volume_index,
+					  const struct uds_chunk_name *name,
+					  struct volume_index_record *record)
 {
-  return masterIndex->getMasterIndexRecord(masterIndex, name, record);
+	return volume_index->get_volume_index_record(volume_index, name,
+						     record);
 }
 
 /**
- * Return the master index stats.
+ * Return the volume index stats.
  *
- * @param masterIndex The master index
- * @param dense       Stats for the dense portion of the index
- * @param sparse      Stats for the sparse portion of the index
+ * @param volume_index  The volume index
+ * @param dense         Stats for the dense portion of the index
+ * @param sparse        Stats for the sparse portion of the index
  **/
-static INLINE void getMasterIndexStats(const MasterIndex *masterIndex,
-                                       MasterIndexStats *dense,
-                                       MasterIndexStats *sparse)
+static INLINE void
+get_volume_index_stats(const struct volume_index *volume_index,
+		       struct volume_index_stats *dense,
+		       struct volume_index_stats *sparse)
 {
-  masterIndex->getMasterIndexStats(masterIndex, dense, sparse);
+	volume_index->get_volume_index_stats(volume_index, dense, sparse);
 }
 
 /**
- * Find the master index zone associated with a chunk name
+ * Find the volume index zone associated with a chunk name
  *
- * @param masterIndex The master index
- * @param name        The chunk name
+ * @param volume_index  The volume index
+ * @param name          The chunk name
  *
  * @return the zone that the chunk name belongs to
  **/
-static INLINE unsigned int getMasterIndexZone(const MasterIndex *masterIndex,
-                                              const UdsChunkName *name)
+static INLINE unsigned int
+get_volume_index_zone(const struct volume_index *volume_index,
+		      const struct uds_chunk_name *name)
 {
-  return masterIndex->getMasterIndexZone(masterIndex, name);
+	return volume_index->get_volume_index_zone(volume_index, name);
 }
 
 /**
  * Determine whether a given chunk name is a hook.
  *
- * @param masterIndex  The master index
- * @param name         The block name
+ * @param volume_index  The volume index
+ * @param name          The block name
  *
  * @return whether to use as sample
  **/
-static INLINE bool isMasterIndexSample(const MasterIndex *masterIndex,
-                                       const UdsChunkName *name)
+static INLINE bool
+is_volume_index_sample(const struct volume_index *volume_index,
+		       const struct uds_chunk_name *name)
 {
-  return masterIndex->isMasterIndexSample(masterIndex, name);
+	return volume_index->is_volume_index_sample(volume_index, name);
 }
 
 /**
- * Have all the data been read while restoring a master index from an input
+ * Have all the data been read while restoring a volume index from an input
  * stream?
  *
- * @param masterIndex  The master index to restore into
+ * @param volume_index  The volume index to restore into
  *
  * @return true if all the data are read
  **/
-static INLINE bool isRestoringMasterIndexDone(const MasterIndex *masterIndex)
+static INLINE bool
+is_restoring_volume_index_done(const struct volume_index *volume_index)
 {
-  return masterIndex->isRestoringMasterIndexDone(masterIndex);
+	return volume_index->is_restoring_volume_index_done(volume_index);
 }
 
 /**
- * Have all the data been written while saving a master index to an
+ * Have all the data been written while saving a volume index to an
  * output stream?  If the answer is yes, it is still necessary to call
- * finishSavingMasterIndex(), which will return quickly.
+ * finish_saving_volume_index(), which will return quickly.
  *
- * @param masterIndex  The master index
- * @param zoneNumber   The number of the zone to save
+ * @param volume_index  The volume index
+ * @param zone_number   The number of the zone to save
  *
  * @return true if all the data are written
  **/
-static INLINE bool isSavingMasterIndexDone(const MasterIndex *masterIndex,
-                                           unsigned int zoneNumber)
+static INLINE bool
+is_saving_volume_index_done(const struct volume_index *volume_index,
+			    unsigned int zone_number)
 {
-  return masterIndex->isSavingMasterIndexDone(masterIndex, zoneNumber);
+	return volume_index->is_saving_volume_index_done(volume_index,
+							 zone_number);
 }
 
 /**
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
- * @param masterIndex The master index
- * @param name        The chunk name
- * @param triage      Information about the chunk name
+ * @param volume_index  The volume index
+ * @param name          The chunk name
+ * @param triage        Information about the chunk name
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int lookupMasterIndexName(const MasterIndex *masterIndex,
-                                        const UdsChunkName *name,
-                                        MasterIndexTriage *triage)
+static INLINE int
+lookup_volume_index_name(const struct volume_index *volume_index,
+			 const struct uds_chunk_name *name,
+			 struct volume_index_triage *triage)
 {
-  return masterIndex->lookupMasterIndexName(masterIndex, name, triage);
+	return volume_index->lookup_volume_index_name(volume_index, name,
+						      triage);
 }
 
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
  *
- * @param masterIndex The master index
- * @param name        The chunk name
- * @param triage      Information about the chunk name.  The zone and
- *                    isSample fields are already filled in.  Set
- *                    inSampledChapter and virtualChapter if the chunk
- *                    name is found in the index.
+ * @param volume_index  The volume index
+ * @param name          The chunk name
+ * @param triage        Information about the chunk name.  The zone and
+ *                      is_sample fields are already filled in.  Set
+ *                      in_sampled_chapter and virtual_chapter if the chunk
+ *                      name is found in the index.
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int lookupMasterIndexSampledName(const MasterIndex *masterIndex,
-                                               const UdsChunkName *name,
-                                               MasterIndexTriage *triage)
+static INLINE int
+lookup_volume_index_sampled_name(const struct volume_index *volume_index,
+				 const struct uds_chunk_name *name,
+				 struct volume_index_triage *triage)
 {
-  return masterIndex->lookupMasterIndexSampledName(masterIndex, name, triage);
+	return volume_index->lookup_volume_index_sampled_name(volume_index,
+							      name, triage);
 }
 
 /**
  * Create a new record associated with a block name.
  *
- * @param record          The master index record found by getRecord()
- * @param virtualChapter  The chapter number where block info is found
+ * @param record          The volume index record found by get_record()
+ * @param virtual_chapter The chapter number where block info is found
  *
  * @return UDS_SUCCESS or an error code
  **/
-int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
-  __attribute__((warn_unused_result));
+int __must_check put_volume_index_record(struct volume_index_record *record,
+					 uint64_t virtual_chapter);
 
 /**
  * Remove an existing record.
  *
- * @param record  The master index record found by getRecord()
+ * @param record  The volume index record found by get_record()
  *
  * @return UDS_SUCCESS or an error code
  **/
-int removeMasterIndexRecord(MasterIndexRecord *record)
-  __attribute__((warn_unused_result));
+int __must_check
+remove_volume_index_record(struct volume_index_record *record);
 
 /**
  * Restore a saved delta list
  *
- * @param masterIndex  The master index to restore into
- * @param dlsi         The DeltaListSaveInfo describing the delta list
- * @param data         The saved delta list bit stream
+ * @param volume_index  The volume index to restore into
+ * @param dlsi          The delta_list_save_info describing the delta list
+ * @param data          The saved delta list bit stream
  *
  * @return error code or UDS_SUCCESS
  **/
-static INLINE int restoreDeltaListToMasterIndex(MasterIndex *masterIndex,
-                                                const DeltaListSaveInfo *dlsi,
-                                                const byte data[DELTA_LIST_MAX_BYTE_COUNT])
+static INLINE int
+restore_delta_list_to_volume_index(struct volume_index *volume_index,
+				   const struct delta_list_save_info *dlsi,
+				   const byte data[DELTA_LIST_MAX_BYTE_COUNT])
 {
-  return masterIndex->restoreDeltaListToMasterIndex(masterIndex, dlsi, data);
+	return volume_index->restore_delta_list_to_volume_index(volume_index,
+								dlsi, data);
 }
 
 /**
- * Set the open chapter number.  The master index will be modified to index
+ * Set the open chapter number.  The volume index will be modified to index
  * the proper number of chapters ending with the new open chapter.
  *
  * In normal operation, the virtual chapter number will be the next chapter
- * following the currently open chapter.  We will advance the master index
+ * following the currently open chapter.  We will advance the volume index
  * one chapter forward in the virtual chapter space, invalidating the
  * oldest chapter in the index and be prepared to add index entries for the
  * newly opened chapter.
@@ -442,86 +467,96 @@ static INLINE int restoreDeltaListToMasterIndex(MasterIndex *masterIndex,
  * open chapter and any higher numbered chapter (potentially the entire
  * index).
  *
- * @param masterIndex     The master index
- * @param virtualChapter  The new open chapter number
+ * @param volume_index     The volume index
+ * @param virtual_chapter  The new open chapter number
  **/
-static INLINE void setMasterIndexOpenChapter(MasterIndex *masterIndex,
-                                             uint64_t virtualChapter)
+static INLINE void
+set_volume_index_open_chapter(struct volume_index *volume_index,
+			      uint64_t virtual_chapter)
 {
-  masterIndex->setMasterIndexOpenChapter(masterIndex, virtualChapter);
+	volume_index->set_volume_index_open_chapter(volume_index,
+						    virtual_chapter);
 }
 
 /**
  * Set the chapter number associated with a block name.
  *
- * @param record          The master index record found by getRecord()
- * @param virtualChapter  The chapter number where block info is now found.
+ * @param record           The volume index record found by get_record()
+ * @param virtual_chapter  The chapter number where block info is now found.
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setMasterIndexRecordChapter(MasterIndexRecord *record, uint64_t chapter)
-  __attribute__((warn_unused_result));
+int __must_check
+set_volume_index_record_chapter(struct volume_index_record *record,
+				uint64_t virtual_chapter);
 
 /**
- * Set the tag value used when saving and/or restoring a master index.
+ * Set the tag value used when saving and/or restoring a volume index.
  *
- * @param masterIndex  The master index
- * @param tag          The tag value
+ * @param volume_index  The volume index
+ * @param tag           The tag value
  **/
-static INLINE void setMasterIndexTag(MasterIndex *masterIndex, byte tag)
+static INLINE void set_volume_index_tag(struct volume_index *volume_index,
+					byte tag)
 {
-  masterIndex->setMasterIndexTag(masterIndex, tag);
+	volume_index->set_volume_index_tag(volume_index, tag);
 }
 
 /**
- * Set the open chapter number on a zone.  The master index zone will be
+ * Set the open chapter number on a zone.  The volume index zone will be
  * modified to index the proper number of chapters ending with the new open
  * chapter.
  *
- * @param masterIndex     The master index
- * @param zoneNumber      The zone number
- * @param virtualChapter  The new open chapter number
+ * @param volume_index     The volume index
+ * @param zone_number      The zone number
+ * @param virtual_chapter  The new open chapter number
  **/
-static INLINE void setMasterIndexZoneOpenChapter(MasterIndex *masterIndex,
-                                                 unsigned int zoneNumber,
-                                                 uint64_t virtualChapter)
+static INLINE void
+set_volume_index_zone_open_chapter(struct volume_index *volume_index,
+				   unsigned int zone_number,
+				   uint64_t virtual_chapter)
 {
-  masterIndex->setMasterIndexZoneOpenChapter(masterIndex, zoneNumber,
-                                             virtualChapter);
+	volume_index->set_volume_index_zone_open_chapter(volume_index,
+							 zone_number,
+							 virtual_chapter);
 }
 
 /**
- * Start restoring the master index from multiple buffered readers
+ * Start restoring the volume index from multiple buffered readers
  *
- * @param masterIndex      The master index to restore into
- * @param bufferedReaders  The buffered reader to read the master index from
- * @param numReaders       The number of buffered readers
+ * @param volume_index      The volume index to restore into
+ * @param buffered_readers  The buffered readers to read the volume index from
+ * @param num_readers       The number of buffered readers
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static INLINE int startRestoringMasterIndex(MasterIndex *masterIndex,
-                                            BufferedReader **bufferedReaders,
-                                            int numReaders)
+static INLINE int
+start_restoring_volume_index(struct volume_index *volume_index,
+			     struct buffered_reader **buffered_readers,
+			     int num_readers)
 {
-  return masterIndex->startRestoringMasterIndex(masterIndex, bufferedReaders,
-                                                numReaders);
+	return volume_index->start_restoring_volume_index(volume_index,
+							  buffered_readers,
+							  num_readers);
 }
 
 /**
- * Start saving a master index to a buffered output stream.
+ * Start saving a volume index to a buffered output stream.
  *
- * @param masterIndex     The master index
- * @param zoneNumber      The number of the zone to save
- * @param bufferedWriter  The index state component being written
+ * @param volume_index     The volume index
+ * @param zone_number      The number of the zone to save
+ * @param buffered_writer  The index state component being written
  *
  * @return UDS_SUCCESS on success, or an error code on failure
  **/
-static INLINE int startSavingMasterIndex(const MasterIndex *masterIndex,
-                                         unsigned int zoneNumber,
-                                         BufferedWriter *bufferedWriter)
+static INLINE int
+start_saving_volume_index(const struct volume_index *volume_index,
+			  unsigned int zone_number,
+			  struct buffered_writer *buffered_writer)
 {
-  return masterIndex->startSavingMasterIndex(masterIndex, zoneNumber,
-                                             bufferedWriter);
+	return volume_index->start_saving_volume_index(volume_index,
+						       zone_number,
+						       buffered_writer);
 }
 
 #endif /* MASTERINDEXOPS_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#7 $
  */
 
 #ifndef GEOMETRY_H
@@ -25,17 +25,16 @@
 #include "compiler.h"
 #include "typeDefs.h"
 #include "uds.h"
-#include "uds-block.h"
 
 /**
- * Geometry defines constants and a record that parameterize the layout of an
- * Albireo index volume.
+ * geometry defines constants and a record that parameterize the
+ * layout of a UDS index volume.
  *
  * <p>An index volume is divided into a fixed number of fixed-size
  * chapters, each consisting of a fixed number of fixed-size
  * pages. The volume layout is defined by two assumptions and four
  * parameters. The assumptions (constants) are that index records are
- * 64 bytes (32-byte block name plus 32-byte metadata) and that open
+ * 32 bytes (16-byte block name plus 16-byte metadata) and that open
  * chapter index hash slots are one byte long. The four parameters are
  * the number of bytes in a page, the number of chapters in a volume,
  * the number of record pages in a chapter, and the number of chapters
@@ -43,162 +42,182 @@
  * layout and derived properties, ranging from the number of pages in
  * a chapter to the number of records in the volume.
  *
- * <p>The default geometry is 64 KByte pages, 1024 chapters, 256
- * record pages in a chapter, and zero sparse chapters. This will
- * allow us to store 2^28 entries (indexing 1TB of 4K blocks) in an
- * approximately 16.5 MByte volume using fourteen index pages in each
- * chapter.
+ * <p>The index volume is sized by its memory footprint. For a dense
+ * index, the persistent storage is about 10 times the size of the
+ * memory footprint. For a sparse index, the persistent storage is
+ * about 100 times the size of the memory footprint.
+ *
+ * <p>For a small index with a memory footprint less than 1GB, there
+ * are three possible memory configurations: 0.25GB, 0.5GB and
+ * 0.75GB. The default geometry for each is 1024 index records per 32
+ * KB page, 1024 chapters per volume, and either 64, 128, or 192
+ * record pages per chapter and 6, 13, or 20 index pages per chapter
+ * depending on the memory configuration. For a 0.25 GB index as
+ * commonly used with small VDO volumes, this yields a deduplication
+ * window of 256 GB using about 2.5 GB for the persistent storage and
+ * 256 MB of RAM.
+ *
+ * <p>For a large index, that is one with a memory footprint that is a
+ * multiple of one GB, the geometry is 1024 index records per 32 KB
+ * page, 256 record pages per chapter, 26 index pages per chapter, and
+ * 1024 chapters for every GB of memory footprint. For a one GB
+ * volume, this yields a deduplication window of 1 TB using about 9GB
+ * of persistent storage and 1 GB of RAM.
+ *
+ * <p>For all sizes, the default is zero sparse chapters. A sparse
+ * volume has about 10 times the deduplication window using 10 times
+ * as much persistent storage as the equivalent non-sparse volume with
+ * the same memory footprint.
  **/
-typedef struct geometry {
-  /** Length of a page in a chapter, in bytes */
-  size_t bytesPerPage;
-  /** Number of record pages in a chapter */
-  unsigned int recordPagesPerChapter;
-  /** Number of (total) chapters in a volume */
-  unsigned int chaptersPerVolume;
-  /** Number of sparsely-indexed chapters in a volume */
-  unsigned int sparseChaptersPerVolume;
-  /** Number of bits used to determine delta list numbers */
-  unsigned int chapterDeltaListBits;
+struct geometry {
+	/** Length of a page in a chapter, in bytes */
+	size_t bytes_per_page;
+	/** Number of record pages in a chapter */
+	unsigned int record_pages_per_chapter;
+	/** Number of (total) chapters in a volume */
+	unsigned int chapters_per_volume;
+	/** Number of sparsely-indexed chapters in a volume */
+	unsigned int sparse_chapters_per_volume;
+	/** Number of bits used to determine delta list numbers */
+	unsigned int chapter_delta_list_bits;
 
-  // These are derived properties, expressed as fields for convenience.
-  /** Total number of pages in a volume, excluding header */
-  unsigned int pagesPerVolume;
-  /** Total number of header pages per volume */
-  unsigned int headerPagesPerVolume;
-  /** Total number of bytes in a volume, including header */
-  size_t bytesPerVolume;
-  /** Total number of bytes in a chapter */
-  size_t bytesPerChapter;
-  /** Number of pages in a chapter */
-  unsigned int pagesPerChapter;
-  /** Number of index pages in a chapter index */
-  unsigned int indexPagesPerChapter;
-  /** The minimum ratio of hash slots to records in an open chapter */
-  unsigned int openChapterLoadRatio;
-  /** Number of records that fit on a page */
-  unsigned int recordsPerPage;
-  /** Number of records that fit in a chapter */
-  unsigned int recordsPerChapter;
-  /** Number of records that fit in a volume */
-  uint64_t recordsPerVolume;
-  /** Number of deltaLists per chapter index */
-  unsigned int deltaListsPerChapter;
-  /** Mean delta in chapter indexes */
-  unsigned int chapterMeanDelta;
-  /** Number of bits needed for record page numbers */
-  unsigned int chapterPayloadBits;
-  /** Number of bits used to compute addresses for chapter delta lists */
-  unsigned int chapterAddressBits;
-  /** Number of densely-indexed chapters in a volume */
-  unsigned int denseChaptersPerVolume;
-} Geometry;
+	// These are derived properties, expressed as fields for convenience.
+	/** Total number of pages in a volume, excluding header */
+	unsigned int pages_per_volume;
+	/** Total number of header pages per volume */
+	unsigned int header_pages_per_volume;
+	/** Total number of bytes in a volume, including header */
+	size_t bytes_per_volume;
+	/** Total number of bytes in a chapter */
+	size_t bytes_per_chapter;
+	/** Number of pages in a chapter */
+	unsigned int pages_per_chapter;
+	/** Number of index pages in a chapter index */
+	unsigned int index_pages_per_chapter;
+	/** The minimum ratio of hash slots to records in an open chapter */
+	unsigned int open_chapter_load_ratio;
+	/** Number of records that fit on a page */
+	unsigned int records_per_page;
+	/** Number of records that fit in a chapter */
+	unsigned int records_per_chapter;
+	/** Number of records that fit in a volume */
+	uint64_t records_per_volume;
+	/** Number of delta lists per chapter index */
+	unsigned int delta_lists_per_chapter;
+	/** Mean delta in chapter indexes */
+	unsigned int chapter_mean_delta;
+	/** Number of bits needed for record page numbers */
+	unsigned int chapter_payload_bits;
+	/** Number of bits used to compute addresses for chapter delta lists */
+	unsigned int chapter_address_bits;
+	/** Number of densely-indexed chapters in a volume */
+	unsigned int dense_chapters_per_volume;
+};
 
 enum {
-  /* The number of bytes in a record (name + metadata) */
-  BYTES_PER_RECORD = (UDS_CHUNK_NAME_SIZE + UDS_MAX_BLOCK_DATA_SIZE),
+	/* The number of bytes in a record (name + metadata) */
+	BYTES_PER_RECORD = (UDS_CHUNK_NAME_SIZE + UDS_METADATA_SIZE),
 
-  /* The default length of a page in a chapter, in bytes */
-  DEFAULT_BYTES_PER_PAGE = 1024 * BYTES_PER_RECORD,
+	/* The default length of a page in a chapter, in bytes */
+	DEFAULT_BYTES_PER_PAGE = 1024 * BYTES_PER_RECORD,
 
-  /* The default maximum number of records per page */
-  DEFAULT_RECORDS_PER_PAGE = DEFAULT_BYTES_PER_PAGE / BYTES_PER_RECORD,
+	/* The default maximum number of records per page */
+	DEFAULT_RECORDS_PER_PAGE = DEFAULT_BYTES_PER_PAGE / BYTES_PER_RECORD,
 
-  /** The default number of record pages in a chapter */
-  DEFAULT_RECORD_PAGES_PER_CHAPTER = 256,
+	/** The default number of record pages in a chapter */
+	DEFAULT_RECORD_PAGES_PER_CHAPTER = 256,
 
-  /** The default number of record pages in a chapter for a small index */
-  SMALL_RECORD_PAGES_PER_CHAPTER = 64,
+	/** The default number of record pages in a chapter for a small index */
+	SMALL_RECORD_PAGES_PER_CHAPTER = 64,
 
-  /** The default number of chapters in a volume */
-  DEFAULT_CHAPTERS_PER_VOLUME = 1024,
+	/** The default number of chapters in a volume */
+	DEFAULT_CHAPTERS_PER_VOLUME = 1024,
 
-  /** The default number of sparsely-indexed chapters in a volume */
-  DEFAULT_SPARSE_CHAPTERS_PER_VOLUME = 0,
+	/** The default number of sparsely-indexed chapters in a volume */
+	DEFAULT_SPARSE_CHAPTERS_PER_VOLUME = 0,
 
-  /** The log2 of the default mean delta */
-  DEFAULT_CHAPTER_MEAN_DELTA_BITS = 16,
+	/** The log2 of the default mean delta */
+	DEFAULT_CHAPTER_MEAN_DELTA_BITS = 16,
 
-  /** The log2 of the number of delta lists in a large chapter */
-  DEFAULT_CHAPTER_DELTA_LIST_BITS = 12,
+	/** The log2 of the number of delta lists in a large chapter */
+	DEFAULT_CHAPTER_DELTA_LIST_BITS = 12,
 
-  /** The log2 of the number of delta lists in a small chapter */
-  SMALL_CHAPTER_DELTA_LIST_BITS = 10,
+	/** The log2 of the number of delta lists in a small chapter */
+	SMALL_CHAPTER_DELTA_LIST_BITS = 10,
 
-  /** The default min ratio of slots to records in an open chapter */
-  DEFAULT_OPEN_CHAPTER_LOAD_RATIO = 2,
+	/** The default min ratio of slots to records in an open chapter */
+	DEFAULT_OPEN_CHAPTER_LOAD_RATIO = 2,
 
-  /** Checkpoint every n chapters written.  Default is to not checkpoint */
-  DEFAULT_CHECKPOINT_FREQUENCY = 0
+	/** Checkpoint every n chapters written.  Default is to not checkpoint */
+	DEFAULT_CHECKPOINT_FREQUENCY = 0
 };
 
 /**
  * Allocate and initialize all fields of a volume geometry using the
  * specified layout parameters.
  *
- * @param bytesPerPage            The length of a page in a chapter, in bytes
- * @param recordPagesPerChapter   The number of pages in a chapter
- * @param chaptersPerVolume       The number of chapters in a volume
- * @param sparseChaptersPerVolume The number of sparse chapters in a volume
- * @param geometryPtr             A pointer to hold the new geometry
+ * @param bytes_per_page              The length of a page in a chapter, in
+ *                                    bytes
+ * @param record_pages_per_chapter    The number of pages in a chapter
+ * @param chapters_per_volume         The number of chapters in a volume
+ * @param sparse_chapters_per_volume  The number of sparse chapters in a volume
+ * @param geometry_ptr                A pointer to hold the new geometry
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeGeometry(size_t       bytesPerPage,
-                 unsigned int recordPagesPerChapter,
-                 unsigned int chaptersPerVolume,
-                 unsigned int sparseChaptersPerVolume,
-                 Geometry   **geometryPtr)
-  __attribute__((warn_unused_result));
+int __must_check make_geometry(size_t bytes_per_page,
+			       unsigned int record_pages_per_chapter,
+			       unsigned int chapters_per_volume,
+			       unsigned int sparse_chapters_per_volume,
+			       struct geometry **geometry_ptr);
 
 /**
  * Allocate a new geometry and initialize it with the same parameters as an
  * existing geometry.
  *
- * @param source      The geometry record to copy
- * @param geometryPtr A pointer to hold the new geometry
+ * @param source        The geometry record to copy
+ * @param geometry_ptr  A pointer to hold the new geometry
  *
  * @return UDS_SUCCESS or an error code
  **/
-int copyGeometry(Geometry  *source,
-                 Geometry **geometryPtr)
-  __attribute__((warn_unused_result));
+int __must_check copy_geometry(struct geometry *source,
+			       struct geometry **geometry_ptr);
 
 /**
  * Clean up a geometry and its memory.
  *
  * @param geometry The geometry record to free
  **/
-void freeGeometry(Geometry *geometry);
+void free_geometry(struct geometry *geometry);
 
 /**
  * Map a virtual chapter number to a physical chapter number
  *
- * @param geometry        The geometry
- * @param virtualChapter  The virtual chapter number
+ * @param geometry         The geometry
+ * @param virtual_chapter  The virtual chapter number
  *
  * @return the corresponding physical chapter number
  **/
-__attribute__((warn_unused_result))
-static INLINE unsigned int mapToPhysicalChapter(const Geometry *geometry,
-                                                uint64_t virtualChapter)
+static INLINE unsigned int __must_check
+map_to_physical_chapter(const struct geometry *geometry,
+			uint64_t virtual_chapter)
 {
-  return (virtualChapter % geometry->chaptersPerVolume);
+	return (virtual_chapter % geometry->chapters_per_volume);
 }
 
 /**
  * Convert a physical chapter number to its current virtual chapter number.
  *
- * @param geometry             The geometry
- * @param newestVirtualChapter The number of the newest virtual chapter
- * @param physicalChapter      The physical chapter number to convert
+ * @param geometry                The geometry
+ * @param newest_virtual_chapter  The number of the newest virtual chapter
+ * @param physical_chapter        The physical chapter number to convert
  *
  * @return The current virtual chapter number of the physical chapter
  *         in question
  **/
-uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
-                                   uint64_t      newestVirtualChapter,
-                                   unsigned int  physicalChapter);
+uint64_t map_to_virtual_chapter_number(struct geometry *geometry,
+				       uint64_t newest_virtual_chapter,
+				       unsigned int physical_chapter);
 
 /**
  * Check whether this geometry is for a sparse index.
@@ -207,43 +226,41 @@ uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
  *
  * @return true if this geometry has sparse chapters
  **/
-__attribute__((warn_unused_result))
-static INLINE bool isSparse(const Geometry *geometry)
+static INLINE bool __must_check is_sparse(const struct geometry *geometry)
 {
-  return (geometry->sparseChaptersPerVolume > 0);
+	return (geometry->sparse_chapters_per_volume > 0);
 }
 
 /**
  * Check whether any sparse chapters have been filled.
  *
- * @param geometry             The geometry of the index
- * @param oldestVirtualChapter The number of the oldest chapter in the
- *                             index
- * @param newestVirtualChapter The number of the newest chapter in the
- *                             index
+ * @param geometry                The geometry of the index
+ * @param oldest_virtual_chapter  The number of the oldest chapter in the
+ *                                index
+ * @param newest_virtual_chapter  The number of the newest chapter in the
+ *                                index
  *
  * @return true if the index has filled at least one sparse chapter
  **/
-bool hasSparseChapters(const Geometry *geometry,
-                       uint64_t        oldestVirtualChapter,
-                       uint64_t        newestVirtualChapter)
-  __attribute__((warn_unused_result));
+bool __must_check has_sparse_chapters(const struct geometry *geometry,
+				      uint64_t oldest_virtual_chapter,
+				      uint64_t newest_virtual_chapter);
 
 /**
  * Check whether a chapter is sparse or dense.
  *
- * @param geometry             The geometry of the index containing the chapter
- * @param oldestVirtualChapter The number of the oldest chapter in the index
- * @param newestVirtualChapter The number of the newest chapter in the index
- * @param virtualChapterNumber The number of the chapter to check
+ * @param geometry                The geometry of the index containing the
+ *                                chapter
+ * @param oldest_virtual_chapter  The number of the oldest chapter in the index
+ * @param newest_virtual_chapter  The number of the newest chapter in the index
+ * @param virtual_chapter_number  The number of the chapter to check
  *
  * @return true if the chapter is sparse
  **/
-bool isChapterSparse(const Geometry *geometry,
-                     uint64_t        oldestVirtualChapter,
-                     uint64_t        newestVirtualChapter,
-                     uint64_t        virtualChapterNumber)
-  __attribute__((warn_unused_result));
+bool __must_check is_chapter_sparse(const struct geometry *geometry,
+				    uint64_t oldest_virtual_chapter,
+				    uint64_t newest_virtual_chapter,
+				    uint64_t virtual_chapter_number);
 
 /**
  * Check whether two virtual chapter numbers correspond to the same
@@ -256,9 +273,8 @@ bool isChapterSparse(const Geometry *geometry,
  * @return <code>true</code> if both chapters correspond to the same
  *         physical chapter
  **/
-bool areSamePhysicalChapter(const Geometry *geometry,
-                            uint64_t        chapter1,
-                            uint64_t        chapter2)
-  __attribute__((warn_unused_result));
+bool __must_check are_same_physical_chapter(const struct geometry *geometry,
+					    uint64_t chapter1,
+					    uint64_t chapter2);
 
 #endif /* GEOMETRY_H */

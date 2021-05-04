@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,62 +16,48 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#14 $
  */
 
 #ifndef LOGGER_H
 #define LOGGER_H 1
 
-#ifdef __KERNEL__
+#include <linux/module.h>
 #include <linux/ratelimit.h>
 #include <linux/version.h>
-#else
-#include <stdarg.h>
-#include "minisyslog.h"
-#endif
 
-#ifdef __KERNEL__
-#define LOG_EMERG       0       /* system is unusable */
-#define LOG_ALERT       1       /* action must be taken immediately */
-#define LOG_CRIT        2       /* critical conditions */
-#define LOG_ERR         3       /* error conditions */
-#define LOG_WARNING     4       /* warning conditions */
-#define LOG_NOTICE      5       /* normal but significant condition */
-#define LOG_INFO        6       /* informational */
-#define LOG_DEBUG       7       /* debug-level messages */
-#endif
+#define LOG_EMERG 0 /* system is unusable */
+#define LOG_ALERT 1 /* action must be taken immediately */
+#define LOG_CRIT 2 /* critical conditions */
+#define LOG_ERR 3 /* error conditions */
+#define LOG_WARNING 4 /* warning conditions */
+#define LOG_NOTICE 5 /* normal but significant condition */
+#define LOG_INFO 6 /* informational */
+#define LOG_DEBUG 7 /* debug-level messages */
 
-#ifdef __KERNEL__
 // Make it easy to log real pointer values using %px when in development.
 #ifdef LOG_INTERNAL
 #define PRIptr "px"
 #else
 #define PRIptr "pK"
 #endif
-#else // not __KERNEL__
-// For compatibility with hooks we need when compiling in kernel mode.
-#define PRIptr "p"
-#endif
 
 /*
  * Apply a rate limiter to a log method call.
  *
- * @param logFunc  A method that does logging, which is not invoked if we are
- *                 running in the kernel and the ratelimiter detects that we
- *                 are calling it frequently.
+ * @param log_fn  A method that does logging, which is not invoked if we are
+ *                running in the kernel and the ratelimiter detects that we
+ *                are calling it frequently.
  */
-#ifdef __KERNEL__
-#define logRatelimit(logFunc, ...)                                 \
-  do {                                                             \
-    static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL, \
-                                  DEFAULT_RATELIMIT_BURST);        \
-    if (__ratelimit(&_rs)) {                                       \
-      logFunc(__VA_ARGS__);                                        \
-    }                                                              \
-  } while (0)
-#else
-#define logRatelimit(logFunc, ...) logFunc(__VA_ARGS__)
-#endif
+#define log_ratelimit(log_fn, ...)                                        \
+	do {                                                              \
+		static DEFINE_RATELIMIT_STATE(_rs,                        \
+					      DEFAULT_RATELIMIT_INTERVAL, \
+					      DEFAULT_RATELIMIT_BURST);   \
+		if (__ratelimit(&_rs)) {                                  \
+			log_fn(__VA_ARGS__);                              \
+		}                                                         \
+	} while (0)
 
 /**
  * @file
@@ -79,38 +65,20 @@
  * All of the log<Level>() functions will preserve the callers value of errno.
  **/
 
-#ifndef __KERNEL__
-/*
- * In user mode, the functions in this file are not thread safe in the sense
- * that nothing prevents multiple threads from closing loggers out from under
- * other threads.  In reality this isn't a problem since there are no calls to
- * closeLogger() in production code.
- */
-
-/**
- * Start the logger.
- **/
-void openLogger(void);
-
-/**
- * Stop the logger.
- **/
-void closeLogger(void);
-#endif
 
 /**
  * Get the current logging level.
  *
  * @return  the current logging priority level.
  **/
-int getLogLevel(void);
+int get_log_level(void);
 
 /**
  * Set the current logging level.
  *
- * @param newLogLevel  the new value for the logging priority level.
+ * @param new_log_level  the new value for the logging priority level.
  **/
-void setLogLevel(int newLogLevel);
+void set_log_level(int new_log_level);
 
 /**
  * Return the integer logging priority represented by a name.
@@ -119,91 +87,60 @@ void setLogLevel(int newLogLevel);
  *
  * @return the integer priority named by string, or LOG_INFO if not recognized.
  **/
-int stringToPriority(const char *string);
+int string_to_priority(const char *string);
 
 /**
  * Return the printable name of a logging priority.
  *
  * @return the priority name
  **/
-const char *priorityToString(int priority);
-
-/**
- * Log a debug message.
- *
- * @param format The format of the message (a printf style format)
- **/
-void logDebug(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log an informational message.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void logInfo(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log a normal (but notable) condition.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void logNotice(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log a warning.
- *
- * @param  format The format of the message (a printf style format)
- **/
-void logWarning(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-/**
- * Log an error.
- *
- * @param  format The format of the message (a printf style format)
-  **/
-void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
+const char *priority_to_string(int priority);
 
 /**
  * Log a message embedded within another message.
  *
  * @param priority      the priority at which to log the message
+ * @param module        the name of the module doing the logging
  * @param prefix        optional string prefix to message, may be NULL
- * @param fmt1          format of message first part, may be NULL
- * @param args1         arguments for message first part
+ * @param fmt1          format of message first part (required)
+ * @param args1         arguments for message first part (required)
  * @param fmt2          format of message second part
  **/
-void logEmbeddedMessage(int         priority,
-                        const char *prefix,
-                        const char *fmt1,
-                        va_list     args1,
-                        const char *fmt2,
-                        ...)
-  __attribute__((format(printf, 3, 0), format(printf, 5, 6)));
+void uds_log_embedded_message(int priority,
+			      const char *module,
+			      const char *prefix,
+			      const char *fmt1,
+			      va_list args1,
+			      const char *fmt2,
+			      ...)
+	__attribute__((format(printf, 4, 0), format(printf, 6, 7)));
 
 /**
  * Log a message pack consisting of multiple variable sections.
  *
  * @param priority      the priority at which to log the message
+ * @param module        the name of the module doing the logging
  * @param prefix        optional string prefix to message, may be NULL
- * @param fmt1          format of message first part, may be NULL
+ * @param fmt1          format of message first part (required)
  * @param args1         arguments for message first part
- * @param fmt2          format of message second part, may be NULL
+ * @param fmt2          format of message second part (required)
  * @param args2         arguments for message second part
  **/
-void logMessagePack(int         priority,
-                    const char *prefix,
-                    const char *fmt1,
-                    va_list     args1,
-                    const char *fmt2,
-                    va_list     args2)
-  __attribute__((format(printf, 3, 0)));
+void uds_log_message_pack(int priority,
+			  const char *module,
+			  const char *prefix,
+			  const char *fmt1,
+			  va_list args1,
+			  const char *fmt2,
+			  va_list args2)
+	__attribute__((format(printf, 4, 0), format(printf, 6, 0)));
 
 /**
  * Log a stack backtrace.
  *
  * @param  priority The priority at which to log the backtrace
  **/
-void logBacktrace(int priority);
+void log_backtrace(int priority);
 
 /**
  * Log a message with an error from an error code.
@@ -214,8 +151,8 @@ void logBacktrace(int priority);
  *
  * @return errnum
  **/
-int logWithStringError(int priority, int errnum, const char *format, ...)
-  __attribute__((format(printf, 3, 4)));
+int log_strerror(int priority, int errnum, const char *format, ...)
+	__attribute__((format(printf, 3, 4)));
 
 /**
  * Log a message with an error from an error code.
@@ -227,11 +164,8 @@ int logWithStringError(int priority, int errnum, const char *format, ...)
  *
  * @return errnum
  **/
-int vLogWithStringError(int         priority,
-                        int         errnum,
-                        const char *format,
-                        va_list     args)
-  __attribute__((format(printf, 3, 0)));
+int vlog_strerror(int priority, int errnum, const char *format, va_list args)
+	__attribute__((format(printf, 3, 0)));
 
 /**
  * Log an error prefixed with the string associated with the errnum.
@@ -241,28 +175,28 @@ int vLogWithStringError(int         priority,
  *
  * @return errnum
  **/
-int logErrorWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_error_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
-int logDebugWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_debug_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
-int logInfoWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_info_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
-int logNoticeWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_notice_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
-int logWarningWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_warning_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
-int logFatalWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_fatal_strerror(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**
  * IF the result is an error, log a FATAL level message and return the result
@@ -272,36 +206,64 @@ int logFatalWithStringError(int errnum, const char *format, ...)
  * @param errnum  int value of errno or a UDS_* value.
  * @param format  The format of the message (a printf style format)
  *
- * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
+ * @return make_unrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
-int logUnrecoverable(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+int log_unrecoverable(int errnum, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
 /**
- * Log a fatal error.
+ * Log a message.
  *
- * @param  format The format of the message (a printf style format)
+ * @param priority  The syslog priority value for the message.
  **/
-void logFatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
+#define uds_log_message(priority, ...) \
+	__uds_log_message(priority, THIS_MODULE->name, __VA_ARGS__)
 
 /**
- * Log a message -- for internal use only.
+ * Log a message.
  *
- * @param  priority The syslog priority value for the message.
- * @param  format   The format of the message (a printf style format)
- * @param  args     The variadic argument list of format parameters.
+ * @param priority  The syslog priority value for the message
+ * @param module    The name of the module doing the logging
+ * @param format    The format of the message (a printf style format)
  **/
-void vLogMessage(int priority, const char *format, va_list args)
-  __attribute__((format(printf, 2, 0)));
+void __uds_log_message(int priority,
+		       const char *module,
+		       const char *format,
+		       ...)
+	__attribute__((format(printf, 3, 4)));
 
 /**
- * Log a message
- *
- * @param  priority The syslog priority value for the message.
- * @param  format   The format of the message (a printf style format)
+ * Log a debug message. Takes printf-style arguments.
  **/
-void logMessage(int priority, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+#define log_debug(...) uds_log_debug(__VA_ARGS__)
+#define uds_log_debug(...) uds_log_message(LOG_DEBUG, __VA_ARGS__)
+
+/**
+ * Log an informational message. Takes printf-style arguments.
+ **/
+#define log_info(...) uds_log_info(__VA_ARGS__)
+#define uds_log_info(...) uds_log_message(LOG_INFO, __VA_ARGS__)
+
+/**
+ * Log a normal (but notable) condition. Takes printf-style arguments.
+ **/
+#define uds_log_notice(...) uds_log_message(LOG_NOTICE, __VA_ARGS__)
+
+/**
+ * Log a warning. Takes printf-style arguments.
+ **/
+#define log_warning(...) uds_log_warning(__VA_ARGS__)
+#define uds_log_warning(...) uds_log_message(LOG_WARNING, __VA_ARGS__)
+
+/**
+ * Log an error. Takes printf-style arguments.
+ **/
+#define uds_log_error(...) uds_log_message(LOG_ERR, __VA_ARGS__)
+
+/**
+ * Log a fatal error. Takes printf-style arguments.
+ **/
+#define uds_log_fatal(...) uds_log_message(LOG_CRIT, __VA_ARGS__)
 
 /**
  * Sleep or delay a short time (likely a few milliseconds) in an attempt allow
@@ -310,6 +272,7 @@ void logMessage(int priority, const char *format, ...)
  * quickly issuing a lot of log output in the Linux kernel, as when dumping a
  * large number of data structures.
  **/
-void pauseForLogger(void);
+void pause_for_logger(void);
+
 
 #endif /* LOGGER_H */

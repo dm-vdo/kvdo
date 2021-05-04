@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/openChapter.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#12 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -27,7 +27,7 @@
 #include "index.h"
 #include "indexComponent.h"
 
-extern const IndexComponentInfo OPEN_CHAPTER_INFO;
+extern const struct index_component_info OPEN_CHAPTER_INFO;
 
 /**
  * OpenChapter handles writing the open chapter records to the volume. It also
@@ -49,22 +49,21 @@ extern const IndexComponentInfo OPEN_CHAPTER_INFO;
 /**
  * Close the open chapter and write it to disk.
  *
- * @param chapterZones         The zones of the chapter to close
- * @param zoneCount            The number of zones
- * @param volume               The volume to which to write the chapter
- * @param chapterIndex         The OpenChapterIndex to use while writing
- * @param collatedRecords      Collated records array to use while writing
- * @param virtualChapterNumber The virtual chapter number of the open chapter
+ * @param chapter_zones          The zones of the chapter to close
+ * @param zone_count             The number of zones
+ * @param volume                 The volume to which to write the chapter
+ * @param chapter_index          The open_chapter_index to use while writing
+ * @param collated_records       Collated records array to use while writing
+ * @param virtual_chapter_number The virtual chapter number of the open chapter
  *
  * @return UDS_SUCCESS or an error code
  **/
-int closeOpenChapter(OpenChapterZone  **chapterZones,
-                     unsigned int       zoneCount,
-                     Volume            *volume,
-                     OpenChapterIndex  *chapterIndex,
-                     UdsChunkRecord    *collatedRecords,
-                     uint64_t           virtualChapterNumber)
-  __attribute__((warn_unused_result));
+int __must_check close_open_chapter(struct open_chapter_zone **chapter_zones,
+				    unsigned int zone_count,
+				    struct volume *volume,
+				    struct open_chapter_index *chapter_index,
+				    struct uds_chunk_record *collated_records,
+				    uint64_t virtual_chapter_number);
 
 /**
  * Write out a partially filled chapter to a file.
@@ -74,8 +73,8 @@ int closeOpenChapter(OpenChapterZone  **chapterZones,
  *
  * @return UDS_SUCCESS on success
  **/
-int saveOpenChapters(Index *index, BufferedWriter *writer)
-  __attribute__((warn_unused_result));
+int __must_check save_open_chapters(struct index *index,
+				    struct buffered_writer *writer);
 
 /**
  * Read a partially filled chapter from a file.
@@ -85,8 +84,8 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
  *
  * @return UDS_SUCCESS on success
  **/
-int loadOpenChapters(Index *index, BufferedReader *reader)
-  __attribute__((warn_unused_result));
+int __must_check load_open_chapters(struct index *index,
+				    struct buffered_reader *reader);
 
 /**
  * Compute the size of the maximum open chapter save image.
@@ -96,6 +95,6 @@ int loadOpenChapters(Index *index, BufferedReader *reader)
  * @return the number of bytes of the largest possible open chapter save
  *         image
  **/
-uint64_t computeSavedOpenChapterSize(Geometry *geometry);
+uint64_t compute_saved_open_chapter_size(struct geometry *geometry);
 
 #endif /* OPENCHAPTER_H */

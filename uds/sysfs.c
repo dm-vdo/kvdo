@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/sysfs.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#8 $
  */
 
 #include "sysfs.h"
@@ -31,26 +31,26 @@
 #include "uds.h"
 
 static struct {
-  struct kobject kobj;               // /sys/uds
-  struct kobject parameterKobj;      // /sys/uds/parameter
-  // These flags are used to ensure a clean shutdown
-  bool flag;               // /sys/uds
-  bool parameterFlag;      // /sys/uds/parameter
-} objectRoot;
+	struct kobject kobj; // /sys/uds
+	struct kobject parameter_kobj; // /sys/uds/parameter
+	// These flags are used to ensure a clean shutdown
+	bool flag; // /sys/uds
+	bool parameter_flag; // /sys/uds/parameter
+} object_root;
 
 /**********************************************************************/
-static char *bufferToString(const char *buf, size_t length)
+static char *buffer_to_string(const char *buf, size_t length)
 {
-  char *string;
-  if (ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
-    return NULL;
-  }
-  memcpy(string, buf, length);
-  string[length] = '\0';
-  if (string[length - 1] == '\n') {
-    string[length - 1] = '\0';
-  }
-  return string;
+	char *string;
+	if (ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
+		return NULL;
+	}
+	memcpy(string, buf, length);
+	string[length] = '\0';
+	if (string[length - 1] == '\n') {
+		string[length - 1] = '\0';
+	}
+	return string;
 }
 
 /**********************************************************************/
@@ -59,41 +59,40 @@ static char *bufferToString(const char *buf, size_t length)
 /**********************************************************************/
 
 /**********************************************************************/
-static void emptyRelease(struct kobject *kobj)
+static void empty_release(struct kobject *kobj)
 {
-  // Many of our sysfs share this release function that does nothing.
+	// Many of our sysfs share this release function that does nothing.
 }
 
 /**********************************************************************/
-static ssize_t emptyShow(struct kobject   *kobj,
-                         struct attribute *attr,
-                         char             *buf)
+static ssize_t
+empty_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-  return 0;
+	return 0;
 }
 
 /**********************************************************************/
-static ssize_t emptyStore(struct kobject   *kobj,
-                          struct attribute *attr,
-                          const char       *buf,
-                          size_t            length)
+static ssize_t empty_store(struct kobject *kobj,
+			   struct attribute *attr,
+			   const char *buf,
+			   size_t length)
 {
-  return length;
+	return length;
 }
 
-static struct sysfs_ops emptyOps = {
-  .show  = emptyShow,
-  .store = emptyStore,
+static struct sysfs_ops empty_ops = {
+	.show = empty_show,
+	.store = empty_store,
 };
 
-static struct attribute *emptyAttrs[] = {
-  NULL,
+static struct attribute *empty_attrs[] = {
+	NULL,
 };
 
-static struct kobj_type emptyObjectType = {
-  .release       = emptyRelease,
-  .sysfs_ops     = &emptyOps,
-  .default_attrs = emptyAttrs,
+static struct kobj_type empty_object_type = {
+	.release = empty_release,
+	.sysfs_ops = &empty_ops,
+	.default_attrs = empty_attrs,
 };
 
 
@@ -104,112 +103,115 @@ static struct kobj_type emptyObjectType = {
 //
 /**********************************************************************/
 
-typedef struct {
-  struct attribute  attr;
-  const char *(*showString)(void);
-  void (*storeString)(const char *);
-} ParameterAttribute;
-
-/**********************************************************************/
-static ssize_t parameterShow(struct kobject   *kobj,
-                             struct attribute *attr,
-                             char             *buf)
-{
-  ParameterAttribute *pa = container_of(attr, ParameterAttribute, attr);
-  if (pa->showString != NULL) {
-    return sprintf(buf, "%s\n", pa->showString());
-  } else {
-    return -EINVAL;
-  }
-}
-
-/**********************************************************************/
-static ssize_t parameterStore(struct kobject   *kobj,
-                              struct attribute *attr,
-                              const char       *buf,
-                              size_t            length)
-{
-  ParameterAttribute *pa = container_of(attr, ParameterAttribute, attr);
-  char *string = bufferToString(buf, length);
-  if (string == NULL) {
-    return -ENOMEM;
-  }
-  int result = UDS_SUCCESS;
-  if (pa->storeString != NULL) {
-    pa->storeString(string);
-  } else {
-    return -EINVAL;
-  }
-  FREE(string);
-  return result == UDS_SUCCESS ? length : result;
-}
-
-/**********************************************************************/
-
-static const char *parameterShowLogLevel(void)
-{
-  return priorityToString(getLogLevel());
-}
-
-/**********************************************************************/
-
-static void parameterStoreLogLevel(const char *string)
-{
-  setLogLevel(stringToPriority(string));
-}
-
-/**********************************************************************/
-
-static ParameterAttribute logLevelAttr = {
-  .attr        = { .name = "log_level", .mode = 0600 },
-  .showString  = parameterShowLogLevel,
-  .storeString = parameterStoreLogLevel,
-};
-
-static struct attribute *parameterAttrs[] = {
-  &logLevelAttr.attr,
-  NULL,
-};
-
-static struct sysfs_ops parameterOps = {
-  .show  = parameterShow,
-  .store = parameterStore,
-};
-
-static struct kobj_type parameterObjectType = {
-  .release       = emptyRelease,
-  .sysfs_ops     = &parameterOps,
-  .default_attrs = parameterAttrs,
+struct parameter_attribute {
+	struct attribute attr;
+	const char *(*show_string)(void);
+	void (*store_string)(const char *);
 };
 
 /**********************************************************************/
-int initSysfs(void)
+static ssize_t
+parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-  memset(&objectRoot, 0, sizeof(objectRoot));
-  kobject_init(&objectRoot.kobj, &emptyObjectType);
-  int result = kobject_add(&objectRoot.kobj, NULL, THIS_MODULE->name);
-  if (result == 0) {
-    objectRoot.flag = true;
-    kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
-    result = kobject_add(&objectRoot.parameterKobj, &objectRoot.kobj,
-                         "parameter");
-    if (result == 0) {
-      objectRoot.parameterFlag = true;
-    }
-  }
-  if (result != 0) {
-    putSysfs();
-  }
-  return result;
+	struct parameter_attribute *pa =
+		container_of(attr, struct parameter_attribute, attr);
+	if (pa->show_string != NULL) {
+		return sprintf(buf, "%s\n", pa->show_string());
+	} else {
+		return -EINVAL;
+	}
 }
 
 /**********************************************************************/
-void putSysfs()
+static ssize_t parameter_store(struct kobject *kobj,
+			       struct attribute *attr,
+			       const char *buf,
+			       size_t length)
 {
-  if (objectRoot.parameterFlag) {
-    kobject_put(&objectRoot.parameterKobj);
-  }
-  if (objectRoot.flag) {
-    kobject_put(&objectRoot.kobj);
-  }
+	char *string;
+	struct parameter_attribute *pa =
+		container_of(attr, struct parameter_attribute, attr);
+	if (pa->store_string == NULL) {
+		return -EINVAL;
+	}
+	string = buffer_to_string(buf, length);
+	if (string == NULL) {
+		return -ENOMEM;
+	}
+	pa->store_string(string);
+	FREE(string);
+	return length;
+}
+
+/**********************************************************************/
+
+static const char *parameter_show_log_level(void)
+{
+	return priority_to_string(get_log_level());
+}
+
+/**********************************************************************/
+
+static void parameter_store_log_level(const char *string)
+{
+	set_log_level(string_to_priority(string));
+}
+
+/**********************************************************************/
+
+static struct parameter_attribute log_level_attr = {
+	.attr = { .name = "log_level", .mode = 0600 },
+	.show_string = parameter_show_log_level,
+	.store_string = parameter_store_log_level,
+};
+
+static struct attribute *parameter_attrs[] = {
+	&log_level_attr.attr,
+	NULL,
+};
+
+static struct sysfs_ops parameter_ops = {
+	.show = parameter_show,
+	.store = parameter_store,
+};
+
+static struct kobj_type parameter_object_type = {
+	.release = empty_release,
+	.sysfs_ops = &parameter_ops,
+	.default_attrs = parameter_attrs,
+};
+
+/**********************************************************************/
+int init_sysfs(void)
+{
+	int result;
+	memset(&object_root, 0, sizeof(object_root));
+	kobject_init(&object_root.kobj, &empty_object_type);
+	result = kobject_add(&object_root.kobj, NULL, THIS_MODULE->name);
+	if (result == 0) {
+		object_root.flag = true;
+		kobject_init(&object_root.parameter_kobj,
+			     &parameter_object_type);
+		result = kobject_add(&object_root.parameter_kobj,
+				     &object_root.kobj,
+				     "parameter");
+		if (result == 0) {
+			object_root.parameter_flag = true;
+		}
+	}
+	if (result != 0) {
+		put_sysfs();
+	}
+	return result;
+}
+
+/**********************************************************************/
+void put_sysfs()
+{
+	if (object_root.parameter_flag) {
+		kobject_put(&object_root.parameter_kobj);
+	}
+	if (object_root.flag) {
+		kobject_put(&object_root.kobj);
+	}
 }

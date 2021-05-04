@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bufferedReader.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.h#6 $
  */
 
 #ifndef BUFFERED_READER_H
@@ -24,55 +24,37 @@
 
 #include "common.h"
 
-#ifdef __KERNEL__
 struct dm_bufio_client;
-struct ioFactory;
-#else
-struct ioRegion;
-#endif
+struct io_factory;
 
 /**
- * The buffered reader allows efficient IO for IORegions, which may be
+ * The buffered reader allows efficient IO for IO regions, which may be
  * file- or block-based. The internal buffer always reads aligned data
  * from the underlying region.
  **/
-typedef struct bufferedReader BufferedReader;
+struct buffered_reader;
 
-#ifdef __KERNEL__
 /**
  * Make a new buffered reader.
  *
- * @param factory     The IOFactory creating the buffered reader.
- * @param client      The dm_bufio_client to read from.
- * @param blockLimit  The number of blocks that may be read.
- * @param readerPtr   The pointer to hold the newly allocated buffered reader
+ * @param factory      The IO factory creating the buffered reader.
+ * @param client       The dm_bufio_client to read from.
+ * @param block_limit  The number of blocks that may be read.
+ * @param reader_ptr   The pointer to hold the newly allocated buffered reader
  *
  * @return UDS_SUCCESS or error code.
  **/
-int makeBufferedReader(struct ioFactory        *factory,
-                       struct dm_bufio_client  *client,
-                       sector_t                 blockLimit,
-                       BufferedReader         **readerPtr)
-  __attribute__((warn_unused_result));
-#else
-/**
- * Make a new buffered reader.
- *
- * @param region     An IORegion to read from.
- * @param readerPtr  The pointer to hold the newly allocated buffered reader.
- *
- * @return UDS_SUCCESS or error code.
- **/
-int makeBufferedReader(struct ioRegion *region, BufferedReader **readerPtr)
-  __attribute__((warn_unused_result));
-#endif
+int __must_check make_buffered_reader(struct io_factory *factory,
+				      struct dm_bufio_client *client,
+				      sector_t block_limit,
+				      struct buffered_reader **reader_ptr);
 
 /**
  * Free a buffered reader.
  *
  * @param reader        The buffered reader
  **/
-void freeBufferedReader(BufferedReader *reader);
+void free_buffered_reader(struct buffered_reader *reader);
 
 /**
  * Retrieve data from a buffered reader, reading from the region when needed.
@@ -83,8 +65,9 @@ void freeBufferedReader(BufferedReader *reader);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int readFromBufferedReader(BufferedReader *reader, void *data, size_t length)
-  __attribute__((warn_unused_result));
+int __must_check read_from_buffered_reader(struct buffered_reader *reader,
+					   void *data,
+					   size_t length);
 
 /**
  * Verify that the data currently in the buffer matches the required value.
@@ -99,9 +82,8 @@ int readFromBufferedReader(BufferedReader *reader, void *data, size_t length)
  * @note If the value matches, the matching contents are consumed. However,
  *       if the match fails, any buffer contents are left as is.
  **/
-int verifyBufferedData(BufferedReader *reader,
-                       const void     *value,
-                       size_t          length)
-  __attribute__((warn_unused_result));
+int __must_check verify_buffered_data(struct buffered_reader *reader,
+				      const void *value,
+				      size_t length);
 
 #endif // BUFFERED_READER_H

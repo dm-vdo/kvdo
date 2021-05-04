@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,37 +16,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/util/radixSort.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.h#4 $
  */
 
 #ifndef RADIX_SORT_H
 #define RADIX_SORT_H
+
+#include "compiler.h"
 
 /*
  * The implementation uses one large object allocated on the heap.  This
  * large object can be reused as many times as desired.  There is no
  * further heap usage by the sorting.
  */
-typedef struct radixSorter RadixSorter;
+struct radix_sorter;
 
 /**
- * Reserve the heap storage needed by the radixSort routine.  The amount of
+ * Reserve the heap storage needed by the radix_sort routine.  The amount of
  * heap space is logarithmically proportional to the number of keys.
  *
  * @param count   The maximum number of keys to be sorted
- * @param sorter  The RadixSorter object is returned here
+ * @param sorter  The struct radix_sorter object is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeRadixSorter(unsigned int count, RadixSorter **sorter)
-  __attribute__((warn_unused_result));
+int __must_check
+make_radix_sorter(unsigned int count, struct radix_sorter **sorter);
 
 /**
- * Free the heap storage needed by the radixSort routine.
+ * Free the heap storage needed by the radix_sort routine.
  *
- * @param sorter  The RadixSorter object to free
+ * @param sorter  The struct radix_sorter object to free
  **/
-void freeRadixSorter(RadixSorter *sorter);
+void free_radix_sorter(struct radix_sorter *sorter);
 
 /**
  * Sort pointers to fixed-length keys (arrays of bytes) using a radix sort.
@@ -61,10 +63,9 @@ void freeRadixSorter(RadixSorter *sorter);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int radixSort(RadixSorter         *sorter,
-              const unsigned char *keys[],
-              unsigned int         count,
-              unsigned short       length)
-  __attribute__((warn_unused_result));
+int __must_check radix_sort(struct radix_sorter *sorter,
+			    const unsigned char *keys[],
+			    unsigned int count,
+			    unsigned short length);
 
 #endif /* RADIX_SORT_H */

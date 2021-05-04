@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/atomicDefs.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/atomicDefs.h#3 $
  */
 
-#ifndef LINUX_KERNEL_ATOMIC_DEFS_H
-#define LINUX_KERNEL_ATOMIC_DEFS_H
+#ifndef ATOMIC_DEFS_H
+#define ATOMIC_DEFS_H
 
 #include <linux/atomic.h>
-
-#endif /* LINUX_KERNEL_ATOMIC_DEFS_H */
+#endif /* ATOMIC_DEFS_H */

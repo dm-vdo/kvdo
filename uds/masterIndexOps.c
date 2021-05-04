@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#16 $
  */
 #include "masterIndexOps.h"
 
 #include "compiler.h"
 #include "errors.h"
+#include "geometry.h"
 #include "indexComponent.h"
 #include "logger.h"
 #include "masterIndex005.h"
@@ -32,186 +33,206 @@
 #include "zone.h"
 
 /**********************************************************************/
-static INLINE bool usesSparse(const Configuration *config)
+static INLINE bool uses_sparse(const struct configuration *config)
 {
-  return config->geometry->sparseChaptersPerVolume > 0;
+	return is_sparse(config->geometry);
 }
 
 /**********************************************************************/
-void getMasterIndexCombinedStats(const MasterIndex *masterIndex,
-                                 MasterIndexStats *stats)
+void get_volume_index_combined_stats(const struct volume_index *volume_index,
+				     struct volume_index_stats *stats)
 {
-  MasterIndexStats dense, sparse;
-  getMasterIndexStats(masterIndex, &dense, &sparse);
-  stats->memoryAllocated = dense.memoryAllocated + sparse.memoryAllocated;
-  stats->rebalanceTime   = dense.rebalanceTime   + sparse.rebalanceTime;
-  stats->rebalanceCount  = dense.rebalanceCount  + sparse.rebalanceCount;
-  stats->recordCount     = dense.recordCount     + sparse.recordCount;
-  stats->collisionCount  = dense.collisionCount  + sparse.collisionCount;
-  stats->discardCount    = dense.discardCount    + sparse.discardCount;
-  stats->overflowCount   = dense.overflowCount   + sparse.overflowCount;
-  stats->numLists        = dense.numLists        + sparse.numLists;
-  stats->earlyFlushes    = dense.earlyFlushes    + sparse.earlyFlushes;
+	struct volume_index_stats dense, sparse;
+	get_volume_index_stats(volume_index, &dense, &sparse);
+	stats->memory_allocated =
+		dense.memory_allocated + sparse.memory_allocated;
+	stats->rebalance_time = dense.rebalance_time + sparse.rebalance_time;
+	stats->rebalance_count =
+		dense.rebalance_count + sparse.rebalance_count;
+	stats->record_count = dense.record_count + sparse.record_count;
+	stats->collision_count =
+		dense.collision_count + sparse.collision_count;
+	stats->discard_count = dense.discard_count + sparse.discard_count;
+	stats->overflow_count = dense.overflow_count + sparse.overflow_count;
+	stats->num_lists = dense.num_lists + sparse.num_lists;
+	stats->early_flushes = dense.early_flushes + sparse.early_flushes;
 }
 
 /**********************************************************************/
-int makeMasterIndex(const Configuration  *config, unsigned int numZones,
-                    uint64_t volumeNonce, MasterIndex **masterIndex)
+int make_volume_index(const struct configuration *config,
+		      unsigned int num_zones,
+		      uint64_t volume_nonce,
+		      struct volume_index **volume_index)
 {
-  if (usesSparse(config)) {
-    return makeMasterIndex006(config, numZones, volumeNonce, masterIndex);
-  } else {
-    return makeMasterIndex005(config, numZones, volumeNonce, masterIndex);
-  }
+	if (uses_sparse(config)) {
+		return make_volume_index006(config, num_zones, volume_nonce,
+					    volume_index);
+	} else {
+		return make_volume_index005(config, num_zones, volume_nonce,
+					    volume_index);
+	}
 }
 
 /**********************************************************************/
-int computeMasterIndexSaveBlocks(const Configuration *config,
-                                 size_t blockSize, uint64_t *blockCount)
+int compute_volume_index_save_blocks(const struct configuration *config,
+				     size_t block_size,
+				     uint64_t *block_count)
 {
-  size_t numBytes;
-  int result = (usesSparse(config)
-                ? computeMasterIndexSaveBytes006(config, &numBytes)
-                : computeMasterIndexSaveBytes005(config, &numBytes));
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  numBytes += sizeof(DeltaListSaveInfo);
-  *blockCount = (numBytes + blockSize - 1) / blockSize + MAX_ZONES;
-  return UDS_SUCCESS;
+	size_t num_bytes;
+	int result = (uses_sparse(config) ?
+			      compute_volume_index_save_bytes006(config,
+								 &num_bytes) :
+			      compute_volume_index_save_bytes005(config,
+								 &num_bytes));
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	num_bytes += sizeof(struct delta_list_save_info);
+	*block_count = (num_bytes + block_size - 1) / block_size + MAX_ZONES;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int readMasterIndex(ReadPortal *portal)
+static int read_volume_index(struct read_portal *portal)
 {
-  MasterIndex *masterIndex = indexComponentContext(portal->component);
-  unsigned int numZones = portal->zones;
-  if (numZones > MAX_ZONES) {
-    return logErrorWithStringError(UDS_BAD_STATE,
-                                   "zone count %u must not exceed MAX_ZONES",
-                                   numZones);
-  }
+	struct volume_index *volume_index =
+		index_component_context(portal->component);
+	unsigned int num_zones = portal->zones;
+	if (num_zones > MAX_ZONES) {
+		return log_error_strerror(UDS_BAD_STATE,
+					  "zone count %u must not exceed MAX_ZONES",
+					  num_zones);
+	}
 
-  BufferedReader *readers[MAX_ZONES];
-  unsigned int z;
-  for (z = 0; z < numZones; ++z) {
-    int result = getBufferedReaderForPortal(portal, z, &readers[z]);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "cannot read component for zone %u", z);
-    }
-  }
-  return restoreMasterIndex(readers, numZones, masterIndex);
+	struct buffered_reader *readers[MAX_ZONES];
+	unsigned int z;
+	for (z = 0; z < num_zones; ++z) {
+		int result =
+			get_buffered_reader_for_portal(portal, z, &readers[z]);
+		if (result != UDS_SUCCESS) {
+			return log_error_strerror(result,
+						  "cannot read component for zone %u",
+						  z);
+		}
+	}
+	return restore_volume_index(readers, num_zones, volume_index);
 }
 
 /**********************************************************************/
-static int writeMasterIndex(IndexComponent           *component,
-                            BufferedWriter           *writer,
-                            unsigned int              zone,
-                            IncrementalWriterCommand  command,
-                            bool                     *completed)
+static int write_volume_index(struct index_component *component,
+			      struct buffered_writer *writer,
+			      unsigned int zone,
+			      enum incremental_writer_command command,
+			      bool *completed)
 {
-  MasterIndex *masterIndex = indexComponentContext(component);
-  bool isComplete = false;
+	struct volume_index *volume_index = index_component_context(component);
+	bool is_complete = false;
 
-  int result = UDS_SUCCESS;
+	int result = UDS_SUCCESS;
 
-  switch (command) {
-    case IWC_START:
-      result = startSavingMasterIndex(masterIndex, zone, writer);
-      isComplete = result != UDS_SUCCESS;
-      break;
-    case IWC_CONTINUE:
-      isComplete = isSavingMasterIndexDone(masterIndex, zone);
-      break;
-    case IWC_FINISH:
-      result = finishSavingMasterIndex(masterIndex, zone);
-      if (result == UDS_SUCCESS) {
-        result = writeGuardDeltaList(writer);
-      }
-      isComplete = true;
-      break;
-    case IWC_ABORT:
-      result = abortSavingMasterIndex(masterIndex, zone);
-      isComplete = true;
-      break;
-    default:
-      result = logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                         "Invalid writer command");
-      break;
-  }
-  if (completed != NULL) {
-    *completed = isComplete;
-  }
-  return result;
+	switch (command) {
+	case IWC_START:
+		result = start_saving_volume_index(volume_index, zone, writer);
+		is_complete = result != UDS_SUCCESS;
+		break;
+	case IWC_CONTINUE:
+		is_complete = is_saving_volume_index_done(volume_index, zone);
+		break;
+	case IWC_FINISH:
+		result = finish_saving_volume_index(volume_index, zone);
+		if (result == UDS_SUCCESS) {
+			result = write_guard_delta_list(writer);
+		}
+		is_complete = true;
+		break;
+	case IWC_ABORT:
+		result = abort_saving_volume_index(volume_index, zone);
+		is_complete = true;
+		break;
+	default:
+		result = log_warning_strerror(UDS_INVALID_ARGUMENT,
+					      "Invalid writer command");
+		break;
+	}
+	if (completed != NULL) {
+		*completed = is_complete;
+	}
+	return result;
 }
 
 /**********************************************************************/
 
-static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
-  .kind        = RL_KIND_MASTER_INDEX,
-  .name        = "master index",
-  .saveOnly    = false,
-  .chapterSync = false,
-  .multiZone   = true,
-  .ioStorage   = true,
-  .loader      = readMasterIndex,
-  .saver       = NULL,
-  .incremental = writeMasterIndex,
+static const struct index_component_info VOLUME_INDEX_INFO_DATA = {
+	.kind = RL_KIND_VOLUME_INDEX,
+	.name = "volume index",
+	.save_only = false,
+	.chapter_sync = false,
+	.multi_zone = true,
+	.io_storage = true,
+	.loader = read_volume_index,
+	.saver = NULL,
+	.incremental = write_volume_index,
 };
-const IndexComponentInfo *const MASTER_INDEX_INFO = &MASTER_INDEX_INFO_DATA;
+const struct index_component_info *const VOLUME_INDEX_INFO =
+	&VOLUME_INDEX_INFO_DATA;
 
 /**********************************************************************/
-static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
-                                  unsigned int     numReaders,
-                                  MasterIndex     *masterIndex,
-                                  byte dlData[DELTA_LIST_MAX_BYTE_COUNT])
+static int restore_volume_index_body(struct buffered_reader **buffered_readers,
+				     unsigned int num_readers,
+				     struct volume_index *volume_index,
+				     byte dl_data[DELTA_LIST_MAX_BYTE_COUNT])
 {
-  // Start by reading the "header" section of the stream
-  int result = startRestoringMasterIndex(masterIndex, bufferedReaders,
-                                         numReaders);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  // Loop to read the delta lists, stopping when they have all been processed.
-  unsigned int z;
-  for (z = 0; z < numReaders; z++) {
-    for (;;) {
-      DeltaListSaveInfo dlsi;
-      result = readSavedDeltaList(&dlsi, dlData, bufferedReaders[z]);
-      if (result == UDS_END_OF_FILE) {
-        break;
-      } else if (result != UDS_SUCCESS) {
-        abortRestoringMasterIndex(masterIndex);
-        return result;
-      }
-      result = restoreDeltaListToMasterIndex(masterIndex, &dlsi, dlData);
-      if (result != UDS_SUCCESS) {
-        abortRestoringMasterIndex(masterIndex);
-        return result;
-      }
-    }
-  }
-  if (!isRestoringMasterIndexDone(masterIndex)) {
-    abortRestoringMasterIndex(masterIndex);
-    return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-                                     "incomplete delta list data");
-  }
-  return UDS_SUCCESS;
+	// Start by reading the "header" section of the stream
+	int result = start_restoring_volume_index(volume_index,
+						  buffered_readers,
+						  num_readers);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	// Loop to read the delta lists, stopping when they have all been
+	// processed.
+	unsigned int z;
+	for (z = 0; z < num_readers; z++) {
+		for (;;) {
+			struct delta_list_save_info dlsi;
+			result = read_saved_delta_list(&dlsi, dl_data,
+						       buffered_readers[z]);
+			if (result == UDS_END_OF_FILE) {
+				break;
+			} else if (result != UDS_SUCCESS) {
+				abort_restoring_volume_index(volume_index);
+				return result;
+			}
+			result = restore_delta_list_to_volume_index(volume_index,
+								    &dlsi,
+								    dl_data);
+			if (result != UDS_SUCCESS) {
+				abort_restoring_volume_index(volume_index);
+				return result;
+			}
+		}
+	}
+	if (!is_restoring_volume_index_done(volume_index)) {
+		abort_restoring_volume_index(volume_index);
+		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
+					    "incomplete delta list data");
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int restoreMasterIndex(BufferedReader **bufferedReaders,
-                       unsigned int     numReaders,
-                       MasterIndex     *masterIndex)
+int restore_volume_index(struct buffered_reader **buffered_readers,
+			 unsigned int num_readers,
+			 struct volume_index *volume_index)
 {
-  byte *dlData;
-  int result = ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dlData);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = restoreMasterIndexBody(bufferedReaders, numReaders, masterIndex,
-                                  dlData);
-  FREE(dlData);
-  return result;
+	byte *dl_data;
+	int result =
+		ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = restore_volume_index_body(buffered_readers, num_readers,
+					   volume_index, dl_data);
+	FREE(dl_data);
+	return result;
 }

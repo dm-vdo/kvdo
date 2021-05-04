@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/searchList.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#7 $
  */
 
 #include "searchList.h"
@@ -26,94 +26,95 @@
 #include "memoryAlloc.h"
 
 /**********************************************************************/
-int makeSearchList(unsigned int   capacity,
-                   SearchList   **listPtr)
+int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 {
-  if (capacity == 0) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "search list must have entries");
-  }
-  if (capacity > UINT8_MAX) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                  "search list capacity must fit in 8 bits");
-  }
+	if (capacity == 0) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "search list must have entries");
+	}
+	if (capacity > UINT8_MAX) {
+		return log_error_strerror(UDS_INVALID_ARGUMENT,
+					  "search list capacity must fit in 8 bits");
+	}
 
-  // We need three temporary entry arrays for purgeSearchList(). Allocate them
-  // contiguously with the main array.
-  unsigned int bytes = (sizeof(SearchList) + (4 * capacity * sizeof(uint8_t)));
-  SearchList *list;
-  int result = allocateCacheAligned(bytes, "search list", &list);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	// We need three temporary entry arrays for purge_search_list().
+	// Allocate them contiguously with the main array.
+	unsigned int bytes = (sizeof(struct search_list) +
+			      (4 * capacity * sizeof(uint8_t)));
+	struct search_list *list;
+	int result = allocate_cache_aligned(bytes, "search list", &list);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  list->capacity       = capacity;
-  list->firstDeadEntry = 0;
+	list->capacity = capacity;
+	list->first_dead_entry = 0;
 
-  // Fill in the indexes of the chapter index cache entries. These will be
-  // only ever be permuted as the search list is used.
-  uint8_t i;
-  for (i = 0; i < capacity; i++) {
-    list->entries[i] = i;
-  }
+	// Fill in the indexes of the chapter index cache entries. These will
+	// be only ever be permuted as the search list is used.
+	uint8_t i;
+	for (i = 0; i < capacity; i++) {
+		list->entries[i] = i;
+	}
 
-  *listPtr = list;
-  return UDS_SUCCESS;
+	*list_ptr = list;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void freeSearchList(SearchList **listPtr)
+void free_search_list(struct search_list **list_ptr)
 {
-  FREE(*listPtr);
-  *listPtr = NULL;
+	FREE(*list_ptr);
+	*list_ptr = NULL;
 }
 
 /**********************************************************************/
-void purgeSearchList(SearchList               *searchList,
-                     const CachedChapterIndex  chapters[],
-                     uint64_t                  oldestVirtualChapter)
+void purge_search_list(struct search_list *search_list,
+		       const struct cached_chapter_index chapters[],
+		       uint64_t oldest_virtual_chapter)
 {
-  if (searchList->firstDeadEntry == 0) {
-    // There are no live entries in the list to purge.
-    return;
-  }
+	if (search_list->first_dead_entry == 0) {
+		// There are no live entries in the list to purge.
+		return;
+	}
 
-  /*
-   * Partition the previously-alive entries in the list into three temporary
-   * lists, keeping the current LRU search order within each list. The element
-   * array was allocated with enough space for all four lists.
-   */
-  uint8_t *entries = &searchList->entries[0];
-  uint8_t *alive   = &entries[searchList->capacity];
-  uint8_t *skipped = &alive[searchList->capacity];
-  uint8_t *dead    = &skipped[searchList->capacity];
-  unsigned int nextAlive   = 0;
-  unsigned int nextSkipped = 0;
-  unsigned int nextDead    = 0;
+	/*
+	 * Partition the previously-alive entries in the list into three
+	 * temporary lists, keeping the current LRU search order within each
+	 * list. The element array was allocated with enough space for all four
+	 * lists.
+	 */
+	uint8_t *entries = &search_list->entries[0];
+	uint8_t *alive = &entries[search_list->capacity];
+	uint8_t *skipped = &alive[search_list->capacity];
+	uint8_t *dead = &skipped[search_list->capacity];
+	unsigned int next_alive = 0;
+	unsigned int next_skipped = 0;
+	unsigned int next_dead = 0;
 
-  int i;
-  for (i = 0; i < searchList->firstDeadEntry; i++) {
-    uint8_t entry = entries[i];
-    const CachedChapterIndex *chapter = &chapters[entry];
-    if ((chapter->virtualChapter < oldestVirtualChapter)
-        || (chapter->virtualChapter == UINT64_MAX)) {
-      dead[nextDead++] = entry;
-    } else if (chapter->skipSearch) {
-      skipped[nextSkipped++] = entry;
-    } else {
-      alive[nextAlive++] = entry;
-    }
-  }
+	int i;
+	for (i = 0; i < search_list->first_dead_entry; i++) {
+		uint8_t entry = entries[i];
+		const struct cached_chapter_index *chapter = &chapters[entry];
+		if ((chapter->virtual_chapter < oldest_virtual_chapter) ||
+		    (chapter->virtual_chapter == UINT64_MAX)) {
+			dead[next_dead++] = entry;
+		} else if (chapter->skip_search) {
+			skipped[next_skipped++] = entry;
+		} else {
+			alive[next_alive++] = entry;
+		}
+	}
 
-  // Copy the temporary lists back to the search list so we wind up with
-  // [ alive, alive, skippable, new-dead, new-dead, old-dead, old-dead ]
-  memcpy(entries, alive, nextAlive);
-  entries += nextAlive;
+	// Copy the temporary lists back to the search list so we wind up with
+	// [ alive, alive, skippable, new-dead, new-dead, old-dead, old-dead ]
+	memcpy(entries, alive, next_alive);
+	entries += next_alive;
 
-  memcpy(entries, skipped, nextSkipped);
-  entries += nextSkipped;
+	memcpy(entries, skipped, next_skipped);
+	entries += next_skipped;
 
-  memcpy(entries, dead, nextDead);
-  // The first dead entry is now the start of the copied dead list.
-  searchList->firstDeadEntry = (nextAlive + nextSkipped);
+	memcpy(entries, dead, next_dead);
+	// The first dead entry is now the start of the copied dead list.
+	search_list->first_dead_entry = (next_alive + next_skipped);
 }

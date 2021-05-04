@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,27 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/zone.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/zone.h#4 $
  */
 
 #ifndef ZONE_H
 #define ZONE_H
 
+#include "compiler.h"
 #include "uds.h"
 
 enum {
-  MAX_ZONES = 16,
+	MAX_ZONES = 16,
 };
 
 /**
  * Return the number of zones.
  *
- * @param userParams  the index session parameters.  If NULL, the default
- *                    session parameters will be used.
+ * @param user_params  the index session parameters.  If NULL, the default
+ *                     session parameters will be used.
  *
  * @return the number of zones
  **/
-unsigned int getZoneCount(const struct uds_parameters *userParams)
-  __attribute__((warn_unused_result));
+unsigned int __must_check
+get_zone_count(const struct uds_parameters *user_params);
 
 #endif /* ZONE_H */

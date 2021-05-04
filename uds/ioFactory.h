@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#8 $
  */
 
 #ifndef IO_FACTORY_H
@@ -24,23 +24,18 @@
 
 #include "bufferedReader.h"
 #include "bufferedWriter.h"
-#ifdef __KERNEL__
 #include <linux/dm-bufio.h>
-#else
-#include "fileUtils.h"
-#include "ioRegion.h"
-#endif
 
 /*
- * An IOFactory object is responsible for controlling access to index storage.
- * The index is a contiguous range of blocks on a block device or within a
- * file.
+ * An IO factory object is responsible for controlling access to index
+ * storage.  The index is a contiguous range of blocks on a block
+ * device or within a file.
  *
- * The IOFactory holds the open device or file and is responsible for closing
- * it.  The IOFactory has methods to make IORegions that are used to access
- * sections of the index.
+ * The IO factory holds the open device or file and is responsible for
+ * closing it.  The IO factory has methods to make IO regions that are
+ * used to access sections of the index.
  */
-typedef struct ioFactory IOFactory;
+struct io_factory;
 
 /*
  * Define the UDS block size as 4K.  Historically, we wrote the volume file in
@@ -53,127 +48,90 @@ typedef struct ioFactory IOFactory;
  */
 enum { UDS_BLOCK_SIZE = 4096 };
 
-#ifdef __KERNEL__
 /**
- * Create an IOFactory.  The IOFactory is returned with a reference count of 1.
+ * Create an IO factory. The IO factory is returned with a reference
+ * count of 1.
  *
  * @param path        The path to the block device or file that contains the
  *                    block stream
- * @param factoryPtr  The IOFactory is returned here
+ * @param factory_ptr The IO factory is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIOFactory(const char *path, IOFactory **factoryPtr)
-  __attribute__((warn_unused_result));
-#else
-/**
- * Create an IOFactory.  The IOFactory is returned with a reference count of 1.
- *
- * @param path        The path to the block device or file that contains the
- *                    block stream
- * @param access      The requested access kind.
- * @param factoryPtr  The IOFactory is returned here
- *
- * @return UDS_SUCCESS or an error code
- **/
-int makeIOFactory(const char  *path,
-                  FileAccess   access,
-                  IOFactory  **factoryPtr)
-  __attribute__((warn_unused_result));
-#endif
+int __must_check make_io_factory(const char *path,
+				 struct io_factory **factory_ptr);
 
 /**
- * Get another reference to an IOFactory, incrementing its reference count.
+ * Get another reference to an IO factory, incrementing its reference count.
  *
- * @param factory  The IOFactory
+ * @param factory  The IO factory
  **/
-void getIOFactory(IOFactory *factory);
+void get_io_factory(struct io_factory *factory);
 
 /**
- * Free a reference to an IOFactory.  If the reference count drops to zero,
- * free the IOFactory and release all its resources.
+ * Free a reference to an IO factory.  If the reference count drops to zero,
+ * free the IO factory and release all its resources.
  *
- * @param factory  The IOFactory
+ * @param factory  The IO factory
  **/
-void putIOFactory(IOFactory *factory);
+void put_io_factory(struct io_factory *factory);
 
 /**
  * Get the maximum potential size of the device or file.  For a device, this is
  * the actual size of the device.  For a file, this is the largest file that we
  * can possibly write.
  *
- * @param factory  The IOFactory
+ * @param factory  The IO factory
  *
  * @return the writable size (in bytes)
  **/
-size_t getWritableSize(IOFactory *factory) __attribute__((warn_unused_result));
+size_t __must_check get_writable_size(struct io_factory *factory);
 
-#ifdef __KERNEL__
 /**
  * Create a struct dm_bufio_client for a region of the index.
  *
- * @param factory          The IOFactory
+ * @param factory          The IO factory
  * @param offset           The byte offset to the region within the index
- * @param size             The size of a block, in bytes
- * @param reservedBuffers  The number of buffers that can be reserved
- * @param clientPtr        The struct dm_bufio_client is returned here
+ * @param block_size       The size of a block, in bytes
+ * @param reserved_buffers The number of buffers that can be reserved
+ * @param client_ptr       The struct dm_bufio_client is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeBufio(IOFactory               *factory,
-              off_t                    offset,
-              size_t                   blockSize,
-              unsigned int             reservedBuffers,
-              struct dm_bufio_client **clientPtr)
-  __attribute__((warn_unused_result));
-#else
-/**
- * Create an IORegion for a region of the index.
- *
- * @param factory    The IOFactory
- * @param offset     The byte offset to the region within the index
- * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
- *
- * @return UDS_SUCCESS or an error code
- **/
-int makeIORegion(IOFactory  *factory,
-                 off_t       offset,
-                 size_t      size,
-                 IORegion  **regionPtr)
-  __attribute__((warn_unused_result));
-#endif
+int __must_check make_bufio(struct io_factory *factory,
+			    off_t offset,
+			    size_t block_size,
+			    unsigned int reserved_buffers,
+			    struct dm_bufio_client **client_ptr);
 
 /**
- * Create a BufferedReader for a region of the index.
+ * Create a buffered reader for a region of the index.
  *
- * @param factory    The IOFactory
+ * @param factory    The IO factory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
+ * @param reader_ptr The buffered reader is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int openBufferedReader(IOFactory       *factory,
-                       off_t            offset,
-                       size_t           size,
-                       BufferedReader **readerPtr)
-  __attribute__((warn_unused_result));
+int __must_check open_buffered_reader(struct io_factory *factory,
+				      off_t offset,
+				      size_t size,
+				      struct buffered_reader **reader_ptr);
 
 /**
- * Create a BufferedWriter for a region of the index.
+ * Create a buffered writer for a region of the index.
  *
- * @param factory    The IOFactory
+ * @param factory    The IO factory
  * @param offset     The byte offset to the region within the index
  * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
+ * @param writer_ptr The buffered writer is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int openBufferedWriter(IOFactory       *factory,
-                       off_t            offset,
-                       size_t           size,
-                       BufferedWriter **writerPtr)
-  __attribute__((warn_unused_result));
+int __must_check open_buffered_writer(struct io_factory *factory,
+				      off_t offset,
+				      size_t size,
+				      struct buffered_writer **writer_ptr);
 
 #endif // IO_FACTORY_H

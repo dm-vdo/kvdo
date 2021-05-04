@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/util/funnelQueue.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#6 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -28,7 +28,7 @@
 #include "typeDefs.h"
 
 /**
- * A FunnelQueue is a simple lock-free (almost) queue that accepts entries
+ * A funnel queue is a simple lock-free (almost) queue that accepts entries
  * from multiple threads (multi-producer) and delivers them to a single thread
  * (single-consumer). "Funnel" is an attempt to evoke the image of requests
  * from more than one producer being "funneled down" to a single consumer.
@@ -40,12 +40,12 @@
  * manipulate the internals, which are only exposed for the purpose of
  * allowing the very simple enqueue operation to be in-lined.
  *
- * The implementation requires that a FunnelQueueEntry structure (a link
+ * The implementation requires that a funnel_queue_entry structure (a link
  * pointer) be embedded in the queue entries, and pointers to those structures
  * are used exclusively by the queue. No macros are defined to template the
- * queue, so the offset of the FunnelQueueEntry in the records placed in the
+ * queue, so the offset of the funnel_queue_entry in the records placed in the
  * queue must all have a fixed offset so the client can derive their structure
- * pointer from the entry pointer returned by funnelQueuePoll().
+ * pointer from the entry pointer returned by funnel_queue_poll().
  *
  * Callers are wholly responsible for allocating and freeing the entries.
  * Entries may be freed as soon as they are returned since this queue is not
@@ -54,50 +54,52 @@
  * other dynamic allocation is used.
  *
  * The algorithm is not actually 100% lock-free. There is a single point in
- * funnelQueuePut() at which a pre-empted producer will prevent the consumers
+ * funnel_queue_put() at which a pre-empted producer will prevent the consumers
  * from seeing items added to the queue by later producers, and only if the
  * queue is short enough or the consumer fast enough for it to reach what was
  * the end of the queue at the time of the pre-empt.
  *
- * The consumer function, funnelQueuePoll(), will return NULL when the queue
+ * The consumer function, funnel_queue_poll(), will return NULL when the queue
  * is empty. To wait for data to consume, spin (if safe) or combine the queue
- * with an EventCount to signal the presence of new entries.
+ * with an event_count to signal the presence of new entries.
  **/
 
 /**
  * The queue link structure that must be embedded in client entries.
  **/
-typedef struct funnelQueueEntry {
-  // The next (newer) entry in the queue.
-  struct funnelQueueEntry * volatile next;
-} FunnelQueueEntry;
+struct funnel_queue_entry {
+	// The next (newer) entry in the queue.
+	struct funnel_queue_entry *volatile next;
+};
 
 /**
  * The dynamically allocated queue structure, which is aligned to a cache line
  * boundary when allocated. This should be consider opaque; it is exposed here
- * so funnelQueuePut() can be in-lined.
+ * so funnel_queue_put() can be in-lined.
  **/
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) funnelQueue {
-  // The producers' end of the queue--an atomically exchanged pointer that
-  // will never be NULL.
-  FunnelQueueEntry * volatile newest;
+struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
+	// The producers' end of the queue--an atomically exchanged pointer
+	// that will never be NULL.
+	struct funnel_queue_entry *volatile newest;
 
-  // The consumer's end of the queue. Owned by the consumer and never NULL.
-  FunnelQueueEntry *oldest __attribute__((aligned(CACHE_LINE_BYTES)));
+	// The consumer's end of the queue. Owned by the consumer and never
+	// NULL.
+	struct funnel_queue_entry *oldest
+		__attribute__((aligned(CACHE_LINE_BYTES)));
 
-  // A re-usable dummy entry used to provide the non-NULL invariants above.
-  FunnelQueueEntry stub;
-} FunnelQueue;
+	// A re-usable dummy entry used to provide the non-NULL invariants
+	// above.
+	struct funnel_queue_entry stub;
+};
 
 /**
  * Construct and initialize a new, empty queue.
  *
- * @param queuePtr  a pointer in which to store the queue
+ * @param queue_ptr  a pointer in which to store the queue
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeFunnelQueue(FunnelQueue **queuePtr)
-  __attribute__((warn_unused_result));
+int __must_check make_funnel_queue(struct funnel_queue **queue_ptr);
 
 /**
  * Free a queue.
@@ -108,45 +110,50 @@ int makeFunnelQueue(FunnelQueue **queuePtr)
  *
  * @param queue  the queue to free
  **/
-void freeFunnelQueue(FunnelQueue *queue);
+void free_funnel_queue(struct funnel_queue *queue);
 
 /**
  * Put an entry on the end of the queue.
  *
- * The entry pointer must be to the FunnelQueueEntry embedded in the caller's
- * data structure. The caller must be able to derive the address of the start
- * of their data structure from the pointer that passed in here, so every
- * entry in the queue must have the FunnelQueueEntry at the same offset within
- * the client's structure.
+ * The entry pointer must be to the struct funnel_queue_entry embedded in the
+ * caller's data structure. The caller must be able to derive the address of
+ * the start of their data structure from the pointer that passed in here, so
+ * every entry in the queue must have the struct funnel_queue_entry at the same
+ * offset within the client's structure.
  *
  * @param queue  the queue on which to place the entry
  * @param entry  the entry to be added to the queue
  **/
-static INLINE void funnelQueuePut(FunnelQueue *queue, FunnelQueueEntry *entry)
+static INLINE void funnel_queue_put(struct funnel_queue *queue,
+				    struct funnel_queue_entry *entry)
 {
-  /*
-   * Barrier requirements: All stores relating to the entry ("next" pointer,
-   * containing data structure fields) must happen before the previous->next
-   * store making it visible to the consumer. Also, the entry's "next" field
-   * initialization to NULL must happen before any other producer threads can
-   * see the entry (the xchg) and try to update the "next" field.
-   *
-   * xchg implements a full barrier.
-   */
-  entry->next = NULL;
-  /*
-   * The xchg macro in the PPC kernel calls a function that takes a void*
-   * argument, triggering a warning about dropping the volatile qualifier.
-   */
+	struct funnel_queue_entry *previous;
+	/*
+	 * Barrier requirements: All stores relating to the entry ("next"
+	 * pointer, containing data structure fields) must happen before the
+	 * previous->next store making it visible to the consumer. Also, the
+	 * entry's "next" field initialization to NULL must happen before any
+	 * other producer threads can see the entry (the xchg) and try to
+	 * update the "next" field.
+	 *
+	 * xchg implements a full barrier.
+	 */
+	entry->next = NULL;
+	/*
+	 * The xchg macro in the PPC kernel calls a function that takes a void*
+	 * argument, triggering a warning about dropping the volatile
+	 * qualifier.
+	 */
 #pragma GCC diagnostic push
 #if __GNUC__ >= 5
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
 #endif
-  FunnelQueueEntry *previous = xchg(&queue->newest, entry);
+	previous = xchg(&queue->newest, entry);
 #pragma GCC diagnostic pop
-  // Pre-empts between these two statements hide the rest of the queue from
-  // the consumer, preventing consumption until the following assignment runs.
-  previous->next = entry;
+	// Pre-empts between these two statements hide the rest of the queue
+	// from the consumer, preventing consumption until the following
+	// assignment runs.
+	previous->next = entry;
 }
 
 /**
@@ -157,24 +164,23 @@ static INLINE void funnelQueuePut(FunnelQueue *queue, FunnelQueueEntry *entry)
  *
  * @return the oldest entry in the queue, or NULL if the queue is empty.
  **/
-FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
-  __attribute__((warn_unused_result));
+struct funnel_queue_entry *__must_check
+funnel_queue_poll(struct funnel_queue *queue);
 
 /**
  * Check whether the funnel queue is empty or not. This function must only be
- * called from a single consumer thread, as with funnelQueuePoll.
+ * called from a single consumer thread, as with funnel_queue_poll.
  *
  * If the queue is in a transition state with one or more entries being added
  * such that the list view is incomplete, it may not be possible to retrieve an
- * entry with the funnelQueuePoll() function. In such states this function will
- * report an empty indication.
+ * entry with the funnel_queue_poll() function. In such states this function
+ * will report an empty indication.
  *
  * @param queue  the queue which to check for entries.
  *
  * @return true iff queue contains no entry which can be retrieved
  **/
-bool isFunnelQueueEmpty(FunnelQueue *queue)
-  __attribute__((warn_unused_result));
+bool __must_check is_funnel_queue_empty(struct funnel_queue *queue);
 
 /**
  * Check whether the funnel queue is idle or not. This function must only be
@@ -191,7 +197,6 @@ bool isFunnelQueueEmpty(FunnelQueue *queue)
  * @return true iff queue contains no entry which can be retrieved nor is
  *              known to be having an entry added
  **/
-bool isFunnelQueueIdle(FunnelQueue *queue)
-  __attribute__((warn_unused_result));
+bool __must_check is_funnel_queue_idle(struct funnel_queue *queue);
 
 #endif /* FUNNEL_QUEUE_H */

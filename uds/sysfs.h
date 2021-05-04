@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/sysfs.h#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.h#2 $
  */
 
 #ifndef SYSFS_H
@@ -28,12 +28,12 @@
  *
  * @return 0 on success, or non-zero on error
  **/
-int initSysfs(void);
+int init_sysfs(void);
 
 /**
  * Called when the module is being unloaded to terminate the
  * /sys/\<module_name\> tree.
  **/
-void putSysfs(void);
+void put_sysfs(void);
 
 #endif /*  SYSFS_H  */

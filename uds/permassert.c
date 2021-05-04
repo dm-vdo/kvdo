@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,41 +16,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/permassert.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.c#8 $
  */
 
 #include "permassert.h"
-#include "permassertInternals.h"
 
 #include "errors.h"
+#include "logger.h"
 
-/*****************************************************************************/
-int assertionFailed(const char *expressionString,
-                    int         code,
-                    const char *fileName,
-                    int         lineNumber,
-                    const char *format,
-                    ...)
+
+/**********************************************************************/
+int uds_assertion_failed(const char *expression_string,
+			 int code,
+			 const char *file_name,
+			 int line_number,
+			 const char *format,
+			 ...)
 {
-  va_list args;
-  va_start(args, format);
-  handleAssertionFailure(expressionString, fileName, lineNumber, format, args);
-  va_end(args);
+	// XXX plumb module_name through to here
+	const char *module_name = NULL;
+	va_list args;
+	va_start(args, format);
 
-  return code;
-}
+	uds_log_embedded_message(LOG_ERR,
+				 module_name,
+				 "assertion \"",
+				 format,
+				 args,
+				 "\" (%s) failed at %s:%d",
+				 expression_string,
+				 file_name,
+				 line_number);
+	log_backtrace(LOG_ERR);
 
-/*****************************************************************************/
-int assertionFailedLogOnly(const char *expressionString,
-                           const char *fileName,
-                           int         lineNumber,
-                           const char *format,
-                           ...)
-{
-  va_list args;
-  va_start(args, format);
-  handleAssertionFailure(expressionString, fileName, lineNumber, format, args);
-  va_end(args);
 
-  return UDS_ASSERTION_FAILED;
+	va_end(args);
+
+	return code;
 }

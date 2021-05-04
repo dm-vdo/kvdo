@@ -10,26 +10,10 @@
 
 // Linux kernel
 
-#ifdef __KERNEL__
 # include <linux/types.h>
 
 // Microsoft Visual Studio
 
-#else // defined(__KERNEL__)
-# if defined(_MSC_VER)
-
-  typedef unsigned char uint8_t;
-  typedef unsigned long uint32_t;
-  typedef unsigned __int64 uint64_t;
-
-// Other compilers
-
-# else	// defined(_MSC_VER)
-
-#  include <stdint.h>
-
-# endif // !defined(_MSC_VER)
-#endif // !defined(__KERNEL__)
 
 //-----------------------------------------------------------------------------
 

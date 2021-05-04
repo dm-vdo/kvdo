@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/loadType.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/loadType.c#3 $
  */
 
 #include "loadType.h"
@@ -24,16 +24,16 @@
 #include "logger.h"
 
 /**********************************************************************/
-const char *getLoadType(LoadType loadType)
+const char *get_load_type(enum load_type load_type)
 {
-  switch (loadType) {
-  case LOAD_CREATE:
-    return "creating index";
-  case LOAD_LOAD:
-    return "loading index";
-  case LOAD_REBUILD:
-    return "loading or rebuilding index";
-  default:
-    return "no load method specified";
-  }
+	switch (load_type) {
+	case LOAD_CREATE:
+		return "creating index";
+	case LOAD_LOAD:
+		return "loading index";
+	case LOAD_REBUILD:
+		return "loading or rebuilding index";
+	default:
+		return "no load method specified";
+	}
 }

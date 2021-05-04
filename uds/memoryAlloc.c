@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/memoryAlloc.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.c#2 $
  */
 
 #include "memoryAlloc.h"
@@ -24,21 +24,21 @@
 #include "stringUtils.h"
 
 /**********************************************************************/
-int duplicateString(const char *string, const char *what, char **newString)
+int duplicate_string(const char *string, const char *what, char **new_string)
 {
-  return memdup(string, strlen(string) + 1, what, newString);
+	return memdup(string, strlen(string) + 1, what, new_string);
 }
 
 /**********************************************************************/
-int memdup(const void *buffer, size_t size, const char *what, void *dupPtr)
+int memdup(const void *buffer, size_t size, const char *what, void *dup_ptr)
 {
-  byte *dup;
-  int result = ALLOCATE(size, byte, what, &dup);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	byte *dup;
+	int result = ALLOCATE(size, byte, what, &dup);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  memcpy(dup, buffer, size);
-  *((void **) dupPtr) = dup;
-  return UDS_SUCCESS;
+	memcpy(dup, buffer, size);
+	*((void **) dup_ptr) = dup;
+	return UDS_SUCCESS;
 }

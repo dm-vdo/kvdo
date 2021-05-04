@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/hashUtils.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#7 $
  */
 
 #include "hashUtils.h"
@@ -31,67 +31,77 @@
  * Convert a byte string to the hex representation.
  *
  * @param data          binary data to convert
- * @param dataLen       length of binary data
+ * @param data_len      length of binary data
  * @param hex           target to write hex string into
- * @param hexLen        capacity of target string
+ * @param hex_len       capacity of target string
  *
  * @return              UDS_SUCCESS,
- *                      or UDS_INVALID_ARGUMENT if hexLen
+ *                      or UDS_INVALID_ARGUMENT if hex_len
  *                      is too short.
  **/
-static int dataToHex(const unsigned char *data, size_t dataLen,
-                     char *hex, size_t hexLen)
+static int data_to_hex(const unsigned char *data,
+		       size_t data_len,
+		       char *hex,
+		       size_t hex_len)
 {
-  if (hexLen < 2 * dataLen + 1) {
-    return logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                     "hex data incorrect size");
-  }
-  size_t i;
-  for (i = 0; i < dataLen; ++i) {
-    int rc = fixedSprintf(__func__, &hex[2 * i], hexLen - (2 * i),
-                          UDS_INVALID_ARGUMENT, "%02X", data[i]);
+	if (hex_len < 2 * data_len + 1) {
+		return log_warning_strerror(UDS_INVALID_ARGUMENT,
+					    "hex data incorrect size");
+	}
+	size_t i;
+	for (i = 0; i < data_len; ++i) {
+		int rc = fixed_sprintf(__func__,
+				       &hex[2 * i],
+				       hex_len - (2 * i),
+				       UDS_INVALID_ARGUMENT,
+				       "%02X",
+				       data[i]);
 
-    if (rc != UDS_SUCCESS) {
-      return rc;
-    }
-  }
-  return UDS_SUCCESS;
+		if (rc != UDS_SUCCESS) {
+			return rc;
+		}
+	}
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int chunkNameToHex(const UdsChunkName *chunkName,
-                   char *hexData, size_t hexDataLen)
+int chunk_name_to_hex(const struct uds_chunk_name *chunk_name,
+		      char *hex_data,
+		      size_t hex_data_len)
 {
-  return dataToHex(chunkName->name, UDS_CHUNK_NAME_SIZE,
-                   hexData, hexDataLen);
+	return data_to_hex(chunk_name->name, UDS_CHUNK_NAME_SIZE,
+			   hex_data, hex_data_len);
 }
 
 /**********************************************************************/
-int chunkDataToHex(const UdsChunkData *chunkData,
-                   char *hexData, size_t hexDataLen)
+int chunk_data_to_hex(const struct uds_chunk_data *chunk_data,
+		      char *hex_data,
+		      size_t hex_data_len)
 {
-  return dataToHex(chunkData->data, UDS_MAX_BLOCK_DATA_SIZE,
-                   hexData, hexDataLen);
+	return data_to_hex(chunk_data->data,
+			   UDS_METADATA_SIZE,
+			   hex_data,
+			   hex_data_len);
 }
 
 /**********************************************************************/
-unsigned int computeBits(unsigned int maxValue)
+unsigned int compute_bits(unsigned int max_value)
 {
-  // __builtin_clz() counts leading (high-order) zero bits, so if
-  // we ever need this to be fast, under GCC we can do:
-  // return ((maxValue == 0) ? 0 : (32 - __builtin_clz(maxValue)));
+	// __builtin_clz() counts leading (high-order) zero bits, so if
+	// we ever need this to be fast, under GCC we can do:
+	// return ((max_value == 0) ? 0 : (32 - __builtin_clz(max_value)));
 
-  unsigned int bits = 0;
-  while (maxValue > 0) {
-    maxValue >>= 1;
-    bits++;
-  }
-  return bits;
+	unsigned int bits = 0;
+	while (max_value > 0) {
+		max_value >>= 1;
+		bits++;
+	}
+	return bits;
 }
 
 /**********************************************************************/
-void hashUtilsCompileTimeAssertions(void)
+void hash_utils_compile_time_assertions(void)
 {
-  STATIC_ASSERT((UDS_CHUNK_NAME_SIZE % sizeof(uint64_t)) == 0);
-  STATIC_ASSERT(UDS_CHUNK_NAME_SIZE == 16);
+	STATIC_ASSERT((UDS_CHUNK_NAME_SIZE % sizeof(uint64_t)) == 0);
+	STATIC_ASSERT(UDS_CHUNK_NAME_SIZE == 16);
 }
