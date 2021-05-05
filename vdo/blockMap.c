@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#95 $
  */
 
 #include "blockMap.h"
@@ -586,7 +586,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 		   vdo_action *action)
 {
 	struct block_map_zone *zone =
-		get_block_map_for_zone(data_vio->logical.zone);
+		get_vdo_logical_zone_block_map(data_vio->logical.zone);
 	if (is_vdo_state_draining(&zone->state)) {
 		finish_data_vio(data_vio, VDO_SHUTTING_DOWN);
 		return;
@@ -690,7 +690,7 @@ void update_block_map_page(struct block_map_page *page,
 			   sequence_number_t *recovery_lock)
 {
 	struct block_map_zone *zone =
-		get_block_map_for_zone(data_vio->logical.zone);
+		get_vdo_logical_zone_block_map(data_vio->logical.zone);
 	struct block_map *block_map = zone->block_map;
 	struct recovery_journal *journal = block_map->journal;
 	sequence_number_t old_locked, new_locked;

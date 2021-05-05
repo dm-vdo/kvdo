@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#112 $
  */
 
 /*
@@ -508,7 +508,8 @@ void dump_vdo_status(const struct vdo *vdo)
 	dump_slab_depot(vdo->depot);
 
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
-		dump_logical_zone(get_logical_zone(vdo->logical_zones, zone));
+		dump_vdo_logical_zone(get_vdo_logical_zone(vdo->logical_zones,
+							   zone));
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {

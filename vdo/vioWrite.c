@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#63 $
  */
 
 /*
@@ -173,7 +173,7 @@ static void release_logical_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_logical_zone(data_vio);
 	release_logical_block_lock(data_vio);
-	release_flush_generation_lock(data_vio);
+	release_vdo_flush_generation_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_DONE);
 }
 
@@ -999,7 +999,7 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 	}
 
 	allocate_data_block(data_vio_as_allocating_vio(data_vio),
-			    get_allocation_selector(data_vio->logical.zone),
+			    get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
 			    VIO_WRITE_LOCK, continue_write_after_allocation);
 }
 
@@ -1014,7 +1014,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 	}
 
 	// Write requests join the current flush generation.
-	result = acquire_flush_generation_lock(data_vio);
+	result = acquire_vdo_flush_generation_lock(data_vio);
 	if (abort_on_error(result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
@@ -1023,7 +1023,7 @@ void launch_write_data_vio(struct data_vio *data_vio)
 	data_vio->last_async_operation = FIND_BLOCK_MAP_SLOT;
 	find_block_map_slot(data_vio,
 			    continue_write_with_block_map_slot,
-			    get_logical_zone_thread_id(data_vio->logical.zone));
+			    get_vdo_logical_zone_thread_id(data_vio->logical.zone));
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#76 $
  */
 
 #ifndef DATA_VIO_H
@@ -678,7 +678,7 @@ launch_hash_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_logical_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_logical_zone_thread_id(data_vio->logical.zone);
+		get_vdo_logical_zone_thread_id(data_vio->logical.zone);
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on thread %u",
@@ -699,7 +699,7 @@ static inline void set_logical_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_logical_zone_thread_id(data_vio->logical.zone));
+				    get_vdo_logical_zone_thread_id(data_vio->logical.zone));
 }
 
 /**

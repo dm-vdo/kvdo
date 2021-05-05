@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#58 $
  */
 
 #include "logicalZone.h"
@@ -96,8 +96,8 @@ static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-struct logical_zone *get_logical_zone(struct logical_zones *zones,
-				      zone_count_t zone_number)
+struct logical_zone *get_vdo_logical_zone(struct logical_zones *zones,
+					  zone_count_t zone_number)
 {
 	return (zone_number < zones->zone_count) ? &zones->zones[zone_number]
 		: NULL;
@@ -109,8 +109,8 @@ struct logical_zone *get_logical_zone(struct logical_zones *zones,
 static thread_id_t get_thread_id_for_zone(void *context,
 					  zone_count_t zone_number)
 {
-	return get_logical_zone_thread_id(get_logical_zone(context,
-							   zone_number));
+	return get_vdo_logical_zone_thread_id(get_vdo_logical_zone(context,
+								   zone_number));
 }
 
 /**
@@ -144,7 +144,7 @@ static int initialize_zone(struct logical_zones *zones,
 }
 
 /**********************************************************************/
-int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
+int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
 	struct logical_zones *zones;
 	int result;
@@ -252,16 +252,16 @@ static void initiate_drain(struct admin_state *state)
 static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
-	struct logical_zone *zone = get_logical_zone(context, zone_number);
+	struct logical_zone *zone = get_vdo_logical_zone(context, zone_number);
 	start_vdo_draining(&zone->state,
 			   get_current_vdo_manager_operation(zone->zones->manager),
 			   parent, initiate_drain);
 }
 
 /**********************************************************************/
-void drain_logical_zones(struct logical_zones *zones,
-			 enum admin_state_code operation,
-			 struct vdo_completion *parent)
+void drain_vdo_logical_zones(struct logical_zones *zones,
+			     enum admin_state_code operation,
+			     struct vdo_completion *parent)
 {
 	schedule_vdo_operation(zones->manager, operation, NULL,
 			       drain_logical_zone, NULL, parent);
@@ -275,40 +275,42 @@ void drain_logical_zones(struct logical_zones *zones,
 static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
 {
-	struct logical_zone *zone = get_logical_zone(context, zone_number);
+	struct logical_zone *zone = get_vdo_logical_zone(context, zone_number);
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
-void resume_logical_zones(struct logical_zones *zones,
-			  struct vdo_completion *parent)
+void resume_vdo_logical_zones(struct logical_zones *zones,
+			      struct vdo_completion *parent)
 {
 	schedule_vdo_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
 			       resume_logical_zone, NULL, parent);
 }
 
 /**********************************************************************/
-thread_id_t get_logical_zone_thread_id(const struct logical_zone *zone)
+thread_id_t get_vdo_logical_zone_thread_id(const struct logical_zone *zone)
 {
 	return zone->thread_id;
 }
 
 /**********************************************************************/
-struct block_map_zone *get_block_map_for_zone(const struct logical_zone *zone)
+struct block_map_zone *
+get_vdo_logical_zone_block_map(const struct logical_zone *zone)
 {
 	return zone->block_map_zone;
 }
 
 /**********************************************************************/
-struct int_map *get_lbn_lock_map(const struct logical_zone *zone)
+struct int_map *
+get_vdo_logical_zone_lbn_lock_map(const struct logical_zone *zone)
 {
 	return zone->lbn_operations;
 }
 
 /**********************************************************************/
-struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
+struct logical_zone *get_next_vdo_logical_zone(const struct logical_zone *zone)
 {
-	return get_logical_zone(zone->zones, zone->zone_number + 1);
+	return get_vdo_logical_zone(zone->zones, zone->zone_number + 1);
 }
 
 /**
@@ -339,8 +341,9 @@ static bool update_oldest_active_generation(struct logical_zone *zone)
 }
 
 /**********************************************************************/
-void increment_flush_generation(struct logical_zone *zone,
-				sequence_number_t expected_generation)
+void
+increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
+					    sequence_number_t expected_generation)
 {
 	assert_on_zone_thread(zone, __func__);
 	ASSERT_LOG_ONLY((zone->flush_generation == expected_generation),
@@ -354,13 +357,14 @@ void increment_flush_generation(struct logical_zone *zone,
 }
 
 /**********************************************************************/
-sequence_number_t get_oldest_locked_generation(const struct logical_zone *zone)
+sequence_number_t
+get_vdo_logical_zone_oldest_locked_generation(const struct logical_zone *zone)
 {
 	return READ_ONCE(zone->oldest_active_generation);
 }
 
 /**********************************************************************/
-int acquire_flush_generation_lock(struct data_vio *data_vio)
+int acquire_vdo_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 	assert_on_zone_thread(zone, __func__);
@@ -417,7 +421,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void release_flush_generation_lock(struct data_vio *data_vio)
+void release_vdo_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 	assert_on_zone_thread(zone, __func__);
@@ -445,13 +449,14 @@ void release_flush_generation_lock(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-struct allocation_selector *get_allocation_selector(struct logical_zone *zone)
+struct allocation_selector *
+get_vdo_logical_zone_allocation_selector(struct logical_zone *zone)
 {
 	return zone->selector;
 }
 
 /**********************************************************************/
-void dump_logical_zone(const struct logical_zone *zone)
+void dump_vdo_logical_zone(const struct logical_zone *zone)
 {
 	log_info("logical_zone %u", zone->zone_number);
 	log_info("  flush_generation=%llu oldest_active_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",

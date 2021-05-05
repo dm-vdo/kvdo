@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#40 $
  */
 
 #include "flush.h"
@@ -191,10 +191,10 @@ static void flush_packer_callback(struct vdo_completion *completion)
 static void increment_generation(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
-	increment_flush_generation(flusher->logical_zone_to_notify,
-				   flusher->notify_generation);
+	increment_vdo_logical_zone_flush_generation(flusher->logical_zone_to_notify,
+				   		    flusher->notify_generation);
 	flusher->logical_zone_to_notify =
-		get_next_logical_zone(flusher->logical_zone_to_notify);
+		get_next_vdo_logical_zone(flusher->logical_zone_to_notify);
 	if (flusher->logical_zone_to_notify == NULL) {
 		launch_vdo_completion_callback(completion,
 					       flush_packer_callback,
@@ -202,8 +202,11 @@ static void increment_generation(struct vdo_completion *completion)
 		return;
 	}
 
-	launch_vdo_completion_callback(completion, increment_generation,
-				       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
+	thread_id_t thread_id =
+		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
+	launch_vdo_completion_callback(completion,
+				       increment_generation,
+				       thread_id);
 }
 
 /**
@@ -217,11 +220,14 @@ static void notify_flush(struct flusher *flusher)
 		waiter_as_flush(get_first_waiter(&flusher->notifiers));
 	flusher->notify_generation = flush->flush_generation;
 	flusher->logical_zone_to_notify =
-		get_logical_zone(flusher->vdo->logical_zones, 0);
+		get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
 	flusher->completion.requeue = true;
+
+	thread_id_t thread_id =
+		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
 	launch_vdo_completion_callback(&flusher->completion,
 				       increment_generation,
-				       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
+				       thread_id);
 }
 
 /**********************************************************************/
@@ -261,10 +267,10 @@ void complete_vdo_flushes(struct flusher *flusher)
 	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
 			"complete_vdo_flushes() called from flusher thread");
 
-	for (zone = get_logical_zone(flusher->vdo->logical_zones, 0);
-	     zone != NULL; zone = get_next_logical_zone(zone)) {
+	for (zone = get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
+	     zone != NULL; zone = get_next_vdo_logical_zone(zone)) {
 		sequence_number_t oldest_in_zone =
-			get_oldest_locked_generation(zone);
+			get_vdo_logical_zone_oldest_locked_generation(zone);
 		oldest_active_generation =
 			min(oldest_active_generation, oldest_in_zone);
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#48 $
  */
 
 #include "dataVIO.h"
@@ -85,8 +85,8 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 	lock->locked = false;
 	initialize_wait_queue(&lock->waiters);
 
-	lock->zone = get_logical_zone(vdo->logical_zones,
-				      compute_logical_zone(data_vio));
+	lock->zone = get_vdo_logical_zone(vdo->logical_zones,
+					  compute_logical_zone(data_vio));
 }
 
 /**********************************************************************/
@@ -250,8 +250,9 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
-			     data_vio, false, (void **) &lock_holder);
+	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
+			     lock->lbn, data_vio, false,
+			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
@@ -313,7 +314,8 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 static void release_lock(struct data_vio *data_vio)
 {
 	struct lbn_lock *lock = &data_vio->logical;
-	struct int_map *lock_map = get_lbn_lock_map(lock->zone);
+	struct int_map *lock_map =
+		get_vdo_logical_zone_lbn_lock_map(lock->zone);
 	struct data_vio *lock_holder;
 
 	if (!lock->locked) {
@@ -359,8 +361,9 @@ void release_logical_block_lock(struct data_vio *data_vio)
 	transfer_all_waiters(&lock->waiters,
 			     &next_lock_holder->logical.waiters);
 
-	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
-			     next_lock_holder, true, (void **) &lock_holder);
+	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
+			     lock->lbn, next_lock_holder, true,
+			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(next_lock_holder, result);
 		return;
