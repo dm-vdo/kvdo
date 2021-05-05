@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#21 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -125,8 +125,8 @@ enum {
  * @return A packed recovery journal sector
  **/
 static inline struct packed_journal_sector * __must_check
-get_journal_block_sector(struct packed_journal_header *header,
-			 int sector_number)
+get_vdo_journal_block_sector(struct packed_journal_header *header,
+			     int sector_number)
 {
 	char *sector_data =
 		((char *) header) + (VDO_SECTOR_SIZE * sector_number);
@@ -140,8 +140,8 @@ get_journal_block_sector(struct packed_journal_header *header,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-pack_recovery_block_header(const struct recovery_block_header *header,
-			   struct packed_journal_header *packed)
+pack_vdo_recovery_block_header(const struct recovery_block_header *header,
+			       struct packed_journal_header *packed)
 {
 	*packed = (struct packed_journal_header) {
 		.block_map_head = __cpu_to_le64(header->block_map_head),
@@ -166,8 +166,8 @@ pack_recovery_block_header(const struct recovery_block_header *header,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_recovery_block_header(const struct packed_journal_header *packed,
-			     struct recovery_block_header *header)
+unpack_vdo_recovery_block_header(const struct packed_journal_header *packed,
+				 struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {
 		.block_map_head = __le64_to_cpu(packed->block_map_head),

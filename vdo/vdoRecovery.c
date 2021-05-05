@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#86 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -662,7 +662,7 @@ static int compute_usages(struct recovery_completion *recovery)
 					 recovery->tail);
 
 	struct recovery_block_header unpacked;
-	unpack_recovery_block_header(tail_header, &unpacked);
+	unpack_vdo_recovery_block_header(tail_header, &unpacked);
 	recovery->logical_blocks_used = unpacked.logical_blocks_used;
 	recovery->block_map_data_blocks = unpacked.block_map_data_blocks;
 
@@ -1178,7 +1178,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 
 		packed_header = get_journal_block_header(journal,
 							 recovery->journal_data, i);
-		unpack_recovery_block_header(packed_header, &header);
+		unpack_vdo_recovery_block_header(packed_header, &header);
 
 		if (!is_exact_recovery_journal_block(journal, &header, i) ||
 		    (header.entry_count > journal->entries_per_block)) {
@@ -1192,7 +1192,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		// sector.
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
-				get_journal_block_sector(packed_header, j);
+				get_vdo_journal_block_sector(packed_header, j);
 			journal_entry_count_t sector_entries =
 				min((journal_entry_count_t) sector->entry_count,
 				    block_entries);

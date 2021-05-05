@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#7 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
@@ -26,11 +26,14 @@
 #include "typeDefs.h"
 
 enum lp_type {
+	LP_NULL = 0x000,
 	LP_STRING = 0x001,
 	LP_UINT64 = 0x002,
 	LP_TYPE_MASK = 0x0FF,
 	LP_DEFAULT = 0x100,
 };
+
+#define LP_NULL_PARAMETER { NULL, LP_NULL, { .num = NULL }, 0 }
 
 struct layout_parameter {
 	const char *name;
@@ -62,12 +65,12 @@ struct layout_parameter {
  * @param params        The table of parameters the caller expects to
  *                        find in the ``info'' string. Currently this
  *                        parser can handle string and uint64_t values.
- * @param count         The size of the parameter table.
+ *                        Must be terminated by a LP_NULL_PARAMETER.
  *
  * @return UDS_SUCCESS or an error code, particularly
  *      UDS_INDEX_NAME_REQUIRED for all parsing errors.
  **/
 int __must_check
-parse_layout_string(char *info, struct layout_parameter *params, size_t count);
+parse_layout_string(char *info, struct layout_parameter *params);
 
 #endif // INDEX_LAYOUT_PARSER_H

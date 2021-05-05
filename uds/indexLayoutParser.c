@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#8 $
  */
 
 #include "indexLayoutParser.h"
@@ -50,13 +50,11 @@ static int __must_check set_parameter_value(struct layout_parameter *lp,
 }
 
 /**********************************************************************/
-int parse_layout_string(char *info,
-			struct layout_parameter *params,
-			size_t count)
+int parse_layout_string(char *info, struct layout_parameter *params)
 {
 	if (!strchr(info, '=')) {
 		struct layout_parameter *lp;
-		for (lp = params; lp < params + count; ++lp) {
+		for (lp = params; lp->type != LP_NULL; ++lp) {
 			if (lp->type & LP_DEFAULT) {
 				int result = set_parameter_value(lp, info);
 				if (result != UDS_SUCCESS) {
@@ -72,7 +70,7 @@ int parse_layout_string(char *info,
 		     token = next_token(NULL, " ", &data)) {
 			char *equal = strchr(token, '=');
 			struct layout_parameter *lp;
-			for (lp = params; lp < params + count; ++lp) {
+			for (lp = params; lp->type != LP_NULL; ++lp) {
 				if (!equal && (lp->type & LP_DEFAULT)) {
 					break;
 				} else if (strncmp(token,
@@ -83,7 +81,7 @@ int parse_layout_string(char *info,
 					break;
 				}
 			}
-			if (lp == NULL) {
+			if (lp->type == LP_NULL) {
 				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
 							  "unkown index parameter %s",
 							  token);

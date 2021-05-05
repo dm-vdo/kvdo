@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#50 $
  */
 
 #include "readOnlyRebuild.h"
@@ -329,7 +329,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		journal_entry_count_t block_entries;
 		uint8_t j;
 
-		unpack_recovery_block_header(packed_header, &header);
+		unpack_vdo_recovery_block_header(packed_header, &header);
 
 		if (!is_exact_recovery_journal_block(journal, &header, i)) {
 			// This block is invalid, so skip it.
@@ -344,7 +344,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			journal_entry_count_t sector_entries;
 
 			struct packed_journal_sector *sector =
-				get_journal_block_sector(packed_header, j);
+				get_vdo_journal_block_sector(packed_header, j);
 			// Stop when all entries counted in the header are
 			// applied or skipped.
 			if (block_entries == 0) {
