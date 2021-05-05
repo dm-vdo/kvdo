@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	8.1.0.1
+%define kmod_driver_version	8.1.0.4
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,6 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue May 04 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.0.1-1
-- Rebased to upstream candidate.
-
+* Wed May 05 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 8.1.0.4-1
+- Added missing lz4 symbols required to build on RHEL9.
