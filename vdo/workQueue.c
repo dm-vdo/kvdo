@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#60 $
  */
 
 #include "workQueue.h"
@@ -847,13 +847,13 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
-		 &queue->common,
-		 queue->common.name,
-		 count_work_items_pending(&queue->stats.work_item_stats),
-		 READ_ONCE(queue->stats.waits),
-		 thread_status,
-		 task_state_report);
+	uds_log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
+		     &queue->common,
+		     queue->common.name,
+		     count_work_items_pending(&queue->stats.work_item_stats),
+		     READ_ONCE(queue->stats.waits),
+		     thread_status,
+		     task_state_report);
 
 	log_work_item_stats(&queue->stats.work_item_stats);
 	log_work_queue_stats(queue);

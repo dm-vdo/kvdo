@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#26 $
  */
 
 #include "workQueueStats.h"
@@ -125,14 +125,14 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 		ns_per_work_item = runtime_ns / total_processed;
 	}
 
-	log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
-		 queue,
-		 queue->common.name,
-		 runtime_ms / 1000000,
-		 runtime_ms % 1000000,
-		 total_processed,
-		 ns_per_work_item / 1000,
-		 ns_per_work_item % 1000);
+	uds_log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
+		     queue,
+		     queue->common.name,
+		     runtime_ms / 1000000,
+		     runtime_ms % 1000000,
+		     total_processed,
+		     ns_per_work_item / 1000,
+		     ns_per_work_item % 1000);
 }
 
 /**********************************************************************/

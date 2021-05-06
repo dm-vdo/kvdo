@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#182 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#183 $
  */
 
 #include "kernelLayer.h"
@@ -111,15 +111,15 @@ int map_to_system_error(int error)
 	case VDO_READ_ONLY:
 		return -EIO;
 	default:
-		log_info("%s: mapping internal status code %d (%s: %s) to EIO",
-			 __func__,
-			 error,
-			 string_error_name(error,
-					   error_name,
-					   sizeof(error_name)),
-			 uds_string_error(error,
-					  error_message,
-					  sizeof(error_message)));
+		uds_log_info("%s: mapping internal status code %d (%s: %s) to EIO",
+			     __func__,
+			     error,
+			     string_error_name(error,
+					       error_name,
+					       sizeof(error_name)),
+			     uds_string_error(error,
+					      error_message,
+					      sizeof(error_message)));
 		return -EIO;
 	}
 }
@@ -583,10 +583,10 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		   extant_config->parent_device_name) != 0) {
 		const char *device_name
 			= get_vdo_device_name(config->owning_target);
-	        log_info("Updating backing device of %s from %s to %s",
-			 device_name,
-	                 extant_config->parent_device_name,
-	                 config->parent_device_name);
+	        uds_log_info("Updating backing device of %s from %s to %s",
+			     device_name,
+	                     extant_config->parent_device_name,
+	                     config->parent_device_name);
 	}
 
 	return VDO_SUCCESS;
@@ -934,7 +934,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 {
 	int result;
 
-	log_info("Preparing to resize physical to %llu", physical_count);
+	uds_log_info("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	result = prepare_to_grow_physical(&layer->vdo, physical_count);
@@ -952,7 +952,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 		}
 	}
 
-	log_info("Done preparing to resize physical");
+	uds_log_info("Done preparing to resize physical");
 	return VDO_SUCCESS;
 }
 
@@ -979,7 +979,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 {
 	int result;
 
-	log_info("Preparing to resize logical to %llu", logical_count);
+	uds_log_info("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	result = prepare_to_grow_logical(&layer->vdo, logical_count);
@@ -989,7 +989,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 		return result;
 	}
 
-	log_info("Done preparing to resize logical");
+	uds_log_info("Done preparing to resize logical");
 	return VDO_SUCCESS;
 }
 
@@ -998,7 +998,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 {
 	int result;
 
-	log_info("Resizing logical to %llu", logical_count);
+	uds_log_info("Resizing logical to %llu", logical_count);
 	/*
 	 * We must not mark the layer as allowing allocations when it is
 	 * suspended lest an allocation attempt block on writing IO to the
@@ -1011,7 +1011,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 		return result;
 	}
 
-	log_info("Logical blocks now %llu", logical_count);
+	uds_log_info("Logical blocks now %llu", logical_count);
 	return VDO_SUCCESS;
 }
 

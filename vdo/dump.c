@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#35 $
  */
 
 #include "dump.h"
@@ -90,7 +90,7 @@ static void do_dump(struct kernel_layer *layer,
 	uint32_t active, maximum;
 	int64_t outstanding;
 
-	log_info("%s dump triggered via %s", THIS_MODULE->name, why);
+	uds_log_info("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
 
 	get_limiter_values_atomically(&layer->vdo.request_limiter,
@@ -98,11 +98,11 @@ static void do_dump(struct kernel_layer *layer,
 				      &maximum);
 	outstanding = atomic64_read(&layer->bios_submitted) -
 		      atomic64_read(&layer->bios_completed);
-	log_info("%u device requests outstanding (max %u), %lld bio requests outstanding, device '%s'",
-		 active,
-		 maximum,
-		 outstanding,
-		 get_vdo_device_name(layer->vdo.device_config->owning_target));
+	uds_log_info("%u device requests outstanding (max %u), %lld bio requests outstanding, device '%s'",
+		     active,
+		     maximum,
+		     outstanding,
+		     get_vdo_device_name(layer->vdo.device_config->owning_target));
 	if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
 		dump_vdo_work_queue(&layer->vdo);
 	}
@@ -127,7 +127,7 @@ static void do_dump(struct kernel_layer *layer,
 		dump_vdo_status(&layer->vdo);
 	}
 	report_memory_usage();
-	log_info("end of %s dump", THIS_MODULE->name);
+	uds_log_info("end of %s dump", THIS_MODULE->name);
 }
 
 /**********************************************************************/

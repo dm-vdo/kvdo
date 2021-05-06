@@ -255,7 +255,7 @@ static int vdo_grow_physical(struct vdo *vdo)
 		 * is unexpected; it means the user started the VDO with new
 		 * manager and is growing with old.
 		 */
-		// log_info("Mismatch between growPhysical method and table version.");
+		// uds_log_info("Mismatch between growPhysical method and table version.");
 		// return -EINVAL;
 	} else {
 		vdo->device_config->physical_blocks =
@@ -508,7 +508,7 @@ static int vdo_initialize(struct dm_target *ti,
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
-	log_info("loading device '%s'", get_vdo_device_name(ti));
+	uds_log_info("loading device '%s'", get_vdo_device_name(ti));
 	uds_log_debug("Logical block size     = %llu",
 		      (uint64_t) config->logical_block_size);
 	uds_log_debug("Logical blocks         = %llu", logical_blocks);
@@ -613,7 +613,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * suspended, and if not, we are not, but we can't do that
 		 * until new VDO Manager does the right order.
 		 */
-		log_info("preparing to modify device '%s'", device_name);
+		uds_log_info("preparing to modify device '%s'", device_name);
 		result = prepare_to_modify_kernel_layer(layer,
 							config,
 							&ti->error);
@@ -663,14 +663,14 @@ static void vdo_dtr(struct dm_target *ti)
 		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
 
-		log_info("stopping device '%s'", device_name);
+		uds_log_info("stopping device '%s'", device_name);
 
 		if (layer->dump_on_shutdown) {
 			vdo_dump_all(layer, "device shutdown");
 		}
 
 		free_kernel_layer(layer);
-		log_info("device '%s' stopped", device_name);
+		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
@@ -708,11 +708,11 @@ static void vdo_postsuspend(struct dm_target *ti)
 	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	device_name = get_vdo_device_name(ti);
 
-	log_info("suspending device '%s'", device_name);
+	uds_log_info("suspending device '%s'", device_name);
 	result = suspend_kernel_layer(layer);
 
 	if (result == VDO_SUCCESS) {
-		log_info("device '%s' suspended", device_name);
+		uds_log_info("device '%s' suspended", device_name);
 	} else {
 		uds_log_error("suspend of device '%s' failed with error: %d",
 			      device_name,
@@ -751,7 +751,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 		// This is the first time this device has been resumed, so run
 		// it.
-		log_info("starting device '%s'", device_name);
+		uds_log_info("starting device '%s'", device_name);
 		result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
@@ -763,10 +763,10 @@ static int vdo_preresume(struct dm_target *ti)
 			return map_to_system_error(result);
 		}
 
-		log_info("device '%s' started", device_name);
+		uds_log_info("device '%s' started", device_name);
 	}
 
-	log_info("resuming device '%s'", device_name);
+	uds_log_info("resuming device '%s'", device_name);
 
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
@@ -797,7 +797,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct registered_thread instance_thread;
 
 	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
-	log_info("device '%s' resumed", get_vdo_device_name(ti));
+	uds_log_info("device '%s' resumed", get_vdo_device_name(ti));
 	uds_unregister_thread_device_id();
 }
 
@@ -842,7 +842,7 @@ static void vdo_destroy(void)
 
 	clean_up_vdo_instance_number_tracking();
 
-	log_info("unloaded version %s", CURRENT_VERSION);
+	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
 
 /**********************************************************************/
@@ -851,7 +851,7 @@ static int __init vdo_init(void)
 	int result = 0;
 
 	initialize_device_registry_once();
-	log_info("loaded version %s", CURRENT_VERSION);
+	uds_log_info("loaded version %s", CURRENT_VERSION);
 
 	// Add VDO errors to the already existing set of errors in UDS.
 	result = register_status_codes();

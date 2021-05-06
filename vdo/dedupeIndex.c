@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#90 $
  */
 
 #include "dedupeIndex.h"
@@ -606,7 +606,7 @@ static void open_index(struct dedupe_index *index)
 		index->index_target = IS_CLOSED;
 		index->error_flag = true;
 		spin_unlock(&index->state_lock);
-		log_info("Setting UDS index target state to error");
+		uds_log_info("Setting UDS index target state to error");
 		spin_lock(&index->state_lock);
 	}
 	// ASSERTION: On success, we leave in IS_OPENED state.
@@ -690,7 +690,8 @@ static void set_target_state(struct dedupe_index *index,
 	spin_unlock(&index->state_lock);
 
 	if (old_state != new_state) {
-		log_info("Setting UDS index target state to %s", new_state);
+		uds_log_info("Setting UDS index target state to %s",
+			     new_state);
 	}
 }
 
@@ -741,9 +742,9 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 			 NULL);
 	spin_unlock(&index->state_lock);
 
-	log_info("UDS index: state: %s", state);
+	uds_log_info("UDS index: state: %s", state);
 	if (target != NULL) {
-		log_info("UDS index: changing to state: %s", target);
+		uds_log_info("UDS index: changing to state: %s", target);
 	}
 	if (show_queue) {
 		dump_work_queue(index->uds_queue);

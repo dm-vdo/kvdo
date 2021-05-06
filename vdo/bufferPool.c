@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#15 $
  */
 
 #include "bufferPool.h"
@@ -179,8 +179,8 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 		return;
 	}
 	spin_lock(&pool->lock);
-	log_info("%s: %u of %u busy (max %u)", pool->name, pool->num_busy,
-		 pool->size, pool->max_busy);
+	uds_log_info("%s: %u of %u busy (max %u)",
+		     pool->name, pool->num_busy, pool->size, pool->max_busy);
 	if (dump_elements && (pool->dump != NULL)) {
 		int dumped = 0;
 		int i;

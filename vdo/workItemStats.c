@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#25 $
  */
 
 #include "workItemStats.h"
@@ -413,22 +413,22 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 						  &min,
 						  &mean,
 						  &max);
-			log_info("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
-				 function_ids->priorities[i],
-				 pending,
-				 enqueued,
-				 processed,
-				 function_name,
-				 min,
-				 mean,
-				 max);
+			uds_log_info("  priority %d: %u pending %llu enqueued %llu processed %s times %llu/%llu/%lluns",
+				     function_ids->priorities[i],
+				     pending,
+				     enqueued,
+				     processed,
+				     function_name,
+				     min,
+				     mean,
+				     max);
 		} else {
-			log_info("  priority %d: %u pending %llu enqueued %llu processed %s",
-				 function_ids->priorities[i],
-				 pending,
-				 enqueued,
-				 processed,
-				 function_name);
+			uds_log_info("  priority %d: %u pending %llu enqueued %llu processed %s",
+				     function_ids->priorities[i],
+				     pending,
+				     enqueued,
+				     processed,
+				     function_name);
 		}
 	}
 	if (i == NUM_WORK_QUEUE_ITEM_STATS) {
@@ -438,12 +438,12 @@ void log_work_item_stats(const struct vdo_work_item_stats *stats)
 		if (enqueued > 0) {
 			total_enqueued += enqueued;
 			total_processed += processed;
-			log_info("  ... others: %llu enqueued %llu processed",
-				 enqueued,
-				 processed);
+			uds_log_info("  ... others: %llu enqueued %llu processed",
+				     enqueued,
+				     processed);
 		}
 	}
-	log_info("  total: %llu enqueued %llu processed",
-		 total_enqueued,
-		 total_processed);
+	uds_log_info("  total: %llu enqueued %llu processed",
+		     total_enqueued,
+		     total_processed);
 }

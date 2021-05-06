@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#39 $
  */
 
 #include "deviceConfig.h"
@@ -217,7 +217,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 
 	// Don't fail, just log. This will handle version mismatches between
 	// user mode tools and kernel.
-	log_info("unknown thread parameter type \"%s\"", thread_param_type);
+	uds_log_info("unknown thread parameter type \"%s\"",
+		     thread_param_type);
 	return VDO_SUCCESS;
 }
 

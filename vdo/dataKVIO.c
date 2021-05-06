@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#138 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#139 $
  */
 
 #include "dataKVIO.h"
@@ -839,7 +839,7 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 	result = vdo_create_vio_from_bio(layer, bio, arrival_jiffies,
 					 &data_vio);
 	if (unlikely(result != VDO_SUCCESS)) {
-		log_info("%s: vio allocation failure", __func__);
+		uds_log_info("%s: vio allocation failure", __func__);
 		if (has_discard_permit) {
 			limiter_release(&vdo->discard_limiter);
 		}
@@ -1063,19 +1063,19 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	data_vio = waiter_as_data_vio(first);
 
-	log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-		 wait_on, data_vio, get_data_vio_allocation(data_vio),
-		 data_vio->logical.lbn, data_vio->duplicate.pbn,
-		 get_operation_name(data_vio));
+	uds_log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+		     wait_on, data_vio, get_data_vio_allocation(data_vio),
+		     data_vio->logical.lbn, data_vio->duplicate.pbn,
+		     get_operation_name(data_vio));
 
 
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
-		log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-			 data_vio, get_data_vio_allocation(data_vio),
-			 data_vio->logical.lbn, data_vio->duplicate.pbn,
-			 get_operation_name(data_vio));
+		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
+			     data_vio, get_data_vio_allocation(data_vio),
+			     data_vio->logical.lbn, data_vio->duplicate.pbn,
+			     get_operation_name(data_vio));
 	}
 }
 
@@ -1182,10 +1182,10 @@ static void dump_pooled_data_vio(void *data)
 	// empty.
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
-	log_info("  vio %px %s%s %s %s%s", data_vio,
-		 vio_block_number_dump_buffer, vio_flush_generation_buffer,
-		 get_operation_name(data_vio), vio_work_item_dump_buffer,
-		 flags_dump_buffer);
+	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
+		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
+		     get_operation_name(data_vio), vio_work_item_dump_buffer,
+		     flags_dump_buffer);
 	// might want info on: wantUDSAnswer / operation / status
 	// might want info on: bio / bios_merged
 
