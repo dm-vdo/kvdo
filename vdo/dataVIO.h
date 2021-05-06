@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#77 $
  */
 
 #ifndef DATA_VIO_H
@@ -47,37 +47,35 @@
  **/
 enum async_operation_number {
 	MIN_ASYNC_OPERATION_NUMBER = 0,
-	LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
-	ACKNOWLEDGE_WRITE,
-	ACQUIRE_HASH_LOCK,
-	ACQUIRE_LOGICAL_BLOCK_LOCK,
-	ACQUIRE_PBN_READ_LOCK,
-	CHECK_FOR_DEDUPE_FOR_ROLLOVER,
-	CHECK_FOR_DEDUPLICATION,
-	COMPRESS_DATA,
-	CONTINUE_VIO_ASYNC,
-	FIND_BLOCK_MAP_SLOT,
-	GET_MAPPED_BLOCK,
-	GET_MAPPED_BLOCK_FOR_DEDUPE,
-	GET_MAPPED_BLOCK_FOR_WRITE,
-	HASH_DATA,
-	JOURNAL_DECREMENT_FOR_DEDUPE,
-	JOURNAL_DECREMENT_FOR_WRITE,
-	JOURNAL_INCREMENT_FOR_COMPRESSION,
-	JOURNAL_INCREMENT_FOR_DEDUPE,
-	JOURNAL_INCREMENT_FOR_WRITE,
-	JOURNAL_MAPPING_FOR_COMPRESSION,
-	JOURNAL_MAPPING_FOR_DEDUPE,
-	JOURNAL_MAPPING_FOR_WRITE,
-	JOURNAL_UNMAPPING_FOR_DEDUPE,
-	JOURNAL_UNMAPPING_FOR_WRITE,
-	PACK_COMPRESSED_BLOCK,
-	PUT_MAPPED_BLOCK,
-	PUT_MAPPED_BLOCK_FOR_DEDUPE,
-	READ_DATA,
-	UPDATE_INDEX,
-	VERIFY_DEDUPLICATION,
-	WRITE_DATA,
+	ASYNC_OP_LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
+	ASYNC_OP_ACKNOWLEDGE_WRITE,
+	ASYNC_OP_ACQUIRE_VDO_HASH_LOCK,
+	ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK,
+	ASYNC_OP_LOCK_DUPLICATE_PBN,
+	ASYNC_OP_CHECK_FOR_DUPLICATION,
+	ASYNC_OP_COMPRESS_DATA_VIO,
+	ASYNC_OP_FIND_BLOCK_MAP_SLOT,
+	ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ,
+	ASYNC_OP_GET_MAPPED_BLOCK_FOR_DEDUPE,
+	ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE,
+	ASYNC_OP_HASH_DATA_VIO,
+	ASYNC_OP_JOURNAL_DECREMENT_FOR_DEDUPE,
+	ASYNC_OP_JOURNAL_DECREMENT_FOR_WRITE,
+	ASYNC_OP_JOURNAL_INCREMENT_FOR_COMPRESSION,
+	ASYNC_OP_JOURNAL_INCREMENT_FOR_DEDUPE,
+	ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE,
+	ASYNC_OP_JOURNAL_MAPPING_FOR_COMPRESSION,
+	ASYNC_OP_JOURNAL_MAPPING_FOR_DEDUPE,
+	ASYNC_OP_JOURNAL_MAPPING_FOR_WRITE,
+	ASYNC_OP_JOURNAL_UNMAPPING_FOR_DEDUPE,
+	ASYNC_OP_JOURNAL_UNMAPPING_FOR_WRITE,
+	ASYNC_OP_ATTEMPT_PACKING,
+	ASYNC_OP_PUT_MAPPED_BLOCK_FOR_WRITE,
+	ASYNC_OP_PUT_MAPPED_BLOCK_FOR_DEDUPE,
+	ASYNC_OP_READ_DATA_VIO,
+	ASYNC_OP_UPDATE_DEDUPE_INDEX,
+	ASYNC_OP_VERIFY_DUPLICATION,
+	ASYNC_OP_WRITE_DATA_VIO,
 	MAX_ASYNC_OPERATION_NUMBER,
 } __packed;
 
@@ -606,8 +604,9 @@ static inline void continue_data_vio(struct data_vio *data_vio, int result)
 const char * __must_check get_operation_name(struct data_vio *data_vio);
 
 /**
- * Add a data_vio to the tail end of a wait queue. The data_vio must not already
- * be waiting in a queue. A trace record is also generated for the data_vio.
+ * Add a data_vio to the tail end of a wait queue. The data_vio must not
+ * already be waiting in a queue. A trace record is also generated for the
+ * data_vio.
  *
  * @param queue     The queue to which to add the waiter
  * @param waiter    The data_vio to add to the queue
@@ -855,7 +854,8 @@ static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 }
 
 /**
- * Set a callback as a physical block operation in a data_vio's new_mapped zone.
+ * Set a callback as a physical block operation in a data_vio's new_mapped
+ * zone.
  *
  * @param data_vio  The data_vio
  * @param callback  The callback to set
@@ -1031,9 +1031,9 @@ void hash_data_vio(struct data_vio *data_vio);
  * A function to determine whether a block is a duplicate. This function
  * expects the 'physical' field of the data_vio to be set to the physical block
  * where the block will be written if it is not a duplicate. If the block does
- * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set to
- * true, and the data_vio's 'advice' field will be set to the physical block and
- * mapping state of the already stored copy of the block.
+ * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set
+ * to true, and the data_vio's 'advice' field will be set to the physical
+ * block and mapping state of the already stored copy of the block.
  *
  * @param data_vio  The data_vio containing the block to check.
  **/

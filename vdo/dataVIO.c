@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#50 $
  */
 
 #include "dataVIO.h"
@@ -37,34 +37,32 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",
 	"acknowledge_write",
 	"acquire_vdo_hash_lock",
-	"acquire_logical_block_lock",
-	"acquirePBNReadLock",
-	"checkForDedupeForRollover",
-	"checkForDeduplication",
-	"compress_data",
-	"continueVIOAsync",
-	"findBlockMapSlot",
-	"getMappedBlock",
-	"getMappedBlockForDedupe",
-	"getMappedBlockForWrite",
-	"hashData",
-	"journalDecrementForDedupe",
-	"journalDecrementForWrite",
-	"journalIncrementForCompression",
-	"journalIncrementForDedupe",
-	"journalIncrementForWrite",
-	"journalMappingForCompression",
-	"journalMappingForDedupe",
-	"journalMappingForWrite",
-	"journalUnmappingForDedupe",
-	"journalUnmappingForWrite",
+	"attempt_logical_block_lock",
+	"lock_duplicate_pbn",
+	"check_for_duplication",
+	"compress_data_vio",
+	"find_block_map_slot",
+	"get_mapped_block/for_read",
+	"get_mapped_block/for_dedupe",
+	"get_mapped_block/for_write",
+	"hash_data_vio",
+	"journal_decrement_for_dedupe",
+	"journal_decrement_for_write",
+	"journal_increment_for_compression",
+	"journal_increment_for_dedupe",
+	"journal_increment_for_write",
+	"journal_mapping_for_compression",
+	"journal_mapping_for_dedupe",
+	"journal_mapping_for_write",
+	"journal_unmapping_for_dedupe",
+	"journal_unmapping_for_write",
 	"vdo_attempt_packing",
-	"putMappedBlock",
-	"putMappedBlockForDedupe",
-	"readData",
-	"updateIndex",
-	"verifyDeduplication",
-	"writeData",
+	"put_mapped_block/for_write",
+	"put_mapped_block/for_dedupe",
+	"read_data_vio",
+	"update_dedupe_index",
+	"verify_duplication",
+	"write_data_vio",
 };
 
 /**
@@ -287,7 +285,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	data_vio->last_async_operation = ACQUIRE_LOGICAL_BLOCK_LOCK;
+	data_vio->last_async_operation = ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
 				data_vio);
 	if (result != VDO_SUCCESS) {

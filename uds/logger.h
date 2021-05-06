@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#15 $
  */
 
 #ifndef LOGGER_H
@@ -140,7 +140,7 @@ void uds_log_message_pack(int priority,
  *
  * @param  priority The priority at which to log the backtrace
  **/
-void log_backtrace(int priority);
+void uds_log_backtrace(int priority);
 
 /**
  * Log a message with an error from an error code.
