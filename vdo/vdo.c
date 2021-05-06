@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#113 $
  */
 
 /*
@@ -61,7 +61,7 @@ void destroy_vdo(struct vdo *vdo)
 	const struct thread_config *thread_config = get_thread_config(vdo);
 
 	free_vdo_flusher(&vdo->flusher);
-	free_packer(&vdo->packer);
+	free_vdo_packer(&vdo->packer);
 	free_recovery_journal(&vdo->recovery_journal);
 	free_slab_depot(&vdo->depot);
 	free_vdo_layout(&vdo->layout);
@@ -293,7 +293,7 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 	if (was_enabled && !enable_compression) {
 		// Flushing the packer is asynchronous, but we don't care when
 		// it finishes.
-		flush_packer(vdo->packer);
+		flush_vdo_packer(vdo->packer);
 	}
 
 	log_info("compression is %s",
@@ -397,7 +397,7 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->logical_blocks_used = get_journal_logical_blocks_used(journal);
 	stats->allocator = get_depot_block_allocator_statistics(depot);
 	stats->journal = get_recovery_journal_statistics(journal);
-	stats->packer = get_packer_statistics(vdo->packer);
+	stats->packer = get_vdo_packer_statistics(vdo->packer);
 	stats->slab_journal = get_depot_slab_journal_statistics(depot);
 	stats->slab_summary =
 		get_slab_summary_statistics(get_slab_summary(depot));
@@ -504,7 +504,7 @@ void dump_vdo_status(const struct vdo *vdo)
 
 	dump_vdo_flusher(vdo->flusher);
 	dump_recovery_journal_statistics(vdo->recovery_journal);
-	dump_packer(vdo->packer);
+	dump_vdo_packer(vdo->packer);
 	dump_slab_depot(vdo->depot);
 
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {

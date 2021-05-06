@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#49 $
  */
 
 #include "dataVIO.h"
@@ -58,7 +58,7 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 	"journalMappingForWrite",
 	"journalUnmappingForDedupe",
 	"journalUnmappingForWrite",
-	"attempt_packing",
+	"vdo_attempt_packing",
 	"putMappedBlock",
 	"putMappedBlockForDedupe",
 	"readData",
@@ -302,7 +302,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		data_vio->compression.lock_holder = lock_holder;
 		launch_packer_callback(
 			data_vio,
-			remove_lock_holder_from_packer);
+			remove_lock_holder_from_vdo_packer);
 	}
 }
 

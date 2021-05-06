@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#64 $
  */
 
 /*
@@ -575,7 +575,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 	set_journal_callback(data_vio,
 			     add_recovery_journal_entry_for_compression);
 	data_vio->last_async_operation = PACK_COMPRESSED_BLOCK;
-	attempt_packing(data_vio);
+	vdo_attempt_packing(data_vio);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#75 $
  */
 
 #include "packerInternals.h"
@@ -52,7 +52,7 @@ static inline void assert_on_packer_thread(struct packer *packer,
  * This returns the next bin in the free_space-sorted list.
  **/
 static struct input_bin * __must_check
-next_bin(const struct packer *packer, struct input_bin *bin)
+next_vdo_packer_bin(const struct packer *packer, struct input_bin *bin)
 {
 	if (bin->list.next == &packer->input_bins) {
 		return NULL;
@@ -65,7 +65,7 @@ next_bin(const struct packer *packer, struct input_bin *bin)
  * This returns the first bin in the free_space-sorted list.
  **/
 static struct input_bin * __must_check
-get_fullest_bin(const struct packer *packer)
+get_vdo_packer_fullest_bin(const struct packer *packer)
 {
 	if (list_empty(&packer->input_bins)) {
 		return NULL;
@@ -86,8 +86,9 @@ get_fullest_bin(const struct packer *packer)
 static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 {
 	struct input_bin *active_bin;
-	for (active_bin = get_fullest_bin(packer); active_bin != NULL;
-	     active_bin = next_bin(packer, active_bin)) {
+	for (active_bin = get_vdo_packer_fullest_bin(packer);
+	     active_bin != NULL;
+	     active_bin = next_vdo_packer_bin(packer, active_bin)) {
 		if (active_bin->free_space > bin->free_space) {
 			list_move_tail(&bin->list, &active_bin->list);
 			return;
@@ -212,10 +213,10 @@ static void free_output_bin(struct output_bin **bin_ptr)
 }
 
 /**********************************************************************/
-int make_packer(struct vdo *vdo,
-		block_count_t input_bin_count,
-		block_count_t output_bin_count,
-		struct packer **packer_ptr)
+int make_vdo_packer(struct vdo *vdo,
+		    block_count_t input_bin_count,
+		    block_count_t output_bin_count,
+		    struct packer **packer_ptr)
 {
 	const struct thread_config *thread_config = get_thread_config(vdo);
 
@@ -240,14 +241,14 @@ int make_packer(struct vdo *vdo,
 	result = make_vdo_allocation_selector(thread_config->physical_zone_count,
 					      packer->thread_id, &packer->selector);
 	if (result != VDO_SUCCESS) {
-		free_packer(&packer);
+		free_vdo_packer(&packer);
 		return result;
 	}
 
 	for (i = 0; i < input_bin_count; i++) {
 		int result = make_input_bin(packer);
 		if (result != VDO_SUCCESS) {
-			free_packer(&packer);
+			free_vdo_packer(&packer);
 			return result;
 		}
 	}
@@ -261,14 +262,14 @@ int make_packer(struct vdo *vdo,
 				   struct vio *, __func__,
 				   &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
-		free_packer(&packer);
+		free_vdo_packer(&packer);
 		return result;
 	}
 
 	for (i = 0; i < output_bin_count; i++) {
 		int result = make_output_bin(packer, vdo);
 		if (result != VDO_SUCCESS) {
-			free_packer(&packer);
+			free_vdo_packer(&packer);
 			return result;
 		}
 	}
@@ -278,7 +279,7 @@ int make_packer(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_packer(struct packer **packer_ptr)
+void free_vdo_packer(struct packer **packer_ptr)
 {
 	struct packer *packer = *packer_ptr;
 	struct input_bin *input;
@@ -288,7 +289,7 @@ void free_packer(struct packer **packer_ptr)
 		return;
 	}
 
-	while ((input = get_fullest_bin(packer)) != NULL) {
+	while ((input = get_vdo_packer_fullest_bin(packer)) != NULL) {
 		list_del_init(&input->list);
 		FREE(input);
 	}
@@ -317,20 +318,20 @@ static inline struct packer *get_packer_from_data_vio(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-bool is_sufficiently_compressible(struct data_vio *data_vio)
+bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	return (data_vio->compression.size < packer->bin_data_size);
 }
 
 /**********************************************************************/
-thread_id_t get_packer_thread_id(struct packer *packer)
+thread_id_t get_vdo_packer_thread_id(struct packer *packer)
 {
 	return packer->thread_id;
 }
 
 /**********************************************************************/
-struct packer_statistics get_packer_statistics(const struct packer *packer)
+struct packer_statistics get_vdo_packer_statistics(const struct packer *packer)
 {
 	const struct packer_statistics *stats = &packer->statistics;
 	return (struct packer_statistics) {
@@ -812,9 +813,10 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 {
 	// First best fit: select the bin with the least free space that has
 	// enough room for the compressed data in the data_vio.
-	struct input_bin *fullest_bin = get_fullest_bin(packer);
+	struct input_bin *fullest_bin = get_vdo_packer_fullest_bin(packer);
 	struct input_bin *bin;
-	for (bin = fullest_bin; bin != NULL; bin = next_bin(packer, bin)) {
+	for (bin = fullest_bin; bin != NULL;
+	     bin = next_vdo_packer_bin(packer, bin)) {
 		if (bin->free_space >= data_vio->compression.size) {
 			return bin;
 		}
@@ -843,7 +845,7 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void attempt_packing(struct data_vio *data_vio)
+void vdo_attempt_packing(struct data_vio *data_vio)
 {
 	int result;
 	struct input_bin *bin;
@@ -905,8 +907,8 @@ void attempt_packing(struct data_vio *data_vio)
 static void write_all_non_empty_bins(struct packer *packer)
 {
 	struct input_bin *bin;
-	for (bin = get_fullest_bin(packer); bin != NULL;
-	     bin = next_bin(packer, bin)) {
+	for (bin = get_vdo_packer_fullest_bin(packer); bin != NULL;
+	     bin = next_vdo_packer_bin(packer, bin)) {
 		start_new_batch(packer, bin);
 		// We don't need to re-sort the bin here since this loop will
 		// make every bin have the same amount of free space, so every
@@ -917,7 +919,7 @@ static void write_all_non_empty_bins(struct packer *packer)
 }
 
 /**********************************************************************/
-void flush_packer(struct packer *packer)
+void flush_vdo_packer(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
 	if (is_vdo_state_normal(&packer->state)) {
@@ -930,7 +932,7 @@ void flush_packer(struct packer *packer)
  *
  * @param data_vio  The data_vio to remove
  **/
-static void remove_from_packer(struct data_vio *data_vio)
+static void remove_from_vdo_packer(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	struct input_bin *bin = data_vio->compression.bin;
@@ -956,7 +958,7 @@ static void remove_from_packer(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void remove_lock_holder_from_packer(struct vdo_completion *completion)
+void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct data_vio *lock_holder;
@@ -964,15 +966,15 @@ void remove_lock_holder_from_packer(struct vdo_completion *completion)
 
 	lock_holder = data_vio->compression.lock_holder;
 	data_vio->compression.lock_holder = NULL;
-	remove_from_packer(lock_holder);
+	remove_from_vdo_packer(lock_holder);
 }
 
 /**********************************************************************/
-void increment_packer_flush_generation(struct packer *packer)
+void increment_vdo_packer_flush_generation(struct packer *packer)
 {
 	assert_on_packer_thread(packer, __func__);
 	packer->flush_generation++;
-	flush_packer(packer);
+	flush_vdo_packer(packer);
 }
 
 /**
@@ -988,7 +990,7 @@ static void initiate_drain(struct admin_state *state)
 }
 
 /**********************************************************************/
-void drain_packer(struct packer *packer, struct vdo_completion *completion)
+void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
 	start_vdo_draining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
@@ -996,7 +998,7 @@ void drain_packer(struct packer *packer, struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void resume_packer(struct packer *packer, struct vdo_completion *parent)
+void resume_vdo_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&packer->state));
@@ -1039,7 +1041,7 @@ static void dump_output_bin(const struct output_bin *bin)
 }
 
 /**********************************************************************/
-void dump_packer(const struct packer *packer)
+void dump_vdo_packer(const struct packer *packer)
 {
 	struct input_bin *input;
 	struct output_bin *output;
@@ -1051,8 +1053,8 @@ void dump_packer(const struct packer *packer)
 		 bool_to_string(packer->writing_batches));
 
 	log_info("  input_bin_count=%llu", packer->size);
-	for (input = get_fullest_bin(packer); input != NULL;
-	     input = next_bin(packer, input)) {
+	for (input = get_vdo_packer_fullest_bin(packer); input != NULL;
+	     input = next_vdo_packer_bin(packer, input)) {
 		dump_input_bin(input, false);
 	}
 

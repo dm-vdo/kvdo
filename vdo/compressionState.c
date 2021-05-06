@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#21 $
  */
 
 #include "compressionState.h"
@@ -146,7 +146,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 /**********************************************************************/
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
-	if (!is_sufficiently_compressible(data_vio) ||
+	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
 	    !get_vdo_compressing(get_vdo_from_data_vio(data_vio)) ||
 	    get_compression_state(data_vio).may_not_compress) {
 		// If the data in this VIO doesn't compress, or compression is
