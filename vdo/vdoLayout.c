@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#24 $
  */
 
 #include "vdoLayout.h"
@@ -100,7 +100,7 @@ void free_vdo_layout(struct vdo_layout **vdo_layout_ptr)
 		return;
 	}
 
-	free_copy_completion(&vdo_layout->copy_completion);
+	free_vdo_copy_completion(&vdo_layout->copy_completion);
 	free_fixed_layout(&vdo_layout->next_layout);
 	free_fixed_layout(&vdo_layout->layout);
 	free_fixed_layout(&vdo_layout->previous_layout);
@@ -185,7 +185,8 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	// Make a copy completion if there isn't one
 	if (vdo_layout->copy_completion == NULL) {
 		int result =
-			make_copy_completion(vdo, &vdo_layout->copy_completion);
+			make_vdo_copy_completion(vdo,
+						 &vdo_layout->copy_completion);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -203,7 +204,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 				       get_partition_size(vdo_layout, SLAB_SUMMARY_PARTITION),
 				       &vdo_layout->next_layout);
 	if (result != VDO_SUCCESS) {
-		free_copy_completion(&vdo_layout->copy_completion);
+		free_vdo_copy_completion(&vdo_layout->copy_completion);
 		return result;
 	}
 
@@ -223,7 +224,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 		// Copying the journal and summary would destroy some old
 		// metadata.
 		free_fixed_layout(&vdo_layout->next_layout);
-		free_copy_completion(&vdo_layout->copy_completion);
+		free_vdo_copy_completion(&vdo_layout->copy_completion);
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
@@ -293,7 +294,7 @@ void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 		free_fixed_layout(&vdo_layout->next_layout);
 	}
 
-	free_copy_completion(&vdo_layout->copy_completion);
+	free_vdo_copy_completion(&vdo_layout->copy_completion);
 }
 
 /**********************************************************************/
@@ -301,10 +302,10 @@ void copy_vdo_layout_partition(struct vdo_layout *layout,
 			       enum partition_id id,
 			       struct vdo_completion *parent)
 {
-	copy_partition(layout->copy_completion,
-		       get_vdo_partition(layout, id),
-		       get_partition_from_next_layout(layout, id),
-		       parent);
+	copy_vdo_partition(layout->copy_completion,
+			   get_vdo_partition(layout, id),
+			   get_partition_from_next_layout(layout, id),
+			   parent);
 }
 
 /**********************************************************************/

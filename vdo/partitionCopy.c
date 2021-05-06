@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#27 $
  */
 
 #include "partitionCopy.h"
@@ -68,8 +68,8 @@ as_copy_completion(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int make_copy_completion(struct vdo *vdo,
-			 struct vdo_completion **completion_ptr)
+int make_vdo_copy_completion(struct vdo *vdo,
+			     struct vdo_completion **completion_ptr)
 {
 	struct copy_completion *copy;
 	int result = ALLOCATE(1, struct copy_completion, __func__, &copy);
@@ -85,7 +85,7 @@ int make_copy_completion(struct vdo *vdo,
 			  &copy->data);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &copy->completion;
-		free_copy_completion(&completion);
+		free_vdo_copy_completion(&completion);
 		return result;
 	}
 
@@ -97,7 +97,7 @@ int make_copy_completion(struct vdo *vdo,
 				   &copy->extent);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &copy->completion;
-		free_copy_completion(&completion);
+		free_vdo_copy_completion(&completion);
 		return result;
 	}
 
@@ -106,7 +106,7 @@ int make_copy_completion(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_copy_completion(struct vdo_completion **completion_ptr)
+void free_vdo_copy_completion(struct vdo_completion **completion_ptr)
 {
 	struct copy_completion *copy;
 
@@ -234,10 +234,10 @@ static int validate_partition_copy(struct partition *source,
 }
 
 /**********************************************************************/
-void copy_partition(struct vdo_completion *completion,
-		    struct partition *source,
-		    struct partition *target,
-		    struct vdo_completion *parent)
+void copy_vdo_partition(struct vdo_completion *completion,
+			struct partition *source,
+			struct partition *target,
+			struct vdo_completion *parent)
 {
 	struct copy_completion *copy = as_copy_completion(completion);
 
