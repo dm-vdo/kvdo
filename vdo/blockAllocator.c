@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#113 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -148,7 +148,7 @@ get_slab_iterator(const struct block_allocator *allocator)
 /**
  * Notify a block allocator that the VDO has entered read-only mode.
  *
- * Implements read_only_notification.
+ * Implements vdo_read_only_notification.
  *
  * @param listener  The block allocator
  * @param parent    The completion to notify in order to acknowledge the
@@ -212,10 +212,10 @@ static int allocate_components(struct block_allocator *allocator,
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	int result;
 
-	result = register_read_only_listener(allocator->read_only_notifier,
-					     allocator,
-					     notify_block_allocator_of_read_only_mode,
-					     allocator->thread_id);
+	result = register_vdo_read_only_listener(allocator->read_only_notifier,
+						 allocator,
+						 notify_block_allocator_of_read_only_mode,
+						 allocator->thread_id);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -365,7 +365,7 @@ void queue_vdo_slab(struct vdo_slab *slab)
 		        free_blocks,
 		        allocator->depot->slab_config.data_blocks);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(allocator->read_only_notifier, result);
+		vdo_enter_read_only_mode(allocator->read_only_notifier, result);
 		return;
 	}
 

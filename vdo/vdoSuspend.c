@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#37 $
  */
 
 #include "vdoSuspend.h"
@@ -143,8 +143,8 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-						       reset_vdo_admin_sub_task(completion));
+		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
+							   reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_PACKER:

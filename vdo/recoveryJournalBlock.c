@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#51 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -281,7 +281,7 @@ bool can_commit_recovery_block(struct recovery_journal_block *block)
 	return ((block != NULL)
 		&& !block->committing
 		&& has_waiters(&block->entry_waiters)
-		&& !is_read_only(block->journal->read_only_notifier));
+		&& !vdo_is_read_only(block->journal->read_only_notifier));
 }
 
 /**********************************************************************/

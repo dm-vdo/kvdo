@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#87 $
  */
 
 #include "blockMapTree.h"
@@ -234,7 +234,7 @@ bool is_tree_zone_active(struct block_map_tree_zone *zone)
 static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 				      int result)
 {
-	enter_read_only_mode(zone->map_zone->read_only_notifier, result);
+	vdo_enter_read_only_mode(zone->map_zone->read_only_notifier, result);
 
 	// We are in read-only mode, so we won't ever write any page out. Just
 	// take all waiters off the queue so the tree zone can be closed.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#61 $
  */
 
 #include "slabScrubberInternals.h"
@@ -243,7 +243,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
  **/
 static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 {
-	enter_read_only_mode(scrubber->read_only_notifier, result);
+	vdo_enter_read_only_mode(scrubber->read_only_notifier, result);
 	set_vdo_completion_result(&scrubber->completion, result);
 	scrub_next_slab(scrubber);
 }
@@ -435,7 +435,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	// Note: this notify call is always safe only because scrubbing can
 	// only be started when the VDO is quiescent.
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
-	if (is_read_only(scrubber->read_only_notifier)) {
+	if (vdo_is_read_only(scrubber->read_only_notifier)) {
 		set_vdo_completion_result(&scrubber->completion, VDO_READ_ONLY);
 		finish_scrubbing(scrubber);
 		return;
@@ -541,7 +541,7 @@ void resume_scrubbing(struct slab_scrubber *scrubber,
 int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 			      struct waiter *waiter)
 {
-	if (is_read_only(scrubber->read_only_notifier)) {
+	if (vdo_is_read_only(scrubber->read_only_notifier)) {
 		return VDO_READ_ONLY;
 	}
 

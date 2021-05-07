@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#114 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#115 $
  */
 
 /*
@@ -88,7 +88,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
-	free_read_only_notifier(&vdo->read_only_notifier);
+	free_vdo_read_only_notifier(&vdo->read_only_notifier);
 	free_thread_config(&vdo->thread_config);
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
@@ -191,7 +191,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
  * Notify a vdo that it is going read-only. This will save the read-only state
  * to the super block.
  *
- * <p>Implements read_only_notification.
+ * <p>Implements vdo_read_only_notification.
  *
  * @param listener  The vdo
  * @param parent    The completion to notify in order to acknowledge the
@@ -212,10 +212,10 @@ static void notify_vdo_of_read_only_mode(void *listener,
 /**********************************************************************/
 int enable_read_only_entry(struct vdo *vdo)
 {
-	return register_read_only_listener(vdo->read_only_notifier,
-		vdo,
-		notify_vdo_of_read_only_mode,
-		get_admin_thread(get_thread_config(vdo)));
+	return register_vdo_read_only_listener(vdo->read_only_notifier,
+					       vdo,
+					       notify_vdo_of_read_only_mode,
+					       get_admin_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/

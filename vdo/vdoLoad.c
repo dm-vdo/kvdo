@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#78 $
  */
 
 #include "vdoLoad.h"
@@ -110,8 +110,8 @@ static void abort_load(struct vdo_completion *completion)
 						     get_journal_zone_thread(get_thread_config(vdo)));
 	}
 
-	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-					       completion);
+	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
+						   completion);
 }
 
 /**
@@ -124,8 +124,8 @@ static void wait_for_read_only_mode(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
 	set_vdo_completion_result(completion, VDO_READ_ONLY);
-	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-					       completion);
+	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
+						   completion);
 }
 
 /**
@@ -140,7 +140,7 @@ static void continue_load_read_only(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	log_error_strerror(completion->result,
 			   "Entering read-only mode due to load error");
-	enter_read_only_mode(vdo->read_only_notifier, completion->result);
+	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	wait_for_read_only_mode(completion);
 }
 
@@ -171,7 +171,7 @@ static void scrub_slabs(struct vdo_completion *completion)
 static void handle_scrubbing_error(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	enter_read_only_mode(vdo->read_only_notifier, completion->result);
+	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	wait_for_read_only_mode(completion);
 }
 
@@ -208,7 +208,7 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 static void make_dirty(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	if (is_read_only(vdo->read_only_notifier)) {
+	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
@@ -234,7 +234,7 @@ static void load_callback(struct vdo_completion *completion)
 	open_recovery_journal(vdo->recovery_journal, vdo->depot,
 			      vdo->block_map);
 	vdo->close_required = true;
-	if (is_read_only(vdo->read_only_notifier)) {
+	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		// In read-only mode we don't use the allocator and it may not
 		// even be readable, so use the default structure.
 		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
@@ -333,10 +333,10 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = make_read_only_notifier(in_read_only_mode(vdo),
-					 thread_config,
-					 vdo,
-					 &vdo->read_only_notifier);
+	result = make_vdo_read_only_notifier(in_read_only_mode(vdo),
+					     thread_config,
+					     vdo,
+					     &vdo->read_only_notifier);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

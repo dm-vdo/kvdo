@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#76 $
  */
 
 #include "packerInternals.h"
@@ -573,7 +573,7 @@ static void launch_compressed_write(struct packer *packer,
 {
 	struct vio *vio;
 
-	if (is_read_only(get_vdo_from_allocating_vio(bin->writer)->read_only_notifier)) {
+	if (vdo_is_read_only(get_vdo_from_allocating_vio(bin->writer)->read_only_notifier)) {
 		finish_output_bin(packer, bin);
 		return;
 	}

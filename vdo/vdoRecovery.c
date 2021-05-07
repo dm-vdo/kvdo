@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#87 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -94,8 +94,8 @@ static int enqueue_missing_decref(struct wait_queue *queue,
 {
 	int result = enqueue_waiter(queue, &decref->waiter);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(decref->recovery->vdo->read_only_notifier,
-				     result);
+		vdo_enter_read_only_mode(decref->recovery->vdo->read_only_notifier,
+					 result);
 		set_vdo_completion_result(&decref->recovery->completion, result);
 		FREE(decref);
 	}
@@ -477,8 +477,8 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 			get_entry(recovery, &recovery_point);
 		result = validate_recovery_journal_entry(recovery->vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			enter_read_only_mode(recovery->vdo->read_only_notifier,
-					     result);
+			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
+						 result);
 			return result;
 		}
 
@@ -500,7 +500,8 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 	result = ASSERT((recovery->entry_count <= recovery->incref_count),
 			"approximate incref count is an upper bound");
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(recovery->vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
+					 result);
 	}
 
 	return result;
@@ -745,8 +746,8 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			get_entry(recovery, recovery_point);
 		int result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			enter_read_only_mode(journal->read_only_notifier,
-					     result);
+			vdo_enter_read_only_mode(journal->read_only_notifier,
+						 result);
 			finish_vdo_completion(completion, result);
 			return;
 		}
@@ -887,7 +888,7 @@ static int record_missing_decref(struct missing_decref *decref,
 	}
 
 	// The location was invalid
-	enter_read_only_mode(recovery->vdo->read_only_notifier, error_code);
+	vdo_enter_read_only_mode(recovery->vdo->read_only_notifier, error_code);
 	set_vdo_completion_result(&recovery->completion, error_code);
 	log_error_strerror(error_code,
 			   "Invalid mapping for pbn %llu with state %u",
@@ -1256,8 +1257,8 @@ static int count_increment_entries(struct recovery_completion *recovery)
 		int result =
 			validate_recovery_journal_entry(recovery->vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			enter_read_only_mode(recovery->vdo->read_only_notifier,
-					     result);
+			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
+						 result);
 			return result;
 		}
 		if (is_increment_operation(entry.operation)) {

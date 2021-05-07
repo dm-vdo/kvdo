@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#97 $
  */
 
 /*
@@ -301,7 +301,7 @@ static void enter_read_only_mode_callback(struct vdo_completion *completion)
 	struct sync_completion *sync = as_sync_completion(completion);
 	struct vdo_read_only_data *data = sync->data;
 
-	enter_read_only_mode(sync->vdo->read_only_notifier, data->result);
+	vdo_enter_read_only_mode(sync->vdo->read_only_notifier, data->result);
 	complete(&sync->completion);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#34 $
  */
 
 #include "vdoResizeLogical.h"
@@ -69,7 +69,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 
 	switch (admin_completion->phase++) {
 	case GROW_LOGICAL_PHASE_START:
-		if (is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			log_error_strerror(VDO_READ_ONLY,
 					   "Can't grow logical size of a read-only VDO");
 			finish_vdo_completion(reset_vdo_admin_sub_task(completion),
@@ -98,7 +98,8 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		break;
 
 	case GROW_LOGICAL_PHASE_ERROR:
-		enter_read_only_mode(vdo->read_only_notifier, completion->result);
+		vdo_enter_read_only_mode(vdo->read_only_notifier,
+					 completion->result);
 		break;
 
 	default:

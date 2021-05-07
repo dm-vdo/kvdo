@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#104 $
  */
 
 #include "recoveryJournal.h"
@@ -152,7 +152,7 @@ static void notify_commit_waiters(struct recovery_journal *journal);
 static void check_for_drain_complete(struct recovery_journal *journal)
 {
 	int result = VDO_SUCCESS;
-	if (is_read_only(journal->read_only_notifier)) {
+	if (vdo_is_read_only(journal->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 		/*
 		 * Clean up any full active blocks which were not written due
@@ -197,7 +197,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 /**
  * Notifiy a recovery journal that the VDO has gone read-only.
  *
- * <p>Implements read_only_notification.
+ * <p>Implements vdo_read_only_notification.
  *
  * @param listener  The journal
  * @param parent    The completion to notify in order to acknowledge the
@@ -222,7 +222,7 @@ notify_recovery_journal_of_read_only_mode(void *listener,
 static void enter_journal_read_only_mode(struct recovery_journal *journal,
 					 int error_code)
 {
-	enter_read_only_mode(journal->read_only_notifier, error_code);
+	vdo_enter_read_only_mode(journal->read_only_notifier, error_code);
 	check_for_drain_complete(journal);
 }
 
@@ -489,10 +489,10 @@ int decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		return result;
 	}
 
-	result = register_read_only_listener(read_only_notifier,
-					     journal,
-					     notify_recovery_journal_of_read_only_mode,
-					     journal->thread_id);
+	result = register_vdo_read_only_listener(read_only_notifier,
+						journal,
+						notify_recovery_journal_of_read_only_mode,
+						journal->thread_id);
 	if (result != VDO_SUCCESS) {
 		free_recovery_journal(&journal);
 		return result;
@@ -905,8 +905,8 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
-	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
-							      : VDO_SUCCESS);
+	int result = (vdo_is_read_only(journal->read_only_notifier) ?
+			VDO_READ_ONLY : VDO_SUCCESS);
 	ASSERT_LOG_ONLY(before_vdo_journal_point(&journal->commit_point,
 						 &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
@@ -942,7 +942,7 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 		notify_all_waiters(&block->commit_waiters,
 				   continue_committed_waiter,
 				   journal);
-		if (is_read_only(journal->read_only_notifier)) {
+		if (vdo_is_read_only(journal->read_only_notifier)) {
 			notify_all_waiters(&block->entry_waiters,
 					   continue_committed_waiter,
 					   journal);
@@ -971,7 +971,7 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 			 return;
 		}
 
-		if (!is_read_only(journal->read_only_notifier)
+		if (!vdo_is_read_only(journal->read_only_notifier)
 		    && (is_recovery_block_dirty(block)
 			|| !is_recovery_block_full(block))) {
 			// Don't recycle partially written or partially full
@@ -1051,7 +1051,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 		= container_of(waiter, struct recovery_journal_block,
 			       write_waiter);
 
-	if (is_read_only(block->journal->read_only_notifier)) {
+	if (vdo_is_read_only(block->journal->read_only_notifier)) {
 		return;
 	}
 
@@ -1109,7 +1109,7 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 		return;
 	}
 
-	if (is_read_only(journal->read_only_notifier)) {
+	if (vdo_is_read_only(journal->read_only_notifier)) {
 		continue_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
@@ -1271,7 +1271,7 @@ void resume_recovery_journal(struct recovery_journal *journal,
 	saved = is_vdo_state_saved(&journal->state);
 	set_vdo_completion_result(parent, resume_vdo_if_quiescent(&journal->state));
 
-	if (is_read_only(journal->read_only_notifier)) {
+	if (vdo_is_read_only(journal->read_only_notifier)) {
 		finish_vdo_completion(parent, VDO_READ_ONLY);
 		return;
 	}

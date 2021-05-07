@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#72 $
  */
 
 #include "refCounts.h"
@@ -267,7 +267,7 @@ bool are_ref_counts_active(struct ref_counts *ref_counts)
 static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 					    int result)
 {
-	enter_read_only_mode(ref_counts->read_only_notifier, result);
+	vdo_enter_read_only_mode(ref_counts->read_only_notifier, result);
 	check_if_slab_drained(ref_counts->slab);
 }
 
@@ -1172,7 +1172,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 */
 	block->is_writing = false;
 
-	if (is_read_only(ref_counts->read_only_notifier)) {
+	if (vdo_is_read_only(ref_counts->read_only_notifier)) {
 		check_if_slab_drained(ref_counts->slab);
 		return;
 	}
@@ -1293,7 +1293,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 	struct reference_block *block;
 	int result;
 	struct ref_counts *ref_counts = context;
-	if (is_read_only(ref_counts->read_only_notifier)) {
+	if (vdo_is_read_only(ref_counts->read_only_notifier)) {
 		return;
 	}
 

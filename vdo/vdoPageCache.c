@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#64 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -714,11 +714,11 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 	struct page_info *info;
 	// If we're already read-only, there's no need to log.
 	struct read_only_notifier *notifier = cache->zone->read_only_notifier;
-	if ((result != VDO_READ_ONLY) && !is_read_only(notifier)) {
+	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(notifier)) {
 		log_error_strerror(result,
 				   "VDO Page Cache persistent error: %s",
 				   context);
-		enter_read_only_mode(notifier, result);
+		vdo_enter_read_only_mode(notifier, result);
 	}
 
 	assert_on_cache_thread(cache, __func__);
@@ -850,7 +850,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct vdo_page_cache *cache = info->cache;
 	assert_on_cache_thread(cache, __func__);
 
-	enter_read_only_mode(cache->zone->read_only_notifier, result);
+	vdo_enter_read_only_mode(cache->zone->read_only_notifier, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
 	distribute_error_over_queue(result, &info->waiting);
@@ -1292,7 +1292,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 		struct list_head *entry = cache->outgoing_list.next;
 		struct page_info *info = page_info_from_state_entry(entry);
 		list_del_init(entry);
-		if (is_read_only(info->cache->zone->read_only_notifier)) {
+		if (vdo_is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
 			reset_vdo_completion(completion);
@@ -1385,7 +1385,7 @@ void get_vdo_page(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	if (vdo_page_comp->writable &&
-	    is_read_only(cache->zone->read_only_notifier)) {
+	    vdo_is_read_only(cache->zone->read_only_notifier)) {
 		finish_vdo_completion(completion, VDO_READ_ONLY);
 		return;
 	}

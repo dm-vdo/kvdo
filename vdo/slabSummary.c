@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#62 $
  */
 
 #include "slabSummary.h"
@@ -314,7 +314,7 @@ static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
 	}
 
 	finish_vdo_operation_with_result(&summary_zone->state,
-					 (is_read_only(summary_zone->summary->read_only_notifier)
+					 (vdo_is_read_only(summary_zone->summary->read_only_notifier)
 					  ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
@@ -329,7 +329,7 @@ static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
 static void notify_waiters(struct slab_summary_zone *summary_zone,
 			  struct wait_queue *queue)
 {
-	int result = (is_read_only(summary_zone->summary->read_only_notifier)
+	int result = (vdo_is_read_only(summary_zone->summary->read_only_notifier)
 		      ? VDO_READ_ONLY
 		      : VDO_SUCCESS);
 	notify_all_waiters(queue, NULL, &result);
@@ -373,8 +373,8 @@ static void finish_update(struct vdo_completion *completion)
 static void handle_write_error(struct vdo_completion *completion)
 {
 	struct slab_summary_block *block = completion->parent;
-	enter_read_only_mode(block->zone->summary->read_only_notifier,
-			     completion->result);
+	vdo_enter_read_only_mode(block->zone->summary->read_only_notifier,
+				 completion->result);
 	finish_updating_slab_summary_block(block);
 }
 
@@ -398,7 +398,7 @@ static void launch_write(struct slab_summary_block *block)
 			     &block->current_update_waiters);
 	block->writing = true;
 
-	if (is_read_only(summary->read_only_notifier)) {
+	if (vdo_is_read_only(summary->read_only_notifier)) {
 		finish_updating_slab_summary_block(block);
 		return;
 	}
@@ -475,7 +475,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 	struct slab_summary_block *block =
 		get_summary_block_for_slab(summary_zone, slab_number);
 	int result;
-	if (is_read_only(summary_zone->summary->read_only_notifier)) {
+	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 	} else if (is_vdo_state_draining(&summary_zone->state)
 		   || is_vdo_state_quiescent(&summary_zone->state)) {

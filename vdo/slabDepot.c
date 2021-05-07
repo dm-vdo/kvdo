@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#97 $
  */
 
 #include "slabDepot.h"
@@ -435,7 +435,7 @@ struct vdo_slab *get_slab(const struct slab_depot *depot,
 
 	result = get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
-		enter_read_only_mode(depot->vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(depot->vdo->read_only_notifier, result);
 		return NULL;
 	}
 
@@ -679,7 +679,7 @@ void drain_slab_depot(struct slab_depot *depot,
 /**********************************************************************/
 void resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
-	if (is_read_only(depot->vdo->read_only_notifier)) {
+	if (vdo_is_read_only(depot->vdo->read_only_notifier)) {
 		finish_vdo_completion(parent, VDO_READ_ONLY);
 		return;
 	}

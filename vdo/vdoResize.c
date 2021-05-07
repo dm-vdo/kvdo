@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#44 $
  */
 
 #include "vdoResize.h"
@@ -76,7 +76,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 
 	switch (admin_completion->phase++) {
 	case GROW_PHYSICAL_PHASE_START:
-		if (is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			log_error_strerror(VDO_READ_ONLY,
 					   "Can't grow physical size of a read-only VDO");
 			set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
@@ -122,7 +122,8 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		break;
 
 	case GROW_PHYSICAL_PHASE_ERROR:
-		enter_read_only_mode(vdo->read_only_notifier, completion->result);
+		vdo_enter_read_only_mode(vdo->read_only_notifier,
+					 completion->result);
 		break;
 
 	default:
@@ -214,7 +215,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	reset_vdo_admin_sub_task(completion);
 
 	// This check can only be done from a base code thread.
-	if (is_read_only(vdo->read_only_notifier)) {
+	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
