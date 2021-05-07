@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#28 $
  */
 
 #include "physicalZone.h"
@@ -57,9 +57,9 @@ struct physical_zone {
 };
 
 /**********************************************************************/
-int make_physical_zone(struct vdo *vdo,
-		       zone_count_t zone_number,
-		       struct physical_zone **zone_ptr)
+int make_vdo_physical_zone(struct vdo *vdo,
+			   zone_count_t zone_number,
+			   struct physical_zone **zone_ptr)
 {
 	struct physical_zone *zone;
 	int result = ALLOCATE(1, struct physical_zone, __func__, &zone);
@@ -69,13 +69,13 @@ int make_physical_zone(struct vdo *vdo,
 
 	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
 	if (result != VDO_SUCCESS) {
-		free_physical_zone(&zone);
+		free_vdo_physical_zone(&zone);
 		return result;
 	}
 
 	result = make_vdo_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
-		free_physical_zone(&zone);
+		free_vdo_physical_zone(&zone);
 		return result;
 	}
 
@@ -90,7 +90,7 @@ int make_physical_zone(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_physical_zone(struct physical_zone **zone_ptr)
+void free_vdo_physical_zone(struct physical_zone **zone_ptr)
 {
 	struct physical_zone *zone;
 
@@ -105,35 +105,36 @@ void free_physical_zone(struct physical_zone **zone_ptr)
 }
 
 /**********************************************************************/
-zone_count_t get_physical_zone_number(const struct physical_zone *zone)
+zone_count_t get_vdo_physical_zone_number(const struct physical_zone *zone)
 {
 	return zone->zone_number;
 }
 
 /**********************************************************************/
-thread_id_t get_physical_zone_thread_id(const struct physical_zone *zone)
+thread_id_t get_vdo_physical_zone_thread_id(const struct physical_zone *zone)
 {
 	return zone->thread_id;
 }
 
 /**********************************************************************/
-struct block_allocator *get_block_allocator(const struct physical_zone *zone)
+struct block_allocator *
+get_vdo_physical_zone_block_allocator(const struct physical_zone *zone)
 {
 	return zone->allocator;
 }
 
 /**********************************************************************/
-struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
-			      physical_block_number_t pbn)
+struct pbn_lock *get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+						physical_block_number_t pbn)
 {
 	return ((zone == NULL) ? NULL : int_map_get(zone->pbn_operations, pbn));
 }
 
 /**********************************************************************/
-int attempt_pbn_lock(struct physical_zone *zone,
-		     physical_block_number_t pbn,
-		     enum pbn_lock_type type,
-		     struct pbn_lock **lock_ptr)
+int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+				       physical_block_number_t pbn,
+				       enum pbn_lock_type type,
+				       struct pbn_lock **lock_ptr)
 {
 	// Borrow and prepare a lock from the pool so we don't have to do two
 	// int_map accesses in the common case of no lock contention.
@@ -171,9 +172,9 @@ int attempt_pbn_lock(struct physical_zone *zone,
 }
 
 /**********************************************************************/
-void release_pbn_lock(struct physical_zone *zone,
-		      physical_block_number_t locked_pbn,
-		      struct pbn_lock **lock_ptr)
+void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+					physical_block_number_t locked_pbn,
+					struct pbn_lock **lock_ptr)
 {
 	struct pbn_lock *holder, *lock = *lock_ptr;
 	if (lock == NULL) {
@@ -203,7 +204,7 @@ void release_pbn_lock(struct physical_zone *zone,
 }
 
 /**********************************************************************/
-void dump_physical_zone(const struct physical_zone *zone)
+void dump_vdo_physical_zone(const struct physical_zone *zone)
 {
 	dump_vdo_block_allocator(zone->allocator);
 }

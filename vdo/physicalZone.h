@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#13 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -34,16 +34,16 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_physical_zone(struct vdo *vdo,
-				    zone_count_t zone_number,
-				    struct physical_zone **zone_ptr);
+int __must_check make_vdo_physical_zone(struct vdo *vdo,
+					zone_count_t zone_number,
+					struct physical_zone **zone_ptr);
 
 /**
  * Free a physical zone and null out the reference to it.
  *
  * @param zone_ptr  A pointer to the zone to free
  **/
-void free_physical_zone(struct physical_zone **zone_ptr);
+void free_vdo_physical_zone(struct physical_zone **zone_ptr);
 
 /**
  * Get the zone number of a physical zone.
@@ -53,7 +53,7 @@ void free_physical_zone(struct physical_zone **zone_ptr);
  * @return The number of the zone
  **/
 zone_count_t __must_check
-get_physical_zone_number(const struct physical_zone *zone);
+get_vdo_physical_zone_number(const struct physical_zone *zone);
 
 /**
  * Get the ID of a physical zone's thread.
@@ -63,7 +63,7 @@ get_physical_zone_number(const struct physical_zone *zone);
  * @return The zone's thread ID
  **/
 thread_id_t __must_check
-get_physical_zone_thread_id(const struct physical_zone *zone);
+get_vdo_physical_zone_thread_id(const struct physical_zone *zone);
 
 /**
  * Get the block allocator from a physical zone.
@@ -73,7 +73,7 @@ get_physical_zone_thread_id(const struct physical_zone *zone);
  * @return The zone's allocator
  **/
 struct block_allocator * __must_check
-get_block_allocator(const struct physical_zone *zone);
+get_vdo_physical_zone_block_allocator(const struct physical_zone *zone);
 
 /**
  * Get the lock on a PBN if one exists.
@@ -84,7 +84,8 @@ get_block_allocator(const struct physical_zone *zone);
  * @return The lock or NULL if the PBN is not locked
  **/
 struct pbn_lock * __must_check
-get_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn);
+get_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+			       physical_block_number_t pbn);
 
 /**
  * Attempt to lock a physical block in the zone responsible for it. If the PBN
@@ -101,10 +102,10 @@ get_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn);
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check attempt_pbn_lock(struct physical_zone *zone,
-				  physical_block_number_t pbn,
-				  enum pbn_lock_type type,
-				  struct pbn_lock **lock_ptr);
+int __must_check attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+						    physical_block_number_t pbn,
+						    enum pbn_lock_type type,
+						    struct pbn_lock **lock_ptr);
 
 /**
  * Release a physical block lock if it is held, return it to the lock pool,
@@ -116,15 +117,15 @@ int __must_check attempt_pbn_lock(struct physical_zone *zone,
  * @param [in]     locked_pbn  The physical block number to unlock
  * @param [in,out] lock_ptr    The last reference to the lock being released
  **/
-void release_pbn_lock(struct physical_zone *zone,
-		      physical_block_number_t locked_pbn,
-		      struct pbn_lock **lock_ptr);
+void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
+					physical_block_number_t locked_pbn,
+					struct pbn_lock **lock_ptr);
 
 /**
  * Dump information about a physical zone to the log for debugging.
  *
  * @param zone   The zone to dump
  **/
-void dump_physical_zone(const struct physical_zone *zone);
+void dump_vdo_physical_zone(const struct physical_zone *zone);
 
 #endif // PHYSICAL_ZONE_H

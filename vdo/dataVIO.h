@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#78 $
  */
 
 #ifndef DATA_VIO_H
@@ -764,7 +764,7 @@ launch_allocated_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_physical_zone_thread_id(data_vio->duplicate.zone);
+		get_vdo_physical_zone_thread_id(data_vio->duplicate.zone);
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for duplicate physical block %llu on thread %u, should be on thread %u",
@@ -785,7 +785,7 @@ set_duplicate_zone_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_physical_zone_thread_id(data_vio->duplicate.zone));
+				    get_vdo_physical_zone_thread_id(data_vio->duplicate.zone));
 }
 
 /**
@@ -811,7 +811,7 @@ launch_duplicate_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_physical_zone_thread_id(data_vio->mapped.zone);
+		get_vdo_physical_zone_thread_id(data_vio->mapped.zone);
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for mapped physical block %llu on thread %u, should be on thread %u",
@@ -832,7 +832,7 @@ set_mapped_zone_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_physical_zone_thread_id(data_vio->mapped.zone));
+				    get_vdo_physical_zone_thread_id(data_vio->mapped.zone));
 }
 
 /**
@@ -844,7 +844,7 @@ set_mapped_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_physical_zone_thread_id(data_vio->new_mapped.zone);
+		get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone);
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for new_mapped physical block %llu on thread %u, should be on thread %u",
@@ -866,7 +866,7 @@ set_new_mapped_zone_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_physical_zone_thread_id(data_vio->new_mapped.zone));
+				    get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone));
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#11 $
  */
 
 #include "referenceOperation.h"
@@ -51,7 +51,8 @@ static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.context == NULL)
 			? NULL
-			: get_pbn_lock(operation.context, operation.pbn));
+			: get_vdo_physical_zone_pbn_lock(operation.context,
+							 operation.pbn));
 }
 
 /**********************************************************************/

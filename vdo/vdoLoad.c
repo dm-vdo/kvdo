@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#77 $
  */
 
 #include "vdoLoad.h"
@@ -418,8 +418,8 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	}
 
 	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
-		result = make_physical_zone(vdo, zone,
-					    &vdo->physical_zones[zone]);
+		result = make_vdo_physical_zone(vdo, zone,
+						&vdo->physical_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

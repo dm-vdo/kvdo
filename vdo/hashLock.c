@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#55 $
  */
 
 /**
@@ -590,8 +590,9 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY(lock->duplicate_lock != NULL,
 			"must have a duplicate lock to release");
 
-	release_pbn_lock(agent->duplicate.zone, agent->duplicate.pbn,
-			 &lock->duplicate_lock);
+	release_vdo_physical_zone_pbn_lock(agent->duplicate.zone,
+					   agent->duplicate.pbn,
+					   &lock->duplicate_lock);
 
 	if (lock->state == HASH_LOCK_BYPASSING) {
 		launch_hash_zone_callback(agent, finish_bypassing);
@@ -1075,7 +1076,8 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		return;
 	}
 
-	result = attempt_pbn_lock(zone, agent->duplicate.pbn, VIO_READ_LOCK,
+	result = attempt_vdo_physical_zone_pbn_lock(zone, agent->duplicate.pbn,
+						    VIO_READ_LOCK,
 				  &lock);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio(agent, result);
@@ -1143,7 +1145,9 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 			log_warning_strerror(result,
 					     "Error acquiring provisional reference for dedupe candidate; aborting dedupe");
 			agent->is_duplicate = false;
-			release_pbn_lock(zone, agent->duplicate.pbn, &lock);
+			release_vdo_physical_zone_pbn_lock(zone,
+							   agent->duplicate.pbn,
+							   &lock);
 			continue_data_vio(agent, result);
 			return;
 		}
