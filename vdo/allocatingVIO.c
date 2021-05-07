@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#34 $
  */
 
 #include "allocatingVIO.h"
@@ -71,7 +71,7 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 	// We've successfully acquired a new lock, so mark it as ours.
 	lock->holder_count += 1;
 	allocating_vio->allocation_lock = lock;
-	assign_provisional_reference(lock);
+	assign_vdo_pbn_lock_provisional_reference(lock);
 	return VDO_SUCCESS;
 }
 
@@ -248,7 +248,7 @@ void release_allocation_lock(struct allocating_vio *allocating_vio)
 
 	assert_in_physical_zone(allocating_vio);
 	locked_pbn = allocating_vio->allocation;
-	if (has_provisional_reference(allocating_vio->allocation_lock)) {
+	if (vdo_pbn_lock_has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = VDO_ZERO_BLOCK;
 	}
 

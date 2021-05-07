@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#71 $
  */
 
 #include "refCounts.h"
@@ -421,7 +421,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 	}
 
 	if (lock != NULL) {
-		unassign_provisional_reference(lock);
+		unassign_vdo_pbn_lock_provisional_reference(lock);
 	}
 	return VDO_SUCCESS;
 }
@@ -468,7 +468,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 			// not become unreferenced.
 			*counter_ptr = PROVISIONAL_REFERENCE_COUNT;
 			*free_status_changed = false;
-			assign_provisional_reference(lock);
+			assign_vdo_pbn_lock_provisional_reference(lock);
 		} else {
 			*counter_ptr = EMPTY_REFERENCE_COUNT;
 			block->allocated_count--;
@@ -546,7 +546,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
 		*free_status_changed = false;
 		if (lock != NULL) {
-			unassign_provisional_reference(lock);
+			unassign_vdo_pbn_lock_provisional_reference(lock);
 		}
 		return VDO_SUCCESS;
 
@@ -1011,7 +1011,7 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
 	if (ref_counts->counters[block_number] == EMPTY_REFERENCE_COUNT) {
 		make_provisional_reference(ref_counts, block_number);
 		if (lock != NULL) {
-			assign_provisional_reference(lock);
+			assign_vdo_pbn_lock_provisional_reference(lock);
 		}
 	}
 

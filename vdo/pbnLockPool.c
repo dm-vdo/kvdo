@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#17 $
  */
 
 #include "pbnLockPool.h"
@@ -58,7 +58,7 @@ struct pbn_lock_pool {
 };
 
 /**********************************************************************/
-int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
+int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
 	struct pbn_lock_pool *pool;
@@ -74,7 +74,7 @@ int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 
 	for (i = 0; i < capacity; i++) {
 		struct pbn_lock *lock = &pool->locks[i].lock;
-		return_pbn_lock_to_pool(pool, &lock);
+		return_vdo_pbn_lock_to_pool(pool, &lock);
 	}
 
 	*pool_ptr = pool;
@@ -82,7 +82,7 @@ int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 }
 
 /**********************************************************************/
-void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
+void free_vdo_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
 {
 	struct pbn_lock_pool *pool;
 
@@ -99,9 +99,9 @@ void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
 }
 
 /**********************************************************************/
-int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			      enum pbn_lock_type type,
-			      struct pbn_lock **lock_ptr)
+int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+				  enum pbn_lock_type type,
+				  struct pbn_lock **lock_ptr)
 {
 	int result;
 	struct list_head *idle_entry;
@@ -124,15 +124,15 @@ int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	memset(idle_entry, 0, sizeof(*idle_entry));
 
 	idle = list_entry(idle_entry, idle_pbn_lock, entry);
-	initialize_pbn_lock(&idle->lock, type);
+	initialize_vdo_pbn_lock(&idle->lock, type);
 
 	*lock_ptr = &idle->lock;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
-			     struct pbn_lock **lock_ptr)
+void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+				 struct pbn_lock **lock_ptr)
 {
 	idle_pbn_lock *idle;
 

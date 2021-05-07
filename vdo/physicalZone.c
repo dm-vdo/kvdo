@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#27 $
  */
 
 #include "physicalZone.h"
@@ -73,7 +73,7 @@ int make_physical_zone(struct vdo *vdo,
 		return result;
 	}
 
-	result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
+	result = make_vdo_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
 		free_physical_zone(&zone);
 		return result;
@@ -98,7 +98,7 @@ void free_physical_zone(struct physical_zone **zone_ptr)
 		return;
 	}
 	zone = *zone_ptr;
-	free_pbn_lock_pool(&zone->lock_pool);
+	free_vdo_pbn_lock_pool(&zone->lock_pool);
 	free_int_map(&zone->pbn_operations);
 	FREE(zone);
 	*zone_ptr = NULL;
@@ -138,8 +138,8 @@ int attempt_pbn_lock(struct physical_zone *zone,
 	// Borrow and prepare a lock from the pool so we don't have to do two
 	// int_map accesses in the common case of no lock contention.
 	struct pbn_lock *lock, *new_lock;
-	int result = borrow_pbn_lock_from_pool(zone->lock_pool, type,
-					       &new_lock);
+	int result = borrow_vdo_pbn_lock_from_pool(zone->lock_pool, type,
+						   &new_lock);
 	if (result != VDO_SUCCESS) {
 		ASSERT_LOG_ONLY(false,
 				"must always be able to borrow a PBN lock");
@@ -149,13 +149,13 @@ int attempt_pbn_lock(struct physical_zone *zone,
 	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
 			     (void **) &lock);
 	if (result != VDO_SUCCESS) {
-		return_pbn_lock_to_pool(zone->lock_pool, &new_lock);
+		return_vdo_pbn_lock_to_pool(zone->lock_pool, &new_lock);
 		return result;
 	}
 
 	if (lock != NULL) {
 		// The lock is already held, so we don't need the borrowed lock.
-		return_pbn_lock_to_pool(zone->lock_pool, &new_lock);
+		return_vdo_pbn_lock_to_pool(zone->lock_pool, &new_lock);
 
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
@@ -196,9 +196,10 @@ void release_pbn_lock(struct physical_zone *zone,
 			"physical block lock mismatch for block %llu",
 			locked_pbn);
 
-	release_provisional_reference(lock, locked_pbn, zone->allocator);
+	release_vdo_pbn_lock_provisional_reference(lock, locked_pbn,
+						   zone->allocator);
 
-	return_pbn_lock_to_pool(zone->lock_pool, &lock);
+	return_vdo_pbn_lock_to_pool(zone->lock_pool, &lock);
 }
 
 /**********************************************************************/

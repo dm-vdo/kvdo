@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#8 $
  */
 
 #ifndef PBN_LOCK_POOL_H
@@ -36,7 +36,7 @@ struct pbn_lock_pool;
  * @return a VDO_SUCCESS or an error code
  **/
 int __must_check
-make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
+make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
 
 /**
  * Free a PBN lock pool null out the reference to it. This also frees all all
@@ -45,7 +45,7 @@ make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
  *
  * @param [in,out] pool_ptr  The reference to the lock pool to free
  **/
-void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
+void free_vdo_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
 
 /**
  * Borrow a PBN lock from the pool and initialize it with the provided type.
@@ -60,9 +60,9 @@ void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
  * @return VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty
  **/
 int __must_check
-borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			  enum pbn_lock_type type,
-			  struct pbn_lock **lock_ptr);
+borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+			      enum pbn_lock_type type,
+			      struct pbn_lock **lock_ptr);
 
 /**
  * Return to the pool a lock that was borrowed from it, and null out the
@@ -72,7 +72,7 @@ borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
  * @param [in]     pool      The pool from which the lock was borrowed
  * @param [in,out] lock_ptr  The last reference to the lock being returned
  **/
-void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
-			     struct pbn_lock **lock_ptr);
+void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+				 struct pbn_lock **lock_ptr);
 
 #endif // PBN_LOCK_POOL_H

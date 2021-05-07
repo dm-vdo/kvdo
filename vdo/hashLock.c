@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#54 $
  */
 
 /**
@@ -801,7 +801,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio,
 			  bool has_claim)
 {
-	if (!has_claim && !claim_pbn_lock_increment(lock->duplicate_lock)) {
+	if (!has_claim && !claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
 		// Out of increments, so must roll over to a new lock.
 		fork_hash_lock(lock, data_vio);
 		return;
@@ -838,7 +838,7 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 		transfer_allocation_lock(agent);
 	}
 
-	ASSERT_LOG_ONLY(is_pbn_read_lock(lock->duplicate_lock),
+	ASSERT_LOG_ONLY(is_vdo_pbn_read_lock(lock->duplicate_lock),
 			"duplicate_lock must be a PBN read lock");
 
 	/*
@@ -909,7 +909,7 @@ static void finish_verifying(struct vdo_completion *completion)
 	// Even if the block is a verified duplicate, we can't start to
 	// deduplicate unless we can claim a reference count increment for the
 	// agent.
-	if (lock->verified && !claim_pbn_lock_increment(lock->duplicate_lock)) {
+	if (lock->verified && !claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
 		agent->is_duplicate = false;
 		lock->verified = false;
 	}
@@ -1015,7 +1015,7 @@ static void finish_locking(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!claim_pbn_lock_increment(lock->duplicate_lock)) {
+	if (!claim_vdo_pbn_lock_increment(lock->duplicate_lock)) {
 		/*
 		 * LOCKING -> UNLOCKING transition: The verified block was
 		 * re-locked, but has no available increments left. Must first
@@ -1082,7 +1082,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!is_pbn_read_lock(lock)) {
+	if (!is_vdo_pbn_read_lock(lock)) {
 		/*
 		 * There are three cases of write locks: uncompressed data
 		 * block writes, compressed (packed) block writes, and block
@@ -1658,7 +1658,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 	allocating_vio->allocation_lock = NULL;
 	allocating_vio->allocation = VDO_ZERO_BLOCK;
 
-	ASSERT_LOG_ONLY(is_pbn_read_lock(pbn_lock),
+	ASSERT_LOG_ONLY(is_vdo_pbn_read_lock(pbn_lock),
 			"must have downgraded the allocation lock before transfer");
 
 	hash_lock->duplicate = data_vio->new_mapped;
@@ -1682,8 +1682,8 @@ void share_compressed_vdo_write_lock(struct data_vio *data_vio,
 	assert_in_new_mapped_zone(data_vio);
 
 	// First sharer downgrades the lock.
-	if (!is_pbn_read_lock(pbn_lock)) {
-		downgrade_pbn_write_lock(pbn_lock);
+	if (!is_vdo_pbn_read_lock(pbn_lock)) {
+		downgrade_vdo_pbn_write_lock(pbn_lock);
 	}
 
 	// Get a share of the PBN lock, ensuring it cannot be released until
@@ -1694,7 +1694,7 @@ void share_compressed_vdo_write_lock(struct data_vio *data_vio,
 
 	// Claim a reference for this data_vio, which is necessary since another
 	// hash_lock might start deduplicating against it before our incRef.
-	claimed = claim_pbn_lock_increment(pbn_lock);
+	claimed = claim_vdo_pbn_lock_increment(pbn_lock);
 	ASSERT_LOG_ONLY(claimed,
 			"impossible to fail to claim an initial increment");
 }
