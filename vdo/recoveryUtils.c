@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#37 $
  */
 
 #include "recoveryUtils.h"
@@ -36,7 +36,7 @@
 
 /**
  * Finish loading the journal by freeing the extent and notifying the parent.
- * This callback is registered in load_journal().
+ * This callback is registered in load_vdo_recovery_journal().
  *
  * @param completion  The load extent
  **/
@@ -50,9 +50,9 @@ static void finish_journal_load(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void load_journal(struct recovery_journal *journal,
-		  struct vdo_completion *parent,
-		  char **journal_data_ptr)
+void load_vdo_recovery_journal(struct recovery_journal *journal,
+			       struct vdo_completion *parent,
+			       char **journal_data_ptr)
 {
 	struct vdo_extent *extent;
 	int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,
@@ -96,15 +96,15 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 		get_recovery_journal_block_number(journal,
 						  header->sequence_number);
 	return ((expected_offset == offset)
-		&& is_valid_recovery_journal_block(journal, header));
+		&& is_valid_vdo_recovery_journal_block(journal, header));
 }
 
 /**********************************************************************/
-bool find_head_and_tail(struct recovery_journal *journal,
-			char *journal_data,
-			sequence_number_t *tail_ptr,
-			sequence_number_t *block_map_head_ptr,
-			sequence_number_t *slab_journal_head_ptr)
+bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
+					     char *journal_data,
+					     sequence_number_t *tail_ptr,
+					     sequence_number_t *block_map_head_ptr,
+					     sequence_number_t *slab_journal_head_ptr)
 {
 	sequence_number_t highest_tail = journal->tail;
 	sequence_number_t block_map_head_max = 0;
@@ -113,7 +113,9 @@ bool find_head_and_tail(struct recovery_journal *journal,
 	physical_block_number_t i;
 	for (i = 0; i < journal->size; i++) {
 		struct packed_journal_header *packed_header =
-			get_journal_block_header(journal, journal_data, i);
+			get_vdo_recovery_journal_block_header(journal,
+							      journal_data,
+							      i);
 		struct recovery_block_header header;
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
@@ -148,7 +150,8 @@ bool find_head_and_tail(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-int validate_recovery_journal_entry(const struct vdo *vdo,
+int
+validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)
 {
 	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||

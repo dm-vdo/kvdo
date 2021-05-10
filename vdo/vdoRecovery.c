@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#90 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -475,7 +475,8 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 				     &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry =
 			get_entry(recovery, &recovery_point);
-		result = validate_recovery_journal_entry(recovery->vdo, &entry);
+		result = validate_vdo_recovery_journal_entry(recovery->vdo,
+							     &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
 						 result);
@@ -659,8 +660,9 @@ static int compute_usages(struct recovery_completion *recovery)
 	};
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
 	struct packed_journal_header *tail_header =
-		get_journal_block_header(journal, recovery->journal_data,
-					 recovery->tail);
+		get_vdo_recovery_journal_block_header(journal,
+						      recovery->journal_data,
+						      recovery->tail);
 
 	struct recovery_block_header unpacked;
 	unpack_vdo_recovery_block_header(tail_header, &unpacked);
@@ -744,7 +746,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		struct vdo_slab *slab;
 		struct recovery_journal_entry entry =
 			get_entry(recovery, recovery_point);
-		int result = validate_recovery_journal_entry(vdo, &entry);
+		int result = validate_vdo_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(journal->read_only_notifier,
 						 result);
@@ -1177,11 +1179,13 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			.entry_count = 0,
 		};
 
-		packed_header = get_journal_block_header(journal,
-							 recovery->journal_data, i);
+		packed_header =
+			get_vdo_recovery_journal_block_header(journal,
+							      recovery->journal_data,
+							      i);
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
-		if (!is_exact_recovery_journal_block(journal, &header, i) ||
+		if (!is_exact_vdo_recovery_journal_block(journal, &header, i) ||
 		    (header.entry_count > journal->entries_per_block)) {
 			// A bad block header was found so this must be the end
 			// of the journal.
@@ -1255,7 +1259,8 @@ static int count_increment_entries(struct recovery_completion *recovery)
 		struct recovery_journal_entry entry =
 			get_entry(recovery, &recovery_point);
 		int result =
-			validate_recovery_journal_entry(recovery->vdo, &entry);
+			validate_vdo_recovery_journal_entry(recovery->vdo,
+							    &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
 						 result);
@@ -1285,11 +1290,12 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	struct vdo *vdo = recovery->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	log_info("Finished reading recovery journal");
-	found_entries = find_head_and_tail(journal,
-					   recovery->journal_data,
-					   &recovery->highest_tail,
-					   &recovery->block_map_head,
-					   &recovery->slab_journal_head);
+	found_entries =
+		find_vdo_recovery_journal_head_and_tail(journal,
+							recovery->journal_data,
+							&recovery->highest_tail,
+							&recovery->block_map_head,
+							&recovery->slab_journal_head);
 	if (found_entries) {
 		found_entries = find_contiguous_range(recovery);
 	}
@@ -1384,7 +1390,7 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 			 prepare_to_apply_journal_entries,
 			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
-	load_journal(vdo->recovery_journal,
-		     &recovery->sub_task_completion,
-		     &recovery->journal_data);
+	load_vdo_recovery_journal(vdo->recovery_journal,
+				  &recovery->sub_task_completion,
+				  &recovery->journal_data);
 }

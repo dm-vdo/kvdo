@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#54 $
  */
 
 #include "readOnlyRebuild.h"
@@ -266,8 +266,8 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
 			unpack_vdo_recovery_journal_entry(&sector->entries[i]);
-		int result = validate_recovery_journal_entry(rebuild->vdo,
-							     &entry);
+		int result = validate_vdo_recovery_journal_entry(rebuild->vdo,
+								 &entry);
 		if (result != VDO_SUCCESS) {
 			// When recovering from read-only mode, ignore damaged
 			// entries.
@@ -322,16 +322,16 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 	for (i = first; i <= last; i++) {
 		struct packed_journal_header *packed_header =
-			get_journal_block_header(journal,
-						 rebuild->journal_data,
-						 i);
+			get_vdo_recovery_journal_block_header(journal,
+							      rebuild->journal_data,
+							      i);
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		uint8_t j;
 
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
-		if (!is_exact_recovery_journal_block(journal, &header, i)) {
+		if (!is_exact_vdo_recovery_journal_block(journal, &header, i)) {
 			// This block is invalid, so skip it.
 			continue;
 		}
@@ -396,11 +396,12 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	log_info("Finished reading recovery journal");
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
-	found_entries = find_head_and_tail(vdo->recovery_journal,
-					   rebuild->journal_data,
-					   &rebuild->tail,
-					   &rebuild->head,
-					   NULL);
+	found_entries =
+		find_vdo_recovery_journal_head_and_tail(vdo->recovery_journal,
+							rebuild->journal_data,
+							&rebuild->tail,
+							&rebuild->head,
+							NULL);
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
 		if (abort_rebuild_on_error(result, rebuild)) {
@@ -439,8 +440,8 @@ static void load_journal_callback(struct vdo_completion *completion)
 			       finish_vdo_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
-	load_journal(vdo->recovery_journal, completion,
-		     &rebuild->journal_data);
+	load_vdo_recovery_journal(vdo->recovery_journal, completion,
+				  &rebuild->journal_data);
 }
 
 /**********************************************************************/
