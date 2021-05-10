@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#51 $
  */
 
 #include "readOnlyRebuild.h"
@@ -444,7 +444,7 @@ static void load_journal_callback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
+void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct read_only_rebuild_completion *rebuild;
 	struct vdo_completion *completion, *sub_task_completion;
