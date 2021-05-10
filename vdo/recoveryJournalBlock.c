@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#53 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -234,7 +234,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			.operation = data_vio->operation.type,
 			.slot = lock->tree_slots[lock->height].block_map_slot,
 		};
-		*packed_entry = pack_recovery_journal_entry(&new_entry);
+		*packed_entry = pack_vdo_recovery_journal_entry(&new_entry);
 
 		if (is_increment_operation(data_vio->operation.type)) {
 			data_vio->recovery_sequence_number =
