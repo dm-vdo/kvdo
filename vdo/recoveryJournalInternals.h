@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#31 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -138,7 +138,7 @@ get_recovery_journal_block_number(const struct recovery_journal *journal,
 {
 	// Since journal size is a power of two, the block number modulus can
 	// just be extracted from the low-order bits of the sequence.
-	return compute_recovery_journal_block_number(journal->size, sequence);
+	return compute_vdo_recovery_journal_block_number(journal->size, sequence);
 }
 
 /**

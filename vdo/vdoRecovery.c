@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#89 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -1199,8 +1199,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 				    block_entries);
 
 			// A bad sector means that this block was torn.
-			if (!is_valid_recovery_journal_sector(&header,
-							      sector)) {
+			if (!is_valid_vdo_recovery_journal_sector(&header,
+								  sector)) {
 				break;
 			}
 

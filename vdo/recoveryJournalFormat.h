@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.h#5 $
  */
 
 #ifndef RECOVERY_JOURNAL_FORMAT_H
@@ -40,14 +40,14 @@ struct recovery_journal_state_7_0 {
 	block_count_t block_map_data_blocks;
 } __packed;
 
-extern const struct header RECOVERY_JOURNAL_HEADER_7_0;
+extern const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0;
 
 /**
  * Get the size of the encoded state of a recovery journal.
  *
  * @return the encoded size of the journal's state
  **/
-size_t __must_check get_recovery_journal_encoded_size(void);
+size_t __must_check get_vdo_recovery_journal_encoded_size(void);
 
 /**
  * Encode the state of a recovery journal.
@@ -58,8 +58,8 @@ size_t __must_check get_recovery_journal_encoded_size(void);
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
-				  struct buffer *buffer);
+encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
+				      struct buffer *buffer);
 
 /**
  * Decode the state of a recovery journal saved in a buffer.
@@ -71,8 +71,8 @@ encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-decode_recovery_journal_state_7_0(struct buffer *buffer,
-				  struct recovery_journal_state_7_0 *state);
+decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
+				      struct recovery_journal_state_7_0 *state);
 
 /**
  * Get the name of a journal operation.
@@ -82,7 +82,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
  * @return The name of the operation
  **/
 const char * __must_check
-get_journal_operation_name(enum journal_operation operation);
+get_vdo_journal_operation_name(enum journal_operation operation);
 
 /**
  * Determine whether the header of the given sector could describe a
@@ -94,8 +94,8 @@ get_journal_operation_name(enum journal_operation operation);
  * @return <code>True</code> if the sector matches the block header
  **/
 static inline bool __must_check
-is_valid_recovery_journal_sector(const struct recovery_block_header *header,
-				 const struct packed_journal_sector *sector)
+is_valid_vdo_recovery_journal_sector(const struct recovery_block_header *header,
+				     const struct packed_journal_sector *sector)
 {
 	return ((header->check_byte == sector->check_byte)
 		&& (header->recovery_count == sector->recovery_count));
@@ -112,8 +112,8 @@ is_valid_recovery_journal_sector(const struct recovery_block_header *header,
  *         number
  **/
 static inline physical_block_number_t __must_check
-compute_recovery_journal_block_number(block_count_t journal_size,
-				      sequence_number_t sequence_number)
+compute_vdo_recovery_journal_block_number(block_count_t journal_size,
+					  sequence_number_t sequence_number)
 {
 	// Since journal size is a power of two, the block number modulus can
 	// just be extracted from the low-order bits of the sequence.

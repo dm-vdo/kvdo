@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#8 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -29,7 +29,7 @@
 #include "statusCodes.h"
 #include "types.h"
 
-const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
+const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
 	.id = RECOVERY_JOURNAL,
 	.version =
 		{
@@ -40,18 +40,18 @@ const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
 };
 
 /**********************************************************************/
-size_t get_recovery_journal_encoded_size(void)
+size_t get_vdo_recovery_journal_encoded_size(void)
 {
 	return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
 
 /**********************************************************************/
-int encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
-				      struct buffer *buffer)
+int encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
+					  struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
 
-	int result = encode_vdo_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
+	int result = encode_vdo_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -75,14 +75,14 @@ int encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
 	}
 
 	encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
+	return ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
 		      "encoded recovery journal component size must match header size");
 }
 
 /**********************************************************************/
 int
-decode_recovery_journal_state_7_0(struct buffer *buffer,
-				  struct recovery_journal_state_7_0 *state)
+decode_vdo_recovery_journal_state_7_0(struct buffer *buffer,
+				      struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
 	int result;
@@ -95,7 +95,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 		return result;
 	}
 
-	result = validate_vdo_header(&RECOVERY_JOURNAL_HEADER_7_0, &header,
+	result = validate_vdo_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
 				     true, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -119,7 +119,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 	}
 
 	decoded_size = initial_length - content_length(buffer);
-	result = ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
+	result = ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
 			"decoded recovery journal component size must match header size");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -135,7 +135,7 @@ decode_recovery_journal_state_7_0(struct buffer *buffer,
 }
 
 /**********************************************************************/
-const char *get_journal_operation_name(enum journal_operation operation)
+const char *get_vdo_journal_operation_name(enum journal_operation operation)
 {
 	switch (operation) {
 	case DATA_DECREMENT:

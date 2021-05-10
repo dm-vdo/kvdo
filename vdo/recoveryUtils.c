@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#36 $
  */
 
 #include "recoveryUtils.h"
@@ -160,7 +160,7 @@ int validate_recovery_journal_entry(const struct vdo *vdo,
 					  entry->slot.pbn,
 					  entry->slot.slot,
 					  entry->mapping.pbn,
-					  get_journal_operation_name(entry->operation));
+					  get_vdo_journal_operation_name(entry->operation));
 	}
 
 	if ((entry->operation == BLOCK_MAP_INCREMENT) &&
@@ -171,7 +171,7 @@ int validate_recovery_journal_entry(const struct vdo *vdo,
 					  entry->slot.pbn,
 					  entry->slot.slot,
 					  entry->mapping.pbn,
-					  get_journal_operation_name(entry->operation));
+					  get_vdo_journal_operation_name(entry->operation));
 	}
 
 	return VDO_SUCCESS;
