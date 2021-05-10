@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#17 $
  */
 
 #include "indexConfig.h"
@@ -112,25 +112,30 @@ static int read_version(struct buffered_reader *reader,
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		result = read_from_buffered_reader(reader,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return log_error_strerror(result,
 						  "cannot read config data");
 		}
+
 		clear_buffer(buffer);
 		result = decode_index_config(buffer, conf);
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		if (version_ptr != NULL) {
 			*version_ptr = "current";
 		}
+
 		return result;
 	}
+
 	return log_error_strerror(UDS_CORRUPT_COMPONENT,
 				  "unsupported configuration version: '%.*s'",
 				  INDEX_CONFIG_VERSION_LENGTH,
@@ -213,29 +218,33 @@ static int __must_check encode_index_config(struct buffer *buffer,
 int write_config_contents(struct buffered_writer *writer,
 			  struct uds_configuration *config)
 {
+	struct buffer *buffer;
 	int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
 					      INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = write_to_buffered_writer(writer, INDEX_CONFIG_VERSION,
 					  INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	struct buffer *buffer;
+
 	result = make_buffer(sizeof(*config), &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = encode_index_config(buffer, config);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	return result;
 }
 

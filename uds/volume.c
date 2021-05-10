@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#34 $
  */
 
 #include "volume.h"
@@ -1124,7 +1124,7 @@ static int probe_chapter(struct volume *volume,
 			      chapter_number);
 		return UDS_CORRUPT_COMPONENT;
 	}
-	if (chapter_number != last_vcn % geometry->chapters_per_volume) {
+	if (chapter_number != map_to_physical_chapter(geometry, last_vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
 			      chapter_number,
 			      last_vcn,

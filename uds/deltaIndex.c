@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#22 $
  */
 #include "deltaIndex.h"
 
@@ -952,20 +952,23 @@ static int __must_check read_delta_index_header(struct buffered_reader *reader,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return log_warning_strerror(result,
 					    "failed to read delta index header");
 	}
+
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = decode_delta_index_header(buffer, header);
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	return result;
 }
 
@@ -1209,15 +1212,17 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = encode_delta_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return log_warning_strerror(result,
 					    "failed to write delta index header");

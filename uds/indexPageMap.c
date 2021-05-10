@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#20 $
  */
 
 #include "indexPageMap.h"
@@ -266,41 +266,48 @@ static int write_index_page_map(struct index_component *component,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = put_bytes(buffer, INDEX_PAGE_MAP_MAGIC_LENGTH,
 			   INDEX_PAGE_MAP_MAGIC);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = put_uint64_le_into_buffer(buffer, map->last_update);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return log_error_strerror(result,
 					  "cannot write index page map header");
 	}
+
 	result = make_buffer(index_page_map_size(map->geometry), &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = put_uint16_les_into_buffer(buffer, num_entries(map->geometry),
 					    map->entries);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return log_error_strerror(result,
 					  "cannot write index page map data");
 	}
+
 	return UDS_SUCCESS;
 }
 
@@ -361,21 +368,24 @@ static int read_index_page_map(struct read_portal *portal)
 	result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		log_error_strerror(result,
 				   "cannot read index page map data");
 		return result;
 	}
+
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = decode_index_page_map(buffer, map);
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	log_debug("read index page map, last update %llu",
 		  map->last_update);
 	return UDS_SUCCESS;

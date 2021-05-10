@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#10 $
  */
 
 #include "buffer.h"
@@ -66,7 +66,7 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 	struct buffer *buffer;
 	result = wrap_buffer(data, size, 0, &buffer);
 	if (result != UDS_SUCCESS) {
-		FREE(data);
+		FREE(FORGET(data));
 		return result;
 	}
 
@@ -76,16 +76,16 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 }
 
 /**********************************************************************/
-void free_buffer(struct buffer **p_buffer)
+void free_buffer(struct buffer *buffer)
 {
-	struct buffer *buffer = *p_buffer;
-	*p_buffer = NULL;
 	if (buffer == NULL) {
 		return;
 	}
+
 	if (!buffer->wrapped) {
-		FREE(buffer->data);
+		FREE(FORGET(buffer->data));
 	}
+
 	FREE(buffer);
 }
 

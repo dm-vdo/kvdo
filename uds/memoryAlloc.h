@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#9 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -54,6 +54,32 @@ int __must_check allocate_memory(size_t size,
  * @param ptr  The memory to be freed
  **/
 void free_memory(void *ptr);
+
+/**
+ * Null out a reference and return a copy of the referenced object.
+ *
+ * @param ptr_ptr  A pointer to the reference to NULL out
+ *
+ * @return A copy of the reference
+ **/
+static INLINE void *forget(void **ptr_ptr)
+{
+        void *ptr = *ptr_ptr;
+
+        *ptr_ptr = NULL;
+        return ptr;
+}
+
+/**
+ * Null out a pointer and return a copy to it. This macro should be used when
+ * passing a pointer to a function for which it is not safe to access the
+ * pointer once the function returns.
+ *
+ * @param ptr  The pointer to NULL out
+ *
+ * @return A copy of the NULLed out pointer
+ **/
+#define FORGET(ptr) forget((void **) &(ptr))
 
 /**
  * Allocate storage based on element counts, sizes, and alignment.

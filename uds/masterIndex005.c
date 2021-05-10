@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#35 $
  */
 #include "masterIndex005.h"
 
@@ -446,6 +446,7 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 		get_delta_index_zone_num_lists(&vi5->delta_index, zone_number);
 
 	struct vi005_data header;
+	uint64_t *first_flush_chapter;
 	memset(&header, 0, sizeof(header));
 	memcpy(header.magic, MAGIC_START, MAGIC_SIZE);
 	header.volume_nonce = vi5->volume_nonce;
@@ -459,34 +460,39 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return log_warning_strerror(result,
 					    "failed to write volume index header");
 	}
+
 	result = make_buffer(num_lists * sizeof(uint64_t), &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	uint64_t *first_flush_chapter = &vi5->flush_chapters[first_list];
+
+	first_flush_chapter = &vi5->flush_chapters[first_list];
 	result = put_uint64_les_into_buffer(buffer, num_lists,
 					    first_flush_chapter);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return log_warning_strerror(result,
 					    "failed to write volume index flush ranges");
@@ -611,6 +617,8 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 				 struct buffered_reader **buffered_readers,
 				 int num_readers)
 {
+	uint64_t *first_flush_chapter;
+
 	if (volume_index == NULL) {
 		return log_warning_strerror(UDS_BAD_STATE,
 					    "cannot restore to null volume index");
@@ -624,39 +632,45 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 	int i;
 	for (i = 0; i < num_readers; i++) {
 		struct buffer *buffer;
+		struct vi005_data header;
 		int result = make_buffer(sizeof(struct vi005_data), &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		result = read_from_buffered_reader(buffered_readers[i],
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return log_warning_strerror(result,
 						    "failed to read volume index header");
 		}
+
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return result;
 		}
-		struct vi005_data header;
+
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		if (memcmp(header.magic, MAGIC_START, MAGIC_SIZE) != 0) {
 			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
 						    "volume index file had bad magic number");
 		}
+
 		if (vi5->volume_nonce == 0) {
 			vi5->volume_nonce = header.volume_nonce;
 		} else if (header.volume_nonce != vi5->volume_nonce) {
 			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
 						    "volume index volume nonce incorrect");
 		}
+
 		if (i == 0) {
 			virtual_chapter_low = header.virtual_chapter_low;
 			virtual_chapter_high = header.virtual_chapter_high;
@@ -672,29 +686,32 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 		} else if (virtual_chapter_low < header.virtual_chapter_low) {
 			virtual_chapter_low = header.virtual_chapter_low;
 		}
-		uint64_t *first_flush_chapter =
-			&vi5->flush_chapters[header.first_list];
+
+		first_flush_chapter = &vi5->flush_chapters[header.first_list];
 		result = make_buffer(header.num_lists * sizeof(uint64_t),
 				     &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		result = read_from_buffered_reader(buffered_readers[i],
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return log_warning_strerror(result,
 						    "failed to read volume index flush ranges");
 		}
+
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return result;
 		}
+
 		result = get_uint64_les_from_buffer(buffer, header.num_lists,
 						    first_flush_chapter);
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -1450,18 +1467,18 @@ compute_volume_index_parameters005(const struct configuration *config,
 		max(params->num_chapters / 256, 2UL);
 	unsigned long chapters_in_volume_index =
 		params->num_chapters + invalid_chapters;
-	unsigned long entries_in_volume_index =
+	uint64_t entries_in_volume_index =
 		records_per_chapter * chapters_in_volume_index;
 	// Compute the mean delta
-	unsigned long address_span = params->num_delta_lists
-				     << params->address_bits;
+	uint64_t address_span =
+		(uint64_t)params->num_delta_lists << params->address_bits;
 	params->mean_delta = address_span / entries_in_volume_index;
 	// Project how large we expect a chapter to be
 	params->num_bits_per_chapter =
 		get_delta_memory_size(records_per_chapter, params->mean_delta,
 				      params->chapter_bits);
 	// Project how large we expect the index to be
-	size_t num_bits_per_index =
+	uint64_t num_bits_per_index =
 		params->num_bits_per_chapter * chapters_in_volume_index;
 	size_t expected_index_size = num_bits_per_index / CHAR_BIT;
 	/*

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#10 $
  */
 
 #include "superBlockCodec.h"
@@ -76,8 +76,8 @@ int initialize_super_block_codec(struct super_block_codec *codec)
 /**********************************************************************/
 void destroy_super_block_codec(struct super_block_codec *codec)
 {
-	free_buffer(&codec->block_buffer);
-	free_buffer(&codec->component_buffer);
+	free_buffer(FORGET(codec->block_buffer));
+	free_buffer(FORGET(codec->component_buffer));
 	FREE(codec->encoded_super_block);
 }
 

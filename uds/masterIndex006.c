@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#27 $
  */
 #include "masterIndex006.h"
 
@@ -207,13 +207,14 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	header.sparse_sample_rate = vi6->sparse_sample_rate;
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		log_warning_strerror(result,
 				     "failed to write volume index header");
@@ -354,34 +355,39 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 
 	int i;
 	for (i = 0; i < num_readers; i++) {
+		struct vi006_data header;
 		struct buffer *buffer;
 		result = make_buffer(sizeof(struct vi006_data), &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		result = read_from_buffered_reader(buffered_readers[i],
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return log_warning_strerror(result,
 						    "failed to read volume index header");
 		}
+
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(FORGET(buffer));
 			return result;
 		}
-		struct vi006_data header;
+
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		if (memcmp(header.magic, MAGIC_START, MAGIC_SIZE) != 0) {
 			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
 						    "volume index file had bad magic number");
 		}
+
 		if (i == 0) {
 			vi6->sparse_sample_rate = header.sparse_sample_rate;
 		} else if (vi6->sparse_sample_rate !=

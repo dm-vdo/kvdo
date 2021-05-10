@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#40 $
  */
 
 #include "volumeGeometry.h"
@@ -306,7 +306,7 @@ int parse_geometry_block(byte *block, struct volume_geometry *geometry)
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
 
@@ -315,12 +315,12 @@ int parse_geometry_block(byte *block, struct volume_geometry *geometry)
 				uncompacted_amount(buffer));
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(FORGET(buffer));
 		return result;
 	}
 
 	// Finished all decoding. Everything that follows is validation code.
-	free_buffer(&buffer);
+	free_buffer(FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version)) {
 		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
