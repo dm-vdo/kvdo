@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#91 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -651,8 +651,11 @@ static void add_synthesized_entries(struct vdo_completion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
+__attribute__((__noinline__))
 static int compute_usages(struct recovery_completion *recovery)
 {
+	// XXX VDO-5182: function is declared noinline to avoid what is likely
+	// a spurious valgrind error about this structure being uninitialized.
 	struct recovery_point recovery_point = {
 		.sequence_number = recovery->tail,
 		.sector_count = 1,
