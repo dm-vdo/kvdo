@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#54 $
  */
 
 #include "referenceCountRebuild.h"
@@ -407,7 +407,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
  * Rebuild reference counts from the leaf block map pages now that reference
  * counts have been rebuilt from the interior tree pages (which have been
  * loaded in the process). This callback is registered in
- * rebuild_reference_counts().
+ * rebuild_vdo_reference_counts().
  *
  * @param completion  The sub-task completion
  **/
@@ -477,10 +477,10 @@ static int process_entry(physical_block_number_t pbn,
 }
 
 /**********************************************************************/
-void rebuild_reference_counts(struct vdo *vdo,
-			      struct vdo_completion *parent,
-			      block_count_t *logical_blocks_used,
-			      block_count_t *block_map_data_blocks)
+void rebuild_vdo_reference_counts(struct vdo *vdo,
+				  struct vdo_completion *parent,
+				  block_count_t *logical_blocks_used,
+				  block_count_t *block_map_data_blocks)
 {
 	struct rebuild_completion *rebuild;
 	struct vdo_completion *completion;
