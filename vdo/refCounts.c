@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#74 $
  */
 
 #include "refCounts.h"
@@ -268,7 +268,7 @@ static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 					    int result)
 {
 	vdo_enter_read_only_mode(ref_counts->read_only_notifier, result);
-	check_if_slab_drained(ref_counts->slab);
+	check_if_vdo_slab_drained(ref_counts->slab);
 }
 
 /**
@@ -340,7 +340,7 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 				 vdo_refcount_t **counter_ptr)
 {
 	slab_block_number index;
-	int result = slab_block_number_from_pbn(ref_counts->slab, pbn, &index);
+	int result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &index);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -663,12 +663,13 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 	struct reference_block *block;
 	bool provisional_decrement = false;
 
-	if (!is_slab_open(ref_counts->slab)) {
+	if (!is_vdo_slab_open(ref_counts->slab)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	result = slab_block_number_from_pbn(ref_counts->slab, operation.pbn,
-					    &block_number);
+	result = vdo_slab_block_number_from_pbn(ref_counts->slab,
+						operation.pbn,
+						&block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -731,9 +732,9 @@ int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 		.type = operation,
 	};
 
-	int result = slab_block_number_from_pbn(ref_counts->slab,
-						pbn,
-						&block_number);
+	int result = vdo_slab_block_number_from_pbn(ref_counts->slab,
+						    pbn,
+						    &block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -969,7 +970,7 @@ int allocate_unreferenced_block(struct ref_counts *ref_counts,
 {
 	slab_block_number free_index;
 
-	if (!is_slab_open(ref_counts->slab)) {
+	if (!is_vdo_slab_open(ref_counts->slab)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
@@ -998,12 +999,12 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
 	slab_block_number block_number;
 	int result;
 
-	if (!is_slab_open(ref_counts->slab)) {
+	if (!is_vdo_slab_open(ref_counts->slab)) {
 		return VDO_INVALID_ADMIN_STATE;
 	}
 
-	result = slab_block_number_from_pbn(ref_counts->slab, pbn,
-					    &block_number);
+	result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn,
+						&block_number);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -1093,7 +1094,7 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 	ref_counts->updating_slab_summary = false;
 
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-		check_if_slab_drained(ref_counts->slab);
+		check_if_vdo_slab_drained(ref_counts->slab);
 		return;
 	}
 
@@ -1173,14 +1174,14 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	block->is_writing = false;
 
 	if (vdo_is_read_only(ref_counts->read_only_notifier)) {
-		check_if_slab_drained(ref_counts->slab);
+		check_if_vdo_slab_drained(ref_counts->slab);
 		return;
 	}
 
 	// Re-queue the block if it was re-dirtied while it was writing.
 	if (block->is_dirty) {
 		enqueue_dirty_block(block);
-		if (is_slab_draining(ref_counts->slab)) {
+		if (is_vdo_slab_draining(ref_counts->slab)) {
 			// We must be saving, and this block will otherwise not
 			// be relaunched.
 			save_dirty_reference_blocks(ref_counts);
@@ -1346,7 +1347,7 @@ void save_dirty_reference_blocks(struct ref_counts *ref_counts)
 	notify_all_waiters(&ref_counts->dirty_blocks,
 			   launch_reference_block_write,
 			   ref_counts);
-	check_if_slab_drained(ref_counts->slab);
+	check_if_vdo_slab_drained(ref_counts->slab);
 }
 
 /**********************************************************************/
@@ -1440,7 +1441,7 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	clear_provisional_references(block);
 
 	ref_counts->free_blocks -= block->allocated_count;
-	check_if_slab_drained(block->ref_counts->slab);
+	check_if_vdo_slab_drained(block->ref_counts->slab);
 }
 
 /**
@@ -1517,14 +1518,14 @@ void drain_ref_counts(struct ref_counts *ref_counts)
 		break;
 
 	case ADMIN_STATE_REBUILDING:
-		if (should_save_fully_built_slab(slab)) {
+		if (should_save_fully_built_vdo_slab(slab)) {
 			dirty_all_reference_blocks(ref_counts);
 			save = true;
 		}
 		break;
 
 	case ADMIN_STATE_SAVING:
-		save = !is_unrecovered_slab(slab);
+		save = !is_unrecovered_vdo_slab(slab);
 		break;
 
 	case ADMIN_STATE_RECOVERING:
@@ -1532,7 +1533,7 @@ void drain_ref_counts(struct ref_counts *ref_counts)
 		break;
 
 	default:
-		notify_ref_counts_are_drained(slab, VDO_SUCCESS);
+		notify_vdo_slab_ref_counts_are_drained(slab, VDO_SUCCESS);
 		return;
 	}
 

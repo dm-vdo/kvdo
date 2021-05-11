@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#87 $
  */
 
 #include "slabJournalInternals.h"
@@ -100,7 +100,7 @@ static inline bool __must_check is_vdo_read_only(struct slab_journal *journal)
 static inline bool __must_check
 must_make_entries_to_flush(struct slab_journal *journal)
 {
-	return (!slab_is_rebuilding(journal->slab) &&
+	return (!is_vdo_slab_rebuilding(journal->slab) &&
 		has_waiters(&journal->entry_waiters));
 }
 
@@ -311,7 +311,7 @@ void abort_slab_journal_waiters(struct slab_journal *journal)
 			 journal->slab->allocator->thread_id),
 			"abort_slab_journal_waiters() called on correct thread");
 	notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
-	check_if_slab_drained(journal->slab);
+	check_if_vdo_slab_drained(journal->slab);
 }
 
 /**
@@ -341,7 +341,7 @@ static void finish_reaping(struct slab_journal *journal)
 {
 	journal->head = journal->unreapable;
 	add_entries(journal);
-	check_if_slab_drained(journal->slab);
+	check_if_vdo_slab_drained(journal->slab);
 }
 
 /**********************************************************************/
@@ -410,7 +410,7 @@ static void reap_slab_journal(struct slab_journal *journal)
 		return;
 	}
 
-	if (is_unrecovered_slab(journal->slab) ||
+	if (is_unrecovered_vdo_slab(journal->slab) ||
 	    !is_vdo_state_normal(&journal->slab->state) ||
 	    is_vdo_read_only(journal)) {
 		// We must not reap in the first two cases, and there's no
@@ -535,11 +535,11 @@ static void update_tail_block_location(struct slab_journal *journal)
 
 	if (journal->updating_slab_summary || is_vdo_read_only(journal) ||
 	    (journal->last_summarized >= journal->next_commit)) {
-		check_if_slab_drained(journal->slab);
+		check_if_vdo_slab_drained(journal->slab);
 		return;
 	}
 
-	if (is_unrecovered_slab(journal->slab)) {
+	if (is_unrecovered_vdo_slab(journal->slab)) {
 		free_block_count =
 			get_summarized_free_block_count(journal->summary,
 							journal->slab->slab_number);
@@ -856,7 +856,7 @@ bool attempt_replay_into_slab_journal(struct slab_journal *journal,
 		journal->unreapable++;
 	}
 
-	mark_slab_replaying(journal->slab);
+	mark_vdo_slab_replaying(journal->slab);
 	add_entry(journal, pbn, operation, recovery_point);
 	return true;
 }
@@ -957,9 +957,9 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 
 	// Now that an entry has been made in the slab journal, update the
 	// reference counts.
-	result = modify_slab_reference_count(journal->slab,
-					     &slab_journal_point,
-					     data_vio->operation);
+	result = modify_vdo_slab_reference_count(journal->slab,
+						 &slab_journal_point,
+						 data_vio->operation);
 	continue_data_vio(data_vio, result);
 }
 
@@ -998,7 +998,7 @@ static void add_entries(struct slab_journal *journal)
 	while (has_waiters(&journal->entry_waiters)) {
 		struct slab_journal_block_header *header = &journal->tail_header;
 		if (journal->partial_write_in_progress ||
-		    slab_is_rebuilding(journal->slab)) {
+		    is_vdo_slab_rebuilding(journal->slab)) {
 			// Don't add entries while rebuilding or while a
 			// partial write is outstanding (VDO-2399).
 			break;
@@ -1094,7 +1094,7 @@ static void add_entries(struct slab_journal *journal)
 
 	// If there are no waiters, and we are flushing or saving, commit the
 	// tail block.
-	if (is_slab_draining(journal->slab) &&
+	if (is_vdo_slab_draining(journal->slab) &&
 	    !is_vdo_state_suspending(&journal->slab->state) &&
 	    !has_waiters(&journal->entry_waiters)) {
 		commit_slab_journal_tail(journal);
@@ -1107,7 +1107,7 @@ void add_slab_journal_entry(struct slab_journal *journal,
 {
 	int result;
 
-	if (!is_slab_open(journal->slab)) {
+	if (!is_vdo_slab_open(journal->slab)) {
 		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
@@ -1123,7 +1123,7 @@ void add_slab_journal_entry(struct slab_journal *journal,
 		return;
 	}
 
-	if (is_unrecovered_slab(journal->slab) && requires_reaping(journal)) {
+	if (is_unrecovered_vdo_slab(journal->slab) && requires_reaping(journal)) {
 		increase_vdo_slab_scrubbing_priority(journal->slab);
 	}
 
@@ -1141,7 +1141,7 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
 		return;
 	}
 
-	if (is_replaying_slab(journal->slab)) {
+	if (is_replaying_vdo_slab(journal->slab)) {
 		// Locks should not be used during offline replay.
 		return;
 	}
@@ -1189,7 +1189,7 @@ void drain_slab_journal(struct slab_journal *journal)
 	if (is_vdo_state_quiescing(&journal->slab->state)) {
 		// XXX: we should revisit this assertion since it is no longer
 		// clear what it is for.
-		ASSERT_LOG_ONLY((!(slab_is_rebuilding(journal->slab) &&
+		ASSERT_LOG_ONLY((!(is_vdo_slab_rebuilding(journal->slab) &&
 				   has_waiters(&journal->entry_waiters))),
 				"slab is recovered or has no waiters");
 	}
@@ -1217,7 +1217,7 @@ static void finish_decoding_journal(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct slab_journal *journal = entry->parent;
 	return_vdo_block_allocator_vio(journal->slab->allocator, entry);
-	notify_slab_journal_is_loaded(journal->slab, result);
+	notify_vdo_slab_journal_is_loaded(journal->slab, result);
 }
 
 /**
@@ -1313,7 +1313,7 @@ void decode_slab_journal(struct slab_journal *journal)
 		ASSERT_LOG_ONLY(((journal->size < 16) ||
 				 (journal->scrubbing_threshold < (journal->size - 1))),
 				"Scrubbing threshold protects against reads of unwritten slab journal blocks");
-		notify_slab_journal_is_loaded(slab, VDO_SUCCESS);
+		notify_vdo_slab_journal_is_loaded(slab, VDO_SUCCESS);
 		return;
 	}
 
@@ -1321,7 +1321,7 @@ void decode_slab_journal(struct slab_journal *journal)
 	result = acquire_vdo_block_allocator_vio(slab->allocator,
 						 &journal->resource_waiter);
 	if (result != VDO_SUCCESS) {
-		notify_slab_journal_is_loaded(slab, result);
+		notify_vdo_slab_journal_is_loaded(slab, result);
 	}
 }
 

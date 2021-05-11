@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#99 $
  */
 
 #include "slabDepot.h"
@@ -113,13 +113,13 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 					  depot->zone_count];
 		struct vdo_slab **slab_ptr =
 			&depot->new_slabs[depot->new_slab_count];
-		result = make_slab(slab_origin,
-				   allocator,
-				   translation,
-				   depot->vdo->recovery_journal,
-				   depot->new_slab_count,
-				   resizing,
-				   slab_ptr);
+		result = make_vdo_slab(slab_origin,
+				       allocator,
+				       translation,
+				       depot->vdo->recovery_journal,
+				       depot->new_slab_count,
+				       resizing,
+				       slab_ptr);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -141,7 +141,7 @@ void abandon_new_slabs(struct slab_depot *depot)
 		return;
 	}
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
-		free_slab(&depot->new_slabs[i]);
+		free_vdo_slab(&depot->new_slabs[i]);
 	}
 	depot->new_slab_count = 0;
 	FREE(depot->new_slabs);
@@ -345,7 +345,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 	if (depot->slabs != NULL) {
 		slab_count_t i;
 		for (i = 0; i < depot->slab_count; i++) {
-			free_slab(&depot->slabs[i]);
+			free_vdo_slab(&depot->slabs[i]);
 		}
 	}
 
@@ -387,7 +387,8 @@ int allocate_slab_ref_counts(struct slab_depot *depot)
 {
 	struct slab_iterator iterator = get_slab_iterator(depot);
 	while (has_next_slab(&iterator)) {
-		int result = allocate_ref_counts_for_slab(next_slab(&iterator));
+		int result =
+			allocate_ref_counts_for_vdo_slab(next_slab(&iterator));
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -455,7 +456,7 @@ uint8_t get_increment_limit(struct slab_depot *depot,
 			    physical_block_number_t pbn)
 {
 	struct vdo_slab *slab = get_slab(depot, pbn);
-	if ((slab == NULL) || is_unrecovered_slab(slab)) {
+	if ((slab == NULL) || is_unrecovered_vdo_slab(slab)) {
 		return 0;
 	}
 
@@ -478,8 +479,8 @@ bool is_physical_data_block(const struct slab_depot *depot,
 		return false;
 	}
 
-	result = slab_block_number_from_pbn(depot->slabs[slab_number],
-					    pbn, &sbn);
+	result = vdo_slab_block_number_from_pbn(depot->slabs[slab_number],
+						pbn, &sbn);
 	return (result == VDO_SUCCESS);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#40 $
  */
 
 #ifndef VDO_SLAB_H
@@ -90,7 +90,7 @@ struct vdo_slab {
  *
  * @return  The list entry as a vdo_slab
  **/
-static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
+static inline struct vdo_slab *vdo_slab_from_list_entry(struct list_head *entry)
 {
 	return list_entry(entry, struct vdo_slab, allocq_entry);
 }
@@ -112,13 +112,13 @@ static inline struct vdo_slab *slab_from_list_entry(struct list_head *entry)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_slab(physical_block_number_t slab_origin,
-			   struct block_allocator *allocator,
-			   physical_block_number_t translation,
-			   struct recovery_journal *recovery_journal,
-			   slab_count_t slab_number,
-			   bool is_new,
-			   struct vdo_slab **slab_ptr);
+int __must_check make_vdo_slab(physical_block_number_t slab_origin,
+			       struct block_allocator *allocator,
+			       physical_block_number_t translation,
+			       struct recovery_journal *recovery_journal,
+			       slab_count_t slab_number,
+			       bool is_new,
+			       struct vdo_slab **slab_ptr);
 
 /**
  * Allocate the reference counts for a slab.
@@ -127,14 +127,14 @@ int __must_check make_slab(physical_block_number_t slab_origin,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check allocate_ref_counts_for_slab(struct vdo_slab *slab);
+int __must_check allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab);
 
 /**
  * Destroy a slab and null out the reference to it.
  *
  * @param slab_ptr  The reference to the slab to destroy
  **/
-void free_slab(struct vdo_slab **slab_ptr);
+void free_vdo_slab(struct vdo_slab **slab_ptr);
 
 /**
  * Get the physical zone number of a slab.
@@ -143,7 +143,7 @@ void free_slab(struct vdo_slab **slab_ptr);
  *
  * @return The number of the slab's physical zone
  **/
-zone_count_t __must_check get_slab_zone_number(struct vdo_slab *slab);
+zone_count_t __must_check get_vdo_slab_zone_number(struct vdo_slab *slab);
 
 /**
  * Check whether a slab is unrecovered.
@@ -152,7 +152,7 @@ zone_count_t __must_check get_slab_zone_number(struct vdo_slab *slab);
  *
  * @return <code>true</code> if the slab is unrecovered
  **/
-static inline bool is_unrecovered_slab(const struct vdo_slab *slab)
+static inline bool is_unrecovered_vdo_slab(const struct vdo_slab *slab)
 {
 	return (slab->status != SLAB_REBUILT);
 }
@@ -164,7 +164,7 @@ static inline bool is_unrecovered_slab(const struct vdo_slab *slab)
  *
  * @return <code>true</code> if the slab is replaying
  **/
-static inline bool is_replaying_slab(const struct vdo_slab *slab)
+static inline bool is_replaying_vdo_slab(const struct vdo_slab *slab)
 {
 	return (slab->status == SLAB_REPLAYING);
 }
@@ -176,7 +176,7 @@ static inline bool is_replaying_slab(const struct vdo_slab *slab)
  *
  * @return <code>true</code> if the slab is being rebuilt
  **/
-static inline bool slab_is_rebuilding(const struct vdo_slab *slab)
+static inline bool is_vdo_slab_rebuilding(const struct vdo_slab *slab)
 {
 	return (slab->status == SLAB_REBUILDING);
 }
@@ -186,21 +186,21 @@ static inline bool slab_is_rebuilding(const struct vdo_slab *slab)
  *
  * @param slab  The slab to mark
  **/
-void mark_slab_replaying(struct vdo_slab *slab);
+void mark_vdo_slab_replaying(struct vdo_slab *slab);
 
 /**
  * Mark a slab as unrecovered, for online recovery.
  *
  * @param slab  The slab to mark
  **/
-void mark_slab_unrecovered(struct vdo_slab *slab);
+void mark_vdo_slab_unrecovered(struct vdo_slab *slab);
 
 /**
  * Perform all necessary initialization of a slab necessary for allocations.
  *
  * @param slab  The slab
  **/
-void open_slab(struct vdo_slab *slab);
+void open_vdo_slab(struct vdo_slab *slab);
 
 /**
  * Get the current number of free blocks in a slab.
@@ -223,9 +223,9 @@ get_slab_free_block_count(const struct vdo_slab *slab);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-modify_slab_reference_count(struct vdo_slab *slab,
-			    const struct journal_point *journal_point,
-			    struct reference_operation operation);
+modify_vdo_slab_reference_count(struct vdo_slab *slab,
+				const struct journal_point *journal_point,
+				struct reference_operation operation);
 
 /**
  * Acquire a provisional reference on behalf of a PBN lock if the block it
@@ -238,9 +238,9 @@ modify_slab_reference_count(struct vdo_slab *slab,
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-acquire_provisional_reference(struct vdo_slab *slab,
-			      physical_block_number_t pbn,
-			      struct pbn_lock *lock);
+vdo_acquire_provisional_reference(struct vdo_slab *slab,
+				  physical_block_number_t pbn,
+				  struct pbn_lock *lock);
 
 /**
  * Determine the index within the slab of a particular physical block number.
@@ -252,9 +252,9 @@ acquire_provisional_reference(struct vdo_slab *slab,
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-slab_block_number_from_pbn(struct vdo_slab *slab,
-			   physical_block_number_t physical_block_number,
-			   slab_block_number *slab_block_number_ptr);
+vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
+			       physical_block_number_t physical_block_number,
+			       slab_block_number *slab_block_number_ptr);
 
 /**
  * Check whether the reference counts for a given rebuilt slab should be saved.
@@ -263,7 +263,7 @@ slab_block_number_from_pbn(struct vdo_slab *slab,
  *
  * @return true if the slab should be saved
  **/
-bool __must_check should_save_fully_built_slab(const struct vdo_slab *slab);
+bool __must_check should_save_fully_built_vdo_slab(const struct vdo_slab *slab);
 
 /**
  * Start an administrative operation on a slab.
@@ -272,9 +272,9 @@ bool __must_check should_save_fully_built_slab(const struct vdo_slab *slab);
  * @param operation  The type of load to perform
  * @param parent     The object to notify when the operation is complete
  **/
-void start_slab_action(struct vdo_slab *slab,
-		       enum admin_state_code operation,
-		       struct vdo_completion *parent);
+void start_vdo_slab_action(struct vdo_slab *slab,
+			   enum admin_state_code operation,
+			   struct vdo_completion *parent);
 
 /**
  * Inform a slab that its journal has been loaded.
@@ -282,7 +282,7 @@ void start_slab_action(struct vdo_slab *slab,
  * @param slab    The slab whose journal has been loaded
  * @param result  The result of the load operation
  **/
-void notify_slab_journal_is_loaded(struct vdo_slab *slab, int result);
+void notify_vdo_slab_journal_is_loaded(struct vdo_slab *slab, int result);
 
 /**
  * Check whether a slab is open, i.e. is neither quiescent nor quiescing.
@@ -291,7 +291,7 @@ void notify_slab_journal_is_loaded(struct vdo_slab *slab, int result);
  *
  * @return <code>true</code> if the slab is open
  **/
-bool __must_check is_slab_open(struct vdo_slab *slab);
+bool __must_check is_vdo_slab_open(struct vdo_slab *slab);
 
 /**
  * Check whether a slab is currently draining.
@@ -300,14 +300,14 @@ bool __must_check is_slab_open(struct vdo_slab *slab);
  *
  * @return <code>true</code> if the slab is performing a drain operation
  **/
-bool __must_check is_slab_draining(struct vdo_slab *slab);
+bool __must_check is_vdo_slab_draining(struct vdo_slab *slab);
 
 /**
  * Check whether a slab has drained, and if so, send a notification thereof.
  *
  * @param slab  The slab to check
  **/
-void check_if_slab_drained(struct vdo_slab *slab);
+void check_if_vdo_slab_drained(struct vdo_slab *slab);
 
 /**
  * Inform a slab that its ref_counts have finished draining.
@@ -315,7 +315,7 @@ void check_if_slab_drained(struct vdo_slab *slab);
  * @param slab    The slab whose ref_counts object has been drained
  * @param result  The result of the drain operation
  **/
-void notify_ref_counts_are_drained(struct vdo_slab *slab, int result);
+void notify_vdo_slab_ref_counts_are_drained(struct vdo_slab *slab, int result);
 
 /**
  * Check whether a slab is currently resuming.
@@ -324,7 +324,7 @@ void notify_ref_counts_are_drained(struct vdo_slab *slab, int result);
  *
  * @return <code>true</code> if the slab is performing a resume operation
  **/
-bool __must_check is_slab_resuming(struct vdo_slab *slab);
+bool __must_check is_vdo_slab_resuming(struct vdo_slab *slab);
 
 /**
  * Finish scrubbing a slab now that it has been rebuilt by updating its status,
@@ -333,13 +333,13 @@ bool __must_check is_slab_resuming(struct vdo_slab *slab);
  * @param slab  The slab whose reference counts have been rebuilt from its
  *              journal
  **/
-void finish_scrubbing_slab(struct vdo_slab *slab);
+void finish_scrubbing_vdo_slab(struct vdo_slab *slab);
 
 /**
  * Dump information about a slab to the log for debugging.
  *
  * @param slab   The slab to dump
  **/
-void dump_slab(const struct vdo_slab *slab);
+void dump_vdo_slab(const struct vdo_slab *slab);
 
 #endif // VDO_SLAB_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#56 $
  */
 
 /**
@@ -1138,9 +1138,9 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	if (lock->holder_count == 0) {
 		// Ensure that the newly-locked block is referenced.
 		struct vdo_slab *slab = get_slab(depot, agent->duplicate.pbn);
-		result = acquire_provisional_reference(slab,
-						       agent->duplicate.pbn,
-						       lock);
+		result = vdo_acquire_provisional_reference(slab,
+						       	   agent->duplicate.pbn,
+							   lock);
 		if (result != VDO_SUCCESS) {
 			log_warning_strerror(result,
 					     "Error acquiring provisional reference for dedupe candidate; aborting dedupe");

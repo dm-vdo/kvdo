@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#63 $
  */
 
 #include "slabScrubberInternals.h"
@@ -132,11 +132,11 @@ void free_slab_scrubber(struct slab_scrubber **scrubber_ptr)
 static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 {
 	if (!list_empty(&scrubber->high_priority_slabs)) {
-		return slab_from_list_entry(scrubber->high_priority_slabs.next);
+		return vdo_slab_from_list_entry(scrubber->high_priority_slabs.next);
 	}
 
 	if (!list_empty(&scrubber->slabs)) {
-		return slab_from_list_entry(scrubber->slabs.next);
+		return vdo_slab_from_list_entry(scrubber->slabs.next);
 	}
 
 	return NULL;
@@ -230,7 +230,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber);
 static void slab_scrubbed(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
-	finish_scrubbing_slab(scrubber->slab);
+	finish_scrubbing_vdo_slab(scrubber->slab);
 	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
 }
@@ -395,7 +395,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			       handle_scrubber_error,
 			       completion->callback_thread_id,
 			       scrubber);
-	start_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
+	start_vdo_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
 
 /**
@@ -461,7 +461,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 			       handle_scrubber_error,
 			       scrubber->completion.callback_thread_id,
 			       scrubber);
-	start_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
+	start_vdo_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
 /**********************************************************************/

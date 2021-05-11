@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#113 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#114 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -369,13 +369,13 @@ void queue_vdo_slab(struct vdo_slab *slab)
 		return;
 	}
 
-	if (is_unrecovered_slab(slab)) {
+	if (is_unrecovered_vdo_slab(slab)) {
 		register_slab_for_scrubbing(allocator->slab_scrubber,
 					    slab, false);
 		return;
 	}
 
-	if (!is_slab_resuming(slab)) {
+	if (!is_vdo_slab_resuming(slab)) {
 		// If the slab is resuming, we've already accounted for it
 		// here, so don't do it again.
 		WRITE_ONCE(allocator->allocated_blocks,
@@ -465,8 +465,8 @@ int allocate_vdo_block(struct block_allocator *allocator,
 	// Remove the highest priority slab from the priority table and make it
 	// the open slab.
 	allocator->open_slab =
-		slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
-	open_slab(allocator->open_slab);
+		vdo_slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
+	open_vdo_slab(allocator->open_slab);
 
 	// Try allocating again. If we're out of space immediately after
 	// opening a slab, then every slab must be fully allocated.
@@ -490,7 +490,7 @@ void release_vdo_block_reference(struct block_allocator *allocator,
 	}
 
 	slab = get_slab(allocator->depot, pbn);
-	result = modify_slab_reference_count(slab, NULL, operation);
+	result = modify_vdo_slab_reference_count(slab, NULL, operation);
 	if (result != VDO_SUCCESS) {
 		log_error_strerror(result,
 				   "Failed to release reference to %s physical block %llu",
@@ -622,9 +622,9 @@ static void apply_to_slabs(struct block_allocator *allocator,
 		struct vdo_slab *slab = next_slab(&iterator);
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
-		start_slab_action(slab,
-				  get_vdo_admin_state_code(&allocator->state),
-				  &allocator->completion);
+		start_vdo_slab_action(slab,
+				      get_vdo_admin_state_code(&allocator->state),
+				      &allocator->completion);
 	}
 
 	slab_action_callback(&allocator->completion);
@@ -752,7 +752,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 			continue;
 		}
 
-		mark_slab_unrecovered(slab);
+		mark_vdo_slab_unrecovered(slab);
 		high_priority = ((current_slab_status.is_clean &&
 				 (depot->load_type == NORMAL_LOAD)) ||
 				 requires_scrubbing(slab->journal));
@@ -1049,7 +1049,7 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 	log_info("block_allocator zone %u", allocator->zone_number);
 	while (has_next_slab(&iterator)) {
-		dump_slab(next_slab(&iterator));
+		dump_vdo_slab(next_slab(&iterator));
 
 		// Wait for a while after each batch of 32 slabs dumped,
 		// allowing the kernel log a chance to be flushed instead of

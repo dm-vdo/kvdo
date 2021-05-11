@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#57 $
  */
 
 #include "slab.h"
@@ -40,13 +40,13 @@
 #include "slabSummary.h"
 
 /**********************************************************************/
-int make_slab(physical_block_number_t slab_origin,
-	      struct block_allocator *allocator,
-	      physical_block_number_t translation,
-	      struct recovery_journal *recovery_journal,
-	      slab_count_t slab_number,
-	      bool is_new,
-	      struct vdo_slab **slab_ptr)
+int make_vdo_slab(physical_block_number_t slab_origin,
+		  struct block_allocator *allocator,
+		  physical_block_number_t translation,
+		  struct recovery_journal *recovery_journal,
+		  slab_count_t slab_number,
+		  bool is_new,
+		  struct vdo_slab **slab_ptr)
 {
 	const struct slab_config *slab_config =
 		get_slab_config(allocator->depot);
@@ -72,15 +72,15 @@ int make_slab(physical_block_number_t slab_origin,
 	result = make_slab_journal(allocator, slab, recovery_journal,
 				   &slab->journal);
 	if (result != VDO_SUCCESS) {
-		free_slab(&slab);
+		free_vdo_slab(&slab);
 		return result;
 	}
 
 	if (is_new) {
 		slab->state.current_state = ADMIN_STATE_NEW;
-		result = allocate_ref_counts_for_slab(slab);
+		result = allocate_ref_counts_for_vdo_slab(slab);
 		if (result != VDO_SUCCESS) {
-			free_slab(&slab);
+			free_vdo_slab(&slab);
 			return result;
 		}
 	}
@@ -90,7 +90,7 @@ int make_slab(physical_block_number_t slab_origin,
 }
 
 /**********************************************************************/
-int allocate_ref_counts_for_slab(struct vdo_slab *slab)
+int allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
 	const struct slab_config *slab_config
@@ -111,7 +111,7 @@ int allocate_ref_counts_for_slab(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-void free_slab(struct vdo_slab **slab_ptr)
+void free_vdo_slab(struct vdo_slab **slab_ptr)
 {
 	struct vdo_slab *slab = *slab_ptr;
 	if (slab == NULL) {
@@ -126,13 +126,13 @@ void free_slab(struct vdo_slab **slab_ptr)
 }
 
 /**********************************************************************/
-zone_count_t get_slab_zone_number(struct vdo_slab *slab)
+zone_count_t get_vdo_slab_zone_number(struct vdo_slab *slab)
 {
 	return slab->allocator->zone_number;
 }
 
 /**********************************************************************/
-void mark_slab_replaying(struct vdo_slab *slab)
+void mark_vdo_slab_replaying(struct vdo_slab *slab)
 {
 	if (slab->status == SLAB_REBUILT) {
 		slab->status = SLAB_REPLAYING;
@@ -140,7 +140,7 @@ void mark_slab_replaying(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-void mark_slab_unrecovered(struct vdo_slab *slab)
+void mark_vdo_slab_unrecovered(struct vdo_slab *slab)
 {
 	slab->status = SLAB_REQUIRES_SCRUBBING;
 }
@@ -152,9 +152,9 @@ block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-int modify_slab_reference_count(struct vdo_slab *slab,
-				const struct journal_point *journal_point,
-				struct reference_operation operation)
+int modify_vdo_slab_reference_count(struct vdo_slab *slab,
+				    const struct journal_point *journal_point,
+				    struct reference_operation operation)
 {
 	bool free_status_changed;
 	int result;
@@ -168,7 +168,7 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 	 * scrubbing correct the refCount. Note that the slab journal has
 	 * already captured all refCount updates.
 	 */
-	if (is_unrecovered_slab(slab)) {
+	if (is_unrecovered_vdo_slab(slab)) {
 		sequence_number_t entry_lock = journal_point->sequence_number;
 		adjust_slab_journal_block_reference(slab->journal,
 						    entry_lock,
@@ -191,7 +191,7 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 }
 
 /**********************************************************************/
-void open_slab(struct vdo_slab *slab)
+void open_vdo_slab(struct vdo_slab *slab)
 {
 	reset_search_cursor(slab->reference_counts);
 	if (is_slab_journal_blank(slab->journal)) {
@@ -205,9 +205,9 @@ void open_slab(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-int acquire_provisional_reference(struct vdo_slab *slab,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock)
+int vdo_acquire_provisional_reference(struct vdo_slab *slab,
+				      physical_block_number_t pbn,
+				      struct pbn_lock *lock)
 {
 	int result;
 
@@ -229,9 +229,9 @@ int acquire_provisional_reference(struct vdo_slab *slab,
 }
 
 /**********************************************************************/
-int slab_block_number_from_pbn(struct vdo_slab *slab,
-			       physical_block_number_t physical_block_number,
-			       slab_block_number *slab_block_number_ptr)
+int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
+				   physical_block_number_t physical_block_number,
+				   slab_block_number *slab_block_number_ptr)
 {
 	uint64_t slab_block_number;
 	if (physical_block_number < slab->start) {
@@ -249,7 +249,7 @@ int slab_block_number_from_pbn(struct vdo_slab *slab,
 }
 
 /**********************************************************************/
-bool should_save_fully_built_slab(const struct vdo_slab *slab)
+bool should_save_fully_built_vdo_slab(const struct vdo_slab *slab)
 {
 	// Write out the ref_counts if the slab has written them before, or it
 	// has any non-zero reference counts, or there are any slab journal
@@ -284,7 +284,7 @@ static void initiate_slab_action(struct admin_state *state)
 			drain_ref_counts(slab->reference_counts);
 		}
 
-		check_if_slab_drained(slab);
+		check_if_vdo_slab_drained(slab);
 		return;
 	}
 
@@ -303,42 +303,42 @@ static void initiate_slab_action(struct admin_state *state)
 }
 
 /**********************************************************************/
-void start_slab_action(struct vdo_slab *slab,
-		       enum admin_state_code operation,
-		       struct vdo_completion *parent)
+void start_vdo_slab_action(struct vdo_slab *slab,
+			   enum admin_state_code operation,
+			   struct vdo_completion *parent)
 {
 	start_vdo_operation_with_waiter(&slab->state, operation, parent,
 					initiate_slab_action);
 }
 
 /**********************************************************************/
-void notify_slab_journal_is_loaded(struct vdo_slab *slab, int result)
+void notify_vdo_slab_journal_is_loaded(struct vdo_slab *slab, int result)
 {
 	if ((result == VDO_SUCCESS) && is_vdo_state_clean_load(&slab->state)) {
 		// Since this is a normal or new load, we don't need the memory
 		// to read and process the recovery journal, so we can allocate
 		// reference counts now.
-		result = allocate_ref_counts_for_slab(slab);
+		result = allocate_ref_counts_for_vdo_slab(slab);
 	}
 
 	finish_vdo_loading_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
-bool is_slab_open(struct vdo_slab *slab)
+bool is_vdo_slab_open(struct vdo_slab *slab)
 {
 	return (!is_vdo_state_quiescing(&slab->state) &&
 		!is_vdo_state_quiescent(&slab->state));
 }
 
 /**********************************************************************/
-bool is_slab_draining(struct vdo_slab *slab)
+bool is_vdo_slab_draining(struct vdo_slab *slab)
 {
 	return is_vdo_state_draining(&slab->state);
 }
 
 /**********************************************************************/
-void check_if_slab_drained(struct vdo_slab *slab)
+void check_if_vdo_slab_drained(struct vdo_slab *slab)
 {
 	if (is_vdo_state_draining(&slab->state) &&
 	    !is_slab_journal_active(slab->journal) &&
@@ -352,19 +352,19 @@ void check_if_slab_drained(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-void notify_ref_counts_are_drained(struct vdo_slab *slab, int result)
+void notify_vdo_slab_ref_counts_are_drained(struct vdo_slab *slab, int result)
 {
 	finish_vdo_draining_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
-bool is_slab_resuming(struct vdo_slab *slab)
+bool is_vdo_slab_resuming(struct vdo_slab *slab)
 {
 	return is_vdo_state_resuming(&slab->state);
 }
 
 /**********************************************************************/
-void finish_scrubbing_slab(struct vdo_slab *slab)
+void finish_scrubbing_vdo_slab(struct vdo_slab *slab)
 {
 	slab->status = SLAB_REBUILT;
 	queue_vdo_slab(slab);
@@ -391,7 +391,7 @@ static const char *status_to_string(enum slab_rebuild_status status)
 }
 
 /**********************************************************************/
-void dump_slab(const struct vdo_slab *slab)
+void dump_vdo_slab(const struct vdo_slab *slab)
 {
 	if (slab->reference_counts != NULL) {
 		// Terse because there are a lot of slabs to dump and syslog is
