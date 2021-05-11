@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#73 $
  */
 
 #include "refCounts.h"
@@ -593,7 +593,7 @@ update_reference_count(struct ref_counts *ref_counts,
 {
 	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
 	enum reference_status old_status = reference_count_to_status(*counter_ptr);
-	struct pbn_lock *lock = get_reference_operation_pbn_lock(operation);
+	struct pbn_lock *lock = get_vdo_reference_operation_pbn_lock(operation);
 	int result;
 
 	switch (operation.type) {

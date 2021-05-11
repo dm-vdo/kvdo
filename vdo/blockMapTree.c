@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#89 $
  */
 
 #include "blockMapTree.h"
@@ -1198,11 +1198,11 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 	}
 
 	lock->tree_slots[lock->height - 1].block_map_slot.pbn = pbn;
-	set_up_reference_operation_with_lock(BLOCK_MAP_INCREMENT,
-					     pbn,
-					     MAPPING_STATE_UNCOMPRESSED,
-					     allocating_vio->allocation_lock,
-					     &data_vio->operation);
+	set_up_vdo_reference_operation_with_lock(BLOCK_MAP_INCREMENT,
+						 pbn,
+						 MAPPING_STATE_UNCOMPRESSED,
+						 allocating_vio->allocation_lock,
+						 &data_vio->operation);
 	launch_journal_callback(data_vio, journal_block_map_allocation);
 }
 
