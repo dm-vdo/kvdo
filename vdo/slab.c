@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#58 $
  */
 
 #include "slab.h"
@@ -103,11 +103,11 @@ int allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab)
 		return result;
 	}
 
-	return make_ref_counts(slab_config->data_blocks,
-			       slab,
-			       slab->ref_counts_origin,
-			       allocator->read_only_notifier,
-			       &slab->reference_counts);
+	return make_vdo_ref_counts(slab_config->data_blocks,
+				   slab,
+				   slab->ref_counts_origin,
+				   allocator->read_only_notifier,
+				   &slab->reference_counts);
 }
 
 /**********************************************************************/
@@ -120,7 +120,7 @@ void free_vdo_slab(struct vdo_slab **slab_ptr)
 
 	list_del(&slab->allocq_entry);
 	free_slab_journal(&slab->journal);
-	free_ref_counts(&slab->reference_counts);
+	free_vdo_ref_counts(&slab->reference_counts);
 	FREE(slab);
 	*slab_ptr = NULL;
 }
@@ -148,7 +148,7 @@ void mark_vdo_slab_unrecovered(struct vdo_slab *slab)
 /**********************************************************************/
 block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 {
-	return get_unreferenced_block_count(slab->reference_counts);
+	return vdo_get_unreferenced_block_count(slab->reference_counts);
 }
 
 /**********************************************************************/
@@ -176,8 +176,9 @@ int modify_vdo_slab_reference_count(struct vdo_slab *slab,
 		return VDO_SUCCESS;
 	}
 
-	result = adjust_reference_count(slab->reference_counts, operation,
-					journal_point, &free_status_changed);
+	result = vdo_adjust_reference_count(slab->reference_counts, operation,
+				       	    journal_point,
+				       	    &free_status_changed);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -193,11 +194,11 @@ int modify_vdo_slab_reference_count(struct vdo_slab *slab,
 /**********************************************************************/
 void open_vdo_slab(struct vdo_slab *slab)
 {
-	reset_search_cursor(slab->reference_counts);
+	vdo_reset_search_cursor(slab->reference_counts);
 	if (is_slab_journal_blank(slab->journal)) {
 		WRITE_ONCE(slab->allocator->statistics.slabs_opened,
 			   slab->allocator->statistics.slabs_opened + 1);
-		dirty_all_reference_blocks(slab->reference_counts);
+		vdo_dirty_all_reference_blocks(slab->reference_counts);
 	} else {
 		WRITE_ONCE(slab->allocator->statistics.slabs_reopened,
 			   slab->allocator->statistics.slabs_reopened + 1);
@@ -215,8 +216,8 @@ int vdo_acquire_provisional_reference(struct vdo_slab *slab,
 		return VDO_SUCCESS;
 	}
 
-	result =
-		provisionally_reference_block(slab->reference_counts, pbn, lock);
+	result = vdo_provisionally_reference_block(slab->reference_counts,
+						   pbn, lock);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -281,7 +282,7 @@ static void initiate_slab_action(struct admin_state *state)
 		drain_slab_journal(slab->journal);
 
 		if (slab->reference_counts != NULL) {
-			drain_ref_counts(slab->reference_counts);
+			drain_vdo_ref_counts(slab->reference_counts);
 		}
 
 		check_if_vdo_slab_drained(slab);
@@ -343,7 +344,7 @@ void check_if_vdo_slab_drained(struct vdo_slab *slab)
 	if (is_vdo_state_draining(&slab->state) &&
 	    !is_slab_journal_active(slab->journal) &&
 	    ((slab->reference_counts == NULL) ||
-	     !are_ref_counts_active(slab->reference_counts))) {
+	     !are_vdo_ref_counts_active(slab->reference_counts))) {
 		int result = (vdo_is_read_only(slab->allocator->read_only_notifier)
 				      ? VDO_READ_ONLY
 				      : VDO_SUCCESS);
@@ -406,7 +407,7 @@ void dump_vdo_slab(const struct vdo_slab *slab)
 	dump_slab_journal(slab->journal);
 
 	if (slab->reference_counts != NULL) {
-		dump_ref_counts(slab->reference_counts);
+		dump_vdo_ref_counts(slab->reference_counts);
 	} else {
 		log_info("refCounts is null");
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#75 $
  */
 
 #include "refCounts.h"
@@ -106,7 +106,7 @@ static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-enum reference_status reference_count_to_status(vdo_refcount_t count)
+enum reference_status vdo_reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT) {
 		return RS_FREE;
@@ -120,7 +120,7 @@ enum reference_status reference_count_to_status(vdo_refcount_t count)
 }
 
 /**********************************************************************/
-void reset_search_cursor(struct ref_counts *ref_counts)
+void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 {
 	struct search_cursor *cursor = &ref_counts->search_cursor;
 
@@ -148,7 +148,7 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 	// If we just finished searching the last reference block, then wrap
 	// back around to the start of the array.
 	if (cursor->block == cursor->last_block) {
-		reset_search_cursor(ref_counts);
+		vdo_reset_search_cursor(ref_counts);
 		return false;
 	}
 
@@ -167,11 +167,11 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-int make_ref_counts(block_count_t block_count,
-		    struct vdo_slab *slab,
-		    physical_block_number_t origin,
-		    struct read_only_notifier *read_only_notifier,
-		    struct ref_counts **ref_counts_ptr)
+int make_vdo_ref_counts(block_count_t block_count,
+			struct vdo_slab *slab,
+			physical_block_number_t origin,
+			struct read_only_notifier *read_only_notifier,
+			struct ref_counts **ref_counts_ptr)
 {
 	size_t index, bytes;
 	block_count_t ref_block_count =
@@ -194,7 +194,7 @@ int make_ref_counts(block_count_t block_count,
 			  "ref counts array",
 			  &ref_counts->counters);
 	if (result != UDS_SUCCESS) {
-		free_ref_counts(&ref_counts);
+		free_vdo_ref_counts(&ref_counts);
 		return result;
 	}
 
@@ -208,7 +208,7 @@ int make_ref_counts(block_count_t block_count,
 	ref_counts->search_cursor.first_block = &ref_counts->blocks[0];
 	ref_counts->search_cursor.last_block =
 		&ref_counts->blocks[ref_block_count - 1];
-	reset_search_cursor(ref_counts);
+	vdo_reset_search_cursor(ref_counts);
 
 	for (index = 0; index < ref_block_count; index++) {
 		ref_counts->blocks[index] = (struct reference_block) {
@@ -221,7 +221,7 @@ int make_ref_counts(block_count_t block_count,
 }
 
 /**********************************************************************/
-void free_ref_counts(struct ref_counts **ref_counts_ptr)
+void free_vdo_ref_counts(struct ref_counts **ref_counts_ptr)
 {
 	struct ref_counts *ref_counts = *ref_counts_ptr;
 	if (ref_counts == NULL) {
@@ -248,7 +248,7 @@ static bool __must_check has_active_io(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-bool are_ref_counts_active(struct ref_counts *ref_counts)
+bool are_vdo_ref_counts_active(struct ref_counts *ref_counts)
 {
 	enum admin_state_code code;
 
@@ -309,7 +309,8 @@ static void dirty_block(struct reference_block *block)
 }
 
 /**********************************************************************/
-block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
+block_count_t
+vdo_get_unreferenced_block_count(struct ref_counts *ref_counts)
 {
 	return ref_counts->free_blocks;
 }
@@ -321,8 +322,8 @@ block_count_t get_unreferenced_block_count(struct ref_counts *ref_counts)
  * @param index       The block index
  **/
 static struct reference_block * __must_check
-get_reference_block(struct ref_counts *ref_counts,
-		    slab_block_number index)
+vdo_get_reference_block(struct ref_counts *ref_counts,
+			slab_block_number index)
 {
 	return &ref_counts->blocks[index / COUNTS_PER_BLOCK];
 }
@@ -351,8 +352,8 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-uint8_t get_available_references(struct ref_counts *ref_counts,
-				 physical_block_number_t pbn)
+uint8_t vdo_get_available_references(struct ref_counts *ref_counts,
+				     physical_block_number_t pbn)
 {
 	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
@@ -592,7 +593,8 @@ update_reference_count(struct ref_counts *ref_counts,
 		       bool *provisional_decrement_ptr)
 {
 	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
-	enum reference_status old_status = reference_count_to_status(*counter_ptr);
+	enum reference_status old_status =
+		vdo_reference_count_to_status(*counter_ptr);
 	struct pbn_lock *lock = get_vdo_reference_operation_pbn_lock(operation);
 	int result;
 
@@ -653,10 +655,10 @@ update_reference_count(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-int adjust_reference_count(struct ref_counts *ref_counts,
-			   struct reference_operation operation,
-			   const struct journal_point *slab_journal_point,
-			   bool *free_status_changed)
+int vdo_adjust_reference_count(struct ref_counts *ref_counts,
+			       struct reference_operation operation,
+			       const struct journal_point *slab_journal_point,
+			       bool *free_status_changed)
 {
 	slab_block_number block_number;
 	int result;
@@ -674,7 +676,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 		return result;
 	}
 
-	block = get_reference_block(ref_counts, block_number);
+	block = vdo_get_reference_block(ref_counts, block_number);
 	result = update_reference_count(ref_counts, block, block_number,
 					slab_journal_point, operation,
 					NORMAL_OPERATION, free_status_changed,
@@ -721,9 +723,9 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
-				       physical_block_number_t pbn,
-				       enum journal_operation operation)
+int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
+					   physical_block_number_t pbn,
+					   enum journal_operation operation)
 {
 	slab_block_number block_number;
 	struct reference_block *block;
@@ -739,7 +741,7 @@ int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 		return result;
 	}
 
-	block = get_reference_block(ref_counts, block_number);
+	block = vdo_get_reference_block(ref_counts, block_number);
 	result = update_reference_count(ref_counts, block, block_number,
 					NULL, physical_operation,
 					!NORMAL_OPERATION,
@@ -753,14 +755,14 @@ int adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-int replay_reference_count_change(struct ref_counts *ref_counts,
-				  const struct journal_point *entry_point,
-				  struct slab_journal_entry entry)
+int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
+				      const struct journal_point *entry_point,
+				      struct slab_journal_entry entry)
 {
 	bool unused_free_status;
 	int result;
 	struct reference_block *block =
-		get_reference_block(ref_counts, entry.sbn);
+		vdo_get_reference_block(ref_counts, entry.sbn);
 	sector_count_t sector = (entry.sbn % COUNTS_PER_BLOCK) /
 		COUNTS_PER_SECTOR;
 	struct reference_operation operation = { .type = entry.operation };
@@ -786,8 +788,8 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 
 
 /**********************************************************************/
-bool are_equivalent_reference_counters(struct ref_counts *counter_a,
-				       struct ref_counts *counter_b)
+bool are_equivalent_vdo_ref_counts(struct ref_counts *counter_a,
+				   struct ref_counts *counter_b)
 {
 	size_t i;
 
@@ -845,10 +847,10 @@ find_zero_byte_in_word(const byte *word_ptr,
 }
 
 /**********************************************************************/
-bool find_free_block(const struct ref_counts *ref_counts,
-		     slab_block_number start_index,
-		     slab_block_number end_index,
-		     slab_block_number *index_ptr)
+bool vdo_find_free_block(const struct ref_counts *ref_counts,
+			 slab_block_number start_index,
+			 slab_block_number end_index,
+			 slab_block_number *index_ptr)
 {
 	slab_block_number zero_index;
 	slab_block_number next_index = start_index;
@@ -909,10 +911,10 @@ static bool search_current_reference_block(const struct ref_counts *ref_counts,
 	// Don't bother searching if the current block is known to be full.
 	return ((ref_counts->search_cursor.block->allocated_count <
 		 COUNTS_PER_BLOCK) &&
-		find_free_block(ref_counts,
-				ref_counts->search_cursor.index,
-				ref_counts->search_cursor.end_index,
-				free_index_ptr));
+		vdo_find_free_block(ref_counts,
+				    ref_counts->search_cursor.index,
+				    ref_counts->search_cursor.end_index,
+				    free_index_ptr));
 }
 
 /**
@@ -954,7 +956,7 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 				       slab_block_number block_number)
 {
 	struct reference_block *block =
-		get_reference_block(ref_counts, block_number);
+		vdo_get_reference_block(ref_counts, block_number);
 	// Make the initial transition from an unreferenced block to a
 	// provisionally allocated block.
 	ref_counts->counters[block_number] = PROVISIONAL_REFERENCE_COUNT;
@@ -965,8 +967,8 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-int allocate_unreferenced_block(struct ref_counts *ref_counts,
-				physical_block_number_t *allocated_ptr)
+int vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
+				    physical_block_number_t *allocated_ptr)
 {
 	slab_block_number free_index;
 
@@ -992,9 +994,9 @@ int allocate_unreferenced_block(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-int provisionally_reference_block(struct ref_counts *ref_counts,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock)
+int vdo_provisionally_reference_block(struct ref_counts *ref_counts,
+				      physical_block_number_t pbn,
+				      struct pbn_lock *lock)
 {
 	slab_block_number block_number;
 	int result;
@@ -1020,9 +1022,9 @@ int provisionally_reference_block(struct ref_counts *ref_counts,
 }
 
 /**********************************************************************/
-block_count_t count_unreferenced_blocks(struct ref_counts *ref_counts,
-					physical_block_number_t start_pbn,
-					physical_block_number_t end_pbn)
+block_count_t vdo_count_unreferenced_blocks(struct ref_counts *ref_counts,
+					    physical_block_number_t start_pbn,
+					    physical_block_number_t end_pbn)
 {
 	block_count_t free_blocks = 0;
 	slab_block_number start_index = pbn_to_index(ref_counts, start_pbn);
@@ -1064,7 +1066,7 @@ static void clear_dirty_reference_blocks(struct waiter *block_waiter,
 }
 
 /**********************************************************************/
-void reset_reference_counts(struct ref_counts *ref_counts)
+void vdo_reset_reference_counts(struct ref_counts *ref_counts)
 {
 	size_t i;
 	memset(ref_counts->counters, 0,
@@ -1184,7 +1186,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 		if (is_vdo_slab_draining(ref_counts->slab)) {
 			// We must be saving, and this block will otherwise not
 			// be relaunched.
-			save_dirty_reference_blocks(ref_counts);
+			vdo_save_dirty_reference_blocks(ref_counts);
 		}
 
 		return;
@@ -1206,7 +1208,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
  * @return A pointer to the reference counters for this block
  **/
 static vdo_refcount_t * __must_check
-get_reference_counters_for_block(struct reference_block *block)
+vdo_get_reference_counters_for_block(struct reference_block *block)
 {
 	size_t block_index = block - block->ref_counts->blocks;
 	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
@@ -1219,10 +1221,10 @@ get_reference_counters_for_block(struct reference_block *block)
  * @param buffer  The char buffer to fill with the packed block
  **/
 static void
-pack_reference_block(struct reference_block *block, void *buffer)
+vdo_pack_reference_block(struct reference_block *block, void *buffer)
 {
 	struct packed_reference_block *packed = buffer;
-	vdo_refcount_t *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
 	sector_count_t i;
 	struct packed_journal_point commit_point;
 	pack_vdo_journal_point(&block->ref_counts->slab_journal_point,
@@ -1251,7 +1253,7 @@ static void write_reference_block(struct waiter *block_waiter,
 
 	struct vio_pool_entry *entry = vio_context;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
-	pack_reference_block(block, entry->buffer);
+	vdo_pack_reference_block(block, entry->buffer);
 
 	block_offset = (block - block->ref_counts->blocks);
 	pbn = (block->ref_counts->origin + block_offset);
@@ -1312,7 +1314,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 }
 
 /**********************************************************************/
-void save_oldest_reference_block(struct ref_counts *ref_counts)
+void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
 {
 	notify_next_waiter(&ref_counts->dirty_blocks,
 			   launch_reference_block_write,
@@ -1320,8 +1322,8 @@ void save_oldest_reference_block(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-void save_several_reference_blocks(struct ref_counts *ref_counts,
-				   size_t flush_divisor)
+void vdo_save_several_reference_blocks(struct ref_counts *ref_counts,
+				       size_t flush_divisor)
 {
 	block_count_t written, blocks_to_write;
 	block_count_t dirty_block_count =
@@ -1337,12 +1339,12 @@ void save_several_reference_blocks(struct ref_counts *ref_counts,
 	}
 
 	for (written = 0; written < blocks_to_write; written++) {
-		save_oldest_reference_block(ref_counts);
+		vdo_save_oldest_reference_block(ref_counts);
 	}
 }
 
 /**********************************************************************/
-void save_dirty_reference_blocks(struct ref_counts *ref_counts)
+void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
 {
 	notify_all_waiters(&ref_counts->dirty_blocks,
 			   launch_reference_block_write,
@@ -1351,7 +1353,7 @@ void save_dirty_reference_blocks(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-void dirty_all_reference_blocks(struct ref_counts *ref_counts)
+void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
@@ -1366,7 +1368,7 @@ void dirty_all_reference_blocks(struct ref_counts *ref_counts)
  **/
 static void clear_provisional_references(struct reference_block *block)
 {
-	vdo_refcount_t *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
 	block_count_t j;
 	for (j = 0; j < COUNTS_PER_BLOCK; j++) {
 		if (counters[j] == PROVISIONAL_REFERENCE_COUNT) {
@@ -1388,7 +1390,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 	block_count_t index;
 	sector_count_t i;
 	struct ref_counts *ref_counts = block->ref_counts;
-	vdo_refcount_t *counters = get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
 		unpack_vdo_journal_point(&sector->commit_point,
@@ -1492,7 +1494,7 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-void drain_ref_counts(struct ref_counts *ref_counts)
+void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 {
 	struct vdo_slab *slab = ref_counts->slab;
 	bool save = false;
@@ -1512,14 +1514,14 @@ void drain_ref_counts(struct ref_counts *ref_counts)
 					  slab->slab_number)) {
 			// These reference counts were never written, so mark
 			// them all dirty.
-			dirty_all_reference_blocks(ref_counts);
+			vdo_dirty_all_reference_blocks(ref_counts);
 		}
 		save = true;
 		break;
 
 	case ADMIN_STATE_REBUILDING:
 		if (should_save_fully_built_vdo_slab(slab)) {
-			dirty_all_reference_blocks(ref_counts);
+			vdo_dirty_all_reference_blocks(ref_counts);
 			save = true;
 		}
 		break;
@@ -1538,15 +1540,15 @@ void drain_ref_counts(struct ref_counts *ref_counts)
 	}
 
 	if (save) {
-		save_dirty_reference_blocks(ref_counts);
+		vdo_save_dirty_reference_blocks(ref_counts);
 	}
 }
 
 /**********************************************************************/
-void acquire_dirty_block_locks(struct ref_counts *ref_counts)
+void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
-	dirty_all_reference_blocks(ref_counts);
+	vdo_dirty_all_reference_blocks(ref_counts);
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
 		ref_counts->blocks[i].slab_journal_lock = 1;
 	}
@@ -1556,7 +1558,7 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 }
 
 /**********************************************************************/
-void dump_ref_counts(const struct ref_counts *ref_counts)
+void dump_vdo_ref_counts(const struct ref_counts *ref_counts)
 {
 	// Terse because there are a lot of slabs to dump and syslog is lossy.
 	log_info("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",

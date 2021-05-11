@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#25 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -151,7 +151,7 @@ struct ref_counts {
  * @return  The appropriate reference status
  **/
 enum reference_status __must_check
-reference_count_to_status(vdo_refcount_t count);
+vdo_reference_count_to_status(vdo_refcount_t count);
 
 /**
  * Convert a generic vdo_completion to a ref_counts object.
@@ -161,7 +161,7 @@ reference_count_to_status(vdo_refcount_t count);
  * @return The completion as a ref_counts object
  **/
 struct ref_counts * __must_check
-as_ref_counts(struct vdo_completion *completion);
+as_vdo_ref_counts(struct vdo_completion *completion);
 
 
 /**
@@ -178,23 +178,23 @@ as_ref_counts(struct vdo_completion *completion);
  *
  * @return true if a free block was found in the specified range
  **/
-bool __must_check find_free_block(const struct ref_counts *ref_counts,
-				  slab_block_number start_index,
-				  slab_block_number end_index,
-				  slab_block_number *index_ptr);
+bool __must_check vdo_find_free_block(const struct ref_counts *ref_counts,
+				      slab_block_number start_index,
+				      slab_block_number end_index,
+				      slab_block_number *index_ptr);
 
 /**
  * Request a ref_counts object save its oldest dirty block asynchronously.
  *
  * @param ref_counts  The ref_counts object to notify
  **/
-void save_oldest_reference_block(struct ref_counts *ref_counts);
+void vdo_save_oldest_reference_block(struct ref_counts *ref_counts);
 
 /**
  * Reset all reference counts back to RS_FREE.
  *
  * @param ref_counts   The reference counters to reset
  **/
-void reset_reference_counts(struct ref_counts *ref_counts);
+void vdo_reset_reference_counts(struct ref_counts *ref_counts);
 
 #endif // REF_COUNTS_INTERNALS_H

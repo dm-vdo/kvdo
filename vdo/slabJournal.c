@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#88 $
  */
 
 #include "slabJournalInternals.h"
@@ -945,8 +945,8 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 				blocks_to_deadline = journal->flushing_deadline -
 						   journal_length;
 			}
-			save_several_reference_blocks(journal->slab->reference_counts,
-						      blocks_to_deadline + 1);
+			vdo_save_several_reference_blocks(journal->slab->reference_counts,
+							  blocks_to_deadline + 1);
 		}
 	}
 
@@ -1030,7 +1030,7 @@ static void add_entries(struct slab_journal *journal)
 		if (requires_reaping(journal)) {
 			WRITE_ONCE(journal->events->blocked_count,
 				   journal->events->blocked_count + 1);
-			save_dirty_reference_blocks(journal->slab->reference_counts);
+			vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
 			break;
 		}
 
@@ -1059,7 +1059,7 @@ static void add_entries(struct slab_journal *journal)
 				WRITE_ONCE(journal->events->disk_full_count,
 					   journal->events->disk_full_count
 					   + 1);
-				save_dirty_reference_blocks(journal->slab->reference_counts);
+				vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
 				break;
 			}
 
@@ -1081,7 +1081,7 @@ static void add_entries(struct slab_journal *journal)
 				 * ref_counts since here we don't know how many
 				 * reference blocks the ref_counts has.
 				 */
-				acquire_dirty_block_locks(journal->slab->reference_counts);
+				vdo_acquire_dirty_block_locks(journal->slab->reference_counts);
 			}
 		}
 
