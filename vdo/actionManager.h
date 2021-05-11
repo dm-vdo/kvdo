@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#20 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -114,20 +114,14 @@ typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_numb
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_vdo_action_manager(zone_count_t zones,
-					 vdo_zone_thread_getter *get_zone_thread_id,
-					 thread_id_t initiator_thread_id,
-					 void *context,
-					 vdo_action_scheduler *scheduler,
-					 struct vdo *vdo,
-					 struct action_manager **manager_ptr);
-
-/**
- * Destroy an action manager and null out the reference to it.
- *
- * @param manager_ptr  The reference to the manager to destroy
- **/
-void free_vdo_action_manager(struct action_manager **manager_ptr);
+int __must_check
+make_vdo_action_manager(zone_count_t zones,
+			vdo_zone_thread_getter *get_zone_thread_id,
+			thread_id_t initiator_thread_id,
+			void *context,
+			vdo_action_scheduler *scheduler,
+			struct vdo *vdo,
+			struct action_manager **manager_ptr);
 
 /**
  * Get the current operation an action manager is performing.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#7 $
  */
 
 #include "geometry.h"
@@ -152,21 +152,6 @@ int copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 void free_geometry(struct geometry *geometry)
 {
 	FREE(geometry);
-}
-
-/**********************************************************************/
-uint64_t map_to_virtual_chapter_number(struct geometry *geometry,
-				       uint64_t newest_virtual_chapter,
-				       unsigned int physical_chapter)
-{
-	unsigned int newest_physical_chapter =
-		map_to_physical_chapter(geometry, newest_virtual_chapter);
-	uint64_t virtual_chapter = newest_virtual_chapter -
-				   newest_physical_chapter + physical_chapter;
-	if (physical_chapter > newest_physical_chapter) {
-		virtual_chapter -= geometry->chapters_per_volume;
-	}
-	return virtual_chapter;
 }
 
 /**********************************************************************/

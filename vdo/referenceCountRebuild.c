@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#52 $
  */
 
 #include "referenceCountRebuild.h"
@@ -93,24 +93,6 @@ as_rebuild_completion(struct vdo_completion *completion)
 }
 
 /**
- * Free a rebuild_completion and null out the reference to it.
- *
- * @param completion_ptr  a pointer to the completion to free
- **/
-static void free_rebuild_completion(struct vdo_completion **completion_ptr)
-{
-	struct rebuild_completion *rebuild;
-	struct vdo_completion *completion = *completion_ptr;
-	if (completion == NULL) {
-		return;
-	}
-
-	rebuild = as_rebuild_completion(completion);
-	FREE(rebuild);
-	*completion_ptr = NULL;
-}
-
-/**
  * Free the rebuild_completion and notify the parent that the block map
  * rebuild is done. This callback is registered in make_rebuild_completion().
  *
@@ -120,7 +102,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	free_rebuild_completion(&completion);
+	FREE(FORGET(completion));
 	finish_vdo_completion(parent, result);
 }
 
@@ -161,8 +143,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 	initialize_vdo_completion(&rebuild->sub_task_completion, vdo,
 				  SUB_TASK_COMPLETION);
 	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &rebuild->completion;
-		free_rebuild_completion(&completion);
+		FREE(FORGET(rebuild));
 		return result;
 	}
 

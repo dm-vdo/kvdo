@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#7 $
  */
 
 #ifndef VDO_RESIZE_H
@@ -37,14 +37,6 @@ int __must_check
 make_resize_vdo_completion(struct vdo *vdo,
 			   block_count_t new_physical_blocks,
 			   struct vdo_completion **completion_ptr);
-
-/**
- * Free the completion for an asynchronous resize, and NULL out the
- * reference to it.
- *
- * @param completion_ptr  A reference to the completion to free
- **/
-void free_resize_vdo_completion(struct vdo_completion **completion_ptr);
 
 /**
  * Grow the physical size of the vdo. This method may only be called when the

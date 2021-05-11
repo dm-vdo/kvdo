@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#40 $
  */
 
 #include "actionManager.h"
@@ -158,18 +158,6 @@ int make_vdo_action_manager(zone_count_t zones,
 	initialize_vdo_completion(&manager->completion, vdo, ACTION_COMPLETION);
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void free_vdo_action_manager(struct action_manager **manager_ptr)
-{
-	struct action_manager *manager = *manager_ptr;
-	if (manager == NULL) {
-		return;
-	}
-
-	FREE(manager);
-	*manager_ptr = NULL;
 }
 
 /**********************************************************************/

@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#88 $
  */
 
 #include "blockMapTree.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "blockMap.h"
@@ -153,7 +154,7 @@ int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
 /**********************************************************************/
 void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 {
-	free_dirty_lists(&tree_zone->dirty_lists);
+	FREE(FORGET(tree_zone->dirty_lists));
 	free_vio_pool(&tree_zone->vio_pool);
 	free_int_map(&tree_zone->loading_pages);
 }

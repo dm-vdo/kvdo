@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#98 $
  */
 
 #include "slabDepot.h"
@@ -350,7 +350,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 	}
 
 	FREE(depot->slabs);
-	free_vdo_action_manager(&depot->action_manager);
+	FREE(FORGET(depot->action_manager));
 	free_slab_summary(&depot->slab_summary);
 	FREE(depot);
 	*depot_ptr = NULL;

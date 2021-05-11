@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#8 $
  */
 
 #ifndef GEOMETRY_H
@@ -204,20 +204,6 @@ map_to_physical_chapter(const struct geometry *geometry,
 {
 	return (virtual_chapter % geometry->chapters_per_volume);
 }
-
-/**
- * Convert a physical chapter number to its current virtual chapter number.
- *
- * @param geometry                The geometry
- * @param newest_virtual_chapter  The number of the newest virtual chapter
- * @param physical_chapter        The physical chapter number to convert
- *
- * @return The current virtual chapter number of the physical chapter
- *         in question
- **/
-uint64_t map_to_virtual_chapter_number(struct geometry *geometry,
-				       uint64_t newest_virtual_chapter,
-				       unsigned int physical_chapter);
 
 /**
  * Check whether this geometry is for a sparse index.

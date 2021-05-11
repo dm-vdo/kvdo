@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#10 $
  */
 
 #ifndef DIRTY_LISTS_H
@@ -60,13 +60,6 @@ int __must_check make_dirty_lists(block_count_t maximum_age,
 				  dirty_callback *callback,
 				  void *context,
 				  struct dirty_lists **dirty_lists_ptr);
-
-/**
- * Free a set of dirty lists and null out the pointer to them.
- *
- * @param dirty_lists_ptr A pointer to the dirty lists to be freed
- **/
-void free_dirty_lists(struct dirty_lists **dirty_lists_ptr);
 
 /**
  * Set the current period. This function should only be called once.

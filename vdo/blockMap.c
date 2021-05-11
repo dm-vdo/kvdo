@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#97 $
  */
 
 #include "blockMap.h"
@@ -251,7 +251,7 @@ void free_block_map(struct block_map **map_ptr)
 
 	abandon_block_map_growth(map);
 	free_vdo_forest(&map->forest);
-	free_vdo_action_manager(&map->action_manager);
+	FREE(FORGET(map->action_manager));
 
 	FREE(map);
 	*map_ptr = NULL;

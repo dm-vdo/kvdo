@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#12 $
  */
 
 #include "dirtyLists.h"
@@ -71,18 +71,6 @@ int make_dirty_lists(block_count_t maximum_age, dirty_callback *callback,
 
 	*dirty_lists_ptr = dirty_lists;
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void free_dirty_lists(struct dirty_lists **dirty_lists_ptr)
-{
-	struct dirty_lists *lists = *dirty_lists_ptr;
-	if (lists == NULL) {
-		return;
-	}
-
-	FREE(lists);
-	*dirty_lists_ptr = NULL;
 }
 
 /**********************************************************************/
