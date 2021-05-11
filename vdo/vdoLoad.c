@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#80 $
  */
 
 #include "vdoLoad.h"
@@ -159,7 +159,7 @@ static void scrub_slabs(struct vdo_completion *completion)
 
 	prepare_vdo_admin_sub_task(vdo, finish_vdo_completion_parent_callback,
 				   continue_load_read_only);
-	scrub_all_unrecovered_slabs(vdo->depot, completion);
+	vdo_scrub_all_unrecovered_slabs(vdo->depot, completion);
 }
 
 /**
@@ -196,7 +196,7 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 					  vdo->recovery_journal);
 
 	prepare_vdo_admin_sub_task(vdo, scrub_slabs, handle_scrubbing_error);
-	prepare_to_allocate(vdo->depot, load_type, completion);
+	prepare_vdo_slab_depot_to_allocate(vdo->depot, load_type, completion);
 }
 
 /**
@@ -254,11 +254,11 @@ static void load_callback(struct vdo_completion *completion)
 	}
 
 	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
-	load_slab_depot(vdo->depot,
-			(was_new(vdo) ? ADMIN_STATE_FORMATTING :
-					ADMIN_STATE_LOADING),
-			completion,
-			NULL);
+	load_vdo_slab_depot(vdo->depot,
+			    (was_new(vdo) ? ADMIN_STATE_FORMATTING :
+					    ADMIN_STATE_LOADING),
+			    completion,
+			    NULL);
 }
 
 /**********************************************************************/
@@ -361,11 +361,11 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = decode_slab_depot(vdo->states.slab_depot,
-				   vdo,
-				   get_vdo_partition(vdo->layout,
-						     SLAB_SUMMARY_PARTITION),
-				   &vdo->depot);
+	result = decode_vdo_slab_depot(vdo->states.slab_depot,
+				       vdo,
+				       get_vdo_partition(vdo->layout,
+							 SLAB_SUMMARY_PARTITION),
+				       &vdo->depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

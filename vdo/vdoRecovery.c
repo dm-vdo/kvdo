@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#92 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -381,7 +381,7 @@ static void finish_recovery(struct vdo_completion *completion)
 
 	// Now that we've freed the recovery completion and its vast array of
 	// journal entries, we can allocate refcounts.
-	result = allocate_slab_ref_counts(vdo->depot);
+	result = vdo_allocate_slab_ref_counts(vdo->depot);
 	finish_vdo_completion(parent, result);
 }
 
@@ -586,7 +586,7 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 			 start_super_block_save,
 			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
-	drain_slab_depot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
+	drain_vdo_slab_depot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
 }
 
 /**
@@ -761,7 +761,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			continue;
 		}
 
-		slab = get_slab(vdo->depot, entry.mapping.pbn);
+		slab = get_vdo_slab(vdo->depot, entry.mapping.pbn);
 		if (slab->allocator != recovery->allocator) {
 			continue;
 		}
@@ -836,7 +836,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 	}
 
 	decref->slab_journal =
-		get_slab_journal((struct slab_depot *) context, mapping.pbn);
+		get_vdo_slab_journal((struct slab_depot *) context, mapping.pbn);
 	zone_number = decref->slab_journal->slab->allocator->zone_number;
 	enqueue_missing_decref(&decref->recovery->missing_decrefs[zone_number],
 			     decref);
@@ -866,8 +866,8 @@ static void apply_to_depot(struct vdo_completion *completion)
 		return;
 	}
 
-	load_slab_depot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY,
-			completion, recovery);
+	load_vdo_slab_depot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY,
+			    completion, recovery);
 }
 
 /**
@@ -886,7 +886,7 @@ static int record_missing_decref(struct missing_decref *decref,
 	struct recovery_completion *recovery = decref->recovery;
 	recovery->incomplete_decref_count--;
 	if (is_valid_location(&location) &&
-	    is_physical_data_block(recovery->vdo->depot, location.pbn)) {
+	    vdo_is_physical_data_block(recovery->vdo->depot, location.pbn)) {
 		decref->penultimate_mapping = location;
 		decref->complete = true;
 		return VDO_SUCCESS;
@@ -1325,10 +1325,10 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 				 finish_vdo_completion_parent_callback,
 				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_ADMIN);
-		load_slab_depot(get_slab_depot(vdo),
-				ADMIN_STATE_LOADING_FOR_RECOVERY,
-				completion,
-				recovery);
+		load_vdo_slab_depot(get_slab_depot(vdo),
+				    ADMIN_STATE_LOADING_FOR_RECOVERY,
+				    completion,
+				    recovery);
 		return;
 	}
 
@@ -1350,10 +1350,10 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 				 launch_block_map_recovery,
 				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_LOGICAL);
-		load_slab_depot(vdo->depot,
-				ADMIN_STATE_LOADING_FOR_RECOVERY,
-				completion,
-				recovery);
+		load_vdo_slab_depot(vdo->depot,
+				    ADMIN_STATE_LOADING_FOR_RECOVERY,
+				    completion,
+				    recovery);
 		return;
 	}
 

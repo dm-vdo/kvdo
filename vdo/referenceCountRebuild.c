@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#55 $
  */
 
 #include "referenceCountRebuild.h"
@@ -307,7 +307,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		if (!is_physical_data_block(rebuild->depot, mapping.pbn)) {
+		if (!vdo_is_physical_data_block(rebuild->depot, mapping.pbn)) {
 			// This is a nonsense mapping. Remove it from the map so
 			// we're at least consistent and mark the page dirty.
 			page->entries[slot] = pack_pbn(VDO_ZERO_BLOCK,
@@ -316,7 +316,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		slab = get_slab(rebuild->depot, mapping.pbn);
+		slab = get_vdo_slab(rebuild->depot, mapping.pbn);
 		result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
 								mapping.pbn,
 								DATA_INCREMENT);
@@ -384,7 +384,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		if (!is_physical_data_block(rebuild->depot, pbn)) {
+		if (!vdo_is_physical_data_block(rebuild->depot, pbn)) {
 			abort_rebuild(rebuild, VDO_BAD_MAPPING);
 			if (finish_if_done(rebuild)) {
 				return;
@@ -456,13 +456,13 @@ static int process_entry(physical_block_number_t pbn,
 	int result;
 
 	if ((pbn == VDO_ZERO_BLOCK)
-	    || !is_physical_data_block(rebuild->depot, pbn)) {
+	    || !vdo_is_physical_data_block(rebuild->depot, pbn)) {
 		return log_error_strerror(VDO_BAD_CONFIGURATION,
 					  "PBN %llu out of range",
 					  pbn);
 	}
 
-	slab = get_slab(rebuild->depot, pbn);
+	slab = get_vdo_slab(rebuild->depot, pbn);
 	result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
 						   	pbn,
 							BLOCK_MAP_INCREMENT);

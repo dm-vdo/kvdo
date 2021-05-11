@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#116 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -223,7 +223,7 @@ static int allocate_components(struct block_allocator *allocator,
 	initialize_vdo_completion(&allocator->completion, vdo,
 				  BLOCK_ALLOCATOR_COMPLETION);
 	allocator->summary =
-		get_slab_summary_for_zone(depot, allocator->zone_number);
+		get_vdo_slab_summary_for_zone(depot, allocator->zone_number);
 
 	result = make_vio_pool(vdo,
 			       vio_pool_size,
@@ -490,7 +490,7 @@ void release_vdo_block_reference(struct block_allocator *allocator,
 		return;
 	}
 
-	slab = get_slab(allocator->depot, pbn);
+	slab = get_vdo_slab(allocator->depot, pbn);
 	result = modify_vdo_slab_reference_count(slab, NULL, operation);
 	if (result != VDO_SUCCESS) {
 		log_error_strerror(result,
@@ -684,7 +684,7 @@ void load_vdo_block_allocator(void *context,
 			      struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	start_vdo_loading(
 		&allocator->state,
 		get_current_vdo_manager_operation(allocator->depot->action_manager),
@@ -772,7 +772,7 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 					     struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	int result = prepare_vdo_slabs_for_allocation(allocator);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
@@ -792,7 +792,7 @@ void register_new_vdo_slabs_for_allocator(void *context,
 					  struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct slab_depot *depot = allocator->depot;
 	slab_count_t i;
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
@@ -866,7 +866,7 @@ void drain_vdo_block_allocator(void *context,
 			       struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	start_vdo_draining(
 		&allocator->state,
 		get_current_vdo_manager_operation(allocator->depot->action_manager),
@@ -931,7 +931,7 @@ void resume_vdo_block_allocator(void *context,
 				struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	start_vdo_resuming(&allocator->state,
 			   get_current_vdo_manager_operation(allocator->depot->action_manager),
 			   parent,
@@ -944,7 +944,7 @@ void release_vdo_tail_block_locks(void *context,
 				  struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct list_head *list = &allocator->dirty_slab_journals;
 	while (!list_empty(list)) {
 		if (!release_recovery_journal_lock(slab_journal_from_dirty_entry(list->next),
@@ -982,10 +982,10 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 					     struct vdo_completion *parent)
 {
 	struct block_allocator *allocator =
-		get_block_allocator_for_zone(context, zone_number);
+		vdo_get_block_allocator_for_zone(context, zone_number);
 	scrub_slabs(allocator->slab_scrubber,
 		    allocator->depot,
-		    notify_zone_finished_scrubbing,
+		    vdo_notify_zone_finished_scrubbing,
 		    noop_vdo_completion_callback);
 	complete_vdo_completion(parent);
 }

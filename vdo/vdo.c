@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#117 $
  */
 
 /*
@@ -63,7 +63,7 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
 	free_recovery_journal(&vdo->recovery_journal);
-	free_slab_depot(&vdo->depot);
+	free_vdo_slab_depot(&vdo->depot);
 	free_vdo_layout(&vdo->layout);
 	free_super_block(&vdo->super_block);
 	free_block_map(&vdo->block_map);
@@ -165,7 +165,7 @@ static void record_vdo(struct vdo *vdo)
 	vdo->states.block_map = record_block_map(vdo->block_map);
 	vdo->states.recovery_journal =
 		record_recovery_journal(vdo->recovery_journal);
-	vdo->states.slab_depot = record_slab_depot(vdo->depot);
+	vdo->states.slab_depot = record_vdo_slab_depot(vdo->depot);
 	vdo->states.layout = get_layout(vdo->layout);
 }
 
@@ -395,19 +395,19 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->data_blocks_used = get_physical_blocks_allocated(vdo);
 	stats->overhead_blocks_used = get_physical_blocks_overhead(vdo);
 	stats->logical_blocks_used = get_journal_logical_blocks_used(journal);
-	stats->allocator = get_depot_block_allocator_statistics(depot);
+	stats->allocator = get_vdo_slab_depot_block_allocator_statistics(depot);
 	stats->journal = get_recovery_journal_statistics(journal);
 	stats->packer = get_vdo_packer_statistics(vdo->packer);
-	stats->slab_journal = get_depot_slab_journal_statistics(depot);
+	stats->slab_journal = get_vdo_slab_depot_slab_journal_statistics(depot);
 	stats->slab_summary =
-		get_slab_summary_statistics(get_slab_summary(depot));
-	stats->ref_counts = get_depot_ref_counts_statistics(depot);
+		get_slab_summary_statistics(get_vdo_slab_summary(depot));
+	stats->ref_counts = get_vdo_slab_depot_ref_counts_statistics(depot);
 	stats->block_map = get_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
-	slab_total = get_depot_slab_count(depot);
+	slab_total = get_vdo_slab_depot_slab_count(depot);
 	stats->recovery_percentage =
-		(slab_total - get_depot_unrecovered_slab_count(depot)) * 100 /
+		(slab_total - get_vdo_slab_depot_unrecovered_slab_count(depot)) * 100 /
 		slab_total;
 
 	state = get_vdo_state(vdo);
@@ -421,14 +421,14 @@ void get_vdo_statistics(const struct vdo *vdo,
 /**********************************************************************/
 block_count_t get_physical_blocks_allocated(const struct vdo *vdo)
 {
-	return (get_depot_allocated_blocks(vdo->depot) -
+	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
 block_count_t get_physical_blocks_free(const struct vdo *vdo)
 {
-	return get_depot_free_blocks(vdo->depot);
+	return get_vdo_slab_depot_free_blocks(vdo->depot);
 }
 
 /**********************************************************************/
@@ -438,7 +438,7 @@ block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 	// a packed structure, but resize runs on admin thread so we're usually
 	// OK.
 	return (vdo->states.vdo.config.physical_blocks -
-		get_depot_data_blocks(vdo->depot) +
+		get_vdo_slab_depot_data_blocks(vdo->depot) +
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
@@ -505,7 +505,7 @@ void dump_vdo_status(const struct vdo *vdo)
 	dump_vdo_flusher(vdo->flusher);
 	dump_recovery_journal_statistics(vdo->recovery_journal);
 	dump_vdo_packer(vdo->packer);
-	dump_slab_depot(vdo->depot);
+	dump_vdo_slab_depot(vdo->depot);
 
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		dump_vdo_logical_zone(get_vdo_logical_zone(vdo->logical_zones,
@@ -591,18 +591,18 @@ int get_physical_zone(const struct vdo *vdo,
 		return VDO_SUCCESS;
 	}
 
-	// Used because it does a more restrictive bounds check than get_slab(),
-	// and done first because it won't trigger read-only mode on an invalid
-	// PBN.
-	if (!is_physical_data_block(vdo->depot, pbn)) {
+	// Used because it does a more restrictive bounds check than
+	// get_vdo_slab(), and done first because it won't trigger read-only
+	// mode on an invalid PBN.
+	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
 		return VDO_OUT_OF_RANGE;
 	}
 
 	// With the PBN already checked, we should always succeed in finding a
 	// slab.
-	slab = get_slab(vdo->depot, pbn);
+	slab = get_vdo_slab(vdo->depot, pbn);
 	result =
-		ASSERT(slab != NULL, "get_slab must succeed on all valid PBNs");
+		ASSERT(slab != NULL, "get_vdo_slab must succeed on all valid PBNs");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

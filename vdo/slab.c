@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#59 $
  */
 
 #include "slab.h"
@@ -49,7 +49,7 @@ int make_vdo_slab(physical_block_number_t slab_origin,
 		  struct vdo_slab **slab_ptr)
 {
 	const struct slab_config *slab_config =
-		get_slab_config(allocator->depot);
+		get_vdo_slab_config(allocator->depot);
 
 	struct vdo_slab *slab;
 	int result = ALLOCATE(1, struct vdo_slab, __func__, &slab);
@@ -94,7 +94,7 @@ int allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
 	const struct slab_config *slab_config
-		= get_slab_config(allocator->depot);
+		= get_vdo_slab_config(allocator->depot);
 
 	int result = ASSERT(slab->reference_counts == NULL,
 			    "vdo_slab %u doesn't allocate refcounts twice",
@@ -241,7 +241,7 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 
 	slab_block_number = physical_block_number - slab->start;
 	if (slab_block_number
-	    >= get_slab_config(slab->allocator->depot)->data_blocks) {
+	    >= get_vdo_slab_config(slab->allocator->depot)->data_blocks) {
 		return VDO_OUT_OF_RANGE;
 	}
 
@@ -256,7 +256,7 @@ bool should_save_fully_built_vdo_slab(const struct vdo_slab *slab)
 	// has any non-zero reference counts, or there are any slab journal
 	// blocks.
 	block_count_t data_blocks =
-		get_slab_config(slab->allocator->depot)->data_blocks;
+		get_vdo_slab_config(slab->allocator->depot)->data_blocks;
 	return (must_load_ref_counts(slab->allocator->summary,
 				     slab->slab_number)
 		|| (get_slab_free_block_count(slab) != data_blocks)

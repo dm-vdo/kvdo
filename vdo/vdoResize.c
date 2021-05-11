@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#45 $
  */
 
 #include "vdoResize.h"
@@ -104,16 +104,16 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo->states.vdo.config.physical_blocks =
 			grow_vdo_layout(vdo->layout);
-		update_slab_depot_size(vdo->depot);
+		update_vdo_slab_depot_size(vdo->depot);
 		save_vdo_components(vdo, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
-		use_new_slabs(vdo->depot, reset_vdo_admin_sub_task(completion));
+		vdo_use_new_slabs(vdo->depot, reset_vdo_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
-		set_slab_summary_origin(get_slab_summary(vdo->depot),
+		set_slab_summary_origin(get_vdo_slab_summary(vdo->depot),
 					get_vdo_partition(vdo->layout,
 							  SLAB_SUMMARY_PARTITION));
 		set_recovery_journal_partition(vdo->recovery_journal,
@@ -169,14 +169,14 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 		 * dmsetup message lock.
 		 */
 		finish_vdo_layout_growth(vdo->layout);
-		abandon_new_slabs(vdo->depot);
+		vdo_abandon_new_slabs(vdo->depot);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
 	// Validate that we are prepared to grow appropriately.
 	new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
-	prepared_depot_size = get_new_depot_size(vdo->depot);
+	prepared_depot_size = get_vdo_slab_depot_new_size(vdo->depot);
 	if (prepared_depot_size != new_depot_size) {
 		return VDO_PARAMETER_MISMATCH;
 	}
@@ -248,7 +248,7 @@ int prepare_to_grow_physical(struct vdo *vdo,
 				new_physical_blocks,
 				current_physical_blocks);
 		finish_vdo_layout_growth(vdo->layout);
-		abandon_new_slabs(vdo->depot);
+		vdo_abandon_new_slabs(vdo->depot);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
@@ -271,7 +271,7 @@ int prepare_to_grow_physical(struct vdo *vdo,
 
 	new_depot_size =
 		get_next_block_allocator_partition_size(vdo->layout);
-	result = prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
+	result = vdo_prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_layout_growth(vdo->layout);
 		return result;
