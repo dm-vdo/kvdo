@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#3 $
  */
 
 #include "indexConfig.h"
@@ -25,9 +25,8 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-static const byte INDEX_CONFIG_MAGIC[]        = "ALBIC";
-static const byte INDEX_CONFIG_VERSION[]      = "06.02";
-static const byte INDEX_CONFIG_VERSION_6_01[] = "06.01";
+static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";
+static const byte INDEX_CONFIG_VERSION[] = "06.02";
 
 enum {
   INDEX_CONFIG_MAGIC_LENGTH   = sizeof(INDEX_CONFIG_MAGIC) - 1,
@@ -117,30 +116,7 @@ static int readVersion(BufferedReader    *reader,
       *versionPtr = "current";
     }
     return result;
-  } else if (memcmp(INDEX_CONFIG_VERSION_6_01, buffer,
-                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration6_01 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "failed to read version 6.01 config file");
-      return result;
-    }
-    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
-    conf->bytesPerPage            = oldConf.bytesPerPage;
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
-    conf->nonce                   = 0;
-    if (versionPtr != NULL) {
-      *versionPtr = "6.01";
-    }
-    return UDS_UNSUPPORTED_VERSION;
   }
-
   return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
                                  "unsupported configuration version: '%.*s'",
                                  INDEX_CONFIG_VERSION_LENGTH, buffer);
@@ -159,12 +135,7 @@ int readConfigContents(BufferedReader   *reader,
   const char *version = NULL;
   result = readVersion(reader, config, &version);
   if (result != UDS_SUCCESS) {
-    if (result == UDS_UNSUPPORTED_VERSION) {
-      logNoticeWithStringError(result, "Found index config version %s",
-                               version);
-    } else {
       logErrorWithStringError(result, "Failed to read index config");
-    }
   }
   return result;
 }

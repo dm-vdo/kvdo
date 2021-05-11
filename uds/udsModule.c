@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#32 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#33 $
  */
 
 #include <linux/module.h>
@@ -56,6 +56,11 @@ EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_768MB);
 EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_MAX);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_256MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_512MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_768MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_REDUCED_MAX);
 EXPORT_SYMBOL_GPL(udsInitializeConfiguration);
 EXPORT_SYMBOL_GPL(udsComputeIndexSize);
 EXPORT_SYMBOL_GPL(udsConfigurationSetNonce);
@@ -78,7 +83,6 @@ EXPORT_SYMBOL_GPL(udsGetIndexStats);
 EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
 EXPORT_SYMBOL_GPL(udsStringError);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
-
 EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);
 EXPORT_SYMBOL_GPL(allocateMemoryNowait);

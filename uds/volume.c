@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#23 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#24 $
  */
 
 #include "volume.h"
@@ -994,7 +994,7 @@ static int probeChapter(Volume       *volume,
     logError("no chapter %u virtual chapter number determined", chapterNumber);
     return UDS_CORRUPT_COMPONENT;
   }
-  if (chapterNumber != lastVCN % geometry->chaptersPerVolume) {
+  if (chapterNumber != mapToPhysicalChapter(geometry, lastVCN)) {
     logError("chapter %u vcn %llu is out of phase (%u)",
              chapterNumber, lastVCN, geometry->chaptersPerVolume);
     return UDS_CORRUPT_COMPONENT;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.c#3 $
  */
 
 #include "indexLayoutParser.h"
@@ -42,7 +42,7 @@ static int setParameterValue(LayoutParameter *lp, char *data)
     *lp->value.str = data;
   } else {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "unkown LayoutParameter type code %x",
+                                   "unknown LayoutParameter type code %x",
                                    (lp->type & LP_TYPE_MASK));
   }
   return UDS_SUCCESS;
@@ -81,7 +81,7 @@ int parseLayoutString(char *info, LayoutParameter *params, size_t count)
       }
       if (lp == NULL) {
         return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                       "unkown index parameter %s",
+                                       "unknown index parameter %s",
                                        token);
       }
       if (lp->seen) {

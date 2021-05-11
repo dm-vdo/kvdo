@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#5 $
  */
 
 #include "geometry.h"
@@ -142,21 +142,6 @@ void freeGeometry(Geometry *geometry)
 }
 
 /**********************************************************************/
-uint64_t mapToVirtualChapterNumber(Geometry     *geometry,
-                                   uint64_t      newestVirtualChapter,
-                                   unsigned int  physicalChapter)
-{
-  unsigned int newestPhysicalChapter
-    = mapToPhysicalChapter(geometry, newestVirtualChapter);
-  uint64_t virtualChapter
-    = newestVirtualChapter - newestPhysicalChapter + physicalChapter;
-  if (physicalChapter > newestPhysicalChapter) {
-    virtualChapter -= geometry->chaptersPerVolume;
-  }
-  return virtualChapter;
-}
-
-/**********************************************************************/
 bool hasSparseChapters(const Geometry *geometry,
                        uint64_t        oldestVirtualChapter,
                        uint64_t        newestVirtualChapter)
@@ -183,6 +168,6 @@ bool areSamePhysicalChapter(const Geometry *geometry,
                             uint64_t        chapter1,
                             uint64_t        chapter2)
 {
-  return ((chapter1 % geometry->chaptersPerVolume)
-          == (chapter2 % geometry->chaptersPerVolume));
+  return (mapToPhysicalChapter(geometry, chapter1)
+	  == mapToPhysicalChapter(geometry, chapter2));
 }

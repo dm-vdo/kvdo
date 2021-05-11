@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/uds.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/uds.h#3 $
  */
 
 /**
  * @mainpage UDS API Reference
- * <center>Copyright (c) 2020 Red Hat, Inc.</center>
+ * <center>Copyright Red Hat</center>
  **/
 
 /**
@@ -116,6 +116,15 @@ extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB;
  *  The maximum configurable amount of memory.
  **/
 extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX;
+
+/**
+ * Memory size constants for volumes that have one less chapter
+ */
+extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_256MB;
+extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_512MB;
+extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_768MB;
+extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED;
+extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_MAX;
 
 /** The name (hash) of a chunk. */
 typedef struct udsChunkName {

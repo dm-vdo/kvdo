@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#19 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#21 $
  */
 
 #include "indexLayout.h"
@@ -40,12 +40,15 @@
  * begins on 4K block boundary. Save regions are further sub-divided into
  * regions of their own.
  *
- * Each region has a kind and an instance number. Some kinds only have one
- * instance and therefore use RL_SOLE_INSTANCE (-1) as the instance number.
- * The RL_KIND_INDEX uses instances to represent sub-indices, where used.
- * A save region can either hold a checkpoint or a clean shutdown (determined
- * by the type). The instances determine which available save slot is used.
- * The RL_KIND_MASTER_INDEX uses instances to record which zone is being saved.
+ * Each region has a kind and an instance number. Some kinds only have
+ * one instance and therefore use RL_SOLE_INSTANCE (-1) as the
+ * instance number.  The RL_KIND_INDEX used to use instances to
+ * represent sub-indices; now, however there is only ever one
+ * sub-index and therefore one instance. A save region can either hold
+ * a checkpoint or a clean shutdown (determined by the type). The
+ * instances determine which available save slot is used.  The
+ * RL_KIND_MASTER_INDEX uses instances to record which zone is being
+ * saved.
  *
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *     | | |   I N D E X   0      101, 0    | ...  | |
@@ -55,13 +58,13 @@
  *     | | | 201 -1 | 202  0 | 202  1 |     |      |l|
  *     +-+-+--------+--------+--------+-----+---  -+-+
  *
- * The header contains the encoded regional layout table as well as
- * the saved index configuration record. The sub-index regions and their
+ * The header contains the encoded region layout table as well as the
+ * saved index configuration record. The sub-index region and its
  * subdivisions are maintained in the same table.
  *
- * There are at least two save regions per sub-index to preserve the old
- * state should the saving of a state be incomplete. They are used in
- * a round-robin fashion.
+ * There are at least two save regions to preserve the old state
+ * should the saving of a state be incomplete. They are used in a
+ * round-robin fashion.
  *
  * Anatomy of a save region:
  *
@@ -76,10 +79,10 @@
  * the open chapter only appears in RL_TYPE_SAVE not RL_TYPE_CHECKPOINT,
  * although the same space is reserved for both.
  *
- * The header contains the encoded regional layout table as well as the
- * index state record for that save or checkpoint. Each save or checkpoint
- * has a unique generation number and nonce which is used to seed the
- * checksums of those regions.
+ * The header contains the encoded region layout table as well as the
+ * index state record for that save or checkpoint. Each save or
+ * checkpoint has a unique generation number and nonce which is used
+ * to seed the checksums of those regions.
  */
 
 typedef struct indexSaveData_v1 {
@@ -687,7 +690,7 @@ static int readIndexSaveData(BufferedReader  *reader,
 
     if (saveData->version > 1) {
       return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
-                                     "unkown index save verion number %"
+                                     "unknown index save version number %"
                                      PRIu32,
                                      saveData->version);
     }

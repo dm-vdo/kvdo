@@ -1,13 +1,13 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.4.26
+%define kmod_driver_version	6.2.5.11
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
 # Disable the scanning for a debug package
 %global debug_package %{nil}
 
-Source0:        kmod-%{kmod_name}-%{kmod_driver_version}.tgz
+Source0:        %{kmod_name}-%{kmod_driver_version}.tgz
 
 Name:		kmod-kvdo
 Version:	%{kmod_driver_version}
@@ -19,6 +19,17 @@ BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires:       dkms
 Requires:	kernel-devel >= %{kmod_kernel_version}
 Requires:       make
+%if 0%{?fedora}
+# Fedora requires elfutils-libelf-devel, while rhel does not.
+BuildRequires:  elfutils-libelf-devel
+%endif
+BuildRequires:	glibc
+%if 0%{?rhel}
+# Fedora doesn't have abi whitelists.
+BuildRequires:	kernel-abi-whitelists
+%endif
+BuildRequires:  libuuid-devel
+BuildRequires:  redhat-rpm-config
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
 ExcludeArch:    s390x
@@ -36,9 +47,9 @@ This package provides the kernel modules for VDO.
 
 %post
 set -x
-/usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}-%{kmod_driver_version}
-/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}-%{kmod_driver_version}
-/usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}-%{kmod_driver_version}
+/usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}
+/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}
+/usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}
 
 %preun
 # Check whether kvdo or uds is loaded, and if so attempt to remove it.  A
@@ -49,21 +60,21 @@ for module in kvdo uds; do
     modprobe -r ${module}
   fi
 done
-/usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version}-%{kmod_driver_version} --all || :
+/usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version} --all || :
 
 %prep
-%setup -n kmod-%{kmod_name}-%{kmod_driver_version}
+%setup -n %{kmod_name}-%{kmod_driver_version}
 
 %build
 # Nothing doing here, as we're going to build on whatever kernel we end up
 # running inside.
 
 %install
-mkdir -p $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}
-cp -r * $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/
-cat > $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/dkms.conf <<EOF
+mkdir -p $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}
+cp -r * $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}/
+cat > $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}/dkms.conf <<EOF
 PACKAGE_NAME="kvdo"
-PACKAGE_VERSION="%{version}-%{kmod_driver_version}"
+PACKAGE_VERSION="%{version}"
 AUTOINSTALL="yes"
 
 BUILT_MODULE_NAME[0]="uds"
@@ -82,8 +93,13 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
-%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
+%{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Mon Nov 02 2020 - Red Hat VDO Group <vdo-devel@redhat.com> - 6.2.4.26-1
-HASH(0x5645fb62bab0)
+* Tue May 11 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.11-1
+- Fixed a deadlock and restored old dormancy code to UDS to avoid
+  excessive CPU usage when idle.
+- Introduced new memory size parameter values for UDS indexes which have
+   been converted from vdo script management to LVM.
+- Fixed module name and version number in, and added some BuildRequires
+  to, the spec file.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#12 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#13 $
  */
 
 #include "uds.h"
@@ -30,10 +30,21 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX   = 1024;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_256MB = (UdsMemoryConfigSize) -256;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_512MB = (UdsMemoryConfigSize) -512;
-const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB = (UdsMemoryConfigSize) -768;
+/* Memory size constants */
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX = 1024;
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_256MB = 0xffffff00; // -256
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_512MB = 0xfffffe00; // -512
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB = 0xfffffd00; // -768
+
+/* Memory size constants for volumes that have one less chapter */
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED = 0x1000;
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_MAX = 1024 | 0x1000;
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_256MB =
+	0xfffffb00; // -1280
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_512MB =
+	0xfffffa00; // -1536
+const UdsMemoryConfigSize UDS_MEMORY_CONFIG_REDUCED_768MB =
+	0xfffff900; // -1792
 
 /*
  * ===========================================================================
@@ -59,25 +70,36 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
    * the test infrastructure will be forced to test the new configuration.
    */
 
-  unsigned int chaptersPerVolume, recordPagesPerChapter;
-  if (memGB == UDS_MEMORY_CONFIG_256MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == UDS_MEMORY_CONFIG_512MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == UDS_MEMORY_CONFIG_768MB) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
-  } else if (memGB == 1) {
-    chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-  } else if ((memGB > 1) && (memGB <= UDS_MEMORY_CONFIG_MAX)) {
-    chaptersPerVolume     = memGB * DEFAULT_CHAPTERS_PER_VOLUME;
-    recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-  } else {
-    return UDS_INVALID_MEMORY_SIZE;
-  }
+	unsigned int chaptersPerVolume, recordPagesPerChapter;
+	if (memGB == UDS_MEMORY_CONFIG_256MB) {
+          chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME;
+          recordPagesPerChapter = SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (memGB == UDS_MEMORY_CONFIG_512MB) {
+		chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME;
+		recordPagesPerChapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (memGB == UDS_MEMORY_CONFIG_768MB) {
+		chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME;
+		recordPagesPerChapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if ((memGB >= 1) && (memGB <= UDS_MEMORY_CONFIG_MAX)) {
+		chaptersPerVolume = memGB * DEFAULT_CHAPTERS_PER_VOLUME;
+		recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else if (memGB == UDS_MEMORY_CONFIG_REDUCED_256MB) {
+		chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME - 1;
+		recordPagesPerChapter = SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (memGB == UDS_MEMORY_CONFIG_REDUCED_512MB) {
+		chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME - 1;
+		recordPagesPerChapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if (memGB == UDS_MEMORY_CONFIG_REDUCED_768MB) {
+		chaptersPerVolume = DEFAULT_CHAPTERS_PER_VOLUME - 1;
+		recordPagesPerChapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
+	} else if ((memGB >= 1 + UDS_MEMORY_CONFIG_REDUCED) &&
+		   (memGB <= UDS_MEMORY_CONFIG_REDUCED_MAX)) {
+		chaptersPerVolume = (memGB - UDS_MEMORY_CONFIG_REDUCED) *
+			DEFAULT_CHAPTERS_PER_VOLUME - 1;
+		recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
+	} else {
+		return UDS_INVALID_MEMORY_SIZE;
+	}
 
   int result = ALLOCATE(1, struct udsConfiguration, "udsConfiguration",
                         userConfig);
@@ -141,22 +163,42 @@ UdsNonce udsConfigurationGetNonce(UdsConfiguration userConfig)
 /**********************************************************************/
 unsigned int udsConfigurationGetMemory(UdsConfiguration userConfig)
 {
-  enum {
-    CHAPTERS = DEFAULT_CHAPTERS_PER_VOLUME,
-    SMALL_PAGES = CHAPTERS * SMALL_RECORD_PAGES_PER_CHAPTER,
-    LARGE_PAGES = CHAPTERS * DEFAULT_RECORD_PAGES_PER_CHAPTER
-  };
-  unsigned int pages = (userConfig->chaptersPerVolume
-                        * userConfig->recordPagesPerChapter);
-  if (userConfig->sparseChaptersPerVolume != 0) {
-    pages /= 10;
-  }
-  switch (pages) {
-  case SMALL_PAGES:     return UDS_MEMORY_CONFIG_256MB;
-  case 2 * SMALL_PAGES: return UDS_MEMORY_CONFIG_512MB;
-  case 3 * SMALL_PAGES: return UDS_MEMORY_CONFIG_768MB;
-  default:              return pages / LARGE_PAGES;
-  }
+	unsigned int memory = 0;
+	unsigned int chapters = udsConfigurationGetSparse(userConfig) ?
+		userConfig->chaptersPerVolume / 10 :
+		userConfig->chaptersPerVolume;
+
+	if ((chapters % DEFAULT_CHAPTERS_PER_VOLUME) == 0) {
+		switch (userConfig->recordPagesPerChapter) {
+		case SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_256MB;
+			break;
+		case 2 * SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_512MB;
+			break;
+		case 3 * SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_768MB;
+			break;
+		default:
+			memory = chapters / DEFAULT_CHAPTERS_PER_VOLUME;
+		}
+	} else {
+		switch (userConfig->recordPagesPerChapter) {
+		case SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_REDUCED_256MB;
+			break;
+		case 2 * SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_REDUCED_512MB;
+			break;
+		case 3 * SMALL_RECORD_PAGES_PER_CHAPTER:
+			memory = UDS_MEMORY_CONFIG_REDUCED_768MB;
+			break;
+		default:
+			memory = (chapters + 1) / DEFAULT_CHAPTERS_PER_VOLUME +
+				UDS_MEMORY_CONFIG_REDUCED;
+		}
+	}
+	return memory;
 }
 
 /**********************************************************************/
