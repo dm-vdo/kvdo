@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#102 $
  */
 
 #include "slabDepot.h"
@@ -51,8 +51,8 @@
 /**********************************************************************/
 slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
 {
-	return compute_slab_count(depot->first_block, depot->last_block,
-				  depot->slab_size_shift);
+	return compute_vdo_slab_count(depot->first_block, depot->last_block,
+				      depot->slab_size_shift);
 }
 
 /**
@@ -602,16 +602,18 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 	}
 
 	// Generate the depot configuration for the new block count.
-	result = configure_slab_depot(new_size, depot->first_block,
-				      depot->slab_config, depot->zone_count,
-				      &new_state);
+	result = configure_vdo_slab_depot(new_size,
+					  depot->first_block,
+					  depot->slab_config,
+					  depot->zone_count,
+					  &new_state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	new_slab_count =
-		compute_slab_count(depot->first_block, new_state.last_block,
-				   depot->slab_size_shift);
+	new_slab_count = compute_vdo_slab_count(depot->first_block,
+						new_state.last_block,
+						depot->slab_size_shift);
 	if (new_slab_count <= depot->slab_count) {
 		return log_error_strerror(VDO_INCREMENT_TOO_SMALL,
 					  "Depot can only grow");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#11 $
  */
 
 #include "vdoComponentStates.h"
@@ -77,7 +77,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 		return result;
 	}
 
-	result = decode_slab_depot_state_2_0(buffer, &states->slab_depot);
+	result = decode_vdo_slab_depot_state_2_0(buffer, &states->slab_depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -162,7 +162,7 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 		get_vdo_component_encoded_size() +
 		get_fixed_layout_encoded_size(layout) +
 		get_vdo_recovery_journal_encoded_size() +
-		get_slab_depot_encoded_size() +
+		get_vdo_slab_depot_encoded_size() +
 		get_block_map_encoded_size());
 }
 
@@ -202,7 +202,7 @@ int encode_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_slab_depot_state_2_0(states->slab_depot, buffer);
+	result = encode_vdo_slab_depot_state_2_0(states->slab_depot, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#11 $
  */
 
 #include "vdoComponent.h"
@@ -296,8 +296,9 @@ int validate_vdo_config(const struct vdo_config *config,
 		return result;
 	}
 
-	result = configure_slab(config->slab_size, config->slab_journal_blocks,
-				&slab_config);
+	result = configure_vdo_slab(config->slab_size,
+				    config->slab_journal_blocks,
+				    &slab_config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

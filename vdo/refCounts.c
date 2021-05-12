@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#76 $
  */
 
 #include "refCounts.h"
@@ -175,7 +175,7 @@ int make_vdo_ref_counts(block_count_t block_count,
 {
 	size_t index, bytes;
 	block_count_t ref_block_count =
-		get_saved_reference_count_size(block_count);
+		vdo_get_saved_reference_count_size(block_count);
 	struct ref_counts *ref_counts;
 	int result = ALLOCATE_EXTENDED(struct ref_counts,
 				       ref_block_count,
