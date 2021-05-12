@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#36 $
  */
 
 #include "adminCompletion.h"
@@ -134,33 +134,19 @@ static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
 	assert_vdo_completion_type(vdo_completion->type, ADMIN_COMPLETION);
 	struct admin_completion *completion =
-		container_of(vdo_completion, struct admin_completion, completion);
+		container_of(vdo_completion,
+			     struct admin_completion,
+			     completion);
 	complete(&completion->callback_sync);
 }
 
-/**
- * A function to wait for an admin operation to complete. Will block the
- * thread it is called from.
- *
- * @param completion  the admin completion to wait for
- **/
-static void wait_for_admin_completion(struct admin_completion *completion)
-{
-	// Using the "interruptible" interface means that Linux will not log a
-	// message when we wait for more than 120 seconds.
-	while (wait_for_completion_interruptible(&completion->callback_sync) != 0) {
-		// However, if we get a signal in a user-mode process, we could
-		// spin...
-		msleep(1);
-	}
-}
-
 /**********************************************************************/
-int perform_vdo_admin_operation(struct vdo *vdo,
-				enum admin_operation_type type,
-				vdo_thread_id_getter_for_phase *thread_id_getter,
-				vdo_action *action,
-				vdo_action *error_handler)
+int
+perform_vdo_admin_operation(struct vdo *vdo,
+			    enum admin_operation_type type,
+			    vdo_thread_id_getter_for_phase *thread_id_getter,
+			    vdo_action *action,
+			    vdo_action *error_handler)
 {
 	int result;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
@@ -179,11 +165,17 @@ int perform_vdo_admin_operation(struct vdo *vdo,
 	admin_completion->get_thread_id = thread_id_getter;
 	admin_completion->phase = 0;
 	prepare_vdo_admin_sub_task(vdo, action, error_handler);
-
 	reinit_completion(&admin_completion->callback_sync);
-
 	enqueue_vdo_completion(&admin_completion->sub_task_completion);
-	wait_for_admin_completion(admin_completion);
+
+	// Using the "interruptible" interface means that Linux will not log a
+	// message when we wait for more than 120 seconds.
+	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0) {
+		// However, if we get a signal in a user-mode process, we could
+		// spin...
+		msleep(1);
+	}
+
 	result = admin_completion->completion.result;
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);
