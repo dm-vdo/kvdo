@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#93 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -373,9 +373,9 @@ static void finish_recovery(struct vdo_completion *completion)
 		as_recovery_completion(completion);
 	struct vdo *vdo = recovery->vdo;
 	uint64_t recovery_count = ++vdo->states.vdo.complete_recoveries;
-	initialize_recovery_journal_post_recovery(vdo->recovery_journal,
-						  recovery_count,
-						  recovery->highest_tail);
+	initialize_vdo_recovery_journal_post_recovery(vdo->recovery_journal,
+						      recovery_count,
+						      recovery->highest_tail);
 	free_recovery_completion(&recovery);
 	log_info("Rebuild complete.");
 
@@ -434,8 +434,8 @@ get_entry(const struct recovery_completion *recovery,
 {
 	struct recovery_journal *journal = recovery->vdo->recovery_journal;
 	physical_block_number_t block_number =
-		get_recovery_journal_block_number(journal,
-						  point->sequence_number);
+		get_vdo_recovery_journal_block_number(journal,
+						      point->sequence_number);
 	off_t sector_offset = (block_number * VDO_BLOCK_SIZE) +
 		(point->sector_count * VDO_SECTOR_SIZE);
 	struct packed_journal_sector *sector =
@@ -483,7 +483,7 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 			return result;
 		}
 
-		if (is_increment_operation(entry.operation)) {
+		if (is_vdo_journal_increment_operation(entry.operation)) {
 			recovery->entries[recovery->entry_count] =
 				(struct numbered_block_mapping) {
 					.block_map_slot = entry.slot,
@@ -956,7 +956,7 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		decrement_recovery_point(&recovery_point);
 		entry = get_entry(recovery, &recovery_point);
 
-		if (!is_increment_operation(entry.operation)) {
+		if (!is_vdo_journal_increment_operation(entry.operation)) {
 			// Observe that we've seen a decref before its incref,
 			// but only if the int_map does not contain an unpaired
 			// incref for this lbn.
@@ -1269,7 +1269,7 @@ static int count_increment_entries(struct recovery_completion *recovery)
 						 result);
 			return result;
 		}
-		if (is_increment_operation(entry.operation)) {
+		if (is_vdo_journal_increment_operation(entry.operation)) {
 			recovery->incref_count++;
 		}
 		increment_recovery_point(&recovery_point);

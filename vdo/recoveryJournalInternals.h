@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#32 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -133,8 +133,8 @@ struct recovery_journal {
  * @return The block number corresponding to the sequence number
  **/
 static inline physical_block_number_t __must_check
-get_recovery_journal_block_number(const struct recovery_journal *journal,
-				  sequence_number_t sequence)
+get_vdo_recovery_journal_block_number(const struct recovery_journal *journal,
+				      sequence_number_t sequence)
 {
 	// Since journal size is a power of two, the block number modulus can
 	// just be extracted from the low-order bits of the sequence.
@@ -150,8 +150,8 @@ get_recovery_journal_block_number(const struct recovery_journal *journal,
  * @return The check byte corresponding to the sequence number
  **/
 static inline uint8_t __must_check
-compute_recovery_check_byte(const struct recovery_journal *journal,
-			    sequence_number_t sequence)
+compute_vdo_recovery_journal_check_byte(const struct recovery_journal *journal,
+					sequence_number_t sequence)
 {
 	// The check byte must change with each trip around the journal.
 	return (((sequence / journal->size) & 0x7F) | 0x80);

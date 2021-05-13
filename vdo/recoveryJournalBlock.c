@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#54 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -134,8 +134,8 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 		.nonce = journal->nonce,
 		.recovery_count = journal->recovery_count,
 		.sequence_number = journal->tail,
-		.check_byte = compute_recovery_check_byte(journal,
-							  journal->tail),
+		.check_byte = compute_vdo_recovery_journal_check_byte(journal,
+								      journal->tail),
 	};
 	struct packed_journal_header *header = get_block_header(block);
 
@@ -145,7 +145,7 @@ void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 	block->uncommitted_entry_count = 0;
 
 	block->block_number =
-		get_recovery_journal_block_number(journal, journal->tail);
+		get_vdo_recovery_journal_block_number(journal, journal->tail);
 
 	pack_vdo_recovery_block_header(&unpacked, header);
 
@@ -236,7 +236,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		};
 		*packed_entry = pack_vdo_recovery_journal_entry(&new_entry);
 
-		if (is_increment_operation(data_vio->operation.type)) {
+		if (is_vdo_journal_increment_operation(data_vio->operation.type)) {
 			data_vio->recovery_sequence_number =
 				block->sequence_number;
 		}

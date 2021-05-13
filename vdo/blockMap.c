@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#98 $
  */
 
 #include "blockMap.h"
@@ -103,10 +103,10 @@ static bool handle_page_write(void *raw_page,
 	}
 
 	// Release the page's references on the recovery journal.
-	release_recovery_journal_block_reference(zone->block_map->journal,
-						 context->recovery_lock,
-						 ZONE_TYPE_LOGICAL,
-						 zone->zone_number);
+	release_vdo_recovery_journal_block_reference(zone->block_map->journal,
+						     context->recovery_lock,
+						     ZONE_TYPE_LOGICAL,
+						     zone->zone_number);
 	context->recovery_lock = 0;
 	return false;
 }
@@ -323,7 +323,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 
 	result = make_vdo_action_manager(map->zone_count,
 					 get_block_map_zone_thread_id,
-					 get_recovery_journal_thread_id(journal),
+					 get_vdo_recovery_journal_thread_id(journal),
 					 map,
 					 schedule_era_advance,
 					 vdo,
@@ -358,7 +358,8 @@ void initialize_block_map_from_journal(struct block_map *map,
 {
 	zone_count_t zone = 0;
 
-	map->current_era_point = get_current_journal_sequence_number(journal);
+	map->current_era_point =
+		get_vdo_recovery_journal_current_sequence_number(journal);
 	map->pending_era_point = map->current_era_point;
 
 	for (zone = 0; zone < map->zone_count; zone++) {
@@ -707,24 +708,24 @@ void update_block_map_page(struct block_map_page *page,
 
 	if ((old_locked == 0) || (old_locked > new_locked)) {
 		// Acquire a lock on the newly referenced journal block.
-		acquire_recovery_journal_block_reference(journal,
-							 new_locked,
-							 ZONE_TYPE_LOGICAL,
-							 zone->zone_number);
+		acquire_vdo_recovery_journal_block_reference(journal,
+							     new_locked,
+							     ZONE_TYPE_LOGICAL,
+							     zone->zone_number);
 
 		// If the block originally held a newer lock, release it.
 		if (old_locked > 0) {
-			release_recovery_journal_block_reference(journal,
-								 old_locked,
-								 ZONE_TYPE_LOGICAL,
-								 zone->zone_number);
+			release_vdo_recovery_journal_block_reference(journal,
+								     old_locked,
+								     ZONE_TYPE_LOGICAL,
+								     zone->zone_number);
 		}
 
 		*recovery_lock = new_locked;
 	}
 
 	// Release the transferred lock from the data_vio.
-	release_per_entry_lock_from_other_zone(journal, new_locked);
+	vdo_release_journal_per_entry_lock_from_other_zone(journal, new_locked);
 	data_vio->recovery_sequence_number = 0;
 }
 

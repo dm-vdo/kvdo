@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#57 $
  */
 
 #include "readOnlyRebuild.h"
@@ -159,11 +159,11 @@ static void finish_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
 	struct vdo *vdo = rebuild->vdo;
-	initialize_recovery_journal_post_rebuild(vdo->recovery_journal,
-						 vdo->states.vdo.complete_recoveries,
-						 rebuild->tail,
-						 rebuild->logical_blocks_used,
-						 rebuild->block_map_data_blocks);
+	initialize_vdo_recovery_journal_post_rebuild(vdo->recovery_journal,
+						     vdo->states.vdo.complete_recoveries,
+						     rebuild->tail,
+						     rebuild->logical_blocks_used,
+						     rebuild->block_map_data_blocks);
 	log_info("Read-only rebuild complete");
 	complete_rebuild(completion);
 }
@@ -274,7 +274,7 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 			continue;
 		}
 
-		if (is_increment_operation(entry.operation)) {
+		if (is_vdo_journal_increment_operation(entry.operation)) {
 			rebuild->entries[rebuild->entry_count] =
 				(struct numbered_block_mapping) {
 					.block_map_slot = entry.slot,

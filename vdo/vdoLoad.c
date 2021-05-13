@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#81 $
  */
 
 #include "vdoLoad.h"
@@ -79,8 +79,8 @@ static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
-	drain_recovery_journal(vdo->recovery_journal, ADMIN_STATE_SAVING,
-			       completion);
+	drain_vdo_recovery_journal(vdo->recovery_journal, ADMIN_STATE_SAVING,
+				   completion);
 }
 
 /**
@@ -231,8 +231,8 @@ static void load_callback(struct vdo_completion *completion)
 	assert_on_admin_thread(vdo, __func__);
 
 	// Prepare the recovery journal for new entries.
-	open_recovery_journal(vdo->recovery_journal, vdo->depot,
-			      vdo->block_map);
+	open_vdo_recovery_journal(vdo->recovery_journal, vdo->depot,
+				  vdo->block_map);
 	vdo->close_required = true;
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		// In read-only mode we don't use the allocator and it may not
@@ -328,7 +328,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 
 	maximum_age = get_configured_block_map_maximum_age(vdo);
 	journal_length =
-		get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
+		get_vdo_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -346,17 +346,17 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = decode_recovery_journal(vdo->states.recovery_journal,
-					 vdo->states.vdo.nonce,
-					 vdo,
-					 get_vdo_partition(vdo->layout,
-							   RECOVERY_JOURNAL_PARTITION),
-					 vdo->states.vdo.complete_recoveries,
-					 vdo->states.vdo.config.recovery_journal_size,
-					 VDO_RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-					 vdo->read_only_notifier,
-					 thread_config,
-					 &vdo->recovery_journal);
+	result = decode_vdo_recovery_journal(vdo->states.recovery_journal,
+					     vdo->states.vdo.nonce,
+					     vdo,
+					     get_vdo_partition(vdo->layout,
+							       RECOVERY_JOURNAL_PARTITION),
+					     vdo->states.vdo.complete_recoveries,
+					     vdo->states.vdo.config.recovery_journal_size,
+					     VDO_RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
+					     vdo->read_only_notifier,
+					     thread_config,
+					     &vdo->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#39 $
  */
 
 #include "recoveryUtils.h"
@@ -93,8 +93,8 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 				    physical_block_number_t offset)
 {
 	physical_block_number_t expected_offset =
-		get_recovery_journal_block_number(journal,
-						  header->sequence_number);
+		get_vdo_recovery_journal_block_number(journal,
+						      header->sequence_number);
 	return ((expected_offset == offset)
 		&& is_valid_vdo_recovery_journal_block(journal, header));
 }

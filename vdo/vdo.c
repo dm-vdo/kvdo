@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#118 $
  */
 
 /*
@@ -62,7 +62,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
-	free_recovery_journal(&vdo->recovery_journal);
+	free_vdo_recovery_journal(&vdo->recovery_journal);
 	free_vdo_slab_depot(&vdo->depot);
 	free_vdo_layout(&vdo->layout);
 	free_super_block(&vdo->super_block);
@@ -164,7 +164,7 @@ static void record_vdo(struct vdo *vdo)
 	vdo->states.vdo.state = get_vdo_state(vdo);
 	vdo->states.block_map = record_block_map(vdo->block_map);
 	vdo->states.recovery_journal =
-		record_recovery_journal(vdo->recovery_journal);
+		record_vdo_recovery_journal(vdo->recovery_journal);
 	vdo->states.slab_depot = record_vdo_slab_depot(vdo->depot);
 	vdo->states.layout = get_layout(vdo->layout);
 }
@@ -394,9 +394,10 @@ void get_vdo_statistics(const struct vdo *vdo,
 	// The callees are responsible for thread-safety.
 	stats->data_blocks_used = get_physical_blocks_allocated(vdo);
 	stats->overhead_blocks_used = get_physical_blocks_overhead(vdo);
-	stats->logical_blocks_used = get_journal_logical_blocks_used(journal);
+	stats->logical_blocks_used =
+		get_vdo_recovery_journal_logical_blocks_used(journal);
 	stats->allocator = get_vdo_slab_depot_block_allocator_statistics(depot);
-	stats->journal = get_recovery_journal_statistics(journal);
+	stats->journal = get_vdo_recovery_journal_statistics(journal);
 	stats->packer = get_vdo_packer_statistics(vdo->packer);
 	stats->slab_journal = get_vdo_slab_depot_slab_journal_statistics(depot);
 	stats->slab_summary =
@@ -422,7 +423,7 @@ void get_vdo_statistics(const struct vdo *vdo,
 block_count_t get_physical_blocks_allocated(const struct vdo *vdo)
 {
 	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
-		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
+		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
@@ -439,7 +440,7 @@ block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
 	// OK.
 	return (vdo->states.vdo.config.physical_blocks -
 		get_vdo_slab_depot_data_blocks(vdo->depot) +
-		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
+		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
@@ -503,7 +504,7 @@ void dump_vdo_status(const struct vdo *vdo)
 	zone_count_t zone;
 
 	dump_vdo_flusher(vdo->flusher);
-	dump_recovery_journal_statistics(vdo->recovery_journal);
+	dump_vdo_recovery_journal_statistics(vdo->recovery_journal);
 	dump_vdo_packer(vdo->packer);
 	dump_vdo_slab_depot(vdo->depot);
 

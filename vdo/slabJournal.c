@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#90 $
  */
 
 #include "slabJournalInternals.h"
@@ -503,10 +503,10 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		if (journal->recovery_journal != NULL) {
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
-			release_recovery_journal_block_reference(journal->recovery_journal,
-								 get_lock(journal, i)->recovery_start,
-								 ZONE_TYPE_PHYSICAL,
-								 zone_number);
+			release_vdo_recovery_journal_block_reference(journal->recovery_journal,
+								     get_lock(journal, i)->recovery_start,
+		ZONE_TYPE_PHYSICAL,
+		zone_number);
 		}
 
 		// Release our own lock against reaping for blocks that are
@@ -761,8 +761,8 @@ void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 	}
 
 	pack_slab_journal_entry(&payload->entries[entry_number],
-			     sbn,
-			     is_increment_operation(operation));
+				sbn,
+				is_vdo_journal_increment_operation(operation));
 }
 
 /**
@@ -926,10 +926,10 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		if (journal->recovery_journal != NULL) {
 			zone_count_t zone_number =
 				journal->slab->allocator->zone_number;
-			acquire_recovery_journal_block_reference(journal->recovery_journal,
-								 recovery_block,
-								 ZONE_TYPE_PHYSICAL,
-								 zone_number);
+			acquire_vdo_recovery_journal_block_reference(journal->recovery_journal,
+								     recovery_block,
+								     ZONE_TYPE_PHYSICAL,
+								     zone_number);
 		}
 		mark_slab_journal_dirty(journal, recovery_block);
 
