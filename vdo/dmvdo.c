@@ -854,9 +854,9 @@ static int __init vdo_init(void)
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
 	// Add VDO errors to the already existing set of errors in UDS.
-	result = register_status_codes();
+	result = register_vdo_status_codes();
 	if (result != UDS_SUCCESS) {
-		uds_log_error("register_status_codes failed %d", result);
+		uds_log_error("register_vdo_status_codes failed %d", result);
 		vdo_destroy();
 		return result;
 	}
