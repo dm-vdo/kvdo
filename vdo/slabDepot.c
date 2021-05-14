@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#103 $
  */
 
 #include "slabDepot.h"
@@ -64,7 +64,7 @@ slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
  **/
 static struct slab_iterator get_slab_iterator(struct slab_depot *depot)
 {
-	return iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
+	return vdo_iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
 }
 
 /**
@@ -386,9 +386,9 @@ struct slab_depot_state_2_0 record_vdo_slab_depot(const struct slab_depot *depot
 int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 {
 	struct slab_iterator iterator = get_slab_iterator(depot);
-	while (has_next_slab(&iterator)) {
+	while (vdo_has_next_slab(&iterator)) {
 		int result =
-			allocate_ref_counts_for_vdo_slab(next_slab(&iterator));
+			allocate_ref_counts_for_vdo_slab(vdo_next_slab(&iterator));
 		if (result != VDO_SUCCESS) {
 			return result;
 		}

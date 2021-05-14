@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#24 $
  */
 
 #include "slabJournalEraser.h"
@@ -73,12 +73,12 @@ static void erase_next_slab_journal(struct vdo_completion *extent_completion)
 	struct vdo_slab *slab;
 	struct slab_journal_eraser *eraser = extent_completion->parent;
 
-	if (!has_next_slab(&eraser->slabs)) {
+	if (!vdo_has_next_slab(&eraser->slabs)) {
 		finish_erasing(eraser, VDO_SUCCESS);
 		return;
 	}
 
-	slab = next_slab(&eraser->slabs);
+	slab = vdo_next_slab(&eraser->slabs);
 	write_vdo_metadata_extent(eraser->extent, slab->journal_origin);
 }
 

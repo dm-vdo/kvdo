@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#117 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -139,10 +139,10 @@ void register_vdo_slab_with_allocator(struct block_allocator *allocator,
 static struct slab_iterator
 get_slab_iterator(const struct block_allocator *allocator)
 {
-	return iterate_slabs(allocator->depot->slabs,
-			     allocator->last_slab,
-			     allocator->zone_number,
-			     allocator->depot->zone_count);
+	return vdo_iterate_slabs(allocator->depot->slabs,
+				 allocator->last_slab,
+				 allocator->zone_number,
+				 allocator->depot->zone_count);
 }
 
 /**
@@ -162,8 +162,8 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	struct slab_iterator iterator;
 	assert_on_allocator_thread(allocator->thread_id, __func__);
 	iterator = get_slab_iterator(allocator);
-	while (has_next_slab(&iterator)) {
-		struct vdo_slab *slab = next_slab(&iterator);
+	while (vdo_has_next_slab(&iterator)) {
+		struct vdo_slab *slab = vdo_next_slab(&iterator);
 		abort_slab_journal_waiters(slab->journal);
 	}
 
@@ -619,8 +619,8 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	};
 
 	iterator = get_slab_iterator(allocator);
-	while (has_next_slab(&iterator)) {
-		struct vdo_slab *slab = next_slab(&iterator);
+	while (vdo_has_next_slab(&iterator)) {
+		struct vdo_slab *slab = vdo_next_slab(&iterator);
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
 		start_vdo_slab_action(slab,
@@ -1049,8 +1049,8 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 	unsigned int pause_counter = 0;
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 	log_info("block_allocator zone %u", allocator->zone_number);
-	while (has_next_slab(&iterator)) {
-		dump_vdo_slab(next_slab(&iterator));
+	while (vdo_has_next_slab(&iterator)) {
+		dump_vdo_slab(vdo_next_slab(&iterator));
 
 		// Wait for a while after each batch of 32 slabs dumped,
 		// allowing the kernel log a chance to be flushed instead of

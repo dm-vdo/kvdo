@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#7 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -47,10 +47,10 @@ struct slab_iterator {
  *
  * @return an initialized iterator structure
  **/
-static inline struct slab_iterator iterate_slabs(struct vdo_slab **slabs,
-						 slab_count_t start,
-						 slab_count_t end,
-						 slab_count_t stride)
+static inline struct slab_iterator vdo_iterate_slabs(struct vdo_slab **slabs,
+						     slab_count_t start,
+						     slab_count_t end,
+						     slab_count_t stride)
 {
 	return (struct slab_iterator) {
 		.slabs = slabs,
@@ -66,10 +66,10 @@ static inline struct slab_iterator iterate_slabs(struct vdo_slab **slabs,
  *
  * @param iterator  The iterator to poll
  *
- * @return <code>true</code> if the next call to <code>next_slab</code>
+ * @return <code>true</code> if the next call to <code>vdo_next_slab</code>
  *         will return a vdo_slab
  **/
-static inline bool has_next_slab(const struct slab_iterator *iterator)
+static inline bool vdo_has_next_slab(const struct slab_iterator *iterator)
 {
 	return (iterator->next != NULL);
 }
@@ -82,7 +82,7 @@ static inline bool has_next_slab(const struct slab_iterator *iterator)
  * @return the next vdo_slab or <code>NULL</code> if the array of slabs is empty
  *         or if all the appropriate Slabs have been returned
  **/
-static inline struct vdo_slab *next_slab(struct slab_iterator *iterator)
+static inline struct vdo_slab *vdo_next_slab(struct slab_iterator *iterator)
 {
 	struct vdo_slab *slab = iterator->next;
 	if ((slab == NULL)
