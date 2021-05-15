@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#119 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -1048,7 +1048,7 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 {
 	unsigned int pause_counter = 0;
 	struct slab_iterator iterator = get_slab_iterator(allocator);
-	log_info("block_allocator zone %u", allocator->zone_number);
+	uds_log_info("block_allocator zone %u", allocator->zone_number);
 	while (vdo_has_next_slab(&iterator)) {
 		dump_vdo_slab(vdo_next_slab(&iterator));
 

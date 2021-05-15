@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#58 $
  */
 
 #include "readOnlyRebuild.h"
@@ -164,7 +164,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 						     rebuild->tail,
 						     rebuild->logical_blocks_used,
 						     rebuild->block_map_data_blocks);
-	log_info("Read-only rebuild complete");
+	uds_log_info("Read-only rebuild complete");
 	complete_rebuild(completion);
 }
 
@@ -175,7 +175,7 @@ static void finish_rebuild(struct vdo_completion *completion)
  **/
 static void abort_rebuild(struct vdo_completion *completion)
 {
-	log_info("Read-only rebuild aborted");
+	uds_log_info("Read-only rebuild aborted");
 	complete_rebuild(completion);
 }
 
@@ -215,7 +215,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 		vdo->states.vdo.complete_recoveries++;
 	}
 
-	log_info("Saving rebuilt state");
+	uds_log_info("Saving rebuilt state");
 	prepare_vdo_completion_to_finish_parent(completion, &rebuild->completion);
 	drain_vdo_slab_depot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
 }
@@ -393,7 +393,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
 
-	log_info("Finished reading recovery journal");
+	uds_log_info("Finished reading recovery journal");
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	found_entries =

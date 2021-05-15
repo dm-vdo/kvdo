@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#119 $
  */
 
 /*
@@ -281,7 +281,7 @@ void enter_recovery_mode(struct vdo *vdo)
 		return;
 	}
 
-	log_info("Entering recovery mode");
+	uds_log_info("Entering recovery mode");
 	set_vdo_state(vdo, VDO_RECOVERING);
 }
 
@@ -296,8 +296,8 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 		flush_vdo_packer(vdo->packer);
 	}
 
-	log_info("compression is %s",
-		 (enable_compression ? "enabled" : "disabled"));
+	uds_log_info("compression is %s",
+		     (enable_compression ? "enabled" : "disabled"));
 	return was_enabled;
 }
 

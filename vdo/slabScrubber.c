@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#66 $
  */
 
 #include "slabScrubberInternals.h"
@@ -555,9 +555,9 @@ int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 /**********************************************************************/
 void dump_slab_scrubber(const struct slab_scrubber *scrubber)
 {
-	log_info("slab_scrubber slab_count %u waiters %zu %s%s",
-		 get_scrubber_slab_count(scrubber),
-		 count_waiters(&scrubber->waiters),
-		 get_vdo_admin_state_name(&scrubber->admin_state),
-		 scrubber->high_priority_only ? ", high_priority_only " : "");
+	uds_log_info("slab_scrubber slab_count %u waiters %zu %s%s",
+		     get_scrubber_slab_count(scrubber),
+		     count_waiters(&scrubber->waiters),
+		     get_vdo_admin_state_name(&scrubber->admin_state),
+		     scrubber->high_priority_only ? ", high_priority_only " : "");
 }

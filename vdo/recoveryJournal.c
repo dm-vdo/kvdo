@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#108 $
  */
 
 #include "recoveryJournal.h"
@@ -1311,22 +1311,23 @@ void dump_vdo_recovery_journal_statistics(const struct recovery_journal *journal
 
 	struct recovery_journal_statistics stats =
 		get_vdo_recovery_journal_statistics(journal);
-	log_info("Recovery Journal");
-	log_info("  block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
-		 journal->block_map_head, journal->slab_journal_head,
-		 journal->last_write_acknowledged, journal->tail,
-		 journal->block_map_reap_head, journal->slab_journal_reap_head,
-		 stats.disk_full, stats.slab_journal_commits_requested,
-		 count_waiters(&journal->increment_waiters),
-		 count_waiters(&journal->decrement_waiters));
-	log_info("  entries: started=%llu written=%llu committed=%llu",
-		 stats.entries.started, stats.entries.written,
-		 stats.entries.committed);
-	log_info("  blocks: started=%llu written=%llu committed=%llu",
-		 stats.blocks.started, stats.blocks.written,
-		 stats.blocks.committed);
+	uds_log_info("Recovery Journal");
+	uds_log_info("  block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
+		     journal->block_map_head, journal->slab_journal_head,
+		     journal->last_write_acknowledged, journal->tail,
+		     journal->block_map_reap_head,
+		     journal->slab_journal_reap_head,
+		     stats.disk_full, stats.slab_journal_commits_requested,
+		     count_waiters(&journal->increment_waiters),
+		     count_waiters(&journal->decrement_waiters));
+	uds_log_info("  entries: started=%llu written=%llu committed=%llu",
+		     stats.entries.started, stats.entries.written,
+		     stats.entries.committed);
+	uds_log_info("  blocks: started=%llu written=%llu committed=%llu",
+		     stats.blocks.started, stats.blocks.written,
+		     stats.blocks.committed);
 
-	log_info("  active blocks:");
+	uds_log_info("  active blocks:");
 	head = &journal->active_tail_blocks;
 	list_for_each(entry, head) {
 		dump_vdo_recovery_block(vdo_recovery_block_from_list_entry(entry));

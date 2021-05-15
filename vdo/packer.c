@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#78 $
  */
 
 #include "packerInternals.h"
@@ -1013,9 +1013,9 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 		return;
 	}
 
-	log_info("    %sBin slots_used=%u free_space=%zu",
-		 (canceled ? "Canceled" : "Input"), bin->slots_used,
-		 bin->free_space);
+	uds_log_info("    %sBin slots_used=%u free_space=%zu",
+		     (canceled ? "Canceled" : "Input"), bin->slots_used,
+		     bin->free_space);
 
 	// XXX dump vios in bin->incoming? The vios should have been dumped
 	// from the vio pool. Maybe just dump their addresses so it's clear
@@ -1031,7 +1031,8 @@ static void dump_output_bin(const struct output_bin *bin)
 		return;
 	}
 
-	log_info("    struct output_bin contains %zu outgoing waiters", count);
+	uds_log_info("    struct output_bin contains %zu outgoing waiters",
+		     count);
 
 	// XXX dump vios in bin->outgoing? The vios should have been dumped
 	// from the vio pool. Maybe just dump their addresses so it's clear
@@ -1046,13 +1047,13 @@ void dump_vdo_packer(const struct packer *packer)
 	struct input_bin *input;
 	struct output_bin *output;
 
-	log_info("packer");
-	log_info("  flushGeneration=%llu state %s writing_batches=%s",
-		 packer->flush_generation,
-		 get_vdo_admin_state_name(&packer->state),
-		 bool_to_string(packer->writing_batches));
+	uds_log_info("packer");
+	uds_log_info("  flushGeneration=%llu state %s writing_batches=%s",
+		     packer->flush_generation,
+		     get_vdo_admin_state_name(&packer->state),
+		     bool_to_string(packer->writing_batches));
 
-	log_info("  input_bin_count=%llu", packer->size);
+	uds_log_info("  input_bin_count=%llu", packer->size);
 	for (input = get_vdo_packer_fullest_bin(packer); input != NULL;
 	     input = next_vdo_packer_bin(packer, input)) {
 		dump_input_bin(input, false);
@@ -1060,8 +1061,8 @@ void dump_vdo_packer(const struct packer *packer)
 
 	dump_input_bin(packer->canceled_bin, true);
 
-	log_info("  output_bin_count=%zu idle_output_bin_count=%zu",
-		 packer->output_bin_count, packer->idle_output_bin_count);
+	uds_log_info("  output_bin_count=%zu idle_output_bin_count=%zu",
+		     packer->output_bin_count, packer->idle_output_bin_count);
 	list_for_each_entry(output, &packer->output_bins, list) {
 		dump_output_bin(output);
 	}

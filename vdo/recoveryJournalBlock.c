@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#55 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -214,9 +214,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		if (data_vio->operation.type == DATA_INCREMENT) {
 			/*
 			 * In order to not lose an acknowledged write with the
-                         * FUA flag, we must also set the FUA flag on the
-                         * journal entry write.
-                         */
+			 * FUA flag, we must also set the FUA flag on the
+			 * journal entry write.
+			 */
 			block->has_fua_entry =
 				(block->has_fua_entry ||
 				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
@@ -323,13 +323,13 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
 	block->committing = true;
 
 	/*
-         * We must issue a flush for every commit. For increments, it is
-         * necessary to ensure that the data being referenced is stable. For
-         * decrements, it is necessary to ensure that the preceding increment
-         * entry is stable before allowing overwrites of the lbn's previous
-         * data. For writes which had the FUA flag set, we must also set the
-         * FUA flag on the journal write.
-         */
+	 * We must issue a flush for every commit. For increments, it is
+	 * necessary to ensure that the data being referenced is stable. For
+	 * decrements, it is necessary to ensure that the preceding increment
+	 * entry is stable before allowing overwrites of the lbn's previous
+	 * data. For writes which had the FUA flag set, we must also set the
+	 * FUA flag on the journal write.
+	 */
 	fua = block->has_fua_entry;
 	block->has_fua_entry = false;
 	launch_write_metadata_vio_with_flush(block->vio,
@@ -344,9 +344,9 @@ int commit_vdo_recovery_block(struct recovery_journal_block *block,
 /**********************************************************************/
 void dump_vdo_recovery_block(const struct recovery_journal_block *block)
 {
-	log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
-		 block->sequence_number, block->entry_count,
-		 (block->committing ? "committing" : "waiting"),
-		 count_waiters(&block->entry_waiters),
-		 count_waiters(&block->commit_waiters));
+	uds_log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
+		     block->sequence_number, block->entry_count,
+		     (block->committing ? "committing" : "waiting"),
+		     count_waiters(&block->entry_waiters),
+		     count_waiters(&block->commit_waiters));
 }

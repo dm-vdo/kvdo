@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#95 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -377,7 +377,7 @@ static void finish_recovery(struct vdo_completion *completion)
 						      recovery_count,
 						      recovery->highest_tail);
 	free_recovery_completion(&recovery);
-	log_info("Rebuild complete.");
+	uds_log_info("Rebuild complete");
 
 	// Now that we've freed the recovery completion and its vast array of
 	// journal entries, we can allocate refcounts.
@@ -546,7 +546,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 	struct vdo *vdo = recovery->vdo;
 	assert_on_admin_thread(vdo, __func__);
 
-	log_info("Saving recovery progress");
+	uds_log_info("Saving recovery progress");
 	set_vdo_state(vdo, VDO_REPLAYING);
 
 	// The block map access which follows the super block save must be done
@@ -573,10 +573,10 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 	struct vdo *vdo = recovery->vdo;
 	assert_on_admin_thread(vdo, __func__);
 
-	log_info("Replayed %zu journal entries into slab journals",
-		 recovery->entries_added_to_slab_journals);
-	log_info("Synthesized %zu missing journal entries",
-		 recovery->missing_decref_count);
+	uds_log_info("Replayed %zu journal entries into slab journals",
+		     recovery->entries_added_to_slab_journals);
+	uds_log_info("Synthesized %zu missing journal entries",
+		     recovery->missing_decref_count);
 	vdo->recovery_journal->logical_blocks_used =
 		recovery->logical_blocks_used;
 	vdo->recovery_journal->block_map_data_blocks =
@@ -777,8 +777,8 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		recovery->entries_added_to_slab_journals++;
 	}
 
-	log_info("Recreating missing journal entries for zone %u",
-		 recovery->allocator->zone_number);
+	uds_log_info("Recreating missing journal entries for zone %u",
+		     recovery->allocator->zone_number);
 	add_synthesized_entries(completion);
 }
 
@@ -808,8 +808,8 @@ void replay_into_slab_journals(struct block_allocator *allocator,
 		.entry_count = 0,
 	};
 
-	log_info("Replaying entries into slab journals for zone %u",
-		 allocator->zone_number);
+	uds_log_info("Replaying entries into slab journals for zone %u",
+		     allocator->zone_number);
 	completion->parent = &recovery->completion;
 	add_slab_journal_entries(completion);
 }
@@ -1292,7 +1292,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		as_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
-	log_info("Finished reading recovery journal");
+	uds_log_info("Finished reading recovery journal");
 	found_entries =
 		find_vdo_recovery_journal_head_and_tail(journal,
 							recovery->journal_data,
@@ -1317,7 +1317,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 
 	if (!found_entries) {
 		// This message must be recognizable by VDOTest::RebuildBase.
-		log_info("Replaying 0 recovery entries into block map");
+		uds_log_info("Replaying 0 recovery entries into block map");
 		// We still need to load the slab_depot.
 		FREE(recovery->journal_data);
 		recovery->journal_data = NULL;
@@ -1332,9 +1332,9 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		return;
 	}
 
-	log_info("Highest-numbered recovery journal block has sequence number %llu, and the highest-numbered usable block is %llu",
-		 recovery->highest_tail,
-		 recovery->tail);
+	uds_log_info("Highest-numbered recovery journal block has sequence number %llu, and the highest-numbered usable block is %llu",
+		     recovery->highest_tail,
+		     recovery->tail);
 
 	if (is_replaying(vdo)) {
 		// We need to know how many entries the block map rebuild

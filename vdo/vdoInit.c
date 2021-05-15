@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#9 $
  */
 
 #include "vdoInit.h"
@@ -129,11 +129,11 @@ int initialize_vdo(struct vdo *vdo,
 		return handle_initialization_failure(vdo, result);
 	}
 
-	log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
-		 config->thread_counts.logical_zones,
-		 config->thread_counts.physical_zones,
-		 config->thread_counts.hash_zones,
-		 vdo->thread_config->base_thread_count);
+	uds_log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+		     config->thread_counts.logical_zones,
+		     config->thread_counts.physical_zones,
+		     config->thread_counts.hash_zones,
+		     vdo->thread_config->base_thread_count);
 
 	/*
 	 * After this point, calling kobject_put on vdo_directory will

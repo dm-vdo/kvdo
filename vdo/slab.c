@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#62 $
  */
 
 #include "slab.h"
@@ -397,11 +397,13 @@ void dump_vdo_slab(const struct vdo_slab *slab)
 	if (slab->reference_counts != NULL) {
 		// Terse because there are a lot of slabs to dump and syslog is
 		// lossy.
-		log_info("slab %u: P%u, %llu free", slab->slab_number,
-			 slab->priority, get_slab_free_block_count(slab));
+		uds_log_info("slab %u: P%u, %llu free",
+			     slab->slab_number,
+			     slab->priority,
+			     get_slab_free_block_count(slab));
 	} else {
-		log_info("slab %u: status %s", slab->slab_number,
-			 status_to_string(slab->status));
+		uds_log_info("slab %u: status %s", slab->slab_number,
+			     status_to_string(slab->status));
 	}
 
 	dump_vdo_slab_journal(slab->journal);
@@ -409,6 +411,6 @@ void dump_vdo_slab(const struct vdo_slab *slab)
 	if (slab->reference_counts != NULL) {
 		dump_vdo_ref_counts(slab->reference_counts);
 	} else {
-		log_info("refCounts is null");
+		uds_log_info("refCounts is null");
 	}
 }
