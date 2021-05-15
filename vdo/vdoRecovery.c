@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#94 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -626,11 +626,11 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 	while (has_waiters(missing_decrefs)) {
 		struct missing_decref *decref =
 			as_missing_decref(get_first_waiter(missing_decrefs));
-		if (!attempt_replay_into_slab_journal(decref->slab_journal,
-						      decref->penultimate_mapping.pbn,
-						      DATA_DECREMENT,
-						      &decref->journal_point,
-						      completion)) {
+		if (!attempt_replay_into_vdo_slab_journal(decref->slab_journal,
+							  decref->penultimate_mapping.pbn,
+							  DATA_DECREMENT,
+							  &decref->journal_point,
+							  completion)) {
 			return;
 		}
 
@@ -766,11 +766,11 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			continue;
 		}
 
-		if (!attempt_replay_into_slab_journal(slab->journal,
-						      entry.mapping.pbn,
-						      entry.operation,
-						      &recovery->next_journal_point,
-						      completion)) {
+		if (!attempt_replay_into_vdo_slab_journal(slab->journal,
+							 entry.mapping.pbn,
+							 entry.operation,
+							 &recovery->next_journal_point,
+							 completion)) {
 			return;
 		}
 

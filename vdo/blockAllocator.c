@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#118 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -91,7 +91,7 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 	 * policy makes VDO a better client of any underlying storage that is
 	 * thinly-provisioned [VDOSTORY-123].
 	 */
-	if (is_slab_journal_blank(slab->journal)) {
+	if (is_vdo_slab_journal_blank(slab->journal)) {
 		return unopened_slab_priority;
 	}
 
@@ -164,7 +164,7 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	iterator = get_slab_iterator(allocator);
 	while (vdo_has_next_slab(&iterator)) {
 		struct vdo_slab *slab = vdo_next_slab(&iterator);
-		abort_slab_journal_waiters(slab->journal);
+		abort_vdo_slab_journal_waiters(slab->journal);
 	}
 
 	complete_vdo_completion(parent);
@@ -380,7 +380,7 @@ void queue_vdo_slab(struct vdo_slab *slab)
 		// here, so don't do it again.
 		WRITE_ONCE(allocator->allocated_blocks,
 			   allocator->allocated_blocks - free_blocks);
-		if (!is_slab_journal_blank(slab->journal)) {
+		if (!is_vdo_slab_journal_blank(slab->journal)) {
 			WRITE_ONCE(allocator->statistics.slabs_opened,
 				   allocator->statistics.slabs_opened + 1);
 		}
@@ -756,7 +756,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 		mark_vdo_slab_unrecovered(slab);
 		high_priority = ((current_slab_status.is_clean &&
 				 (depot->load_type == NORMAL_LOAD)) ||
-				 requires_scrubbing(slab->journal));
+				 vdo_slab_journal_requires_scrubbing(slab->journal));
 		register_slab_for_scrubbing(allocator->slab_scrubber,
 					    slab,
 					    high_priority);
@@ -947,8 +947,8 @@ void release_vdo_tail_block_locks(void *context,
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct list_head *list = &allocator->dirty_slab_journals;
 	while (!list_empty(list)) {
-		if (!release_recovery_journal_lock(slab_journal_from_dirty_entry(list->next),
-						   allocator->depot->active_release_request)) {
+		if (!vdo_release_recovery_journal_lock(vdo_slab_journal_from_dirty_entry(list->next),
+						       allocator->depot->active_release_request)) {
 			break;
 		}
 	}

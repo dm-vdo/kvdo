@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#71 $
  */
 
 /*
@@ -427,7 +427,7 @@ static void update_reference_count(struct data_vio *data_vio)
 		return;
 	}
 
-	add_slab_journal_entry(get_vdo_slab_journal(depot, pbn), data_vio);
+	add_vdo_slab_journal_entry(get_vdo_slab_journal(depot, pbn), data_vio);
 }
 
 /**
