@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#11 $
  */
 
 #include "superBlockCodec.h"
@@ -50,7 +50,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 };
 
 /**********************************************************************/
-int initialize_super_block_codec(struct super_block_codec *codec)
+int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 {
 	int result = make_buffer(MAX_COMPONENT_DATA_SIZE,
 				 &codec->component_buffer);
@@ -74,7 +74,7 @@ int initialize_super_block_codec(struct super_block_codec *codec)
 }
 
 /**********************************************************************/
-void destroy_super_block_codec(struct super_block_codec *codec)
+void destroy_vdo_super_block_codec(struct super_block_codec *codec)
 {
 	free_buffer(FORGET(codec->block_buffer));
 	free_buffer(FORGET(codec->component_buffer));
@@ -82,7 +82,7 @@ void destroy_super_block_codec(struct super_block_codec *codec)
 }
 
 /**********************************************************************/
-int encode_super_block(struct super_block_codec *codec)
+int encode_vdo_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
 	struct header header = SUPER_BLOCK_HEADER_12_0;
@@ -121,7 +121,7 @@ int encode_super_block(struct super_block_codec *codec)
 }
 
 /**********************************************************************/
-int decode_super_block(struct super_block_codec *codec)
+int decode_vdo_super_block(struct super_block_codec *codec)
 {
 	struct header header;
 	int result;
@@ -191,7 +191,7 @@ int decode_super_block(struct super_block_codec *codec)
 }
 
 /**********************************************************************/
-size_t get_fixed_super_block_size(void)
+size_t get_vdo_super_block_fixed_size(void)
 {
 	return SUPER_BLOCK_FIXED_SIZE;
 }
