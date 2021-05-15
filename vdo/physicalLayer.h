@@ -16,13 +16,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#53 $
  */
 
 #ifndef PHYSICAL_LAYER_H
 #define PHYSICAL_LAYER_H
 
 #include "types.h"
+
+/**
+ * An asynchronous operation.
+ *
+ * @param vio The vio on which to operate
+ **/
+typedef void async_operation(struct vio *vio);
+
+/**
+ * An asynchronous data operation.
+ *
+ * @param data_vio  The data_vio on which to operate
+ **/
+typedef void async_data_operation(struct data_vio *data_vio);
 
 /**
  * A function to destroy a physical layer and NULL out the reference to it.

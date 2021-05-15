@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#84 $
  */
 
 #ifndef TYPES_H
@@ -363,19 +363,5 @@ struct zoned_pbn {
 	enum block_mapping_state state;
 	struct physical_zone *zone;
 };
-
-/**
- * An asynchronous operation.
- *
- * @param vio The vio on which to operate
- **/
-typedef void async_operation(struct vio *vio);
-
-/**
- * An asynchronous data operation.
- *
- * @param data_vio  The data_vio on which to operate
- **/
-typedef void async_data_operation(struct data_vio *data_vio);
 
 #endif // TYPES_H
