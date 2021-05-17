@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#67 $
  */
 
 #include "slabScrubberInternals.h"
@@ -282,8 +282,8 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 	slab_block_number max_sbn = slab->end - slab->start;
 	while (entry_point.entry_count < entry_count) {
 		struct slab_journal_entry entry =
-			decode_slab_journal_entry(block,
-						  entry_point.entry_count);
+			decode_vdo_slab_journal_entry(block,
+						      entry_point.entry_count);
 		if (entry.sbn > max_sbn) {
 			// This entry is out of bounds.
 			return log_error_strerror(VDO_CORRUPT_JOURNAL,

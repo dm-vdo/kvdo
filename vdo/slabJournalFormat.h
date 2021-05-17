@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#11 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -136,8 +136,8 @@ struct packed_slab_journal_block {
  * @param origin       The first block of the slab
  **/
 static inline physical_block_number_t __must_check
-get_slab_journal_start_block(const struct slab_config *slab_config,
-			     physical_block_number_t origin)
+get_vdo_slab_journal_start_block(const struct slab_config *slab_config,
+				 physical_block_number_t origin)
 {
 	return origin + slab_config->data_blocks
 	       + slab_config->reference_count_blocks;
@@ -150,8 +150,8 @@ get_slab_journal_start_block(const struct slab_config *slab_config,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-pack_slab_journal_block_header(const struct slab_journal_block_header *header,
-			       struct packed_slab_journal_block_header *packed)
+pack_vdo_slab_journal_block_header(const struct slab_journal_block_header *header,
+				   struct packed_slab_journal_block_header *packed)
 {
 	packed->head = __cpu_to_le64(header->head);
 	packed->sequence_number = __cpu_to_le64(header->sequence_number);
@@ -172,7 +172,7 @@ pack_slab_journal_block_header(const struct slab_journal_block_header *header,
  * @return The decoded slab journal entry
  **/
 static inline struct slab_journal_entry __must_check
-unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
+unpack_vdo_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;
 	entry.sbn = packed->offset_high7;
@@ -194,8 +194,8 @@ unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
  * @return The decoded entry
  **/
 struct slab_journal_entry __must_check
-decode_slab_journal_entry(struct packed_slab_journal_block *block,
-			  journal_entry_count_t entry_count);
+decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
+			      journal_entry_count_t entry_count);
 
 
 #endif // SLAB_JOURNAL_FORMAT_H

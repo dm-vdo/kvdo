@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#93 $
  */
 
 #include "slabJournalInternals.h"
@@ -657,7 +657,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 
 	header->head = journal->head;
 	list_move_tail(&entry->available_entry, &journal->uncommitted_blocks);
-	pack_slab_journal_block_header(header, &journal->block->header);
+	pack_vdo_slab_journal_block_header(header, &journal->block->header);
 
 	// Copy the tail block into the vio.
 	memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);

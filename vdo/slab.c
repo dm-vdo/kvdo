@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#63 $
  */
 
 #include "slab.h"
@@ -66,7 +66,7 @@ int make_vdo_slab(physical_block_number_t slab_origin,
 	slab->ref_counts_origin =
 		slab_origin + slab_config->data_blocks + translation;
 	slab->journal_origin =
-		(get_slab_journal_start_block(slab_config, slab_origin)
+		(get_vdo_slab_journal_start_block(slab_config, slab_origin)
 		 + translation);
 
 	result = make_vdo_slab_journal(allocator, slab, recovery_journal,
