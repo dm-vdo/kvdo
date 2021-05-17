@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#23 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -138,7 +138,7 @@ void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
  *
  * @return <code>true</code> if the cache is active
  **/
-bool __must_check is_page_cache_active(struct vdo_page_cache *cache);
+bool __must_check is_vdo_page_cache_active(struct vdo_page_cache *cache);
 
 /**
  * Advance the dirty period for a page cache.

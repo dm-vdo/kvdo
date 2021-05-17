@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#67 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -528,7 +528,7 @@ find_free_page(struct vdo_page_cache *cache)
 }
 
 /**********************************************************************/
-struct page_info *vpc_find_page(struct vdo_page_cache *cache,
+struct page_info *vdo_page_cache_find_page(struct vdo_page_cache *cache,
 				physical_block_number_t pbn)
 {
 	if ((cache->last_found != NULL) && (cache->last_found->pbn == pbn)) {
@@ -808,7 +808,7 @@ validate_completed_page(struct vdo_completion *completion, bool writable)
 }
 
 /**********************************************************************/
-bool is_page_cache_active(struct vdo_page_cache *cache)
+bool is_vdo_page_cache_active(struct vdo_page_cache *cache)
 {
 	return ((cache->outstanding_reads != 0) ||
 		(cache->outstanding_writes != 0));
@@ -1112,7 +1112,7 @@ static void discard_a_page(struct vdo_page_cache *cache)
 		return;
 	}
 
-	if (!is_dirty(info)) {
+	if (!is_vdo_page_dirty(info)) {
 		allocate_free_page(info);
 		return;
 	}
@@ -1396,7 +1396,7 @@ void get_vdo_page(struct vdo_completion *completion)
 		ADD_ONCE(cache->stats.read_count, 1);
 	}
 
-	info = vpc_find_page(cache, vdo_page_comp->pbn);
+	info = vdo_page_cache_find_page(cache, vdo_page_comp->pbn);
 	if (info != NULL) {
 		// The page is in the cache already.
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
@@ -1532,7 +1532,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	// Make sure we don't throw away any dirty pages.
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     info++) {
-		int result = ASSERT(!is_dirty(info),
+		int result = ASSERT(!is_vdo_page_dirty(info),
 				    "cache must have no dirty pages");
 		if (result != VDO_SUCCESS) {
 			return result;

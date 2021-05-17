@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#99 $
  */
 
 #include "blockMap.h"
@@ -424,7 +424,7 @@ void check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (is_vdo_state_draining(&zone->state) &&
 	    !is_tree_zone_active(&zone->tree_zone) &&
-	    !is_page_cache_active(zone->page_cache)) {
+	    !is_vdo_page_cache_active(zone->page_cache)) {
 		finish_vdo_draining_with_result(&zone->state,
 						(vdo_is_read_only(zone->read_only_notifier) ?
 							VDO_READ_ONLY : VDO_SUCCESS));
