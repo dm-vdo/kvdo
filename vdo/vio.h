@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#48 $
  */
 
 #ifndef VIO_H
@@ -206,7 +206,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
  **/
 static inline bool is_data_vio(struct vio *vio)
 {
-	return is_data_vio_type(vio->type);
+	return is_vdo_data_vio_type(vio->type);
 }
 
 /**
@@ -216,7 +216,7 @@ static inline bool is_data_vio(struct vio *vio)
  **/
 static inline bool is_compressed_write_vio(struct vio *vio)
 {
-	return is_compressed_write_vio_type(vio->type);
+	return is_vdo_compressed_write_vio_type(vio->type);
 }
 
 /**
@@ -226,7 +226,7 @@ static inline bool is_compressed_write_vio(struct vio *vio)
  **/
 static inline bool is_metadata_vio(struct vio *vio)
 {
-	return is_metadata_vio_type(vio->type);
+	return is_vdo_metadata_vio_type(vio->type);
 }
 
 /**

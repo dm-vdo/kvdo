@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#28 $
  */
 
 #include "extent.h"
@@ -42,7 +42,7 @@ int create_vdo_extent(struct vdo *vdo,
 		      struct vdo_extent **extent_ptr)
 {
 	struct vdo_extent *extent;
-	int result = ASSERT(is_metadata_vio_type(vio_type),
+	int result = ASSERT(is_vdo_metadata_vio_type(vio_type),
 			    "create_vdo_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;

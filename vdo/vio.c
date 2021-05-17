@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#41 $
  */
 
 #include "vio.h"
@@ -46,7 +46,7 @@ int create_metadata_vio(struct vdo *vdo,
 	// VDOSTORY-176.
 	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
-	result = ASSERT(is_metadata_vio_type(vio_type),
+	result = ASSERT(is_vdo_metadata_vio_type(vio_type),
 			"%d is a metadata type",
 			vio_type);
 	if (result != VDO_SUCCESS) {

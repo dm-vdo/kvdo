@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#98 $
  */
 
 /*
@@ -433,7 +433,7 @@ thread_id_t get_callback_thread_id(void)
 	thread_id_t thread_id;
 
 	if (thread == NULL) {
-		return INVALID_THREAD_ID;
+		return VDO_INVALID_THREAD_ID;
 	}
 
 	thread_id = thread->thread_id;

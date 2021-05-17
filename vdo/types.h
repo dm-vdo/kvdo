@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#85 $
  */
 
 #ifndef TYPES_H
@@ -142,7 +142,7 @@ typedef uint8_t thread_id_t;
  * The thread ID returned when the current base code thread ID cannot be found
  * or is otherwise undefined.
  **/
-static const thread_id_t INVALID_THREAD_ID = (thread_id_t) -1;
+static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
 
 /**
  * A zone counter
@@ -206,7 +206,7 @@ enum partition_id {
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_data_vio_type(enum vio_type type)
+static inline bool is_vdo_data_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_DATA);
 }
@@ -216,7 +216,7 @@ static inline bool is_data_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_compressed_write_vio_type(enum vio_type type)
+static inline bool is_vdo_compressed_write_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_COMPRESSED_BLOCK);
 }
@@ -226,11 +226,11 @@ static inline bool is_compressed_write_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_metadata_vio_type(enum vio_type type)
+static inline bool is_vdo_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!is_data_vio_type(type) &&
-		!is_compressed_write_vio_type(type));
+		!is_vdo_data_vio_type(type) &&
+		!is_vdo_compressed_write_vio_type(type));
 }
 
 /**
