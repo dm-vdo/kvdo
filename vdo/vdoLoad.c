@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#85 $
  */
 
 #include "vdoLoad.h"
@@ -130,7 +130,7 @@ static void wait_for_read_only_mode(struct vdo_completion *completion)
 
 /**
  * Finish loading the VDO after an error, but leave it in read-only
- * mode.  This error handler is set in make_dirty(), scrub_slabs(), and
+ * mode.  This error handler is set in make_dirty(), scrub_vdo_slabs(), and
  * load_vdo_components().
  *
  * @param completion  The sub-task completion
@@ -150,7 +150,7 @@ static void continue_load_read_only(struct vdo_completion *completion)
  *
  * @param completion   The sub-task completion
  **/
-static void scrub_slabs(struct vdo_completion *completion)
+static void scrub_vdo_slabs(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (requires_recovery(vdo)) {
@@ -195,7 +195,7 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 	initialize_block_map_from_journal(vdo->block_map,
 					  vdo->recovery_journal);
 
-	prepare_vdo_admin_sub_task(vdo, scrub_slabs, handle_scrubbing_error);
+	prepare_vdo_admin_sub_task(vdo, scrub_vdo_slabs, handle_scrubbing_error);
 	prepare_vdo_slab_depot_to_allocate(vdo->depot, load_type, completion);
 }
 

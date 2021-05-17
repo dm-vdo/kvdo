@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#121 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#122 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -235,10 +235,10 @@ static int allocate_components(struct block_allocator *allocator,
 		return result;
 	}
 
-	result = make_slab_scrubber(vdo,
-				    slab_journal_size,
-				    allocator->read_only_notifier,
-				    &allocator->slab_scrubber);
+	result = make_vdo_slab_scrubber(vdo,
+					slab_journal_size,
+					allocator->read_only_notifier,
+					&allocator->slab_scrubber);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -314,7 +314,7 @@ void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr)
 		return;
 	}
 
-	free_slab_scrubber(&allocator->slab_scrubber);
+	free_vdo_slab_scrubber(&allocator->slab_scrubber);
 	free_vio_pool(&allocator->vio_pool);
 	free_priority_table(&allocator->prioritized_slabs);
 	FREE(allocator);
@@ -346,7 +346,7 @@ block_count_t get_vdo_allocated_blocks(const struct block_allocator *allocator)
 block_count_t
 get_vdo_unrecovered_slab_count(const struct block_allocator *allocator)
 {
-	return get_scrubber_slab_count(allocator->slab_scrubber);
+	return get_scrubber_vdo_slab_count(allocator->slab_scrubber);
 }
 
 /**********************************************************************/
@@ -370,8 +370,8 @@ void queue_vdo_slab(struct vdo_slab *slab)
 	}
 
 	if (is_unrecovered_vdo_slab(slab)) {
-		register_slab_for_scrubbing(allocator->slab_scrubber,
-					    slab, false);
+		vdo_register_slab_for_scrubbing(allocator->slab_scrubber,
+						slab, false);
 		return;
 	}
 
@@ -757,9 +757,9 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 		high_priority = ((current_slab_status.is_clean &&
 				 (depot->load_type == NORMAL_LOAD)) ||
 				 vdo_slab_journal_requires_scrubbing(slab->journal));
-		register_slab_for_scrubbing(allocator->slab_scrubber,
-					    slab,
-					    high_priority);
+		vdo_register_slab_for_scrubbing(allocator->slab_scrubber,
+						slab,
+						high_priority);
 	}
 	FREE(slab_statuses);
 
@@ -779,11 +779,11 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 		return;
 	}
 
-	scrub_high_priority_slabs(allocator->slab_scrubber,
-				  is_priority_table_empty(allocator->prioritized_slabs),
-				  parent,
-				  finish_vdo_completion_parent_callback,
-				  finish_vdo_completion_parent_callback);
+	scrub_high_priority_vdo_slabs(allocator->slab_scrubber,
+				      is_priority_table_empty(allocator->prioritized_slabs),
+				      parent,
+				      finish_vdo_completion_parent_callback,
+				      finish_vdo_completion_parent_callback);
 }
 
 /**********************************************************************/
@@ -820,7 +820,7 @@ static void do_drain_step(struct vdo_completion *completion)
 					   NULL);
 	switch (++allocator->drain_step) {
 	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
-		stop_scrubbing(allocator->slab_scrubber, completion);
+		stop_vdo_slab_scrubbing(allocator->slab_scrubber, completion);
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_SLABS:
@@ -898,7 +898,7 @@ static void do_resume_step(struct vdo_completion *completion)
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
-		resume_scrubbing(allocator->slab_scrubber, completion);
+		resume_vdo_slab_scrubbing(allocator->slab_scrubber, completion);
 		return;
 
 	case DRAIN_ALLOCATOR_START:
@@ -983,10 +983,10 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 {
 	struct block_allocator *allocator =
 		vdo_get_block_allocator_for_zone(context, zone_number);
-	scrub_slabs(allocator->slab_scrubber,
-		    allocator->depot,
-		    vdo_notify_zone_finished_scrubbing,
-		    noop_vdo_completion_callback);
+	scrub_vdo_slabs(allocator->slab_scrubber,
+		    	allocator->depot,
+		    	vdo_notify_zone_finished_scrubbing,
+		    	noop_vdo_completion_callback);
 	complete_vdo_completion(parent);
 }
 
@@ -994,13 +994,13 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 int enqueue_for_clean_vdo_slab(struct block_allocator *allocator,
 			       struct waiter *waiter)
 {
-	return enqueue_clean_slab_waiter(allocator->slab_scrubber, waiter);
+	return enqueue_clean_vdo_slab_waiter(allocator->slab_scrubber, waiter);
 }
 
 /**********************************************************************/
 void increase_vdo_slab_scrubbing_priority(struct vdo_slab *slab)
 {
-	register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
+	vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
 }
 
 
@@ -1061,5 +1061,5 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 		}
 	}
 
-	dump_slab_scrubber(allocator->slab_scrubber);
+	dump_vdo_slab_scrubber(allocator->slab_scrubber);
 }
