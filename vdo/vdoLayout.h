@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#19 $
  */
 
 /**
@@ -103,7 +103,7 @@ get_next_vdo_layout_size(struct vdo_layout *vdo_layout);
  *         if the layout is not prepared to grow
  **/
 block_count_t __must_check
-get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
+vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
 
 /**
  * Grow the layout by swapping in the prepared layout.

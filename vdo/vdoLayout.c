@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#25 $
  */
 
 #include "vdoLayout.h"
@@ -259,7 +259,7 @@ block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 
 /**********************************************************************/
 block_count_t
-get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
+vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 {
 	struct partition *partition;
 	if (vdo_layout->next_layout == NULL) {

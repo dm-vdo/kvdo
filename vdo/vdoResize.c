@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#48 $
  */
 
 #include "vdoResize.h"
@@ -175,7 +175,7 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 
 	// Validate that we are prepared to grow appropriately.
 	new_depot_size =
-		get_next_block_allocator_partition_size(vdo->layout);
+		vdo_get_next_block_allocator_partition_size(vdo->layout);
 	prepared_depot_size = get_vdo_slab_depot_new_size(vdo->depot);
 	if (prepared_depot_size != new_depot_size) {
 		return VDO_PARAMETER_MISMATCH;
@@ -270,7 +270,7 @@ int prepare_to_grow_physical(struct vdo *vdo,
 	}
 
 	new_depot_size =
-		get_next_block_allocator_partition_size(vdo->layout);
+		vdo_get_next_block_allocator_partition_size(vdo->layout);
 	result = vdo_prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_layout_growth(vdo->layout);
