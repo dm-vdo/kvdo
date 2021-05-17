@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#49 $
  */
 
 #include "vdoResize.h"
@@ -59,7 +59,8 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Callback to initiate a grow physical, registered in perform_grow_physical().
+ * Callback to initiate a grow physical, registered in
+ * perform_vdo_grow_physical().
  *
  * @param completion  The sub-task completion
  **/
@@ -148,7 +149,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
+int perform_vdo_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
 	int result;
 	block_count_t new_depot_size, prepared_depot_size;
@@ -198,7 +199,7 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 
 /**
  * Callback to check that we're not in recovery mode, used in
- * prepare_to_grow_physical().
+ * prepare_vdo_to_grow_physical().
  *
  * @param completion  The sub-task completion
  **/
@@ -230,8 +231,8 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int prepare_to_grow_physical(struct vdo *vdo,
-			     block_count_t new_physical_blocks)
+int prepare_vdo_to_grow_physical(struct vdo *vdo,
+				 block_count_t new_physical_blocks)
 {
 	int result;
 	block_count_t new_depot_size;

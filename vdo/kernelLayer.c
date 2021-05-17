@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#183 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#184 $
  */
 
 #include "kernelLayer.h"
@@ -572,9 +572,9 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 			layer, config->physical_blocks);
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_TOO_MANY_SLABS) {
-				*error_ptr = "Device prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
 			} else {
-				*error_ptr = "Device prepare_to_grow_physical failed";
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed";
 			}
 			return result;
 		}
@@ -937,9 +937,9 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 	uds_log_info("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_to_grow_physical(&layer->vdo, physical_count);
+	result = prepare_vdo_to_grow_physical(&layer->vdo, physical_count);
 	if (result != VDO_SUCCESS) {
-		// prepare_to_grow_physical logs errors.
+		// prepare_vdo_to_grow_physical logs errors.
 		if (result == VDO_PARAMETER_MISMATCH) {
 			/*
 			 * If we don't trap this case, map_to_system_error()
