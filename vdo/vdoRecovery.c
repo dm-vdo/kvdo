@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#96 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -290,8 +290,8 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 }
 
 /**********************************************************************/
-int make_recovery_completion(struct vdo *vdo,
-			     struct recovery_completion **recovery_ptr)
+int make_vdo_recovery_completion(struct vdo *vdo,
+				 struct recovery_completion **recovery_ptr)
 {
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct recovery_completion *recovery;
@@ -317,7 +317,7 @@ int make_recovery_completion(struct vdo *vdo,
 
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {
-		free_recovery_completion(&recovery);
+		free_vdo_recovery_completion(&recovery);
 		return result;
 	}
 
@@ -337,7 +337,7 @@ static void free_missing_decref(struct waiter *waiter,
 }
 
 /**********************************************************************/
-void free_recovery_completion(struct recovery_completion **recovery_ptr)
+void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr)
 {
 	const struct thread_config *thread_config;
 	zone_count_t z;
@@ -370,13 +370,13 @@ static void finish_recovery(struct vdo_completion *completion)
 	int result;
 	struct vdo_completion *parent = completion->parent;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion);
+		as_vdo_recovery_completion(completion);
 	struct vdo *vdo = recovery->vdo;
 	uint64_t recovery_count = ++vdo->states.vdo.complete_recoveries;
 	initialize_vdo_recovery_journal_post_recovery(vdo->recovery_journal,
 						      recovery_count,
 						      recovery->highest_tail);
-	free_recovery_completion(&recovery);
+	free_vdo_recovery_completion(&recovery);
 	uds_log_info("Rebuild complete");
 
 	// Now that we've freed the recovery completion and its vast array of
@@ -395,8 +395,8 @@ static void abort_recovery(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 	int result = completion->result;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion);
-	free_recovery_completion(&recovery);
+		as_vdo_recovery_completion(completion);
+	free_vdo_recovery_completion(&recovery);
 	uds_log_warning("Recovery aborted");
 	finish_vdo_completion(parent, result);
 }
@@ -518,7 +518,7 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 {
 	int result;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
@@ -542,7 +542,7 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 static void start_super_block_save(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	assert_on_admin_thread(vdo, __func__);
 
@@ -569,7 +569,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 static void finish_recovering_depot(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	assert_on_admin_thread(vdo, __func__);
 
@@ -600,7 +600,7 @@ static void
 handle_add_slab_journal_entry_error(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	notify_vdo_slab_journals_are_recovered(recovery->allocator,
 					       completion->result);
 }
@@ -613,7 +613,7 @@ handle_add_slab_journal_entry_error(struct vdo_completion *completion)
 static void add_synthesized_entries(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct wait_queue *missing_decrefs =
 		&recovery->missing_decrefs[recovery->allocator->zone_number];
 
@@ -732,7 +732,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 {
 	struct recovery_point *recovery_point;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 
@@ -783,9 +783,9 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void replay_into_slab_journals(struct block_allocator *allocator,
-			       struct vdo_completion *completion,
-			       void *context)
+void vdo_replay_into_slab_journals(struct block_allocator *allocator,
+				   struct vdo_completion *completion,
+				   void *context)
 {
 	struct recovery_completion *recovery = context;
 	assert_on_physical_zone_thread(recovery->vdo, allocator->zone_number,
@@ -852,7 +852,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 static void apply_to_depot(struct vdo_completion *completion)
 {
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct slab_depot *depot = get_slab_depot(recovery->vdo);
 	assert_on_admin_thread(recovery->vdo, __func__);
 	prepare_sub_task(recovery,
@@ -1120,7 +1120,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 {
 	int result;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 
 	// We need to be on logical zone 0's thread since we are going to use
@@ -1289,7 +1289,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	bool found_entries;
 	int result;
 	struct recovery_completion *recovery =
-		as_recovery_completion(completion->parent);
+		as_vdo_recovery_completion(completion->parent);
 	struct vdo *vdo = recovery->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	uds_log_info("Finished reading recovery journal");
@@ -1370,7 +1370,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
+void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct recovery_completion *recovery;
 	int result;
@@ -1378,7 +1378,7 @@ void launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 	// Note: This message must be recognizable by Permabit::VDODeviceBase.
 	uds_log_warning("Device was dirty, rebuilding reference counts");
 
-	result = make_recovery_completion(vdo, &recovery);
+	result = make_vdo_recovery_completion(vdo, &recovery);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;

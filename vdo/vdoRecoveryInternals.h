@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#20 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -112,7 +112,7 @@ struct recovery_completion {
  * @return The recovery_completion
  **/
 static inline struct recovery_completion * __must_check
-as_recovery_completion(struct vdo_completion *completion)
+as_vdo_recovery_completion(struct vdo_completion *completion)
 {
 	assert_vdo_completion_type(completion->type, RECOVERY_COMPLETION);
 	return container_of(completion, struct recovery_completion, completion);
@@ -127,14 +127,14 @@ as_recovery_completion(struct vdo_completion *completion)
  * @return VDO_SUCCESS or a status code
  **/
 int __must_check
-make_recovery_completion(struct vdo *vdo,
-			 struct recovery_completion **recovery_ptr);
+make_vdo_recovery_completion(struct vdo *vdo,
+			     struct recovery_completion **recovery_ptr);
 
 /**
  * Free a recovery_completion and all underlying structures.
  *
  * @param recovery_ptr  A pointer to the recovery completion to free
  **/
-void free_recovery_completion(struct recovery_completion **recovery_ptr);
+void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr);
 
 #endif // VDO_RECOVERY_INTERNALS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#121 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -645,7 +645,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	if (operation == ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			get_current_vdo_action_context(allocator->depot->action_manager);
-		replay_into_slab_journals(allocator, completion, context);
+		vdo_replay_into_slab_journals(allocator, completion, context);
 		return;
 	}
 

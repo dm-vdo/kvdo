@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#43 $
  */
 
 #include "blockMapRecovery.h"
@@ -155,7 +155,7 @@ as_block_map_recovery_completion(struct vdo_completion *completion)
  * @param recovery_ptr  a pointer to the completion to free
  **/
 static void
-free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
+free_vdo_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
 {
 	struct block_map_recovery_completion *recovery = *recovery_ptr;
 	if (recovery == NULL) {
@@ -169,7 +169,7 @@ free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
 /**
  * Free the block_map_recovery_completion and notify the parent that the
  * block map recovery is done. This callback is registered in
- * make_recovery_completion().
+ * make_vdo_recovery_completion().
  *
  * @param completion  The block_map_recovery_completion
  **/
@@ -179,7 +179,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion);
-	free_recovery_completion(&recovery);
+	free_vdo_recovery_completion(&recovery);
 	finish_vdo_completion(parent, result);
 }
 
@@ -195,11 +195,11 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
  * @return a success or error code
  **/
 static int
-make_recovery_completion(struct vdo *vdo,
-			 block_count_t entry_count,
-			 struct numbered_block_mapping *journal_entries,
-			 struct vdo_completion *parent,
-			 struct block_map_recovery_completion **recovery_ptr)
+make_vdo_recovery_completion(struct vdo *vdo,
+			     block_count_t entry_count,
+			     struct numbered_block_mapping *journal_entries,
+			     struct vdo_completion *parent,
+			     struct block_map_recovery_completion **recovery_ptr)
 {
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
@@ -541,9 +541,9 @@ void recover_block_map(struct vdo *vdo,
 	page_count_t i;
 	struct block_map_recovery_completion *recovery;
 
-	int result = make_recovery_completion(vdo, entry_count,
-					      journal_entries, parent,
-					      &recovery);
+	int result = make_vdo_recovery_completion(vdo, entry_count,
+						  journal_entries, parent,
+						  &recovery);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;
