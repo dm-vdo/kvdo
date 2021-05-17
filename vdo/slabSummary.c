@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#63 $
  */
 
 #include "slabSummary.h"
@@ -196,7 +196,7 @@ int make_slab_summary(struct vdo *vdo,
 	uint8_t hint;
 	zone_count_t zone;
 	block_count_t blocks_per_zone =
-		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
+		get_vdo_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
 	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,
 			    "block size must be a multiple of entry size");
@@ -221,7 +221,7 @@ int make_slab_summary(struct vdo *vdo,
 
 	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
-	summary->hint_shift = get_slab_summary_hint_shift(slab_size_shift);
+	summary->hint_shift = get_vdo_slab_summary_hint_shift(slab_size_shift);
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
