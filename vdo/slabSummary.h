@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#28 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -79,20 +79,20 @@ struct slab_status {
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-make_slab_summary(struct vdo *vdo,
-		  struct partition *partition,
-		  const struct thread_config *thread_config,
-		  unsigned int slab_size_shift,
-		  block_count_t maximum_free_blocks_per_slab,
-		  struct read_only_notifier *read_only_notifier,
-		  struct slab_summary **slab_summary_ptr);
+make_vdo_slab_summary(struct vdo *vdo,
+		      struct partition *partition,
+		      const struct thread_config *thread_config,
+		      unsigned int slab_size_shift,
+		      block_count_t maximum_free_blocks_per_slab,
+		      struct read_only_notifier *read_only_notifier,
+		      struct slab_summary **slab_summary_ptr);
 
 /**
  * Destroy a slab_summary and NULL out the reference to it.
  *
  * @param [in,out] slab_summary_ptr A pointer to the slab_summary to free
  **/
-void free_slab_summary(struct slab_summary **slab_summary_ptr);
+void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr);
 
 /**
  * Get the portion of the slab summary for a specified zone.
@@ -103,7 +103,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr);
  * @return The portion of the slab summary for the specified zone
  **/
 struct slab_summary_zone * __must_check
-get_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
+vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
 
 /**
  * Drain a zone of the slab summary.
@@ -112,9 +112,9 @@ get_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
  * @param operation     The type of drain to perform
  * @param parent        The object to notify when the suspend is complete
  **/
-void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
-			     enum admin_state_code operation,
-			     struct vdo_completion *parent);
+void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+				 enum admin_state_code operation,
+				 struct vdo_completion *parent);
 
 /**
  * Resume a zone of the slab summary.
@@ -122,8 +122,8 @@ void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
  * @param summary_zone  The zone to resume
  * @param parent        The object to notify when the zone is resumed
  **/
-void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
-			      struct vdo_completion *parent);
+void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+				  struct vdo_completion *parent);
 
 /**
  * Update the entry for a slab.
@@ -137,13 +137,13 @@ void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
  * @param is_clean           Whether the slab is clean
  * @param free_blocks        The number of free blocks
  **/
-void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-			       struct waiter *waiter,
-			       slab_count_t slab_number,
-			       tail_block_offset_t tail_block_offset,
-			       bool load_ref_counts,
-			       bool is_clean,
-			       block_count_t free_blocks);
+void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
+				   struct waiter *waiter,
+				   slab_count_t slab_number,
+				   tail_block_offset_t tail_block_offset,
+				   bool load_ref_counts,
+				   bool is_clean,
+				   block_count_t free_blocks);
 
 /**
  * Get the stored tail block offset for a slab.
@@ -154,8 +154,8 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
  * @return The tail block offset for the slab
  **/
 tail_block_offset_t __must_check
-get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				 slab_count_t slab_number);
+vdo_get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
+				     slab_count_t slab_number);
 
 /**
  * Whether ref_counts must be loaded from the layer.
@@ -165,8 +165,8 @@ get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
  *
  * @return Whether ref_counts must be loaded
  **/
-bool __must_check must_load_ref_counts(struct slab_summary_zone *summary_zone,
-				       slab_count_t slab_number);
+bool __must_check vdo_must_load_ref_counts(struct slab_summary_zone *summary_zone,
+					   slab_count_t slab_number);
 
 /**
  * Get the stored cleanliness information for a single slab.
@@ -177,8 +177,8 @@ bool __must_check must_load_ref_counts(struct slab_summary_zone *summary_zone,
  * @return Whether the slab is clean
  **/
 bool __must_check
-get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-			   slab_count_t slab_number);
+vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
+			       slab_count_t slab_number);
 
 /**
  * Get the stored emptiness information for a single slab.
@@ -201,10 +201,10 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
  * @param [out] free_block_hint   The approximate number of free blocks
  * @param [out] is_clean          Whether the slab is clean
  **/
-void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-				     slab_count_t slab_number,
-				     size_t *free_block_hint,
-				     bool *is_clean);
+void vdo_get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
+					 slab_count_t slab_number,
+					 size_t *free_block_hint,
+					 bool *is_clean);
 
 /**
  * Get the stored slab statuses for all slabs in a zone.
@@ -213,9 +213,9 @@ void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
  * @param [in]     slab_count    The number of slabs to fetch
  * @param [in,out] statuses      An array of slab_status structures to populate
  **/
-void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
-				  slab_count_t slab_count,
-				  struct slab_status *statuses);
+void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
+				      slab_count_t slab_count,
+				      struct slab_status *statuses);
 
 /**
  * Set the origin of the slab summary relative to the physical layer.
@@ -223,8 +223,8 @@ void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
  * @param summary    The slab_summary to update
  * @param partition  The slab summary partition
  **/
-void set_slab_summary_origin(struct slab_summary *summary,
-			     struct partition *partition);
+void set_vdo_slab_summary_origin(struct slab_summary *summary,
+				 struct partition *partition);
 
 /**
  * Read in all the slab summary data from the slab summary partition,
@@ -238,10 +238,10 @@ void set_slab_summary_origin(struct slab_summary *summary,
  *                          all of the summary will be initialized as new.
  * @param parent            The parent of this operation
  **/
-void load_slab_summary(struct slab_summary *summary,
-		       enum admin_state_code operation,
-		       zone_count_t zones_to_combine,
-		       struct vdo_completion *parent);
+void load_vdo_slab_summary(struct slab_summary *summary,
+			   enum admin_state_code operation,
+			   zone_count_t zones_to_combine,
+			   struct vdo_completion *parent);
 
 /**
  * Fetch the cumulative statistics for all slab summary zones in a summary.
@@ -251,6 +251,6 @@ void load_slab_summary(struct slab_summary *summary,
  * @return the cumulative slab summary statistics for the summary
  **/
 struct slab_summary_statistics __must_check
-get_slab_summary_statistics(const struct slab_summary *summary);
+get_vdo_slab_summary_statistics(const struct slab_summary *summary);
 
 #endif // SLAB_SUMMARY_H

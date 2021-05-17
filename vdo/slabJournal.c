@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#94 $
  */
 
 #include "slabJournalInternals.h"
@@ -559,13 +559,13 @@ static void update_tail_block_location(struct slab_journal *journal)
 	 */
 	block_offset =
 		get_vdo_slab_journal_block_offset(journal, journal->summarized);
-	update_slab_summary_entry(journal->summary,
-				  &journal->slab_summary_waiter,
-				  journal->slab->slab_number,
-				  block_offset,
-				  (journal->head > 1),
-				  false,
-				  free_block_count);
+	vdo_update_slab_summary_entry(journal->summary,
+				      &journal->slab_summary_waiter,
+				      journal->slab->slab_number,
+				      block_offset,
+				      (journal->head > 1),
+				      false,
+				      free_block_count);
 }
 
 /**********************************************************************/
@@ -1245,8 +1245,8 @@ static void set_decoded_state(struct vdo_completion *completion)
 
 	// If the slab is clean, this implies the slab journal is empty, so
 	// advance the head appropriately.
-	if (get_summarized_cleanliness(journal->summary,
-				       journal->slab->slab_number)) {
+	if (vdo_get_summarized_cleanliness(journal->summary,
+					   journal->slab->slab_number)) {
 		journal->head = journal->tail;
 	} else {
 		journal->head = header.head;
@@ -1272,8 +1272,8 @@ static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 	struct vdo_slab *slab = journal->slab;
 	struct vio_pool_entry *entry = vio_context;
 	tail_block_offset_t last_commit_point =
-		get_summarized_tail_block_offset(journal->summary,
-						 slab->slab_number);
+		vdo_get_summarized_tail_block_offset(journal->summary,
+						     slab->slab_number);
 	// Slab summary keeps the commit point offset, so the tail block is
 	// the block before that. Calculation supports small journals in unit
 	// tests.
@@ -1300,10 +1300,10 @@ void decode_vdo_slab_journal(struct slab_journal *journal)
 			 journal->slab->allocator->thread_id),
 			"decode_vdo_slab_journal() called on correct thread");
 	last_commit_point =
-		get_summarized_tail_block_offset(journal->summary,
-						 slab->slab_number);
+		vdo_get_summarized_tail_block_offset(journal->summary,
+						     slab->slab_number);
 	if ((last_commit_point == 0) &&
-	    !must_load_ref_counts(journal->summary, slab->slab_number)) {
+	    !vdo_must_load_ref_counts(journal->summary, slab->slab_number)) {
 		/*
 		 * This slab claims that it has a tail block at (journal->size
 		 * - 1), but a head of 1. This is impossible, due to the

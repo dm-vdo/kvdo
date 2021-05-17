@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#122 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#123 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -725,8 +725,8 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 		return result;
 	}
 
-	get_summarized_slab_statuses(allocator->summary, slab_count,
-				     slab_statuses);
+	vdo_get_summarized_slab_statuses(allocator->summary, slab_count,
+					 slab_statuses);
 
 	// Sort the slabs by cleanliness, then by emptiness hint.
 	initialize_heap(&heap,
@@ -746,8 +746,8 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 		}
 
 		if ((depot->load_type == REBUILD_LOAD) ||
-		    (!must_load_ref_counts(allocator->summary,
-					   slab->slab_number) &&
+		    (!vdo_must_load_ref_counts(allocator->summary,
+					       slab->slab_number) &&
 		     current_slab_status.is_clean)) {
 			queue_vdo_slab(slab);
 			continue;
@@ -828,7 +828,7 @@ static void do_drain_step(struct vdo_completion *completion)
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_SUMMARY:
-		drain_slab_summary_zone(
+		drain_vdo_slab_summary_zone(
 			allocator->summary,
 			get_vdo_admin_state_code(&allocator->state),
 			completion);
@@ -890,7 +890,7 @@ static void do_resume_step(struct vdo_completion *completion)
 					   NULL);
 	switch (--allocator->drain_step) {
 	case DRAIN_ALLOCATOR_STEP_SUMMARY:
-		resume_slab_summary_zone(allocator->summary, completion);
+		resume_vdo_slab_summary_zone(allocator->summary, completion);
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_SLABS:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#79 $
  */
 
 #include "refCounts.h"
@@ -1119,18 +1119,17 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 	}
 
 	// Update the slab summary to indicate this ref_counts is clean.
-	offset =
-		get_summarized_tail_block_offset(summary,
-						 ref_counts->slab->slab_number);
+	offset = vdo_get_summarized_tail_block_offset(summary,
+						      ref_counts->slab->slab_number);
 	ref_counts->updating_slab_summary = true;
 	ref_counts->slab_summary_waiter.callback = finish_summary_update;
-	update_slab_summary_entry(summary,
-				  &ref_counts->slab_summary_waiter,
-				  ref_counts->slab->slab_number,
-				  offset,
-				  true,
-				  true,
-				  get_slab_free_block_count(ref_counts->slab));
+	vdo_update_slab_summary_entry(summary,
+				      &ref_counts->slab_summary_waiter,
+				      ref_counts->slab->slab_number,
+				      offset,
+				      true,
+				      true,
+				      get_slab_free_block_count(ref_counts->slab));
 }
 
 /**
@@ -1501,8 +1500,8 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 
 	switch (get_vdo_admin_state_code(&slab->state)) {
 	case ADMIN_STATE_SCRUBBING:
-		if (must_load_ref_counts(slab->allocator->summary,
-					 slab->slab_number)) {
+		if (vdo_must_load_ref_counts(slab->allocator->summary,
+					     slab->slab_number)) {
 			load_reference_blocks(ref_counts);
 			return;
 		}
@@ -1510,8 +1509,8 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 		break;
 
 	case ADMIN_STATE_SAVE_FOR_SCRUBBING:
-		if (!must_load_ref_counts(slab->allocator->summary,
-					  slab->slab_number)) {
+		if (!vdo_must_load_ref_counts(slab->allocator->summary,
+					      slab->slab_number)) {
 			// These reference counts were never written, so mark
 			// them all dirty.
 			vdo_dirty_all_reference_blocks(ref_counts);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#22 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -104,6 +104,6 @@ struct slab_summary {
  *
  * @param summary       The summary whose entries should be combined
  **/
-void combine_zones(struct slab_summary *summary);
+void vdo_slab_summary_combine_zones(struct slab_summary *summary);
 
 #endif // SLAB_SUMMARY_INTERNALS_H
