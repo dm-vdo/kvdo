@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#84 $
  */
 
 #include "vdoLoad.h"
@@ -283,9 +283,9 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	block_count_t block_count;
 	struct super_block_codec *codec
 		= get_vdo_super_block_codec(vdo->super_block);
-	int result = decode_component_states(codec->component_buffer,
-					     vdo->geometry.release_version,
-					     &vdo->states);
+	int result = decode_vdo_component_states(codec->component_buffer,
+						 vdo->geometry.release_version,
+						 &vdo->states);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -294,9 +294,9 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	vdo->load_state = vdo->states.vdo.state;
 
 	block_count = get_vdo_physical_block_count(vdo);
-	result = validate_component_states(&vdo->states,
-					   vdo->geometry.nonce,
-					   block_count);
+	result = validate_vdo_component_states(&vdo->states,
+					       vdo->geometry.nonce,
+					       block_count);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -322,7 +322,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	zone_count_t zone;
 	int result = decode_from_super_block(vdo);
 	if (result != VDO_SUCCESS) {
-		destroy_component_states(&vdo->states);
+		destroy_vdo_component_states(&vdo->states);
 		return result;
 	}
 

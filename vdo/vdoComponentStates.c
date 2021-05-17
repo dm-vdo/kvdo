@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#12 $
  */
 
 #include "vdoComponentStates.h"
@@ -40,7 +40,7 @@ const struct version_number VDO_VOLUME_VERSION_67_0 = {
 };
 
 /**********************************************************************/
-void destroy_component_states(struct vdo_component_states *states)
+void destroy_vdo_component_states(struct vdo_component_states *states)
 {
 	if (states == NULL) {
 		return;
@@ -93,9 +93,9 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 }
 
 /**********************************************************************/
-int decode_component_states(struct buffer *buffer,
-			    release_version_number_t expected_release_version,
-			    struct vdo_component_states *states)
+int decode_vdo_component_states(struct buffer *buffer,
+				release_version_number_t expected_release_version,
+				struct vdo_component_states *states)
 {
 	// Check the release version against the one from the geometry.
 	int result = get_uint32_le_from_buffer(buffer,
@@ -134,9 +134,9 @@ int decode_component_states(struct buffer *buffer,
 }
 
 /**********************************************************************/
-int validate_component_states(struct vdo_component_states *states,
-			      nonce_t geometry_nonce,
-			      block_count_t size)
+int validate_vdo_component_states(struct vdo_component_states *states,
+				  nonce_t geometry_nonce,
+				  block_count_t size)
 {
 	if (geometry_nonce != states->vdo.nonce) {
 		return log_error_strerror(VDO_BAD_NONCE,
@@ -167,8 +167,8 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 }
 
 /**********************************************************************/
-int encode_component_states(struct buffer *buffer,
-			    const struct vdo_component_states *states)
+int encode_vdo_component_states(struct buffer *buffer,
+				const struct vdo_component_states *states)
 {
 	size_t expected_size;
 	int result = reset_buffer_end(buffer, 0);

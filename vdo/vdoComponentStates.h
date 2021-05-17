@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#5 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -65,7 +65,7 @@ struct vdo_component_states {
  *
  * @param states  The component states to destroy
  **/
-void destroy_component_states(struct vdo_component_states *states);
+void destroy_vdo_component_states(struct vdo_component_states *states);
 
 /**
  * Decode the payload of a super block.
@@ -78,9 +78,9 @@ void destroy_component_states(struct vdo_component_states *states);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-decode_component_states(struct buffer *buffer,
-			release_version_number_t expected_release_version,
-			struct vdo_component_states *states);
+decode_vdo_component_states(struct buffer *buffer,
+			    release_version_number_t expected_release_version,
+			    struct vdo_component_states *states);
 
 /**
  * Validate the decoded super block configuration.
@@ -92,9 +92,9 @@ decode_component_states(struct buffer *buffer,
  * @return VDO_SUCESS or an error if the configuration is invalid
  **/
 int __must_check
-validate_component_states(struct vdo_component_states *states,
-			  nonce_t geometry_nonce,
-			  block_count_t size);
+validate_vdo_component_states(struct vdo_component_states *states,
+			      nonce_t geometry_nonce,
+			      block_count_t size);
 
 /**
  * Encode a VDO super block into a buffer for writing in the super block.
@@ -111,7 +111,7 @@ encode_vdo(struct buffer *buffer, struct vdo_component_states *states);
  * @param buffer  The buffer to encode into
  * @param states  The states to encode
  **/
-int encode_component_states(struct buffer *buffer,
-			    const struct vdo_component_states *states);
+int encode_vdo_component_states(struct buffer *buffer,
+				const struct vdo_component_states *states);
 
 #endif /* VDO_COMPONENT_STATES_H */
