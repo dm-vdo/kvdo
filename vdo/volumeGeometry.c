@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#41 $
  */
 
 #include "volumeGeometry.h"
@@ -248,8 +248,8 @@ static int decode_geometry_block(struct buffer *buffer,
 }
 
 /**********************************************************************/
-int read_geometry_block(struct block_device *bdev,
-			struct volume_geometry *geometry)
+int vdo_read_geometry_block(struct block_device *bdev,
+			    struct volume_geometry *geometry)
 {
 	struct bio *bio;
 	byte *block;
@@ -287,13 +287,13 @@ int read_geometry_block(struct block_device *bdev,
 	}
 
 
-	result = parse_geometry_block(block, geometry);
+	result = vdo_parse_geometry_block(block, geometry);
 	FREE(block);
 	return result;
 }
 
 /**********************************************************************/
-int parse_geometry_block(byte *block, struct volume_geometry *geometry)
+int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 {
 	crc32_checksum_t checksum, saved_checksum;
 	struct buffer *buffer;
@@ -334,8 +334,8 @@ int parse_geometry_block(byte *block, struct volume_geometry *geometry)
 
 
 /************************************************************************/
-int index_config_to_uds_configuration(const struct index_config *index_config,
-				      struct uds_configuration **uds_config_ptr)
+int vdo_index_config_to_uds_configuration(const struct index_config *index_config,
+					  struct uds_configuration **uds_config_ptr)
 {
 	struct uds_configuration *uds_configuration;
 	int result = uds_initialize_configuration(&uds_configuration,
@@ -351,8 +351,8 @@ int index_config_to_uds_configuration(const struct index_config *index_config,
 }
 
 /************************************************************************/
-void index_config_to_uds_parameters(const struct index_config *index_config,
-				    struct uds_parameters *user_params)
+void vdo_index_config_to_uds_parameters(const struct index_config *index_config,
+					struct uds_parameters *user_params)
 {
 	user_params->checkpoint_frequency = index_config->checkpoint_frequency;
 }

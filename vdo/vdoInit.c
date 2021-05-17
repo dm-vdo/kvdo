@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#10 $
  */
 
 #include "vdoInit.h"
@@ -113,8 +113,8 @@ int initialize_vdo(struct vdo *vdo,
 
 	initialize_deadlock_queue(&vdo->deadlock_queue);
 
-	result = read_geometry_block(get_vdo_backing_device(vdo),
-				     &vdo->geometry);
+	result = vdo_read_geometry_block(get_vdo_backing_device(vdo),
+					 &vdo->geometry);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
 		return handle_initialization_failure(vdo, result);

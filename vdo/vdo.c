@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#121 $
  */
 
 /*
@@ -476,7 +476,7 @@ page_count_t get_configured_cache_size(const struct vdo *vdo)
 /**********************************************************************/
 physical_block_number_t get_first_block_offset(const struct vdo *vdo)
 {
-	return get_data_region_offset(vdo->geometry);
+	return vdo_get_data_region_offset(vdo->geometry);
 }
 
 /**********************************************************************/

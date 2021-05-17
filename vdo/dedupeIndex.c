@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#91 $
  */
 
 #include "dedupeIndex.h"
@@ -973,7 +973,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 	result = alloc_sprintf("index name", &index->index_name,
 			       "dev=%s offset=4096 size=%llu",
 			       vdo->device_config->parent_device_name,
-			       (get_index_region_size(vdo->geometry) *
+			       (vdo_get_index_region_size(vdo->geometry) *
 				VDO_BLOCK_SIZE));
 	if (result != UDS_SUCCESS) {
 		uds_log_error("Creating index name failed (%d)", result);
@@ -983,9 +983,9 @@ int make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 
 	index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
 	index_config = &vdo->geometry.index_config;
-	index_config_to_uds_parameters(index_config, &index->uds_params);
-	result = index_config_to_uds_configuration(index_config,
-						   &index->configuration);
+	vdo_index_config_to_uds_parameters(index_config, &index->uds_params);
+	result = vdo_index_config_to_uds_configuration(index_config,
+						       &index->configuration);
 	if (result != VDO_SUCCESS) {
 		FREE(index->index_name);
 		FREE(index);
