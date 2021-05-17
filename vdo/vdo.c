@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#120 $
  */
 
 /*
@@ -175,7 +175,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 	int result;
 
 	struct buffer *buffer
-		= get_super_block_codec(vdo->super_block)->component_buffer;
+		= get_vdo_super_block_codec(vdo->super_block)->component_buffer;
 	record_vdo(vdo);
 	result = encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
@@ -183,8 +183,8 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 		return;
 	}
 
-	save_super_block(vdo->super_block, get_first_block_offset(vdo),
-			 parent);
+	save_vdo_super_block(vdo->super_block, get_first_block_offset(vdo),
+			     parent);
 }
 
 /**

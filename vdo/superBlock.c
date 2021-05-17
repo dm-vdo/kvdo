@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#36 $
  */
 
 #include "superBlock.h"
@@ -76,8 +76,8 @@ allocate_super_block(struct vdo *vdo,
 }
 
 /**********************************************************************/
-int make_super_block(struct vdo *vdo,
-		     struct vdo_super_block **super_block_ptr)
+int make_vdo_super_block(struct vdo *vdo,
+			 struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
 	int result = allocate_super_block(vdo, &super_block);
@@ -107,8 +107,8 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 
 /**
  * Finish the parent of a super block load or save operation. This
- * callback is registered in save_super_block() and
- * load_super_block().
+ * callback is registered in save_vdo_super_block() and
+ * load_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -122,7 +122,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 
 /**
  * Log a super block save error. This error handler is registered in
- * save_super_block().
+ * save_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -143,9 +143,9 @@ static void handle_save_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void save_super_block(struct vdo_super_block *super_block,
-		      physical_block_number_t super_block_offset,
-		      struct vdo_completion *parent)
+void save_vdo_super_block(struct vdo_super_block *super_block,
+			  physical_block_number_t super_block_offset,
+			  struct vdo_completion *parent)
 {
 	int result;
 
@@ -177,7 +177,7 @@ void save_super_block(struct vdo_super_block *super_block,
 
 /**
  * Continue after loading the super block. This callback is registered
- * in load_super_block().
+ * in load_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -190,10 +190,10 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void load_super_block(struct vdo *vdo,
-		      struct vdo_completion *parent,
-		      physical_block_number_t super_block_offset,
-		      struct vdo_super_block **super_block_ptr)
+void load_vdo_super_block(struct vdo *vdo,
+			  struct vdo_completion *parent,
+			  physical_block_number_t super_block_offset,
+			  struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block = NULL;
 	int result = allocate_super_block(vdo, &super_block);
@@ -216,7 +216,7 @@ void load_super_block(struct vdo *vdo,
 
 /**********************************************************************/
 struct super_block_codec *
-get_super_block_codec(struct vdo_super_block *super_block)
+get_vdo_super_block_codec(struct vdo_super_block *super_block)
 {
 	return &super_block->codec;
 }
