@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#40 $
  */
 
 #include "recoveryUtils.h"
@@ -44,8 +44,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	struct vdo_extent *extent = vdo_completion_as_extent(completion);
-	free_vdo_extent(&extent);
+	free_vdo_extent(vdo_completion_as_extent(FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
 

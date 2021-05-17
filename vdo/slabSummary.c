@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#65 $
  */
 
 #include "slabSummary.h"
@@ -580,8 +580,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
-	struct vdo_extent *extent = vdo_completion_as_extent(completion);
-	free_vdo_extent(&extent);
+	free_vdo_extent(vdo_completion_as_extent(FORGET(completion)));
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 

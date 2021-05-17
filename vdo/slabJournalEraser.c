@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#26 $
  */
 
 #include "slabJournalEraser.h"
@@ -46,7 +46,7 @@ struct slab_journal_eraser {
 static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 {
 	struct vdo_completion *parent = eraser->parent;
-	free_vdo_extent(&eraser->extent);
+	free_vdo_extent(FORGET(eraser->extent));
 	FREE(eraser->zero_buffer);
 	FREE(eraser);
 	finish_vdo_completion(parent, result);

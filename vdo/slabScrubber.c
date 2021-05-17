@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#70 $
  */
 
 #include "slabScrubberInternals.h"
@@ -101,7 +101,7 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
  **/
 static void free_extent_and_buffer(struct slab_scrubber *scrubber)
 {
-	free_vdo_extent(&scrubber->extent);
+	free_vdo_extent(FORGET(scrubber->extent));
 	if (scrubber->journal_data != NULL) {
 		FREE(scrubber->journal_data);
 		scrubber->journal_data = NULL;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#20 $
  */
 
 #ifndef EXTENT_H
@@ -91,11 +91,11 @@ int __must_check create_vdo_extent(struct vdo *vdo,
 				   struct vdo_extent **extent_ptr);
 
 /**
- * Free an extent and null out the reference to it.
+ * Free an extent.
  *
- * @param [in,out] extent_ptr   The reference to the extent to free
+ * @param extent  The extent to free
  **/
-void free_vdo_extent(struct vdo_extent **extent_ptr);
+void free_vdo_extent(struct vdo_extent *extent);
 
 /**
  * Read metadata from the underlying storage.
