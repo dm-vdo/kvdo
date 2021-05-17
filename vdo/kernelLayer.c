@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#184 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#185 $
  */
 
 #include "kernelLayer.h"
@@ -562,7 +562,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		result = prepare_to_resize_logical(
 			layer, logical_bytes / VDO_BLOCK_SIZE);
 		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device prepare_to_grow_logical failed";
+			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
 			return result;
 		}
 	}
@@ -982,10 +982,10 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 	uds_log_info("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_to_grow_logical(&layer->vdo, logical_count);
+	result = prepare_vdo_to_grow_logical(&layer->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
-		// prepare_to_grow_logical logs errors
+		// prepare_vdo_to_grow_logical logs errors
 		return result;
 	}
 

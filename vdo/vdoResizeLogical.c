@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#35 $
  */
 
 #include "vdoResizeLogical.h"
@@ -52,7 +52,8 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Callback to initiate a grow logical, registered in perform_grow_logical().
+ * Callback to initiate a grow logical, registered in
+ * perform_vdo_grow_logical().
  *
  * @param completion  The sub-task completion
  **/
@@ -134,7 +135,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
+int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	if (get_new_entry_count(get_block_map(vdo)) != new_logical_blocks) {
 		return VDO_PARAMETER_MISMATCH;
@@ -148,7 +149,7 @@ int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 }
 
 /**********************************************************************/
-int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
+int prepare_vdo_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	const char *message;
 	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;
