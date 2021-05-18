@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#72 $
  */
 
 /*
@@ -158,7 +158,7 @@ static void release_allocated_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_allocated_zone(data_vio);
-	release_allocation_lock(data_vio_as_allocating_vio(data_vio));
+	vio_release_allocation_lock(data_vio_as_allocating_vio(data_vio));
 	perform_cleanup_stage(data_vio, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -453,7 +453,7 @@ static void decrement_for_dedupe(struct vdo_completion *completion)
 		 * block, we must release the PBN lock on it first so that the
 		 * allocator will not allocate a write-locked block.
 		 */
-		release_allocation_lock(allocating_vio);
+		vio_release_allocation_lock(allocating_vio);
 	}
 
 	set_logical_callback(data_vio, update_block_map_for_dedupe);
@@ -1000,9 +1000,9 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 		return;
 	}
 
-	allocate_data_block(data_vio_as_allocating_vio(data_vio),
-			    get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
-			    VIO_WRITE_LOCK, continue_write_after_allocation);
+	vio_allocate_data_block(data_vio_as_allocating_vio(data_vio),
+				get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
+				VIO_WRITE_LOCK, continue_write_after_allocation);
 }
 
 /**********************************************************************/

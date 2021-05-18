@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#93 $
  */
 
 #include "blockMapTree.h"
@@ -1124,8 +1124,8 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	release_allocation_lock(allocating_vio);
-	reset_allocation(allocating_vio);
+	vio_release_allocation_lock(allocating_vio);
+	vio_reset_allocation(allocating_vio);
 	launch_logical_callback(data_vio, finish_block_map_allocation);
 }
 
@@ -1180,7 +1180,7 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 /**
  * Continue the process of allocating a block map page now that the
  * block_allocator has given us a block. This method is supplied as the
- * callback to allocate_data_block() by allocate_block_map_page().
+ * callback to vio_allocate_data_block() by allocate_block_map_page().
  *
  * @param allocating_vio  The data_vio which is doing the allocation
  **/
@@ -1234,10 +1234,10 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 		return;
 	}
 
-	allocate_data_block(data_vio_as_allocating_vio(data_vio),
-			    get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
-			    VIO_BLOCK_MAP_WRITE_LOCK,
-			    continue_block_map_page_allocation);
+	vio_allocate_data_block(data_vio_as_allocating_vio(data_vio),
+				get_vdo_logical_zone_allocation_selector(data_vio->logical.zone),
+				VIO_BLOCK_MAP_WRITE_LOCK,
+				continue_block_map_page_allocation);
 }
 
 /**********************************************************************/

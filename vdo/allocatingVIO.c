@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#36 $
  */
 
 #include "allocatingVIO.h"
@@ -47,7 +47,7 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 	struct pbn_lock *lock;
 	int result;
 
-	assert_in_physical_zone(allocating_vio);
+	assert_vio_in_physical_zone(allocating_vio);
 
 	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
 			"must not acquire a lock while already referencing one");
@@ -198,14 +198,14 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 		zone_number = 0;
 	}
 	allocating_vio->zone = vdo->physical_zones[zone_number];
-	launch_physical_zone_callback(allocating_vio,
-				      allocate_block_for_write);
+	vio_launch_physical_zone_callback(allocating_vio,
+					  allocate_block_for_write);
 	return VDO_SUCCESS;
 }
 
 /**
  * Attempt to allocate a block. This callback is registered in
- * allocate_data_block() and allocate_block_in_zone().
+ * vio_allocate_data_block() and allocate_block_in_zone().
  *
  * @param completion  The allocating_vio needing an allocation
  **/
@@ -213,7 +213,7 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 {
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
-	assert_in_physical_zone(allocating_vio);
+	assert_vio_in_physical_zone(allocating_vio);
 	result = allocate_block_in_zone(allocating_vio);
 	if (result != VDO_SUCCESS) {
 		set_vdo_completion_result(completion, result);
@@ -222,10 +222,10 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void allocate_data_block(struct allocating_vio *allocating_vio,
-			 struct allocation_selector *selector,
-			 enum pbn_lock_type write_lock_type,
-			 allocation_callback *callback)
+void vio_allocate_data_block(struct allocating_vio *allocating_vio,
+			     struct allocation_selector *selector,
+			     enum pbn_lock_type write_lock_type,
+			     allocation_callback *callback)
 {
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 
@@ -237,16 +237,16 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
 	allocating_vio->zone =
 		vio->vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
 
-	launch_physical_zone_callback(allocating_vio,
-				      allocate_block_for_write);
+	vio_launch_physical_zone_callback(allocating_vio,
+					  allocate_block_for_write);
 }
 
 /**********************************************************************/
-void release_allocation_lock(struct allocating_vio *allocating_vio)
+void vio_release_allocation_lock(struct allocating_vio *allocating_vio)
 {
 	physical_block_number_t locked_pbn;
 
-	assert_in_physical_zone(allocating_vio);
+	assert_vio_in_physical_zone(allocating_vio);
 	locked_pbn = allocating_vio->allocation;
 	if (vdo_pbn_lock_has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = VDO_ZERO_BLOCK;
@@ -258,7 +258,7 @@ void release_allocation_lock(struct allocating_vio *allocating_vio)
 }
 
 /**********************************************************************/
-void reset_allocation(struct allocating_vio *allocating_vio)
+void vio_reset_allocation(struct allocating_vio *allocating_vio)
 {
 	ASSERT_LOG_ONLY(allocating_vio->allocation_lock == NULL,
 			"must not reset allocation while holding a PBN lock");

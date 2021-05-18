@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#79 $
  */
 
 #include "packerInternals.h"
@@ -514,10 +514,10 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 static void finish_compressed_write(struct vdo_completion *completion)
 {
 	struct output_bin *bin = completion->parent;
-	assert_in_physical_zone(bin->writer);
+	assert_vio_in_physical_zone(bin->writer);
 
 	if (completion->result != VDO_SUCCESS) {
-		release_allocation_lock(bin->writer);
+		vio_release_allocation_lock(bin->writer);
 		// Invokes complete_output_bin() on the packer thread, which
 		// will deal with the waiters.
 		vio_done_callback(completion);
@@ -557,8 +557,8 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 		return;
 	}
 
-	set_physical_zone_callback(allocating_vio,
-				   finish_compressed_write);
+	vio_set_physical_zone_callback(allocating_vio,
+				       finish_compressed_write);
 	write_compressed_block(vio);
 }
 
@@ -582,9 +582,9 @@ static void launch_compressed_write(struct packer *packer,
 	reset_vdo_completion(vio_as_completion(vio));
 	vio->callback = complete_output_bin;
 	vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
-	allocate_data_block(bin->writer, packer->selector,
-			    VIO_COMPRESSED_WRITE_LOCK,
-			    continue_after_allocation);
+	vio_allocate_data_block(bin->writer, packer->selector,
+				VIO_COMPRESSED_WRITE_LOCK,
+				continue_after_allocation);
 }
 
 /**
