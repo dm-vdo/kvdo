@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#11 $
  */
 
 #include "buffer.h"
@@ -58,12 +58,12 @@ int wrap_buffer(byte *bytes,
 int make_buffer(size_t size, struct buffer **new_buffer)
 {
 	byte *data;
+	struct buffer *buffer;
 	int result = ALLOCATE(size, byte, "buffer data", &data);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct buffer *buffer;
 	result = wrap_buffer(data, size, 0, &buffer);
 	if (result != UDS_SUCCESS) {
 		FREE(FORGET(data));
@@ -139,10 +139,11 @@ void clear_buffer(struct buffer *buffer)
 /**********************************************************************/
 void compact_buffer(struct buffer *buffer)
 {
+	size_t bytes_to_move;
 	if ((buffer->start == 0) || (buffer->end == 0)) {
 		return;
 	}
-	size_t bytes_to_move = buffer->end - buffer->start;
+	bytes_to_move = buffer->end - buffer->start;
 	memmove(buffer->data, buffer->data + buffer->start, bytes_to_move);
 	buffer->start = 0;
 	buffer->end = bytes_to_move;
@@ -272,11 +273,12 @@ int put_bytes(struct buffer *buffer, size_t length, const void *source)
 /**********************************************************************/
 int put_buffer(struct buffer *target, struct buffer *source, size_t length)
 {
+	int result;
 	if (content_length(source) < length) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	int result = put_bytes(target, length, get_buffer_contents(source));
+	result = put_bytes(target, length, get_buffer_contents(source));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -339,11 +341,11 @@ int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
 int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
 			       uint16_t *ui)
 {
+	unsigned int i;
 	if (content_length(buffer) < (sizeof(uint16_t) * count)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	unsigned int i;
 	for (i = 0; i < count; i++) {
 		decode_uint16_le(buffer->data, &buffer->start, ui + i);
 	}
@@ -355,11 +357,11 @@ int put_uint16_les_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint16_t *ui)
 {
+	unsigned int i;
 	if (!ensure_available_space(buffer, sizeof(uint16_t) * count)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	unsigned int i;
 	for (i = 0; i < count; i++) {
 		encode_uint16_le(buffer->data, &buffer->end, ui[i]);
 	}
@@ -436,11 +438,11 @@ int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
 int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
 			       uint64_t *ui)
 {
+	unsigned int i;
 	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	unsigned int i;
 	for (i = 0; i < count; i++) {
 		decode_uint64_le(buffer->data, &buffer->start, ui + i);
 	}
@@ -452,11 +454,11 @@ int put_uint64_les_into_buffer(struct buffer *buffer,
 				 size_t count,
 				 const uint64_t *ui)
 {
+	unsigned int i;
 	if (!ensure_available_space(buffer, sizeof(uint64_t) * count)) {
 		return UDS_BUFFER_ERROR;
 	}
 
-	unsigned int i;
 	for (i = 0; i < count; i++) {
 		encode_uint64_le(buffer->data, &buffer->end, ui[i]);
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#25 $
  */
 
 #include "indexSession.h"
@@ -78,8 +78,9 @@ static void handle_callbacks(Request *request)
 /**********************************************************************/
 int check_index_session(struct uds_index_session *index_session)
 {
+	unsigned int state;
 	lock_mutex(&index_session->request_mutex);
-	unsigned int state = index_session->state;
+	state = index_session->state;
 	unlock_mutex(&index_session->request_mutex);
 
 	if (state == IS_FLAG_LOADED) {
@@ -97,11 +98,12 @@ int check_index_session(struct uds_index_session *index_session)
 /**********************************************************************/
 int get_index_session(struct uds_index_session *index_session)
 {
+	int result;
 	lock_mutex(&index_session->request_mutex);
 	index_session->request_count++;
 	unlock_mutex(&index_session->request_mutex);
 
-	int result = check_index_session(index_session);
+	result = check_index_session(index_session);
 	if (result != UDS_SUCCESS) {
 		release_index_session(index_session);
 		return result;
@@ -370,10 +372,11 @@ wait_for_no_requests_in_progress(struct uds_index_session *index_session)
 int save_and_free_index(struct uds_index_session *index_session)
 {
 	int result = UDS_SUCCESS;
+	bool suspended;
 	struct index_router *router = index_session->router;
 	if (router != NULL) {
 		lock_mutex(&index_session->request_mutex);
-		bool suspended = (index_session->state & IS_FLAG_SUSPENDED);
+		suspended = (index_session->state & IS_FLAG_SUSPENDED);
 		unlock_mutex(&index_session->request_mutex);
 		if (!suspended) {
 			result = save_index_router(router);
@@ -404,6 +407,7 @@ int save_and_free_index(struct uds_index_session *index_session)
 /**********************************************************************/
 int uds_close_index(struct uds_index_session *index_session)
 {
+	int result = UDS_SUCCESS;
 	lock_mutex(&index_session->request_mutex);
 
 	// Wait for any pending suspend, resume or close operations to
@@ -414,7 +418,6 @@ int uds_close_index(struct uds_index_session *index_session)
 			  &index_session->request_mutex);
 	}
 
-	int result = UDS_SUCCESS;
 	if (index_session->state & IS_FLAG_SUSPENDED) {
 		result = UDS_SUSPENDED;
 	} else if ((index_session->state & IS_FLAG_DESTROYING) ||
@@ -444,9 +447,10 @@ int uds_close_index(struct uds_index_session *index_session)
 /**********************************************************************/
 int uds_destroy_index_session(struct uds_index_session *index_session)
 {
+	int result;
+	bool load_pending = false;
 	log_debug("Destroying index session");
 
-	bool load_pending = false;
 	lock_mutex(&index_session->request_mutex);
 
 	// Wait for any pending suspend, resume, or close operations to
@@ -486,7 +490,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	}
 
 	wait_for_no_requests_in_progress(index_session);
-	int result = save_and_free_index(index_session);
+	result = save_and_free_index(index_session);
 	request_queue_finish(index_session->callback_queue);
 	index_session->callback_queue = NULL;
 	destroy_cond(&index_session->load_context.cond);
@@ -528,11 +532,12 @@ int uds_set_checkpoint_frequency(struct uds_index_session *index_session,
 int uds_get_index_configuration(struct uds_index_session *index_session,
 				struct uds_configuration **conf)
 {
+	int result;
 	if (conf == NULL) {
 		return log_error_strerror(UDS_CONF_PTR_REQUIRED,
 					  "received a NULL config pointer");
 	}
-	int result = ALLOCATE(1, struct uds_configuration, __func__, conf);
+	result = ALLOCATE(1, struct uds_configuration, __func__, conf);
 	if (result == UDS_SUCCESS) {
 		**conf = index_session->user_config;
 	}

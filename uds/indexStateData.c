@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexStateData.c#15 $
  */
 
 #include "indexStateData.h"
@@ -56,6 +56,9 @@ static const struct index_state_version INDEX_STATE_VERSION_301 = {
  **/
 static int read_index_state_data(struct read_portal *portal)
 {
+	struct index_state_data301 state;
+	struct index_state_version file_version;
+	struct index *index;
 	struct buffer *buffer =
 		get_state_index_state_buffer(portal->component->state,
 					     IO_READ);
@@ -64,7 +67,6 @@ static int read_index_state_data(struct read_portal *portal)
 		return result;
 	}
 
-	struct index_state_version file_version;
 	result = get_int32_le_from_buffer(buffer, &file_version.signature);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -81,7 +83,6 @@ static int read_index_state_data(struct read_portal *portal)
 					  file_version.version_id);
 	}
 
-	struct index_state_data301 state;
 	result = get_uint64_le_from_buffer(buffer, &state.newest_chapter);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -107,7 +108,7 @@ static int read_index_state_data(struct read_portal *portal)
 		return UDS_CORRUPT_COMPONENT;
 	}
 
-	struct index *index = index_component_data(portal->component);
+	index = index_component_data(portal->component);
 	index->newest_virtual_chapter = state.newest_chapter;
 	index->oldest_virtual_chapter = state.oldest_chapter;
 	index->last_checkpoint = state.last_checkpoint;
@@ -128,6 +129,8 @@ write_index_state_data(struct index_component *component,
 		       struct buffered_writer *writer __always_unused,
 		       unsigned int zone __always_unused)
 {
+	struct index *index;
+	struct index_state_data301 state;
 	struct buffer *buffer =
 		get_state_index_state_buffer(component->state, IO_WRITE);
 	int result = reset_buffer_end(buffer, 0);
@@ -145,8 +148,8 @@ write_index_state_data(struct index_component *component,
 		return result;
 	}
 
-	struct index *index = index_component_data(component);
-	struct index_state_data301 state = {
+	index = index_component_data(component);
+	state = (struct index_state_data301) {
 		.newest_chapter  = index->newest_virtual_chapter,
 		.oldest_chapter  = index->oldest_virtual_chapter,
 		.last_checkpoint = index->last_checkpoint,

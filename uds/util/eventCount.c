@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#7 $
  */
 
 /**
@@ -132,14 +132,14 @@ static INLINE bool same_event(event_token_t token1, event_token_t token2)
 /**********************************************************************/
 void event_count_broadcast(struct event_count *ec)
 {
+	uint64_t waiters, state, old_state;
 
 	// Even if there are no waiters (yet), we will need a memory barrier.
 	smp_mb();
 
-	uint64_t waiters;
-	uint64_t state = atomic64_read(&ec->state);
-	uint64_t old_state = state;
+	state = old_state = atomic64_read(&ec->state);
 	do {
+		event_token_t new_state;
 		// Check if there are any tokens that have not yet been been
 		// transferred to the semaphore. This is the fast no-waiters
 		// path.
@@ -155,7 +155,7 @@ void event_count_broadcast(struct event_count *ec)
 		 * event count using an atomic compare-and-swap.  This
 		 * operation contains a memory barrier.
 		 */
-		event_token_t new_state = ((state & ~WAITERS_MASK) + ONE_EVENT);
+		new_state = ((state & ~WAITERS_MASK) + ONE_EVENT);
 		old_state = state;
 		state = atomic64_cmpxchg(&ec->state, old_state, new_state);
 		// The cmpxchg fails when we lose a race with a new waiter or

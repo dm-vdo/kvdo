@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#18 $
  */
 
 #include "indexConfig.h"
@@ -146,13 +146,13 @@ static int read_version(struct buffered_reader *reader,
 int read_config_contents(struct buffered_reader *reader,
 			 struct uds_configuration *config)
 {
+	const char *version = NULL;
 	int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
 					  INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	const char *version = NULL;
 	result = read_version(reader, config, &version);
 	if (result != UDS_SUCCESS) {
 		log_error_strerror(result, "Failed to read index config");
@@ -252,15 +252,15 @@ int write_config_contents(struct buffered_writer *writer,
 int make_configuration(const struct uds_configuration *conf,
 		       struct configuration **config_ptr)
 {
+	struct configuration *config;
+	int result;
 	*config_ptr = NULL;
 	if (conf == NULL) {
 		return log_error_strerror(UDS_CONF_REQUIRED,
 					  "received an invalid config");
 	}
 
-	struct configuration *config;
-	int result =
-		ALLOCATE(1, struct configuration, "configuration", &config);
+	result = ALLOCATE(1, struct configuration, "configuration", &config);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

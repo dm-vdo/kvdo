@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#23 $
  */
 
 #include "chapterWriter.h"
@@ -62,6 +62,7 @@ struct chapter_writer {
  **/
 static void close_chapters(void *arg)
 {
+	int result;
 	struct chapter_writer *writer = arg;
 	log_debug("chapter writer starting");
 	lock_mutex(&writer->mutex);
@@ -87,6 +88,7 @@ static void close_chapters(void *arg)
 		unlock_mutex(&writer->mutex);
 
 		if (writer->index->has_saved_open_chapter) {
+			struct index_component *oc;
 			writer->index->has_saved_open_chapter = false;
 			/*
 			 * Remove the saved open chapter as that chapter is
@@ -94,16 +96,15 @@ static void close_chapters(void *arg)
 			 * first time we close the open chapter after loading
 			 * from a clean shutdown, or after doing a clean save.
 			 */
-			struct index_component *oc =
-				find_index_component(writer->index->state,
-			                             &OPEN_CHAPTER_INFO);
-			int result = discard_index_component(oc);
+			oc = find_index_component(writer->index->state,
+			                          &OPEN_CHAPTER_INFO);
+			result = discard_index_component(oc);
 			if (result == UDS_SUCCESS) {
 				log_debug("Discarding saved open chapter");
 			}
 		}
 
-		int result =
+		result =
 			close_open_chapter(writer->chapters,
 					   writer->index->zone_count,
 					   writer->index->volume,
@@ -131,10 +132,11 @@ int make_chapter_writer(struct index *index,
 			const struct index_version *index_version,
 			struct chapter_writer **writer_ptr)
 {
+	size_t open_chapter_index_memory_allocated;
+	struct chapter_writer *writer;
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
 		 (1 + index->volume->geometry->records_per_chapter));
-	struct chapter_writer *writer;
 	int result = ALLOCATE_EXTENDED(struct chapter_writer,
 				       index->zone_count,
 				       struct open_chapter_zone *,
@@ -176,7 +178,7 @@ int make_chapter_writer(struct index *index,
 		return make_unrecoverable(result);
 	}
 
-	size_t open_chapter_index_memory_allocated =
+	open_chapter_index_memory_allocated =
 		get_open_chapter_index_memory_allocated(
 			writer->open_chapter_index);
 	writer->memory_allocated =
@@ -199,11 +201,12 @@ int make_chapter_writer(struct index *index,
 /**********************************************************************/
 void free_chapter_writer(struct chapter_writer *writer)
 {
+	int result __always_unused;
 	if (writer == NULL) {
 		return;
 	}
 
-	int result __always_unused = stop_chapter_writer(writer);
+	result = stop_chapter_writer(writer);
 	destroy_mutex(&writer->mutex);
 	destroy_cond(&writer->cond);
 	free_open_chapter_index(writer->open_chapter_index);
@@ -216,8 +219,9 @@ unsigned int start_closing_chapter(struct chapter_writer *writer,
 				   unsigned int zone_number,
 				   struct open_chapter_zone *chapter)
 {
+	unsigned int finished_zones;
 	lock_mutex(&writer->mutex);
-	unsigned int finished_zones = ++writer->zones_to_write;
+	finished_zones = ++writer->zones_to_write;
 	writer->chapters[zone_number] = chapter;
 	broadcast_cond(&writer->cond);
 	unlock_mutex(&writer->mutex);
@@ -260,6 +264,7 @@ void wait_for_idle_chapter_writer(struct chapter_writer *writer)
 /**********************************************************************/
 int stop_chapter_writer(struct chapter_writer *writer)
 {
+	int result;
 	struct thread *writer_thread = 0;
 
 	lock_mutex(&writer->mutex);
@@ -269,7 +274,7 @@ int stop_chapter_writer(struct chapter_writer *writer)
 		writer->stop = true;
 		broadcast_cond(&writer->cond);
 	}
-	int result = writer->result;
+	result = writer->result;
 	unlock_mutex(&writer->mutex);
 
 	if (writer_thread != 0) {

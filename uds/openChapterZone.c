@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#14 $
  */
 
 #include "openChapterZone.h"
@@ -62,6 +62,8 @@ int make_open_chapter(const struct geometry *geometry,
 		      unsigned int zone_count,
 		      struct open_chapter_zone **open_chapter_ptr)
 {
+	struct open_chapter_zone *open_chapter;
+	size_t capacity, slot_count;
 	int result = ASSERT(zone_count > 0, "zone count must be > 0");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -88,14 +90,13 @@ int make_open_chapter(const struct geometry *geometry,
 			zone_count,
 			geometry->records_per_chapter);
 	}
-	size_t capacity = geometry->records_per_chapter / zone_count;
+	capacity = geometry->records_per_chapter / zone_count;
 
 	// The slot count must be at least one greater than the capacity.
 	// Using a power of two slot count guarantees that hash insertion
 	// will never fail if the hash table is not full.
-	size_t slot_count = next_power_of_two(capacity *
-						geometry->open_chapter_load_ratio);
-	struct open_chapter_zone *open_chapter;
+	slot_count = next_power_of_two(capacity *
+				       geometry->open_chapter_load_ratio);
 	result = ALLOCATE_EXTENDED(struct open_chapter_zone,
 				   slot_count,
 				   struct open_chapter_zone_slot,
@@ -215,7 +216,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 		     const struct uds_chunk_data *metadata,
 		     unsigned int *remaining)
 {
-	unsigned int slot;
+	unsigned int slot, record_number;
 	struct uds_chunk_record *record =
 		probe_chapter_slots(open_chapter, name, &slot, NULL);
 
@@ -229,7 +230,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 		return make_unrecoverable(UDS_VOLUME_OVERFLOW);
 	}
 
-	unsigned int record_number = ++open_chapter->size;
+	record_number = ++open_chapter->size;
 	open_chapter->slots[slot].record_number = record_number;
 	record = &open_chapter->records[record_number];
 	record->name = *name;

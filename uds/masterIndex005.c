@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#35 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#36 $
  */
 #include "masterIndex005.h"
 
@@ -258,6 +258,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 				  unsigned int key,
 				  struct chapter_range *flush_range)
 {
+	struct volume_index_record other_record;
 	const struct volume_index5 *vi5 = container_of(record->volume_index,
 						       struct volume_index5,
 						       common);
@@ -283,10 +284,11 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	}
 
 	// We probably found the record we want, but we need to keep going
-	struct volume_index_record other_record = *record;
+	other_record = *record;
 	if (!other_record.delta_entry.at_end &&
 	    (key == other_record.delta_entry.key)) {
 		for (;;) {
+			byte collision_name[UDS_CHUNK_NAME_SIZE];
 			result = flush_invalid_entries(&other_record,
 						       flush_range,
 						       &next_chapter_to_invalidate);
@@ -297,7 +299,6 @@ static int get_volume_index_entry(struct volume_index_record *record,
 			    !other_record.delta_entry.is_collision) {
 				break;
 			}
-			byte collision_name[UDS_CHUNK_NAME_SIZE];
 			result = get_delta_entry_collision(&other_record.delta_entry,
 							   collision_name);
 			if (result != UDS_SUCCESS) {
@@ -435,6 +436,7 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 			      unsigned int zone_number,
 			      struct buffered_writer *buffered_writer)
 {
+	int result;
 	const struct volume_index5 *vi5 =
 		const_container_of(volume_index, struct volume_index5, common);
 	struct volume_index_zone *volume_index_zone =
@@ -447,6 +449,7 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 
 	struct vi005_data header;
 	uint64_t *first_flush_chapter;
+	struct buffer *buffer;
 	memset(&header, 0, sizeof(header));
 	memcpy(header.magic, MAGIC_START, MAGIC_SIZE);
 	header.volume_nonce = vi5->volume_nonce;
@@ -455,8 +458,7 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 	header.first_list = first_list;
 	header.num_lists = num_lists;
 
-	struct buffer *buffer;
-	int result = make_buffer(sizeof(struct vi005_data), &buffer);
+	result = make_buffer(sizeof(struct vi005_data), &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -617,19 +619,19 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 				 struct buffered_reader **buffered_readers,
 				 int num_readers)
 {
+	unsigned int z;
+	int result;
+	struct volume_index5 *vi5;
 	uint64_t *first_flush_chapter;
-
+	uint64_t virtual_chapter_low = 0, virtual_chapter_high = 0;
+	int i;
 	if (volume_index == NULL) {
 		return log_warning_strerror(UDS_BAD_STATE,
 					    "cannot restore to null volume index");
 	}
-	struct volume_index5 *vi5 =
-		container_of(volume_index, struct volume_index5, common);
+	vi5 = container_of(volume_index, struct volume_index5, common);
 	empty_delta_index(&vi5->delta_index);
 
-	uint64_t virtual_chapter_low = 0;
-	uint64_t virtual_chapter_high = 0;
-	int i;
 	for (i = 0; i < num_readers; i++) {
 		struct buffer *buffer;
 		struct vi005_data header;
@@ -717,7 +719,6 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 		}
 	}
 
-	unsigned int z;
 	for (z = 0; z < vi5->num_zones; z++) {
 		memset(&vi5->zones[z],
 		       0,
@@ -726,9 +727,9 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 		vi5->zones[z].virtual_chapter_high = virtual_chapter_high;
 	}
 
-	int result = start_restoring_delta_index(&vi5->delta_index,
-						 buffered_readers,
-						 num_readers);
+	result = start_restoring_delta_index(&vi5->delta_index,
+					     buffered_readers,
+					     num_readers);
 	if (result != UDS_SUCCESS) {
 		return log_warning_strerror(result,
 					    "restoring delta index failed");
@@ -799,12 +800,12 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 	unsigned int last_list = first_list + num_lists - 1;
 
 	if (virtual_chapter > vi5->chapter_mask) {
+		unsigned int i;
 		// The virtual chapter number is large enough so that we can
 		// use the normal LRU mechanism without an unsigned underflow.
 		virtual_chapter -= vi5->chapter_mask + 1;
 		// Eliminate the newest chapters by renumbering them to become
 		// the oldest chapters
-		unsigned int i;
 		for (i = first_list; i <= last_list; i++) {
 			if (virtual_chapter < vi5->flush_chapters[i]) {
 				vi5->flush_chapters[i] = virtual_chapter;
@@ -815,15 +816,8 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 		// painful way.
 		struct volume_index_zone *volume_index_zone =
 			&vi5->zones[zone_number];
-		struct chapter_range range;
-		range.chapter_start =
-			convert_virtual_to_index(vi5, virtual_chapter);
-		range.chapter_count =
-			(vi5->chapter_mask + 1 -
-			 (virtual_chapter -
-			  volume_index_zone->virtual_chapter_low));
+		unsigned int i;
 		struct uds_chunk_name name;
-		memset(&name, 0, sizeof(struct uds_chunk_name));
 		struct volume_index_record record =
 			(struct volume_index_record){
 				.magic = volume_index_record_magic,
@@ -831,7 +825,13 @@ static void remove_newest_chapters(struct volume_index5 *vi5,
 				.name = &name,
 				.zone_number = zone_number,
 			};
-		unsigned int i;
+		struct chapter_range range;
+		range.chapter_start =
+			convert_virtual_to_index(vi5, virtual_chapter);
+		range.chapter_count =
+			(vi5->chapter_mask + 1 -
+			 (virtual_chapter - volume_index_zone->virtual_chapter_low));
+		memset(&name, 0, sizeof(name));
 		for (i = first_list; i <= last_list; i++) {
 			struct chapter_range temp_range = range;
 			get_volume_index_entry(&record, i, 0, &temp_range);
@@ -1113,6 +1113,8 @@ static int get_volume_index_record_005(struct volume_index *volume_index,
 				       const struct uds_chunk_name *name,
 				       struct volume_index_record *record)
 {
+	int result;
+	const struct volume_index_zone *volume_index_zone;
 	struct volume_index5 *vi5 =
 		container_of(volume_index, struct volume_index5, common);
 	unsigned int address = extract_address(vi5, name);
@@ -1124,10 +1126,8 @@ static int get_volume_index_record_005(struct volume_index *volume_index,
 	record->name = name;
 	record->zone_number =
 		get_delta_index_zone(&vi5->delta_index, delta_list_number);
-	const struct volume_index_zone *volume_index_zone =
-	  get_zone_for_record(record);
+	volume_index_zone = get_zone_for_record(record);
 
-	int result;
 	if (flush_chapter < volume_index_zone->virtual_chapter_low) {
 		struct chapter_range range;
 		uint64_t flush_count =
@@ -1180,6 +1180,8 @@ static int get_volume_index_record_005(struct volume_index *volume_index,
 int put_volume_index_record(struct volume_index_record *record,
 			    uint64_t virtual_chapter)
 {
+	int result;
+	unsigned int address;
 	const struct volume_index5 *vi5 = container_of(record->volume_index,
 						       struct volume_index5,
 						       common);
@@ -1196,14 +1198,14 @@ int put_volume_index_record(struct volume_index_record *record,
 					    volume_index_zone->virtual_chapter_low,
 					    volume_index_zone->virtual_chapter_high);
 	}
-	unsigned int address = extract_address(vi5, record->name);
+	address = extract_address(vi5, record->name);
 	if (unlikely(record->mutex != NULL)) {
 		lock_mutex(record->mutex);
 	}
-	int result = put_delta_index_entry(&record->delta_entry,
-					   address,
-					   convert_virtual_to_index(vi5, virtual_chapter),
-					   record->is_found ? record->name->name : NULL);
+	result = put_delta_index_entry(&record->delta_entry,
+				       address,
+				       convert_virtual_to_index(vi5, virtual_chapter),
+				       record->is_found ? record->name->name : NULL);
 	if (unlikely(record->mutex != NULL)) {
 		unlock_mutex(record->mutex);
 	}
@@ -1335,6 +1337,7 @@ static void get_volume_index_stats_005(const struct volume_index *volume_index,
 	const struct volume_index5 *vi5 =
 		const_container_of(volume_index, struct volume_index5, common);
 	struct delta_index_stats dis;
+	unsigned int z;
 	get_delta_index_stats(&vi5->delta_index, &dis);
 	dense->memory_allocated =
 		(dis.memory_allocated + sizeof(struct volume_index5) +
@@ -1348,7 +1351,6 @@ static void get_volume_index_stats_005(const struct volume_index *volume_index,
 	dense->overflow_count = dis.overflow_count;
 	dense->num_lists = dis.num_lists;
 	dense->early_flushes = 0;
-	unsigned int z;
 	for (z = 0; z < vi5->num_zones; z++) {
 		dense->early_flushes += vi5->zones[z].num_early_flushes;
 	}
@@ -1390,6 +1392,11 @@ compute_volume_index_parameters005(const struct configuration *config,
 				   struct parameters005 *params)
 {
 	enum { DELTA_LIST_SIZE = 256 };
+	unsigned long records_per_volume, invalid_chapters, address_span;
+	unsigned long chapters_in_volume_index, entries_in_volume_index;
+	unsigned int num_addresses;
+	uint64_t num_bits_per_index;
+	size_t expected_index_size;
 	/*
 	 * For a given zone count, setting the the minimum number of delta
 	 * lists to the square of the number of zones ensures that the
@@ -1407,10 +1414,8 @@ compute_volume_index_parameters005(const struct configuration *config,
 	struct geometry *geometry = config->geometry;
 	unsigned long records_per_chapter = geometry->records_per_chapter;
 	params->num_chapters = geometry->chapters_per_volume;
-	unsigned long records_per_volume =
-		records_per_chapter * params->num_chapters;
-	unsigned int num_addresses =
-		config->volume_index_mean_delta * DELTA_LIST_SIZE;
+	records_per_volume = records_per_chapter * params->num_chapters;
+	num_addresses = config->volume_index_mean_delta * DELTA_LIST_SIZE;
 	params->num_delta_lists =
 		max(records_per_volume / DELTA_LIST_SIZE, min_delta_lists);
 	params->address_bits = compute_bits(num_addresses - 1);
@@ -1463,14 +1468,12 @@ compute_volume_index_parameters005(const struct configuration *config,
 	 * not want to do that floating point computation, we use 4 chapters
 	 * per 1K of chapters.
 	 */
-	unsigned long invalid_chapters =
-		max(params->num_chapters / 256, 2UL);
-	unsigned long chapters_in_volume_index =
-		params->num_chapters + invalid_chapters;
-	uint64_t entries_in_volume_index =
-		records_per_chapter * chapters_in_volume_index;
+	invalid_chapters = max(params->num_chapters / 256, 2UL);
+	chapters_in_volume_index = params->num_chapters + invalid_chapters;
+	entries_in_volume_index
+		= records_per_chapter * chapters_in_volume_index;
 	// Compute the mean delta
-	uint64_t address_span =
+	address_span =
 		(uint64_t)params->num_delta_lists << params->address_bits;
 	params->mean_delta = address_span / entries_in_volume_index;
 	// Project how large we expect a chapter to be
@@ -1478,9 +1481,9 @@ compute_volume_index_parameters005(const struct configuration *config,
 		get_delta_memory_size(records_per_chapter, params->mean_delta,
 				      params->chapter_bits);
 	// Project how large we expect the index to be
-	uint64_t num_bits_per_index =
+	num_bits_per_index =
 		params->num_bits_per_chapter * chapters_in_volume_index;
-	size_t expected_index_size = num_bits_per_index / CHAR_BIT;
+	expected_index_size = num_bits_per_index / CHAR_BIT;
 	/*
 	 * Set the total memory to be 6% larger than the expected index size.
 	 * We want this number to be large enough that the we do not do a great
@@ -1517,13 +1520,13 @@ int make_volume_index005(const struct configuration *config,
 			 uint64_t volume_nonce,
 			 struct volume_index **volume_index)
 {
+	struct volume_index5 *vi5;
 	struct parameters005 params = { .address_bits = 0 };
 	int result = compute_volume_index_parameters005(config, &params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct volume_index5 *vi5;
 	result = ALLOCATE(1, struct volume_index5, "volume index", &vi5);
 	if (result != UDS_SUCCESS) {
 		*volume_index = NULL;

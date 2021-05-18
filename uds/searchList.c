@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#8 $
  */
 
 #include "searchList.h"
@@ -28,6 +28,10 @@
 /**********************************************************************/
 int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 {
+	struct search_list *list;
+	unsigned int bytes;
+	uint8_t i;
+	int result;
 	if (capacity == 0) {
 		return log_error_strerror(UDS_INVALID_ARGUMENT,
 					  "search list must have entries");
@@ -39,10 +43,8 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 
 	// We need three temporary entry arrays for purge_search_list().
 	// Allocate them contiguously with the main array.
-	unsigned int bytes = (sizeof(struct search_list) +
-			      (4 * capacity * sizeof(uint8_t)));
-	struct search_list *list;
-	int result = allocate_cache_aligned(bytes, "search list", &list);
+	bytes = sizeof(struct search_list) + (4 * capacity * sizeof(uint8_t));
+	result = allocate_cache_aligned(bytes, "search list", &list);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -52,7 +54,6 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 
 	// Fill in the indexes of the chapter index cache entries. These will
 	// be only ever be permuted as the search list is used.
-	uint8_t i;
 	for (i = 0; i < capacity; i++) {
 		list->entries[i] = i;
 	}
@@ -73,6 +74,10 @@ void purge_search_list(struct search_list *search_list,
 		       const struct cached_chapter_index chapters[],
 		       uint64_t oldest_virtual_chapter)
 {
+	uint8_t *entries, *alive, *skipped, *dead;
+	unsigned int next_alive, next_skipped, next_dead;
+	int i;
+
 	if (search_list->first_dead_entry == 0) {
 		// There are no live entries in the list to purge.
 		return;
@@ -84,15 +89,12 @@ void purge_search_list(struct search_list *search_list,
 	 * list. The element array was allocated with enough space for all four
 	 * lists.
 	 */
-	uint8_t *entries = &search_list->entries[0];
-	uint8_t *alive = &entries[search_list->capacity];
-	uint8_t *skipped = &alive[search_list->capacity];
-	uint8_t *dead = &skipped[search_list->capacity];
-	unsigned int next_alive = 0;
-	unsigned int next_skipped = 0;
-	unsigned int next_dead = 0;
+	entries = &search_list->entries[0];
+	alive = &entries[search_list->capacity];
+	skipped = &alive[search_list->capacity];
+	dead = &skipped[search_list->capacity];
+	next_alive = next_skipped = next_dead = 0;
 
-	int i;
 	for (i = 0; i < search_list->first_dead_entry; i++) {
 		uint8_t entry = entries[i];
 		const struct cached_chapter_index *chapter = &chapters[entry];

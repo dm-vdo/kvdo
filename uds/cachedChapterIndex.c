@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cachedChapterIndex.c#14 $
  */
 
 #include "cachedChapterIndex.h"
@@ -27,13 +27,15 @@
 int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 				    const struct geometry *geometry)
 {
+	int result;
+	unsigned int i;
 	chapter->virtual_chapter = UINT64_MAX;
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
-	int result = ALLOCATE(chapter->index_pages_count,
-			      struct delta_index_page,
-			      __func__,
-			      &chapter->index_pages);
+	result = ALLOCATE(chapter->index_pages_count,
+			  struct delta_index_page,
+			  __func__,
+			  &chapter->index_pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -46,7 +48,6 @@ int initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 		return result;
 	}
 
-	unsigned int i;
 	for (i = 0; i < chapter->index_pages_count; i++) {
 		result = initialize_volume_page(geometry,
 						&chapter->volume_pages[i]);
@@ -75,16 +76,17 @@ int cache_chapter_index(struct cached_chapter_index *chapter,
 			uint64_t virtual_chapter,
 			const struct volume *volume)
 {
+	int result;
 	// Mark the cached chapter as unused in case the update fails midway.
 	chapter->virtual_chapter = UINT64_MAX;
 
 	// Read all the page data and initialize the entire delta_index_page
 	// array. (It's not safe for the zone threads to do it lazily--they'll
 	// race.)
-	int result = read_chapter_index_from_volume(volume,
-						    virtual_chapter,
-						    chapter->volume_pages,
-						    chapter->index_pages);
+	result = read_chapter_index_from_volume(volume,
+						virtual_chapter,
+						chapter->volume_pages,
+						chapter->index_pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

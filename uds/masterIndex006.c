@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#28 $
  */
 #include "masterIndex006.h"
 
@@ -194,6 +194,7 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 			      unsigned int zone_number,
 			      struct buffered_writer *buffered_writer)
 {
+	struct vi006_data header;
 	const struct volume_index6 *vi6 =
 		const_container_of(volume_index, struct volume_index6, common);
 	struct buffer *buffer;
@@ -201,7 +202,6 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	struct vi006_data header;
 	memset(&header, 0, sizeof(header));
 	memcpy(header.magic, MAGIC_START, MAGIC_SIZE);
 	header.sparse_sample_rate = vi6->sparse_sample_rate;
@@ -345,6 +345,7 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 {
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
+	int i;
 	int result =
 		ASSERT_WITH_ERROR_CODE(volume_index != NULL,
 				       UDS_BAD_STATE,
@@ -353,7 +354,6 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 		return result;
 	}
 
-	int i;
 	for (i = 0; i < num_readers; i++) {
 		struct vi006_data header;
 		struct buffer *buffer;
@@ -487,12 +487,12 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 {
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
+	struct mutex *mutex = &vi6->zones[zone_number].hook_mutex;
 	set_volume_index_zone_open_chapter(vi6->vi_non_hook, zone_number,
 					   virtual_chapter);
 
 	// We need to prevent a lookup_volume_index_name() happening while we
 	// are changing the open chapter number
-	struct mutex *mutex = &vi6->zones[zone_number].hook_mutex;
 	lock_mutex(mutex);
 	set_volume_index_zone_open_chapter(vi6->vi_hook, zone_number,
 					   virtual_chapter);
@@ -552,12 +552,12 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
 			     const struct uds_chunk_name *name,
 			     struct volume_index_triage *triage)
 {
+	int result = UDS_SUCCESS;
 	const struct volume_index6 *vi6 =
 		const_container_of(volume_index, struct volume_index6, common);
 	triage->is_sample = is_volume_index_sample_006(volume_index, name);
 	triage->in_sampled_chapter = false;
 	triage->zone = get_volume_index_zone_006(volume_index, name);
-	int result = UDS_SUCCESS;
 	if (triage->is_sample) {
 		struct mutex *mutex =
 			&vi6->zones[triage->zone].hook_mutex;
@@ -702,6 +702,8 @@ struct split_config {
 static int split_configuration006(const struct configuration *config,
 				  struct split_config *split)
 {
+	uint64_t sample_rate, num_chapters, num_sparse_chapters;
+	uint64_t num_dense_chapters, sample_records;
 	int result = ASSERT_WITH_ERROR_CODE(config->geometry->sparse_chapters_per_volume != 0,
 					    UDS_INVALID_ARGUMENT,
 					    "cannot initialize sparse+dense volume index with no sparse chapters");
@@ -724,13 +726,11 @@ static int split_configuration006(const struct configuration *config,
 	split->non_hook_geometry = *config->geometry;
 	split->non_hook_config.geometry = &split->non_hook_geometry;
 
-	uint64_t sample_rate = config->sparse_sample_rate;
-	uint64_t num_chapters = config->geometry->chapters_per_volume;
-	uint64_t num_sparse_chapters =
-		config->geometry->sparse_chapters_per_volume;
-	uint64_t num_dense_chapters = num_chapters - num_sparse_chapters;
-	uint64_t sample_records =
-		config->geometry->records_per_chapter / sample_rate;
+	sample_rate = config->sparse_sample_rate;
+	num_chapters = config->geometry->chapters_per_volume;
+	num_sparse_chapters = config->geometry->sparse_chapters_per_volume;
+	num_dense_chapters = num_chapters - num_sparse_chapters;
+	sample_records = config->geometry->records_per_chapter / sample_rate;
 
 	// Adjust the number of records indexed for each chapter
 	split->hook_geometry.records_per_chapter = sample_records;
@@ -747,12 +747,12 @@ static int split_configuration006(const struct configuration *config,
 int compute_volume_index_save_bytes006(const struct configuration *config,
 				       size_t *num_bytes)
 {
+	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
 	int result = split_configuration006(config, &split);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	size_t hook_bytes, non_hook_bytes;
 	result = compute_volume_index_save_bytes005(&split.hook_config,
 						    &hook_bytes);
 	if (result != UDS_SUCCESS) {
@@ -776,12 +776,13 @@ int make_volume_index006(const struct configuration *config,
 			 struct volume_index **volume_index)
 {
 	struct split_config split;
+	unsigned int zone;
+	struct volume_index6 *vi6;
 	int result = split_configuration006(config, &split);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct volume_index6 *vi6;
 	result = ALLOCATE(1, struct volume_index6, "volume index", &vi6);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -824,7 +825,6 @@ int make_volume_index006(const struct configuration *config,
 			  struct volume_index_zone,
 			  "volume index zones",
 			  &vi6->zones);
-	unsigned int zone;
 	for (zone = 0; zone < num_zones; zone++) {
 		if (result == UDS_SUCCESS) {
 			result = init_mutex(&vi6->zones[zone].hook_mutex);

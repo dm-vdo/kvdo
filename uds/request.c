@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#12 $
  */
 
 #include "request.h"
@@ -31,6 +31,9 @@
 /**********************************************************************/
 int uds_start_chunk_operation(struct uds_request *uds_request)
 {
+	Request *request = (Request *) uds_request;
+	int result;
+
 	if (uds_request->callback == NULL) {
 		return UDS_CALLBACK_REQUIRED;
 	}
@@ -44,9 +47,8 @@ int uds_start_chunk_operation(struct uds_request *uds_request)
 		return UDS_INVALID_OPERATION_TYPE;
 	}
 	memset(uds_request->private, 0, sizeof(uds_request->private));
-	Request *request = (Request *) uds_request;
 
-	int result = get_index_session(request->session);
+	result = get_index_session(request->session);
 	if (result != UDS_SUCCESS) {
 		return sans_unrecoverable(result);
 	}
@@ -164,8 +166,8 @@ void update_request_context_stats(Request *request)
 
 	struct session_stats *session_stats = &request->session->stats;
 
-	increment_once(&session_stats->requests);
 	bool found = (request->location != LOC_UNAVAILABLE);
+	increment_once(&session_stats->requests);
 
 	switch (request->action) {
 	case REQUEST_INDEX:

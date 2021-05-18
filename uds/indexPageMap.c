@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#21 $
  */
 
 #include "indexPageMap.h"
@@ -67,6 +67,7 @@ static INLINE size_t num_entries(const struct geometry *geometry)
 int make_index_page_map(const struct geometry *geometry,
 			struct index_page_map **map_ptr)
 {
+	struct index_page_map *map;
 	unsigned int delta_lists_per_chapter =
 		geometry->delta_lists_per_chapter;
 	int result = ASSERT_WITH_ERROR_CODE(((delta_lists_per_chapter - 1) <=
@@ -78,7 +79,6 @@ int make_index_page_map(const struct geometry *geometry,
 		return result;
 	}
 
-	struct index_page_map *map;
 	result = ALLOCATE(1, struct index_page_map, "Index Page Map", &map);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -121,6 +121,7 @@ int update_index_page_map(struct index_page_map *map,
 			  unsigned int index_page_number,
 			  unsigned int delta_list_number)
 {
+	size_t slot;
 	const struct geometry *geometry = map->geometry;
 	if ((virtual_chapter_number < map->last_update) ||
 	    (virtual_chapter_number > map->last_update + 1)) {
@@ -162,8 +163,7 @@ int update_index_page_map(struct index_page_map *map,
 		return UDS_SUCCESS;
 	}
 
-	size_t slot =
-		(chapter_number * (geometry->index_pages_per_chapter - 1)) +
+	slot = (chapter_number * (geometry->index_pages_per_chapter - 1)) +
 		index_page_number;
 	map->entries[slot] = (index_page_map_entry_t) delta_list_number;
 	return UDS_SUCCESS;
@@ -175,6 +175,8 @@ int find_index_page_number(const struct index_page_map *map,
 			   unsigned int chapter_number,
 			   unsigned int *index_page_number_ptr)
 {
+	int result;
+	unsigned int delta_list_number, slot, limit, index_page_number = 0;
 	const struct geometry *geometry = map->geometry;
 	if (chapter_number >= geometry->chapters_per_volume) {
 		return log_error_strerror(UDS_INVALID_ARGUMENT,
@@ -183,12 +185,9 @@ int find_index_page_number(const struct index_page_map *map,
 					  geometry->chapters_per_volume - 1);
 	}
 
-	unsigned int delta_list_number =
-		hash_to_chapter_delta_list(name, geometry);
-	unsigned int slot =
-		(chapter_number * (geometry->index_pages_per_chapter - 1));
-	unsigned int limit = slot + (geometry->index_pages_per_chapter - 1);
-	unsigned int index_page_number = 0;
+	delta_list_number = hash_to_chapter_delta_list(name, geometry);
+	slot = (chapter_number * (geometry->index_pages_per_chapter - 1));
+	limit = slot + (geometry->index_pages_per_chapter - 1);
 	for (; slot < limit; index_page_number++, slot++) {
 		if (delta_list_number <= map->entries[slot]) {
 			break;
@@ -197,7 +196,7 @@ int find_index_page_number(const struct index_page_map *map,
 
 	// This should be a clear post-condition of the loop above, but just in
 	// case it's not obvious, the check is cheap.
-	int result =
+	result =
 		ASSERT((index_page_number < geometry->index_pages_per_chapter),
 		       "index page number too large");
 	if (result != UDS_SUCCESS) {
@@ -214,6 +213,7 @@ int get_list_number_bounds(const struct index_page_map *map,
 			   unsigned int index_page_number,
 			   struct index_page_bounds *bounds)
 {
+	unsigned int slot;
 	const struct geometry *geometry = map->geometry;
 	int result = ASSERT((chapter_number < geometry->chapters_per_volume),
 			    "chapter number is valid");
@@ -227,8 +227,7 @@ int get_list_number_bounds(const struct index_page_map *map,
 		return result;
 	}
 
-	unsigned int slot =
-		chapter_number * (geometry->index_pages_per_chapter - 1);
+	slot = chapter_number * (geometry->index_pages_per_chapter - 1);
 	bounds->lowest_list =
 		((index_page_number == 0) ?
 			 0 :
@@ -252,14 +251,16 @@ static int write_index_page_map(struct index_component *component,
 				struct buffered_writer *writer,
 				unsigned int zone)
 {
+	struct index_page_map *map;
+	struct buffer *buffer;
+
 	int result = ASSERT((zone == 0), "unimplemented zone %d", zone);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct index_page_map *map = index_component_data(component);
+	map = index_component_data(component);
 
-	struct buffer *buffer;
 	result = make_buffer(INDEX_PAGE_MAP_MAGIC_LENGTH +
 				     sizeof(map->last_update),
 			     &buffer);
@@ -343,7 +344,7 @@ static int __must_check decode_index_page_map(struct buffer *buffer,
 static int read_index_page_map(struct read_portal *portal)
 {
 	struct index_page_map *map = index_component_data(portal->component);
-
+	struct buffer *buffer;
 	struct buffered_reader *reader = NULL;
 
 	int result = get_buffered_reader_for_portal(portal, 0, &reader);
@@ -358,7 +359,6 @@ static int read_index_page_map(struct read_portal *portal)
 					  "bad index page map saved magic");
 	}
 
-	struct buffer *buffer;
 	result = make_buffer(sizeof(map->last_update) +
 				     index_page_map_size(map->geometry),
 			     &buffer);

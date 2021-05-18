@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#11 $
  */
 
 #include "geometry.h"
@@ -74,10 +74,10 @@ int prepare_to_write_volume_page(const struct volume_store *volume_store
 				 struct volume_page *volume_page
 				 __maybe_unused)
 {
-	release_volume_page(volume_page);
 	struct dm_buffer *buffer = NULL;
-	byte *data =
-		dm_bufio_new(volume_store->vs_client, physical_page, &buffer);
+	byte *data;
+	release_volume_page(volume_page);
+	data = dm_bufio_new(volume_store->vs_client, physical_page, &buffer);
 	if (IS_ERR(data)) {
 		return -PTR_ERR(data);
 	}
@@ -90,9 +90,10 @@ int read_volume_page(const struct volume_store *volume_store,
 		     unsigned int physical_page,
 		     struct volume_page *volume_page)
 {
+	byte *data;
 	release_volume_page(volume_page);
-	byte *data = dm_bufio_read(volume_store->vs_client, physical_page,
-				   &volume_page->vp_buffer);
+	data = dm_bufio_read(volume_store->vs_client, physical_page,
+			     &volume_page->vp_buffer);
 	if (IS_ERR(data)) {
 		return log_warning_strerror(-PTR_ERR(data),			
 					    "error reading physical page %u",

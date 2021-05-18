@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#3 $
  */
 
 /*
@@ -165,6 +165,7 @@ static INLINE void swap_keys(sort_key_t *a, sort_key_t *b)
  **/
 static INLINE void measure_bins(const struct task task, struct histogram *bins)
 {
+	sort_key_t *key_ptr;
 	// Set bogus values that will will be replaced by min and max,
 	// respectively.
 	bins->first = UINT8_MAX;
@@ -175,7 +176,6 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
 	// though this structure is re-used, we don't need to pay to
 	// zero it before starting a new tally.
 
-	sort_key_t *key_ptr;
 	for (key_ptr = task.first_key; key_ptr <= task.last_key; key_ptr++) {
 		// Increment the count for the byte in the key at the
 		// current offset.
@@ -294,13 +294,18 @@ int radix_sort(struct radix_sorter *sorter,
 	       unsigned int count,
 	       unsigned short length)
 {
+	struct task start;
+	struct histogram *bins = &sorter->bins;
+	sort_key_t **pile = sorter->pile;
+	struct task *sp = sorter->stack;
+
 	// All zero-length keys are identical and therefore already sorted.
 	if ((count == 0) || (length == 0)) {
 		return UDS_SUCCESS;
 	}
 
 	// The initial task is to sort the entire length of all the keys.
-	struct task start = {
+	start = (struct task) {
 		.first_key = keys,
 		.last_key = &keys[count - 1],
 		.offset = 0,
@@ -316,10 +321,6 @@ int radix_sort(struct radix_sorter *sorter,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	struct histogram *bins = &sorter->bins;
-	sort_key_t **pile = sorter->pile;
-	struct task *sp = sorter->stack;
-
 	/*
 	 * Repeatedly consume a sorting task from the stack and process it,
 	 * pushing new sub-tasks onto to the stack for each radix-sorted pile.
@@ -328,20 +329,24 @@ int radix_sort(struct radix_sorter *sorter,
 	 */
 	for (*sp = start; sp >= sorter->stack; sp--) {
 		const struct task task = *sp;
+		struct task *lp;
+		int result;
+		sort_key_t *fence, *end;
+
 		measure_bins(task, bins);
 
 		// Now that we know how large each bin is, generate pointers for
 		// each of the piles and push a new task to sort each pile by
 		// the next radix byte.
-		struct task *lp = sorter->is_list;
-		int result = push_bins(&sp,
-				       sorter->end_of_stack,
-				       &lp,
-				       pile,
-				       bins,
-				       task.first_key,
-				       task.offset + 1,
-				       task.length - 1);
+		lp = sorter->is_list;
+		result = push_bins(&sp,
+				   sorter->end_of_stack,
+				   &lp,
+				   pile,
+				   bins,
+				   task.first_key,
+				   task.offset + 1,
+				   task.length - 1);
 		if (result != UDS_SUCCESS) {
 			memset(bins, 0, sizeof(*bins));
 			return result;
@@ -350,10 +355,9 @@ int radix_sort(struct radix_sorter *sorter,
 
 		// Don't bother processing the last pile--when piles 0..N-1 are
 		// all in place, then pile N must also be in place.
-		sort_key_t *end = task.last_key - bins->size[bins->last];
+		end = task.last_key - bins->size[bins->last];
 		bins->size[bins->last] = 0;
 
-		sort_key_t *fence;
 		for (fence = task.first_key; fence <= end;) {
 			uint8_t bin;
 			sort_key_t key = *fence;

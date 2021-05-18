@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#9 $
  */
 
 #include "indexLayoutParser.h"
@@ -68,6 +68,7 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 		char *token;
 		for (token = next_token(info, " ", &data); token;
 		     token = next_token(NULL, " ", &data)) {
+			int result;
 			char *equal = strchr(token, '=');
 			struct layout_parameter *lp;
 			for (lp = params; lp->type != LP_NULL; ++lp) {
@@ -92,7 +93,7 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 							  token);
 			}
 			lp->seen = true;
-			int result = set_parameter_value(
+			result = set_parameter_value(
 				lp, equal ? equal + 1 : token);
 			if (result != UDS_SUCCESS) {
 				return result;

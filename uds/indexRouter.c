@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#22 $
  */
 
 #include "indexRouter.h"
@@ -182,10 +182,11 @@ int make_index_router(struct index_layout *layout,
 /**********************************************************************/
 int save_index_router(struct index_router *router)
 {
+	int result;
 	if (!router->need_to_save) {
 		return UDS_SUCCESS;
 	}
-	int result = save_index(router->index);
+	result = save_index(router->index);
 	router->need_to_save = (result != UDS_SUCCESS);
 	return result;
 }
@@ -193,11 +194,11 @@ int save_index_router(struct index_router *router)
 /**********************************************************************/
 void free_index_router(struct index_router *router)
 {
+	unsigned int i;
 	if (router == NULL) {
 		return;
 	}
 	request_queue_finish(router->triage_queue);
-	unsigned int i;
 	for (i = 0; i < router->zone_count; i++) {
 		request_queue_finish(router->zone_queues[i]);
 	}
@@ -210,6 +211,7 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 					Request *request,
 					enum request_stage next_stage)
 {
+	struct index *index = router->index;
 	if (request->is_control_message) {
 		return get_zone_queue(router, request->zone_number);
 	}
@@ -228,7 +230,6 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 		return NULL;
 	}
 
-	struct index *index = router->index;
 	request->zone_number = get_volume_index_zone(index->volume_index,
 						     &request->chunk_name);
 	return get_zone_queue(router, request->zone_number);
@@ -238,6 +239,9 @@ RequestQueue *select_index_router_queue(struct index_router *router,
 void execute_index_router_request(struct index_router *router,
 				  Request *request)
 {
+	struct index *index;
+	int result;
+
 	if (request->is_control_message) {
 		int result = dispatch_index_zone_control_request(request);
 		if (result != UDS_SUCCESS) {
@@ -257,8 +261,8 @@ void execute_index_router_request(struct index_router *router,
 		return;
 	}
 
-	struct index *index = router->index;
-	int result = dispatch_index_request(index, request);
+	index = router->index;
+	result = dispatch_index_request(index, request);
 	if (result == UDS_QUEUED) {
 		// Take the request off the pipeline.
 		return;

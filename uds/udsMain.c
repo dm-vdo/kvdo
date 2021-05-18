@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#22 $
  */
 
 #include "uds.h"
@@ -56,6 +56,8 @@ const uds_memory_config_size_t UDS_MEMORY_CONFIG_REDUCED_768MB =
 int uds_initialize_configuration(struct uds_configuration **user_config,
 				 uds_memory_config_size_t mem_gb)
 {
+	unsigned int chapters_per_volume, record_pages_per_chapter;
+	int result;
 	if (user_config == NULL) {
 		return log_error_strerror(UDS_CONF_PTR_REQUIRED,
 					  "received a NULL config pointer");
@@ -72,7 +74,6 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 	 * configuration.
 	 */
 
-	unsigned int chapters_per_volume, record_pages_per_chapter;
 	if (mem_gb == UDS_MEMORY_CONFIG_256MB) {
 		chapters_per_volume = DEFAULT_CHAPTERS_PER_VOLUME;
 		record_pages_per_chapter = SMALL_RECORD_PAGES_PER_CHAPTER;
@@ -103,7 +104,7 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 		return UDS_INVALID_MEMORY_SIZE;
 	}
 
-	int result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
+	result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
 			      user_config);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -127,14 +128,14 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 void uds_configuration_set_sparse(struct uds_configuration *user_config,
 				  bool sparse)
 {
+	unsigned int prev_chapters_per_volume;
 	bool prev_sparse = (user_config->sparse_chapters_per_volume != 0);
 	if (sparse == prev_sparse) {
 		// nothing to do
 		return;
 	}
 
-	unsigned int prev_chapters_per_volume =
-		user_config->chapters_per_volume;
+	prev_chapters_per_volume = user_config->chapters_per_volume;
 	if (sparse) {
 		// Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
 		// footprint
@@ -229,12 +230,13 @@ void uds_free_configuration(struct uds_configuration *user_config)
 /**********************************************************************/
 int uds_create_index_session(struct uds_index_session **session)
 {
+	struct uds_index_session *index_session = NULL;
+	int result;
 	if (session == NULL) {
 		return UDS_NO_INDEXSESSION;
 	}
 
-	struct uds_index_session *index_session = NULL;
-	int result = make_empty_index_session(&index_session);
+	result = make_empty_index_session(&index_session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -250,6 +252,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 				     const struct uds_parameters *user_params,
 				     enum load_type load_type)
 {
+	struct configuration *index_config;
 	int result = ((load_type == LOAD_CREATE) ?
 			write_index_config(layout,
 					   &index_session->user_config) :
@@ -259,7 +262,6 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 		return result;
 	}
 
-	struct configuration *index_config;
 	result = make_configuration(&index_session->user_config,
 				    &index_config);
 	if (result != UDS_SUCCESS) {
@@ -315,6 +317,9 @@ int uds_open_index(enum uds_open_index_type open_type,
 		   struct uds_configuration *user_config,
 		   struct uds_index_session *session)
 {
+	int result;
+	enum load_type load_type;
+
 	if (name == NULL) {
 		return UDS_INDEX_NAME_REQUIRED;
 	}
@@ -325,7 +330,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 		return UDS_NO_INDEXSESSION;
 	}
 
-	int result = start_loading_index_session(session);
+	result = start_loading_index_session(session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -333,10 +338,9 @@ int uds_open_index(enum uds_open_index_type open_type,
 	session->user_config = *user_config;
 
 	// Map the external open_type to the internal load_type
-	enum load_type load_type =
-		open_type == UDS_CREATE ?
-			LOAD_CREATE :
-			open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
+	load_type = open_type == UDS_CREATE ?
+		LOAD_CREATE :
+		open_type == UDS_NO_REBUILD ? LOAD_LOAD : LOAD_REBUILD;
 	uds_log_notice("%s: %s", get_load_type(load_type), name);
 
 	result = initialize_index_session(session, name, user_params,

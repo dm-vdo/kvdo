@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#10 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -179,9 +179,10 @@ int __must_check reallocate_memory(void *ptr,
  **/
 #define ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)                \
 	__extension__({                                                  \
+		int _result;						 \
 		TYPE1 **_ptr = (PTR);                                    \
 		STATIC_ASSERT(__alignof__(TYPE1) >= __alignof__(TYPE2)); \
-		int _result = do_allocation(COUNT,                       \
+		_result = do_allocation(COUNT,                       \
 					    sizeof(TYPE2),               \
 					    sizeof(TYPE1),               \
 					    __alignof__(TYPE1),          \

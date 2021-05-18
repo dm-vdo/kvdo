@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#119 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#120 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -669,9 +669,9 @@ static void initiate_load(struct admin_state *state)
 				       handle_operation_error,
 				       allocator->thread_id,
 				       NULL);
-		erase_slab_journals(allocator->depot,
-				    get_slab_iterator(allocator),
-				    &allocator->completion);
+		erase_vdo_slab_journals(allocator->depot,
+					get_slab_iterator(allocator),
+					&allocator->completion);
 		return;
 	}
 

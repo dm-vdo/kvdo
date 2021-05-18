@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.h#6 $
  */
 
 #ifndef SLAB_JOURNAL_ERASER_H
@@ -32,8 +32,8 @@
  * @param slabs         The slabs whose journals need erasing
  * @param parent        The object to notify when complete
  **/
-void erase_slab_journals(struct slab_depot *depot,
-			 struct slab_iterator slabs,
-			 struct vdo_completion *parent);
+void erase_vdo_slab_journals(struct slab_depot *depot,
+			     struct slab_iterator slabs,
+			     struct vdo_completion *parent);
 
 #endif // SLAB_JOURNAL_ERASER_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#15 $
  */
 
 #include "indexInternals.h"
@@ -45,14 +45,16 @@ int allocate_index(struct index_layout *layout,
 		   enum load_type load_type,
 		   struct index **new_index)
 {
+	struct index *index;
+	int result;
+	unsigned int i;
 	unsigned int checkpoint_frequency =
 		user_params == NULL ? 0 : user_params->checkpoint_frequency;
 	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
 		return UDS_BAD_CHECKPOINT_FREQUENCY;
 	}
 
-	struct index *index;
-	int result = ALLOCATE(1, struct index, "index", &index);
+	result = ALLOCATE(1, struct index, "index", &index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -103,7 +105,6 @@ int allocate_index(struct index_layout *layout,
 	}
 	index->volume->lookup_mode = LOOKUP_NORMAL;
 
-	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
 		result = make_index_zone(index, i);
 		if (result != UDS_SUCCESS) {

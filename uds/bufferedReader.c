@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#10 $
  */
 
 #include "bufferedReader.h"
@@ -104,6 +104,8 @@ static int
 position_reader(struct buffered_reader *br, sector_t block_number, off_t offset)
 {
 	if ((br->br_pointer == NULL) || (block_number != br->br_block_number)) {
+		struct dm_buffer *buffer = NULL;
+		void *data;
 		if (block_number >= br->br_limit) {
 			return UDS_OUT_OF_RANGE;
 		}
@@ -111,9 +113,7 @@ position_reader(struct buffered_reader *br, sector_t block_number, off_t offset)
 			dm_bufio_release(br->br_buffer);
 			br->br_buffer = NULL;
 		}
-		struct dm_buffer *buffer = NULL;
-		void *data =
-			dm_bufio_read(br->br_client, block_number, &buffer);
+		data = dm_bufio_read(br->br_client, block_number, &buffer);
 		if (IS_ERR(data)) {
 			return -PTR_ERR(data);
 		}
@@ -143,6 +143,7 @@ int read_from_buffered_reader(struct buffered_reader *br,
 {
 	byte *dp = data;
 	int result = UDS_SUCCESS;
+	size_t avail, chunk;
 	while (length > 0) {
 		if (bytes_remaining_in_read_buffer(br) == 0) {
 			sector_t block_number = br->br_block_number;
@@ -155,8 +156,8 @@ int read_from_buffered_reader(struct buffered_reader *br,
 			}
 		}
 
-		size_t avail = bytes_remaining_in_read_buffer(br);
-		size_t chunk = min(length, avail);
+		avail = bytes_remaining_in_read_buffer(br);
+		chunk = min(length, avail);
 		memcpy(dp, br->br_pointer, chunk);
 		length -= chunk;
 		dp += chunk;
@@ -175,6 +176,8 @@ int verify_buffered_data(struct buffered_reader *br,
 			 const void *value,
 			 size_t length)
 {
+	int result;
+	size_t avail,chunk;
 	const byte *vp = value;
 	sector_t starting_block_number = br->br_block_number;
 	int starting_offset = br->br_pointer - br->br_start;
@@ -184,7 +187,7 @@ int verify_buffered_data(struct buffered_reader *br,
 			if (br->br_pointer != NULL) {
 				++block_number;
 			}
-			int result = position_reader(br, block_number, 0);
+			result = position_reader(br, block_number, 0);
 			if (result != UDS_SUCCESS) {
 				position_reader(br,
 						starting_block_number,
@@ -193,8 +196,8 @@ int verify_buffered_data(struct buffered_reader *br,
 			}
 		}
 
-		size_t avail = bytes_remaining_in_read_buffer(br);
-		size_t chunk = min(length, avail);
+		avail = bytes_remaining_in_read_buffer(br);
+		chunk = min(length, avail);
 		if (memcmp(vp, br->br_pointer, chunk) != 0) {
 			position_reader(
 				br, starting_block_number, starting_offset);
