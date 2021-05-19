@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#9 $
  */
 
 #include "blockMapFormat.h"
@@ -30,7 +30,7 @@
 #include "statusCodes.h"
 #include "types.h"
 
-const struct header BLOCK_MAP_HEADER_2_0 = {
+const struct header VDO_BLOCK_MAP_HEADER_2_0 = {
 	.id = BLOCK_MAP,
 	.version = {
 		.major_version = 2,
@@ -47,8 +47,8 @@ const struct header BLOCK_MAP_HEADER_2_0 = {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int decode_block_map_state_2_0(struct buffer *buffer,
-			       struct block_map_state_2_0 *state)
+int decode_vdo_block_map_state_2_0(struct buffer *buffer,
+				   struct block_map_state_2_0 *state)
 {
 	size_t initial_length, decoded_size;
 	block_count_t flat_page_count, root_count;
@@ -59,7 +59,7 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 		return result;
 	}
 
-	result = validate_vdo_header(&BLOCK_MAP_HEADER_2_0, &header, true,
+	result = validate_vdo_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true,
 				     __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -103,7 +103,7 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 	}
 
 	decoded_size = initial_length - content_length(buffer);
-	result = ASSERT(BLOCK_MAP_HEADER_2_0.size == decoded_size,
+	result = ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == decoded_size,
 			"decoded block map component size must match header size");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -120,17 +120,17 @@ int decode_block_map_state_2_0(struct buffer *buffer,
 }
 
 /**********************************************************************/
-size_t get_block_map_encoded_size(void)
+size_t get_vdo_block_map_encoded_size(void)
 {
 	return ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
 }
 
 /**********************************************************************/
-int encode_block_map_state_2_0(struct block_map_state_2_0 state,
-			       struct buffer *buffer)
+int encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
+				   struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
-	int result = encode_vdo_header(&BLOCK_MAP_HEADER_2_0, buffer);
+	int result = encode_vdo_header(&VDO_BLOCK_MAP_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -158,24 +158,24 @@ int encode_block_map_state_2_0(struct block_map_state_2_0 state,
 	}
 
 	encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(BLOCK_MAP_HEADER_2_0.size == encoded_size,
+	return ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == encoded_size,
 		      "encoded block map component size must match header size");
 }
 
 /**********************************************************************/
-page_count_t compute_block_map_page_count(block_count_t entries)
+page_count_t compute_vdo_block_map_page_count(block_count_t entries)
 {
 	return compute_bucket_count(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**********************************************************************/
-block_count_t compute_new_forest_pages(root_count_t root_count,
-				       struct boundary *old_sizes,
-				       block_count_t entries,
-				       struct boundary *new_sizes)
+block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
+					   struct boundary *old_sizes,
+					   block_count_t entries,
+					   struct boundary *new_sizes)
 {
 	page_count_t leaf_pages
-		= max(compute_block_map_page_count(entries), 1U);
+		= max(compute_vdo_block_map_page_count(entries), 1U);
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;

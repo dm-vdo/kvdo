@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#45 $
  */
 
 #include "forest.h"
@@ -250,8 +250,8 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
 			&(old_forest->boundaries[old_forest->segments - 1]);
 	}
 
-	new_pages = compute_new_forest_pages(map->root_count, old_boundary,
-					     entries, &new_boundary);
+	new_pages = vdo_compute_new_forest_pages(map->root_count, old_boundary,
+						 entries, &new_boundary);
 	if (new_pages == 0) {
 		map->next_entry_count = entries;
 		return VDO_SUCCESS;
@@ -496,7 +496,7 @@ static struct boundary compute_boundary(struct block_map *map,
 	height_t height;
 
 	page_count_t leaf_pages =
-		compute_block_map_page_count(map->entry_count);
+		compute_vdo_block_map_page_count(map->entry_count);
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
