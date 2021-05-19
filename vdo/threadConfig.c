@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#15 $
  */
 
 #include "threadConfig.h"
@@ -48,7 +48,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "logical thread array",
 			  &config->logical_threads);
 	if (result != VDO_SUCCESS) {
-		free_thread_config(&config);
+		free_vdo_thread_config(&config);
 		return result;
 	}
 
@@ -57,7 +57,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "physical thread array",
 			  &config->physical_threads);
 	if (result != VDO_SUCCESS) {
-		free_thread_config(&config);
+		free_vdo_thread_config(&config);
 		return result;
 	}
 
@@ -66,7 +66,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "hash thread array",
 			  &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
-		free_thread_config(&config);
+		free_vdo_thread_config(&config);
 		return result;
 	}
 
@@ -91,10 +91,10 @@ assign_thread_ids(thread_id_t thread_ids[], zone_count_t count,
 }
 
 /**********************************************************************/
-int make_thread_config(zone_count_t logical_zone_count,
-		       zone_count_t physical_zone_count,
-		       zone_count_t hash_zone_count,
-		       struct thread_config **config_ptr)
+int make_vdo_thread_config(zone_count_t logical_zone_count,
+			   zone_count_t physical_zone_count,
+			   zone_count_t hash_zone_count,
+			   struct thread_config **config_ptr)
 {
 	struct thread_config *config;
 	thread_count_t total;
@@ -103,7 +103,7 @@ int make_thread_config(zone_count_t logical_zone_count,
 
 	if ((logical_zone_count == 0) && (physical_zone_count == 0) &&
 	    (hash_zone_count == 0)) {
-		return make_one_thread_config(config_ptr);
+		return vdo_make_one_thread_config(config_ptr);
 	}
 
 	if (physical_zone_count > MAX_VDO_PHYSICAL_ZONES) {
@@ -144,7 +144,7 @@ int make_thread_config(zone_count_t logical_zone_count,
 }
 
 /**********************************************************************/
-int make_one_thread_config(struct thread_config **config_ptr)
+int vdo_make_one_thread_config(struct thread_config **config_ptr)
 {
 	struct thread_config *config;
 	int result = allocate_thread_config(1, 1, 1, 1, &config);
@@ -160,8 +160,8 @@ int make_one_thread_config(struct thread_config **config_ptr)
 }
 
 /**********************************************************************/
-int copy_thread_config(const struct thread_config *old_config,
-		       struct thread_config **config_ptr)
+int copy_vdo_thread_config(const struct thread_config *old_config,
+			   struct thread_config **config_ptr)
 {
 	zone_count_t i;
 	struct thread_config *config;
@@ -192,7 +192,7 @@ int copy_thread_config(const struct thread_config *old_config,
 }
 
 /**********************************************************************/
-void free_thread_config(struct thread_config **config_ptr)
+void free_vdo_thread_config(struct thread_config **config_ptr)
 {
 	struct thread_config *config;
 	if (*config_ptr == NULL) {
@@ -227,7 +227,7 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
 }
 
 /**********************************************************************/
-void get_vdo_thread_name(const struct thread_config *thread_config,
+void vdo_get_thread_name(const struct thread_config *thread_config,
 			 thread_id_t thread_id,
 			 char *buffer,
 			 size_t buffer_length)

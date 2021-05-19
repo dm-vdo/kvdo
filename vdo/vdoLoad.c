@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#86 $
  */
 
 #include "vdoLoad.h"
@@ -107,7 +107,7 @@ static void abort_load(struct vdo_completion *completion)
 		prepare_vdo_admin_sub_task_on_thread(vdo,
 						     close_recovery_journal_for_abort,
 						     close_recovery_journal_for_abort,
-						     get_journal_zone_thread(get_thread_config(vdo)));
+						     vdo_get_journal_zone_thread(get_thread_config(vdo)));
 	}
 
 	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,

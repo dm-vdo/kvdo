@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#100 $
  */
 
 #include "blockMap.h"
@@ -138,7 +138,8 @@ initialize_block_map_zone(struct block_map *map,
 
 	struct block_map_zone *zone = &map->zones[zone_number];
 	zone->zone_number = zone_number;
-	zone->thread_id = get_logical_zone_thread(thread_config, zone_number);
+	zone->thread_id =
+		vdo_get_logical_zone_thread(thread_config, zone_number);
 	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
 	result = initialize_tree_zone(zone, vdo, maximum_age);

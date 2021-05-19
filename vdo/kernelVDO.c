@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#101 $
  */
 
 /*
@@ -114,7 +114,7 @@ int make_vdo_threads(struct vdo *vdo, char **reason)
 		thread->thread_id = vdo->initialized_thread_count;
 
 		// Copy only LEN - 1 bytes and ensure NULL termination.
-		get_vdo_thread_name(vdo->thread_config,
+		vdo_get_thread_name(vdo->thread_config,
 				    vdo->initialized_thread_count,
 				    queue_name,
 				    sizeof(queue_name));
@@ -286,7 +286,7 @@ bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression)
 	perform_vdo_operation(vdo,
 			      set_compressing_callback,
 			      &data,
-			      get_packer_zone_thread(get_thread_config(vdo)));
+			      vdo_get_packer_zone_thread(get_thread_config(vdo)));
 	return data.was_enabled;
 }
 
@@ -314,7 +314,7 @@ void set_vdo_read_only(struct vdo *vdo, int result)
 	perform_vdo_operation(vdo,
 			      enter_read_only_mode_callback,
 			      &data,
-			      get_admin_thread(get_thread_config(vdo)));
+			      vdo_get_admin_thread(get_thread_config(vdo)));
 }
 
 /**
@@ -338,7 +338,7 @@ void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 	perform_vdo_operation(vdo,
 			      get_vdo_statistics_callback,
 			      stats,
-			      get_admin_thread(get_thread_config(vdo)));
+			      vdo_get_admin_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/

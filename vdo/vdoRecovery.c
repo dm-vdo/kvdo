@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#97 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -270,7 +270,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 	case ZONE_TYPE_LOGICAL:
 		// All blockmap access is done on single thread, so use logical
 		// zone 0.
-		thread_id = get_logical_zone_thread(thread_config, 0);
+		thread_id = vdo_get_logical_zone_thread(thread_config, 0);
 		break;
 
 	case ZONE_TYPE_PHYSICAL:
@@ -279,7 +279,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 
 	case ZONE_TYPE_ADMIN:
 	default:
-		thread_id = get_admin_thread(thread_config);
+		thread_id = vdo_get_admin_thread(thread_config);
 	}
 
 	prepare_vdo_completion(&recovery->sub_task_completion,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#123 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#124 $
  */
 
 /*
@@ -89,7 +89,7 @@ void destroy_vdo(struct vdo *vdo)
 	FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
 	free_vdo_read_only_notifier(&vdo->read_only_notifier);
-	free_thread_config(&vdo->thread_config);
+	free_vdo_thread_config(&vdo->thread_config);
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
 		free_work_queue(&vdo->threads[i].request_queue);
@@ -215,7 +215,7 @@ int enable_read_only_entry(struct vdo *vdo)
 	return register_vdo_read_only_listener(vdo->read_only_notifier,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
-					       get_admin_thread(get_thread_config(vdo)));
+					       vdo_get_admin_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/
@@ -526,7 +526,7 @@ void dump_vdo_status(const struct vdo *vdo)
 void assert_on_admin_thread(struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-			 get_admin_thread(get_thread_config(vdo))),
+			 vdo_get_admin_thread(get_thread_config(vdo))),
 			"%s called on admin thread",
 			name);
 }
@@ -537,8 +537,8 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   const char *name)
 {
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-				get_logical_zone_thread(get_thread_config(vdo),
-							logical_zone)),
+			 vdo_get_logical_zone_thread(get_thread_config(vdo),
+						     logical_zone)),
 			"%s called on logical thread",
 			name);
 }
@@ -549,8 +549,8 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    const char *name)
 {
 	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-				get_physical_zone_thread(get_thread_config(vdo),
-							 physical_zone)),
+			 vdo_get_physical_zone_thread(get_thread_config(vdo),
+						      physical_zone)),
 			"%s called on physical thread",
 			name);
 }

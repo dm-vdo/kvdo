@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#80 $
  */
 
 #include "packerInternals.h"
@@ -229,7 +229,7 @@ int make_vdo_packer(struct vdo *vdo,
 		return result;
 	}
 
-	packer->thread_id = get_packer_zone_thread(thread_config);
+	packer->thread_id = vdo_get_packer_zone_thread(thread_config);
 	packer->bin_data_size = (VDO_BLOCK_SIZE
 				 - sizeof(struct compressed_block_header));
 	packer->size = input_bin_count;

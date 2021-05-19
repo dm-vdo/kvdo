@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#80 $
  */
 
 #ifndef DATA_VIO_H
@@ -877,7 +877,7 @@ set_new_mapped_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
+		vdo_get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on journal thread %u",
@@ -897,7 +897,7 @@ static inline void set_journal_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
+				    vdo_get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
 }
 
 /**
@@ -922,7 +922,7 @@ launch_journal_callback(struct data_vio *data_vio,
 static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
-		get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
+		vdo_get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
 	thread_id_t thread_id = get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on packer thread %u",
@@ -942,7 +942,7 @@ static inline void set_packer_callback(struct data_vio *data_vio,
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
+				    vdo_get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#66 $
  */
 
 #include "slabSummary.h"
@@ -250,8 +250,8 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, vdo, zone,
-					       get_physical_zone_thread(thread_config,
-								        zone),
+					       vdo_get_physical_zone_thread(thread_config,
+									    zone),
 					       summary->entries +
 					       (MAX_VDO_SLABS * zone));
 		if (result != VDO_SUCCESS) {
