@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.c#1 $
  */
 
 #include "limiter.h"
@@ -49,8 +49,7 @@ bool limiter_is_idle(struct limiter *limiter)
 {
 	bool idle;
 	spin_lock(&limiter->lock);
-	idle = limiter->active == 0;
-
+	idle = (limiter->active == 0);
 	spin_unlock(&limiter->lock);
 	return idle;
 }

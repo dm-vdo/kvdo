@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#63 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -30,13 +30,13 @@
 #include "atomicDefs.h"
 
 #include "deadlockQueue.h"
-#include "limiter.h"
 #include "threadRegistry.h"
 
 #include "adminCompletion.h"
 #include "adminState.h"
 #include "deviceConfig.h"
 #include "header.h"
+#include "limiter.h"
 #include "packer.h"
 #include "statistics.h"
 #include "superBlock.h"
@@ -74,10 +74,6 @@ struct vdo {
 	vdo_action *action;
 	struct vdo_completion *completion;
 
-	/** Limit the number of requests that are being processed. */
-	struct limiter request_limiter;
-	struct limiter discard_limiter;
-
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
 
@@ -86,11 +82,6 @@ struct vdo {
 	 * device.
 	 **/
 	struct io_submitter *io_submitter;
-
-	// For sysfs
-	struct kobject vdo_directory;
-	struct kobject work_queue_directory;
-	struct kobject stats_directory;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
@@ -169,6 +160,15 @@ struct vdo {
 	/** Underlying block device info. */
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;
+
+	// For sysfs
+	struct kobject vdo_directory;
+	struct kobject work_queue_directory;
+	struct kobject stats_directory;
+
+	/** Limit the number of requests that are being processed. */
+	struct limiter request_limiter;
+	struct limiter discard_limiter;
 };
 
 /**
