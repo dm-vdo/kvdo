@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#94 $
  */
 
 #include "blockMapTree.h"
@@ -243,7 +243,7 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 		dequeue_next_waiter(&zone->flush_waiters);
 	}
 
-	check_for_drain_complete(zone->map_zone);
+	vdo_check_for_drain_complete(zone->map_zone);
 }
 
 /**
@@ -444,7 +444,7 @@ static void return_to_pool(struct block_map_tree_zone *zone,
 			   struct vio_pool_entry *entry)
 {
 	return_vio_to_pool(zone->vio_pool, entry);
-	check_for_drain_complete(zone->map_zone);
+	vdo_check_for_drain_complete(zone->map_zone);
 }
 
 /**
@@ -1064,8 +1064,9 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	// Record the allocation.
 	page = (struct block_map_page *) tree_page->page_buffer;
 	old_lock = tree_page->recovery_lock;
-	update_block_map_page(page, data_vio, pbn, MAPPING_STATE_UNCOMPRESSED,
-			      &tree_page->recovery_lock);
+	update_vdo_block_map_page(page, data_vio, pbn,
+				  MAPPING_STATE_UNCOMPRESSED,
+				  &tree_page->recovery_lock);
 
 	if (is_waiting(&tree_page->waiter)) {
 		// This page is waiting to be written out.

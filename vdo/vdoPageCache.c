@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#68 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -830,12 +830,12 @@ static void page_is_loaded(struct vdo_completion *completion)
 	distribute_page_over_queue(info, &info->waiting);
 
 	/*
-	 * Don't decrement until right before calling check_for_drain_complete()
-	 * to ensure that the above work can't cause the page cache to be freed
-	 * out from under us.
+	 * Don't decrement until right before calling
+	 * vdo_check_for_drain_complete() to ensure that the above work can't
+	 * cause the page cache to be freed out from under us.
 	 */
 	cache->outstanding_reads--;
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -857,12 +857,13 @@ static void handle_load_error(struct vdo_completion *completion)
 	reset_page_info(info);
 
 	/*
-	 * Don't decrement until right before calling check_for_drain_complete()
+	 * Don't decrement until right before
+	 * calling vdo_check_for_drain_complete()
 	 * to ensure that the above work can't cause the page cache to be freed
 	 * out from under us.
 	 */
 	cache->outstanding_reads--;
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1215,7 +1216,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 		discard_page_if_needed(cache);
 	}
 
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1265,7 +1266,7 @@ static void page_is_written_out(struct vdo_completion *completion)
 		allocate_free_page(info);
 	}
 
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**

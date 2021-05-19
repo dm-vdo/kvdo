@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#67 $
  */
 
 #include "slabSummary.h"
@@ -306,7 +306,7 @@ struct slab_summary_zone *vdo_get_slab_summary_for_zone(struct slab_summary *sum
  *
  * @param summary_zone  The zone to check
  **/
-static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
+static void vdo_check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
 	if (!is_vdo_state_draining(&summary_zone->state)
 	    || (summary_zone->write_count > 0)) {
@@ -349,7 +349,7 @@ static void finish_updating_slab_summary_block(struct slab_summary_block *block)
 	if (has_waiters(&block->next_update_waiters)) {
 		launch_write(block);
 	} else {
-		check_for_drain_complete(block->zone);
+		vdo_check_for_drain_complete(block->zone);
 	}
 }
 
@@ -422,9 +422,9 @@ static void launch_write(struct slab_summary_block *block)
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	check_for_drain_complete(container_of(state,
-					      struct slab_summary_zone,
-					      state));
+	vdo_check_for_drain_complete(container_of(state,
+						  struct slab_summary_zone,
+						  state));
 }
 
 /**********************************************************************/

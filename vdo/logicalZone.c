@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#62 $
  */
 
 #include "logicalZone.h"
@@ -136,7 +136,7 @@ static int initialize_zone(struct logical_zones *zones,
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_logical_zone_thread(get_thread_config(vdo),
 					       	      zone_number);
-	zone->block_map_zone = get_block_map_zone(vdo->block_map, zone_number);
+	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
 
 	return make_vdo_allocation_selector(get_thread_config(vdo)->physical_zone_count,
@@ -222,7 +222,7 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
  *
  * @param zone  The zone to check
  **/
-static void check_for_drain_complete(struct logical_zone *zone)
+static void vdo_check_for_drain_complete(struct logical_zone *zone)
 {
 	if (!is_vdo_state_draining(&zone->state) || zone->notifying
 	    || !list_empty(&zone->write_vios)) {
@@ -239,9 +239,9 @@ static void check_for_drain_complete(struct logical_zone *zone)
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	check_for_drain_complete(container_of(state,
-					      struct logical_zone,
-					      state));
+	vdo_check_for_drain_complete(container_of(state,
+						  struct logical_zone,
+						  state));
 }
 
 /**
@@ -410,7 +410,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 	assert_on_zone_thread(zone, __func__);
 	if (zone->oldest_active_generation <= zone->notification_generation) {
 		zone->notifying = false;
-		check_for_drain_complete(zone);
+		vdo_check_for_drain_complete(zone);
 		return;
 	}
 

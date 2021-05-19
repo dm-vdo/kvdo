@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#124 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#125 $
  */
 
 /*
@@ -66,7 +66,7 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_slab_depot(&vdo->depot);
 	free_vdo_layout(&vdo->layout);
 	free_super_block(&vdo->super_block);
-	free_block_map(&vdo->block_map);
+	free_vdo_block_map(&vdo->block_map);
 
 	if (vdo->hash_zones != NULL) {
 		zone_count_t zone;
@@ -162,7 +162,7 @@ static void record_vdo(struct vdo *vdo)
 {
 	vdo->states.release_version = vdo->geometry.release_version;
 	vdo->states.vdo.state = get_vdo_state(vdo);
-	vdo->states.block_map = record_block_map(vdo->block_map);
+	vdo->states.block_map = record_vdo_block_map(vdo->block_map);
 	vdo->states.recovery_journal =
 		record_vdo_recovery_journal(vdo->recovery_journal);
 	vdo->states.slab_depot = record_vdo_slab_depot(vdo->depot);
@@ -403,7 +403,7 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->slab_summary =
 		get_vdo_slab_summary_statistics(get_vdo_slab_summary(depot));
 	stats->ref_counts = get_vdo_slab_depot_ref_counts_statistics(depot);
-	stats->block_map = get_block_map_statistics(vdo->block_map);
+	stats->block_map = get_vdo_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
 	slab_total = get_vdo_slab_depot_slab_count(depot);

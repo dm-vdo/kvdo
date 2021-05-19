@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#98 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -1146,7 +1146,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 		// decrefs.
 		notify_all_waiters(&recovery->missing_decrefs[0],
 				   launch_fetch,
-				   get_block_map_zone(get_block_map(vdo), 0));
+				   vdo_get_block_map_zone(get_block_map(vdo), 0));
 	}
 
 	if (--recovery->incomplete_decref_count == 0) {

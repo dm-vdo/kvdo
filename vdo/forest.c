@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#43 $
  */
 
 #include "forest.h"
@@ -539,7 +539,7 @@ void traverse_vdo_forest(struct block_map *map,
 	}
 
 	cursors->map = map;
-	cursors->zone = &(get_block_map_zone(map, 0)->tree_zone);
+	cursors->zone = &(vdo_get_block_map_zone(map, 0)->tree_zone);
 	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = callback;
 	cursors->parent = parent;

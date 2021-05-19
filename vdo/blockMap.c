@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#101 $
  */
 
 #include "blockMap.h"
@@ -158,8 +158,8 @@ initialize_block_map_zone(struct block_map *map,
 }
 
 /**********************************************************************/
-struct block_map_zone *get_block_map_zone(struct block_map *map,
-					  zone_count_t zone_number)
+struct block_map_zone *vdo_get_block_map_zone(struct block_map *map,
+					      zone_count_t zone_number)
 {
 	return &map->zones[zone_number];
 }
@@ -172,7 +172,7 @@ struct block_map_zone *get_block_map_zone(struct block_map *map,
 static thread_id_t get_block_map_zone_thread_id(void *context,
 						zone_count_t zone_number)
 {
-	return get_block_map_zone(context, zone_number)->thread_id;
+	return vdo_get_block_map_zone(context, zone_number)->thread_id;
 }
 
 /**
@@ -197,7 +197,8 @@ static void advance_block_map_zone_era(void *context,
 				       zone_count_t zone_number,
 				       struct vdo_completion *parent)
 {
-	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
+	struct block_map_zone *zone =
+		vdo_get_block_map_zone(context, zone_number);
 	advance_vdo_page_cache_period(zone->page_cache,
 				      zone->block_map->current_era_point);
 	advance_zone_tree_period(&zone->tree_zone,
@@ -238,7 +239,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 }
 
 /**********************************************************************/
-void free_block_map(struct block_map **map_ptr)
+void free_vdo_block_map(struct block_map **map_ptr)
 {
 	zone_count_t zone = 0;
 	struct block_map *map = *map_ptr;
@@ -250,7 +251,7 @@ void free_block_map(struct block_map **map_ptr)
 		uninitialize_block_map_zone(&map->zones[zone]);
 	}
 
-	abandon_block_map_growth(map);
+	vdo_abandon_block_map_growth(map);
 	free_vdo_forest(&map->forest);
 	FREE(FORGET(map->action_manager));
 
@@ -259,16 +260,16 @@ void free_block_map(struct block_map **map_ptr)
 }
 
 /**********************************************************************/
-int decode_block_map(struct block_map_state_2_0 state,
-		     block_count_t logical_blocks,
-		     const struct thread_config *thread_config,
-		     struct vdo *vdo,
-		     struct read_only_notifier *read_only_notifier,
-		     struct recovery_journal *journal,
-		     nonce_t nonce,
-		     page_count_t cache_size,
-		     block_count_t maximum_age,
-		     struct block_map **map_ptr)
+int decode_vdo_block_map(struct block_map_state_2_0 state,
+			 block_count_t logical_blocks,
+			 const struct thread_config *thread_config,
+			 struct vdo *vdo,
+			 struct read_only_notifier *read_only_notifier,
+			 struct recovery_journal *journal,
+			 nonce_t nonce,
+			 page_count_t cache_size,
+			 block_count_t maximum_age,
+			 struct block_map **map_ptr)
 {
 	struct block_map *map;
 	int result;
@@ -300,7 +301,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 
 	result = make_vdo_forest(map, map->entry_count);
 	if (result != VDO_SUCCESS) {
-		free_block_map(&map);
+		free_vdo_block_map(&map);
 		return result;
 	}
 
@@ -316,7 +317,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 						   cache_size,
 						   maximum_age);
 		if (result != VDO_SUCCESS) {
-			free_block_map(&map);
+			free_vdo_block_map(&map);
 			return result;
 		}
 	}
@@ -330,7 +331,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 					 vdo,
 					 &map->action_manager);
 	if (result != VDO_SUCCESS) {
-		free_block_map(&map);
+		free_vdo_block_map(&map);
 		return result;
 	}
 
@@ -339,7 +340,7 @@ int decode_block_map(struct block_map_state_2_0 state,
 }
 
 /**********************************************************************/
-struct block_map_state_2_0 record_block_map(const struct block_map *map)
+struct block_map_state_2_0 record_vdo_block_map(const struct block_map *map)
 {
 	struct block_map_state_2_0 state = {
 		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
@@ -354,8 +355,8 @@ struct block_map_state_2_0 record_block_map(const struct block_map *map)
 }
 
 /**********************************************************************/
-void initialize_block_map_from_journal(struct block_map *map,
-				       struct recovery_journal *journal)
+void initialize_vdo_block_map_from_journal(struct block_map *map,
+					   struct recovery_journal *journal)
 {
 	zone_count_t zone = 0;
 
@@ -372,7 +373,7 @@ void initialize_block_map_from_journal(struct block_map *map,
 }
 
 /**********************************************************************/
-zone_count_t compute_logical_zone(struct data_vio *data_vio)
+zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
@@ -383,9 +384,9 @@ zone_count_t compute_logical_zone(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void find_block_map_slot(struct data_vio *data_vio,
-			 vdo_action *callback,
-			 thread_id_t thread_id)
+void vdo_find_block_map_slot(struct data_vio *data_vio,
+			     vdo_action *callback,
+			     thread_id_t thread_id)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
@@ -403,14 +404,14 @@ void find_block_map_slot(struct data_vio *data_vio,
 }
 
 /**********************************************************************/
-block_count_t get_number_of_block_map_entries(const struct block_map *map)
+block_count_t vdo_get_number_of_block_map_entries(const struct block_map *map)
 {
 	return map->entry_count;
 }
 
 /**********************************************************************/
-void advance_block_map_era(struct block_map *map,
-			   sequence_number_t recovery_block_number)
+void advance_vdo_block_map_era(struct block_map *map,
+			       sequence_number_t recovery_block_number)
 {
 	if (map == NULL) {
 		return;
@@ -421,7 +422,7 @@ void advance_block_map_era(struct block_map *map,
 }
 
 /**********************************************************************/
-void check_for_drain_complete(struct block_map_zone *zone)
+void vdo_check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (is_vdo_state_draining(&zone->state) &&
 	    !is_tree_zone_active(&zone->tree_zone) &&
@@ -443,7 +444,7 @@ static void initiate_drain(struct admin_state *state)
 		container_of(state, struct block_map_zone, state);
 	drain_zone_trees(&zone->tree_zone);
 	drain_vdo_page_cache(zone->page_cache);
-	check_for_drain_complete(zone);
+	vdo_check_for_drain_complete(zone);
 }
 
 /**
@@ -455,7 +456,7 @@ static void
 drain_zone(void *context, zone_count_t zone_number,
 	   struct vdo_completion *parent)
 {
-	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
+	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
 	start_vdo_draining(&zone->state,
 			   get_current_vdo_manager_operation(zone->block_map->action_manager),
 			   parent,
@@ -463,9 +464,9 @@ drain_zone(void *context, zone_count_t zone_number,
 }
 
 /**********************************************************************/
-void drain_block_map(struct block_map *map,
-		     enum admin_state_code operation,
-		     struct vdo_completion *parent)
+void drain_vdo_block_map(struct block_map *map,
+			 enum admin_state_code operation,
+			 struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager, operation, NULL,
 			       drain_zone, NULL, parent);
@@ -480,12 +481,12 @@ static void resume_block_map_zone(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent)
 {
-	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
+	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
-void resume_block_map(struct block_map *map, struct vdo_completion *parent)
+void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
 			       ADMIN_STATE_RESUMING,
@@ -496,15 +497,15 @@ void resume_block_map(struct block_map *map, struct vdo_completion *parent)
 }
 
 /**********************************************************************/
-int prepare_to_grow_block_map(struct block_map *map,
-			      block_count_t new_logical_blocks)
+int vdo_prepare_to_grow_block_map(struct block_map *map,
+				  block_count_t new_logical_blocks)
 {
 	if (map->next_entry_count == new_logical_blocks) {
 		return VDO_SUCCESS;
 	}
 
 	if (map->next_entry_count > 0) {
-		abandon_block_map_growth(map);
+		vdo_abandon_block_map_growth(map);
 	}
 
 	if (new_logical_blocks < map->entry_count) {
@@ -516,7 +517,7 @@ int prepare_to_grow_block_map(struct block_map *map,
 }
 
 /**********************************************************************/
-block_count_t get_new_entry_count(struct block_map *map)
+block_count_t vdo_get_new_entry_count(struct block_map *map)
 {
 	return map->next_entry_count;
 }
@@ -533,7 +534,7 @@ static void grow_forest(void *context, struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void grow_block_map(struct block_map *map, struct vdo_completion *parent)
+void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
 			       ADMIN_STATE_SUSPENDED_OPERATION,
@@ -544,7 +545,7 @@ void grow_block_map(struct block_map *map, struct vdo_completion *parent)
 }
 
 /**********************************************************************/
-void abandon_block_map_growth(struct block_map *map)
+void vdo_abandon_block_map_growth(struct block_map *map)
 {
 	abandon_vdo_forest(map);
 }
@@ -655,7 +656,7 @@ set_mapped_entry(struct data_vio *data_vio,
 }
 
 /**
- * This callback is registered in get_mapped_block().
+ * This callback is registered in vdo_get_mapped_block().
  **/
 static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 {
@@ -685,11 +686,11 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void update_block_map_page(struct block_map_page *page,
-			   struct data_vio *data_vio,
-			   physical_block_number_t pbn,
-			   enum block_mapping_state mapping_state,
-			   sequence_number_t *recovery_lock)
+void update_vdo_block_map_page(struct block_map_page *page,
+			       struct data_vio *data_vio,
+			       physical_block_number_t pbn,
+			       enum block_mapping_state mapping_state,
+			       sequence_number_t *recovery_lock)
 {
 	struct block_map_zone *zone =
 		get_vdo_logical_zone_block_map(data_vio->logical.zone);
@@ -731,7 +732,7 @@ void update_block_map_page(struct block_map_page *page,
 }
 
 /**
- * This callback is registered in put_mapped_block().
+ * This callback is registered in vdo_put_mapped_block().
  **/
 static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 {
@@ -755,18 +756,18 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 
 	context = get_vdo_page_completion_context(completion);
 	old_lock = context->recovery_lock;
-	update_block_map_page(page,
-			      data_vio,
-			      data_vio->new_mapped.pbn,
-			      data_vio->new_mapped.state,
-			      &context->recovery_lock);
+	update_vdo_block_map_page(page,
+				  data_vio,
+				  data_vio->new_mapped.pbn,
+				  data_vio->new_mapped.state,
+				  &context->recovery_lock);
 	mark_completed_vdo_page_dirty(completion, old_lock,
 				      context->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-void get_mapped_block(struct data_vio *data_vio)
+void vdo_get_mapped_block(struct data_vio *data_vio)
 {
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
 	    VDO_ZERO_BLOCK) {
@@ -781,13 +782,13 @@ void get_mapped_block(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void put_mapped_block(struct data_vio *data_vio)
+void vdo_put_mapped_block(struct data_vio *data_vio)
 {
 	setup_mapped_block(data_vio, true, put_mapping_in_fetched_page);
 }
 
 /**********************************************************************/
-struct block_map_statistics get_block_map_statistics(struct block_map *map)
+struct block_map_statistics get_vdo_block_map_statistics(struct block_map *map)
 {
 	zone_count_t zone = 0;
 	struct block_map_statistics totals;

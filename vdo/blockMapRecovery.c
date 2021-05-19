@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#45 $
  */
 
 #include "blockMapRecovery.h"
@@ -272,9 +272,9 @@ static void flush_block_map(struct vdo_completion *completion)
 			"flush_block_map() called on admin thread");
 
 	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
-	drain_block_map(recovery->block_map,
-			ADMIN_STATE_RECOVERING,
-			completion);
+	drain_vdo_block_map(recovery->block_map,
+			    ADMIN_STATE_RECOVERING,
+			    completion);
 }
 
 /**

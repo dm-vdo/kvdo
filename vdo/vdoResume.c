@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#37 $
  */
 
 #include "vdoResume.h"
@@ -145,8 +145,8 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_BLOCK_MAP:
-		resume_block_map(vdo->block_map,
-				 reset_vdo_admin_sub_task(completion));
+		resume_vdo_block_map(vdo->block_map,
+				     reset_vdo_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_LOGICAL_ZONES:

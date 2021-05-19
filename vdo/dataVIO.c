@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#52 $
  */
 
 #include "dataVIO.h"
@@ -84,7 +84,7 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 	initialize_wait_queue(&lock->waiters);
 
 	lock->zone = get_vdo_logical_zone(vdo->logical_zones,
-					  compute_logical_zone(data_vio));
+					  vdo_compute_logical_zone(data_vio));
 }
 
 /**********************************************************************/
