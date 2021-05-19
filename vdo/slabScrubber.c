@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#71 $
  */
 
 #include "slabScrubberInternals.h"
@@ -470,7 +470,7 @@ void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 		     vdo_action *callback,
 		     vdo_action *error_handler)
 {
-	thread_id_t thread_id = get_callback_thread_id();
+	thread_id_t thread_id = vdo_get_callback_thread_id();
 	resume_vdo_if_quiescent(&scrubber->admin_state);
 	prepare_vdo_completion(&scrubber->completion,
 			       callback,

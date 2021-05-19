@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#126 $
  */
 
 /*
@@ -58,7 +58,7 @@
 void destroy_vdo(struct vdo *vdo)
 {
 	unsigned int i;
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
@@ -183,7 +183,7 @@ void save_vdo_components(struct vdo *vdo, struct vdo_completion *parent)
 		return;
 	}
 
-	save_vdo_super_block(vdo->super_block, get_first_block_offset(vdo),
+	save_vdo_super_block(vdo->super_block, get_vdo_first_block_offset(vdo),
 			     parent);
 }
 
@@ -215,7 +215,7 @@ int enable_read_only_entry(struct vdo *vdo)
 	return register_vdo_read_only_listener(vdo->read_only_notifier,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
-					       vdo_get_admin_thread(get_thread_config(vdo)));
+					       vdo_get_admin_thread(get_vdo_thread_config(vdo)));
 }
 
 /**********************************************************************/
@@ -225,7 +225,7 @@ bool in_read_only_mode(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool was_new(const struct vdo *vdo)
+bool vdo_was_new(const struct vdo *vdo)
 {
 	return (vdo->load_state == VDO_NEW);
 }
@@ -323,7 +323,7 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
 static struct hash_lock_statistics
 get_hash_lock_statistics(const struct vdo *vdo)
 {
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	zone_count_t zone;
 	struct hash_lock_statistics totals;
 	memset(&totals, 0, sizeof(totals));
@@ -392,8 +392,8 @@ void get_vdo_statistics(const struct vdo *vdo,
 	stats->block_map_cache_size = get_block_map_cache_size(vdo);
 
 	// The callees are responsible for thread-safety.
-	stats->data_blocks_used = get_physical_blocks_allocated(vdo);
-	stats->overhead_blocks_used = get_physical_blocks_overhead(vdo);
+	stats->data_blocks_used = get_vdo_physical_blocks_allocated(vdo);
+	stats->overhead_blocks_used = get_vdo_physical_blocks_overhead(vdo);
 	stats->logical_blocks_used =
 		get_vdo_recovery_journal_logical_blocks_used(journal);
 	stats->allocator = get_vdo_slab_depot_block_allocator_statistics(depot);
@@ -420,20 +420,20 @@ void get_vdo_statistics(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-block_count_t get_physical_blocks_allocated(const struct vdo *vdo)
+block_count_t get_vdo_physical_blocks_allocated(const struct vdo *vdo)
 {
 	return (get_vdo_slab_depot_allocated_blocks(vdo->depot) -
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
-block_count_t get_physical_blocks_free(const struct vdo *vdo)
+block_count_t get_vdo_physical_blocks_free(const struct vdo *vdo)
 {
 	return get_vdo_slab_depot_free_blocks(vdo->depot);
 }
 
 /**********************************************************************/
-block_count_t get_physical_blocks_overhead(const struct vdo *vdo)
+block_count_t get_vdo_physical_blocks_overhead(const struct vdo *vdo)
 {
 	// XXX config.physical_blocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on admin thread so we're usually
@@ -456,25 +456,25 @@ const struct device_config *get_vdo_device_config(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-const struct thread_config *get_thread_config(const struct vdo *vdo)
+const struct thread_config *get_vdo_thread_config(const struct vdo *vdo)
 {
 	return vdo->thread_config;
 }
 
 /**********************************************************************/
-block_count_t get_configured_block_map_maximum_age(const struct vdo *vdo)
+block_count_t get_vdo_configured_block_map_maximum_age(const struct vdo *vdo)
 {
 	return vdo->device_config->block_map_maximum_age;
 }
 
 /**********************************************************************/
-page_count_t get_configured_cache_size(const struct vdo *vdo)
+page_count_t get_vdo_configured_cache_size(const struct vdo *vdo)
 {
 	return vdo->device_config->cache_size;
 }
 
 /**********************************************************************/
-physical_block_number_t get_first_block_offset(const struct vdo *vdo)
+physical_block_number_t get_vdo_first_block_offset(const struct vdo *vdo)
 {
 	return vdo_get_data_region_offset(vdo->geometry);
 }
@@ -500,7 +500,7 @@ struct recovery_journal *get_recovery_journal(struct vdo *vdo)
 /**********************************************************************/
 void dump_vdo_status(const struct vdo *vdo)
 {
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	zone_count_t zone;
 
 	dump_vdo_flusher(vdo->flusher);
@@ -525,8 +525,8 @@ void dump_vdo_status(const struct vdo *vdo)
 /**********************************************************************/
 void assert_on_admin_thread(struct vdo *vdo, const char *name)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-			 vdo_get_admin_thread(get_thread_config(vdo))),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo_get_admin_thread(get_vdo_thread_config(vdo))),
 			"%s called on admin thread",
 			name);
 }
@@ -536,8 +536,8 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   zone_count_t logical_zone,
 				   const char *name)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-			 vdo_get_logical_zone_thread(get_thread_config(vdo),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),
 						     logical_zone)),
 			"%s called on logical thread",
 			name);
@@ -548,8 +548,8 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    zone_count_t physical_zone,
 				    const char *name)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
-			 vdo_get_physical_zone_thread(get_thread_config(vdo),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
+			 vdo_get_physical_zone_thread(get_vdo_thread_config(vdo),
 						      physical_zone)),
 			"%s called on physical thread",
 			name);
@@ -576,7 +576,7 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
 	 * should be uniformly distributed over [0 .. count-1]. The multiply and
 	 * shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	return vdo->hash_zones[(hash * get_thread_config(vdo)->hash_zone_count) >> 8];
+	return vdo->hash_zones[(hash * get_vdo_thread_config(vdo)->hash_zone_count) >> 8];
 }
 
 /**********************************************************************/

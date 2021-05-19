@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#102 $
  */
 
 /*
@@ -286,7 +286,7 @@ bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression)
 	perform_vdo_operation(vdo,
 			      set_compressing_callback,
 			      &data,
-			      vdo_get_packer_zone_thread(get_thread_config(vdo)));
+			      vdo_get_packer_zone_thread(get_vdo_thread_config(vdo)));
 	return data.was_enabled;
 }
 
@@ -314,7 +314,7 @@ void set_vdo_read_only(struct vdo *vdo, int result)
 	perform_vdo_operation(vdo,
 			      enter_read_only_mode_callback,
 			      &data,
-			      vdo_get_admin_thread(get_thread_config(vdo)));
+			      vdo_get_admin_thread(get_vdo_thread_config(vdo)));
 }
 
 /**
@@ -338,7 +338,7 @@ void get_kvdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 	perform_vdo_operation(vdo,
 			      get_vdo_statistics_callback,
 			      stats,
-			      vdo_get_admin_thread(get_thread_config(vdo)));
+			      vdo_get_admin_thread(get_vdo_thread_config(vdo)));
 }
 
 /**********************************************************************/
@@ -427,7 +427,7 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-thread_id_t get_callback_thread_id(void)
+thread_id_t vdo_get_callback_thread_id(void)
 {
 	struct vdo_thread *thread = get_work_queue_private_data();
 	thread_id_t thread_id;

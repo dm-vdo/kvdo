@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#45 $
  */
 
 #include "flush.h"
@@ -101,7 +101,7 @@ int make_vdo_flusher(struct vdo *vdo)
 
 	vdo->flusher->vdo = vdo;
 	vdo->flusher->thread_id
-		= vdo_get_packer_zone_thread(get_thread_config(vdo));
+		= vdo_get_packer_zone_thread(get_vdo_thread_config(vdo));
 	initialize_vdo_completion(&vdo->flusher->completion, vdo,
 				  FLUSH_NOTIFICATION_COMPLETION);
 
@@ -148,7 +148,7 @@ static void finish_notification(struct vdo_completion *completion)
 	int result;
 
 	struct flusher *flusher = as_flusher(completion);
-	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
 			"finish_notification() called from flusher thread");
 
 	waiter = dequeue_next_waiter(&flusher->notifiers);
@@ -241,7 +241,7 @@ void flush_vdo(struct vdo_work_item *item)
 	bool may_notify;
 	int result;
 
-	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
 			"flush_vdo() called from flusher thread");
 
 	flush->flush_generation = flusher->flush_generation++;
@@ -266,7 +266,7 @@ void complete_vdo_flushes(struct flusher *flusher)
 	sequence_number_t oldest_active_generation = UINT64_MAX;
 	struct logical_zone *zone;
 
-	ASSERT_LOG_ONLY((get_callback_thread_id() == flusher->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
 			"complete_vdo_flushes() called from flusher thread");
 
 	for (zone = get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
@@ -334,7 +334,7 @@ static void enqueue_flush(struct vdo_flush *flush)
 			REQ_Q_ACTION_FLUSH);
 	enqueue_vdo_work(vdo,
 			 &flush->work_item,
-			 vdo_get_packer_zone_thread(get_thread_config(vdo)));
+			 vdo_get_packer_zone_thread(get_vdo_thread_config(vdo)));
 }
 
 /**********************************************************************/

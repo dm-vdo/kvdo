@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#38 $
  */
 
 #include "adminCompletion.h"
@@ -59,7 +59,7 @@ void assert_vdo_admin_phase_thread(struct admin_completion *admin_completion,
 {
 	thread_id_t expected =
 		admin_completion->get_thread_id(admin_completion);
-	ASSERT_LOG_ONLY((get_callback_thread_id() == expected),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == expected),
 			"%s on correct thread for %s",
 			what,
 			phase_names[admin_completion->phase]);
@@ -159,7 +159,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	prepare_vdo_completion(&admin_completion->completion,
 			       admin_operation_callback,
 			       admin_operation_callback,
-			       vdo_get_admin_thread(get_thread_config(vdo)),
+			       vdo_get_admin_thread(get_vdo_thread_config(vdo)),
 			       NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;

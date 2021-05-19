@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#107 $
  */
 
 #include "slabDepot.h"
@@ -209,7 +209,7 @@ static int allocate_components(struct slab_depot *depot,
 	zone_count_t zone;
 	slab_count_t slab_count, i;
 	const struct thread_config *thread_config =
-		get_thread_config(depot->vdo);
+		get_vdo_thread_config(depot->vdo);
 	int result =
 		make_vdo_action_manager(depot->zone_count,
 					get_allocator_thread_id,
@@ -289,7 +289,7 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	unsigned int slab_size_shift;
 	struct slab_depot *depot;
 	int result;
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.

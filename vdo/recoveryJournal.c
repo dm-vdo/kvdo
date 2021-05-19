@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#111 $
  */
 
 #include "recoveryJournal.h"
@@ -100,7 +100,7 @@ pop_active_list(struct recovery_journal *journal)
 static void assert_on_journal_thread(struct recovery_journal *journal,
 				     const char *function_name)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() == journal->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == journal->thread_id),
 			"%s() called on journal thread", function_name);
 }
 

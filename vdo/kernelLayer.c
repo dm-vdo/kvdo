@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#185 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#186 $
  */
 
 #include "kernelLayer.h"
@@ -795,7 +795,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		// Don't try to load or rebuild the index first (and log
 		// scary error messages) if this is known to be a
 		// newly-formatted volume.
-		start_dedupe_index(layer->dedupe_index, was_new(&layer->vdo));
+		start_dedupe_index(layer->dedupe_index, vdo_was_new(&layer->vdo));
 	}
 
 	layer->vdo.allocations_allowed = false;

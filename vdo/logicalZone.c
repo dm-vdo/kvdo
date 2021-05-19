@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#63 $
  */
 
 #include "logicalZone.h"
@@ -134,12 +134,12 @@ static int initialize_zone(struct logical_zones *zones,
 				  GENERATION_FLUSHED_COMPLETION);
 	zone->zones = zones;
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_logical_zone_thread(get_thread_config(vdo),
+	zone->thread_id = vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),
 					       	      zone_number);
 	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
 
-	return make_vdo_allocation_selector(get_thread_config(vdo)->physical_zone_count,
+	return make_vdo_allocation_selector(get_vdo_thread_config(vdo)->physical_zone_count,
 					    zone->thread_id, &zone->selector);
 }
 
@@ -150,7 +150,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	int result;
 	zone_count_t zone;
 
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	if (thread_config->logical_zone_count == 0) {
 		return VDO_SUCCESS;
 	}
@@ -213,7 +213,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 static inline void assert_on_zone_thread(struct logical_zone *zone,
 					 const char *what)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() == zone->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == zone->thread_id),
 			"%s() called on correct thread", what);
 }
 

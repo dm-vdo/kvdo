@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#88 $
  */
 
 #include "vdoLoad.h"
@@ -107,7 +107,7 @@ static void abort_load(struct vdo_completion *completion)
 		prepare_vdo_admin_sub_task_on_thread(vdo,
 						     close_recovery_journal_for_abort,
 						     close_recovery_journal_for_abort,
-						     vdo_get_journal_zone_thread(get_thread_config(vdo)));
+						     vdo_get_journal_zone_thread(get_vdo_thread_config(vdo)));
 	}
 
 	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
@@ -255,8 +255,8 @@ static void load_callback(struct vdo_completion *completion)
 
 	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 	load_vdo_slab_depot(vdo->depot,
-			    (was_new(vdo) ? ADMIN_STATE_FORMATTING :
-					    ADMIN_STATE_LOADING),
+			    (vdo_was_new(vdo) ? ADMIN_STATE_FORMATTING :
+						ADMIN_STATE_LOADING),
 			    completion,
 			    NULL);
 }
@@ -318,7 +318,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 static int __must_check decode_vdo(struct vdo *vdo)
 {
 	block_count_t maximum_age, journal_length;
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	zone_count_t zone;
 	int result = decode_from_super_block(vdo);
 	if (result != VDO_SUCCESS) {
@@ -326,7 +326,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	maximum_age = get_configured_block_map_maximum_age(vdo);
+	maximum_age = get_vdo_configured_block_map_maximum_age(vdo);
 	journal_length =
 		get_vdo_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
@@ -377,7 +377,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 				      vdo->read_only_notifier,
 				      vdo->recovery_journal,
 				      vdo->states.vdo.nonce,
-				      get_configured_cache_size(vdo),
+				      get_vdo_configured_cache_size(vdo),
 				      maximum_age,
 				      &vdo->block_map);
 	if (result != VDO_SUCCESS) {
@@ -459,7 +459,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	assert_on_admin_thread(vdo, __func__);
 	prepare_vdo_admin_sub_task(vdo, load_vdo_components, abort_load);
-	load_vdo_super_block(vdo, completion, get_first_block_offset(vdo),
+	load_vdo_super_block(vdo, completion, get_vdo_first_block_offset(vdo),
 			     &vdo->super_block);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#31 $
  */
 
 #ifndef VDO_H
@@ -85,7 +85,7 @@ void get_vdo_statistics(const struct vdo *vdo,
  *
  * @return The number of blocks allocated for user data
  **/
-block_count_t __must_check get_physical_blocks_allocated(const struct vdo *vdo);
+block_count_t __must_check get_vdo_physical_blocks_allocated(const struct vdo *vdo);
 
 /**
  * Get the number of unallocated physical blocks.
@@ -94,7 +94,7 @@ block_count_t __must_check get_physical_blocks_allocated(const struct vdo *vdo);
  *
  * @return The number of free blocks
  **/
-block_count_t __must_check get_physical_blocks_free(const struct vdo *vdo);
+block_count_t __must_check get_vdo_physical_blocks_free(const struct vdo *vdo);
 
 /**
  * Get the number of physical blocks used by vdo metadata.
@@ -103,7 +103,7 @@ block_count_t __must_check get_physical_blocks_free(const struct vdo *vdo);
  *
  * @return The number of overhead blocks
  **/
-block_count_t __must_check get_physical_blocks_overhead(const struct vdo *vdo);
+block_count_t __must_check get_vdo_physical_blocks_overhead(const struct vdo *vdo);
 
 /**
  * Get the number of physical blocks in a vdo volume.
@@ -132,7 +132,7 @@ get_vdo_device_config(const struct vdo *vdo);
  * @return The thread config
  **/
 const struct thread_config * __must_check
-get_thread_config(const struct vdo *vdo);
+get_vdo_thread_config(const struct vdo *vdo);
 
 /**
  * Get the id of the callback thread on which a completion is currently
@@ -140,7 +140,7 @@ get_thread_config(const struct vdo *vdo);
  *
  * @return the current thread ID
  **/
-thread_id_t get_callback_thread_id(void);
+thread_id_t vdo_get_callback_thread_id(void);
 
 /**
  * Get the configured maximum age of a dirty block map page.
@@ -150,7 +150,7 @@ thread_id_t get_callback_thread_id(void);
  * @return The block map era length
  **/
 block_count_t __must_check
-get_configured_block_map_maximum_age(const struct vdo *vdo);
+get_vdo_configured_block_map_maximum_age(const struct vdo *vdo);
 
 /**
  * Get the configured page cache size of the vdo.
@@ -159,7 +159,7 @@ get_configured_block_map_maximum_age(const struct vdo *vdo);
  *
  * @return The number of pages for the page cache
  **/
-page_count_t __must_check get_configured_cache_size(const struct vdo *vdo);
+page_count_t __must_check get_vdo_configured_cache_size(const struct vdo *vdo);
 
 /**
  * Get the location of the first block of the vdo.
@@ -169,7 +169,7 @@ page_count_t __must_check get_configured_cache_size(const struct vdo *vdo);
  * @return The location of the first block managed by the vdo
  **/
 physical_block_number_t __must_check
-get_first_block_offset(const struct vdo *vdo);
+get_vdo_first_block_offset(const struct vdo *vdo);
 
 /**
  * Check whether the vdo was new when it was loaded.
@@ -178,7 +178,7 @@ get_first_block_offset(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo was new
  **/
-bool __must_check was_new(const struct vdo *vdo);
+bool __must_check vdo_was_new(const struct vdo *vdo);
 
 /**
  * Check whether a data_location containing potential dedupe advice is

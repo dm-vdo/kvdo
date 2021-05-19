@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#24 $
  */
 
 #include "vioPool.h"
@@ -154,7 +154,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 {
 	struct list_head *entry;
 
-	ASSERT_LOG_ONLY((pool->thread_id == get_callback_thread_id()),
+	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"acquire from active vio_pool called from correct thread");
 
 	if (list_empty(&pool->available)) {
@@ -172,7 +172,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 /**********************************************************************/
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
-	ASSERT_LOG_ONLY((pool->thread_id == get_callback_thread_id()),
+	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"vio pool entry returned on same thread as it was acquired");
 	entry->vio->completion.error_handler = NULL;
 	if (has_waiters(&pool->waiting)) {

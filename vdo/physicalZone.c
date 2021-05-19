@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#31 $
  */
 
 #include "physicalZone.h"
@@ -81,7 +81,8 @@ int make_vdo_physical_zone(struct vdo *vdo,
 
 	zone->zone_number = zone_number;
 	zone->thread_id =
-		vdo_get_physical_zone_thread(get_thread_config(vdo), zone_number);
+		vdo_get_physical_zone_thread(get_vdo_thread_config(vdo),
+					     zone_number);
 	zone->allocator =
 		vdo_get_block_allocator_for_zone(vdo->depot, zone_number);
 

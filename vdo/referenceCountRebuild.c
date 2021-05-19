@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#60 $
  */
 
 #include "referenceCountRebuild.h"
@@ -124,10 +124,10 @@ static int make_rebuild_completion(struct vdo *vdo,
 				   struct vdo_completion *parent,
 				   struct rebuild_completion **rebuild_ptr)
 {
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
-		min(get_configured_cache_size(vdo) >> 1,
+		min(get_vdo_configured_cache_size(vdo) >> 1,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
 
 	struct rebuild_completion *rebuild;
@@ -158,11 +158,11 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->logical_thread_id = vdo_get_logical_zone_thread(thread_config, 0);
 	rebuild->admin_thread_id = vdo_get_admin_thread(thread_config);
 
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 rebuild->logical_thread_id),
 			"%s must be called on logical thread %u (not %u)",
 			__func__, rebuild->logical_thread_id,
-			get_callback_thread_id());
+			vdo_get_callback_thread_id());
 	prepare_vdo_completion(&rebuild->completion, finish_rebuild,
 			       finish_rebuild, rebuild->logical_thread_id,
 			       parent);

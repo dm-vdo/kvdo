@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#82 $
  */
 
 #include "packerInternals.h"
@@ -44,7 +44,7 @@
 static inline void assert_on_packer_thread(struct packer *packer,
 					   const char *caller)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() == packer->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == packer->thread_id),
 			"%s() called from packer thread", caller);
 }
 
@@ -218,7 +218,7 @@ int make_vdo_packer(struct vdo *vdo,
 		    block_count_t output_bin_count,
 		    struct packer **packer_ptr)
 {
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	struct packer *packer;
 	block_count_t i;
