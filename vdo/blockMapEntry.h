@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#13 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -63,7 +63,7 @@ struct block_map_entry {
  * @return the location of the data mapped by the block map entry
  **/
 static inline struct data_location
-unpack_block_map_entry(const struct block_map_entry *entry)
+unpack_vdo_block_map_entry(const struct block_map_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
@@ -74,18 +74,18 @@ unpack_block_map_entry(const struct block_map_entry *entry)
 }
 
 /**********************************************************************/
-static inline bool is_mapped_location(const struct data_location *location)
+static inline bool vdo_is_mapped_location(const struct data_location *location)
 {
 	return (location->state != MAPPING_STATE_UNMAPPED);
 }
 
 /**********************************************************************/
-static inline bool is_valid_location(const struct data_location *location)
+static inline bool vdo_is_valid_location(const struct data_location *location)
 {
 	if (location->pbn == VDO_ZERO_BLOCK) {
 		return !is_compressed(location->state);
 	} else {
-		return is_mapped_location(location);
+		return vdo_is_mapped_location(location);
 	}
 }
 
@@ -101,7 +101,7 @@ static inline bool is_valid_location(const struct data_location *location)
  * @note unrepresentable high bits of the unpacked PBN are silently truncated
  **/
 static inline struct block_map_entry
-pack_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
+pack_vdo_pbn(physical_block_number_t pbn, enum block_mapping_state mapping_state)
 {
 	return (struct block_map_entry) {
 		.mapping_state = (mapping_state & 0x0F),

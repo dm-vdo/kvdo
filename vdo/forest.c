@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#44 $
  */
 
 #include "forest.h"
@@ -203,8 +203,8 @@ static int make_segment(struct forest *old_forest,
 							      INVALID_PBN,
 							      true);
 				page->entries[0] =
-					pack_pbn(forest->map->root_origin + root,
-						MAPPING_STATE_UNCOMPRESSED);
+					pack_vdo_pbn(forest->map->root_origin + root,
+						     MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
 		}
@@ -401,19 +401,19 @@ static void traverse(struct cursor *cursor)
 				 level->page_index) + level->slot;
 
 			struct data_location location =
-				unpack_block_map_entry(&page->entries[level->slot]);
-			if (!is_valid_location(&location)) {
+				unpack_vdo_block_map_entry(&page->entries[level->slot]);
+			if (!vdo_is_valid_location(&location)) {
 				// This entry is invalid, so remove it from the
 				// page.
 				page->entries[level->slot] =
-					pack_pbn(VDO_ZERO_BLOCK,
-						 MAPPING_STATE_UNMAPPED);
+					pack_vdo_pbn(VDO_ZERO_BLOCK,
+						     MAPPING_STATE_UNMAPPED);
 				write_tree_page(tree_page,
 						cursor->parent->zone);
 				continue;
 			}
 
-			if (!is_mapped_location(&location)) {
+			if (!vdo_is_mapped_location(&location)) {
 				continue;
 			}
 
@@ -421,8 +421,8 @@ static void traverse(struct cursor *cursor)
 			// space.
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					pack_pbn(VDO_ZERO_BLOCK,
-						 MAPPING_STATE_UNMAPPED);
+					pack_vdo_pbn(VDO_ZERO_BLOCK,
+						     MAPPING_STATE_UNMAPPED);
 				write_tree_page(tree_page,
 						cursor->parent->zone);
 				continue;
@@ -434,8 +434,8 @@ static void traverse(struct cursor *cursor)
 								       cursor->parent->parent);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						pack_pbn(VDO_ZERO_BLOCK,
-							 MAPPING_STATE_UNMAPPED);
+						pack_vdo_pbn(VDO_ZERO_BLOCK,
+							     MAPPING_STATE_UNMAPPED);
 					write_tree_page(tree_page,
 							cursor->parent->zone);
 					continue;

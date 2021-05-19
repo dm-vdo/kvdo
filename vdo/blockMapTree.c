@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#95 $
  */
 
 #include "blockMapTree.h"
@@ -751,8 +751,10 @@ is_invalid_tree_entry(const struct vdo *vdo,
 		      const struct data_location *mapping,
 		      height_t height)
 {
-	if (!is_valid_location(mapping) || is_compressed(mapping->state) ||
-	    (is_mapped_location(mapping) && (mapping->pbn == VDO_ZERO_BLOCK))) {
+	if (!vdo_is_valid_location(mapping) ||
+	    is_compressed(mapping->state) ||
+	    (vdo_is_mapped_location(mapping) &&
+	     (mapping->pbn == VDO_ZERO_BLOCK))) {
 		return true;
 	}
 
@@ -784,7 +786,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	struct tree_lock *lock = &data_vio->tree_lock;
 	struct block_map_tree_slot slot = lock->tree_slots[lock->height];
 	struct data_location mapping =
-		unpack_block_map_entry(&page->entries[slot.block_map_slot.slot]);
+		unpack_vdo_block_map_entry(&page->entries[slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
 			          lock->height)) {
 		log_error_strerror(VDO_BAD_MAPPING,
@@ -796,7 +798,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 		return;
 	}
 
-	if (!is_mapped_location(&mapping)) {
+	if (!vdo_is_mapped_location(&mapping)) {
 		// The page we need is unallocated
 		allocate_block_map_page(get_block_map_tree_zone(data_vio),
 					data_vio);
@@ -1287,7 +1289,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 
 	// The page at this height has been allocated and loaded.
 	mapping =
-		unpack_block_map_entry(&page->entries[tree_slot.block_map_slot.slot]);
+		unpack_vdo_block_map_entry(&page->entries[tree_slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
 				  lock->height)) {
 		log_error_strerror(VDO_BAD_MAPPING,
@@ -1299,7 +1301,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 		return;
 	}
 
-	if (!is_mapped_location(&mapping)) {
+	if (!vdo_is_mapped_location(&mapping)) {
 		// The page we want one level down has not been allocated, so
 		// allocate it.
 		allocate_block_map_page(zone, data_vio);
@@ -1337,8 +1339,8 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 		return VDO_ZERO_BLOCK;
 	}
 
-	mapping = unpack_block_map_entry(&page->entries[slot]);
-	if (!is_valid_location(&mapping) || is_compressed(mapping.state)) {
+	mapping = unpack_vdo_block_map_entry(&page->entries[slot]);
+	if (!vdo_is_valid_location(&mapping) || is_compressed(mapping.state)) {
 		return VDO_ZERO_BLOCK;
 	}
 	return mapping.pbn;

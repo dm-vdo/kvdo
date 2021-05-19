@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#102 $
  */
 
 #include "blockMap.h"
@@ -620,9 +620,9 @@ set_mapped_entry(struct data_vio *data_vio,
 		 const struct block_map_entry *entry)
 {
 	// Unpack the PBN for logging purposes even if the entry is invalid.
-	struct data_location mapped = unpack_block_map_entry(entry);
+	struct data_location mapped = unpack_vdo_block_map_entry(entry);
 
-	if (is_valid_location(&mapped)) {
+	if (vdo_is_valid_location(&mapped)) {
 		int result = set_mapped_location(data_vio, mapped.pbn,
 						 mapped.state);
 		/*
@@ -702,7 +702,7 @@ void update_vdo_block_map_page(struct block_map_page *page,
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	slot_number_t slot =
 		tree_lock->tree_slots[tree_lock->height].block_map_slot.slot;
-	page->entries[slot] = pack_pbn(pbn, mapping_state);
+	page->entries[slot] = pack_vdo_pbn(pbn, mapping_state);
 
 	// Adjust references (locks) on the recovery journal blocks.
 	old_locked = *recovery_lock;

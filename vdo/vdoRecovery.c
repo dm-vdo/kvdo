@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#99 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -488,8 +488,8 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 				(struct numbered_block_mapping) {
 					.block_map_slot = entry.slot,
 					.block_map_entry =
-						pack_pbn(entry.mapping.pbn,
-							 entry.mapping.state),
+						pack_vdo_pbn(entry.mapping.pbn,
+							     entry.mapping.state),
 					.number = recovery->entry_count,
 				};
 			recovery->entry_count++;
@@ -676,7 +676,7 @@ static int compute_usages(struct recovery_completion *recovery)
 				     &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry =
 			get_entry(recovery, &recovery_point);
-		if (is_mapped_location(&entry.mapping)) {
+		if (vdo_is_mapped_location(&entry.mapping)) {
 			switch (entry.operation) {
 			case DATA_INCREMENT:
 				recovery->logical_blocks_used++;
@@ -825,7 +825,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 	zone_count_t zone_number;
 	struct missing_decref *decref = as_missing_decref(waiter);
 	struct data_location mapping = decref->penultimate_mapping;
-	if (is_mapped_location(&mapping)) {
+	if (vdo_is_mapped_location(&mapping)) {
 		decref->recovery->logical_blocks_used--;
 	}
 
@@ -885,7 +885,7 @@ static int record_missing_decref(struct missing_decref *decref,
 {
 	struct recovery_completion *recovery = decref->recovery;
 	recovery->incomplete_decref_count--;
-	if (is_valid_location(&location) &&
+	if (vdo_is_valid_location(&location) &&
 	    vdo_is_physical_data_block(recovery->vdo->depot, location.pbn)) {
 		decref->penultimate_mapping = location;
 		decref->complete = true;
@@ -1047,7 +1047,7 @@ static void process_fetched_page(struct vdo_completion *completion)
 
 	page = dereference_readable_vdo_page(completion);
 	location =
-		unpack_block_map_entry(&page->entries[current_decref->slot.slot]);
+		unpack_vdo_block_map_entry(&page->entries[current_decref->slot.slot]);
 	release_vdo_page_completion(completion);
 	record_missing_decref(current_decref, location, VDO_BAD_MAPPING);
 	if (recovery->incomplete_decref_count == 0) {
