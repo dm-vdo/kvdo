@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#62 $
  */
 
 #include "readOnlyRebuild.h"
@@ -419,8 +419,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			       finish_vdo_completion_parent_callback,
 			       completion->callback_thread_id,
 			       completion->parent);
-	recover_block_map(vdo, rebuild->entry_count, rebuild->entries,
-			  completion);
+	recover_vdo_block_map(vdo, rebuild->entry_count, rebuild->entries,
+			      completion);
 }
 
 /**
