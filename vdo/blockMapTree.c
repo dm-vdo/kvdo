@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#97 $
  */
 
 #include "blockMapTree.h"
@@ -752,7 +752,7 @@ is_invalid_tree_entry(const struct vdo *vdo,
 		      height_t height)
 {
 	if (!vdo_is_valid_location(mapping) ||
-	    is_compressed(mapping->state) ||
+	    vdo_is_state_compressed(mapping->state) ||
 	    (vdo_is_mapped_location(mapping) &&
 	     (mapping->pbn == VDO_ZERO_BLOCK))) {
 		return true;
@@ -1340,7 +1340,8 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 	}
 
 	mapping = unpack_vdo_block_map_entry(&page->entries[slot]);
-	if (!vdo_is_valid_location(&mapping) || is_compressed(mapping.state)) {
+	if (!vdo_is_valid_location(&mapping) ||
+	    vdo_is_state_compressed(mapping.state)) {
 		return VDO_ZERO_BLOCK;
 	}
 	return mapping.pbn;

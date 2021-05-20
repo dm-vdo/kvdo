@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#20 $
  */
 
 #include "compressedBlock.h"
@@ -70,7 +70,7 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 	struct compressed_block_header *header =
 		(struct compressed_block_header *) buffer;
 
-	if (!is_compressed(mapping_state)) {
+	if (!vdo_is_state_compressed(mapping_state)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
@@ -79,7 +79,7 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	slot = get_slot_from_state(mapping_state);
+	slot = vdo_get_slot_from_state(mapping_state);
 	if (slot >= MAX_COMPRESSION_SLOTS) {
 		return VDO_INVALID_FRAGMENT;
 	}

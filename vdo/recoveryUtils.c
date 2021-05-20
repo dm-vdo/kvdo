@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#42 $
  */
 
 #include "recoveryUtils.h"
@@ -166,7 +166,7 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 	}
 
 	if ((entry->operation == BLOCK_MAP_INCREMENT) &&
-	    (is_compressed(entry->mapping.state) ||
+	    (vdo_is_state_compressed(entry->mapping.state) ||
 	    (entry->mapping.pbn == VDO_ZERO_BLOCK))) {
 		return log_error_strerror(VDO_CORRUPT_JOURNAL,
 					  "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",

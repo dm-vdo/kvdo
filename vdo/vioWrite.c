@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#74 $
  */
 
 /*
@@ -520,7 +520,7 @@ static void increment_for_compression(struct vdo_completion *completion)
 		return;
 	}
 
-	ASSERT_LOG_ONLY(is_compressed(data_vio->new_mapped.state),
+	ASSERT_LOG_ONLY(vdo_is_state_compressed(data_vio->new_mapped.state),
 			"Impossible attempt to update reference counts for a block which was not compressed (logical block %llu)",
 			data_vio->logical.lbn);
 
@@ -544,7 +544,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!is_compressed(data_vio->new_mapped.state)) {
+	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
 		abort_deduplication(data_vio);
 		return;
 	}

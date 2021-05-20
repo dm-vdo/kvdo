@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#139 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#140 $
  */
 
 #include "dataKVIO.h"
@@ -314,7 +314,7 @@ static void complete_read(struct data_vio *data_vio)
 	read_block->status = blk_status_to_errno(vio->bio->bi_status);
 
 	if ((read_block->status == VDO_SUCCESS) &&
-	    is_compressed(read_block->mapping_state)) {
+	    vdo_is_state_compressed(read_block->mapping_state)) {
 		launch_data_vio_on_cpu_queue(data_vio,
 					     uncompress_read_block,
 					     NULL,
@@ -392,7 +392,7 @@ void read_data_vio(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!is_write_vio(vio),
 			"operation set correctly for data read");
 
-	if (is_compressed(data_vio->mapped.state)) {
+	if (vdo_is_state_compressed(data_vio->mapped.state)) {
 		vdo_read_block(data_vio,
 			       data_vio->mapped.pbn,
 			       data_vio->mapped.state,

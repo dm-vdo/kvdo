@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#5 $
  */
 
 #ifndef BLOCK_MAPPING_STATE_H
@@ -46,19 +46,21 @@ enum {
 };
 
 /**********************************************************************/
-static inline enum block_mapping_state get_state_for_slot(byte slot_number)
+static inline enum block_mapping_state vdo_get_state_for_slot(byte slot_number)
 {
 	return (slot_number + MAPPING_STATE_COMPRESSED_BASE);
 }
 
 /**********************************************************************/
-static inline byte get_slot_from_state(enum block_mapping_state mapping_state)
+static inline byte
+vdo_get_slot_from_state(enum block_mapping_state mapping_state)
 {
 	return (mapping_state - MAPPING_STATE_COMPRESSED_BASE);
 }
 
 /**********************************************************************/
-static inline bool is_compressed(const enum block_mapping_state mapping_state)
+static inline bool
+vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {
 	return (mapping_state > MAPPING_STATE_UNCOMPRESSED);
 }
