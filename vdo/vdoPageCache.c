@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#70 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -268,7 +268,7 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 	}
 
 	FREE(FORGET(cache->dirty_lists));
-	free_int_map(&cache->page_map);
+	free_int_map(FORGET(cache->page_map));
 	FREE(cache->infos);
 	FREE(cache->pages);
 	FREE(cache);
@@ -1541,6 +1541,6 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	}
 
 	// Reset the page map by re-allocating it.
-	free_int_map(&cache->page_map);
+	free_int_map(FORGET(cache->page_map));
 	return make_int_map(cache->page_count, 0, &cache->page_map);
 }

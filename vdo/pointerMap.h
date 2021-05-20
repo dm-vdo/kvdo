@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#5 $
  */
 
 #ifndef POINTER_MAP_H
@@ -100,13 +100,12 @@ int __must_check make_pointer_map(size_t initial_capacity,
 				  struct pointer_map **map_ptr);
 
 /**
- * Free a pointer_map and null out the reference to it. NOTE: The map does not
- * own the pointer keys and values stored in the map and they are not freed by
- * this call.
+ * Free a pointer_map. NOTE: The map does not own the pointer keys and values
+ * stored in the map and they are not freed by this call.
  *
- * @param [in,out] map_ptr  The reference to the pointer_map to free
+ * @param map  The pointer_map to free
  **/
-void free_pointer_map(struct pointer_map **map_ptr);
+void free_pointer_map(struct pointer_map *map);
 
 /**
  * Get the number of entries stored in a pointer_map.

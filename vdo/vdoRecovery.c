@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#101 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -347,7 +347,7 @@ void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr)
 		return;
 	}
 
-	free_int_map(&recovery->slot_entry_map);
+	free_int_map(FORGET(recovery->slot_entry_map));
 	thread_config = get_vdo_thread_config(recovery->vdo);
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#32 $
  */
 
 #include "physicalZone.h"
@@ -100,7 +100,7 @@ void free_vdo_physical_zone(struct physical_zone **zone_ptr)
 	}
 	zone = *zone_ptr;
 	free_vdo_pbn_lock_pool(&zone->lock_pool);
-	free_int_map(&zone->pbn_operations);
+	free_int_map(FORGET(zone->pbn_operations));
 	FREE(zone);
 	*zone_ptr = NULL;
 }

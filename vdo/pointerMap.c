@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#13 $
  */
 
 /**
@@ -183,7 +183,7 @@ int make_pointer_map(size_t initial_capacity,
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		free_pointer_map(&map);
+		free_pointer_map(FORGET(map));
 		return result;
 	}
 
@@ -191,25 +191,15 @@ int make_pointer_map(size_t initial_capacity,
 	return UDS_SUCCESS;
 }
 
-/**
- * Free the bucket array for the map.
- *
- * @param map  the map whose bucket array is to be freed
- **/
-static void free_buckets(struct pointer_map *map)
-{
-	FREE(map->buckets);
-	map->buckets = NULL;
-}
-
 /**********************************************************************/
-void free_pointer_map(struct pointer_map **map_ptr)
+void free_pointer_map(struct pointer_map *map)
 {
-	if (*map_ptr != NULL) {
-		free_buckets(*map_ptr);
-		FREE(*map_ptr);
-		*map_ptr = NULL;
+	if (map == NULL) {
+		return;
 	}
+
+	FREE(FORGET(map->buckets));
+	FREE(FORGET(map));
 }
 
 /**********************************************************************/
@@ -380,14 +370,14 @@ static int resize_buckets(struct pointer_map *map)
 		if (result != UDS_SUCCESS) {
 			// Destroy the new partial map and restore the map from
 			// the stack.
-			free_buckets(map);
+			FREE(FORGET(map->buckets));
 			*map = old_map;
 			return result;
 		}
 	}
 
 	// Destroy the old bucket array.
-	free_buckets(&old_map);
+	FREE(FORGET(old_map.buckets));
 	return UDS_SUCCESS;
 }
 

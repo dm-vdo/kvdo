@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#41 $
  */
 
 #include "hashZone.h"
@@ -137,7 +137,7 @@ void free_vdo_hash_zone(struct hash_zone **zone_ptr)
 	}
 
 	zone = *zone_ptr;
-	free_pointer_map(&zone->hash_lock_map);
+	free_pointer_map(FORGET(zone->hash_lock_map));
 	FREE(zone->lock_array);
 	FREE(zone);
 	*zone_ptr = NULL;
