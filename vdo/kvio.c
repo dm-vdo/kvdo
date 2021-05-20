@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#83 $
  */
 
 #include "kvio.h"
@@ -138,7 +138,7 @@ void submit_metadata_vio(struct vio *vio)
 		enum kernel_layer_state state = get_kernel_layer_state(layer);
 		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
 				 || (state == LAYER_RESUMING)
-				 || (state = LAYER_STARTING)),
+				 || (state == LAYER_STARTING)),
 				"write metadata in allowed state %d", state);
 		if (vio_requires_flush_before(vio)) {
 			bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
