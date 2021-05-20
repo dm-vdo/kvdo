@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#29 $
  */
 
 #include "partitionCopy.h"
@@ -67,6 +67,18 @@ as_copy_completion(struct vdo_completion *completion)
 	return container_of(completion, struct copy_completion, completion);
 }
 
+/**
+ * Free a copy completion.
+ *
+ * @param copy  The copy completion to free
+ **/
+static void free_copy_completion(struct copy_completion *copy)
+{
+	free_vdo_extent(FORGET(copy->extent));
+	FREE(copy->data);
+	FREE(copy);
+}
+
 /**********************************************************************/
 int make_vdo_copy_completion(struct vdo *vdo,
 			     struct vdo_completion **completion_ptr)
@@ -76,6 +88,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+
 	initialize_vdo_completion(&copy->completion, vdo,
 				  PARTITION_COPY_COMPLETION);
 
@@ -84,8 +97,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 			  "partition copy extent",
 			  &copy->data);
 	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &copy->completion;
-		free_vdo_copy_completion(&completion);
+		free_copy_completion(FORGET(copy));
 		return result;
 	}
 
@@ -96,8 +108,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 				   copy->data,
 				   &copy->extent);
 	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &copy->completion;
-		free_vdo_copy_completion(&completion);
+		free_copy_completion(copy);
 		return result;
 	}
 
@@ -106,19 +117,13 @@ int make_vdo_copy_completion(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_copy_completion(struct vdo_completion **completion_ptr)
+void free_vdo_copy_completion(struct vdo_completion *completion)
 {
-	struct copy_completion *copy;
-
-	if (*completion_ptr == NULL) {
+	if (completion == NULL) {
 		return;
 	}
 
-	copy = as_copy_completion(*completion_ptr);
-	free_vdo_extent(FORGET(copy->extent));
-	FREE(copy->data);
-	FREE(copy);
-	*completion_ptr = NULL;
+	free_copy_completion(as_copy_completion(FORGET(completion)));
 }
 
 /**********************************************************************/
