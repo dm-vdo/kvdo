@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#4 $
  */
 #include "masterIndex005.h"
 
@@ -1289,10 +1289,19 @@ static int computeMasterIndexParameters005(const Configuration *config,
   Geometry *geometry = config->geometry;
   unsigned long recordsPerChapter = geometry->recordsPerChapter;
   params->numChapters = geometry->chaptersPerVolume;
-  unsigned long recordsPerVolume = recordsPerChapter * params->numChapters;
+  /* 
+   * Make sure that the number of delta list records in the
+   * volume index does not change when the volume is reduced by
+   * one chapter. This preserves the mapping from hash to volume
+   * index delta list.
+   */
+  unsigned long deltaListChapters = params->numChapters;
+  if (isReducedGeometry(geometry))
+    deltaListChapters += 1;
+  unsigned long deltaListRecords = recordsPerChapter * deltaListChapters;
   unsigned int numAddresses = config->masterIndexMeanDelta * DELTA_LIST_SIZE;
   params->numDeltaLists
-    = maxUint(recordsPerVolume / DELTA_LIST_SIZE, minDeltaLists);
+    = maxUint(deltaListRecords / DELTA_LIST_SIZE, minDeltaLists);
   params->addressBits = computeBits(numAddresses - 1);
   params->chapterBits = computeBits(params->numChapters - 1);
 

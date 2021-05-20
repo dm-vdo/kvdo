@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/config.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/config.h#4 $
  */
 
 #ifndef CONFIG_H
@@ -56,6 +56,39 @@ struct udsConfiguration {
   unsigned int sparseSampleRate;
   /** Index Owner's nonce */
   UdsNonce     nonce;
+  /** Virtual chapter remapped from physical chapter 0 in order
+   * to reduce chaptersPerVolume by one */
+  uint64_t remappedChapter;
+  /** Offset by which the remapped chapter was moved, one more
+   * than the post-remapping physical chapter number to which it
+   * was remapped */
+  uint64_t chapterOffset;
+};
+
+/**
+ * Data that are used for configuring a 6.02 index.
+ **/
+struct udsConfiguration_6_02 {
+  /** Smaller (16), Small (64) or large (256) indices */
+  unsigned int recordPagesPerChapter;
+  /** Total number of chapters per volume */
+  unsigned int chaptersPerVolume;
+  /** Number of sparse chapters per volume */
+  unsigned int sparseChaptersPerVolume;
+  /** Size of the page cache, in chapters */
+  unsigned int cacheChapters;
+  /** Frequency with which to checkpoint */
+  // XXX the checkpointFrequency is not used - it is now a runtime
+  // parameter
+  unsigned int checkpointFrequency;
+  /** The volume index mean delta to use */
+  unsigned int masterIndexMeanDelta;
+  /** Size of a page, used for both record pages and index pages */
+  unsigned int bytesPerPage;
+  /** Sampling rate for sparse indexing */
+  unsigned int sparseSampleRate;
+  /** Index Owner's nonce */
+  UdsNonce nonce;
 };
 
 typedef struct indexLocation {
@@ -99,15 +132,20 @@ int readConfigContents(BufferedReader   *reader,
   __attribute__((warn_unused_result));
 
 /**
- * Write the index configuration information to stable storage.
- *
+ * Write the index configuration information to stable storage.  If
+ * the superblock version is < 4 write the 6.02 version; otherwise
+ * write the 8.02 version, indicating the configuration is for an
+ * index that has been reduced by one chapter.
+ * 
  * @param writer        A buffered writer.
  * @param config        The index configuration.
+ * @param version       The index superblock version
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int writeConfigContents(BufferedWriter   *writer,
-                        UdsConfiguration  config)
+                        UdsConfiguration  config,
+                        uint32_t          version)
   __attribute__((warn_unused_result));
 
 /**

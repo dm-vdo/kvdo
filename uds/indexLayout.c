@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#21 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#22 $
  */
 
 #include "indexLayout.h"
@@ -118,12 +118,13 @@ typedef struct superBlockData_v1 {
   byte     magicLabel[32];
   byte     nonceInfo[32];
   uint64_t nonce;
-  uint32_t version;             // 2
+  uint32_t version;             // 2 or 3 for normal, 4 or 5 for converted
   uint32_t blockSize;           // for verification
   uint16_t numIndexes;          // 1
   uint16_t maxSaves;
   uint64_t openChapterBlocks;
   uint64_t pageMapBlocks;
+  uint64_t subIndexStart;
 } SuperBlockData;
 
 struct indexLayout {
@@ -174,12 +175,17 @@ enum {
 };
 
 static int reconstituteSingleFileLayout(IndexLayout    *layout,
-                                        SuperBlockData *super,
                                         RegionTable    *table,
                                         uint64_t        firstBlock)
   __attribute__((warn_unused_result));
 static int writeIndexSaveLayout(IndexLayout *layout, IndexSaveLayout *isl)
   __attribute__((warn_unused_result));
+
+/*****************************************************************************/
+static INLINE bool isConvertedSuperBlock(SuperBlockData *super)
+{
+  return super->version == 4 || super->version == 5;
+}
 
 /*****************************************************************************/
 static INLINE uint64_t blockCount(uint64_t bytes, uint32_t blockSize)
@@ -505,6 +511,12 @@ static int decodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
   if (result != UDS_SUCCESS) {
     return result;
   }
+  if (isConvertedSuperBlock(super)) {
+    result = getUInt64LEFromBuffer(buffer, &super->subIndexStart);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+  }
   result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
                            "%zu bytes decoded of %zu expected",
                            bufferLength(buffer), sizeof(*super));
@@ -517,14 +529,10 @@ static int decodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
 /*****************************************************************************/
 __attribute__((warn_unused_result))
 static int readSuperBlockData(BufferedReader *reader,
-                              SuperBlockData *super,
+                              IndexLayout    *layout,
                               size_t          savedSize)
 {
-  if (savedSize != sizeof(SuperBlockData)) {
-    return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "unexpected super block data size %zu",
-                                   savedSize);
-  }
+  SuperBlockData *super = &layout->super;
 
   if (sizeof(super->magicLabel) != SINGLE_FILE_MAGIC_1_LENGTH) {
     return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
@@ -587,10 +595,9 @@ static int readSuperBlockData(BufferedReader *reader,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int allocateSingleFileParts(IndexLayout    *layout,
-                                   SuperBlockData *super)
+static int allocateSingleFileParts(IndexLayout *layout)
 {
-  int result = ALLOCATE(super->maxSaves, IndexSaveLayout, __func__,
+  int result = ALLOCATE(layout->super.maxSaves, IndexSaveLayout, __func__,
                         &layout->index.saves);
   if (result != UDS_SUCCESS) {
     return result;
@@ -607,6 +614,7 @@ static int loadSuperBlock(IndexLayout    *layout,
                           BufferedReader *reader)
 {
   RegionTable *table = NULL;
+  SuperBlockData *super = &layout->super;
   int result = loadRegionTable(reader, &table);
   if (result != UDS_SUCCESS) {
     return result;
@@ -618,30 +626,28 @@ static int loadSuperBlock(IndexLayout    *layout,
                                    "not a superblock region table");
   }
 
-  SuperBlockData superBlockData;
-  result = readSuperBlockData(reader, &superBlockData, table->header.payload);
+  result = readSuperBlockData(reader, layout, table->header.payload);
   if (result != UDS_SUCCESS) {
     FREE(table);
     return logErrorWithStringError(result, "unknown superblock format");
   }
 
-  if (superBlockData.blockSize != blockSize) {
+  if (super->blockSize != blockSize) {
     FREE(table);
     return logErrorWithStringError(UDS_WRONG_INDEX_CONFIG,
                                    "superblock saved blockSize %" PRIu32
                                    " differs from supplied blockSize %zu",
-                                   superBlockData.blockSize, blockSize);
+                                   super->blockSize, blockSize);
   }
-  initializeIndexVersion(&layout->indexVersion, superBlockData.version);
+  initializeIndexVersion(&layout->indexVersion, super->version);
 
-  result = allocateSingleFileParts(layout, &superBlockData);
+  result = allocateSingleFileParts(layout);
   if (result != UDS_SUCCESS) {
     FREE(table);
     return result;
   }
 
-  result = reconstituteSingleFileLayout(layout, &superBlockData, table,
-                                        firstBlock);
+  result = reconstituteSingleFileLayout(layout, table, firstBlock);
   FREE(table);
   return result;
 }
@@ -654,6 +660,7 @@ static int readIndexSaveData(BufferedReader  *reader,
                              Buffer         **bufferPtr)
 {
   int result = UDS_SUCCESS;
+
   if (savedSize == 0) {
     memset(saveData, 0, sizeof(*saveData));
   } else {
@@ -1149,17 +1156,18 @@ static int resetIndexSaveLayout(IndexSaveLayout *isl,
 }
 
 /*****************************************************************************/
-static void defineSubIndexNonce(SubIndexLayout *sil,
-                                uint64_t        masterNonce,
-                                unsigned int    indexId)
+static void defineSubIndexNonce(IndexLayout *layout, unsigned int indexId)
 {
   struct subIndexNonceData {
     uint64_t offset;
     uint16_t indexId;
   };
+
+  SubIndexLayout *sil = &layout->index;
+  uint64_t masterNonce = layout->super.nonce;
   byte buffer[sizeof(struct subIndexNonceData)] = { 0 };
   size_t offset = 0;
-  encodeUInt64LE(buffer, &offset, sil->subIndex.startBlock);
+  encodeUInt64LE(buffer, &offset, layout->super.subIndexStart);
   encodeUInt16LE(buffer, &offset, indexId);
   sil->nonce = generateSecondaryNonce(masterNonce, buffer, sizeof(buffer));
   if (sil->nonce == 0) {
@@ -1170,12 +1178,12 @@ static void defineSubIndexNonce(SubIndexLayout *sil,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int setupSubIndex(SubIndexLayout  *sil,
+static int setupSubIndex(IndexLayout     *layout,
                          uint64_t        *nextBlockPtr,
                          SaveLayoutSizes *sls,
-                         unsigned int     instance,
-                         uint64_t         masterNonce)
+                         unsigned int     instance)
 {
+  SubIndexLayout *sil = &layout->index;
   uint64_t startBlock = *nextBlockPtr;
 
   setupLayout(&sil->subIndex, &startBlock, sls->subIndexBlocks,
@@ -1196,7 +1204,8 @@ static int setupSubIndex(SubIndexLayout  *sil,
                                    "sub index layout regions don't agree");
   }
 
-  defineSubIndexNonce(sil, masterNonce, instance);
+  layout->super.subIndexStart = sil->subIndex.startBlock;
+  defineSubIndexNonce(layout, instance);
   return UDS_SUCCESS;
 }
 
@@ -1233,7 +1242,7 @@ static int initSingleFileLayout(IndexLayout     *layout,
                          sls->pageMapBlocks, &layout->super);
   initializeIndexVersion(&layout->indexVersion, SUPER_VERSION_CURRENT);
 
-  int result = allocateSingleFileParts(layout, &layout->super);
+  int result = allocateSingleFileParts(layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1244,8 +1253,7 @@ static int initSingleFileLayout(IndexLayout     *layout,
               RL_SOLE_INSTANCE);
   setupLayout(&layout->config, &nextBlock, 1, RL_KIND_CONFIG,
               RL_SOLE_INSTANCE);
-  result = setupSubIndex(&layout->index, &nextBlock, sls, 0,
-                         layout->super.nonce);
+  result = setupSubIndex(layout, &nextBlock, sls, 0);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1258,11 +1266,11 @@ static int initSingleFileLayout(IndexLayout     *layout,
 }
 
 /*****************************************************************************/
-static void expectSubIndex(SubIndexLayout *sil,
+static void expectSubIndex(IndexLayout    *layout,
                            RegionIterator *iter,
-                           SuperBlockData *super,
                            unsigned int    instance)
 {
+  SubIndexLayout *sil = &layout->index;
   if (iter->result != UDS_SUCCESS) {
     return;
   }
@@ -1277,7 +1285,7 @@ static void expectSubIndex(SubIndexLayout *sil,
   expectLayout(true, &sil->volume, iter, 0, RL_KIND_VOLUME, RL_SOLE_INSTANCE);
 
   unsigned int i;
-  for (i = 0; i < super->maxSaves; ++i) {
+  for (i = 0; i < layout->super.maxSaves; ++i) {
     IndexSaveLayout *isl = &sil->saves[i];
     expectLayout(true, &isl->indexSave, iter, 0, RL_KIND_SAVE, i);
   }
@@ -1286,7 +1294,10 @@ static void expectSubIndex(SubIndexLayout *sil,
     iterError(iter, "sub index region does not span all saves");
   }
 
-  defineSubIndexNonce(sil, super->nonce, instance);
+  if (!isConvertedSuperBlock(&layout->super))
+    layout->super.subIndexStart = sil->subIndex.startBlock;
+
+  defineSubIndexNonce(layout, instance);
 }
 
 /*****************************************************************************/
@@ -1297,7 +1308,6 @@ static void expectSubIndex(SubIndexLayout *sil,
  *
  * @param layout      the layout to initialize
  * @param region      the IO region for this layout
- * @param super       the super block data read from the superblock
  * @param table       the region table read from the superblock
  * @param firstBlock  the first block number in the region
  *
@@ -1305,11 +1315,9 @@ static void expectSubIndex(SubIndexLayout *sil,
  **/
 __attribute__((warn_unused_result))
 static int reconstituteSingleFileLayout(IndexLayout    *layout,
-                                        SuperBlockData *super,
                                         RegionTable    *table,
                                         uint64_t        firstBlock)
 {
-  layout->super       = *super;
   layout->totalBlocks = table->header.regionBlocks;
 
   RegionIterator iter = {
@@ -1323,7 +1331,7 @@ static int reconstituteSingleFileLayout(IndexLayout    *layout,
                RL_SOLE_INSTANCE);
   expectLayout(true, &layout->config, &iter, 1, RL_KIND_CONFIG,
                RL_SOLE_INSTANCE);
-  expectSubIndex(&layout->index, &iter, &layout->super, 0);
+  expectSubIndex(layout, &iter, 0);
   expectLayout(true, &layout->seal, &iter, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
 
   if (iter.result != UDS_SUCCESS) {
@@ -1495,7 +1503,9 @@ static int encodeLayoutRegion(Buffer *buffer, LayoutRegion *region)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int encodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
+static int encodeSuperBlockData(Buffer         *buffer,
+                                SuperBlockData *super,
+                                size_t          expectedSize)
 {
   int result = putBytes(buffer, 32, &super->magicLabel);
   if (result != UDS_SUCCESS) {
@@ -1537,9 +1547,15 @@ static int encodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(SuperBlockData),
+  if (isConvertedSuperBlock(super)) {
+    result = putUInt64LEIntoBuffer(buffer, super->subIndexStart);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == expectedSize,
                            "%zu bytes encoded, of %zu expected",
-                           contentLength(buffer), sizeof(SuperBlockData));
+                           contentLength(buffer), expectedSize);
   return result;
 }
 
@@ -1550,13 +1566,17 @@ static int writeSingleFileHeader(IndexLayout    *layout,
                                  unsigned int    numRegions,
                                  BufferedWriter *writer)
 {
-  table->header = (RegionHeader) {
+  uint16_t payload = sizeof(SuperBlockData);
+  if (!isConvertedSuperBlock(&layout->super))
+    payload -= sizeof(layout->super.subIndexStart);
+
+  table->header   = (RegionHeader) {
     .magic        = REGION_MAGIC,
     .regionBlocks = layout->totalBlocks,
     .type         = RH_TYPE_SUPER,
     .version      = 1,
     .numRegions   = numRegions,
-    .payload      = sizeof(layout->super),
+    .payload      = payload,
   };
 
   size_t tableSize = sizeof(RegionTable) + numRegions * sizeof(LayoutRegion);
@@ -1590,7 +1610,7 @@ static int writeSingleFileHeader(IndexLayout    *layout,
     return result;
   }
 
-  result = encodeSuperBlockData(buffer, &layout->super);
+  result = encodeSuperBlockData(buffer, &layout->super, payload);
   if (result != UDS_SUCCESS) {
     freeBuffer(&buffer);
     return result;
@@ -1606,17 +1626,11 @@ static int writeSingleFileHeader(IndexLayout    *layout,
 }
 
 /*****************************************************************************/
-__attribute__((warn_unused_result))
-static int saveSingleFileConfiguration(IndexLayout *layout)
+int saveSingleFileConfiguration(IndexLayout *layout)
 {
-  int result = saveSubIndexRegions(layout);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   RegionTable  *table;
   unsigned int  numRegions;
-  result = makeSingleFileRegionTable(layout, &numRegions, &table);
+  int result = makeSingleFileRegionTable(layout, &numRegions, &table);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1641,6 +1655,7 @@ void putIndexLayout(IndexLayout **layoutPtr)
   if (layoutPtr == NULL) {
     return;
   }
+
   IndexLayout *layout = *layoutPtr;
   *layoutPtr = NULL;
   if ((layout == NULL) || (--layout->refCount > 0)) {
@@ -1687,7 +1702,7 @@ int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
     return logErrorWithStringError(result, "failed to open config region");
   }
 
-  result = writeConfigContents(writer, config);
+  result = writeConfigContents(writer, config, layout->super.version);
   if (result != UDS_SUCCESS) {
     freeBufferedWriter(writer);
     return logErrorWithStringError(result, "failed to write config region");
@@ -2246,6 +2261,9 @@ static int createIndexLayout(IndexLayout            *layout,
     return result;
   }
 
+  // XXX This should include offset in the calculation (size +
+  // offset is checked later so insufficient space will be
+  // caught eventually, but better to catch it early)
   if (size < sizes.totalBlocks * sizes.blockSize) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
                                    "layout requires at least %" PRIu64 
@@ -2254,6 +2272,11 @@ static int createIndexLayout(IndexLayout            *layout,
   }
 
   result = initSingleFileLayout(layout, layout->offset, size, &sizes);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = saveSubIndexRegions(layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -2409,4 +2432,19 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
   }
   *layoutPtr = layout;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void reconfigureLayout(IndexLayout *layout, off_t offset)
+{
+  off_t blockOffset = offset / UDS_BLOCK_SIZE;
+  layout->offset += offset;
+  layout->header.startBlock += blockOffset;
+  layout->config.startBlock += blockOffset;
+  layout->index.subIndex.startBlock += blockOffset;
+  layout->index.subIndex.numBlocks -= blockOffset;
+  layout->index.volume.startBlock += blockOffset;
+  layout->index.volume.numBlocks -= blockOffset;
+  layout->totalBlocks -= blockOffset;
+  layout->super.version = (layout->super.version  < 3) ? 4 : 5;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#7 $
  */
 
 #ifndef BIO_H
@@ -249,6 +249,15 @@ static inline void setBioSector(BIO *bio, sector_t sector)
   bio->bi_sector = sector;
 #endif
 }
+
+/**
+ * Apply the volume geometry bio offset and set the bio sector.
+ *
+ * @param bio          The bio to be offset
+ * @param layer        The physical layer
+ * @param blockNumber  The block number
+ **/
+void setOffsetBioSector(BIO *bio, KernelLayer *layer, BlockCount blockNumber);
 
 /**
  * Get the bio's sector.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#6 $
  */
 
 #ifndef GEOMETRY_H
@@ -69,6 +69,15 @@
  * volume has about 10 times the deduplication window using 10 times
  * as much persistent storage as the equivalent non-sparse volume with
  * the same memory footprint.
+ *
+ * <p>If the number of chapters per volume has been reduced by one by
+ * eliminating physical chapter 0, the virtual chapter that formerly
+ * mapped to physical chapter 0 may be remapped to another physical
+ * chapter. This remapping is expressed in terms of how far the
+ * physical mapping was moved before chapters per volume was
+ * reduced. This means that a chapter offset of 0 means no chapter was
+ * remapped.
+ * XXX This representation subject to change.
  **/
 typedef struct geometry {
   /** Length of a page in a chapter, in bytes */
@@ -81,7 +90,13 @@ typedef struct geometry {
   unsigned int sparseChaptersPerVolume;
   /** Number of bits used to determine delta list numbers */
   unsigned int chapterDeltaListBits;
-
+  /** Virtual chapter remapped from physical chapter 0 in order
+   * to reduce chaptersPerVolume by one */
+  uint64_t remappedChapter;
+  /** Offset by which the remapped chapter was moved, one more
+   * than the post-remapping physical chapter number to which it
+   * was remapped */
+  uint64_t chapterOffset;
   // These are derived properties, expressed as fields for convenience.
   /** Total number of pages in a volume, excluding header */
   unsigned int pagesPerVolume;
@@ -161,15 +176,19 @@ enum {
  * @param recordPagesPerChapter   The number of pages in a chapter
  * @param chaptersPerVolume       The number of chapters in a volume
  * @param sparseChaptersPerVolume The number of sparse chapters in a volume
+ * @param remappedChapter         The remapped chapter
+ * @param chapterOffset           The offset to the remapped chapter
  * @param geometryPtr             A pointer to hold the new geometry
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeGeometry(size_t       bytesPerPage,
-                 unsigned int recordPagesPerChapter,
-                 unsigned int chaptersPerVolume,
-                 unsigned int sparseChaptersPerVolume,
-                 Geometry   **geometryPtr)
+int makeGeometry(size_t         bytesPerPage,
+                 unsigned int   recordPagesPerChapter,
+                 unsigned int   chaptersPerVolume,
+                 unsigned int   sparseChaptersPerVolume,
+                 uint64_t       remappedChapter,
+                 uint64_t       chapterOffset,
+                 Geometry     **geometryPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -195,6 +214,8 @@ void freeGeometry(Geometry *geometry);
 /**
  * Map a virtual chapter number to a physical chapter number
  *
+ * XXX Pull out the case of unconverted first.
+ *
  * @param geometry        The geometry
  * @param virtualChapter  The virtual chapter number
  *
@@ -202,9 +223,42 @@ void freeGeometry(Geometry *geometry);
  **/
 __attribute__((warn_unused_result))
 static INLINE unsigned int mapToPhysicalChapter(const Geometry *geometry,
-                                                uint64_t virtualChapter)
+                                                uint64_t        virtualChapter)
 {
-  return (virtualChapter % geometry->chaptersPerVolume);
+  unsigned int p;
+  if (geometry->chapterOffset == 0) {
+    p = (virtualChapter - geometry->remappedChapter) %
+      geometry->chaptersPerVolume;
+  } else if (virtualChapter < geometry->remappedChapter) {
+    // Roll physical chapter backward if in the valid range
+    if (virtualChapter >= geometry->remappedChapter -
+        (geometry->chaptersPerVolume - geometry->chapterOffset))
+      p = geometry->chaptersPerVolume -
+        (geometry->remappedChapter - virtualChapter);
+    else  // Should never happen in normal operation
+      p = 0;
+  } else if (virtualChapter == geometry->remappedChapter) {
+    p = geometry->chapterOffset - 1;
+  } else if (virtualChapter <
+             geometry->remappedChapter + geometry->chapterOffset) {
+    p = virtualChapter - geometry->remappedChapter - 1;
+  } else
+    p = (virtualChapter - geometry->remappedChapter) %
+      geometry->chaptersPerVolume;
+  return p;
+}
+
+/**
+ * Check whether this geometry is reduced by a chapter
+ * 
+ * @param geometry  The geometry to check
+ *
+ * @return true if this geometry is reduced by a chapter
+ **/
+static INLINE bool 
+isReducedGeometry(const Geometry *geometry)
+{
+  return !!(geometry->chaptersPerVolume & 1);
 }
 
 /**

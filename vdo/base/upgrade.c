@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#7 $
  */
 
 #include "upgrade.h"
@@ -221,7 +221,7 @@ int upgradePriorVDO(PhysicalLayer *layer)
     return result;
   }
 
-  result = loadSuperBlock(vdo->layer, getDataRegionOffset(geometry),
+  result = loadSuperBlock(vdo->layer, getDataRegionStart(geometry),
                           &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);

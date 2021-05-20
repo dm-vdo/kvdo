@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#18 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#19 $
  */
 
 #include "dataKVIO.h"
@@ -417,7 +417,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
   // Read the data directly from the device using the read bio.
   BIO *bio = readBlock->bio;
   resetBio(bio, layer);
-  setBioSector(bio, blockToSector(layer, location));
+  setOffsetBioSector(bio, layer, location);
   setBioOperationRead(bio);
   bio->bi_end_io = readBioCallback;
   submitBio(bio, action);
@@ -439,7 +439,7 @@ void kvdoReadDataVIO(DataVIO *dataVIO)
   KVIO *kvio = dataVIOAsKVIO(dataVIO);
   BIO  *bio  = kvio->bio;
   bio->bi_end_io = resetUserBio;
-  setBioSector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
+  setOffsetBioSector(bio, kvio->layer, dataVIO->mapped.pbn);
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -490,7 +490,7 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
   KVIO *kvio  = dataVIOAsKVIO(dataVIO);
   BIO  *bio   = kvio->bio;
   setBioOperationWrite(bio);
-  setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
+  setOffsetBioSector(bio, kvio->layer, dataVIO->newMapped.pbn);
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
 

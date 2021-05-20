@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#6 $
  */
 
 #include "geometry.h"
@@ -30,11 +30,13 @@
 #include "uds.h"
 
 /**********************************************************************/
-static int initializeGeometry(Geometry    *geometry,
-                              size_t       bytesPerPage,
-                              unsigned int recordPagesPerChapter,
-                              unsigned int chaptersPerVolume,
-                              unsigned int sparseChaptersPerVolume)
+static int initializeGeometry(Geometry     *geometry,
+                              size_t        bytesPerPage,
+                              unsigned int  recordPagesPerChapter,
+                              unsigned int  chaptersPerVolume,
+                              unsigned int  sparseChaptersPerVolume,
+                              uint64_t      remappedChapter,
+                              uint64_t      chapterOffset)
 {
   int result = ASSERT_WITH_ERROR_CODE(bytesPerPage >= BYTES_PER_RECORD,
                                       UDS_BAD_STATE,
@@ -60,6 +62,8 @@ static int initializeGeometry(Geometry    *geometry,
   geometry->sparseChaptersPerVolume = sparseChaptersPerVolume;
   geometry->denseChaptersPerVolume  =
     chaptersPerVolume - sparseChaptersPerVolume;
+  geometry->remappedChapter = remappedChapter;
+  geometry->chapterOffset = chapterOffset;
 
   // Calculate the number of records in a page, chapter, and volume.
   geometry->recordsPerPage = bytesPerPage / BYTES_PER_RECORD;
@@ -103,19 +107,26 @@ static int initializeGeometry(Geometry    *geometry,
 }
 
 /**********************************************************************/
-int makeGeometry(size_t       bytesPerPage,
-                 unsigned int recordPagesPerChapter,
-                 unsigned int chaptersPerVolume,
-                 unsigned int sparseChaptersPerVolume,
-                 Geometry   **geometryPtr)
+int makeGeometry(size_t         bytesPerPage,
+                 unsigned int   recordPagesPerChapter,
+                 unsigned int   chaptersPerVolume,
+                 unsigned int   sparseChaptersPerVolume,
+                 uint64_t       remappedChapter,
+                 uint64_t       chapterOffset,
+                 Geometry     **geometryPtr)
 {
   Geometry *geometry;
   int result = ALLOCATE(1, Geometry, "geometry", &geometry);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = initializeGeometry(geometry, bytesPerPage, recordPagesPerChapter,
-                              chaptersPerVolume, sparseChaptersPerVolume);
+  result = initializeGeometry(geometry,
+                              bytesPerPage,
+                              recordPagesPerChapter,
+                              chaptersPerVolume,
+                              sparseChaptersPerVolume,
+                              remappedChapter,
+                              chapterOffset);
   if (result != UDS_SUCCESS) {
     freeGeometry(geometry);
     return result;
@@ -132,6 +143,8 @@ int copyGeometry(Geometry *source, Geometry **geometryPtr)
                       source->recordPagesPerChapter,
                       source->chaptersPerVolume,
                       source->sparseChaptersPerVolume,
+                      source->remappedChapter,
+                      source->chapterOffset,
                       geometryPtr);
 }
 
@@ -169,5 +182,5 @@ bool areSamePhysicalChapter(const Geometry *geometry,
                             uint64_t        chapter2)
 {
   return (mapToPhysicalChapter(geometry, chapter1)
-	  == mapToPhysicalChapter(geometry, chapter2));
+          == mapToPhysicalChapter(geometry, chapter2));
 }

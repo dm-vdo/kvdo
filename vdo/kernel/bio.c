@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#9 $
  */
 
 #include "bio.h"
@@ -30,6 +30,7 @@
 
 #include "bioIterator.h"
 #include "ioSubmitter.h"
+#include "kernelLayer.h"
 
 /**
  * Gets the raw buffer from a biovec.
@@ -83,6 +84,14 @@ void setBioOperation(BIO *bio, unsigned int operation)
   // Set the operation we care about
   bio->bi_rw |= operation;
 #endif
+}
+
+/**********************************************************************/
+void setOffsetBioSector(BIO *bio, KernelLayer *layer, BlockCount blockNumber)
+{
+  BlockCount offset = layer->geometry.bioOffset;
+  sector_t sector = blockToSector(layer, blockNumber - offset);
+  setBioSector(bio, sector);
 }
 
 /**********************************************************************/

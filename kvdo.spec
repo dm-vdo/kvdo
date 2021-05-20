@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.5.11
+%define kmod_driver_version	6.2.5.21
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,10 +96,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Tue May 11 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.11-1
-- Fixed a deadlock and restored old dormancy code to UDS to avoid
-  excessive CPU usage when idle.
-- Introduced new memory size parameter values for UDS indexes which have
-   been converted from vdo script management to LVM.
-- Fixed module name and version number in, and added some BuildRequires
-  to, the spec file.
+* Thu May 20 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.21-1
+- Added support for VDO volumes which have been converted to LVM.

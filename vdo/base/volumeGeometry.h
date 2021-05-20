@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#6 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -58,11 +58,27 @@ typedef struct {
   Nonce                nonce;
   /** The UUID of this volume */
   UUID                 uuid;
+  /** The block offset to be applied to bios */
+  BlockCount           bioOffset;
   /** The regions in ID order */
   VolumeRegion         regions[VOLUME_REGION_COUNT];
   /** The index config */
   IndexConfig          indexConfig;
 } __attribute__((packed)) VolumeGeometry;
+
+/** This volume geometry struct is used for sizing only */
+typedef struct {
+  /** The release version number of this volume */
+  ReleaseVersionNumber releaseVersion;
+  /** The nonce of this volume */
+  Nonce                nonce;
+  /** The UUID of this volume */
+  UUID                 uuid;
+  /** The regions in ID order */
+  VolumeRegion         regions[VOLUME_REGION_COUNT];
+  /** The index config */
+  IndexConfig          indexConfig;
+} __attribute__((packed)) VolumeGeometry_4_0;
 
 /**
  * Get the start of the index region from a geometry.
@@ -72,7 +88,7 @@ typedef struct {
  * @return The start of the index region
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
+static inline PhysicalBlockNumber getIndexRegionStart(VolumeGeometry geometry)
 {
   return geometry.regions[INDEX_REGION].startBlock;
 }
@@ -85,7 +101,7 @@ static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
  * @return The start of the data region
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
+static inline PhysicalBlockNumber getDataRegionStart(VolumeGeometry geometry)
 {
   return geometry.regions[DATA_REGION].startBlock;
 }
@@ -100,7 +116,7 @@ static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
 __attribute__((warn_unused_result))
 static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
 {
-  return getDataRegionOffset(geometry) - getIndexRegionOffset(geometry);
+  return getDataRegionStart(geometry) - getIndexRegionStart(geometry);
 }
 
 /**
@@ -110,14 +126,14 @@ static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
  * @param geometry  The geometry to be loaded
  **/
 int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
-__attribute__((warn_unused_result));
+  __attribute__((warn_unused_result));
 
 /**
  * Initialize a VolumeGeometry for a VDO.
  *
  * @param nonce        The nonce for the VDO
  * @param uuid         The uuid for the VDO
- * @param indexConfig  The index config of the VDO.
+ * @param indexConfig  The index config of the VDO
  * @param geometry     The geometry being initialized
  *
  * @return VDO_SUCCESS or an error
@@ -141,16 +157,30 @@ int clearVolumeGeometry(PhysicalLayer *layer)
 /**
  * Write a geometry block for a VDO.
  *
- * @param layer     The layer on which to write.
+ * @param layer     The layer on which to write
  * @param geometry  The VolumeGeometry to be written
  *
  * @return VDO_SUCCESS or an error
  **/
 int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
-__attribute__((warn_unused_result));
+  __attribute__((warn_unused_result));
 
 /**
- * Convert a index config to a UDS configuration, which can be used by UDS.
+ * Write a specific version of geometry block for a VDO.
+ *
+ * @param layer     The layer on which to write
+ * @param geometry  The VolumeGeometry to be written
+ * @param version   The version of VolumeGeometry to write
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int writeVolumeGeometryWithVersion(PhysicalLayer  *layer,
+                                   VolumeGeometry *geometry,
+                                   uint32_t        version)
+  __attribute__((warn_unused_result));
+
+/**
+ * Convert an index config to a UDS configuration, which can be used by UDS.
  *
  * @param [in]  indexConfig   The index config to convert
  * @param [out] udsConfigPtr  A pointer to return the UDS configuration
@@ -159,7 +189,7 @@ __attribute__((warn_unused_result));
  **/
 int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
                                   UdsConfiguration *udsConfigPtr)
-__attribute__((warn_unused_result));
+  __attribute__((warn_unused_result));
 
 /**
  * Modify the uds_parameters to match the requested index config.
@@ -179,7 +209,7 @@ void indexConfigToUdsParameters(IndexConfig           *indexConfig,
  * @return VDO_SUCCESS or an error
  **/
 int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
-__attribute__((warn_unused_result));
+  __attribute__((warn_unused_result));
 
 /**
  * Set load config fields from a volume geometry.
@@ -190,7 +220,7 @@ __attribute__((warn_unused_result));
 static inline void setLoadConfigFromGeometry(VolumeGeometry *geometry,
                                              VDOLoadConfig  *loadConfig)
 {
-  loadConfig->firstBlockOffset = getDataRegionOffset(*geometry);
+  loadConfig->firstBlockOffset = getDataRegionStart(*geometry);
   loadConfig->releaseVersion   = geometry->releaseVersion;
   loadConfig->nonce            = geometry->nonce;
 }

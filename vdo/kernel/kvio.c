@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#8 $
  */
 
 #include "kvio.h"
@@ -112,7 +112,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
   setBioOperationWrite(bio);
-  setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
+  setOffsetBioSector(bio, kvio->layer, kvio->vio->physical);
   submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
@@ -136,7 +136,7 @@ void kvdoSubmitMetadataVIO(VIO *vio)
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
 
-  setBioSector(bio, blockToSector(kvio->layer, vio->physical));
+  setOffsetBioSector(bio, kvio->layer, vio->physical);
 
   // Metadata I/Os bypass the read cache.
   if (isReadVIO(vio)) {

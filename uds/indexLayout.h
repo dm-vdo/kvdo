@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#13 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#14 $
  */
 
 #ifndef INDEX_LAYOUT_H
 #define INDEX_LAYOUT_H
 
 #include "buffer.h"
+#include "indexConfig.h"
 #include "indexState.h"
 #include "indexVersion.h"
 #include "ioFactory.h"
@@ -112,7 +113,7 @@ int findLatestIndexSaveSlot(IndexLayout  *layout,
   __attribute__((warn_unused_result));
 
 /**
- * Get another reference to an index layout, incrementing it's use count.
+ * Get another reference to an index layout, incrementing its use count.
  *
  * @param layout     The index layout.
  * @param layoutPtr  Where the new layout pointer is being stored.
@@ -257,5 +258,24 @@ Buffer *getIndexStateBuffer(IndexLayout *layout, unsigned int slot)
  **/
 const struct index_version *getIndexVersion(IndexLayout *layout)
   __attribute__((warn_unused_result));
+
+/**
+ * Save an index layout table to persistant storage using the ioFactory in
+ * the layout.
+ *
+ * @param layout The layout to save
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int saveSingleFileConfiguration(IndexLayout *layout)
+  __attribute__((warn_unused_result));
+
+/**
+ * Reconfigure an index layout with a block offset
+ *
+ * @param layout   The indexLayout to be reconfigured
+ * @param offset   The offset in blocks to move the index
+ **/
+void reconfigureLayout(IndexLayout *layout, off_t offset);
 
 #endif // INDEX_LAYOUT_H
