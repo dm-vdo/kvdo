@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#84 $
  */
 
 #include "packerInternals.h"
@@ -353,7 +353,7 @@ static void abort_packing(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 
-	set_compression_done(data_vio);
+	set_vio_compression_done(data_vio);
 
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
@@ -849,7 +849,8 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 {
 	int result;
 	struct input_bin *bin;
-	struct vio_compression_state state = get_compression_state(data_vio);
+	struct vio_compression_state state =
+		get_vio_compression_state(data_vio);
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	assert_on_packer_thread(packer, __func__);
 
@@ -876,7 +877,7 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	}
 
 	/*
-	 * The check of may_block_in_packer() here will set the data_vio's
+	 * The check of may_vio_block_in_packer() here will set the data_vio's
 	 * compression state to VIO_PACKING if the data_vio is allowed to be
 	 * compressed (if it has already been canceled, we'll fall out here).
 	 * Once the data_vio is in the VIO_PACKING state, it must be guaranteed
@@ -886,10 +887,11 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	 * rendezvous with it (VDO-2809). We must also make sure that we will
 	 * actually bin the data_vio and not give up on it as being larger than
 	 * the space used in the fullest bin. Hence we must call
-	 * select_input_bin() before calling may_block_in_packer() (VDO-2826).
+	 * select_input_bin() before calling may_vio_block_in_packer()
+	 * (VDO-2826).
 	 */
 	bin = select_input_bin(packer, data_vio);
-	if ((bin == NULL) || !may_block_in_packer(data_vio)) {
+	if ((bin == NULL) || !may_vio_block_in_packer(data_vio)) {
 		abort_packing(data_vio);
 		return;
 	}

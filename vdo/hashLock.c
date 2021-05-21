@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#59 $
  */
 
 /**
@@ -389,11 +389,11 @@ static void wait_on_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 	// Make sure the agent doesn't block indefinitely in the packer since it
 	// now has at least one other data_vio waiting on it.
 	if ((lock->state == HASH_LOCK_WRITING)
-	    && cancel_compression(lock->agent)) {
+	    && cancel_vio_compression(lock->agent)) {
 		/*
 		 * Even though we're waiting, we also have to send ourselves as
 		 * a one-way message to the packer to ensure the agent continues
-		 * executing. This is safe because cancel_compression()
+		 * executing. This is safe because cancel_vio_compression()
 		 * guarantees the agent won't continue executing until this
 		 * message arrives in the packer, and because the wait queue
 		 * link isn't used for sending the message.
@@ -1370,7 +1370,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	// If the agent compresses, it might wait indefinitely in the packer,
 	// which would be bad if there are any other data_vios waiting.
 	if (has_waiters(&lock->waiters)) {
-		cancel_compression(agent);
+		cancel_vio_compression(agent);
 	}
 
 	/*

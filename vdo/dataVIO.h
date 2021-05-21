@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#82 $
  */
 
 #ifndef DATA_VIO_H
@@ -132,9 +132,9 @@ struct compression_state {
 	 * flag indicating that a request has been made to cancel (or prevent)
 	 * compression for this vio.
 	 *
-	 * This field should be accessed through the get_compression_state()
-	 * and set_compression_state() methods. It should not be accessed
-	 * directly.
+	 * This field should be accessed through the
+	 * get_vio_compression_state() and set_vio_compression_state() methods.
+	 * It should not be accessed directly.
 	 */
 	atomic_t state;
 

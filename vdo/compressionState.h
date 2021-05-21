@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#9 $
  */
 
 #ifndef COMPRESSION_STATE_H
@@ -54,7 +54,7 @@ struct vio_compression_state {
  * @return The compression state
  **/
 struct vio_compression_state __must_check
-get_compression_state(struct data_vio *data_vio);
+get_vio_compression_state(struct data_vio *data_vio);
 
 /**
  * Check whether a data_vio may go to the compressor.
@@ -83,7 +83,7 @@ bool __must_check may_pack_data_vio(struct data_vio *data_vio);
  *
  * @return <code>true</code> if the data_vio may block in the packer
  **/
-bool __must_check may_block_in_packer(struct data_vio *data_vio);
+bool __must_check may_vio_block_in_packer(struct data_vio *data_vio);
 
 /**
  * Check whether the packer may write out a data_vio as part of a compressed
@@ -101,7 +101,7 @@ bool __must_check may_write_compressed_data_vio(struct data_vio *data_vio);
  *
  * @param data_vio  The data_vio leaving the compression path
  **/
-void set_compression_done(struct data_vio *data_vio);
+void set_vio_compression_done(struct data_vio *data_vio);
 
 /**
  * Prevent this data_vio from being compressed or packed.
@@ -111,6 +111,6 @@ void set_compression_done(struct data_vio *data_vio);
  * @return <code>true</code> if the data_vio is in the packer and the caller
  *         was the first caller to cancel it
  **/
-bool cancel_compression(struct data_vio *data_vio);
+bool cancel_vio_compression(struct data_vio *data_vio);
 
 #endif /* COMPRESSION_STATE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#53 $
  */
 
 #include "dataVIO.h"
@@ -296,7 +296,7 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	// Prevent writes and read-modify-writes from blocking indefinitely on
 	// lock holders in the packer.
 	if (!is_read_data_vio(lock_holder) &&
-	    cancel_compression(lock_holder)) {
+	    cancel_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
 		launch_packer_callback(
 			data_vio,
@@ -378,7 +378,7 @@ void release_logical_block_lock(struct data_vio *data_vio)
 	 * holder doesn't block in the packer.
 	 */
 	if (has_waiters(&next_lock_holder->logical.waiters)) {
-		cancel_compression(next_lock_holder);
+		cancel_vio_compression(next_lock_holder);
 	}
 
 	// Avoid stack overflow on lock transfer.
