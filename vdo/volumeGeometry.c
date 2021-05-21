@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#42 $
  */
 
 #include "volumeGeometry.h"
@@ -311,8 +311,8 @@ int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 	}
 
 	// Checksum everything decoded so far.
-	checksum = update_crc32(INITIAL_CHECKSUM, block,
-				uncompacted_amount(buffer));
+	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM, block,
+				    uncompacted_amount(buffer));
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(FORGET(buffer));

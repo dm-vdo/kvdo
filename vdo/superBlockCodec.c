@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#12 $
  */
 
 #include "superBlockCodec.h"
@@ -33,7 +33,7 @@
 #include "statusCodes.h"
 
 enum {
-	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE + CHECKSUM_SIZE,
+	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE + VDO_CHECKSUM_SIZE,
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
@@ -110,8 +110,9 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 	}
 
 	// Compute and encode the checksum.
-	checksum = update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
-			        content_length(buffer));
+	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
+				    codec->encoded_super_block,
+			            content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -171,8 +172,9 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 
 	// Checksum everything up to but not including the saved checksum
 	// itself.
-	checksum = update_crc32(INITIAL_CHECKSUM, codec->encoded_super_block,
-			        uncompacted_amount(buffer));
+	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
+				    codec->encoded_super_block,
+				    uncompacted_amount(buffer));
 
 	// Decode and verify the saved checksum.
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
