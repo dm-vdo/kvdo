@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#71 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -235,8 +235,8 @@ int make_vdo_page_cache(struct vdo *vdo,
 		return result;
 	}
 
-	result = make_dirty_lists(maximum_age, write_dirty_pages_callback,
-				  cache, &cache->dirty_lists);
+	result = make_vdo_dirty_lists(maximum_age, write_dirty_pages_callback,
+				      cache, &cache->dirty_lists);
 	if (result != VDO_SUCCESS) {
 		free_vdo_page_cache(&cache);
 		return result;
@@ -279,7 +279,7 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
 				       sequence_number_t period)
 {
-	set_current_period(cache->dirty_lists, period);
+	set_vdo_dirty_lists_current_period(cache->dirty_lists, period);
 }
 
 /**********************************************************************/
@@ -1165,7 +1165,7 @@ void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
 				   sequence_number_t period)
 {
 	assert_on_cache_thread(cache, __func__);
-	advance_period(cache->dirty_lists, period);
+	advance_vdo_dirty_lists_period(cache->dirty_lists, period);
 }
 
 /**
@@ -1459,10 +1459,10 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
 
 	info = vdo_page_comp->info;
 	set_info_state(info, PS_DIRTY);
-	add_to_dirty_lists(info->cache->dirty_lists,
-			   &info->state_entry,
-			   old_dirty_period,
-			   new_dirty_period);
+	add_to_vdo_dirty_lists(info->cache->dirty_lists,
+			       &info->state_entry,
+			       old_dirty_period,
+			       new_dirty_period);
 }
 
 /**********************************************************************/
@@ -1519,7 +1519,7 @@ void drain_vdo_page_cache(struct vdo_page_cache *cache)
 			"drain_vdo_page_cache() called during block map drain");
 
 	if (!is_vdo_state_suspending(&cache->zone->state)) {
-		flush_dirty_lists(cache->dirty_lists);
+		flush_vdo_dirty_lists(cache->dirty_lists);
 		save_pages(cache);
 	}
 }

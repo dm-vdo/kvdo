@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#98 $
  */
 
 #include "blockMapTree.h"
@@ -117,8 +117,8 @@ int initialize_tree_zone(struct block_map_zone *zone,
 	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
 	tree_zone->map_zone = zone;
 
-	result = make_dirty_lists(era_length, write_dirty_pages_callback,
-				  tree_zone, &tree_zone->dirty_lists);
+	result = make_vdo_dirty_lists(era_length, write_dirty_pages_callback,
+				      tree_zone, &tree_zone->dirty_lists);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -163,7 +163,7 @@ void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
 				  sequence_number_t period)
 {
-	set_current_period(tree_zone->dirty_lists, period);
+	set_vdo_dirty_lists_current_period(tree_zone->dirty_lists, period);
 }
 
 /**
@@ -590,7 +590,7 @@ static void write_page(struct tree_page *tree_page,
 /**
  * Schedule a batch of dirty pages for writing.
  *
- * <p>Implements dirty_callback.
+ * <p>Implements vdo_dirty_callback.
  *
  * @param expired  The pages to write
  * @param context  The zone
@@ -624,7 +624,7 @@ static void write_dirty_pages_callback(struct list_head *expired, void *context)
 void advance_zone_tree_period(struct block_map_tree_zone *zone,
 			      sequence_number_t period)
 {
-	advance_period(zone->dirty_lists, period);
+	advance_vdo_dirty_lists_period(zone->dirty_lists, period);
 }
 
 /**********************************************************************/
@@ -633,7 +633,7 @@ void drain_zone_trees(struct block_map_tree_zone *zone)
 	ASSERT_LOG_ONLY((zone->active_lookups == 0),
 			"drain_zone_trees() called with no active lookups");
 	if (!is_vdo_state_suspending(&zone->map_zone->state)) {
-		flush_dirty_lists(zone->dirty_lists);
+		flush_vdo_dirty_lists(zone->dirty_lists);
 	}
 }
 
@@ -1082,10 +1082,10 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 		if (old_lock == 0) {
 			INIT_LIST_HEAD(&tree_page->entry);
 		}
-		add_to_dirty_lists(zone->dirty_lists,
-				   &tree_page->entry,
-				   old_lock,
-				   tree_page->recovery_lock);
+		add_to_vdo_dirty_lists(zone->dirty_lists,
+				       &tree_page->entry,
+				       old_lock,
+				       tree_page->recovery_lock);
 	}
 
 	tree_lock->height--;
