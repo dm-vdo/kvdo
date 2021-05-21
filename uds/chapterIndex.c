@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#12 $
  */
 
 #include "chapterIndex.h"
@@ -193,11 +193,10 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		if (removals == 0) {
 			struct delta_index_stats stats;
 			get_delta_index_stats(delta_index, &stats);
-			log_warning("The chapter index for chapter %" PRIu64
-				    " contains %ld entries with %ld collisions",
-				    open_chapter_index->virtual_chapter_number,
-				    stats.record_count,
-				    stats.collision_count);
+			uds_log_warning("The chapter index for chapter %llu contains %ld entries with %ld collisions",
+					open_chapter_index->virtual_chapter_number,
+					stats.record_count,
+					stats.collision_count);
 		}
 
 		list_number = *num_lists;
@@ -228,9 +227,9 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		} while (!entry.at_end);
 	}
 	if (removals > 0) {
-		log_warning("To avoid chapter index page overflow in chapter %llu, %u entries were removed from the chapter index",
-			    open_chapter_index->virtual_chapter_number,
-			    removals);
+		uds_log_warning("To avoid chapter index page overflow in chapter %llu, %u entries were removed from the chapter index",
+				open_chapter_index->virtual_chapter_number,
+				removals);
 	}
 	return UDS_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#11 $
  */
 
 #include <linux/completion.h>
@@ -77,7 +77,7 @@ int create_thread(void (*thread_func)(void *),
 
 	result = ALLOCATE(1, struct thread, __func__, &kt);
 	if (result != UDS_SUCCESS) {
-		log_warning("Error allocating memory for %s", name);
+		uds_log_warning("Error allocating memory for %s", name);
 		return result;
 	}
 	kt->thread_func = thread_func;

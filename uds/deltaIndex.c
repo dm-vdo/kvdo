@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#25 $
  */
 #include "deltaIndex.h"
 
@@ -533,15 +533,15 @@ static bool invalid_parameters(unsigned int mean_delta,
 	const unsigned int min_delta = 10;
 	const unsigned int max_delta = 1 << MAX_FIELD_BITS;
 	if ((mean_delta < min_delta) || (mean_delta > max_delta)) {
-		log_warning("error initializing delta index: mean delta (%u) is not in the range %u to %u",
-			    mean_delta,
-			    min_delta,
-			    max_delta);
+		uds_log_warning("error initializing delta index: mean delta (%u) is not in the range %u to %u",
+				mean_delta,
+				min_delta,
+				max_delta);
 		return true;
 	}
 	if (num_payload_bits > MAX_FIELD_BITS) {
-		log_warning("error initializing delta index: Too many payload bits (%u)",
-			    num_payload_bits);
+		uds_log_warning("error initializing delta index: Too many payload bits (%u)",
+				num_payload_bits);
 		return true;
 	}
 	return false;
@@ -1405,8 +1405,7 @@ int start_delta_index_search(const struct delta_index *delta_index,
 }
 
 /**********************************************************************/
-__attribute__((__noinline__)) int
-next_delta_index_entry(struct delta_index_entry *delta_entry)
+noinline int next_delta_index_entry(struct delta_index_entry *delta_entry)
 {
 	const struct delta_list *delta_list;
 	unsigned int next_offset, size;
@@ -1433,7 +1432,7 @@ next_delta_index_entry(struct delta_index_entry *delta_entry)
 	if (next_offset > size) {
 		// This is not an assertion because
 		// validate_chapter_index_page() wants to handle this error.
-		log_warning("Decoded past the end of the delta list");
+		uds_log_warning("Decoded past the end of the delta list");
 		return UDS_CORRUPT_DATA;
 	}
 	return UDS_SUCCESS;

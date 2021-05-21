@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#35 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#36 $
  */
 
 #include "volume.h"
@@ -217,13 +217,16 @@ static int init_chapter_index_page(const struct volume *volume,
 		return UDS_SUCCESS;
 	}
 
-	log_warning("Index page map updated to %llu",
-		    get_last_update(volume->index_page_map));
-	log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
-		    chapter, index_page_number, bounds.lowest_list,
-		    bounds.highest_list, ci_virtual,
-		    chapter_index_page->lowest_list_number,
-		    chapter_index_page->highest_list_number);
+	uds_log_warning("Index page map updated to %llu",
+			get_last_update(volume->index_page_map));
+	uds_log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
+			chapter,
+			index_page_number,
+			bounds.lowest_list,
+			bounds.highest_list,
+			ci_virtual,
+			chapter_index_page->lowest_list_number,
+			chapter_index_page->highest_list_number);
 	return ASSERT_WITH_ERROR_CODE(false, UDS_CORRUPT_DATA,
 				      "index page map mismatch with chapter index");
 }
@@ -286,15 +289,15 @@ static void read_thread_function(void *arg)
 							 physical_page,
 							 &page->cp_page_data);
 				if (result != UDS_SUCCESS) {
-					log_warning("Error reading page %u from volume",
-						    physical_page);
+					uds_log_warning("Error reading page %u from volume",
+							physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
 							     page);
 				}
 				lock_mutex(&volume->read_threads_mutex);
 			} else {
-				log_warning("Error selecting cache victim for page read");
+				uds_log_warning("Error selecting cache victim for page read");
 			}
 
 			if (result == UDS_SUCCESS) {
@@ -305,7 +308,7 @@ static void read_thread_function(void *arg)
 									       physical_page,
 									       page);
 						if (result != UDS_SUCCESS) {
-							log_warning("Error initializing chapter index page");
+							uds_log_warning("Error initializing chapter index page");
 							cancel_page_in_cache(volume->page_cache,
 									     physical_page,
 									     page);
@@ -317,7 +320,7 @@ static void read_thread_function(void *arg)
 									   physical_page,
 									   page);
 						if (result != UDS_SUCCESS) {
-							log_warning("Error putting page %u in cache",
+							uds_log_warning("Error putting page %u in cache",
 								    physical_page);
 							cancel_page_in_cache(volume->page_cache,
 									     physical_page,
@@ -325,7 +328,7 @@ static void read_thread_function(void *arg)
 						}
 					}
 				} else {
-					log_warning("Page %u invalidated after read",
+					uds_log_warning("Page %u invalidated after read",
 						    physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
@@ -404,14 +407,14 @@ static int read_page_locked(struct volume *volume,
 		// Find a place to put the page.
 		result = select_victim_in_cache(volume->page_cache, &page);
 		if (result != UDS_SUCCESS) {
-			log_warning("Error selecting cache victim for page read");
+			uds_log_warning("Error selecting cache victim for page read");
 			return result;
 		}
 		result = read_volume_page(&volume->volume_store,
 					  physical_page,
 					  &page->cp_page_data);
 		if (result != UDS_SUCCESS) {
-			log_warning("Error reading page %u from volume",
+			uds_log_warning("Error reading page %u from volume",
 				    physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
@@ -423,7 +426,7 @@ static int read_page_locked(struct volume *volume,
 			if (result != UDS_SUCCESS) {
 				if (volume->lookup_mode !=
 				    LOOKUP_FOR_REBUILD) {
-					log_warning("Corrupt index page %u",
+					uds_log_warning("Corrupt index page %u",
 						    physical_page);
 				}
 				cancel_page_in_cache(volume->page_cache,
@@ -435,7 +438,7 @@ static int read_page_locked(struct volume *volume,
 		result = put_page_in_cache(volume->page_cache, physical_page,
 					   page);
 		if (result != UDS_SUCCESS) {
-			log_warning("Error putting page %u in cache",
+			uds_log_warning("Error putting page %u in cache",
 				    physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
@@ -885,14 +888,14 @@ static int donate_index_page_locked(struct volume *volume,
 					 index_page_number,
 					 &page->cp_index_page);
 	if (result != UDS_SUCCESS) {
-		log_warning("Error initialize chapter index page");
+		uds_log_warning("Error initialize chapter index page");
 		cancel_page_in_cache(volume->page_cache, physical_page, page);
 		return result;
 	}
 
 	result = put_page_in_cache(volume->page_cache, physical_page, page);
 	if (result != UDS_SUCCESS) {
-		log_warning("Error putting page %u in cache", physical_page);
+		uds_log_warning("Error putting page %u in cache", physical_page);
 		cancel_page_in_cache(volume->page_cache, physical_page, page);
 		return result;
 	}

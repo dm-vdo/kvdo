@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#6 $
  */
 
 #ifndef PERMASSERT_H
@@ -152,6 +152,6 @@ int uds_assertion_failed(const char *expression_string,
 			 int line_number,
 			 const char *format,
 			 ...)
-	__attribute__((format(printf, 5, 6)));
+	__printf(5, 6);
 
 #endif /* PERMASSERT_H */

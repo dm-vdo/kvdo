@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#5 $
  */
 
 #ifndef STRING_UTILS_H
@@ -54,7 +54,7 @@ static INLINE const char *bool_to_string(bool value)
 int __must_check alloc_sprintf(const char *what,
 			       char **strp,
 			       const char *fmt, ...)
-	__attribute__((format(printf, 3, 4)));
+	__printf(3, 4);
 
 /**
  * Write a printf-style string into a fixed-size buffer, returning
@@ -74,7 +74,7 @@ int __must_check fixed_sprintf(const char *what,
 			       size_t buf_size,
 			       int error,
 			       const char *fmt, ...)
-	__attribute__((format(printf, 5, 6)));
+	__printf(5, 6);
 
 /**
  * Write printf-style string into an existing buffer, returning a specified
@@ -105,7 +105,7 @@ int __must_check wrap_vsnprintf(const char *what,
 				const char *fmt,
 				va_list ap,
 				size_t *needed)
-	__attribute__((format(printf, 5, 0)));
+	__printf(5, 0);
 
 /**
  * Helper to append a string to a buffer.
@@ -119,7 +119,7 @@ int __must_check wrap_vsnprintf(const char *what,
  * if insufficient space is available, the contents are silently truncated
  **/
 char *append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
-	__attribute__((format(printf, 3, 4)));
+	__printf(3, 4);
 
 /**
  * Variable-arglist helper to append a string to a buffer.
@@ -135,7 +135,7 @@ char *append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
  **/
 char *
 v_append_to_buffer(char *buffer, char *buf_end, const char *fmt, va_list args)
-	__attribute__((format(printf, 3, 0)));
+	__printf(3, 0);
 
 /**
  * Our version of strtok_r, since some platforma apparently don't define it.

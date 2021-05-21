@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#19 $
  */
 
 #include "pageCache.h"
@@ -748,7 +748,7 @@ void cancel_page_in_cache(struct page_cache *cache,
 	int result;
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		log_warning("cannot cancel page in NULL cache");
+		uds_log_warning("cannot cancel page in NULL cache");
 		return;
 	}
 

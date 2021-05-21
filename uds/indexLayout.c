@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#41 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#42 $
  */
 
 #include "indexLayout.h"
@@ -783,8 +783,8 @@ struct region_iterator {
 };
 
 /**********************************************************************/
-__attribute__((format(printf, 2, 3))) static void
-iter_error(struct region_iterator *iter, const char *fmt, ...)
+__printf(2, 3)
+static void iter_error(struct region_iterator *iter, const char *fmt, ...)
 {
 	int r;
 	va_list args;

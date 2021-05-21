@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#16 $
  */
 
 #ifndef LOGGER_H
@@ -113,7 +113,7 @@ void uds_log_embedded_message(int priority,
 			      va_list args1,
 			      const char *fmt2,
 			      ...)
-	__attribute__((format(printf, 4, 0), format(printf, 6, 7)));
+	__printf(4, 0) __printf(6, 7);
 
 /**
  * Log a message pack consisting of multiple variable sections.
@@ -133,7 +133,7 @@ void uds_log_message_pack(int priority,
 			  va_list args1,
 			  const char *fmt2,
 			  va_list args2)
-	__attribute__((format(printf, 4, 0), format(printf, 6, 0)));
+	__printf(4, 0) __printf(6, 0);
 
 /**
  * Log a stack backtrace.
@@ -152,7 +152,7 @@ void uds_log_backtrace(int priority);
  * @return errnum
  **/
 int log_strerror(int priority, int errnum, const char *format, ...)
-	__attribute__((format(printf, 3, 4)));
+	__printf(3, 4);
 
 /**
  * Log a message with an error from an error code.
@@ -165,7 +165,7 @@ int log_strerror(int priority, int errnum, const char *format, ...)
  * @return errnum
  **/
 int vlog_strerror(int priority, int errnum, const char *format, va_list args)
-	__attribute__((format(printf, 3, 0)));
+	__printf(3, 0);
 
 /**
  * Log an error prefixed with the string associated with the errnum.
@@ -176,27 +176,27 @@ int vlog_strerror(int priority, int errnum, const char *format, va_list args)
  * @return errnum
  **/
 int log_error_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**********************************************************************/
 int log_debug_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**********************************************************************/
 int log_info_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**********************************************************************/
 int log_notice_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**********************************************************************/
 int log_warning_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**********************************************************************/
 int log_fatal_strerror(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**
  * IF the result is an error, log a FATAL level message and return the result
@@ -209,7 +209,7 @@ int log_fatal_strerror(int errnum, const char *format, ...)
  * @return make_unrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
 int log_unrecoverable(int errnum, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**
  * Log a message.
@@ -230,7 +230,7 @@ void __uds_log_message(int priority,
 		       const char *module,
 		       const char *format,
 		       ...)
-	__attribute__((format(printf, 3, 4)));
+	__printf(3, 4);
 
 /**
  * Log a debug message. Takes printf-style arguments.
