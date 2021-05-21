@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#9 $
  */
 
 #ifndef CONFIG_H
@@ -27,9 +27,11 @@
 #include "geometry.h"
 #include "uds.h"
 
-enum { DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
-       DEFAULT_CACHE_CHAPTERS = 7,
-       DEFAULT_SPARSE_SAMPLE_RATE = 0 };
+enum {
+	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
+	DEFAULT_CACHE_CHAPTERS = 7,
+	DEFAULT_SPARSE_SAMPLE_RATE = 0
+};
 
 /**
  * Data that are used for configuring a new index.

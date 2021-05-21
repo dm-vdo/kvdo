@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#8 $
  */
 
 #include "geometry.h"
@@ -183,6 +183,6 @@ bool are_same_physical_chapter(const struct geometry *geometry,
 			       uint64_t chapter1,
 			       uint64_t chapter2)
 {
-  return (map_to_physical_chapter(geometry, chapter1) ==
-	  map_to_physical_chapter(geometry, chapter2));
+	return (map_to_physical_chapter(geometry, chapter1) ==
+		map_to_physical_chapter(geometry, chapter2));
 }

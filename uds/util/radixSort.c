@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#4 $
  */
 
 /*
@@ -248,10 +248,10 @@ static INLINE int push_bins(struct task **stack,
 					  length);
 			} else if (size > 1) {
 				push_task(list,
-                                          pile_start,
-                                          size,
-                                          offset,
-                                          length);
+					  pile_start,
+					  size,
+					  offset,
+					  length);
 			}
 		}
 		pile_start += size;

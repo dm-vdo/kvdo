@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#42 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#43 $
  */
 
 #include "indexLayout.h"
@@ -164,13 +164,13 @@ struct save_layout_sizes {
 	uint64_t total_blocks; // for whole layout
 };
 
-enum { INDEX_STATE_BUFFER_SIZE = 512,
-       MAX_SAVES = 5,
+enum {
+	INDEX_STATE_BUFFER_SIZE = 512,
+	MAX_SAVES = 5,
 };
 
 static const byte SINGLE_FILE_MAGIC_1[32] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
-enum { SINGLE_FILE_MAGIC_1_LENGTH = sizeof(SINGLE_FILE_MAGIC_1),
-};
+enum { SINGLE_FILE_MAGIC_1_LENGTH = sizeof(SINGLE_FILE_MAGIC_1) };
 
 static int __must_check
 reconstitute_single_file_layout(struct index_layout *layout,

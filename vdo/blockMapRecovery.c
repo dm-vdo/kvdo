@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#48 $
  */
 
 #include "blockMapRecovery.h"
@@ -150,23 +150,6 @@ as_block_map_recovery_completion(struct vdo_completion *completion)
 }
 
 /**
- * Free a block_map_recovery_completion and null out the reference to it.
- *
- * @param recovery_ptr  a pointer to the completion to free
- **/
-static void
-free_vdo_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
-{
-	struct block_map_recovery_completion *recovery = *recovery_ptr;
-	if (recovery == NULL) {
-		return;
-	}
-
-	FREE(recovery);
-	*recovery_ptr = NULL;
-}
-
-/**
  * Free the block_map_recovery_completion and notify the parent that the
  * block map recovery is done. This callback is registered in
  * make_vdo_recovery_completion().
@@ -177,9 +160,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	struct block_map_recovery_completion *recovery =
-		as_block_map_recovery_completion(completion);
-	free_vdo_recovery_completion(&recovery);
+	FREE(as_block_map_recovery_completion(FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
 
