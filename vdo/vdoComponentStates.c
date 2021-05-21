@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#14 $
  */
 
 #include "vdoComponentStates.h"
@@ -46,7 +46,7 @@ void destroy_vdo_component_states(struct vdo_component_states *states)
 		return;
 	}
 
-	free_fixed_layout(&states->layout);
+	free_vdo_fixed_layout(&states->layout);
 }
 
 /**
@@ -66,7 +66,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 		return result;
 	}
 
-	result = decode_fixed_layout(buffer, &states->layout);
+	result = decode_vdo_fixed_layout(buffer, &states->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -126,7 +126,7 @@ int decode_vdo_component_states(struct buffer *buffer,
 
 	result = decode_components(buffer, states);
 	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&states->layout);
+		free_vdo_fixed_layout(&states->layout);
 		return result;
 	}
 
@@ -160,7 +160,7 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 	return (sizeof(release_version_number_t) +
 		sizeof(struct version_number) +
 		get_vdo_component_encoded_size() +
-		get_fixed_layout_encoded_size(layout) +
+		get_vdo_fixed_layout_encoded_size(layout) +
 		get_vdo_recovery_journal_encoded_size() +
 		get_vdo_slab_depot_encoded_size() +
 		get_vdo_block_map_encoded_size());
@@ -191,7 +191,7 @@ int encode_vdo_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_fixed_layout(states->layout, buffer);
+	result = encode_vdo_fixed_layout(states->layout, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

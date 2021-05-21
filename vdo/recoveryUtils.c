@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#43 $
  */
 
 #include "recoveryUtils.h"
@@ -73,7 +73,7 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 			       finish_journal_load, parent->callback_thread_id,
 			       parent);
 	read_vdo_metadata_extent(extent,
-				 get_fixed_layout_partition_offset(journal->partition));
+				 get_vdo_fixed_layout_partition_offset(journal->partition));
 }
 
 /**

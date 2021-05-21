@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#30 $
  */
 
 #include "partitionCopy.h"
@@ -169,8 +169,8 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 {
 	struct copy_completion *copy = as_copy_completion(completion->parent);
 	physical_block_number_t layer_start_block;
-	int result = translate_to_pbn(copy->target, copy->current_index,
-				      &layer_start_block);
+	int result = vdo_translate_to_pbn(copy->target, copy->current_index,
+					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(completion->parent, result);
 		return;
@@ -190,8 +190,8 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 static void copy_partition_stride(struct copy_completion *copy)
 {
 	physical_block_number_t layer_start_block;
-	int result = translate_to_pbn(copy->source, copy->current_index,
-				      &layer_start_block);
+	int result = vdo_translate_to_pbn(copy->source, copy->current_index,
+					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(&copy->completion, result);
 		return;
@@ -217,14 +217,14 @@ static void copy_partition_stride(struct copy_completion *copy)
 static int validate_partition_copy(struct partition *source,
 				   struct partition *target)
 {
-	block_count_t source_size = get_fixed_layout_partition_size(source);
-	block_count_t target_size = get_fixed_layout_partition_size(target);
+	block_count_t source_size = get_vdo_fixed_layout_partition_size(source);
+	block_count_t target_size = get_vdo_fixed_layout_partition_size(target);
 
 	physical_block_number_t source_start =
-		get_fixed_layout_partition_offset(source);
+		get_vdo_fixed_layout_partition_offset(source);
 	physical_block_number_t source_end = source_start + source_size;
 	physical_block_number_t target_start =
-		get_fixed_layout_partition_offset(target);
+		get_vdo_fixed_layout_partition_offset(target);
 	physical_block_number_t target_end = target_start + target_size;
 
 	int result = ASSERT(source_size <= target_size,
@@ -256,6 +256,6 @@ void copy_vdo_partition(struct vdo_completion *completion,
 	copy->source = source;
 	copy->target = target;
 	copy->current_index = 0;
-	copy->ending_index = get_fixed_layout_partition_size(source);
+	copy->ending_index = get_vdo_fixed_layout_partition_size(source);
 	copy_partition_stride(copy);
 }
