@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#46 $
  */
 
 #include "forest.h"
@@ -366,10 +366,10 @@ static void finish_traversal_load(struct vdo_completion *completion)
 		&(cursor->tree->segments[0].levels[height][level->page_index]);
 	struct block_map_page *page =
 		(struct block_map_page *) tree_page->page_buffer;
-	copy_valid_page(entry->buffer,
-			cursor->parent->map->nonce,
-			entry->vio->physical,
-			page);
+	vdo_copy_valid_page(entry->buffer,
+			    cursor->parent->map->nonce,
+			    entry->vio->physical,
+			    page);
 	traverse(cursor);
 }
 
@@ -408,8 +408,8 @@ static void traverse(struct cursor *cursor)
 				page->entries[level->slot] =
 					pack_vdo_pbn(VDO_ZERO_BLOCK,
 						     MAPPING_STATE_UNMAPPED);
-				write_tree_page(tree_page,
-						cursor->parent->zone);
+				vdo_write_tree_page(tree_page,
+						    cursor->parent->zone);
 				continue;
 			}
 
@@ -423,8 +423,8 @@ static void traverse(struct cursor *cursor)
 				page->entries[level->slot] =
 					pack_vdo_pbn(VDO_ZERO_BLOCK,
 						     MAPPING_STATE_UNMAPPED);
-				write_tree_page(tree_page,
-						cursor->parent->zone);
+				vdo_write_tree_page(tree_page,
+						    cursor->parent->zone);
 				continue;
 			}
 
@@ -436,8 +436,8 @@ static void traverse(struct cursor *cursor)
 					page->entries[level->slot] =
 						pack_vdo_pbn(VDO_ZERO_BLOCK,
 							     MAPPING_STATE_UNMAPPED);
-					write_tree_page(tree_page,
-							cursor->parent->zone);
+					vdo_write_tree_page(tree_page,
+							    cursor->parent->zone);
 					continue;
 				}
 			}

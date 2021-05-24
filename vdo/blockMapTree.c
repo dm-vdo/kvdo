@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#99 $
  */
 
 #include "blockMapTree.h"
@@ -107,9 +107,9 @@ make_block_map_vios(struct vdo *vdo,
 }
 
 /**********************************************************************/
-int initialize_tree_zone(struct block_map_zone *zone,
-			 struct vdo *vdo,
-			 block_count_t era_length)
+int vdo_initialize_tree_zone(struct block_map_zone *zone,
+			     struct vdo *vdo,
+			     block_count_t era_length)
 {
 	int result;
 
@@ -138,9 +138,9 @@ int initialize_tree_zone(struct block_map_zone *zone,
 }
 
 /**********************************************************************/
-int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			       struct vdo *vdo,
-			       size_t pool_size)
+int vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
+				   struct vdo *vdo,
+				   size_t pool_size)
 {
 	free_vio_pool(&zone->vio_pool);
 	return make_vio_pool(vdo,
@@ -152,7 +152,7 @@ int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
+void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 {
 	FREE(FORGET(tree_zone->dirty_lists));
 	free_vio_pool(&tree_zone->vio_pool);
@@ -160,8 +160,8 @@ void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 }
 
 /**********************************************************************/
-void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
-				  sequence_number_t period)
+void vdo_set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
+				      sequence_number_t period)
 {
 	set_vdo_dirty_lists_current_period(tree_zone->dirty_lists, period);
 }
@@ -198,8 +198,9 @@ get_tree_page(const struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-bool copy_valid_page(char *buffer, nonce_t nonce, physical_block_number_t pbn,
-		     struct block_map_page *page)
+bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
+			 physical_block_number_t pbn,
+			 struct block_map_page *page)
 {
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
 	enum block_map_page_validity validity =
@@ -219,7 +220,7 @@ bool copy_valid_page(char *buffer, nonce_t nonce, physical_block_number_t pbn,
 }
 
 /**********************************************************************/
-bool is_tree_zone_active(struct block_map_tree_zone *zone)
+bool vdo_is_tree_zone_active(struct block_map_tree_zone *zone)
 {
 	return ((zone->active_lookups != 0) ||
 		has_waiters(&zone->flush_waiters) ||
@@ -555,7 +556,7 @@ static void write_page(struct tree_page *tree_page,
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) entry->context;
 	struct vdo_completion *completion = vio_as_completion(entry->vio);
-	struct block_map_page *page = as_block_map_page(tree_page);
+	struct block_map_page *page = as_vdo_block_map_page(tree_page);
 
 	if ((zone->flusher != tree_page) &&
 	    (is_not_older(zone, tree_page->generation, zone->generation))) {
@@ -621,17 +622,17 @@ static void write_dirty_pages_callback(struct list_head *expired, void *context)
 }
 
 /**********************************************************************/
-void advance_zone_tree_period(struct block_map_tree_zone *zone,
-			      sequence_number_t period)
+void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone,
+				  sequence_number_t period)
 {
 	advance_vdo_dirty_lists_period(zone->dirty_lists, period);
 }
 
 /**********************************************************************/
-void drain_zone_trees(struct block_map_tree_zone *zone)
+void vdo_drain_zone_trees(struct block_map_tree_zone *zone)
 {
 	ASSERT_LOG_ONLY((zone->active_lookups == 0),
-			"drain_zone_trees() called with no active lookups");
+			"vdo_drain_zone_trees() called with no active lookups");
 	if (!is_vdo_state_suspending(&zone->map_zone->state)) {
 		flush_vdo_dirty_lists(zone->dirty_lists);
 	}
@@ -853,7 +854,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	page = (struct block_map_page *) tree_page->page_buffer;
 	nonce = zone->map_zone->block_map->nonce;
 
-	if (!copy_valid_page(entry->buffer, nonce, pbn, page)) {
+	if (!vdo_copy_valid_page(entry->buffer, nonce, pbn, page)) {
 		format_block_map_page(page, nonce, pbn, false);
 	}
 	return_vio_to_pool(zone->vio_pool, entry);
@@ -1244,7 +1245,7 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-void lookup_block_map_pbn(struct data_vio *data_vio)
+void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 {
 	page_number_t page_index;
 	struct block_map_tree_slot tree_slot;
@@ -1320,8 +1321,8 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-physical_block_number_t find_block_map_page_pbn(struct block_map *map,
-						page_number_t page_number)
+physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
+						    page_number_t page_number)
 {
 	struct data_location mapping;
 	struct tree_page *tree_page;
@@ -1348,7 +1349,8 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
 }
 
 /**********************************************************************/
-void write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone)
+void vdo_write_tree_page(struct tree_page *page,
+			 struct block_map_tree_zone *zone)
 {
 	bool waiting = is_waiting(&page->waiter);
 	if (waiting && (zone->flusher == page)) {

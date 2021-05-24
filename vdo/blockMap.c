@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#104 $
  */
 
 #include "blockMap.h"
@@ -142,7 +142,7 @@ initialize_block_map_zone(struct block_map *map,
 		vdo_get_logical_zone_thread(thread_config, zone_number);
 	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
-	result = initialize_tree_zone(zone, vdo, maximum_age);
+	result = vdo_initialize_tree_zone(zone, vdo, maximum_age);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -201,8 +201,8 @@ static void advance_block_map_zone_era(void *context,
 		vdo_get_block_map_zone(context, zone_number);
 	advance_vdo_page_cache_period(zone->page_cache,
 				      zone->block_map->current_era_point);
-	advance_zone_tree_period(&zone->tree_zone,
-				 zone->block_map->current_era_point);
+	vdo_advance_zone_tree_period(&zone->tree_zone,
+				     zone->block_map->current_era_point);
 	finish_vdo_completion(parent, VDO_SUCCESS);
 }
 
@@ -234,7 +234,7 @@ static bool schedule_era_advance(void *context)
  **/
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
-	uninitialize_block_map_tree_zone(&zone->tree_zone);
+	vdo_uninitialize_block_map_tree_zone(&zone->tree_zone);
 	free_vdo_page_cache(&zone->page_cache);
 }
 
@@ -365,8 +365,8 @@ void initialize_vdo_block_map_from_journal(struct block_map *map,
 	map->pending_era_point = map->current_era_point;
 
 	for (zone = 0; zone < map->zone_count; zone++) {
-		set_tree_zone_initial_period(&map->zones[zone].tree_zone,
-					     map->current_era_point);
+		vdo_set_tree_zone_initial_period(&map->zones[zone].tree_zone,
+						 map->current_era_point);
 		set_vdo_page_cache_initial_period(map->zones[zone].page_cache,
 						  map->current_era_point);
 	}
@@ -401,7 +401,7 @@ void vdo_find_block_map_slot(struct data_vio *data_vio,
 	slot->block_map_slot.slot = vdo_compute_slot(data_vio->logical.lbn);
 	tree_lock->callback = callback;
 	tree_lock->thread_id = thread_id;
-	lookup_block_map_pbn(data_vio);
+	vdo_lookup_block_map_pbn(data_vio);
 }
 
 /**********************************************************************/
@@ -426,7 +426,7 @@ void advance_vdo_block_map_era(struct block_map *map,
 void vdo_check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (is_vdo_state_draining(&zone->state) &&
-	    !is_tree_zone_active(&zone->tree_zone) &&
+	    !vdo_is_tree_zone_active(&zone->tree_zone) &&
 	    !is_vdo_page_cache_active(zone->page_cache)) {
 		finish_vdo_draining_with_result(&zone->state,
 						(vdo_is_read_only(zone->read_only_notifier) ?
@@ -443,7 +443,7 @@ static void initiate_drain(struct admin_state *state)
 {
 	struct block_map_zone *zone =
 		container_of(state, struct block_map_zone, state);
-	drain_zone_trees(&zone->tree_zone);
+	vdo_drain_zone_trees(&zone->tree_zone);
 	drain_vdo_page_cache(zone->page_cache);
 	vdo_check_for_drain_complete(zone);
 }
