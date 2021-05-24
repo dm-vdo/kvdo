@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#186 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#187 $
  */
 
 #include "kernelLayer.h"
@@ -361,13 +361,6 @@ int make_kernel_layer(unsigned int instance,
 
 	mutex_init(&layer->stats_mutex);
 
-	result = register_vdo(&layer->vdo);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot add layer to device registry";
-		free_kernel_layer(layer);
-		return result;
-	}
-
 	snprintf(layer->thread_name_prefix,
 		 sizeof(layer->thread_name_prefix),
 		 "%s%u",
@@ -707,7 +700,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 			finish_dedupe_index(layer->dedupe_index);
 		}
 		free_batch_processor(&layer->data_vio_releaser);
-		unregister_vdo(&layer->vdo);
 		break;
 
 	default:

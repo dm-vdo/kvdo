@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceRegistry.c#1 $
  */
 
 #include "deviceRegistry.h"
@@ -38,6 +38,8 @@
  */
 struct device_registry {
 	struct list_head links;
+	// XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of
+	// RCU, please don't add more. Should we switch?
 	rwlock_t lock;
 };
 

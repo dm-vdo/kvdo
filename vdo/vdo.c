@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#127 $
  */
 
 /*
@@ -31,6 +31,7 @@
 #include "permassert.h"
 
 #include "blockMap.h"
+#include "deviceRegistry.h"
 #include "hashZone.h"
 #include "header.h"
 #include "instanceNumber.h"
@@ -60,6 +61,7 @@ void destroy_vdo(struct vdo *vdo)
 	unsigned int i;
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
+	unregister_vdo(vdo);
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
 	free_vdo_recovery_journal(&vdo->recovery_journal);

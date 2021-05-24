@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#13 $
  */
 
 #include "vdoInit.h"
@@ -29,6 +29,7 @@
 #include "memoryAlloc.h"
 
 #include "adminCompletion.h"
+#include "deviceRegistry.h"
 #include "instanceNumber.h"
 #include "limiter.h"
 #include "poolSysfs.h"
@@ -88,6 +89,7 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 static int handle_initialization_failure(struct vdo *vdo, int result)
 {
 	release_vdo_instance(vdo->instance);
+	unregister_vdo(vdo);
 	FREE(vdo->layer);
 	return result;
 }
@@ -134,6 +136,12 @@ int initialize_vdo(struct vdo *vdo,
 		     config->thread_counts.physical_zones,
 		     config->thread_counts.hash_zones,
 		     vdo->thread_config->base_thread_count);
+
+	result = register_vdo(vdo);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot add layer to device registry";
+		return handle_initialization_failure(vdo, result);
+	}
 
 	/*
 	 * After this point, calling kobject_put on vdo_directory will
