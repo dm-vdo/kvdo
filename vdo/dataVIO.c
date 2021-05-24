@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#54 $
  */
 
 #include "dataVIO.h"
@@ -176,7 +176,7 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct zoned_pbn duplicate =
-		validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
+		vdo_validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
 	set_duplicate_location(data_vio, duplicate);
 }
 

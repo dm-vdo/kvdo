@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#127 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#128 $
  */
 
 /*
@@ -615,9 +615,10 @@ int get_physical_zone(const struct vdo *vdo,
 }
 
 /**********************************************************************/
-struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
-					const struct data_location *advice,
-					logical_block_number_t lbn)
+struct zoned_pbn
+vdo_validate_dedupe_advice(struct vdo *vdo,
+			   const struct data_location *advice,
+			   logical_block_number_t lbn)
 {
 	struct zoned_pbn no_advice = { .pbn = VDO_ZERO_BLOCK };
 	struct physical_zone *zone;
