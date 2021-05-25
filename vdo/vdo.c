@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#128 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#129 $
  */
 
 /*
@@ -168,7 +168,7 @@ static void record_vdo(struct vdo *vdo)
 	vdo->states.recovery_journal =
 		record_vdo_recovery_journal(vdo->recovery_journal);
 	vdo->states.slab_depot = record_vdo_slab_depot(vdo->depot);
-	vdo->states.layout = get_layout(vdo->layout);
+	vdo->states.layout = get_vdo_fixed_layout(vdo->layout);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#28 $
  */
 
 #include "vdoLayout.h"
@@ -312,7 +312,7 @@ void copy_vdo_layout_partition(struct vdo_layout *layout,
 }
 
 /**********************************************************************/
-struct fixed_layout *get_layout(const struct vdo_layout *vdo_layout)
+struct fixed_layout *get_vdo_fixed_layout(const struct vdo_layout *vdo_layout)
 {
 	return vdo_layout->layout;
 }
