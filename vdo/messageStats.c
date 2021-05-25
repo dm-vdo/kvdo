@@ -1406,7 +1406,7 @@ int write_kernel_stats(struct kernel_layer *layer,
 		return result;
 	}
 
-	get_kernel_statistics(layer, stats);
+	get_vdo_kernel_statistics(layer, stats);
 	result = write_kernel_statistics(NULL, stats, NULL, &buf, &maxlen);
 	FREE(stats);
 	return result;

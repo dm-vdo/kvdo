@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#13 $
  */
 
 #include "releaseVersions.h"
@@ -54,8 +54,8 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 }
 
 /**********************************************************************/
-void get_kernel_statistics(struct kernel_layer *layer,
-			   struct kernel_statistics *stats)
+void get_vdo_kernel_statistics(struct kernel_layer *layer,
+			       struct kernel_statistics *stats)
 {
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
