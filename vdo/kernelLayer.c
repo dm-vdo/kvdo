@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#187 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#188 $
  */
 
 #include "kernelLayer.h"
@@ -226,7 +226,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			state);
 
 	// Count all incoming bios.
-	count_bios(&layer->bios_in, bio);
+	vdo_count_bios(&layer->bios_in, bio);
 
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
@@ -291,7 +291,7 @@ void complete_many_requests(struct vdo *vdo, uint32_t count)
 						      arrival_jiffies,
 						      has_discard_permit);
 		if (result != VDO_SUCCESS) {
-			complete_bio(bio, result);
+			vdo_complete_bio(bio, result);
 		}
 		// Succeed or fail, vdo_launch_data_vio_from_bio owns the
 		// permit(s) now.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#140 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#141 $
  */
 
 #include "dataKVIO.h"
@@ -118,13 +118,13 @@ static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 	}
 	data_vio->user_bio = NULL;
 
-	count_bios(&layer->bios_acknowledged, bio);
+	vdo_count_bios(&layer->bios_acknowledged, bio);
 	if (data_vio->is_partial) {
-		count_bios(&layer->bios_acknowledged_partial, bio);
+		vdo_count_bios(&layer->bios_acknowledged_partial, bio);
 	}
 
 
-	complete_bio(bio, error);
+	vdo_complete_bio(bio, error);
 }
 
 /**********************************************************************/
@@ -230,7 +230,7 @@ static void copy_read_block_data(struct vdo_work_item *work_item)
 	}
 
 	// For a 4k read, copy the data to the user bio and acknowledge.
-	bio_copy_data_out(data_vio->user_bio, data_vio->read_block.data);
+	vdo_bio_copy_data_out(data_vio->user_bio, data_vio->read_block.data);
 	acknowledge_data_vio(data_vio);
 }
 
@@ -334,7 +334,7 @@ static void read_bio_callback(struct bio *bio)
 {
 	struct data_vio *data_vio = (struct data_vio *) bio->bi_private;
 	data_vio->read_block.data = data_vio->read_block.buffer;
-	count_completed_bios(bio);
+	vdo_count_completed_bios(bio);
 	complete_read(data_vio);
 }
 
@@ -354,9 +354,9 @@ void vdo_read_block(struct data_vio *data_vio,
 	read_block->mapping_state = mapping_state;
 
 	// Read the data using the read block buffer.
-	result = reset_bio_with_buffer(vio->bio, read_block->buffer,
-				       vio, read_bio_callback, REQ_OP_READ,
-				       location);
+	result = vdo_reset_bio_with_buffer(vio->bio, read_block->buffer,
+					   vio, read_bio_callback, REQ_OP_READ,
+					   location);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -368,10 +368,10 @@ void vdo_read_block(struct data_vio *data_vio,
 /**********************************************************************/
 static void acknowledge_user_bio(struct bio *bio)
 {
-	int error = get_bio_result(bio);
+	int error = vdo_get_bio_result(bio);
 	struct vio *vio = (struct vio *) bio->bi_private;
 
-	count_completed_bios(bio);
+	vdo_count_completed_bios(bio);
 	if (error == 0) {
 		acknowledge_data_vio(vio_as_data_vio(vio));
 		return;
@@ -401,19 +401,15 @@ void read_data_vio(struct data_vio *data_vio)
 		return;
 	}
 
-	// Read directly into the user buffer (for a 4k read) or the data
-	// block (for a partial IO).
-	if (is_read_modify_write_vio(data_vio_as_vio(data_vio))) {
-		result = reset_bio_with_buffer(bio, data_vio->data_block, vio,
-					       complete_async_bio,
-					       REQ_OP_READ | opf,
-					       data_vio->mapped.pbn);
-	} else if (data_vio->is_partial) {
-		// A partial read.
-		result = reset_bio_with_buffer(bio, data_vio->data_block, vio,
-					       complete_async_bio,
-					       REQ_OP_READ | opf,
-					       data_vio->mapped.pbn);
+	// Read into the data block (for a RMW or partial IO) or directly into
+	// the user buffer (for a 4k read).
+	if (is_read_modify_write_vio(data_vio_as_vio(data_vio)) ||
+	    (data_vio->is_partial)) {
+		result = vdo_reset_bio_with_buffer(bio, data_vio->data_block,
+						   vio,
+						   vdo_complete_async_bio,
+						   REQ_OP_READ | opf,
+						   data_vio->mapped.pbn);
 	} else {
 		/*
 		 * A full 4k read. We reset, use __bio_clone_fast() to copy
@@ -488,8 +484,8 @@ void write_data_vio(struct data_vio *data_vio)
 
 
 	// Write the data from the data block buffer.
-	result = reset_bio_with_buffer(vio->bio, data_vio->data_block,
-				       vio, complete_async_bio,
+	result = vdo_reset_bio_with_buffer(vio->bio, data_vio->data_block,
+				       vio, vdo_complete_async_bio,
 				       REQ_OP_WRITE | opf,
 				       data_vio->new_mapped.pbn);
 	if (result != VDO_SUCCESS) {
@@ -568,7 +564,7 @@ void apply_partial_write(struct data_vio *data_vio)
 	struct bio *bio = data_vio->user_bio;
 
 	if (bio_op(bio) != REQ_OP_DISCARD) {
-		bio_copy_data_in(bio, data_vio->data_block + data_vio->offset);
+		vdo_bio_copy_data_in(bio, data_vio->data_block + data_vio->offset);
 	} else {
 		memset(data_vio->data_block + data_vio->offset, '\0',
 		       min_t(uint32_t, data_vio->remaining_discard,
@@ -603,7 +599,7 @@ void copy_data(struct data_vio *source, struct data_vio *destination)
 		memcpy(destination->data_block, source->data_block,
 		       VDO_BLOCK_SIZE);
 	} else {
-		bio_copy_data_out(destination->user_bio,
+		vdo_bio_copy_data_out(destination->user_bio,
 				  source->data_block);
 	}
 }
@@ -714,7 +710,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 			        (data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
-		count_bios(&layer->bios_in_partial, bio);
+		vdo_count_bios(&layer->bios_in_partial, bio);
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array
@@ -735,7 +731,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 			// Copy the bio data to a char array so that we can
 			// continue to use the data after we acknowledge the
 			// bio.
-			bio_copy_data_in(bio, data_vio->data_block);
+			vdo_bio_copy_data_in(bio, data_vio->data_block);
 			data_vio->is_zero_block = is_zero_block(data_vio);
 		}
 	}
@@ -812,7 +808,7 @@ static void vdo_complete_partial_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
-	bio_copy_data_out(data_vio->user_bio,
+	vdo_bio_copy_data_out(data_vio->user_bio,
 			  data_vio->read_block.data + data_vio->offset);
 	vdo_complete_data_vio(completion);
 	return;
@@ -954,7 +950,7 @@ static void free_pooled_data_vio(void *data)
 
 	vio = data_vio_as_vio(data_vio);
 	if (vio->bio != NULL) {
-		free_bio(vio->bio);
+		vdo_free_bio(vio->bio);
 	}
 
 	FREE(data_vio->read_block.buffer);
@@ -1003,7 +999,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	}
 
 	vio = data_vio_as_vio(data_vio);
-	result = create_bio(&vio->bio);
+	result = vdo_create_bio(&vio->bio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_vio(data_vio);
 		return log_error_strerror(result,

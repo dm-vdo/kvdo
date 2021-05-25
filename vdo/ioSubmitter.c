@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#78 $
  */
 
 #include "ioSubmitter.h"
@@ -200,15 +200,15 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 
 	if (is_data_vio(vio)) {
-		count_bios(&layer->bios_out, bio);
+		vdo_count_bios(&layer->bios_out, bio);
 		return;
 	}
 
-	count_bios(&layer->bios_meta, bio);
+	vdo_count_bios(&layer->bios_meta, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		count_bios(&layer->bios_journal, bio);
+		vdo_count_bios(&layer->bios_journal, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		count_bios(&layer->bios_page_cache, bio);
+		vdo_count_bios(&layer->bios_page_cache, bio);
 	}
 }
 

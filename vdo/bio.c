@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#51 $
  */
 
 #include "bio.h"
@@ -34,7 +34,7 @@
 enum { INLINE_BVEC_COUNT = 2 };
 
 /**********************************************************************/
-void bio_copy_data_in(struct bio *bio, char *data_ptr)
+void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
 	struct bvec_iter iter;
@@ -50,7 +50,7 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr)
 }
 
 /**********************************************************************/
-void bio_copy_data_out(struct bio *bio, char *data_ptr)
+void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
 	struct bvec_iter iter;
@@ -67,14 +67,14 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 }
 
 /**********************************************************************/
-void free_bio(struct bio *bio)
+void vdo_free_bio(struct bio *bio)
 {
 	bio_uninit(bio);
 	FREE(bio);
 }
 
 /**********************************************************************/
-void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
+void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 {
 	if (bio_data_dir(bio) == WRITE) {
 		atomic64_inc(&bio_stats->write);
@@ -103,20 +103,20 @@ static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
 	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	if (is_data_vio(vio)) {
-		count_bios(&layer->bios_out_completed, bio);
+		vdo_count_bios(&layer->bios_out_completed, bio);
 		return;
 	}
 
-	count_bios(&layer->bios_meta_completed, bio);
+	vdo_count_bios(&layer->bios_meta_completed, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		count_bios(&layer->bios_journal_completed, bio);
+		vdo_count_bios(&layer->bios_journal_completed, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		count_bios(&layer->bios_page_cache_completed, bio);
+		vdo_count_bios(&layer->bios_page_cache_completed, bio);
 	}
 }
 
 /**********************************************************************/
-void count_completed_bios(struct bio *bio)
+void vdo_count_completed_bios(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
 	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
@@ -125,20 +125,20 @@ void count_completed_bios(struct bio *bio)
 }
 
 /**********************************************************************/
-void complete_async_bio(struct bio *bio)
+void vdo_complete_async_bio(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
-	count_completed_bios(bio);
-	continue_vio(vio, get_bio_result(bio));
+	vdo_count_completed_bios(bio);
+	continue_vio(vio, vdo_get_bio_result(bio));
 }
 
 /**********************************************************************/
-int reset_bio_with_buffer(struct bio *bio,
-			  char *data,
-			  struct vio *vio,
-			  bio_end_io_t callback,
-			  unsigned int bi_opf,
-			  physical_block_number_t pbn)
+int vdo_reset_bio_with_buffer(struct bio *bio,
+			      char *data,
+			      struct vio *vio,
+			      bio_end_io_t callback,
+			      unsigned int bi_opf,
+			      physical_block_number_t pbn)
 {
 	int bvec_count, result;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
@@ -182,7 +182,7 @@ int reset_bio_with_buffer(struct bio *bio,
 				   offset_in_page(data));
 
 	if (bytes_added != VDO_BLOCK_SIZE) {
-		free_bio(bio);
+		vdo_free_bio(bio);
 		return log_error_strerror(VDO_BIO_CREATION_FAILED,
 					  "Could only add %i bytes to bio",
 					  bytes_added);
@@ -203,7 +203,7 @@ int reset_bio_with_buffer(struct bio *bio,
 		bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes) {
-			free_bio(bio);
+			vdo_free_bio(bio);
 			return log_error_strerror(VDO_BIO_CREATION_FAILED,
 						  "Could only add %i bytes to bio",
 						  bytes_added);
@@ -218,7 +218,7 @@ int reset_bio_with_buffer(struct bio *bio,
 }
 
 /**********************************************************************/
-int create_bio(struct bio **bio_ptr)
+int vdo_create_bio(struct bio **bio_ptr)
 {
 	struct bio *bio = NULL;
 	int result = ALLOCATE_EXTENDED(struct bio, INLINE_BVEC_COUNT,

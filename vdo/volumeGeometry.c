@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#43 $
  */
 
 #include "volumeGeometry.h"
@@ -258,20 +258,20 @@ int vdo_read_geometry_block(struct block_device *bdev,
 		return result;
 	}
 
-	result = create_bio(&bio);
+	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
 		FREE(block);
 		return result;
 	}
 
-	result = reset_bio_with_buffer(bio,
-				       block,
-				       NULL,
-				       NULL,
-				       REQ_OP_READ,
-				       GEOMETRY_BLOCK_LOCATION);
+	result = vdo_reset_bio_with_buffer(bio,
+					   block,
+					   NULL,
+					   NULL,
+					   REQ_OP_READ,
+					   GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
-		free_bio(bio);
+		vdo_free_bio(bio);
 		FREE(block);
 		return result;
 	}
@@ -279,7 +279,7 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	bio_set_dev(bio, bdev);
 	submit_bio_wait(bio);
 	result = blk_status_to_errno(bio->bi_status);
-	free_bio(bio);
+	vdo_free_bio(bio);
 	if (result != 0) {
 		log_error_strerror(result, "synchronous read failed");
 		FREE(block);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#46 $
  */
 
 #include "flush.h"
@@ -437,7 +437,7 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
 		// We're not acknowledging this bio now, but we'll never touch
 		// it again, so this is the last chance to account for it.
-		count_bios(&layer->bios_acknowledged, bio);
+		vdo_count_bios(&layer->bios_acknowledged, bio);
 
 		// Update the device, and send it on down...
 		bio_set_dev(bio, get_vdo_backing_device(flush->vdo));
