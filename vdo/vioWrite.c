@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#75 $
  */
 
 /*
@@ -68,7 +68,7 @@
  *       if (not canAddReference) {
  *         update_dedupe_index()
  *       }
- *       # compress_data()
+ *       # vio_compress_data()
  *       if (compressing and not mooted and has no waiters) {
  *         compress_data_vio()
  *         pack_compressed_data()
@@ -557,7 +557,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 
 /**
  * Attempt to pack the compressed data_vio into a block. This is the callback
- * registered in compress_data().
+ * registered in vio_compress_data().
  *
  * @param completion  The completion of a compressed data_vio
  **/
@@ -581,7 +581,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void compress_data(struct data_vio *data_vio)
+void vio_compress_data(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_duplicate,
 			"compressing a non-duplicate block");
@@ -653,7 +653,7 @@ void share_block(struct vdo_completion *completion)
 	}
 
 	if (!data_vio->is_duplicate) {
-		compress_data(data_vio);
+		vio_compress_data(data_vio);
 		return;
 	}
 
@@ -690,7 +690,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 		// It's extremely unlikely, but in the case of a hash collision,
 		// the data_vio will not obtain a reference to the lock and
 		// cannot deduplicate.
-		compress_data(data_vio);
+		vio_compress_data(data_vio);
 		return;
 	}
 
