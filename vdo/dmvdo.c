@@ -850,7 +850,7 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
-	initialize_device_registry_once();
+	initialize_vdo_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
 	// Add VDO errors to the already existing set of errors in UDS.

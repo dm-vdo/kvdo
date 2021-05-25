@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceRegistry.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceRegistry.c#2 $
  */
 
 #include "deviceRegistry.h"
@@ -46,7 +46,7 @@ struct device_registry {
 static struct device_registry registry;
 
 /**********************************************************************/
-void initialize_device_registry_once(void)
+void initialize_vdo_device_registry_once(void)
 {
 	INIT_LIST_HEAD(&registry.links);
 	rwlock_init(&registry.lock);
