@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#19 $
  */
 
 #include "batchProcessor.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 
 #include "constants.h"
+#include "vdoInternal.h"
 
 #include "kernelLayer.h"
 
@@ -78,7 +79,7 @@ struct batch_processor {
 	atomic_t state;
 	batch_processor_callback callback;
 	void *closure;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 };
 
 static void schedule_batch_processing(struct batch_processor *batch);
@@ -156,12 +157,12 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
 
 	if (do_schedule) {
-		enqueue_cpu_work_queue(batch->layer, &batch->work_item);
+		enqueue_work_queue(batch->vdo->cpu_queue, &batch->work_item);
 	}
 }
 
 /**********************************************************************/
-int make_batch_processor(struct kernel_layer *layer,
+int make_batch_processor(struct vdo *vdo,
 			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr)
@@ -187,7 +188,7 @@ int make_batch_processor(struct kernel_layer *layer,
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	batch->callback = callback;
 	batch->closure = closure;
-	batch->layer = layer;
+	batch->vdo = vdo;
 
 	*batch_ptr = batch;
 	return UDS_SUCCESS;

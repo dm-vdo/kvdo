@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#79 $
  */
 
 #ifndef KERNELLAYER_H
@@ -85,11 +85,6 @@ struct kernel_layer {
 
 	struct vdo vdo;
 
-	/**
-	 * Work queue (possibly with multiple threads) for miscellaneous
-	 * CPU-intensive, non-blocking work.
-	 **/
-	struct vdo_work_queue *cpu_queue;
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 	/** Optional work queue for calling bio_endio. */
@@ -361,19 +356,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
  * @return a system error code value
  **/
 int map_to_system_error(int error);
-
-/**
- * Enqueues an item on our internal "cpu queues". Since there is more than
- * one, we rotate through them in hopes of creating some general balance.
- *
- * @param layer The kernel layer
- * @param item  The work item to enqueue
- */
-static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
-					  struct vdo_work_item *item)
-{
-	enqueue_work_queue(layer->cpu_queue, item);
-}
 
 /**
  * Adjust parameters to prepare to use a larger physical space.

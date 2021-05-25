@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#188 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#189 $
  */
 
 #include "kernelLayer.h"
@@ -367,7 +367,7 @@ int make_kernel_layer(unsigned int instance,
 		 THIS_MODULE->name,
 		 instance);
 
-	result = make_batch_processor(layer,
+	result = make_batch_processor(&layer->vdo,
 				      return_data_vio_batch_to_pool,
 				      layer,
 				      &layer->data_vio_releaser);
@@ -492,7 +492,7 @@ int make_kernel_layer(unsigned int instance,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
 				 (void **) layer->compression_context,
-				 &layer->cpu_queue);
+				 &layer->vdo.cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
 		free_kernel_layer(layer);
@@ -669,7 +669,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_STOPPED:
 	case LAYER_CPU_QUEUE_INITIALIZED:
-		finish_work_queue(layer->cpu_queue);
+		finish_work_queue(layer->vdo.cpu_queue);
 		used_cpu_queue = true;
 		// fall through
 
@@ -708,7 +708,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	// Late deallocation of resources in work queues.
 	if (used_cpu_queue) {
-		free_work_queue(&layer->cpu_queue);
+		free_work_queue(&layer->vdo.cpu_queue);
 	}
 	if (used_bio_ack_queue) {
 		free_work_queue(&layer->bio_ack_queue);

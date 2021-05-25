@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#64 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -82,6 +82,11 @@ struct vdo {
 	 * device.
 	 **/
 	struct io_submitter *io_submitter;
+	/**
+	 * Work queue (possibly with multiple threads) for miscellaneous
+	 * CPU-intensive, non-blocking work.
+	 **/
+	struct vdo_work_queue *cpu_queue;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
@@ -199,6 +204,7 @@ static inline bool use_bio_ack_queue(struct vdo *vdo)
 {
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
+
 
 /**
  * Get the current state of the vdo. This method may be called from any thread.
