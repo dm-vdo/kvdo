@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#85 $
  */
 
 #include "kvio.h"
@@ -82,7 +82,7 @@ void destroy_vio(struct vio **vio_ptr)
 }
 
 /**********************************************************************/
-void write_compressed_block(struct vio *vio)
+void write_compressed_block_vio(struct vio *vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#112 $
  */
 
 #include "recoveryJournal.h"
@@ -1188,7 +1188,8 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	 * lock.
 	 */
 	journal->reaping = true;
-	launch_flush(journal->flush_vio, complete_reaping, handle_flush_error);
+	launch_flush_vio(journal->flush_vio, complete_reaping,
+			 handle_flush_error);
 }
 
 /**********************************************************************/

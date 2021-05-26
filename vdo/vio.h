@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#49 $
  */
 
 #ifndef VIO_H
@@ -384,9 +384,9 @@ launch_write_metadata_vio_with_flush(struct vio *vio,
  * @param callback       The function to call when the flush is complete
  * @param error_handler  The handler for flush errors
  **/
-static inline void launch_flush(struct vio *vio,
-				vdo_action *callback,
-				vdo_action *error_handler)
+static inline void launch_flush_vio(struct vio *vio,
+				    vdo_action *callback,
+				    vdo_action *error_handler)
 {
 	launch_metadata_vio(vio, 0, callback, error_handler,
 			    VIO_FLUSH_BEFORE);
@@ -411,6 +411,6 @@ void submit_metadata_vio(struct vio *vio);
  *
  * @param vio  The compressed write vio to write
  **/
-void write_compressed_block(struct vio *vio);
+void write_compressed_block_vio(struct vio *vio);
 
 #endif // VIO_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#72 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -990,7 +990,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	 * these pages were successfully persisted, and thus must issue a flush
 	 * before each batch of pages is written to ensure this.
 	 */
-	launch_flush(vio, write_pages, handle_flush_error);
+	launch_flush_vio(vio, write_pages, handle_flush_error);
 }
 
 /**

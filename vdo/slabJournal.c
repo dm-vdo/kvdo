@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#96 $
  */
 
 #include "slabJournalInternals.h"
@@ -392,7 +392,7 @@ static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 	entry->parent = journal;
 	vio->completion.callback_thread_id =
 		journal->slab->allocator->thread_id;
-	launch_flush(vio, complete_reaping, handle_flush_error);
+	launch_flush_vio(vio, complete_reaping, handle_flush_error);
 }
 
 /**
