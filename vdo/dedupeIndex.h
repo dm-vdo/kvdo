@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#27 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -106,8 +106,8 @@ void enqueue_index_operation(struct data_vio *data_vio,
  * @param data_vio  The data_vio. These fields are used:
  *                  dedupe_context.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
- *                  get_dedupe_advice(). The advice found in the index (or NULL
- *                  if none) will be returned via set_dedupe_advice().
+ *                  vdo_get_dedupe_advice(). The advice found in the index (or
+ *                  NULL if none) will be returned via vdo_set_dedupe_advice().
  *                  dedupe_context.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
@@ -122,8 +122,9 @@ static inline void post_dedupe_advice(struct data_vio *data_vio)
  * @param data_vio  The data_vio. These fields are used:
  *                  dedupe_context.chunk_name is the chunk name. The advice
  *                  found in the index (or NULL if none) will be returned via
- *                  set_dedupe_advice(). dedupe_context.status is set to the
- *                  return status code of any asynchronous index processing.
+ *                  vdo_set_dedupe_advice(). dedupe_context.status is set to
+ *                  the return status code of any asynchronous index
+ *                  processing.
  **/
 static inline void query_dedupe_advice(struct data_vio *data_vio)
 {
@@ -137,8 +138,9 @@ static inline void query_dedupe_advice(struct data_vio *data_vio)
  * @param data_vio  The data_vio. These fields are used:
  *                  dedupe_context.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
- *                  get_dedupe_advice(). dedupe_context.status is set to the
- *                  return status code of any asynchronous index processing.
+ *                  vdo_get_dedupe_advice(). dedupe_context.status is set to
+ *                  the return status code of any asynchronous index
+ *                  processing.
  **/
 static inline void update_dedupe_advice(struct data_vio *data_vio)
 {

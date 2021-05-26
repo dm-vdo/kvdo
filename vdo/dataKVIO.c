@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#142 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#143 $
  */
 
 #include "dataKVIO.h"
@@ -1204,7 +1204,7 @@ int make_data_vio_buffer_pool(uint32_t pool_size,
 }
 
 /**********************************************************************/
-struct data_location get_dedupe_advice(const struct dedupe_context *context)
+struct data_location vdo_get_dedupe_advice(const struct dedupe_context *context)
 {
 	struct data_vio *data_vio = container_of(context,
 						 struct data_vio,
@@ -1216,8 +1216,8 @@ struct data_location get_dedupe_advice(const struct dedupe_context *context)
 }
 
 /**********************************************************************/
-void set_dedupe_advice(struct dedupe_context *context,
-		       const struct data_location *advice)
+void vdo_set_dedupe_advice(struct dedupe_context *context,
+			   const struct data_location *advice)
 {
 	receive_data_vio_dedupe_advice(container_of(context,
 						    struct data_vio,

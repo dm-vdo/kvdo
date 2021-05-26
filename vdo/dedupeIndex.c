@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#92 $
  */
 
 #include "dedupeIndex.h"
@@ -286,9 +286,9 @@ static void finish_index_operation(struct uds_request *uds_request)
 			struct data_location advice;
 
 			if (decode_uds_advice(uds_request, &advice)) {
-				set_dedupe_advice(dedupe_context, &advice);
+				vdo_set_dedupe_advice(dedupe_context, &advice);
 			} else {
-				set_dedupe_advice(dedupe_context, NULL);
+				vdo_set_dedupe_advice(dedupe_context, NULL);
 			}
 		}
 
@@ -504,7 +504,7 @@ void enqueue_index_operation(struct data_vio *data_vio,
 		uds_request->update = true;
 		if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
 			encode_uds_advice(uds_request,
-					  get_dedupe_advice(dedupe_context));
+					  vdo_get_dedupe_advice(dedupe_context));
 		}
 
 		setup_work_item(work_item_from_vio(vio),

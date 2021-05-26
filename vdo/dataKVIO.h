@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#64 $
  */
 
 #ifndef DATA_KVIO_H
@@ -174,7 +174,7 @@ make_data_vio_buffer_pool(uint32_t pool_size,
  * @return the advice to store in the UDS index
  **/
 struct data_location __must_check
-get_dedupe_advice(const struct dedupe_context *context);
+vdo_get_dedupe_advice(const struct dedupe_context *context);
 
 /**
  * Set the result of a dedupe query for the data_vio associated with a
@@ -184,7 +184,7 @@ get_dedupe_advice(const struct dedupe_context *context);
  * @param advice   A data location at which the chunk named in the context
  *                 might be stored (will be NULL if no advice was found)
  **/
-void set_dedupe_advice(struct dedupe_context *context,
-		       const struct data_location *advice);
+void vdo_set_dedupe_advice(struct dedupe_context *context,
+			   const struct data_location *advice);
 
 #endif /* DATA_KVIO_H */
