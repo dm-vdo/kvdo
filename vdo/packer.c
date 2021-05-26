@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#85 $
  */
 
 #include "packerInternals.h"
@@ -964,7 +964,7 @@ void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct data_vio *lock_holder;
-	assert_in_packer_zone(data_vio);
+	assert_data_vio_in_packer_zone(data_vio);
 
 	lock_holder = data_vio->compression.lock_holder;
 	data_vio->compression.lock_holder = NULL;

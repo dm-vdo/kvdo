@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#83 $
  */
 
 #ifndef DATA_VIO_H
@@ -543,7 +543,7 @@ physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
  *
  * @return <code>true</code> if the data_vio has an allocated block
  **/
-static inline bool has_allocation(struct data_vio *data_vio)
+static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 {
 	return (get_data_vio_allocation(data_vio) != VDO_ZERO_BLOCK);
 }
@@ -601,7 +601,7 @@ static inline void continue_data_vio(struct data_vio *data_vio, int result)
  *
  * @return The name of the last operation performed on the data_vio
  **/
-const char * __must_check get_operation_name(struct data_vio *data_vio);
+const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio);
 
 /**
  * Add a data_vio to the tail end of a wait queue. The data_vio must not
@@ -625,7 +625,7 @@ enqueue_data_vio(struct wait_queue *queue,
  *
  * @param data_vio  The data_vio in question
  **/
-static inline void assert_in_hash_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected = get_vdo_hash_zone_thread_id(data_vio->hash_zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
@@ -643,12 +643,12 @@ static inline void assert_in_hash_zone(struct data_vio *data_vio)
  * Set a callback as a hash zone operation. This function presumes that the
  * hash_zone field of the data_vio has already been set.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
 static inline void
-set_hash_zone_callback(struct data_vio *data_vio,
-		       vdo_action *callback)
+set_data_vio_hash_zone_callback(struct data_vio *data_vio,
+				vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -658,14 +658,14 @@ set_hash_zone_callback(struct data_vio *data_vio,
 /**
  * Set a callback as a hash zone operation and invoke it immediately.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
 static inline void
-launch_hash_zone_callback(struct data_vio *data_vio,
-		          vdo_action *callback)
+launch_data_vio_hash_zone_callback(struct data_vio *data_vio,
+		        	   vdo_action *callback)
 {
-	set_hash_zone_callback(data_vio, callback);
+	set_data_vio_hash_zone_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
@@ -674,7 +674,7 @@ launch_hash_zone_callback(struct data_vio *data_vio,
  *
  * @param data_vio  The data_vio in question
  **/
-static inline void assert_in_logical_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_vdo_logical_zone_thread_id(data_vio->logical.zone);
@@ -690,11 +690,12 @@ static inline void assert_in_logical_zone(struct data_vio *data_vio)
  * Set a callback as a logical block operation. This function presumes that the
  * logical.zone field of the data_vio has already been set.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
-static inline void set_logical_callback(struct data_vio *data_vio,
-				        vdo_action *callback)
+static inline void
+set_data_vio_logical_callback(struct data_vio *data_vio,
+			      vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -704,14 +705,14 @@ static inline void set_logical_callback(struct data_vio *data_vio,
 /**
  * Set a callback as a logical block operation and invoke it immediately.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
 static inline void
-launch_logical_callback(struct data_vio *data_vio,
-			vdo_action *callback)
+launch_data_vio_logical_callback(struct data_vio *data_vio,
+				 vdo_action *callback)
 {
-	set_logical_callback(data_vio, callback);
+	set_data_vio_logical_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
@@ -721,7 +722,7 @@ launch_logical_callback(struct data_vio *data_vio,
  *
  * @param data_vio  The data_vio in question
  **/
-static inline void assert_in_allocated_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
 {
 	assert_vio_in_physical_zone(data_vio_as_allocating_vio(data_vio));
 }
@@ -733,8 +734,8 @@ static inline void assert_in_allocated_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  **/
 static inline void
-set_allocated_zone_callback(struct data_vio *data_vio,
-			    vdo_action *callback)
+set_data_vio_allocated_zone_callback(struct data_vio *data_vio,
+				     vdo_action *callback)
 {
 	vio_set_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
 				       callback);
@@ -748,8 +749,8 @@ set_allocated_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to invoke
  **/
 static inline void
-launch_allocated_zone_callback(struct data_vio *data_vio,
-			       vdo_action *callback)
+launch_data_vio_allocated_zone_callback(struct data_vio *data_vio,
+					vdo_action *callback)
 {
 	vio_launch_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
 					  callback);
@@ -761,7 +762,7 @@ launch_allocated_zone_callback(struct data_vio *data_vio,
  *
  * @param data_vio  The data_vio in question
  **/
-static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_vdo_physical_zone_thread_id(data_vio->duplicate.zone);
@@ -780,8 +781,8 @@ static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  **/
 static inline void
-set_duplicate_zone_callback(struct data_vio *data_vio,
-			    vdo_action *callback)
+set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
+				     vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -796,10 +797,10 @@ set_duplicate_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to invoke
  **/
 static inline void
-launch_duplicate_zone_callback(struct data_vio *data_vio,
-			       vdo_action *callback)
+launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
+					vdo_action *callback)
 {
-	set_duplicate_zone_callback(data_vio, callback);
+	set_data_vio_duplicate_zone_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
@@ -808,7 +809,7 @@ launch_duplicate_zone_callback(struct data_vio *data_vio,
  *
  * @param data_vio  The data_vio in question
  **/
-static inline void assert_in_mapped_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_vdo_physical_zone_thread_id(data_vio->mapped.zone);
@@ -827,8 +828,8 @@ static inline void assert_in_mapped_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  **/
 static inline void
-set_mapped_zone_callback(struct data_vio *data_vio,
-			 vdo_action *callback)
+set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
+				  vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -841,7 +842,7 @@ set_mapped_zone_callback(struct data_vio *data_vio,
  *
  * @param data_vio The data_vio in question
  **/
-static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		get_vdo_physical_zone_thread_id(data_vio->new_mapped.zone);
@@ -861,8 +862,8 @@ static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  **/
 static inline void
-set_new_mapped_zone_callback(struct data_vio *data_vio,
-			     vdo_action *callback)
+set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
+				      vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -874,7 +875,7 @@ set_new_mapped_zone_callback(struct data_vio *data_vio,
  *
  * @param data_vio The data_vio in question
  **/
-static inline void assert_in_journal_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		vdo_get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
@@ -889,11 +890,12 @@ static inline void assert_in_journal_zone(struct data_vio *data_vio)
 /**
  * Set a callback as a journal operation.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
-static inline void set_journal_callback(struct data_vio *data_vio,
-				        vdo_action *callback)
+static inline void
+set_data_vio_journal_callback(struct data_vio *data_vio,
+			      vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -903,14 +905,14 @@ static inline void set_journal_callback(struct data_vio *data_vio,
 /**
  * Set a callback as a journal operation and invoke it immediately.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
 static inline void
-launch_journal_callback(struct data_vio *data_vio,
-			vdo_action *callback)
+launch_data_vio_journal_callback(struct data_vio *data_vio,
+				 vdo_action *callback)
 {
-	set_journal_callback(data_vio, callback);
+	set_data_vio_journal_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
@@ -919,7 +921,7 @@ launch_journal_callback(struct data_vio *data_vio,
  *
  * @param data_vio The data_vio in question
  **/
-static inline void assert_in_packer_zone(struct data_vio *data_vio)
+static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 {
 	thread_id_t expected =
 		vdo_get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
@@ -934,11 +936,12 @@ static inline void assert_in_packer_zone(struct data_vio *data_vio)
 /**
  * Set a callback as a packer operation.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
-static inline void set_packer_callback(struct data_vio *data_vio,
-				       vdo_action *callback)
+static inline void
+set_data_vio_packer_callback(struct data_vio *data_vio,
+			     vdo_action *callback)
 {
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
@@ -948,14 +951,14 @@ static inline void set_packer_callback(struct data_vio *data_vio,
 /**
  * Set a callback as a packer operation and invoke it immediately.
  *
- * @param data_vio  The data_vio with which to set the callback
+ * @param data_vio  The data_vio for which to set the callback
  * @param callback  The callback to set
  **/
 static inline void
-launch_packer_callback(struct data_vio *data_vio,
-		       vdo_action *callback)
+launch_data_vio_packer_callback(struct data_vio *data_vio,
+				vdo_action *callback)
 {
-	set_packer_callback(data_vio, callback);
+	set_data_vio_packer_callback(data_vio, callback);
 	invoke_vdo_completion_callback(data_vio_as_completion(data_vio));
 }
 
@@ -967,8 +970,8 @@ launch_packer_callback(struct data_vio *data_vio,
  * @param data_vio The data_vio that queried UDS
  * @param advice   A potential location of the data, or NULL for no advice
  **/
-void receive_dedupe_advice(struct data_vio *data_vio,
-			   const struct data_location *advice);
+void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
+				    const struct data_location *advice);
 
 /**
  * Set the location of the duplicate block for a data_vio, updating the
@@ -977,8 +980,8 @@ void receive_dedupe_advice(struct data_vio *data_vio,
  * @param data_vio The data_vio to modify
  * @param source   The location of the duplicate
  **/
-void set_duplicate_location(struct data_vio *data_vio,
-			    const struct zoned_pbn source);
+void set_data_vio_duplicate_location(struct data_vio *data_vio,
+				     const struct zoned_pbn source);
 
 /**
  * Clear a data_vio's mapped block location, setting it to be unmapped. This
@@ -987,7 +990,7 @@ void set_duplicate_location(struct data_vio *data_vio,
  *
  * @param data_vio The data_vio whose mapped block location is to be reset
  **/
-void clear_mapped_location(struct data_vio *data_vio);
+void clear_data_vio_mapped_location(struct data_vio *data_vio);
 
 /**
  * Set a data_vio's mapped field to the physical location recorded in the block
@@ -999,9 +1002,9 @@ void clear_mapped_location(struct data_vio *data_vio);
  *
  * @return VDO_SUCCESS or an error code if the mapping is unusable
  **/
-int __must_check set_mapped_location(struct data_vio *data_vio,
-				     physical_block_number_t pbn,
-				     enum block_mapping_state state);
+int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
+					      physical_block_number_t pbn,
+					      enum block_mapping_state state);
 
 /**
  * Attempt to acquire the lock on a logical block. This is the start of the
@@ -1009,14 +1012,14 @@ int __must_check set_mapped_location(struct data_vio *data_vio,
  *
  * @param completion  The data_vio for an external data request as a completion
  **/
-void attempt_logical_block_lock(struct vdo_completion *completion);
+void vdo_attempt_logical_block_lock(struct vdo_completion *completion);
 
 /**
  * Release the lock on the logical block, if any, that a data_vio has acquired.
  *
  * @param data_vio The data_vio releasing its logical block lock
  **/
-void release_logical_block_lock(struct data_vio *data_vio);
+void vdo_release_logical_block_lock(struct data_vio *data_vio);
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
@@ -1037,7 +1040,7 @@ void hash_data_vio(struct data_vio *data_vio);
  *
  * @param data_vio  The data_vio containing the block to check.
  **/
-void check_for_duplication(struct data_vio *data_vio);
+void check_data_vio_for_duplication(struct data_vio *data_vio);
 
 /**
  * A function to verify the duplication advice by examining an already-stored
@@ -1049,14 +1052,14 @@ void check_for_duplication(struct data_vio *data_vio);
  *
  * @param data_vio  The data_vio containing the block to check.
  **/
-void verify_duplication(struct data_vio *data_vio);
+void verify_data_vio_duplication(struct data_vio *data_vio);
 
 /**
  * Update the index with new dedupe advice.
  *
  * @param data_vio  The data_vio which needs to change the entry for its data
  **/
-void update_dedupe_index(struct data_vio *data_vio);
+void vdo_update_dedupe_index(struct data_vio *data_vio);
 
 /**
  * A function to zero the contents of a non-write data_vio -- a read, or a RMW
@@ -1072,7 +1075,7 @@ void zero_data_vio(struct data_vio *data_vio);
  * @param source       The data_vio to copy from
  * @param destination  The data_vio to copy to
  **/
-void copy_data(struct data_vio *source, struct data_vio *destination);
+void vdo_copy_data(struct data_vio *source, struct data_vio *destination);
 
 /**
  * A function to apply a partial write to a data_vio which has completed the
@@ -1080,7 +1083,7 @@ void copy_data(struct data_vio *source, struct data_vio *destination);
  *
  * @param data_vio  The data_vio to modify
  **/
-void apply_partial_write(struct data_vio *data_vio);
+void vdo_apply_partial_write(struct data_vio *data_vio);
 
 /**
  * A function to inform the layer that a data_vio's related I/O request can be

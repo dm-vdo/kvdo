@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#100 $
  */
 
 #include "blockMapTree.h"
@@ -1007,7 +1007,7 @@ static void abort_allocation(struct data_vio *data_vio, int result)
 static void allocation_failure(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	assert_in_logical_zone(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
 	abort_allocation(data_vio, completion->result);
 }
 
@@ -1054,7 +1054,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	height_t height = tree_lock->height;
-	assert_in_logical_zone(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
 		allocation_failure(completion);
 		return;
@@ -1122,15 +1122,15 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct allocating_vio *allocating_vio =
 		data_vio_as_allocating_vio(data_vio);
-	assert_in_allocated_zone(data_vio);
+	assert_data_vio_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure);
 		return;
 	}
 
 	vio_release_allocation_lock(allocating_vio);
 	vio_reset_allocation(allocating_vio);
-	launch_logical_callback(data_vio, finish_block_map_allocation);
+	launch_data_vio_logical_callback(data_vio, finish_block_map_allocation);
 }
 
 /**
@@ -1148,9 +1148,9 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct tree_lock *lock = &data_vio->tree_lock;
-	assert_in_allocated_zone(data_vio);
+	assert_data_vio_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure);
 		return;
 	}
 
@@ -1170,13 +1170,13 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 static void journal_block_map_allocation(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	assert_in_journal_zone(data_vio);
+	assert_data_vio_in_journal_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure);
 		return;
 	}
 
-	set_allocated_zone_callback(data_vio, set_block_map_page_reference_count);
+	set_data_vio_allocated_zone_callback(data_vio, set_block_map_page_reference_count);
 	add_vdo_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
@@ -1195,8 +1195,8 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 	struct tree_lock *lock = &data_vio->tree_lock;
 	physical_block_number_t pbn = allocating_vio->allocation;
 
-	if (!has_allocation(data_vio)) {
-		set_logical_callback(data_vio, allocation_failure);
+	if (!data_vio_has_allocation(data_vio)) {
+		set_data_vio_logical_callback(data_vio, allocation_failure);
 		continue_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
@@ -1207,7 +1207,7 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 						 MAPPING_STATE_UNCOMPRESSED,
 						 allocating_vio->allocation_lock,
 						 &data_vio->operation);
-	launch_journal_callback(data_vio, journal_block_map_allocation);
+	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation);
 }
 
 /**

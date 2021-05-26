@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#105 $
  */
 
 #include "blockMap.h"
@@ -624,8 +624,8 @@ set_mapped_entry(struct data_vio *data_vio,
 	struct data_location mapped = unpack_vdo_block_map_entry(entry);
 
 	if (vdo_is_valid_location(&mapped)) {
-		int result = set_mapped_location(data_vio, mapped.pbn,
-						 mapped.state);
+		int result = set_data_vio_mapped_location(data_vio, mapped.pbn,
+							  mapped.state);
 		/*
 		 * Return success and all errors not specifically known to be
 		 * errors from validating the location. Yes, this expression is
@@ -652,7 +652,7 @@ set_mapped_entry(struct data_vio *data_vio,
 
 	// A write VIO only reads this mapping to decref the old block. Treat
 	// this as an unmapped entry rather than fail the write.
-	clear_mapped_location(data_vio);
+	clear_data_vio_mapped_location(data_vio);
 	return VDO_SUCCESS;
 }
 
@@ -774,7 +774,7 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 	    VDO_ZERO_BLOCK) {
 		// We know that the block map page for this LBN has not been
 		// allocated, so the block must be unmapped.
-		clear_mapped_location(data_vio);
+		clear_data_vio_mapped_location(data_vio);
 		continue_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}

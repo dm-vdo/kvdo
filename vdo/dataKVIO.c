@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#141 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#142 $
  */
 
 #include "dataKVIO.h"
@@ -201,8 +201,8 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
  *   copy the data into the user bio for acknowledgement;
  *
  * - for a partial write, copy it into the data block, so that we can later
- *   copy data from the user bio atop it in apply_partial_write and treat it as
- *   a full-block write.
+ *   copy data from the user bio atop it in vdo_apply_partial_write and treat
+ *   it as a full-block write.
  *
  * This is called from read_data_vio_read_block_callback, registered only in
  * read_data_vio() and therefore never called on a 4k write.
@@ -559,7 +559,7 @@ static inline bool is_zero_block(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void apply_partial_write(struct data_vio *data_vio)
+void vdo_apply_partial_write(struct data_vio *data_vio)
 {
 	struct bio *bio = data_vio->user_bio;
 
@@ -588,7 +588,7 @@ void zero_data_vio(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void copy_data(struct data_vio *source, struct data_vio *destination)
+void vdo_copy_data(struct data_vio *source, struct data_vio *destination)
 {
 	ASSERT_LOG_ONLY(is_read_vio(data_vio_as_vio(destination)),
 			"only copy to a pure read");
@@ -907,14 +907,14 @@ void hash_data_vio(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void check_for_duplication(struct data_vio *data_vio)
+void check_data_vio_for_duplication(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero block not checked for duplication");
 	ASSERT_LOG_ONLY(data_vio->new_mapped.state != MAPPING_STATE_UNMAPPED,
 			"discard not checked for duplication");
 
-	if (has_allocation(data_vio)) {
+	if (data_vio_has_allocation(data_vio)) {
 		post_dedupe_advice(data_vio);
 	} else {
 		// This block has not actually been written (presumably because
@@ -925,7 +925,7 @@ void check_for_duplication(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void update_dedupe_index(struct data_vio *data_vio)
+void vdo_update_dedupe_index(struct data_vio *data_vio)
 {
 	update_dedupe_advice(data_vio);
 }
@@ -1062,7 +1062,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	uds_log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 		     wait_on, data_vio, get_data_vio_allocation(data_vio),
 		     data_vio->logical.lbn, data_vio->duplicate.pbn,
-		     get_operation_name(data_vio));
+		     get_data_vio_operation_name(data_vio));
 
 
 	for (waiter = first->next_waiter; waiter != first;
@@ -1071,7 +1071,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 			     data_vio, get_data_vio_allocation(data_vio),
 			     data_vio->logical.lbn, data_vio->duplicate.pbn,
-			     get_operation_name(data_vio));
+			     get_data_vio_operation_name(data_vio));
 	}
 }
 
@@ -1156,7 +1156,7 @@ static void dump_pooled_data_vio(void *data)
 			 get_data_vio_allocation(data_vio),
 			 data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
-	} else if (has_allocation(data_vio)) {
+	} else if (data_vio_has_allocation(data_vio)) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu",
@@ -1180,7 +1180,8 @@ static void dump_pooled_data_vio(void *data)
 
 	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
 		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
-		     get_operation_name(data_vio), vio_work_item_dump_buffer,
+		     get_data_vio_operation_name(data_vio),
+		     vio_work_item_dump_buffer,
 		     flags_dump_buffer);
 	// might want info on: wantUDSAnswer / operation / status
 	// might want info on: bio / bios_merged
@@ -1218,8 +1219,8 @@ struct data_location get_dedupe_advice(const struct dedupe_context *context)
 void set_dedupe_advice(struct dedupe_context *context,
 		       const struct data_location *advice)
 {
-	receive_dedupe_advice(container_of(context,
-					   struct data_vio,
-					   dedupe_context),
-			      advice);
+	receive_data_vio_dedupe_advice(container_of(context,
+						    struct data_vio,
+						    dedupe_context),
+				       advice);
 }
