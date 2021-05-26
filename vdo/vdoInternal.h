@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#65 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -174,6 +174,9 @@ struct vdo {
 	/** Limit the number of requests that are being processed. */
 	struct limiter request_limiter;
 	struct limiter discard_limiter;
+
+	/** N blobs of context data for LZ4 code, one per CPU thread. */
+	char **compression_context;
 };
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#190 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#191 $
  */
 
 #include "kernelLayer.h"
@@ -309,7 +309,7 @@ int make_kernel_layer(unsigned int instance,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
 {
-	int result, i;
+	int result;
 	struct kernel_layer *layer;
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
@@ -377,8 +377,6 @@ int make_kernel_layer(unsigned int instance,
 		return result;
 	}
 
-	// Spare kvdo_flush, so that we will always have at least one available
-
 	// Dedupe Index
 	BUG_ON(layer->thread_name_prefix[0] == '\0');
 	result = make_dedupe_index(&layer->dedupe_index, &layer->vdo);
@@ -386,29 +384,6 @@ int make_kernel_layer(unsigned int instance,
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);
 		return result;
-	}
-
-	// Compression context storage
-	result = ALLOCATE(config->thread_counts.cpu_threads,
-			  char *,
-			  "LZ4 context",
-			  &layer->compression_context);
-	if (result != VDO_SUCCESS) {
-		*reason = "cannot allocate LZ4 context";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = ALLOCATE(LZ4_MEM_COMPRESS,
-				  char,
-				  "LZ4 context",
-				  &layer->compression_context[i]);
-		if (result != VDO_SUCCESS) {
-			*reason = "cannot allocate LZ4 context";
-			free_kernel_layer(layer);
-			return result;
-		}
 	}
 
 
@@ -491,7 +466,7 @@ int make_kernel_layer(unsigned int instance,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) layer->compression_context,
+				 (void **) layer->vdo.compression_context,
 				 &layer->vdo.cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
@@ -627,18 +602,6 @@ int modify_kernel_layer(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
-static void free_compression_context(struct kernel_layer *layer)
-{
-	int i;
-	for (i = 0;
-	     i < layer->vdo.device_config->thread_counts.cpu_threads;
-	     i++) {
-		FREE(layer->compression_context[i]);
-	}
-	FREE(layer->compression_context);
-}
-
-/**********************************************************************/
 void free_kernel_layer(struct kernel_layer *layer)
 {
 	/*
@@ -693,9 +656,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
-		if (layer->compression_context != NULL) {
-			free_compression_context(layer);
-		}
 		if (layer->dedupe_index != NULL) {
 			finish_dedupe_index(layer->dedupe_index);
 		}

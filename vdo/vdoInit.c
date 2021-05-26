@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#15 $
  */
 
 #include "vdoInit.h"
@@ -24,6 +24,7 @@
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
+#include <linux/lz4.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -94,6 +95,59 @@ static int handle_initialization_failure(struct vdo *vdo, int result)
 	return result;
 }
 
+/**
+ * Allocate a vdos threads, queues, and other structures which scale with the
+ * thread config.
+ *
+ * @param vdo     The vdo being initialized
+ * @param reason  A pointer to hold an error message on failure
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int allocate_vdo_threads(struct vdo *vdo, char **reason)
+{
+	int i;
+	struct device_config *config = vdo->device_config;
+	int result
+		= make_vdo_thread_config(config->thread_counts.logical_zones,
+					 config->thread_counts.physical_zones,
+					 config->thread_counts.hash_zones,
+					 &vdo->thread_config);
+	if (result != VDO_SUCCESS) {
+		*reason = "Cannot create thread configuration";
+		return result;
+	}
+
+	uds_log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
+		     config->thread_counts.logical_zones,
+		     config->thread_counts.physical_zones,
+		     config->thread_counts.hash_zones,
+		     vdo->thread_config->base_thread_count);
+
+	// Compression context storage
+	result = ALLOCATE(config->thread_counts.cpu_threads,
+			  char *,
+			  "LZ4 context",
+			  &vdo->compression_context);
+	if (result != VDO_SUCCESS) {
+		*reason = "cannot allocate LZ4 context";
+		return result;
+	}
+
+	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
+		result = ALLOCATE(LZ4_MEM_COMPRESS,
+				  char,
+				  "LZ4 context",
+				  &vdo->compression_context[i]);
+		if (result != VDO_SUCCESS) {
+			*reason = "cannot allocate LZ4 context";
+			return result;
+		}
+	}
+
+	return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 int initialize_vdo(struct vdo *vdo,
 		   PhysicalLayer *layer,
@@ -122,20 +176,10 @@ int initialize_vdo(struct vdo *vdo,
 		return handle_initialization_failure(vdo, result);
 	}
 
-	result = make_vdo_thread_config(config->thread_counts.logical_zones,
-					config->thread_counts.physical_zones,
-					config->thread_counts.hash_zones,
-					&vdo->thread_config);
+	result = allocate_vdo_threads(vdo, reason);
 	if (result != VDO_SUCCESS) {
-		*reason = "Cannot create thread configuration";
 		return handle_initialization_failure(vdo, result);
 	}
-
-	uds_log_info("zones: %d logical, %d physical, %d hash; base threads: %d",
-		     config->thread_counts.logical_zones,
-		     config->thread_counts.physical_zones,
-		     config->thread_counts.hash_zones,
-		     vdo->thread_config->base_thread_count);
 
 	result = register_vdo(vdo);
 	if (result != VDO_SUCCESS) {
