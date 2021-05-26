@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#189 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#190 $
  */
 
 #include "kernelLayer.h"
@@ -187,9 +187,9 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	 * through the kernel page cache or roll their own.
 	 */
 	if (!limiter_poll(&vdo->request_limiter)) {
-		add_to_deadlock_queue(&vdo->deadlock_queue,
-				      bio,
-				      arrival_jiffies);
+		add_to_vdo_deadlock_queue(&vdo->deadlock_queue,
+					  bio,
+					  arrival_jiffies);
 		uds_log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
@@ -277,8 +277,8 @@ void complete_many_requests(struct vdo *vdo, uint32_t count)
 		bool has_discard_permit;
 		int result;
 		uint64_t arrival_jiffies = 0;
-		struct bio *bio = poll_deadlock_queue(&vdo->deadlock_queue,
-						      &arrival_jiffies);
+		struct bio *bio = poll_vdo_deadlock_queue(&vdo->deadlock_queue,
+							  &arrival_jiffies);
 		if (likely(bio == NULL)) {
 			break;
 		}

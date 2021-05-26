@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#8 $
  */
 
 #ifndef DEADLOCK_QUEUE_H
@@ -48,7 +48,7 @@ struct deadlock_queue {
  *
  * @param queue  The structure to initialize
  **/
-void initialize_deadlock_queue(struct deadlock_queue *queue);
+void initialize_vdo_deadlock_queue(struct deadlock_queue *queue);
 
 /**
  * Add an incoming bio to the list of saved-up bios we're not ready to start
@@ -63,9 +63,9 @@ void initialize_deadlock_queue(struct deadlock_queue *queue);
  * @param arrival_jiffies  The arrival time of this new bio
  **/
 
-void add_to_deadlock_queue(struct deadlock_queue *queue,
-			   struct bio *bio,
-			   uint64_t arrival_jiffies);
+void add_to_vdo_deadlock_queue(struct deadlock_queue *queue,
+			       struct bio *bio,
+			       uint64_t arrival_jiffies);
 
 /**
  * Pull an incoming bio off the queue.
@@ -79,8 +79,8 @@ void add_to_deadlock_queue(struct deadlock_queue *queue,
  *
  * @return a bio pointer, or NULL if none were queued
  **/
-static inline struct bio *poll_deadlock_queue(struct deadlock_queue *queue,
-					      uint64_t *arrival_jiffies)
+static inline struct bio *poll_vdo_deadlock_queue(struct deadlock_queue *queue,
+						  uint64_t *arrival_jiffies)
 {
 	struct bio *bio;
 
