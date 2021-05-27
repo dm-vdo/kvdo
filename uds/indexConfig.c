@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#5 $
  */
 
 #include "indexConfig.h"
@@ -74,8 +74,8 @@ static int decodeIndexConfig_06_02(Buffer *buffer, UdsConfiguration config)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  config->remappedChapter = 0;
-  config->chapterOffset = 0;
+  config->remappedVirtual = 0;
+  config->remappedPhysical = 0;
   if (ASSERT_LOG_ONLY(contentLength(buffer) == 0,
                       "%zu bytes decoded of %zu expected",
                       bufferLength(buffer) - contentLength(buffer),
@@ -125,11 +125,11 @@ static int decodeIndexConfig_08_02(Buffer *buffer, UdsConfiguration config)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &config->remappedChapter);
+  result = getUInt64LEFromBuffer(buffer, &config->remappedVirtual);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt64LEFromBuffer(buffer, &config->chapterOffset);
+  result = getUInt64LEFromBuffer(buffer, &config->remappedPhysical);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -300,11 +300,11 @@ static int encodeIndexConfig_08_02(Buffer *buffer, UdsConfiguration config)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt64LEIntoBuffer(buffer, config->remappedChapter);
+  result = putUInt64LEIntoBuffer(buffer, config->remappedVirtual);
   if (result != UDS_SUCCESS) {
     return result;
   }  
-  result = putUInt64LEIntoBuffer(buffer, config->chapterOffset);
+  result = putUInt64LEIntoBuffer(buffer, config->remappedPhysical);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -391,8 +391,8 @@ int makeConfiguration(UdsConfiguration conf, Configuration **configPtr)
                         conf->recordPagesPerChapter,
                         conf->chaptersPerVolume,
                         conf->sparseChaptersPerVolume,
-                        conf->remappedChapter,
-                        conf->chapterOffset,
+                        conf->remappedVirtual,
+                        conf->remappedPhysical,
                         &config->geometry);
   if (result != UDS_SUCCESS) {
     freeConfiguration(config);

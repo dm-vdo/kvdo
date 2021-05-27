@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.5.21
+%define kmod_driver_version	6.2.5.41
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,5 +96,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu May 20 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.21-1
-- Added support for VDO volumes which have been converted to LVM.
+* Thu May 27 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.41-1
+- Fixed bugs in reading the UDS index of a VDO volume which was converted
+  to LVM.

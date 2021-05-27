@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#16 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#17 $
  */
 
 #include "udsIndex.h"
@@ -746,9 +746,11 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
     return result;
   }
 
+  off_t offset = ((layer->geometry.regions[INDEX_REGION].startBlock
+                   - layer->geometry.bioOffset) * VDO_BLOCK_SIZE);
   result = allocSprintf("index name", &index->indexName,
-                        "dev=%s offset=4096 size=%llu",
-                        layer->deviceConfig->parentDeviceName,
+                        "dev=%s offset=%ld size=%llu",
+                        layer->deviceConfig->parentDeviceName, offset,
                         getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
   if (result != UDS_SUCCESS) {
     logError("Creating index name failed (%d)", result);

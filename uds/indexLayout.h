@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#14 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#16 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -232,10 +232,13 @@ int setupIndexSaveSlot(IndexLayout   *layout,
  *
  * @param layout  the generic index layout
  * @param config  the index configuration to write
+ * @param offset  A block offset to apply when writing the configuration
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
+int writeIndexConfig(IndexLayout      *layout,
+                     UdsConfiguration  config,
+                     off_t             offset)
   __attribute__((warn_unused_result));
 
 /**
@@ -260,22 +263,18 @@ const struct index_version *getIndexVersion(IndexLayout *layout)
   __attribute__((warn_unused_result));
 
 /**
- * Save an index layout table to persistant storage using the ioFactory in
- * the layout.
+ * Update and write out an index layout and configuration with a block offset
  *
- * @param layout The layout to save
+ * @param layout     The index_layout to be reconfigured
+ * @param config     The configuration to be written with the layout
+ * @param lvmBlocks  The adjustment for lvm space
+ * @param offset     The offset in bytes to move the index
  *
- * @return UDS_SUCCESS or an error code
- **/
-int saveSingleFileConfiguration(IndexLayout *layout)
-  __attribute__((warn_unused_result));
-
-/**
- * Reconfigure an index layout with a block offset
- *
- * @param layout   The indexLayout to be reconfigured
- * @param offset   The offset in blocks to move the index
- **/
-void reconfigureLayout(IndexLayout *layout, off_t offset);
+ * @return  UDS_SUCCESS or a error code
+ */
+int updateLayout(IndexLayout      *layout,
+                 UdsConfiguration  config,
+                 off_t             lvmBlocks,
+                 off_t             offset);
 
 #endif // INDEX_LAYOUT_H

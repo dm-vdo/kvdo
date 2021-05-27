@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#5 $
  */
 #include "masterIndex005.h"
 
@@ -1295,15 +1295,15 @@ static int computeMasterIndexParameters005(const Configuration *config,
    * one chapter. This preserves the mapping from hash to volume
    * index delta list.
    */
-  unsigned long deltaListChapters = params->numChapters;
+  unsigned long roundedChapters = params->numChapters;
   if (isReducedGeometry(geometry))
-    deltaListChapters += 1;
-  unsigned long deltaListRecords = recordsPerChapter * deltaListChapters;
+    roundedChapters += 1;
+  unsigned long deltaListRecords = recordsPerChapter * roundedChapters;
   unsigned int numAddresses = config->masterIndexMeanDelta * DELTA_LIST_SIZE;
   params->numDeltaLists
     = maxUint(deltaListRecords / DELTA_LIST_SIZE, minDeltaLists);
   params->addressBits = computeBits(numAddresses - 1);
-  params->chapterBits = computeBits(params->numChapters - 1);
+  params->chapterBits = computeBits(roundedChapters - 1);
 
   if ((unsigned int) params->numDeltaLists != params->numDeltaLists) {
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
@@ -1355,8 +1355,8 @@ static int computeMasterIndexParameters005(const Configuration *config,
    * the dead index entries in a 1K chapter index.  Since we do not want to do
    * that floating point computation, we use 4 chapters per 1K of chapters.
    */
-  unsigned long invalidChapters = maxUint(params->numChapters / 256, 2);
-  unsigned long chaptersInMasterIndex = params->numChapters + invalidChapters;
+  unsigned long invalidChapters = maxUint(roundedChapters / 256, 2);
+  unsigned long chaptersInMasterIndex = roundedChapters + invalidChapters;
   unsigned long entriesInMasterIndex
     = recordsPerChapter * chaptersInMasterIndex;
   // Compute the mean delta

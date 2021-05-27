@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#13 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#14 $
  */
 
 #include "uds.h"
@@ -239,7 +239,7 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
                                      LoadType                     loadType)
 {
   int result = ((loadType == LOAD_CREATE)
-                ? writeIndexConfig(layout, &indexSession->userConfig)
+                ? writeIndexConfig(layout, &indexSession->userConfig, 0)
                 : verifyIndexConfig(layout, &indexSession->userConfig));
   if (result != UDS_SUCCESS) {
     return result;

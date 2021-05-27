@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#8 $
  */
 
 #include "geometry.h"
@@ -35,8 +35,8 @@ static int initializeGeometry(Geometry     *geometry,
                               unsigned int  recordPagesPerChapter,
                               unsigned int  chaptersPerVolume,
                               unsigned int  sparseChaptersPerVolume,
-                              uint64_t      remappedChapter,
-                              uint64_t      chapterOffset)
+                              uint64_t      remappedVirtual,
+                              uint64_t      remappedPhysical)
 {
   int result = ASSERT_WITH_ERROR_CODE(bytesPerPage >= BYTES_PER_RECORD,
                                       UDS_BAD_STATE,
@@ -62,8 +62,8 @@ static int initializeGeometry(Geometry     *geometry,
   geometry->sparseChaptersPerVolume = sparseChaptersPerVolume;
   geometry->denseChaptersPerVolume  =
     chaptersPerVolume - sparseChaptersPerVolume;
-  geometry->remappedChapter = remappedChapter;
-  geometry->chapterOffset = chapterOffset;
+  geometry->remappedVirtual         = remappedVirtual;
+  geometry->remappedPhysical        = remappedPhysical;
 
   // Calculate the number of records in a page, chapter, and volume.
   geometry->recordsPerPage = bytesPerPage / BYTES_PER_RECORD;
@@ -111,8 +111,8 @@ int makeGeometry(size_t         bytesPerPage,
                  unsigned int   recordPagesPerChapter,
                  unsigned int   chaptersPerVolume,
                  unsigned int   sparseChaptersPerVolume,
-                 uint64_t       remappedChapter,
-                 uint64_t       chapterOffset,
+                 uint64_t       remappedVirtual,
+                 uint64_t       remappedPhysical,
                  Geometry     **geometryPtr)
 {
   Geometry *geometry;
@@ -125,8 +125,8 @@ int makeGeometry(size_t         bytesPerPage,
                               recordPagesPerChapter,
                               chaptersPerVolume,
                               sparseChaptersPerVolume,
-                              remappedChapter,
-                              chapterOffset);
+                              remappedVirtual,
+                              remappedPhysical);
   if (result != UDS_SUCCESS) {
     freeGeometry(geometry);
     return result;
@@ -143,8 +143,8 @@ int copyGeometry(Geometry *source, Geometry **geometryPtr)
                       source->recordPagesPerChapter,
                       source->chaptersPerVolume,
                       source->sparseChaptersPerVolume,
-                      source->remappedChapter,
-                      source->chapterOffset,
+                      source->remappedVirtual,
+                      source->remappedPhysical,
                       geometryPtr);
 }
 
@@ -152,6 +152,38 @@ int copyGeometry(Geometry *source, Geometry **geometryPtr)
 void freeGeometry(Geometry *geometry)
 {
   FREE(geometry);
+}
+
+/**********************************************************************/
+__attribute__((warn_unused_result))
+unsigned int mapToPhysicalChapter(const Geometry *geometry,
+                                  uint64_t        virtualChapter)
+{
+  uint64_t delta;
+  if (!isReducedGeometry(geometry)) {
+    return (virtualChapter % geometry->chaptersPerVolume);
+  }
+
+  if (likely(virtualChapter > geometry->remappedVirtual)) {
+    delta = virtualChapter - geometry->remappedVirtual;
+    if (likely(delta > geometry->remappedPhysical)) {
+      return (delta % geometry->chaptersPerVolume);
+    } else {
+      return (delta - 1);
+    }
+  }
+
+  if (virtualChapter == geometry->remappedVirtual) {
+    return geometry->remappedPhysical;
+  }
+
+  delta = geometry->remappedVirtual - virtualChapter;
+  if (delta < geometry->chaptersPerVolume) {
+    return (geometry->chaptersPerVolume - delta);
+  }
+
+  // This chapter is so old the answer doesn't matter.
+  return 0;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/config.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/config.h#5 $
  */
 
 #ifndef CONFIG_H
@@ -56,13 +56,10 @@ struct udsConfiguration {
   unsigned int sparseSampleRate;
   /** Index Owner's nonce */
   UdsNonce     nonce;
-  /** Virtual chapter remapped from physical chapter 0 in order
-   * to reduce chaptersPerVolume by one */
-  uint64_t remappedChapter;
-  /** Offset by which the remapped chapter was moved, one more
-   * than the post-remapping physical chapter number to which it
-   * was remapped */
-  uint64_t chapterOffset;
+  /** Virtual chapter remapped from physical chapter 0 */
+  uint64_t remappedVirtual;
+  /** New physical chapter which remapped chapter was moved to */
+  uint64_t remappedPhysical;
 };
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#13 $
  */
 
 #include "volumeGeometry.h"
@@ -236,14 +236,14 @@ static int decodeVolumeGeometry(Buffer         *buffer,
     return result;
   }
 
-  if (version <= 4) {
-    geometry->bioOffset = 0;
-  } else {
-    result = getUInt64LEFromBuffer(buffer, &geometry->bioOffset);
+  BlockCount bioOffset = 0;
+  if (version > 4) {
+    result = getUInt64LEFromBuffer(buffer, &bioOffset);
     if (result != VDO_SUCCESS) {
       return result;
     }
   }
+  geometry->bioOffset = bioOffset;
 
   for (VolumeRegionID id = 0; id < VOLUME_REGION_COUNT; id++) {
     result = decodeVolumeRegion(buffer, &geometry->regions[id]);
@@ -326,13 +326,15 @@ static int decodeGeometryBlock(Buffer *buffer, VolumeGeometry *geometry)
     return result;
   }
 
-  result = validateHeader(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
-  if (result != VDO_SUCCESS) {
+  if (header.version.majorVersion <= 4) {
+    result = validateHeader(&GEOMETRY_BLOCK_HEADER_4_0, &header, true,
+                            __func__);
+  } else {
     result = validateHeader(&GEOMETRY_BLOCK_HEADER_5_0, &header, true,
                             __func__);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
+  }
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
   result = decodeVolumeGeometry(buffer, geometry, header.version.majorVersion);

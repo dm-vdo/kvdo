@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/util/funnelQueue.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/util/funnelQueue.c#3 $
  */
 
 #include "funnelQueue.h"
