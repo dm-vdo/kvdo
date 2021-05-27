@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#44 $
  */
 
 #include "volumeGeometry.h"
@@ -37,14 +37,25 @@
 
 enum {
 	MAGIC_NUMBER_SIZE = 8,
+	DEFAULT_GEOMETRY_BLOCK_VERSION = 4,
 };
 
 struct geometry_block {
 	char magic_number[MAGIC_NUMBER_SIZE];
 	struct header header;
-	struct volume_geometry geometry;
 	crc32_checksum_t checksum;
 } __packed;
+
+static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
+	.id = GEOMETRY_BLOCK,
+	.version = {
+		.major_version = 5,
+		.minor_version = 0,
+	},
+	// Note: this size isn't just the payload size following the header,
+	// like it is everywhere else in VDO.
+	.size = sizeof(struct geometry_block) + sizeof(struct volume_geometry),
+};
 
 static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 	.id = GEOMETRY_BLOCK,
@@ -54,7 +65,8 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 	},
 	// Note: this size isn't just the payload size following the header,
 	// like it is everywhere else in VDO.
-	.size = sizeof(struct geometry_block),
+	.size = sizeof(struct geometry_block) +
+		sizeof(struct volume_geometry_4_0),
 };
 
 static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
@@ -162,11 +174,13 @@ static int decode_volume_region(struct buffer *buffer,
  *
  * @param buffer    A buffer positioned at the start of the encoding
  * @param geometry  The structure to receive the decoded fields
+ * @param version   The geometry block version to decode
  *
  * @return UDS_SUCCESS or an error
  **/
 static int decode_volume_geometry(struct buffer *buffer,
-				  struct volume_geometry *geometry)
+				  struct volume_geometry *geometry,
+				  uint32_t version)
 {
 	release_version_number_t release_version;
 	enum volume_region_id id;
@@ -189,6 +203,15 @@ static int decode_volume_geometry(struct buffer *buffer,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
+
+	block_count_t bio_offset = 0;
+	if (version > 4) {
+		result = get_uint64_le_from_buffer(buffer, &bio_offset);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+	}
+	geometry->bio_offset = bio_offset;
 
 	for (id = 0; id < VOLUME_REGION_COUNT; id++) {
 		result = decode_volume_region(buffer, &geometry->regions[id]);
@@ -230,13 +253,19 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 	}
 
-	result = validate_vdo_header(&GEOMETRY_BLOCK_HEADER_4_0, &header,
-				     true, __func__);
+	if (header.version.major_version <= 4) {
+		result = validate_vdo_header(&GEOMETRY_BLOCK_HEADER_4_0,
+					     &header, true, __func__);
+	} else {
+		result = validate_vdo_header(&GEOMETRY_BLOCK_HEADER_5_0,
+					     &header, true, __func__);
+	}
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_volume_geometry(buffer, geometry);
+	result = decode_volume_geometry(buffer, geometry, 
+					header.version.major_version);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#26 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -63,6 +63,22 @@ struct volume_geometry {
 	nonce_t nonce;
 	/** The uuid of this volume */
 	uuid_t uuid;
+	/** The block offset to be applied to bios */
+	block_count_t bio_offset;
+	/** The regions in ID order */
+	struct volume_region regions[VOLUME_REGION_COUNT];
+	/** The index config */
+	struct index_config index_config;
+} __packed;
+
+/** This volume geometry struct is used for sizing only */
+struct volume_geometry_4_0 {
+	/** The release version number of this volume */
+	release_version_number_t release_version;
+	/** The nonce of this volume */
+	nonce_t nonce;
+	/** The uuid of this volume */
+	uuid_t uuid;
 	/** The regions in ID order */
 	struct volume_region regions[VOLUME_REGION_COUNT];
 	/** The index config */
@@ -77,7 +93,7 @@ struct volume_geometry {
  * @return The start of the index region
  **/
 static inline physical_block_number_t __must_check
-vdo_get_index_region_offset(struct volume_geometry geometry)
+vdo_get_index_region_start(struct volume_geometry geometry)
 {
 	return geometry.regions[INDEX_REGION].start_block;
 }
@@ -90,7 +106,7 @@ vdo_get_index_region_offset(struct volume_geometry geometry)
  * @return The start of the data region
  **/
 static inline physical_block_number_t __must_check
-vdo_get_data_region_offset(struct volume_geometry geometry)
+vdo_get_data_region_start(struct volume_geometry geometry)
 {
 	return geometry.regions[DATA_REGION].start_block;
 }
@@ -105,8 +121,8 @@ vdo_get_data_region_offset(struct volume_geometry geometry)
 static inline physical_block_number_t __must_check
 vdo_get_index_region_size(struct volume_geometry geometry)
 {
-	return vdo_get_data_region_offset(geometry) -
-		vdo_get_index_region_offset(geometry);
+	return vdo_get_data_region_start(geometry) -
+		vdo_get_index_region_start(geometry);
 }
 
 /**
