@@ -16,14 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#56 $
  */
 
 #include "dataVIO.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "bio.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "extent.h"
@@ -384,4 +386,18 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 	// XXX: this is only an issue in the 1 thread config.
 	data_vio_as_completion(next_lock_holder)->requeue = true;
 	launch_locked_request(next_lock_holder);
+}
+
+/**********************************************************************/
+void free_data_vio(struct data_vio *data_vio)
+{
+	if (data_vio == NULL) {
+		return;
+	}
+
+	vdo_free_bio(FORGET(data_vio_as_vio(data_vio)->bio));
+	FREE(FORGET(data_vio->read_block.buffer));
+	FREE(FORGET(data_vio->data_block));
+	FREE(FORGET(data_vio->scratch_block));
+	FREE(FORGET(data_vio));
 }

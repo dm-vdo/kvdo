@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#84 $
  */
 
 #ifndef DATA_VIO_H
@@ -1128,5 +1128,12 @@ void write_data_vio(struct data_vio *data_vio);
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
 bool compare_data_vios(struct data_vio *first, struct data_vio *second);
+
+/**
+ * Destroy a data_vio.
+ *
+ * @param data_vio  The data_vio to free
+ **/
+void free_data_vio(struct data_vio *data_vio);
 
 #endif // DATA_VIO_H

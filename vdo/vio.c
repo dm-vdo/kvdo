@@ -16,10 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#43 $
  */
 
 #include "vio.h"
+
+#include <linux/kernel.h>
+#include <linux/ratelimit.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -27,8 +30,6 @@
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
-
-#include <linux/ratelimit.h>
 
 /**********************************************************************/
 int create_metadata_vio(struct vdo *vdo,
@@ -87,7 +88,10 @@ void free_vio(struct vio **vio_ptr)
 		return;
 	}
 
-	destroy_vio(vio_ptr);
+	BUG_ON(is_data_vio(vio));
+	vdo_free_bio(vio->bio);
+	FREE(vio);
+	*vio_ptr = NULL;
 }
 
 /**********************************************************************/

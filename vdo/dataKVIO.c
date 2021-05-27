@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#143 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#144 $
  */
 
 #include "dataKVIO.h"
@@ -935,28 +935,13 @@ void vdo_update_dedupe_index(struct data_vio *data_vio)
  **/
 static void free_pooled_data_vio(void *data)
 {
-	struct data_vio *data_vio;
-	struct vio *vio;
-
-	if (data == NULL) {
-		return;
-	}
-
-	data_vio = data;
+	struct data_vio *data_vio = FORGET(data);
 
 	if (WRITE_PROTECT_FREE_POOL) {
 		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
 	}
 
-	vio = data_vio_as_vio(data_vio);
-	if (vio->bio != NULL) {
-		vdo_free_bio(vio->bio);
-	}
-
-	FREE(data_vio->read_block.buffer);
-	FREE(data_vio->data_block);
-	FREE(data_vio->scratch_block);
-	FREE(data_vio);
+	free_data_vio(FORGET(data_vio));
 }
 
 /**
