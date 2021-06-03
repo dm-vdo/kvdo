@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#25 $
  */
 
 #include "sysfs.h"
@@ -77,7 +77,7 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_dedupe_index_timeout_interval(*(uint *)kp->arg);
+	set_vdo_dedupe_index_timeout_interval(*(uint *)kp->arg);
 	return 0;
 }
 
@@ -89,7 +89,7 @@ static int vdo_min_dedupe_timer_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_min_dedupe_index_timer_interval(*(uint *)kp->arg);
+	set_vdo_dedupe_index_min_timer_interval(*(uint *)kp->arg);
 	return 0;
 }
 
@@ -119,7 +119,7 @@ module_param_cb(log_level, &log_level_ops, NULL, 0644);
 
 
 module_param_cb(deduplication_timeout_interval, &dedupe_timeout_ops,
-		&dedupe_index_timeout_interval, 0644);
+		&vdo_dedupe_index_timeout_interval, 0644);
 
 module_param_cb(min_deduplication_timer_interval, &dedupe_timer_ops,
-		&min_dedupe_index_timer_interval, 0644);
+		&vdo_dedupe_index_min_timer_interval, 0644);

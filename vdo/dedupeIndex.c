@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#93 $
  */
 
 #include "dedupeIndex.h"
@@ -120,12 +120,12 @@ static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
 // These times are in milliseconds, and these are the default values.
-unsigned int dedupe_index_timeout_interval = 5000;
-unsigned int min_dedupe_index_timer_interval = 100;
+unsigned int vdo_dedupe_index_timeout_interval = 5000;
+unsigned int vdo_dedupe_index_min_timer_interval = 100;
 
 // These times are in jiffies
-static uint64_t dedupe_index_timeout_jiffies;
-static uint64_t min_dedupe_index_timer_jiffies;
+static uint64_t vdo_dedupe_index_timeout_jiffies;
+static uint64_t vdo_dedupe_index_min_timer_jiffies;
 
 /**********************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
@@ -213,12 +213,12 @@ static bool decode_uds_advice(const struct uds_request *request,
  **/
 static uint64_t get_dedupe_index_timeout(uint64_t start_jiffies)
 {
-	return max(start_jiffies + dedupe_index_timeout_jiffies,
-		   jiffies + min_dedupe_index_timer_jiffies);
+	return max(start_jiffies + vdo_dedupe_index_timeout_jiffies,
+		   jiffies + vdo_dedupe_index_min_timer_jiffies);
 }
 
 /**********************************************************************/
-void set_dedupe_index_timeout_interval(unsigned int value)
+void set_vdo_dedupe_index_timeout_interval(unsigned int value)
 {
 	uint64_t alb_jiffies;
 
@@ -233,12 +233,12 @@ void set_dedupe_index_timeout_interval(unsigned int value)
 		alb_jiffies = 2;
 		value = jiffies_to_msecs(alb_jiffies);
 	}
-	dedupe_index_timeout_interval = value;
-	dedupe_index_timeout_jiffies = alb_jiffies;
+	vdo_dedupe_index_timeout_interval = value;
+	vdo_dedupe_index_timeout_jiffies = alb_jiffies;
 }
 
 /**********************************************************************/
-void set_min_dedupe_index_timer_interval(unsigned int value)
+void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 {
 	uint64_t min_jiffies;
 
@@ -255,8 +255,8 @@ void set_min_dedupe_index_timer_interval(unsigned int value)
 		value = jiffies_to_msecs(min_jiffies);
 	}
 
-	min_dedupe_index_timer_interval = value;
-	min_dedupe_index_timer_jiffies = min_jiffies;
+	vdo_dedupe_index_min_timer_interval = value;
+	vdo_dedupe_index_min_timer_jiffies = min_jiffies;
 }
 
 /**********************************************************************/
@@ -349,7 +349,7 @@ static void start_index_operation(struct vdo_work_item *item)
 }
 
 /**********************************************************************/
-uint64_t get_dedupe_timeout_count(struct dedupe_index *index)
+uint64_t get_vdo_dedupe_index_timeout_count(struct dedupe_index *index)
 {
 	return atomic64_read(&index->timeout_reporter.value);
 }
@@ -439,7 +439,7 @@ static void timeout_index_operations(struct timer_list *t)
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
 	LIST_HEAD(expired_head);
 	uint64_t timeout_jiffies =
-		msecs_to_jiffies(dedupe_index_timeout_interval);
+		msecs_to_jiffies(vdo_dedupe_index_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
 	unsigned int timed_out = 0;
 
@@ -482,8 +482,8 @@ static void timeout_index_operations(struct timer_list *t)
 }
 
 /**********************************************************************/
-void enqueue_index_operation(struct data_vio *data_vio,
-			     enum uds_callback_type operation)
+void enqueue_vdo_index_operation(struct data_vio *data_vio,
+				 enum uds_callback_type operation)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
@@ -544,8 +544,8 @@ static void close_index(struct dedupe_index *index)
 {
 	int result;
 
-	// Change the index state so that get_index_statistics will not try to
-	// use the index session we are closing.
+	// Change the index state so that get_vdo_dedupe_index_statistics will
+	// not try to use the index session we are closing.
 	index->index_state = IS_CHANGING;
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
@@ -696,7 +696,7 @@ static void set_target_state(struct dedupe_index *index,
 }
 
 /**********************************************************************/
-void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
+void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 {
 	enum index_state state;
 
@@ -716,7 +716,7 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 }
 
 /**********************************************************************/
-void resume_dedupe_index(struct dedupe_index *index)
+void resume_vdo_dedupe_index(struct dedupe_index *index)
 {
 	int result = uds_resume_index_session(index->index_session);
 	if (result != UDS_SUCCESS) {
@@ -731,7 +731,7 @@ void resume_dedupe_index(struct dedupe_index *index)
 
 
 /**********************************************************************/
-void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
+void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue)
 {
 	const char *state, *target;
 
@@ -752,7 +752,7 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 }
 
 /**********************************************************************/
-void finish_dedupe_index(struct dedupe_index *index)
+void finish_vdo_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
 	uds_destroy_index_session(index->index_session);
@@ -760,7 +760,7 @@ void finish_dedupe_index(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-void free_dedupe_index(struct dedupe_index **index_ptr)
+void free_vdo_dedupe_index(struct dedupe_index **index_ptr)
 {
 	struct dedupe_index *index;
 	if (*index_ptr == NULL) {
@@ -780,7 +780,7 @@ void free_dedupe_index(struct dedupe_index **index_ptr)
 }
 
 /**********************************************************************/
-const char *get_dedupe_state_name(struct dedupe_index *index)
+const char *get_vdo_dedupe_index_state_name(struct dedupe_index *index)
 {
 	const char *state;
 
@@ -792,8 +792,8 @@ const char *get_dedupe_state_name(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-void get_index_statistics(struct dedupe_index *index,
-			  struct index_statistics *stats)
+void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
+				     struct index_statistics *stats)
 {
 	enum index_state state;
 
@@ -835,7 +835,7 @@ void get_index_statistics(struct dedupe_index *index,
 
 
 /**********************************************************************/
-int message_dedupe_index(struct dedupe_index *index, const char *name)
+int message_vdo_dedupe_index(struct dedupe_index *index, const char *name)
 {
 	if (strcasecmp(name, "index-close") == 0) {
 		set_target_state(index, IS_CLOSED, false, false, false);
@@ -854,13 +854,13 @@ int message_dedupe_index(struct dedupe_index *index, const char *name)
 }
 
 /**********************************************************************/
-void start_dedupe_index(struct dedupe_index *index, bool create_flag)
+void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag)
 {
 	set_target_state(index, IS_OPENED, true, true, create_flag);
 }
 
 /**********************************************************************/
-void stop_dedupe_index(struct dedupe_index *index)
+void stop_vdo_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
 }
@@ -910,7 +910,7 @@ static struct sysfs_ops dedupe_sysfs_ops = {
 
 static struct uds_attribute dedupe_status_attribute = {
 	.attr = {.name = "status", .mode = 0444, },
-	.show_string = get_dedupe_state_name,
+	.show_string = get_vdo_dedupe_index_state_name,
 };
 
 static struct attribute *dedupe_attributes[] = {
@@ -946,7 +946,7 @@ static void finish_uds_queue(void *ptr __always_unused)
 }
 
 /**********************************************************************/
-int make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
+int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 {
 	int result;
 	struct dedupe_index *index;
@@ -961,8 +961,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 			  .priority = 0 },
 		},
 	};
-	set_dedupe_index_timeout_interval(dedupe_index_timeout_interval);
-	set_min_dedupe_index_timer_interval(min_dedupe_index_timer_interval);
+	set_vdo_dedupe_index_timeout_interval(vdo_dedupe_index_timeout_interval);
+	set_vdo_dedupe_index_min_timer_interval(vdo_dedupe_index_min_timer_interval);
 
 	result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
 

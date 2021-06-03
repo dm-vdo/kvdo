@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#144 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#145 $
  */
 
 #include "dataKVIO.h"
@@ -915,19 +915,19 @@ void check_data_vio_for_duplication(struct data_vio *data_vio)
 			"discard not checked for duplication");
 
 	if (data_vio_has_allocation(data_vio)) {
-		post_dedupe_advice(data_vio);
+		post_vdo_dedupe_advice(data_vio);
 	} else {
 		// This block has not actually been written (presumably because
 		// we are full), so attempt to dedupe without posting bogus
 		// advice.
-		query_dedupe_advice(data_vio);
+		query_vdo_dedupe_advice(data_vio);
 	}
 }
 
 /**********************************************************************/
 void vdo_update_dedupe_index(struct data_vio *data_vio)
 {
-	update_dedupe_advice(data_vio);
+	update_vdo_dedupe_advice(data_vio);
 }
 
 /**

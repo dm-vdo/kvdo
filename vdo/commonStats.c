@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#14 $
  */
 
 #include "releaseVersions.h"
@@ -63,11 +63,11 @@ void get_vdo_kernel_statistics(struct kernel_layer *layer,
 	get_limiter_values_atomically(&layer->vdo.request_limiter,
 				      &stats->current_vios_in_progress,
 				      &stats->max_vios);
-	// get_dedupe_timeout_count() gives the number of timeouts, and
-	// dedupe_context_busy gives the number of queries not made because of
-	// earlier timeouts.
+	// get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
+	// and dedupe_context_busy gives the number of queries not made because
+	// of earlier timeouts.
 	stats->dedupe_advice_timeouts =
-		(get_dedupe_timeout_count(layer->dedupe_index) +
+		(get_vdo_dedupe_index_timeout_count(layer->dedupe_index) +
 		 atomic64_read(&layer->dedupe_context_busy));
 	stats->flush_out = atomic64_read(&layer->flush_out);
 	stats->logical_block_size =
@@ -91,5 +91,5 @@ void get_vdo_kernel_statistics(struct kernel_layer *layer,
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 	stats->memory_usage = get_memory_usage();
-	get_index_statistics(layer->dedupe_index, &stats->index);
+	get_vdo_dedupe_index_statistics(layer->dedupe_index, &stats->index);
 }
