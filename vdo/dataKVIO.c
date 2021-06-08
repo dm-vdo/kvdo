@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#145 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#146 $
  */
 
 #include "dataKVIO.h"
@@ -76,33 +76,6 @@ static void dump_pooled_data_vio(void *data);
  **/
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
-
-enum {
-	WRITE_PROTECT_FREE_POOL = 0,
-	WP_DATA_VIO_SIZE =
-		(sizeof(struct data_vio) + PAGE_SIZE - 1 -
-		((sizeof(struct data_vio) + PAGE_SIZE - 1) % PAGE_SIZE)) };
-
-/**
- * Alter the write-access permission to a page of memory, so that
- * objects in the free pool may no longer be modified.
- *
- * To do: Deny read access as well.
- *
- * @param address     The starting address to protect, which must be on a
- *                    page boundary
- * @param byte_count  The number of bytes to protect, which must be a multiple
- *                    of the page size
- * @param mode        The write protection mode (true means read-only)
- **/
-static __always_inline void set_write_protect(void *address,
-					      size_t byte_count,
-					      bool mode __maybe_unused)
-{
-	BUG_ON((((long) address) % PAGE_SIZE) != 0);
-	BUG_ON((byte_count % PAGE_SIZE) != 0);
-	BUG(); // only works in internal code, sorry
-}
 
 /**********************************************************************/
 static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
@@ -681,10 +654,6 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 					  "data vio allocation failure");
 	}
 
-	if (WRITE_PROTECT_FREE_POOL) {
-		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
-	}
-
 	vio = data_vio_as_vio(data_vio);
 	// XXX We save the bio out of the vio so that we don't forget it.
 	// Maybe we should just not zero that field somehow.
@@ -935,13 +904,7 @@ void vdo_update_dedupe_index(struct data_vio *data_vio)
  **/
 static void free_pooled_data_vio(void *data)
 {
-	struct data_vio *data_vio = FORGET(data);
-
-	if (WRITE_PROTECT_FREE_POOL) {
-		set_write_protect(data_vio, WP_DATA_VIO_SIZE, false);
-	}
-
-	free_data_vio(FORGET(data_vio));
+	free_data_vio((struct data_vio *) FORGET(data));
 }
 
 /**
@@ -956,18 +919,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 {
 	struct data_vio *data_vio;
 	struct vio *vio;
-	int result;
-
-	if (WRITE_PROTECT_FREE_POOL) {
-		STATIC_ASSERT(sizeof(struct data_vio) <= WP_DATA_VIO_SIZE);
-		result = allocate_memory(WP_DATA_VIO_SIZE, 0, __func__,
-					 &data_vio);
-		if (result == VDO_SUCCESS) {
-			BUG_ON((((size_t) data_vio) & (PAGE_SIZE - 1)) != 0);
-		}
-	} else {
-		result = ALLOCATE(1, struct data_vio, __func__, &data_vio);
-	}
+	int result = ALLOCATE(1, struct data_vio, __func__, &data_vio);
 
 	if (result != VDO_SUCCESS) {
 		return log_error_strerror(result,
@@ -978,7 +930,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "vio data",
 				 &data_vio->data_block);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_vio(data_vio);
+		free_data_vio(FORGET(data_vio));
 		return log_error_strerror(result,
 					  "data_vio data allocation failure");
 	}
@@ -986,7 +938,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	vio = data_vio_as_vio(data_vio);
 	result = vdo_create_bio(&vio->bio);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_vio(data_vio);
+		free_data_vio(FORGET(data_vio));
 		return log_error_strerror(result,
 					  "data_vio data bio allocation failure");
 	}
@@ -994,7 +946,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "vio read buffer",
 				 &data_vio->read_block.buffer);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_vio(data_vio);
+		free_data_vio(FORGET(data_vio));
 		return log_error_strerror(result,
 					  "data_vio read allocation failure");
 	}
@@ -1002,7 +954,7 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch",
 				 &data_vio->scratch_block);
 	if (result != VDO_SUCCESS) {
-		free_pooled_data_vio(data_vio);
+		free_data_vio(FORGET(data_vio));
 		return log_error_strerror(result,
 					  "data_vio scratch allocation failure");
 	}
