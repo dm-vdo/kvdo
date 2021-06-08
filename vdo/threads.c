@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threads.c#4 $
  */
 
 #include "threads.h"
@@ -25,7 +25,7 @@
 #include <linux/sched.h>
 
 /**********************************************************************/
-pid_t get_thread_id(void)
+pid_t vdo_get_thread_id(void)
 {
 	return in_interrupt() ? -1 : current->pid;
 }
