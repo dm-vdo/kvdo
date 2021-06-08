@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#47 $
  */
 
 #include "flush.h"
@@ -464,5 +464,5 @@ void vdo_complete_flush(struct vdo_flush **flush_ptr)
 			vdo_complete_flush_work,
 			NULL,
 			BIO_Q_ACTION_FLUSH);
-	enqueue_bio_work_item(flush->vdo->io_submitter, &flush->work_item);
+	vdo_enqueue_bio_work_item(flush->vdo->io_submitter, &flush->work_item);
 }

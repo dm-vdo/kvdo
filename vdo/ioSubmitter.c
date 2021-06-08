@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#79 $
  */
 
 #include "ioSubmitter.h"
@@ -519,12 +519,12 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 }
 
 /**********************************************************************/
-int make_io_submitter(const char *thread_name_prefix,
-		      unsigned int thread_count,
-		      unsigned int rotation_interval,
-		      unsigned int max_requests_active,
-		      struct kernel_layer *layer,
-		      struct io_submitter **io_submitter_ptr)
+int make_vdo_io_submitter(const char *thread_name_prefix,
+			  unsigned int thread_count,
+			  unsigned int rotation_interval,
+			  unsigned int max_requests_active,
+			  struct kernel_layer *layer,
+			  struct io_submitter **io_submitter_ptr)
 {
 	char queue_name[MAX_QUEUE_NAME_LEN];
 	unsigned int i;
@@ -566,8 +566,8 @@ int make_io_submitter(const char *thread_name_prefix,
 			// entirely and indicate that initialization failed.
 			uds_log_error("bio map initialization failed %d",
 				      result);
-			cleanup_io_submitter(io_submitter);
-			free_io_submitter(io_submitter);
+			cleanup_vdo_io_submitter(io_submitter);
+			free_vdo_io_submitter(io_submitter);
 			return result;
 		}
 
@@ -582,8 +582,8 @@ int make_io_submitter(const char *thread_name_prefix,
 			free_int_map(FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
 				      result);
-			cleanup_io_submitter(io_submitter);
-			free_io_submitter(io_submitter);
+			cleanup_vdo_io_submitter(io_submitter);
+			free_vdo_io_submitter(io_submitter);
 			return result;
 		}
 
@@ -596,7 +596,7 @@ int make_io_submitter(const char *thread_name_prefix,
 }
 
 /**********************************************************************/
-void cleanup_io_submitter(struct io_submitter *io_submitter)
+void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -606,7 +606,7 @@ void cleanup_io_submitter(struct io_submitter *io_submitter)
 }
 
 /**********************************************************************/
-void free_io_submitter(struct io_submitter *io_submitter)
+void free_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -619,7 +619,7 @@ void free_io_submitter(struct io_submitter *io_submitter)
 }
 
 /**********************************************************************/
-void dump_bio_work_queue(struct io_submitter *io_submitter)
+void vdo_dump_bio_work_queue(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -630,8 +630,8 @@ void dump_bio_work_queue(struct io_submitter *io_submitter)
 
 
 /**********************************************************************/
-void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   struct vdo_work_item *work_item)
+void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,
+			       struct vdo_work_item *work_item)
 {
 	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
 

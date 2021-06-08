@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#192 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#193 $
  */
 
 #include "kernelLayer.h"
@@ -423,12 +423,12 @@ int make_kernel_layer(unsigned int instance,
 	set_kernel_layer_state(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
 	// Bio queue
-	result = make_io_submitter(layer->thread_name_prefix,
-				   config->thread_counts.bio_threads,
-				   config->thread_counts.bio_rotation_interval,
-				   layer->vdo.request_limiter.limit,
-				   layer,
-				   &layer->vdo.io_submitter);
+	result = make_vdo_io_submitter(layer->thread_name_prefix,
+				       config->thread_counts.bio_threads,
+				       config->thread_counts.bio_rotation_interval,
+				       layer->vdo.request_limiter.limit,
+				       layer,
+				       &layer->vdo.io_submitter);
 	if (result != VDO_SUCCESS) {
 		// If initialization of the bio-queues failed, they are cleaned
 		// up already, so just free the rest of the kernel layer.
@@ -644,7 +644,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BIO_DATA_INITIALIZED:
-		cleanup_io_submitter(layer->vdo.io_submitter);
+		cleanup_vdo_io_submitter(layer->vdo.io_submitter);
 		// fall through
 
 	case LAYER_REQUEST_QUEUE_INITIALIZED:
@@ -674,7 +674,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		free_work_queue(&layer->bio_ack_queue);
 	}
 	if (layer->vdo.io_submitter) {
-		free_io_submitter(layer->vdo.io_submitter);
+		free_vdo_io_submitter(layer->vdo.io_submitter);
 	}
 
 	free_vdo_dedupe_index(&layer->dedupe_index);
