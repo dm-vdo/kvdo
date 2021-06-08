@@ -1396,9 +1396,9 @@ int write_kernel_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_kernel_stats(struct kernel_layer *layer,
-		       char *buf,
-		       unsigned int maxlen)
+int write_vdo_kernel_stats(struct kernel_layer *layer,
+			   char *buf,
+			   unsigned int maxlen)
 {
 	struct kernel_statistics *stats;
 	int result = ALLOCATE(1, struct kernel_statistics, __func__, &stats);

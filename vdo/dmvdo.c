@@ -442,7 +442,7 @@ static int vdo_message(struct dm_target *ti,
 		}
 
 		if (strcasecmp(argv[0], "kernel_stats") == 0) {
-			write_kernel_stats(layer, result_buffer, maxlen);
+			write_vdo_kernel_stats(layer, result_buffer, maxlen);
 			uds_unregister_thread_device_id();
 			unregister_allocating_thread();
 			return 1;
