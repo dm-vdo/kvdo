@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#15 $
  */
 
 #include "releaseVersions.h"
@@ -90,6 +90,6 @@ void get_vdo_kernel_statistics(struct kernel_layer *layer,
 		      &layer->bios_acknowledged_partial);
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
-	stats->memory_usage = get_memory_usage();
+	stats->memory_usage = get_vdo_memory_usage();
 	get_vdo_dedupe_index_statistics(layer->dedupe_index, &stats->index);
 }
