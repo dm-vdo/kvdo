@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#8 $
  */
 
 #include "vdoStringUtils.h"
@@ -29,7 +29,7 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-void free_string_array(char **string_array)
+void vdo_free_string_array(char **string_array)
 {
 	unsigned int offset;
 
@@ -40,9 +40,9 @@ void free_string_array(char **string_array)
 }
 
 /**********************************************************************/
-int split_string(const char *string,
-		 char separator,
-		 char ***substring_array_ptr)
+int vdo_split_string(const char *string,
+		     char separator,
+		     char ***substring_array_ptr)
 {
 	unsigned int current_substring = 0, substring_count = 1;
 	const char *s;
@@ -73,7 +73,7 @@ int split_string(const char *string,
 					  "split string",
 					  &substrings[current_substring]);
 			if (result != UDS_SUCCESS) {
-				free_string_array(substrings);
+				vdo_free_string_array(substrings);
 				return result;
 			}
 			// Trailing NUL is already in place after allocation;
@@ -98,7 +98,7 @@ int split_string(const char *string,
 			  "split string",
 			  &substrings[current_substring]);
 	if (result != UDS_SUCCESS) {
-		free_string_array(substrings);
+		vdo_free_string_array(substrings);
 		return result;
 	}
 	memcpy(substrings[current_substring], string, length);
@@ -109,8 +109,8 @@ int split_string(const char *string,
 }
 
 /**********************************************************************/
-int join_strings(char **substring_array, size_t array_length, char separator,
-		 char **string_ptr)
+int vdo_join_strings(char **substring_array, size_t array_length,
+		     char separator, char **string_ptr)
 {
 	size_t string_length = 0;
 	size_t i;
@@ -148,7 +148,7 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 }
 
 /**********************************************************************/
-int string_to_uint(const char *input, unsigned int *value_ptr)
+int vdo_string_to_uint(const char *input, unsigned int *value_ptr)
 {
 	unsigned long long_value;
 	int result = kstrtoul(input, 10, &long_value);

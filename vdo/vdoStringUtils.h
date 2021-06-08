@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#7 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -32,7 +32,7 @@
  *
  * The string pointers and the pointer array itself should both be
  * freed with FREE() when no longer needed. This can be done with
- * free_string_array (below) if the pointers in the array are not
+ * vdo_free_string_array (below) if the pointers in the array are not
  * changed. Since the array and copied strings are allocated by this
  * function, it may only be used in contexts where allocation is
  * permitted.
@@ -47,7 +47,7 @@
  * @return UDS_SUCCESS or -ENOMEM
  **/
 int __must_check
-split_string(const char *string, char separator, char ***substring_array_ptr);
+vdo_split_string(const char *string, char separator, char ***substring_array_ptr);
 
 /**
  * Join the input substrings into one string, joined with the indicated
@@ -62,17 +62,17 @@ split_string(const char *string, char separator, char ***substring_array_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check join_strings(char **substring_array,
-			      size_t array_length,
-			      char separator,
-			      char **string_ptr);
+int __must_check vdo_join_strings(char **substring_array,
+				  size_t array_length,
+				  char separator,
+				  char **string_ptr);
 
 /**
  * Free a list of non-NULL string pointers, and then the list itself.
  *
  * @param string_array  The string list
  **/
-void free_string_array(char **string_array);
+void vdo_free_string_array(char **string_array);
 
 /**
  * Parse a string as an "unsigned int" value, yielding the value.
@@ -84,6 +84,6 @@ void free_string_array(char **string_array);
  *
  * @return UDS_SUCCESS or -EINVAL or -ERANGE.
  **/
-int __must_check string_to_uint(const char *input, unsigned int *value_ptr);
+int __must_check vdo_string_to_uint(const char *input, unsigned int *value_ptr);
 
 #endif /* VDO_STRING_UTILS_H */

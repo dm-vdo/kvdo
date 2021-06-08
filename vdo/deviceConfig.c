@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#41 $
  */
 
 #include "deviceConfig.h"
@@ -234,7 +234,7 @@ static int parse_one_thread_config_spec(const char *spec,
 {
 	unsigned int count;
 	char **fields;
-	int result = split_string(spec, '=', &fields);
+	int result = vdo_split_string(spec, '=', &fields);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -242,20 +242,20 @@ static int parse_one_thread_config_spec(const char *spec,
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
 		uds_log_error("thread config string error: expected thread parameter assignment, saw \"%s\"",
 			      spec);
-		free_string_array(fields);
+		vdo_free_string_array(fields);
 		return -EINVAL;
 	}
 
-	result = string_to_uint(fields[1], &count);
+	result = vdo_string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("thread config string error: integer value needed, found \"%s\"",
 			      fields[1]);
-		free_string_array(fields);
+		vdo_free_string_array(fields);
 		return result;
 	}
 
 	result = process_one_thread_config_spec(fields[0], count, config);
-	free_string_array(fields);
+	vdo_free_string_array(fields);
 	return result;
 }
 
@@ -289,7 +289,7 @@ static int parse_thread_config_string(const char *string,
 
 	if (strcmp(".", string) != 0) {
 		unsigned int i;
-		result = split_string(string, ',', &specs);
+		result = vdo_split_string(string, ',', &specs);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -300,7 +300,7 @@ static int parse_thread_config_string(const char *string,
 				break;
 			}
 		}
-		free_string_array(specs);
+		vdo_free_string_array(specs);
 	}
 	return result;
 }
@@ -365,7 +365,7 @@ static int parse_one_key_value_pair(const char *key,
 	}
 
 	// The remaining arguments must have integral values.
-	result = string_to_uint(value, &count);
+	result = vdo_string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("optional config string error: integer value needed, found \"%s\"",
 			      value);
@@ -497,7 +497,7 @@ int parse_vdo_device_config(int argc,
 	INIT_LIST_HEAD(&config->config_list);
 
 	// Save the original string.
-	result = join_strings(argv, argc, ' ', &config->original_string);
+	result = vdo_join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
 				   error_ptr,
@@ -583,7 +583,7 @@ int parse_vdo_device_config(int argc,
 	}
 
 	// Get the page cache size.
-	result = string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
+	result = vdo_string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
 				   error_ptr,
@@ -592,8 +592,8 @@ int parse_vdo_device_config(int argc,
 	}
 
 	// Get the block map era length.
-	result = string_to_uint(dm_shift_arg(&arg_set),
-				&config->block_map_maximum_age);
+	result = vdo_string_to_uint(dm_shift_arg(&arg_set),
+				    &config->block_map_maximum_age);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
 				   error_ptr,
