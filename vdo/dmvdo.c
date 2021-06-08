@@ -593,7 +593,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	uds_register_thread_device_id(&instance_thread, &instance);
-	result = parse_device_config(argc, argv, ti, &config);
+	result = parse_vdo_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		uds_unregister_thread_device_id();
 		unregister_allocating_thread();
@@ -619,7 +619,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 							&ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
-			free_device_config(&config);
+			free_vdo_device_config(&config);
 		} else {
 			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
@@ -634,7 +634,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		// vdo_initialize calls into various VDO routines, so map error
 		result = map_to_system_error(result);
-		free_device_config(&config);
+		free_vdo_device_config(&config);
 	}
 
 	uds_unregister_thread_device_id();
@@ -677,10 +677,10 @@ static void vdo_dtr(struct dm_target *ti)
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.
 		vdo->device_config =
-			as_device_config(vdo->device_config_list.next);
+			as_vdo_device_config(vdo->device_config_list.next);
 	}
 
-	free_device_config(&config);
+	free_vdo_device_config(&config);
 	ti->private = NULL;
 }
 

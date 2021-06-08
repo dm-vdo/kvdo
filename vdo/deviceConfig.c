@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#40 $
  */
 
 #include "deviceConfig.h"
@@ -469,15 +469,15 @@ static void handle_parse_error(struct device_config **config_ptr,
 			       char **error_ptr,
 			       char *error_str)
 {
-	free_device_config(config_ptr);
+	free_vdo_device_config(config_ptr);
 	*error_ptr = error_str;
 }
 
 /**********************************************************************/
-int parse_device_config(int argc,
-			char **argv,
-			struct dm_target *ti,
-			struct device_config **config_ptr)
+int parse_vdo_device_config(int argc,
+			    char **argv,
+			    struct dm_target *ti,
+			    struct device_config **config_ptr)
 {
 	bool enable_512e;
 	struct dm_arg_set arg_set;
@@ -682,7 +682,7 @@ int parse_device_config(int argc,
 }
 
 /**********************************************************************/
-void free_device_config(struct device_config **config_ptr)
+void free_vdo_device_config(struct device_config **config_ptr)
 {
 	struct device_config *config;
 	if (config_ptr == NULL) {

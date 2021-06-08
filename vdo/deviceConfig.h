@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#26 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -68,7 +68,7 @@ struct device_config {
  *
  * @return The device_config wrapping the list entry
  **/
-static inline struct device_config *as_device_config(struct list_head *entry)
+static inline struct device_config *as_vdo_device_config(struct list_head *entry)
 {
 	if (entry == NULL) {
 		return NULL;
@@ -86,17 +86,17 @@ static inline struct device_config *as_device_config(struct list_head *entry)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check parse_device_config(int argc,
-				     char **argv,
-				     struct dm_target *ti,
-				     struct device_config **config_ptr);
+int __must_check parse_vdo_device_config(int argc,
+					 char **argv,
+					 struct dm_target *ti,
+					 struct device_config **config_ptr);
 
 /**
- * Free a device config created by parse_device_config().
+ * Free a device config created by parse_vdo_device_config().
  *
  * @param config_ptr  The pointer holding the config, which will be nulled
  **/
-void free_device_config(struct device_config **config_ptr);
+void free_vdo_device_config(struct device_config **config_ptr);
 
 /**
  * Acquire or release a reference from the config to a vdo.

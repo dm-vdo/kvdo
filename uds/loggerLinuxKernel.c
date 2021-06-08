@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#11 $
  */
 
 #include <linux/delay.h>
@@ -147,7 +147,7 @@ void uds_log_message_pack(int priority,
 
 	level = priority_to_log_level(priority);
 	if (module == NULL) {
-		module = THIS_MODULE->name;
+		module = UDS_LOGGING_MODULE_NAME;
 	}
 	if (prefix == NULL) {
 		prefix = "";

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#17 $
  */
 
 #ifndef LOGGER_H
@@ -34,6 +34,12 @@
 #define LOG_NOTICE 5 /* normal but significant condition */
 #define LOG_INFO 6 /* informational */
 #define LOG_DEBUG 7 /* debug-level messages */
+
+#if defined(__KERNEL__) && defined(MODULE)
+#define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
+#else // either userspace or compiled into the kernel
+#define UDS_LOGGING_MODULE_NAME "vdo"
+#endif
 
 // Make it easy to log real pointer values using %px when in development.
 #ifdef LOG_INTERNAL
@@ -217,7 +223,7 @@ int log_unrecoverable(int errnum, const char *format, ...)
  * @param priority  The syslog priority value for the message.
  **/
 #define uds_log_message(priority, ...) \
-	__uds_log_message(priority, THIS_MODULE->name, __VA_ARGS__)
+	__uds_log_message(priority, UDS_LOGGING_MODULE_NAME, __VA_ARGS__)
 
 /**
  * Log a message.

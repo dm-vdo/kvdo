@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/permassert.h#7 $
  */
 
 #ifndef PERMASSERT_H
@@ -24,6 +24,7 @@
 
 #include "compiler.h"
 #include "errors.h"
+#include "logger.h"
 #include "uds-error.h"
 
 #define STRINGIFY(X) #X
@@ -99,12 +100,13 @@ static INLINE int __must_check uds_must_use(int value)
 /*
  * Common bottleneck for use by the other assertion macros.
  */
-#define __UDS_ASSERT(expr, code, ...)                          \
-	(likely(expr) ? UDS_SUCCESS                            \
-		      : uds_assertion_failed(STRINGIFY(expr),  \
-					     code,             \
-					     __FILE__,         \
-					     __LINE__,         \
+#define __UDS_ASSERT(expr, code, ...)                                 \
+	(likely(expr) ? UDS_SUCCESS                                   \
+		      : uds_assertion_failed(STRINGIFY(expr),         \
+					     code,                    \
+					     UDS_LOGGING_MODULE_NAME, \
+					     __FILE__,                \
+					     __LINE__,                \
 					     __VA_ARGS__))
 
 /*
@@ -139,6 +141,7 @@ bool set_exit_on_assertion_failure(bool should_exit);
  *
  * @param expression_string The assertion
  * @param error_code        The error code to return
+ * @param module_name       The name of the module containing the assertion
  * @param file_name         The file in which the assertion appears
  * @param line_number       The line number on which the assertion appears
  * @param format            A printf() style format describing the assertion
@@ -148,10 +151,11 @@ bool set_exit_on_assertion_failure(bool should_exit);
  **/
 int uds_assertion_failed(const char *expression_string,
 			 int error_code,
+			 const char *module_name,
 			 const char *file_name,
 			 int line_number,
 			 const char *format,
 			 ...)
-	__printf(5, 6);
+	__printf(6, 7);
 
 #endif /* PERMASSERT_H */
