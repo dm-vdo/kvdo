@@ -58,7 +58,7 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 	return size;
 }
 
-struct sysfs_ops pool_stats_sysfs_ops = {
+struct sysfs_ops vdo_pool_stats_sysfs_ops = {
 	.show = pool_stats_attr_show,
 	.store = NULL,
 };
@@ -1909,7 +1909,7 @@ static struct pool_stats_attribute pool_stats_attr_index_max_dedupe_queries = {
 	.print = pool_stats_print_index_max_dedupe_queries,
 };
 
-struct attribute *pool_stats_attrs[] = {
+struct attribute *vdo_pool_stats_attrs[] = {
 	&pool_stats_attr_data_blocks_used.attr,
 	&pool_stats_attr_overhead_blocks_used.attr,
 	&pool_stats_attr_logical_blocks_used.attr,

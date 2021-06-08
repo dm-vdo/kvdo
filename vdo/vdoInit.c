@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#16 $
  */
 
 #include "vdoInit.h"
@@ -72,7 +72,7 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 	}
 
 	kobject_init(&vdo->work_queue_directory,
-		     &work_queue_directory_type);
+		     &vdo_work_queue_directory_type);
 	result = kobject_add(&vdo->work_queue_directory,
 			     &vdo->vdo_directory,
 			     "work_queues");

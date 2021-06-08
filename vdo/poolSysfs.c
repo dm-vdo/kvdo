@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#18 $
  */
 
 #include "poolSysfs.h"
@@ -253,7 +253,7 @@ static struct sysfs_ops no_sysfs_ops = {
 	.store = NULL,
 };
 
-struct kobj_type work_queue_directory_type = {
+struct kobj_type vdo_work_queue_directory_type = {
 	.release = work_queue_directory_release,
 	.sysfs_ops = &no_sysfs_ops,
 	.default_attrs = no_attrs,

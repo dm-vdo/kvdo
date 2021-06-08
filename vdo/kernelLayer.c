@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#193 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#194 $
  */
 
 #include "kernelLayer.h"
@@ -714,8 +714,8 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	static struct kobj_type stats_directory_type = {
 		.release = pool_stats_release,
-		.sysfs_ops = &pool_stats_sysfs_ops,
-		.default_attrs = pool_stats_attrs,
+		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
+		.default_attrs = vdo_pool_stats_attrs,
 	};
 	int result;
 
