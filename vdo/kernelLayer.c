@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#195 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#196 $
  */
 
 #include "kernelLayer.h"
@@ -379,7 +379,7 @@ int make_kernel_layer(unsigned int instance,
 
 	// Dedupe Index
 	BUG_ON(layer->thread_name_prefix[0] == '\0');
-	result = make_vdo_dedupe_index(&layer->dedupe_index, &layer->vdo);
+	result = make_vdo_dedupe_index(&layer->vdo.dedupe_index, &layer->vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);
@@ -656,9 +656,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
-		if (layer->dedupe_index != NULL) {
-			finish_vdo_dedupe_index(layer->dedupe_index);
-		}
+		finish_vdo_dedupe_index(layer->vdo.dedupe_index);
 		free_batch_processor(FORGET(layer->data_vio_releaser));
 		break;
 
@@ -677,7 +675,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 		free_vdo_io_submitter(layer->vdo.io_submitter);
 	}
 
-	free_vdo_dedupe_index(&layer->dedupe_index);
 	destroy_vdo(&layer->vdo);
 }
 
@@ -747,7 +744,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		// Don't try to load or rebuild the index first (and log
 		// scary error messages) if this is known to be a
 		// newly-formatted volume.
-		start_vdo_dedupe_index(layer->dedupe_index,
+		start_vdo_dedupe_index(layer->vdo.dedupe_index,
 				       vdo_was_new(&layer->vdo));
 	}
 
@@ -776,7 +773,7 @@ void stop_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_SUSPENDED:
 		set_kernel_layer_state(layer, LAYER_STOPPING);
-		stop_vdo_dedupe_index(layer->dedupe_index);
+		stop_vdo_dedupe_index(layer->vdo.dedupe_index);
 		// fall through
 
 	case LAYER_STOPPING:
@@ -855,7 +852,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		result = suspend_result;
 	}
 
-	suspend_vdo_dedupe_index(layer->dedupe_index,
+	suspend_vdo_dedupe_index(layer->vdo.dedupe_index,
 				 !layer->vdo.no_flush_suspend);
 	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
@@ -870,7 +867,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 
-	resume_vdo_dedupe_index(layer->dedupe_index);
+	resume_vdo_dedupe_index(layer->vdo.dedupe_index);
 	result = resume_vdo(&layer->vdo);
 
 	if (result != VDO_SUCCESS) {

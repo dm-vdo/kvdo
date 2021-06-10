@@ -191,7 +191,7 @@ static void vdo_status(struct dm_target *ti,
 				name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
-		       get_vdo_dedupe_index_state_name(layer->dedupe_index),
+		       get_vdo_dedupe_index_state_name(layer->vdo.dedupe_index),
 		       get_vdo_compressing(&layer->vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
@@ -374,7 +374,7 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return message_vdo_dedupe_index(layer->dedupe_index,
+			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
 							argv[0]);
 		}
 
@@ -384,17 +384,17 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 		 * been fixed to use "index-enable" or "index-disable".
 		 */
 		if (strcasecmp(argv[0], "reconnect") == 0) {
-			return message_vdo_dedupe_index(layer->dedupe_index,
+			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
 							"index-enable");
 		}
 
 		if (strcasecmp(argv[0], "connect") == 0) {
-			return message_vdo_dedupe_index(layer->dedupe_index,
+			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
 							"index-enable");
 		}
 
 		if (strcasecmp(argv[0], "disconnect") == 0) {
-			return message_vdo_dedupe_index(layer->dedupe_index,
+			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
 							"index-disable");
 		}
 	}
