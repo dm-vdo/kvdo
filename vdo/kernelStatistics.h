@@ -24,15 +24,17 @@
 #include "types.h"
 
 struct bio_stats {
-	/** Number of not REQ_WRITE bios */
+	/** Number of REQ_OP_READ bios */
 	uint64_t read;
-	/** Number of REQ_WRITE bios */
+	/** Number of REQ_OP_WRITE bios with data */
 	uint64_t write;
-	/** Number of REQ_DISCARD bios */
+	/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+	uint64_t empty_flush;
+	/** Number of REQ_OP_DISCARD bios */
 	uint64_t discard;
-	/** Number of REQ_FLUSH bios */
+	/** Number of bios tagged with REQ_PREFLUSH */
 	uint64_t flush;
-	/** Number of REQ_FUA bios */
+	/** Number of bios tagged with REQ_FUA */
 	uint64_t fua;
 };
 

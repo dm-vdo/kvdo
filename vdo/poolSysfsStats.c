@@ -922,7 +922,7 @@ static struct pool_stats_attribute pool_stats_attr_logical_block_size = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.read);
@@ -935,7 +935,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.write);
@@ -948,7 +948,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_in_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_in_empty_flush = {
+	.attr = { .name = "bios_in_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.discard);
@@ -961,7 +974,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.flush);
@@ -974,7 +987,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.fua);
@@ -987,7 +1000,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_partial_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.read);
@@ -1000,7 +1013,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_partial_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.write);
@@ -1013,7 +1026,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_in_partial_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_in_partial_empty_flush = {
+	.attr = { .name = "bios_in_partial_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_partial_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_partial_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.discard);
@@ -1026,7 +1052,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_partial_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.flush);
@@ -1039,7 +1065,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_partial_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.fua);
@@ -1052,7 +1078,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_out_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.read);
@@ -1065,7 +1091,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_out_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.write);
@@ -1078,7 +1104,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_out_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_out_empty_flush = {
+	.attr = { .name = "bios_out_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_out_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.discard);
@@ -1091,7 +1130,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_out_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.flush);
@@ -1104,7 +1143,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_out_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.fua);
@@ -1117,7 +1156,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_meta_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.read);
@@ -1130,7 +1169,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_meta_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.write);
@@ -1143,7 +1182,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_meta_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_meta_empty_flush = {
+	.attr = { .name = "bios_meta_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_meta_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.discard);
@@ -1156,7 +1208,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_meta_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.flush);
@@ -1169,7 +1221,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_meta_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.fua);
@@ -1182,7 +1234,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_journal_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.read);
@@ -1195,7 +1247,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_journal_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.write);
@@ -1208,7 +1260,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_journal_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_journal_empty_flush = {
+	.attr = { .name = "bios_journal_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_journal_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.discard);
@@ -1221,7 +1286,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_journal_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.flush);
@@ -1234,7 +1299,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_journal_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.fua);
@@ -1247,7 +1312,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_page_cache_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.read);
@@ -1260,7 +1325,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_page_cache_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.write);
@@ -1273,7 +1338,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_page_cache_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_empty_flush = {
+	.attr = { .name = "bios_page_cache_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_page_cache_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.discard);
@@ -1286,7 +1364,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_page_cache_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.flush);
@@ -1299,7 +1377,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_page_cache_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.fua);
@@ -1312,7 +1390,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_out_completed_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.read);
@@ -1325,7 +1403,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_out_completed_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.write);
@@ -1338,7 +1416,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_out_completed_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_out_completed_empty_flush = {
+	.attr = { .name = "bios_out_completed_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_out_completed_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_out_completed_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.discard);
@@ -1351,7 +1442,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_discard = 
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_out_completed_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.flush);
@@ -1364,7 +1455,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_out_completed_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.fua);
@@ -1377,7 +1468,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_meta_completed_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.read);
@@ -1390,7 +1481,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_meta_completed_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.write);
@@ -1403,7 +1494,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_meta_completed_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_empty_flush = {
+	.attr = { .name = "bios_meta_completed_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_meta_completed_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_meta_completed_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.discard);
@@ -1416,7 +1520,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_discard =
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_meta_completed_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.flush);
@@ -1429,7 +1533,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_meta_completed_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.fua);
@@ -1442,7 +1546,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_journal_completed_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.read);
@@ -1455,7 +1559,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_read =
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_journal_completed_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.write);
@@ -1468,7 +1572,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_write 
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_journal_completed_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_empty_flush = {
+	.attr = { .name = "bios_journal_completed_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_journal_completed_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_journal_completed_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.discard);
@@ -1481,7 +1598,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_discar
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_journal_completed_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.flush);
@@ -1494,7 +1611,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_flush 
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_journal_completed_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.fua);
@@ -1507,7 +1624,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_fua = 
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_page_cache_completed_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.read);
@@ -1520,7 +1637,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_rea
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_page_cache_completed_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.write);
@@ -1533,7 +1650,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_wri
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_page_cache_completed_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_empty_flush = {
+	.attr = { .name = "bios_page_cache_completed_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_page_cache_completed_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_page_cache_completed_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.discard);
@@ -1546,7 +1676,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_dis
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_page_cache_completed_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.flush);
@@ -1559,7 +1689,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_flu
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_page_cache_completed_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.fua);
@@ -1572,7 +1702,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_fua
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_acknowledged_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.read);
@@ -1585,7 +1715,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_acknowledged_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.write);
@@ -1598,7 +1728,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_acknowledged_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_empty_flush = {
+	.attr = { .name = "bios_acknowledged_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_acknowledged_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.discard);
@@ -1611,7 +1754,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_acknowledged_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.flush);
@@ -1624,7 +1767,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_acknowledged_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.fua);
@@ -1637,7 +1780,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_fua = {
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_acknowledged_partial_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.read);
@@ -1650,7 +1793,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_rea
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_acknowledged_partial_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.write);
@@ -1663,7 +1806,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_wri
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_acknowledged_partial_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_empty_flush = {
+	.attr = { .name = "bios_acknowledged_partial_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_acknowledged_partial_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_acknowledged_partial_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.discard);
@@ -1676,7 +1832,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_dis
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_acknowledged_partial_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.flush);
@@ -1689,7 +1845,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_flu
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_acknowledged_partial_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.fua);
@@ -1702,7 +1858,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_fua
 };
 
 /**********************************************************************/
-/** Number of not REQ_WRITE bios */
+/** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_progress_read(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.read);
@@ -1715,7 +1871,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_read = {
 };
 
 /**********************************************************************/
-/** Number of REQ_WRITE bios */
+/** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_progress_write(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.write);
@@ -1728,7 +1884,20 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_write = {
 };
 
 /**********************************************************************/
-/** Number of REQ_DISCARD bios */
+/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+static ssize_t pool_stats_print_bios_in_progress_empty_flush(struct kernel_layer *layer, char *buf)
+{
+	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.empty_flush);
+}
+
+static struct pool_stats_attribute pool_stats_attr_bios_in_progress_empty_flush = {
+	.attr = { .name = "bios_in_progress_empty_flush", .mode = 0444, },
+	.from_vdo = false,
+	.print = pool_stats_print_bios_in_progress_empty_flush,
+};
+
+/**********************************************************************/
+/** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_progress_discard(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.discard);
@@ -1741,7 +1910,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_discard = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FLUSH bios */
+/** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_progress_flush(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.flush);
@@ -1754,7 +1923,7 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_flush = {
 };
 
 /**********************************************************************/
-/** Number of REQ_FUA bios */
+/** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_progress_fua(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.fua);
@@ -1978,66 +2147,79 @@ struct attribute *vdo_pool_stats_attrs[] = {
 	&pool_stats_attr_logical_block_size.attr,
 	&pool_stats_attr_bios_in_read.attr,
 	&pool_stats_attr_bios_in_write.attr,
+	&pool_stats_attr_bios_in_empty_flush.attr,
 	&pool_stats_attr_bios_in_discard.attr,
 	&pool_stats_attr_bios_in_flush.attr,
 	&pool_stats_attr_bios_in_fua.attr,
 	&pool_stats_attr_bios_in_partial_read.attr,
 	&pool_stats_attr_bios_in_partial_write.attr,
+	&pool_stats_attr_bios_in_partial_empty_flush.attr,
 	&pool_stats_attr_bios_in_partial_discard.attr,
 	&pool_stats_attr_bios_in_partial_flush.attr,
 	&pool_stats_attr_bios_in_partial_fua.attr,
 	&pool_stats_attr_bios_out_read.attr,
 	&pool_stats_attr_bios_out_write.attr,
+	&pool_stats_attr_bios_out_empty_flush.attr,
 	&pool_stats_attr_bios_out_discard.attr,
 	&pool_stats_attr_bios_out_flush.attr,
 	&pool_stats_attr_bios_out_fua.attr,
 	&pool_stats_attr_bios_meta_read.attr,
 	&pool_stats_attr_bios_meta_write.attr,
+	&pool_stats_attr_bios_meta_empty_flush.attr,
 	&pool_stats_attr_bios_meta_discard.attr,
 	&pool_stats_attr_bios_meta_flush.attr,
 	&pool_stats_attr_bios_meta_fua.attr,
 	&pool_stats_attr_bios_journal_read.attr,
 	&pool_stats_attr_bios_journal_write.attr,
+	&pool_stats_attr_bios_journal_empty_flush.attr,
 	&pool_stats_attr_bios_journal_discard.attr,
 	&pool_stats_attr_bios_journal_flush.attr,
 	&pool_stats_attr_bios_journal_fua.attr,
 	&pool_stats_attr_bios_page_cache_read.attr,
 	&pool_stats_attr_bios_page_cache_write.attr,
+	&pool_stats_attr_bios_page_cache_empty_flush.attr,
 	&pool_stats_attr_bios_page_cache_discard.attr,
 	&pool_stats_attr_bios_page_cache_flush.attr,
 	&pool_stats_attr_bios_page_cache_fua.attr,
 	&pool_stats_attr_bios_out_completed_read.attr,
 	&pool_stats_attr_bios_out_completed_write.attr,
+	&pool_stats_attr_bios_out_completed_empty_flush.attr,
 	&pool_stats_attr_bios_out_completed_discard.attr,
 	&pool_stats_attr_bios_out_completed_flush.attr,
 	&pool_stats_attr_bios_out_completed_fua.attr,
 	&pool_stats_attr_bios_meta_completed_read.attr,
 	&pool_stats_attr_bios_meta_completed_write.attr,
+	&pool_stats_attr_bios_meta_completed_empty_flush.attr,
 	&pool_stats_attr_bios_meta_completed_discard.attr,
 	&pool_stats_attr_bios_meta_completed_flush.attr,
 	&pool_stats_attr_bios_meta_completed_fua.attr,
 	&pool_stats_attr_bios_journal_completed_read.attr,
 	&pool_stats_attr_bios_journal_completed_write.attr,
+	&pool_stats_attr_bios_journal_completed_empty_flush.attr,
 	&pool_stats_attr_bios_journal_completed_discard.attr,
 	&pool_stats_attr_bios_journal_completed_flush.attr,
 	&pool_stats_attr_bios_journal_completed_fua.attr,
 	&pool_stats_attr_bios_page_cache_completed_read.attr,
 	&pool_stats_attr_bios_page_cache_completed_write.attr,
+	&pool_stats_attr_bios_page_cache_completed_empty_flush.attr,
 	&pool_stats_attr_bios_page_cache_completed_discard.attr,
 	&pool_stats_attr_bios_page_cache_completed_flush.attr,
 	&pool_stats_attr_bios_page_cache_completed_fua.attr,
 	&pool_stats_attr_bios_acknowledged_read.attr,
 	&pool_stats_attr_bios_acknowledged_write.attr,
+	&pool_stats_attr_bios_acknowledged_empty_flush.attr,
 	&pool_stats_attr_bios_acknowledged_discard.attr,
 	&pool_stats_attr_bios_acknowledged_flush.attr,
 	&pool_stats_attr_bios_acknowledged_fua.attr,
 	&pool_stats_attr_bios_acknowledged_partial_read.attr,
 	&pool_stats_attr_bios_acknowledged_partial_write.attr,
+	&pool_stats_attr_bios_acknowledged_partial_empty_flush.attr,
 	&pool_stats_attr_bios_acknowledged_partial_discard.attr,
 	&pool_stats_attr_bios_acknowledged_partial_flush.attr,
 	&pool_stats_attr_bios_acknowledged_partial_fua.attr,
 	&pool_stats_attr_bios_in_progress_read.attr,
 	&pool_stats_attr_bios_in_progress_write.attr,
+	&pool_stats_attr_bios_in_progress_empty_flush.attr,
 	&pool_stats_attr_bios_in_progress_discard.attr,
 	&pool_stats_attr_bios_in_progress_flush.attr,
 	&pool_stats_attr_bios_in_progress_fua.attr,

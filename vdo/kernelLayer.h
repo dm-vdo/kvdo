@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#81 $
  */
 
 #ifndef KERNELLAYER_H
@@ -65,10 +65,11 @@ enum kernel_layer_state {
 
 /* Keep struct bio statistics atomically */
 struct atomic_bio_stats {
-	atomic64_t read; // Number of not REQ_WRITE bios
-	atomic64_t write; // Number of REQ_WRITE bios
-	atomic64_t discard; // Number of REQ_DISCARD bios
-	atomic64_t flush; // Number of REQ_FLUSH bios
+	atomic64_t read; // Number of REQ_OP_READ bios
+	atomic64_t write; // Number of REQ_OP_WRITE bios with data
+	atomic64_t discard; // Number of REQ_OP_DISCARD bios
+	atomic64_t flush; // Number of REQ_PREFLUSH bios
+	atomic64_t empty_flush; // Number of REQ_PREFLUSH bios without data
 	atomic64_t fua; // Number of REQ_FUA bios
 };
 

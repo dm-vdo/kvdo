@@ -24,7 +24,7 @@
 #include "types.h"
 
 enum {
-	STATISTICS_VERSION = 32,
+	STATISTICS_VERSION = 33,
 };
 
 struct block_allocator_statistics {

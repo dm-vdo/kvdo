@@ -994,7 +994,7 @@ int write_bio_stats(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** Number of not REQ_WRITE bios */
+	/** Number of REQ_OP_READ bios */
 	result = write_uint64_t("read : ",
 				stats->read,
 				", ",
@@ -1003,7 +1003,7 @@ int write_bio_stats(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** Number of REQ_WRITE bios */
+	/** Number of REQ_OP_WRITE bios with data */
 	result = write_uint64_t("write : ",
 				stats->write,
 				", ",
@@ -1012,7 +1012,16 @@ int write_bio_stats(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** Number of REQ_DISCARD bios */
+	/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+	result = write_uint64_t("emptyFlush : ",
+				stats->empty_flush,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of REQ_OP_DISCARD bios */
 	result = write_uint64_t("discard : ",
 				stats->discard,
 				", ",
@@ -1021,7 +1030,7 @@ int write_bio_stats(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** Number of REQ_FLUSH bios */
+	/** Number of bios tagged with REQ_PREFLUSH */
 	result = write_uint64_t("flush : ",
 				stats->flush,
 				", ",
@@ -1030,7 +1039,7 @@ int write_bio_stats(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	/** Number of REQ_FUA bios */
+	/** Number of bios tagged with REQ_FUA */
 	result = write_uint64_t("fua : ",
 				stats->fua,
 				", ",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#53 $
  */
 
 #include "bio.h"
@@ -80,16 +80,31 @@ void vdo_free_bio(struct bio *bio)
 /**********************************************************************/
 void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 {
-	if (bio_data_dir(bio) == WRITE) {
-		atomic64_inc(&bio_stats->write);
-	} else {
-		atomic64_inc(&bio_stats->read);
+	if (((bio->bi_opf & REQ_PREFLUSH) != 0) &&
+	    (bio->bi_iter.bi_size == 0)) {
+		atomic64_inc(&bio_stats->empty_flush);
+		atomic64_inc(&bio_stats->flush);
+		return;
 	}
-	if (bio_op(bio) == REQ_OP_DISCARD) {
-		atomic64_inc(&bio_stats->discard);
+
+	switch (bio_op(bio)) {
+		case REQ_OP_WRITE:
+			atomic64_inc(&bio_stats->write);
+			break;
+		case REQ_OP_READ:
+			atomic64_inc(&bio_stats->read);
+			break;
+		case REQ_OP_DISCARD:
+			atomic64_inc(&bio_stats->discard);
+			break;
+		// All other operations are filtered out in kernelLayer.c, or
+		// not created by VDO, so shouldn't exist.
+		default:
+			ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard,"
+					" or empty flush", bio_op(bio));
 	}
-	if ((bio_op(bio) == REQ_OP_FLUSH) ||
-	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+
+	if ((bio->bi_opf & REQ_PREFLUSH) != 0) {
 		atomic64_inc(&bio_stats->flush);
 	}
 	if (bio->bi_opf & REQ_FUA) {

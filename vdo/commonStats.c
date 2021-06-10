@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#16 $
  */
 
 #include "releaseVersions.h"
@@ -37,6 +37,7 @@ static void copy_bio_stat(struct bio_stats *b,
 	b->write = atomic64_read(&a->write);
 	b->discard = atomic64_read(&a->discard);
 	b->flush = atomic64_read(&a->flush);
+	b->empty_flush = atomic64_read(&a->empty_flush);
 	b->fua = atomic64_read(&a->fua);
 }
 
@@ -49,6 +50,7 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 		.write = minuend.write - subtrahend.write,
 		.discard = minuend.discard - subtrahend.discard,
 		.flush = minuend.flush - subtrahend.flush,
+		.empty_flush = minuend.empty_flush - subtrahend.empty_flush,
 		.fua = minuend.fua - subtrahend.fua,
 	};
 }
