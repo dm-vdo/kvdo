@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#16 $
  */
 
 #include "indexInternals.h"
@@ -143,7 +143,7 @@ void release_index(struct index *index)
 
 	free_volume(index->volume);
 
-	free_index_state(&index->state);
+	free_index_state(index->state);
 	free_index_checkpoint(index->checkpoint);
 	put_index_layout(&index->layout);
 	FREE(index);

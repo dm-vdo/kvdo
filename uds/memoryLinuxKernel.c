@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#14 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#15 $
  */
 
 #include <linux/delay.h>
@@ -162,8 +162,8 @@ static void remove_vmalloc_block(void *ptr)
 	if (block != NULL) {
 		FREE(block);
 	} else {
-		log_info("attempting to remove ptr %" PRIptr " not found in vmalloc list",
-			 ptr);
+		uds_log_info("attempting to remove ptr %" PRIptr " not found in vmalloc list",
+			     ptr);
 	}
 }
 
@@ -443,14 +443,14 @@ void report_memory_usage()
 	peak_usage = memory_stats.peak_bytes;
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	total_bytes = kmalloc_bytes + vmalloc_bytes;
-	log_info("current module memory tracking (actual allocation sizes, not requested):");
-	log_info("  %llu bytes in %llu kmalloc blocks",
-		 kmalloc_bytes,
-		 kmalloc_blocks);
-	log_info("  %llu bytes in %llu vmalloc blocks",
-		 vmalloc_bytes,
-		 vmalloc_blocks);
-	log_info("  total %llu bytes, peak usage %llu bytes",
-		 total_bytes,
-		 peak_usage);
+	uds_log_info("current module memory tracking (actual allocation sizes, not requested):");
+	uds_log_info("  %llu bytes in %llu kmalloc blocks",
+		     kmalloc_bytes,
+		     kmalloc_blocks);
+	uds_log_info("  %llu bytes in %llu vmalloc blocks",
+		     vmalloc_bytes,
+		     vmalloc_blocks);
+	uds_log_info("  total %llu bytes, peak usage %llu bytes",
+		     total_bytes,
+		     peak_usage);
 }

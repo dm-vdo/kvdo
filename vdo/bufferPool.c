@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#16 $
  */
 
 #include "bufferPool.h"
@@ -84,7 +84,7 @@ int make_buffer_pool(const char *pool_name,
 	if (result != VDO_SUCCESS) {
 		uds_log_error("buffer element array allocation failure %d",
 			      result);
-		free_buffer_pool(&pool);
+		free_buffer_pool(pool);
 		return result;
 	}
 
@@ -92,7 +92,7 @@ int make_buffer_pool(const char *pool_name,
 	if (result != VDO_SUCCESS) {
 		uds_log_error("buffer object array allocation failure %d",
 			      result);
-		free_buffer_pool(&pool);
+		free_buffer_pool(pool);
 		return result;
 	}
 
@@ -111,7 +111,7 @@ int make_buffer_pool(const char *pool_name,
 		if (result != VDO_SUCCESS) {
 			uds_log_error("verify buffer data allocation failure %d",
 				      result);
-			free_buffer_pool(&pool);
+			free_buffer_pool(pool);
 			return result;
 		}
 		pool->objects[i] = bh->data;
@@ -125,10 +125,8 @@ int make_buffer_pool(const char *pool_name,
 }
 
 /*************************************************************************/
-void free_buffer_pool(struct buffer_pool **pool_ptr)
+void free_buffer_pool(struct buffer_pool *pool)
 {
-	struct buffer_pool *pool = *pool_ptr;
-
 	if (pool == NULL) {
 		return;
 	}
@@ -141,14 +139,14 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 
 		for (i = 0; i < pool->size; i++) {
 			if (pool->objects[i] != NULL) {
-				pool->free(pool->objects[i]);
+				pool->free(FORGET(pool->objects[i]));
 			}
 		}
-		FREE(pool->objects);
+		FREE(FORGET(pool->objects));
 	}
-	FREE(pool->bhead);
+
+	FREE(FORGET(pool->bhead));
 	FREE(pool);
-	*pool_ptr = NULL;
 }
 
 /*************************************************************************/

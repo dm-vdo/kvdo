@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#36 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#37 $
  */
 #include "masterIndex005.h"
 
@@ -908,7 +908,7 @@ set_volume_index_zone_open_chapter_005(struct volume_index *volume_index,
 				1 + (used_bits - vi5->max_zone_bits) /
 					    vi5->chapter_zone_bits;
 			if (expire_count == 1) {
-				log_ratelimit(log_info,
+				log_ratelimit(uds_log_info,
 					      "zone %u:  At chapter %llu, expiring chapter %llu early",
 					      zone_number,
 					      virtual_chapter,
@@ -934,7 +934,7 @@ set_volume_index_zone_open_chapter_005(struct volume_index *volume_index,
 						volume_index_zone
 							->virtual_chapter_high;
 				}
-				log_ratelimit(log_info,
+				log_ratelimit(uds_log_info,
 					      "zone %u:  At chapter %llu, expiring chapters %llu to %llu early",
 					      zone_number,
 					      virtual_chapter,

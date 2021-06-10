@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#13 $
  */
 
 #ifndef INDEX_STATE_H
@@ -79,10 +79,9 @@ int __must_check make_index_state(struct index_layout *layout,
 /**
  * Free an index state (generically).
  *
- * @param state_ptr     The pointer to the index state to be freed and
- *                      set to NULL.
+ * @param state  The index state to be freed
  **/
-void free_index_state(struct index_state **state_ptr);
+void free_index_state(struct index_state *state);
 
 /**
  * Add an index component to an index state.

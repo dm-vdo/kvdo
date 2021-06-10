@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#36 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#37 $
  */
 
 #include "volume.h"
@@ -137,7 +137,7 @@ int enqueue_page_read(struct volume *volume,
 	// Don't allow new requests if we are shutting down, but make sure
 	// to process any requests that are still in the pipeline.
 	if ((volume->reader_state & READER_STATE_EXIT) != 0) {
-		log_info("failed to queue read while shutting down");
+		uds_log_info("failed to queue read while shutting down");
 		return UDS_SHUTTINGDOWN;
 	}
 

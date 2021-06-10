@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#13 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -71,7 +71,7 @@ int make_batch_processor(struct vdo *vdo,
  * @param [in] item   The handle on the new object to add
  **/
 void add_to_batch_processor(struct batch_processor *batch,
-                            struct vdo_work_item *item);
+			    struct vdo_work_item *item);
 
 /**
  * Fetches the next object in the processing queue.
@@ -84,11 +84,11 @@ struct vdo_work_item * __must_check
 next_batch_item(struct batch_processor *batch);
 
 /**
- * Free the batch-processor data and null out the pointer.
+ * Free the batch-processor data.
  *
- * @param [in,out] batch_ptr  Where the batch_processor pointer is stored
+ * @param [in]  batch  The batch-processor data
  **/
-void free_batch_processor(struct batch_processor **batch_ptr);
+void free_batch_processor(struct batch_processor *batch);
 
 /**
  * Yield control to the scheduler if the kernel has indicated that

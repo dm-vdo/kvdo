@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#194 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#195 $
  */
 
 #include "kernelLayer.h"
@@ -652,14 +652,14 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(&layer->data_vio_pool);
+		free_buffer_pool(FORGET(layer->data_vio_pool));
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		if (layer->dedupe_index != NULL) {
 			finish_vdo_dedupe_index(layer->dedupe_index);
 		}
-		free_batch_processor(&layer->data_vio_releaser);
+		free_batch_processor(FORGET(layer->data_vio_releaser));
 		break;
 
 	default:

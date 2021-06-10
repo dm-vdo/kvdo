@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#9 $
  */
 
 #include "searchList.h"
@@ -60,13 +60,6 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 
 	*list_ptr = list;
 	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void free_search_list(struct search_list **list_ptr)
-{
-	FREE(*list_ptr);
-	*list_ptr = NULL;
 }
 
 /**********************************************************************/

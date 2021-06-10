@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.h#6 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -83,13 +83,6 @@ struct search_list_iterator {
  **/
 int __must_check make_search_list(unsigned int capacity,
 				  struct search_list **list_ptr);
-
-/**
- * Free a search list and null out the reference to it.
- *
- * @param list_ptr the reference to the search list to free
- **/
-void free_search_list(struct search_list **list_ptr);
 
 /**
  * Copy the contents of one search list to another.

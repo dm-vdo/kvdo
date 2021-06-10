@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#41 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#42 $
  */
 
 
@@ -109,9 +109,9 @@ static int load_index(struct index *index, bool allow_replay)
 			 index->last_checkpoint :
 			 0);
 
-	log_info("loaded index from chapter %llu through chapter %llu",
-		 index->oldest_virtual_chapter,
-		 last_checkpoint_chapter);
+	uds_log_info("loaded index from chapter %llu through chapter %llu",
+		     index->oldest_virtual_chapter,
+		     last_checkpoint_chapter);
 
 	if (replay_required) {
 		result = replay_index_from_checkpoint(index,
@@ -314,19 +314,19 @@ int save_index(struct index *index)
 	wait_for_idle_chapter_writer(index->chapter_writer);
 	result = finish_checkpointing(index);
 	if (result != UDS_SUCCESS) {
-		log_info("save index failed");
+		uds_log_info("save index failed");
 		return result;
 	}
 	begin_save(index, false, index->newest_virtual_chapter);
 
 	result = save_index_state(index->state);
 	if (result != UDS_SUCCESS) {
-		log_info("save index failed");
+		uds_log_info("save index failed");
 		index->last_checkpoint = index->prev_checkpoint;
 	} else {
 		index->has_saved_open_chapter = true;
-		log_info("finished save (vcn %llu)",
-			 index->last_checkpoint);
+		uds_log_info("finished save (vcn %llu)",
+			     index->last_checkpoint);
 	}
 	return result;
 }
@@ -783,9 +783,9 @@ void begin_save(struct index *index,
 		((open_chapter_number == 0) ? NO_LAST_CHECKPOINT :
 					      open_chapter_number - 1);
 
-	log_info("beginning %s (vcn %llu)",
-		 (checkpoint ? "checkpoint" : "save"),
-		 index->last_checkpoint);
+	uds_log_info("beginning %s (vcn %llu)",
+		     (checkpoint ? "checkpoint" : "save"),
+		     index->last_checkpoint);
 }
 
 /**
@@ -832,9 +832,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	const struct geometry *geometry;
 	uint64_t old_ipm_update, new_ipm_update, vcn;
 	uint64_t upto_vcn = index->newest_virtual_chapter;
-	log_info("Replaying volume from chapter %llu through chapter %llu",
-		 from_vcn,
-		 upto_vcn);
+	uds_log_info("Replaying volume from chapter %llu through chapter %llu",
+		     from_vcn,
+		     upto_vcn);
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 	set_volume_index_open_chapter(index->volume_index, from_vcn);
 
@@ -864,8 +864,8 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		bool will_be_sparse_chapter;
 		unsigned int chapter;
 		if (check_for_suspend(index)) {
-			log_info("Replay interrupted by index shutdown at chapter %llu",
-				 vcn);
+			uds_log_info("Replay interrupted by index shutdown at chapter %llu",
+				     vcn);
 			return UDS_SHUTTINGDOWN;
 		}
 
@@ -934,9 +934,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	new_ipm_update = get_last_update(index->volume->index_page_map);
 
 	if (new_ipm_update != old_ipm_update) {
-		log_info("replay changed index page map update from %llu to %llu",
-			 old_ipm_update,
-			 new_ipm_update);
+		uds_log_info("replay changed index page map update from %llu to %llu",
+			     old_ipm_update,
+			     new_ipm_update);
 	}
 
 	return UDS_SUCCESS;

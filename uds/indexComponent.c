@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#17 $
  */
 
 #include "indexComponent.h"
@@ -90,17 +90,11 @@ static void free_write_zones(struct index_component *component)
 }
 
 /**********************************************************************/
-void free_index_component(struct index_component **component_ptr)
+void free_index_component(struct index_component *component)
 {
-	struct index_component *component;
-	if (component_ptr == NULL) {
-		return;
-	}
-	component = *component_ptr;
 	if (component == NULL) {
 		return;
 	}
-	*component_ptr = NULL;
 
 	free_write_zones(component);
 	FREE(component);

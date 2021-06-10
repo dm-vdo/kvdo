@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#20 $
  */
 
 #include "batchProcessor.h"
@@ -222,15 +222,15 @@ void cond_resched_batch_processor(struct batch_processor *batch)
 }
 
 /**********************************************************************/
-void free_batch_processor(struct batch_processor **batch_ptr)
+void free_batch_processor(struct batch_processor *batch)
 {
-	struct batch_processor *batch = *batch_ptr;
-
-	if (batch) {
-		smp_mb();
-		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
-		free_funnel_queue(batch->queue);
-		FREE(batch);
-		*batch_ptr = NULL;
+	if (batch == NULL) {
+		return;
 	}
+
+	smp_mb();
+	BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
+
+	free_funnel_queue(FORGET(batch->queue));
+	FREE(batch);
 }

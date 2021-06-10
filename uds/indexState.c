@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#20 $
  */
 
 #include "indexState.h"
@@ -65,17 +65,18 @@ int make_index_state(struct index_layout *layout,
 }
 
 /**********************************************************************/
-void free_index_state(struct index_state **state_ptr)
+void free_index_state(struct index_state *state)
 {
-	struct index_state *state = *state_ptr;
-	*state_ptr = NULL;
-	if (state != NULL) {
-		unsigned int i;
-		for (i = 0; i < state->count; ++i) {
-			free_index_component(&state->entries[i]);
-		}
-		FREE(state);
+	unsigned int i;
+
+	if (state == NULL) {
+		return;
 	}
+
+	for (i = 0; i < state->count; ++i) {
+		free_index_component(FORGET(state->entries[i]));
+	}
+	FREE(state);
 }
 
 /**********************************************************************/
@@ -124,7 +125,7 @@ int add_index_state_component(struct index_state *state,
 
 	result = add_component_to_index_state(state, component);
 	if (result != UDS_SUCCESS) {
-		free_index_component(&component);
+		free_index_component(component);
 		return result;
 	}
 	return UDS_SUCCESS;

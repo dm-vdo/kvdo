@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/zone.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/zone.c#5 $
  */
 
 #include "zone.h"
@@ -38,8 +38,8 @@ unsigned int get_zone_count(const struct uds_parameters *user_params)
 	if (zone_count > MAX_ZONES) {
 		zone_count = MAX_ZONES;
 	}
-	log_info("Using %u indexing zone%s for concurrency.",
-		 zone_count,
-		 zone_count == 1 ? "" : "s");
+	uds_log_info("Using %u indexing zone%s for concurrency.",
+		     zone_count,
+		     zone_count == 1 ? "" : "s");
 	return zone_count;
 }

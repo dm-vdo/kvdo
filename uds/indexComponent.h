@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.h#10 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -156,11 +156,11 @@ int __must_check make_index_component(struct index_state *state,
 				      struct index_component **component_ptr);
 
 /**
- * Destroy and index component.
+ * Destroy an index component.
  *
- * @param component_ptr  A pointer to the component to be freed.
+ * @param component  The component to be freed
  **/
-void free_index_component(struct index_component **component_ptr);
+void free_index_component(struct index_component *component);
 
 /**
  * Return the index component name for this component.
