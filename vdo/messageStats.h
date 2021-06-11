@@ -16,35 +16,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/messageStats.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/messageStats.h#6 $
  *
  */
 
 #ifndef MESSAGE_STATS_H
 #define MESSAGE_STATS_H
 
-#include "kernelLayer.h"
+#include "types.h"
 
 /**
  * Write kernel statistics to a buffer
  *
- * @param layer   the kernel layer
+ * @param vdo     the vdo
  * @param buf     pointer to the buffer
  * @param maxlen  the maximum length of the buffer
  */
-int write_vdo_kernel_stats(struct kernel_layer *layer,
-			   char *buf,
-			   unsigned int maxlen);
+int write_vdo_kernel_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
 
 /**
  * Write vdo statistics to a buffer
  *
- * @param layer   the kernel layer
+ * @param vdo     the vdo
  * @param buf     pointer to the buffer
  * @param maxlen  the maximum length of the buffer
  */
-int write_vdo_stats(struct kernel_layer *layer,
-		    char *buf,
-		    unsigned int maxlen);
+int write_vdo_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
 
 #endif  /* MESSAGE_STATS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#22 $
  */
 
 #include <linux/kobject.h>
@@ -815,6 +815,10 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 {
 	uint64_t old_minimum, old_maximum;
 	int bucket;
+
+	if (h == NULL) {
+		return;
+	}
 
 	if (h->log_flag) {
 		int lo = 0;

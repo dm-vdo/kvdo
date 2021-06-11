@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#83 $
  */
 
 #ifndef KERNELLAYER_H
@@ -63,16 +63,6 @@ enum kernel_layer_state {
 	LAYER_RESUMING,
 };
 
-/* Keep struct bio statistics atomically */
-struct atomic_bio_stats {
-	atomic64_t read; // Number of REQ_OP_READ bios
-	atomic64_t write; // Number of REQ_OP_WRITE bios with data
-	atomic64_t discard; // Number of REQ_OP_DISCARD bios
-	atomic64_t flush; // Number of REQ_PREFLUSH bios
-	atomic64_t empty_flush; // Number of REQ_PREFLUSH bios without data
-	atomic64_t fua; // Number of REQ_FUA bios
-};
-
 /**
  * The VDO representation of the target device
  **/
@@ -90,23 +80,6 @@ struct kernel_layer {
 	struct vdo_work_queue *bio_ack_queue;
 	// Memory allocation
 	struct buffer_pool *data_vio_pool;
-	// Statistics
-	atomic64_t bios_submitted;
-	atomic64_t bios_completed;
-	atomic64_t dedupe_context_busy;
-	atomic64_t flush_out;
-	struct atomic_bio_stats bios_in;
-	struct atomic_bio_stats bios_in_partial;
-	struct atomic_bio_stats bios_out;
-	struct atomic_bio_stats bios_out_completed;
-	struct atomic_bio_stats bios_acknowledged;
-	struct atomic_bio_stats bios_acknowledged_partial;
-	struct atomic_bio_stats bios_meta;
-	struct atomic_bio_stats bios_meta_completed;
-	struct atomic_bio_stats bios_journal;
-	struct atomic_bio_stats bios_journal_completed;
-	struct atomic_bio_stats bios_page_cache;
-	struct atomic_bio_stats bios_page_cache_completed;
 	// Debugging
 	/* Whether to dump VDO state on shutdown */
 	bool dump_on_shutdown;

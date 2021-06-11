@@ -16,22 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.h#5 $
  *
  */
 
-#ifndef STATUS_PROC_H
-#define STATUS_PROC_H
+#ifndef COMMON_STATS_H
+#define COMMON_STATS_H
 
-#include "kernelLayer.h"
+#include "kernelStatistics.h"
+#include "types.h"
 
 /**
  * Retrieves the current kernel statistics.
  *
- * @param layer  the kernel layer
+ * @param vdo    the vdo
  * @param stats  pointer to the structure to fill in
  */
-void get_vdo_kernel_statistics(struct kernel_layer *layer,
+void get_vdo_kernel_statistics(struct vdo *vdo,
 			       struct kernel_statistics *stats);
 
-#endif  /* STATUS_PROC_H */
+#endif  /* COMMON_STATS_H */

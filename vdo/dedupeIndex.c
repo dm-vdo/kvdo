@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#95 $
  */
 
 #include "dedupeIndex.h"
@@ -485,7 +485,6 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct dedupe_context *dedupe_context = &data_vio->dedupe_context;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	struct dedupe_index *index = vio->vdo->dedupe_index;
 
 	dedupe_context->status = UDS_SUCCESS;
@@ -529,7 +528,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 	} else {
 		// A previous user of the vio had a dedupe timeout
 		// and its request is still outstanding.
-		atomic64_inc(&layer->dedupe_context_busy);
+		atomic64_inc(&vio->vdo->stats.dedupe_context_busy);
 	}
 
 	if (vio != NULL) {

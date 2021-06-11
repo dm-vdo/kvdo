@@ -49,7 +49,7 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 	if (pool_stats_attr->from_vdo) {
 		get_kvdo_statistics(vdo, &layer->vdo_stats_storage);
 	} else {
-		get_vdo_kernel_statistics(layer, &layer->kernel_stats_storage);
+		get_vdo_kernel_statistics(vdo, &layer->kernel_stats_storage);
 	}
 
 	size = pool_stats_attr->print(layer, buf);

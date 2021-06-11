@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#80 $
  */
 
 #include "ioSubmitter.h"
@@ -26,10 +26,12 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "atomicStats.h"
 #include "bio.h"
 #include "dataKVIO.h"
 #include "kernelLayer.h"
 #include "logger.h"
+#include "vdoInternal.h"
 
 /*
  * Submission of bio operations to the underlying storage device will
@@ -197,18 +199,17 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-
+	struct atomic_statistics *stats = &vio->vdo->stats;
 	if (is_data_vio(vio)) {
-		vdo_count_bios(&layer->bios_out, bio);
+		vdo_count_bios(&stats->bios_out, bio);
 		return;
 	}
 
-	vdo_count_bios(&layer->bios_meta, bio);
+	vdo_count_bios(&stats->bios_meta, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		vdo_count_bios(&layer->bios_journal, bio);
+		vdo_count_bios(&stats->bios_journal, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		vdo_count_bios(&layer->bios_page_cache, bio);
+		vdo_count_bios(&stats->bios_page_cache, bio);
 	}
 }
 
@@ -222,10 +223,8 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-
 	assert_running_in_bio_queue_for_pbn(vio->physical);
-	atomic64_inc(&layer->bios_submitted);
+	atomic64_inc(&vio->vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 
 	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));

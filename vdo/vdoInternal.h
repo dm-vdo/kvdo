@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#67 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -34,6 +34,7 @@
 
 #include "adminCompletion.h"
 #include "adminState.h"
+#include "atomicStats.h"
 #include "deviceConfig.h"
 #include "header.h"
 #include "limiter.h"
@@ -48,17 +49,6 @@
 #include "vdoLayout.h"
 #include "vdoState.h"
 #include "volumeGeometry.h"
-
-/**
- * Error counters are atomic since updates can arrive concurrently from
- * arbitrary threads.
- **/
-struct atomic_error_statistics {
-	// Dedupe path error stats
-	atomic64_t invalid_advice_pbn_count;
-	atomic64_t no_space_error_count;
-	atomic64_t read_only_error_count;
-};
 
 struct vdo_thread {
 	struct vdo *vdo;
@@ -155,8 +145,8 @@ struct vdo {
 	bool no_flush_suspend;
 	bool allocations_allowed;
 
-	/* Atomic global counts of error events */
-	struct atomic_error_statistics error_stats;
+	/* Statistics */
+	struct atomic_statistics stats;
 
 	/** A list of all device_configs referencing this vdo */
 	struct list_head device_config_list;

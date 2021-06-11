@@ -16,13 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#18 $
  */
 
+#include "atomicStats.h"
 #include "releaseVersions.h"
 #include "statistics.h"
 #include "vdo.h"
+#include "vdoInternal.h"
 
+#include "commonStats.h"
 #include "dedupeIndex.h"
 #include "ioSubmitter.h"
 #include "kernelStatistics.h"
@@ -56,42 +59,42 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 }
 
 /**********************************************************************/
-void get_vdo_kernel_statistics(struct kernel_layer *layer,
-			       struct kernel_statistics *stats)
+void get_vdo_kernel_statistics(struct vdo *vdo, struct kernel_statistics *stats)
 {
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
-	stats->instance = layer->vdo.instance;
-	get_limiter_values_atomically(&layer->vdo.request_limiter,
+	stats->instance = vdo->instance;
+	get_limiter_values_atomically(&vdo->request_limiter,
 				      &stats->current_vios_in_progress,
 				      &stats->max_vios);
 	// get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
 	// and dedupe_context_busy gives the number of queries not made because
 	// of earlier timeouts.
 	stats->dedupe_advice_timeouts =
-		(get_vdo_dedupe_index_timeout_count(layer->vdo.dedupe_index) +
-		 atomic64_read(&layer->dedupe_context_busy));
-	stats->flush_out = atomic64_read(&layer->flush_out);
+		(get_vdo_dedupe_index_timeout_count(vdo->dedupe_index) +
+		 atomic64_read(&vdo->stats.dedupe_context_busy));
+	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
 	stats->logical_block_size =
-		layer->vdo.device_config->logical_block_size;
-	copy_bio_stat(&stats->bios_in, &layer->bios_in);
-	copy_bio_stat(&stats->bios_in_partial, &layer->bios_in_partial);
-	copy_bio_stat(&stats->bios_out, &layer->bios_out);
-	copy_bio_stat(&stats->bios_meta, &layer->bios_meta);
-	copy_bio_stat(&stats->bios_journal, &layer->bios_journal);
-	copy_bio_stat(&stats->bios_page_cache, &layer->bios_page_cache);
-	copy_bio_stat(&stats->bios_out_completed, &layer->bios_out_completed);
+		vdo->device_config->logical_block_size;
+	copy_bio_stat(&stats->bios_in, &vdo->stats.bios_in);
+	copy_bio_stat(&stats->bios_in_partial, &vdo->stats.bios_in_partial);
+	copy_bio_stat(&stats->bios_out, &vdo->stats.bios_out);
+	copy_bio_stat(&stats->bios_meta, &vdo->stats.bios_meta);
+	copy_bio_stat(&stats->bios_journal, &vdo->stats.bios_journal);
+	copy_bio_stat(&stats->bios_page_cache, &vdo->stats.bios_page_cache);
+	copy_bio_stat(&stats->bios_out_completed,
+		      &vdo->stats.bios_out_completed);
 	copy_bio_stat(&stats->bios_meta_completed,
-		      &layer->bios_meta_completed);
+		      &vdo->stats.bios_meta_completed);
 	copy_bio_stat(&stats->bios_journal_completed,
-		      &layer->bios_journal_completed);
+		      &vdo->stats.bios_journal_completed);
 	copy_bio_stat(&stats->bios_page_cache_completed,
-		      &layer->bios_page_cache_completed);
-	copy_bio_stat(&stats->bios_acknowledged, &layer->bios_acknowledged);
+		      &vdo->stats.bios_page_cache_completed);
+	copy_bio_stat(&stats->bios_acknowledged, &vdo->stats.bios_acknowledged);
 	copy_bio_stat(&stats->bios_acknowledged_partial,
-		      &layer->bios_acknowledged_partial);
+		      &vdo->stats.bios_acknowledged_partial);
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 	stats->memory_usage = get_vdo_memory_usage();
-	get_vdo_dedupe_index_statistics(layer->vdo.dedupe_index, &stats->index);
+	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }

@@ -967,7 +967,7 @@ int write_vdo_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_vdo_stats(struct kernel_layer *layer,
+int write_vdo_stats(struct vdo *vdo,
 		    char *buf,
 		    unsigned int maxlen)
 {
@@ -977,7 +977,7 @@ int write_vdo_stats(struct kernel_layer *layer,
 		return result;
 	}
 
-	get_kvdo_statistics(&layer->vdo, stats);
+	get_kvdo_statistics(vdo, stats);
 	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
 	FREE(stats);
 	return result;
@@ -1405,7 +1405,7 @@ int write_kernel_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_vdo_kernel_stats(struct kernel_layer *layer,
+int write_vdo_kernel_stats(struct vdo *vdo,
 			   char *buf,
 			   unsigned int maxlen)
 {
@@ -1415,7 +1415,7 @@ int write_vdo_kernel_stats(struct kernel_layer *layer,
 		return result;
 	}
 
-	get_vdo_kernel_statistics(layer, stats);
+	get_vdo_kernel_statistics(vdo, stats);
 	result = write_kernel_statistics(NULL, stats, NULL, &buf, &maxlen);
 	FREE(stats);
 	return result;

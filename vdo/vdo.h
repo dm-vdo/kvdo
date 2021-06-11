@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#33 $
  */
 
 #ifndef VDO_H
@@ -49,6 +49,15 @@ void vdo_wait_for_no_requests_active(struct vdo *vdo);
  **/
 struct block_device * __must_check
 get_vdo_backing_device(const struct vdo *vdo);
+
+/**
+ * Issue a flush request and wait for it to complete.
+ *
+ * @param layer The kernel layer
+ *
+ * @return VDO_SUCCESS or an error
+ */
+int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
 /**
  * Set whether compression is enabled in a vdo.

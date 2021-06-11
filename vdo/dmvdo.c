@@ -339,7 +339,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
  * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
  * check that no other message is being processed, and only proceed if so.
  *
- * @param layer  The layer to which the message was sent
+ * @param vdo    The layer to which the message was sent
  * @param argc   The argument count of the message
  * @param argv   The arguments to the message
  *
@@ -347,9 +347,10 @@ process_vdo_message_locked(struct kernel_layer *layer,
  *                processsing the message
  **/
 static int __must_check
-process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
+process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 {
 	int result;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	/*
 	 * All messages which may be processed in parallel with other messages
@@ -418,38 +419,38 @@ static int vdo_message(struct dm_target *ti,
 		       unsigned int maxlen)
 {
 	struct registered_thread allocating_thread, instance_thread;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 	int result;
+
 	if (argc == 0) {
 		uds_log_warning("unspecified dmsetup message");
 		return -EINVAL;
 	}
 
-	layer = get_kernel_layer_for_target(ti);
-
+	vdo = get_vdo_for_target(ti);
 	register_allocating_thread(&allocating_thread, NULL);
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
 	// Must be done here so we don't map return codes. The code in
 	// dm-ioctl expects a 1 for a return code to look at the buffer
 	// and see if it is full or not.
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
-			write_vdo_stats(layer, result_buffer, maxlen);
+			write_vdo_stats(vdo, result_buffer, maxlen);
 			uds_unregister_thread_device_id();
 			unregister_allocating_thread();
 			return 1;
 		}
 
 		if (strcasecmp(argv[0], "kernel_stats") == 0) {
-			write_vdo_kernel_stats(layer, result_buffer, maxlen);
+			write_vdo_kernel_stats(vdo, result_buffer, maxlen);
 			uds_unregister_thread_device_id();
 			unregister_allocating_thread();
 			return 1;
 		}
 	}
 
-	result = process_vdo_message(layer, argc, argv);
+	result = process_vdo_message(vdo, argc, argv);
 
 	uds_unregister_thread_device_id();
 	unregister_allocating_thread();

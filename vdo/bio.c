@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#54 $
  */
 
 #include "bio.h"
@@ -28,8 +28,10 @@
 #include "numeric.h"
 #include "permassert.h"
 
+#include "atomicStats.h"
 #include "kernelLayer.h"
 #include "kvio.h"
+#include "vdoInternal.h"
 
 enum { INLINE_BVEC_COUNT = 2 };
 
@@ -120,17 +122,18 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
  **/
 static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
+	struct atomic_statistics *stats = &vio->vdo->stats;
+
 	if (is_data_vio(vio)) {
-		vdo_count_bios(&layer->bios_out_completed, bio);
+		vdo_count_bios(&stats->bios_out_completed, bio);
 		return;
 	}
 
-	vdo_count_bios(&layer->bios_meta_completed, bio);
+	vdo_count_bios(&stats->bios_meta_completed, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		vdo_count_bios(&layer->bios_journal_completed, bio);
+		vdo_count_bios(&stats->bios_journal_completed, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		vdo_count_bios(&layer->bios_page_cache_completed, bio);
+		vdo_count_bios(&stats->bios_page_cache_completed, bio);
 	}
 }
 
@@ -138,8 +141,7 @@ static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 void vdo_count_completed_bios(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-	atomic64_inc(&layer->bios_completed);
+	atomic64_inc(&vio->vdo->stats.bios_completed);
 	count_all_bios_completed(vio, bio);
 }
 

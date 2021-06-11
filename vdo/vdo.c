@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#133 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#134 $
  */
 
 /*
@@ -52,6 +52,7 @@
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
 
+#include "bio.h"
 #include "dedupeIndex.h"
 #include "kernelVDO.h"
 #include "workQueue.h"
@@ -148,6 +149,29 @@ struct block_device *get_vdo_backing_device(const struct vdo *vdo)
 {
 	return vdo->device_config->owned_device->bdev;
 }
+
+/**********************************************************************/
+int vdo_synchronous_flush(struct vdo *vdo)
+{
+	int result;
+	struct bio bio;
+
+	bio_init(&bio, 0, 0);
+	bio_set_dev(&bio, get_vdo_backing_device(vdo));
+	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
+	submit_bio_wait(&bio);
+	result = blk_status_to_errno(bio.bi_status);
+
+	atomic64_inc(&vdo->stats.flush_out);
+	if (result != 0) {
+		log_error_strerror(result, "synchronous flush failed");
+		result = -EIO;
+	}
+
+	bio_uninit(&bio);
+	return result;
+}
+
 
 /**********************************************************************/
 enum vdo_state get_vdo_state(const struct vdo *vdo)
@@ -349,32 +373,6 @@ get_hash_lock_statistics(const struct vdo *vdo)
 	}
 
 	return totals;
-}
-
-/**
- * Get the current error statistics from a vdo.
- *
- * @param vdo  The vdo to query
- *
- * @return a copy of the current vdo error counters
- **/
-static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
-{
-	/*
-	 * The error counts can be incremented from arbitrary threads and so
-	 * must be incremented atomically, but they are just statistics with no
-	 * semantics that could rely on memory order, so unfenced reads are
-	 * sufficient.
-	 */
-	const struct atomic_error_statistics *atoms = &vdo->error_stats;
-	return (struct error_statistics) {
-		.invalid_advice_pbn_count =
-			atomic64_read(&atoms->invalid_advice_pbn_count),
-		.no_space_error_count =
-			atomic64_read(&atoms->no_space_error_count),
-		.read_only_error_count =
-			atomic64_read(&atoms->read_only_error_count),
-	};
 }
 
 /**********************************************************************/
@@ -640,7 +638,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 	    (advice->pbn == VDO_ZERO_BLOCK)) {
 		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
 			      advice->pbn, advice->state, lbn);
-		atomic64_inc(&vdo->error_stats.invalid_advice_pbn_count);
+		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
 
@@ -648,7 +646,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
 		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
 			      advice->pbn, lbn);
-		atomic64_inc(&vdo->error_stats.invalid_advice_pbn_count);
+		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
 

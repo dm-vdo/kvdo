@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#146 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#147 $
  */
 
 #include "dataKVIO.h"
@@ -29,10 +29,12 @@
 #include "murmur/MurmurHash3.h"
 #include "permassert.h"
 
+#include "atomicStats.h"
 #include "compressedBlock.h"
 #include "dataVIO.h"
 #include "hashLock.h"
 #include "physicalLayer.h"
+#include "vdoInternal.h"
 
 #include "bio.h"
 #include "dedupeIndex.h"
@@ -81,7 +83,6 @@ static unsigned int PASSTHROUGH_FLAGS =
 static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	int error = map_to_system_error(vio_as_completion(vio)->result);
 	struct bio *bio = data_vio->user_bio;
 
@@ -91,9 +92,10 @@ static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 	}
 	data_vio->user_bio = NULL;
 
-	vdo_count_bios(&layer->bios_acknowledged, bio);
+	vdo_count_bios(&vio->vdo->stats.bios_acknowledged, bio);
 	if (data_vio->is_partial) {
-		vdo_count_bios(&layer->bios_acknowledged_partial, bio);
+		vdo_count_bios(&vio->vdo->stats.bios_acknowledged_partial,
+			       bio);
 	}
 
 
@@ -679,7 +681,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 			        (data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
-		vdo_count_bios(&layer->bios_in_partial, bio);
+		vdo_count_bios(&layer->vdo.stats.bios_in_partial, bio);
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array

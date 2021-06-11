@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#196 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#197 $
  */
 
 #include "kernelLayer.h"
@@ -226,7 +226,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 			state);
 
 	// Count all incoming bios.
-	vdo_count_bios(&layer->bios_in, bio);
+	vdo_count_bios(&layer->vdo.stats.bios_in, bio);
 
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
@@ -783,33 +783,6 @@ void stop_kernel_layer(struct kernel_layer *layer)
 	}
 }
 
-/**
- * Issue a flush request and wait for it to complete.
- *
- * @param layer The kernel layer
- *
- * @return VDO_SUCCESS or an error
- */
-static int synchronous_flush(struct kernel_layer *layer)
-{
-	int result;
-	struct bio bio;
-	bio_init(&bio, 0, 0);
-	bio_set_dev(&bio, get_vdo_backing_device(&layer->vdo));
-	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-	submit_bio_wait(&bio);
-	result = blk_status_to_errno(bio.bi_status);
-
-	atomic64_inc(&layer->flush_out);
-	if (result != 0) {
-		log_error_strerror(result, "synchronous flush failed");
-		result = -EIO;
-	}
-
-	bio_uninit(&bio);
-	return result;
-}
-
 /**********************************************************************/
 int suspend_kernel_layer(struct kernel_layer *layer)
 {
@@ -836,7 +809,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * written before the suspend, even if it hasn't been flushed yet.
 	 */
 	vdo_wait_for_no_requests_active(&layer->vdo);
-	result = synchronous_flush(layer);
+	result = vdo_synchronous_flush(&layer->vdo);
 	if (result != VDO_SUCCESS) {
 		set_vdo_read_only(&layer->vdo, result);
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#48 $
  */
 
 #include "flush.h"
@@ -431,17 +431,17 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 	struct vdo_flush *flush = container_of(item,
 					       struct vdo_flush,
 					       work_item);
-	struct kernel_layer *layer = vdo_as_kernel_layer(flush->vdo);
+	struct vdo *vdo = flush->vdo;
 	struct bio *bio;
 
 	while ((bio = bio_list_pop(&flush->bios)) != NULL) {
 		// We're not acknowledging this bio now, but we'll never touch
 		// it again, so this is the last chance to account for it.
-		vdo_count_bios(&layer->bios_acknowledged, bio);
+		vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
 
 		// Update the device, and send it on down...
 		bio_set_dev(bio, get_vdo_backing_device(flush->vdo));
-		atomic64_inc(&layer->flush_out);
+		atomic64_inc(&vdo->stats.flush_out);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
 		generic_make_request(bio);
 #else
