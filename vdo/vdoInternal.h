@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#68 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -188,7 +188,7 @@ set_vdo_active_config(struct vdo *vdo, struct device_config *config)
  * acknowledging received and processed bios.
  *
  * Note that this directly controls the handling of write operations, but the
- * compile-time flag USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
+ * compile-time flag VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
  * operations.
  *
  * @param vdo  The vdo
