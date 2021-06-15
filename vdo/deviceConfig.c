@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#42 $
  */
 
 #include "deviceConfig.h"
@@ -461,15 +461,15 @@ int parse_optional_arguments(struct dm_arg_set *arg_set,
 /**
  * Handle a parsing error.
  *
- * @param config_ptr  A pointer to the config to free
- * @param error_ptr   A place to store a constant string about the error
- * @param error_str   A constant string to store in error_ptr
+ * @param config     The config to free
+ * @param error_ptr  A place to store a constant string about the error
+ * @param error_str  A constant string to store in error_ptr
  **/
-static void handle_parse_error(struct device_config **config_ptr,
+static void handle_parse_error(struct device_config *config,
 			       char **error_ptr,
 			       char *error_str)
 {
-	free_vdo_device_config(config_ptr);
+	free_vdo_device_config(config);
 	*error_ptr = error_str;
 }
 
@@ -487,7 +487,7 @@ int parse_vdo_device_config(int argc,
 	int result =
 		ALLOCATE(1, struct device_config, "device_config", &config);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not allocate config structure");
 		return VDO_BAD_CONFIGURATION;
@@ -499,7 +499,7 @@ int parse_vdo_device_config(int argc,
 	// Save the original string.
 	result = vdo_join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not populate string");
 		return VDO_BAD_CONFIGURATION;
@@ -533,7 +533,7 @@ int parse_vdo_device_config(int argc,
 	result = get_version_number(argc, argv, error_ptr, &config->version);
 	if (result != VDO_SUCCESS) {
 		// get_version_number sets error_ptr itself.
-		handle_parse_error(&config, error_ptr, *error_ptr);
+		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
 	// Move the arg pointer forward only if the argument was there.
@@ -545,7 +545,7 @@ int parse_vdo_device_config(int argc,
 				  "parent device name",
 				  &config->parent_device_name);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not copy parent device name");
 		return VDO_BAD_CONFIGURATION;
@@ -557,7 +557,7 @@ int parse_vdo_device_config(int argc,
 				   10,
 				   &config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			handle_parse_error(&config,
+			handle_parse_error(config,
 					   error_ptr,
 					   "Invalid physical block count");
 			return VDO_BAD_CONFIGURATION;
@@ -570,7 +570,7 @@ int parse_vdo_device_config(int argc,
 			    "4096",
 			    &enable_512e);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid logical block size");
 		return VDO_BAD_CONFIGURATION;
@@ -585,7 +585,7 @@ int parse_vdo_device_config(int argc,
 	// Get the page cache size.
 	result = vdo_string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid block map page cache size");
 		return VDO_BAD_CONFIGURATION;
@@ -595,7 +595,7 @@ int parse_vdo_device_config(int argc,
 	result = vdo_string_to_uint(dm_shift_arg(&arg_set),
 				    &config->block_map_maximum_age);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid block map maximum age");
 		return VDO_BAD_CONFIGURATION;
@@ -617,7 +617,7 @@ int parse_vdo_device_config(int argc,
 		// is still in sync with the parsing of the table line.
 		if (&arg_set.argv[0] !=
 		    &argv[POOL_NAME_ARG_INDEX[config->version]]) {
-			handle_parse_error(&config,
+			handle_parse_error(config,
 					   error_ptr,
 					   "Pool name not in expected location");
 			return VDO_BAD_CONFIGURATION;
@@ -629,7 +629,7 @@ int parse_vdo_device_config(int argc,
 	result = parse_optional_arguments(&arg_set, error_ptr, config);
 	if (result != VDO_SUCCESS) {
 		// parse_optional_arguments sets error_ptr itself.
-		handle_parse_error(&config, error_ptr, *error_ptr);
+		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
 
@@ -642,7 +642,7 @@ int parse_vdo_device_config(int argc,
 	     (config->thread_counts.physical_zones == 0)) ||
 	    ((config->thread_counts.physical_zones == 0) !=
 	     (config->thread_counts.hash_zones == 0))) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Logical, physical, and hash zones counts must all be zero or all non-zero");
 		return VDO_BAD_CONFIGURATION;
@@ -650,7 +650,7 @@ int parse_vdo_device_config(int argc,
 
 	if (config->cache_size <
 	    (2 * MAXIMUM_VDO_USER_VIOS * config->thread_counts.logical_zones)) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Insufficient block map cache for logical zones");
 		return VDO_BAD_CONFIGURATION;
@@ -664,7 +664,7 @@ int parse_vdo_device_config(int argc,
 		uds_log_error("couldn't open device \"%s\": error %d",
 			      config->parent_device_name,
 			      result);
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Unable to open storage device");
 		return VDO_BAD_CONFIGURATION;
@@ -682,17 +682,9 @@ int parse_vdo_device_config(int argc,
 }
 
 /**********************************************************************/
-void free_vdo_device_config(struct device_config **config_ptr)
+void free_vdo_device_config(struct device_config *config)
 {
-	struct device_config *config;
-	if (config_ptr == NULL) {
-		return;
-	}
-
-	config = *config_ptr;
-
 	if (config == NULL) {
-		*config_ptr = NULL;
 		return;
 	}
 
@@ -707,7 +699,6 @@ void free_vdo_device_config(struct device_config **config_ptr)
 	memset(config, 0, sizeof(*config));
 
 	FREE(config);
-	*config_ptr = NULL;
 }
 
 /**********************************************************************/

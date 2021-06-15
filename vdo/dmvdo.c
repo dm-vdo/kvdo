@@ -620,7 +620,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 							&ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
-			free_vdo_device_config(&config);
+			free_vdo_device_config(FORGET(config));
 		} else {
 			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
@@ -635,7 +635,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		// vdo_initialize calls into various VDO routines, so map error
 		result = map_to_system_error(result);
-		free_vdo_device_config(&config);
+		free_vdo_device_config(config);
 	}
 
 	uds_unregister_thread_device_id();
@@ -681,7 +681,7 @@ static void vdo_dtr(struct dm_target *ti)
 			as_vdo_device_config(vdo->device_config_list.next);
 	}
 
-	free_vdo_device_config(&config);
+	free_vdo_device_config(config);
 	ti->private = NULL;
 }
 
