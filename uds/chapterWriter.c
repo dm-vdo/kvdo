@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#24 $
  */
 
 #include "chapterWriter.h"
@@ -64,7 +64,7 @@ static void close_chapters(void *arg)
 {
 	int result;
 	struct chapter_writer *writer = arg;
-	log_debug("chapter writer starting");
+	uds_log_debug("chapter writer starting");
 	lock_mutex(&writer->mutex);
 	for (;;) {
 		while (writer->zones_to_write < writer->index->zone_count) {
@@ -73,7 +73,7 @@ static void close_chapters(void *arg)
 				// zones are in the same open chapter, so we
 				// can exit now.
 				unlock_mutex(&writer->mutex);
-				log_debug("chapter writer stopping");
+				uds_log_debug("chapter writer stopping");
 				return;
 			}
 			wait_cond(&writer->cond, &writer->mutex);
@@ -100,7 +100,7 @@ static void close_chapters(void *arg)
 			                          &OPEN_CHAPTER_INFO);
 			result = discard_index_component(oc);
 			if (result == UDS_SUCCESS) {
-				log_debug("Discarding saved open chapter");
+				uds_log_debug("Discarding saved open chapter");
 			}
 		}
 

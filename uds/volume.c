@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#37 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#38 $
  */
 
 #include "volume.h"
@@ -114,7 +114,7 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 	}
 
 	while (read_queue_is_full(volume->page_cache)) {
-		log_debug("Waiting until read queue not full");
+		uds_log_debug("Waiting until read queue not full");
 		signal_cond(&volume->read_threads_cond);
 		wait_cond(&volume->read_threads_read_done_cond,
 			  &volume->read_threads_mutex);
@@ -147,7 +147,7 @@ int enqueue_page_read(struct volume *volume,
 	while ((result = enqueue_read(volume->page_cache,
 				      request,
 				      physical_page)) == UDS_SUCCESS) {
-		log_debug("Read queues full, waiting for reads to finish");
+		uds_log_debug("Read queues full, waiting for reads to finish");
 		wait_for_read_queue_not_full(volume, request);
 	}
 
@@ -258,7 +258,7 @@ static void read_thread_function(void *arg)
 	unsigned int physical_page;
 	bool invalid = false;
 
-	log_debug("reader starting");
+	uds_log_debug("reader starting");
 	lock_mutex(&volume->read_threads_mutex);
 	while (true) {
 		bool record_page;
@@ -337,7 +337,7 @@ static void read_thread_function(void *arg)
 				}
 			}
 		} else {
-			log_debug("Requeuing requests for invalid page");
+			uds_log_debug("Requeuing requests for invalid page");
 		}
 
 		if (invalid) {
@@ -386,7 +386,7 @@ static void read_thread_function(void *arg)
 		broadcast_cond(&volume->read_threads_read_done_cond);
 	}
 	unlock_mutex(&volume->read_threads_mutex);
-	log_debug("reader done");
+	uds_log_debug("reader done");
 }
 
 /**********************************************************************/
@@ -843,7 +843,7 @@ int forget_chapter(struct volume *volume,
 	int result;
 	unsigned int physical_chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
-	log_debug("forgetting chapter %llu", virtual_chapter);
+	uds_log_debug("forgetting chapter %llu", virtual_chapter);
 	lock_mutex(&volume->read_threads_mutex);
 	result = invalidate_page_cache_for_chapter(volume->page_cache,
 						   physical_chapter,
@@ -961,9 +961,9 @@ int write_index_pages(struct volume *volume,
 		// Tell the index page map the list number of the last delta
 		// list that was packed into the index page.
 		if (lists_packed == 0) {
-			log_debug("no delta lists packed on chapter %u page %u",
-				  physical_chapter_number,
-				  index_page_number);
+			uds_log_debug("no delta lists packed on chapter %u page %u",
+				      physical_chapter_number,
+				      index_page_number);
 		} else {
 			delta_list_number += lists_packed;
 		}

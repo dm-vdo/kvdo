@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#45 $
  */
 
 #include "vio.h"
@@ -197,7 +197,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	}
 
 	va_start(args, format);
-	vlog_strerror(priority, result, format, args);
+	uds_vlog_strerror(priority, result, UDS_LOGGING_MODULE_NAME,
+			  format, args);
 	va_end(args);
 }
 

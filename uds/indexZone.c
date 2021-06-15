@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#24 $
  */
 
 #include "indexZone.h"
@@ -254,12 +254,11 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 	uint64_t closed_chapter, victim;
 	int result;
 	unsigned int finished_zones;
-	log_debug("closing chapter %" PRIu64
-		  " of zone %d after %u entries (%u short)",
-		  zone->newest_virtual_chapter,
-		  zone->id,
-		  zone->open_chapter->size,
-		  zone->open_chapter->capacity - zone->open_chapter->size);
+	uds_log_debug("closing chapter %llu of zone %d after %u entries (%u short)",
+		      zone->newest_virtual_chapter,
+		      zone->id,
+		      zone->open_chapter->size,
+		      zone->open_chapter->capacity - zone->open_chapter->size);
 
 	result = swap_open_chapter(zone);
 	if (result != UDS_SUCCESS) {

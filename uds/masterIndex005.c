@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#37 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#38 $
  */
 #include "masterIndex005.h"
 
@@ -967,21 +967,20 @@ set_volume_index_open_chapter_005(struct volume_index *volume_index,
 		bool log_move = virtual_chapter !=
 				volume_index_zone->virtual_chapter_high + 1;
 		if (log_move) {
-			log_debug("zone %u: The range of indexed chapters is moving from [%llu, %llu] ...",
-				  z,
-				  volume_index_zone->virtual_chapter_low,
-				  volume_index_zone->virtual_chapter_high);
+			uds_log_debug("zone %u: The range of indexed chapters is moving from [%llu, %llu] ...",
+				      z,
+				      volume_index_zone->virtual_chapter_low,
+				      volume_index_zone->virtual_chapter_high);
 		}
 
 		set_volume_index_zone_open_chapter_005(volume_index, z,
 						       virtual_chapter);
 
 		if (log_move) {
-			log_debug("zone %u: ... and moving to [%" PRIu64
-				  ", %llu]",
-				  z,
-				  volume_index_zone->virtual_chapter_low,
-				  volume_index_zone->virtual_chapter_high);
+			uds_log_debug("zone %u: ... and moving to [%llu, %llu]",
+				      z,
+				      volume_index_zone->virtual_chapter_low,
+				      volume_index_zone->virtual_chapter_high);
 		}
 	}
 }

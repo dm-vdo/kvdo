@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#16 $
  */
 
 #include "logger.h"
@@ -111,10 +111,12 @@ void uds_log_embedded_message(int priority,
 }
 
 /**********************************************************************/
-int vlog_strerror(int priority, int errnum, const char *format, va_list args)
+int uds_vlog_strerror(int priority,
+		      int errnum,
+		      const char *module,
+		      const char *format,
+		      va_list args)
 {
-	// XXX plumb module name through strerror functions
-	const char *module = NULL;
 	char errbuf[ERRBUF_SIZE];
 	uds_log_embedded_message(priority,
 				 module,
@@ -128,78 +130,16 @@ int vlog_strerror(int priority, int errnum, const char *format, va_list args)
 }
 
 /**********************************************************************/
-int log_strerror(int priority, int errnum, const char *format, ...)
+int __uds_log_strerror(int priority,
+		       int errnum,
+		       const char *module,
+		       const char *format,
+		       ...)
 {
 	va_list args;
 
 	va_start(args, format);
-	vlog_strerror(priority, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_error_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_ERR, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_warning_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_WARNING, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_debug_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_DEBUG, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_info_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_INFO, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_notice_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_NOTICE, errnum, format, args);
-	va_end(args);
-	return errnum;
-}
-
-/**********************************************************************/
-int log_fatal_strerror(int errnum, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vlog_strerror(LOG_CRIT, errnum, format, args);
+	uds_vlog_strerror(priority, errnum, module, format, args);
 	va_end(args);
 	return errnum;
 }
@@ -208,11 +148,13 @@ int log_fatal_strerror(int errnum, const char *format, ...)
 int log_unrecoverable(int errnum, const char *format, ...)
 {
 	va_list args;
+
 	if (is_successful(errnum)) {
 		return errnum;
 	}
+
 	va_start(args, format);
-	vlog_strerror(LOG_CRIT, errnum, format, args);
+	uds_vlog_strerror(LOG_CRIT, errnum, NULL, format, args);
 	va_end(args);
 	return make_unrecoverable(errnum);
 }

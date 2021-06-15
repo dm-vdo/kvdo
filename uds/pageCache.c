@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#20 $
  */
 
 #include "pageCache.h"
@@ -253,7 +253,7 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 		}
 
 		if (queued_index > -1) {
-			log_debug("setting pending read to invalid");
+			uds_log_debug("setting pending read to invalid");
 			read_queue[queued_index].invalid = true;
 		}
 		return UDS_SUCCESS;

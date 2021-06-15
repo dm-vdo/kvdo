@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#19 $
  */
 
 #ifndef LOGGER_H
@@ -151,58 +151,93 @@ void uds_log_backtrace(int priority);
 /**
  * Log a message with an error from an error code.
  *
- * @param  priority The priority of the logging entry
- * @param  errnum   Int value of errno or a UDS_* value.
- * @param  format   The format of the message (a printf style format)
+ * @param priority  The priority of the logging entry
+ * @param errnum    Int value of errno or a UDS_* value
  *
  * @return errnum
  **/
-int log_strerror(int priority, int errnum, const char *format, ...)
-	__printf(3, 4);
+#define uds_log_strerror(priority, errnum, ...)     \
+	__uds_log_strerror(priority,                \
+			   errnum,                  \
+			   UDS_LOGGING_MODULE_NAME, \
+			   __VA_ARGS__)
 
 /**
  * Log a message with an error from an error code.
  *
- * @param  priority The priority of the logging entry
- * @param  errnum   Int value of errno or a UDS_* value.
- * @param  format   The format of the message (a printf style format)
- * @param  args     The list of arguments with format.
+ * @param priority  The priority of the logging entry
+ * @param errnum    Int value of errno or a UDS_* value
+ * @param module    The name of the module doing the logging
+ * @param format    The format of the message (a printf style format)
  *
  * @return errnum
  **/
-int vlog_strerror(int priority, int errnum, const char *format, va_list args)
-	__printf(3, 0);
+int __uds_log_strerror(int priority,
+		       int errnum,
+		       const char *module,
+		       const char *format,
+		       ...)
+	__printf(4, 5);
+
+/**
+ * Log a message with an error from an error code.
+ *
+ * @param priority  The priority of the logging entry
+ * @param errnum    Int value of errno or a UDS_* value
+ * @param module    The name of the module doing the logging
+ * @param format    The format of the message (a printf style format)
+ * @param args	    The list of arguments with format.
+ *
+ * @return errnum
+ **/
+int uds_vlog_strerror(int priority,
+		      int errnum,
+		      const char *module,
+		      const char *format,
+		      va_list args)
+	__printf(4, 0);
 
 /**
  * Log an error prefixed with the string associated with the errnum.
  *
  * @param errnum Int value of errno or a UDS_* value.
- * @param format The format of the message (a printf style format)
  *
  * @return errnum
  **/
-int log_error_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_error_strerror(errnum, ...) \
+	uds_log_error_strerror(errnum, __VA_ARGS__)
+#define uds_log_error_strerror(errnum, ...) \
+	uds_log_strerror(LOG_ERR, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-int log_debug_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_debug_strerror(errnum, ...) \
+	uds_log_debug_strerror(errnum, __VA_ARGS__)
+#define uds_log_debug_strerror(errnum, ...) \
+	uds_log_strerror(LOG_DEBUG, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-int log_info_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_info_strerror(errnum, ...) \
+	uds_log_info_strerror(errnum, __VA_ARGS__)
+#define uds_log_info_strerror(errnum, ...) \
+	uds_log_strerror(LOG_INFO, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-int log_notice_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_notice_strerror(errnum, ...) \
+	uds_log_notice_strerror(errnum, __VA_ARGS__)
+#define uds_log_notice_strerror(errnum, ...) \
+	uds_log_strerror(LOG_NOTICE, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-int log_warning_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_warning_strerror(errnum, ...) \
+	uds_log_warning_strerror(errnum, __VA_ARGS__)
+#define uds_log_warning_strerror(errnum, ...) \
+	uds_log_strerror(LOG_WARNING, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-int log_fatal_strerror(int errnum, const char *format, ...)
-	__printf(2, 3);
+#define log_fatal_strerror(errnum, ...) \
+	uds_log_fatal_strerror(errnum, __VA_ARGS__)
+#define uds_log_fatal_strerror(errnum, ...) \
+	uds_log_strerror(LOG_CRIT, errnum, __VA_ARGS__);
 
 /**
  * IF the result is an error, log a FATAL level message and return the result

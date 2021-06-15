@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#15 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#16 $
  */
 
 #include <linux/delay.h>
@@ -416,7 +416,7 @@ void memory_exit(void)
 			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
 			memory_stats.vmalloc_bytes,
 			memory_stats.vmalloc_blocks);
-	log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
+	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
 /**********************************************************************/

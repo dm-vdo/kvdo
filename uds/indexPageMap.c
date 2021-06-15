@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#23 $
  */
 
 #include "indexPageMap.h"
@@ -386,7 +386,7 @@ static int read_index_page_map(struct read_portal *portal)
 		return result;
 	}
 
-	log_debug("read index page map, last update %llu",
-		  map->last_update);
+	uds_log_debug("read index page map, last update %llu",
+		      map->last_update);
 	return UDS_SUCCESS;
 }

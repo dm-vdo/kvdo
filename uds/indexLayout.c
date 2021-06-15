@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#43 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#44 $
  */
 
 #include "indexLayout.h"
@@ -789,7 +789,7 @@ static void iter_error(struct region_iterator *iter, const char *fmt, ...)
 	int r;
 	va_list args;
 	va_start(args, fmt);
-	r = vlog_strerror(LOG_ERR, UDS_UNEXPECTED_RESULT, fmt, args);
+	r = uds_vlog_strerror(LOG_ERR, UDS_UNEXPECTED_RESULT, NULL, fmt, args);
 	va_end(args);
 	if (iter->result == UDS_SUCCESS) {
 		iter->result = r;
