@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#39 $
  */
 
 #include "adminCompletion.h"
@@ -132,11 +132,11 @@ void prepare_vdo_admin_sub_task(struct vdo *vdo,
  **/
 static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
+	struct admin_completion *completion;
 	assert_vdo_completion_type(vdo_completion->type, ADMIN_COMPLETION);
-	struct admin_completion *completion =
-		container_of(vdo_completion,
-			     struct admin_completion,
-			     completion);
+	completion = container_of(vdo_completion,
+				  struct admin_completion,
+				  completion);
 	complete(&completion->callback_sync);
 }
 
