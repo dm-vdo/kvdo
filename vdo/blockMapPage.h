@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#19 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -33,7 +33,7 @@
  **/
 struct block_map_page_header {
 	/**
-	 * The 64-bit nonce of the current VDO, in little-endian byte order. 
+	 * The 64-bit nonce of the current VDO, in little-endian byte order.
 	 * Used to determine whether or not a page has been formatted.
 	 **/
 	__le64 nonce;
@@ -89,7 +89,7 @@ enum block_map_page_validity {
  * @return <code>true</code> if the page has been initialized
  **/
 static inline bool __must_check
-is_block_map_page_initialized(const struct block_map_page *page)
+is_vdo_block_map_page_initialized(const struct block_map_page *page)
 {
 	return page->header.initialized;
 }
@@ -102,8 +102,9 @@ is_block_map_page_initialized(const struct block_map_page *page)
  *
  * @return <code>true</code> if the initialized flag was modified
  **/
-static inline bool mark_block_map_page_initialized(struct block_map_page *page,
-						   bool initialized)
+static inline bool
+mark_vdo_block_map_page_initialized(struct block_map_page *page,
+				    bool initialized)
 {
 	if (initialized == page->header.initialized) {
 		return false;
@@ -121,7 +122,7 @@ static inline bool mark_block_map_page_initialized(struct block_map_page *page,
  * @return the page's physical block number
  **/
 static inline physical_block_number_t __must_check
-get_block_map_page_pbn(const struct block_map_page *page)
+get_vdo_block_map_page_pbn(const struct block_map_page *page)
 {
 	return __le64_to_cpu(page->header.pbn);
 }
@@ -133,7 +134,8 @@ get_block_map_page_pbn(const struct block_map_page *page)
  *
  * @return <code>true</code> if the page has the current version
  **/
-bool __must_check is_current_block_map_page(const struct block_map_page *page);
+bool __must_check
+is_current_vdo_block_map_page(const struct block_map_page *page);
 
 /**
  * Format a block map page in memory.
@@ -145,10 +147,10 @@ bool __must_check is_current_block_map_page(const struct block_map_page *page);
  *
  * @return the buffer pointer, as a block map page (for convenience)
  **/
-struct block_map_page *format_block_map_page(void *buffer,
-					     nonce_t nonce,
-					     physical_block_number_t pbn,
-					     bool initialized);
+struct block_map_page *format_vdo_block_map_page(void *buffer,
+						 nonce_t nonce,
+						 physical_block_number_t pbn,
+						 bool initialized);
 
 /**
  * Check whether a newly read page is valid, upgrading its in-memory format if
@@ -162,8 +164,8 @@ struct block_map_page *format_block_map_page(void *buffer,
  * @return The validity of the page
  **/
 enum block_map_page_validity __must_check
-validate_block_map_page(struct block_map_page *page,
-			nonce_t nonce,
-			physical_block_number_t pbn);
+validate_vdo_block_map_page(struct block_map_page *page,
+			     nonce_t nonce,
+			     physical_block_number_t pbn);
 
 #endif // BLOCK_MAP_PAGE_H

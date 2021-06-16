@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#101 $
  */
 
 #include "blockMapTree.h"
@@ -204,7 +204,7 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 {
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
 	enum block_map_page_validity validity =
-		validate_block_map_page(loaded, nonce, pbn);
+		validate_vdo_block_map_page(loaded, nonce, pbn);
 	if (validity == BLOCK_MAP_PAGE_VALID) {
 		memcpy(page, loaded, VDO_BLOCK_SIZE);
 		return true;
@@ -213,7 +213,7 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 	if (validity == BLOCK_MAP_PAGE_BAD) {
 		log_error_strerror(VDO_BAD_PAGE,
 				   "Expected page %llu but got page %llu instead",
-				   pbn, get_block_map_page_pbn(loaded));
+				   pbn, get_vdo_block_map_page_pbn(loaded));
 	}
 
 	return false;
@@ -535,9 +535,9 @@ static void write_initialized_page(struct vdo_completion *completion)
 	 * after this write succeeds.
 	 */
 	struct block_map_page *page = (struct block_map_page *) entry->buffer;
-	mark_block_map_page_initialized(page, true);
+	mark_vdo_block_map_page_initialized(page, true);
 	launch_write_metadata_vio_with_flush(entry->vio,
-					     get_block_map_page_pbn(page),
+					     get_vdo_block_map_page_pbn(page),
 					     finish_page_write,
 					     handle_write_error,
 					     (zone->flusher == tree_page),
@@ -579,12 +579,12 @@ static void write_page(struct tree_page *tree_page,
 	// Clear this now so that we know this page is not on any dirty list.
 	tree_page->recovery_lock = 0;
 
-	if (!mark_block_map_page_initialized(page, true)) {
+	if (!mark_vdo_block_map_page_initialized(page, true)) {
 		write_initialized_page(completion);
 		return;
 	}
 
-	launch_write_metadata_vio(entry->vio, get_block_map_page_pbn(page),
+	launch_write_metadata_vio(entry->vio, get_vdo_block_map_page_pbn(page),
 				  write_initialized_page, handle_write_error);
 }
 
@@ -855,7 +855,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	nonce = zone->map_zone->block_map->nonce;
 
 	if (!vdo_copy_valid_page(entry->buffer, nonce, pbn, page)) {
-		format_block_map_page(page, nonce, pbn, false);
+		format_vdo_block_map_page(page, nonce, pbn, false);
 	}
 	return_vio_to_pool(zone->vio_pool, entry);
 
@@ -1093,9 +1093,10 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	if (height > 1) {
 		// Format the interior node we just allocated (in memory).
 		tree_page = get_tree_page(zone, tree_lock);
-		format_block_map_page(tree_page->page_buffer,
-				      zone->map_zone->block_map->nonce, pbn,
-				      false);
+		format_vdo_block_map_page(tree_page->page_buffer,
+					  zone->map_zone->block_map->nonce,
+					  pbn,
+					  false);
 	}
 
 	// Release our claim to the allocation and wake any waiters
@@ -1275,7 +1276,7 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 		physical_block_number_t pbn;
 		lock->tree_slots[lock->height] = tree_slot;
 		page = (struct block_map_page *) (get_tree_page(zone, lock)->page_buffer);
-		pbn = get_block_map_page_pbn(page);
+		pbn = get_vdo_block_map_page_pbn(page);
 		if (pbn != VDO_ZERO_BLOCK) {
 			lock->tree_slots[lock->height].block_map_slot.pbn = pbn;
 			break;
@@ -1336,7 +1337,7 @@ physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
 	tree_page =
 		get_vdo_tree_page_by_index(map->forest, root_index, 1, page_index);
 	page = (struct block_map_page *) tree_page->page_buffer;
-	if (!is_block_map_page_initialized(page)) {
+	if (!is_vdo_block_map_page_initialized(page)) {
 		return VDO_ZERO_BLOCK;
 	}
 

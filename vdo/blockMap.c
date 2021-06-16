@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#106 $
  */
 
 #include "blockMap.h"
@@ -69,16 +69,16 @@ static int validate_page_on_read(void *buffer,
 	nonce_t nonce = zone->block_map->nonce;
 
 	enum block_map_page_validity validity =
-		validate_block_map_page(page, nonce, pbn);
+		validate_vdo_block_map_page(page, nonce, pbn);
 	if (validity == BLOCK_MAP_PAGE_BAD) {
 		return log_error_strerror(VDO_BAD_PAGE,
 					  "Expected page %llu but got page %llu instead",
 					  pbn,
-					  get_block_map_page_pbn(page));
+					  get_vdo_block_map_page_pbn(page));
 	}
 
 	if (validity == BLOCK_MAP_PAGE_INVALID) {
-		format_block_map_page(page, nonce, pbn, false);
+		format_vdo_block_map_page(page, nonce, pbn, false);
 	}
 
 	context->recovery_lock = 0;
@@ -97,7 +97,7 @@ static bool handle_page_write(void *raw_page,
 	struct block_map_page *page = raw_page;
 	struct block_map_page_context *context = page_context;
 
-	if (mark_block_map_page_initialized(page, true)) {
+	if (mark_vdo_block_map_page_initialized(page, true)) {
 		// Cause the page to be re-written.
 		return true;
 	}
