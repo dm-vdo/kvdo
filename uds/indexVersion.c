@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.c#3 $
  */
 
 #include "indexVersion.h"
@@ -50,8 +50,15 @@ void initialize_index_version(struct index_version *version,
 	 * Version 3 reads chapter headers in any endian order, and writes
 	 * little-endian chapter headers.
 	 */
-	bool chapter_index_header_native_endian = super_version < 3;
 
+	/*
+	 * Versions 4 and 5 are equivalent to versions 2 and 3
+	 * respectively, after the volume has been reduced in size by
+	 * one chapter in order to make room to prepend LVM metadata
+	 * to an existing VDO without losing all deduplication.
+	 */
+	bool chapter_index_header_native_endian =
+		(super_version < 3) || (super_version == 4);
 	*version = (struct index_version) {
 		.chapter_index_header_native_endian =
 			chapter_index_header_native_endian,

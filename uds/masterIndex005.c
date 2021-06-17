@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#38 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#40 $
  */
 #include "masterIndex005.h"
 
@@ -1391,8 +1391,10 @@ compute_volume_index_parameters005(const struct configuration *config,
 				   struct parameters005 *params)
 {
 	enum { DELTA_LIST_SIZE = 256 };
-	unsigned long records_per_volume, invalid_chapters, address_span;
+	unsigned long invalid_chapters, address_span;
 	unsigned long chapters_in_volume_index, entries_in_volume_index;
+	unsigned long rounded_chapters;
+	unsigned long delta_list_records;
 	unsigned int num_addresses;
 	uint64_t num_bits_per_index;
 	size_t expected_index_size;
@@ -1413,13 +1415,21 @@ compute_volume_index_parameters005(const struct configuration *config,
 	struct geometry *geometry = config->geometry;
 	unsigned long records_per_chapter = geometry->records_per_chapter;
 	params->num_chapters = geometry->chapters_per_volume;
-	records_per_volume = records_per_chapter * params->num_chapters;
+	/* 
+	 * Make sure that the number of delta list records in the
+	 * volume index does not change when the volume is reduced by
+	 * one chapter. This preserves the mapping from hash to volume
+	 * index delta list.
+	 */
+	rounded_chapters = params->num_chapters;
+	if (is_reduced_geometry(geometry))
+		rounded_chapters += 1;
+	delta_list_records = records_per_chapter * rounded_chapters;
 	num_addresses = config->volume_index_mean_delta * DELTA_LIST_SIZE;
 	params->num_delta_lists =
-		max(records_per_volume / DELTA_LIST_SIZE, min_delta_lists);
+		max(delta_list_records / DELTA_LIST_SIZE, min_delta_lists);
 	params->address_bits = compute_bits(num_addresses - 1);
-	params->chapter_bits = compute_bits(params->num_chapters - 1);
-
+	params->chapter_bits = compute_bits(rounded_chapters - 1);
 	if ((unsigned int) params->num_delta_lists !=
 	    params->num_delta_lists) {
 		return log_warning_strerror(UDS_INVALID_ARGUMENT,
@@ -1467,10 +1477,10 @@ compute_volume_index_parameters005(const struct configuration *config,
 	 * not want to do that floating point computation, we use 4 chapters
 	 * per 1K of chapters.
 	 */
-	invalid_chapters = max(params->num_chapters / 256, 2UL);
-	chapters_in_volume_index = params->num_chapters + invalid_chapters;
-	entries_in_volume_index
-		= records_per_chapter * chapters_in_volume_index;
+	invalid_chapters = max(rounded_chapters / 256, 2UL);
+	chapters_in_volume_index = rounded_chapters + invalid_chapters;
+	entries_in_volume_index =
+		records_per_chapter * chapters_in_volume_index;
 	// Compute the mean delta
 	address_span =
 		(uint64_t)params->num_delta_lists << params->address_bits;

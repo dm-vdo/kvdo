@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#134 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#135 $
  */
 
 /*
@@ -54,7 +54,10 @@
 
 #include "bio.h"
 #include "dedupeIndex.h"
+#include "ioSubmitter.h"
 #include "kernelVDO.h"
+#include "memoryUsage.h"
+#include "vdoCommon.h"
 #include "workQueue.h"
 
 /**********************************************************************/
@@ -376,6 +379,54 @@ get_hash_lock_statistics(const struct vdo *vdo)
 }
 
 /**********************************************************************/
+static struct error_statistics __must_check
+get_vdo_error_statistics(const struct vdo *vdo)
+{
+	/*
+	 * The error counts can be incremented from arbitrary threads and so
+	 * must be incremented atomically, but they are just statistics with no
+	 * semantics that could rely on memory order, so unfenced reads are
+	 * sufficient.
+	 */
+	const struct atomic_statistics *atoms = &vdo->stats;
+	return (struct error_statistics) {
+		.invalid_advice_pbn_count =
+			atomic64_read(&atoms->invalid_advice_pbn_count),
+		.no_space_error_count =
+			atomic64_read(&atoms->no_space_error_count),
+		.read_only_error_count =
+			atomic64_read(&atoms->read_only_error_count),
+	};
+}
+
+/**********************************************************************/
+static void copy_bio_stat(struct bio_stats *b,
+			  const struct atomic_bio_stats *a)
+{
+	b->read = atomic64_read(&a->read);
+	b->write = atomic64_read(&a->write);
+	b->discard = atomic64_read(&a->discard);
+	b->flush = atomic64_read(&a->flush);
+	b->empty_flush = atomic64_read(&a->empty_flush);
+	b->fua = atomic64_read(&a->fua);
+}
+
+/**********************************************************************/
+static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
+					   struct bio_stats subtrahend)
+{
+	return (struct bio_stats) {
+		.read = minuend.read - subtrahend.read,
+		.write = minuend.write - subtrahend.write,
+		.discard = minuend.discard - subtrahend.discard,
+		.flush = minuend.flush - subtrahend.flush,
+		.empty_flush = minuend.empty_flush - subtrahend.empty_flush,
+		.fua = minuend.fua - subtrahend.fua,
+	};
+}
+
+
+/**********************************************************************/
 void get_vdo_statistics(const struct vdo *vdo,
 			struct vdo_statistics *stats)
 {
@@ -424,6 +475,48 @@ void get_vdo_statistics(const struct vdo *vdo,
 		 sizeof(stats->mode),
 		 "%s",
 		 describe_vdo_state(state));
+}
+
+
+/**********************************************************************/
+void get_vdo_kernel_statistics(struct vdo *vdo, struct kernel_statistics *stats)
+{
+	stats->version = STATISTICS_VERSION;
+	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
+	stats->instance = vdo->instance;
+	get_limiter_values_atomically(&vdo->request_limiter,
+				      &stats->current_vios_in_progress,
+				      &stats->max_vios);
+	// get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
+	// and dedupe_context_busy gives the number of queries not made because
+	// of earlier timeouts.
+	stats->dedupe_advice_timeouts =
+		(get_vdo_dedupe_index_timeout_count(vdo->dedupe_index) +
+		 atomic64_read(&vdo->stats.dedupe_context_busy));
+	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
+	stats->logical_block_size =
+		vdo->device_config->logical_block_size;
+	copy_bio_stat(&stats->bios_in, &vdo->stats.bios_in);
+	copy_bio_stat(&stats->bios_in_partial, &vdo->stats.bios_in_partial);
+	copy_bio_stat(&stats->bios_out, &vdo->stats.bios_out);
+	copy_bio_stat(&stats->bios_meta, &vdo->stats.bios_meta);
+	copy_bio_stat(&stats->bios_journal, &vdo->stats.bios_journal);
+	copy_bio_stat(&stats->bios_page_cache, &vdo->stats.bios_page_cache);
+	copy_bio_stat(&stats->bios_out_completed,
+		      &vdo->stats.bios_out_completed);
+	copy_bio_stat(&stats->bios_meta_completed,
+		      &vdo->stats.bios_meta_completed);
+	copy_bio_stat(&stats->bios_journal_completed,
+		      &vdo->stats.bios_journal_completed);
+	copy_bio_stat(&stats->bios_page_cache_completed,
+		      &vdo->stats.bios_page_cache_completed);
+	copy_bio_stat(&stats->bios_acknowledged, &vdo->stats.bios_acknowledged);
+	copy_bio_stat(&stats->bios_acknowledged_partial,
+		      &vdo->stats.bios_acknowledged_partial);
+	stats->bios_in_progress =
+		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
+	stats->memory_usage = get_vdo_memory_usage();
+	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }
 
 /**********************************************************************/

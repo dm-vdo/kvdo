@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright Red Hat
  *
  * This program is free software; you can redistribute it and/or
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#19 $
  */
 
 #include "indexConfig.h"
@@ -26,16 +26,18 @@
 #include "memoryAlloc.h"
 
 static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";
-static const byte INDEX_CONFIG_VERSION[] = "06.02";
+static const byte INDEX_CONFIG_VERSION_6_02[] = "06.02";
+static const byte INDEX_CONFIG_VERSION_8_02[] = "08.02";
 
 enum {
 	INDEX_CONFIG_MAGIC_LENGTH = sizeof(INDEX_CONFIG_MAGIC) - 1,
-	INDEX_CONFIG_VERSION_LENGTH = sizeof(INDEX_CONFIG_VERSION) - 1
+	INDEX_CONFIG_VERSION_LENGTH = sizeof(INDEX_CONFIG_VERSION_6_02) - 1
 };
 
 /**********************************************************************/
-static int __must_check decode_index_config(struct buffer *buffer,
-					    struct uds_configuration *config)
+static int __must_check
+decode_index_config_06_02(struct buffer *buffer,
+			  struct uds_configuration *config)
 {
 	int result =
 		get_uint32_le_from_buffer(buffer,
@@ -82,33 +84,100 @@ static int __must_check decode_index_config(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result =
-		ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				"%zu bytes decoded of %zu expected",
-				buffer_length(buffer) - content_length(buffer),
-				buffer_length(buffer));
+	config->remapped_chapter = 0;
+	config->chapter_offset = 0;
+	if (ASSERT_LOG_ONLY(content_length(buffer) == 0,
+			    "%zu bytes decoded of %zu expected",
+			    buffer_length(buffer) - content_length(buffer),
+			    buffer_length(buffer)) != UDS_SUCCESS) {
+		return UDS_CORRUPT_COMPONENT;
+	}
+	return result;
+}
+
+/**********************************************************************/
+static int __must_check
+decode_index_config_08_02(struct buffer *buffer,
+			  struct uds_configuration *config)
+{
+	int result =
+		get_uint32_le_from_buffer(buffer,
+					  &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS) {
-		result = UDS_CORRUPT_COMPONENT;
+		return result;
+	}
+	result =
+		get_uint32_le_from_buffer(buffer,
+					  &config->chapters_per_volume);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result =
+		get_uint32_le_from_buffer(buffer,
+					  &config->sparse_chapters_per_volume);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint32_le_from_buffer(buffer, &config->cache_chapters);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint32_le_from_buffer(buffer,
+					   &config->checkpoint_frequency);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint32_le_from_buffer(buffer,
+					   &config->volume_index_mean_delta);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint32_le_from_buffer(buffer, &config->bytes_per_page);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result =
+		get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint64_le_from_buffer(buffer, &config->nonce);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint64_le_from_buffer(buffer, &config->remapped_chapter);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = get_uint64_le_from_buffer(buffer, &config->chapter_offset);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	if (ASSERT_LOG_ONLY(content_length(buffer) == 0,
+			    "%zu bytes decoded of %zu expected",
+			    buffer_length(buffer) - content_length(buffer),
+			    buffer_length(buffer)) != UDS_SUCCESS) {
+		return UDS_CORRUPT_COMPONENT;
 	}
 	return result;
 }
 
 /**********************************************************************/
 static int read_version(struct buffered_reader *reader,
-			struct uds_configuration *conf,
-			const char **version_ptr)
+			struct uds_configuration *conf)
 {
-	byte buffer[INDEX_CONFIG_VERSION_LENGTH];
-	int result = read_from_buffered_reader(reader, buffer,
+	byte version_buffer[INDEX_CONFIG_VERSION_LENGTH];
+	int result = read_from_buffered_reader(reader, version_buffer,
 					       INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return log_error_strerror(result,
 					  "cannot read index config version");
 	}
-	if (memcmp(INDEX_CONFIG_VERSION, buffer,
+	if (memcmp(INDEX_CONFIG_VERSION_6_02, version_buffer,
 		   INDEX_CONFIG_VERSION_LENGTH) == 0) {
 		struct buffer *buffer;
-		result = make_buffer(sizeof(*conf), &buffer);
+		result = make_buffer(sizeof(struct uds_configuration_6_02),
+				     &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -123,37 +192,47 @@ static int read_version(struct buffered_reader *reader,
 		}
 
 		clear_buffer(buffer);
-		result = decode_index_config(buffer, conf);
+		result = decode_index_config_06_02(buffer, conf);
 		free_buffer(FORGET(buffer));
+	} else if (memcmp(INDEX_CONFIG_VERSION_8_02, version_buffer,
+			  INDEX_CONFIG_VERSION_LENGTH) == 0) {
+		struct buffer *buffer;
+		result = make_buffer(sizeof(struct uds_configuration), &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-
-		if (version_ptr != NULL) {
-			*version_ptr = "current";
+		result = read_from_buffered_reader(reader,
+						   get_buffer_contents(buffer),
+						   buffer_length(buffer));
+		if (result != UDS_SUCCESS) {
+			free_buffer(FORGET(buffer));
+			return log_error_strerror(result,
+						  "cannot read config data");
 		}
-
-		return result;
+		clear_buffer(buffer);
+		result = decode_index_config_08_02(buffer, conf);
+		free_buffer(FORGET(buffer));
+	} else {
+		log_error_strerror(result,
+				   "unsupported configuration version: '%.*s'",
+				   INDEX_CONFIG_VERSION_LENGTH,
+				   version_buffer);
+		result = UDS_CORRUPT_COMPONENT;
 	}
-
-	return log_error_strerror(UDS_CORRUPT_COMPONENT,
-				  "unsupported configuration version: '%.*s'",
-				  INDEX_CONFIG_VERSION_LENGTH,
-				  buffer);
+	return result;
 }
 
 /**********************************************************************/
 int read_config_contents(struct buffered_reader *reader,
 			 struct uds_configuration *config)
 {
-	const char *version = NULL;
 	int result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
 					  INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = read_version(reader, config, &version);
+	result = read_version(reader, config);
 	if (result != UDS_SUCCESS) {
 		log_error_strerror(result, "Failed to read index config");
 	}
@@ -161,8 +240,9 @@ int read_config_contents(struct buffered_reader *reader,
 }
 
 /**********************************************************************/
-static int __must_check encode_index_config(struct buffer *buffer,
-					    struct uds_configuration *config)
+static int __must_check
+encode_index_config_06_02(struct buffer *buffer,
+			  struct uds_configuration *config)
 {
 	int result =
 		put_uint32_le_into_buffer(buffer,
@@ -207,16 +287,82 @@ static int __must_check encode_index_config(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = ASSERT_LOG_ONLY(content_length(buffer) == sizeof(*config),
-				 "%zu bytes encoded, of %zu expected",
-				 content_length(buffer),
-				 sizeof(*config));
-	return result;
+	return ASSERT_LOG_ONLY(content_length(buffer) ==
+			       sizeof(struct uds_configuration_6_02),
+			       "%zu bytes encoded, of %zu expected",
+			       content_length(buffer),
+			       sizeof(*config));
+}
+
+/**********************************************************************/
+static int __must_check
+encode_index_config_08_02(struct buffer *buffer,
+			  struct uds_configuration *config)
+{
+	int result =
+		put_uint32_le_into_buffer(buffer,
+					  config->record_pages_per_chapter);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result =
+		put_uint32_le_into_buffer(buffer, config->chapters_per_volume);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint32_le_into_buffer(buffer,
+					   config->sparse_chapters_per_volume);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint32_le_into_buffer(buffer, config->cache_chapters);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result =
+		put_uint32_le_into_buffer(buffer,
+					  config->checkpoint_frequency);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint32_le_into_buffer(buffer,
+					   config->volume_index_mean_delta);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint32_le_into_buffer(buffer, config->bytes_per_page);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint32_le_into_buffer(buffer, config->sparse_sample_rate);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint64_le_into_buffer(buffer, config->nonce);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint64_le_into_buffer(buffer, config->remapped_chapter);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = put_uint64_le_into_buffer(buffer,
+					   config->chapter_offset);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	return ASSERT_LOG_ONLY(content_length(buffer) ==
+			       sizeof(struct uds_configuration),
+			       "%zu bytes encoded, of %zu expected",
+			       content_length(buffer),
+			       sizeof(*config));
 }
 
 /**********************************************************************/
 int write_config_contents(struct buffered_writer *writer,
-			  struct uds_configuration *config)
+			  struct uds_configuration *config,
+			  uint32_t version)
 {
 	struct buffer *buffer;
 	int result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
@@ -224,24 +370,45 @@ int write_config_contents(struct buffered_writer *writer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-
-	result = write_to_buffered_writer(writer, INDEX_CONFIG_VERSION,
-					  INDEX_CONFIG_VERSION_LENGTH);
-	if (result != UDS_SUCCESS) {
-		return result;
+	/*
+	 * If version is < 4, the index has not been reduced by a
+	 * chapter so it must be written out as version 6.02 so that
+	 * it is still compatible with older versions of UDS.
+	 */
+	if (version < 4) {
+		result = write_to_buffered_writer(writer,
+						  INDEX_CONFIG_VERSION_6_02,
+						  INDEX_CONFIG_VERSION_LENGTH);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		result = make_buffer(sizeof(struct uds_configuration_6_02),
+				     &buffer);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		result = encode_index_config_06_02(buffer, config);
+		if (result != UDS_SUCCESS) {
+			free_buffer(FORGET(buffer));
+			return result;
+		}
+	} else {
+		result = write_to_buffered_writer(writer,
+						  INDEX_CONFIG_VERSION_8_02,
+						  INDEX_CONFIG_VERSION_LENGTH);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		result = make_buffer(sizeof(struct uds_configuration), &buffer);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		result = encode_index_config_08_02(buffer, config);
+		if (result != UDS_SUCCESS) {
+			free_buffer(FORGET(buffer));
+			return result;
+		}
 	}
-
-	result = make_buffer(sizeof(*config), &buffer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = encode_index_config(buffer, config);
-	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
-		return result;
-	}
-
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
 	free_buffer(FORGET(buffer));
@@ -254,6 +421,7 @@ int make_configuration(const struct uds_configuration *conf,
 {
 	struct configuration *config;
 	int result;
+
 	*config_ptr = NULL;
 	if (conf == NULL) {
 		return log_error_strerror(UDS_CONF_REQUIRED,
@@ -266,10 +434,12 @@ int make_configuration(const struct uds_configuration *conf,
 	}
 
 	result = make_geometry(conf->bytes_per_page,
-			      conf->record_pages_per_chapter,
-			      conf->chapters_per_volume,
-			      conf->sparse_chapters_per_volume,
-			      &config->geometry);
+			       conf->record_pages_per_chapter,
+			       conf->chapters_per_volume,
+			       conf->sparse_chapters_per_volume,
+			       conf->remapped_chapter,
+			       conf->chapter_offset,
+			       &config->geometry);
 	if (result != UDS_SUCCESS) {
 		free_configuration(config);
 		return result;

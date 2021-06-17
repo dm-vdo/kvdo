@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#18 $
  */
 
 #ifndef INDEX_LAYOUT_H
 #define INDEX_LAYOUT_H
 
 #include "buffer.h"
+#include "indexConfig.h"
 #include "indexState.h"
 #include "indexVersion.h"
 #include "ioFactory.h"
@@ -110,7 +111,7 @@ int __must_check find_latest_index_save_slot(struct index_layout *layout,
 					     unsigned int *slot_ptr);
 
 /**
- * Get another reference to an index layout, incrementing it's use count.
+ * Get another reference to an index layout, incrementing its use count.
  *
  * @param layout      The index layout.
  * @param layout_ptr  Where the new layout pointer is being stored.
@@ -240,5 +241,25 @@ struct buffer *__must_check get_index_state_buffer(struct index_layout *layout,
  **/
 const struct index_version *__must_check
 get_index_version(struct index_layout *layout);
+
+/**
+ * Save an index layout table to persistent storage using the io_factory in
+ * the layout.
+ *
+ * @param layout The layout to save
+ *
+ * @return UDS_SUCCESS or an error code
+ */
+int __must_check save_single_file_configuration(struct index_layout *layout);
+
+/**
+ * Reconfigure an index layout with a block offset
+ *
+ * @param layout   The index_layout to be reconfigured
+ * @param offset   The offset in blocks to move the index
+ *
+ */
+void reconfigure_layout(struct index_layout *layout,
+			off_t offset);
 
 #endif // INDEX_LAYOUT_H

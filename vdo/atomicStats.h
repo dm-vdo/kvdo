@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/atomicStats.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/atomicStats.h#2 $
  */
 
 #ifndef ATOMIC_STATS_H
@@ -60,14 +60,5 @@ struct atomic_statistics {
 	struct atomic_bio_stats bios_page_cache;
 	struct atomic_bio_stats bios_page_cache_completed;
 };
-
-/**
- * Get the current error statistics from a vdo.
- *
- * @param vdo  The vdo to query
- *
- * @return a copy of the current vdo error counters
- **/
-struct error_statistics get_vdo_error_statistics(const struct vdo *vdo);
 
 #endif /* ATOMIC_STATS_H */

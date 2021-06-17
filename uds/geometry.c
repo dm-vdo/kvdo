@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#9 $
  */
 
 #include "geometry.h"
@@ -34,7 +34,9 @@ static int initialize_geometry(struct geometry *geometry,
 			       size_t bytes_per_page,
 			       unsigned int record_pages_per_chapter,
 			       unsigned int chapters_per_volume,
-			       unsigned int sparse_chapters_per_volume)
+			       unsigned int sparse_chapters_per_volume,
+			       uint64_t remapped_chapter,
+			       uint64_t chapter_offset)
 {
 	int result =
 		ASSERT_WITH_ERROR_CODE(bytes_per_page >= BYTES_PER_RECORD,
@@ -61,6 +63,8 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->sparse_chapters_per_volume = sparse_chapters_per_volume;
 	geometry->dense_chapters_per_volume =
 		chapters_per_volume - sparse_chapters_per_volume;
+	geometry->remapped_chapter = remapped_chapter;
+	geometry->chapter_offset = chapter_offset;
 
 	// Calculate the number of records in a page, chapter, and volume.
 	geometry->records_per_page = bytes_per_page / BYTES_PER_RECORD;
@@ -117,6 +121,8 @@ int make_geometry(size_t bytes_per_page,
 		  unsigned int record_pages_per_chapter,
 		  unsigned int chapters_per_volume,
 		  unsigned int sparse_chapters_per_volume,
+		  uint64_t remapped_chapter,
+		  uint64_t chapter_offset,
 		  struct geometry **geometry_ptr)
 {
 	struct geometry *geometry;
@@ -128,7 +134,9 @@ int make_geometry(size_t bytes_per_page,
 				     bytes_per_page,
 				     record_pages_per_chapter,
 				     chapters_per_volume,
-				     sparse_chapters_per_volume);
+				     sparse_chapters_per_volume,
+				     remapped_chapter,
+				     chapter_offset);
 	if (result != UDS_SUCCESS) {
 		free_geometry(geometry);
 		return result;
@@ -145,6 +153,8 @@ int copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 			     source->record_pages_per_chapter,
 			     source->chapters_per_volume,
 			     source->sparse_chapters_per_volume,
+			     source->remapped_chapter,
+			     source->chapter_offset,
 			     geometry_ptr);
 }
 
