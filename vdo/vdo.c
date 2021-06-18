@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#136 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#137 $
  */
 
 /*
@@ -56,7 +56,6 @@
 #include "dedupeIndex.h"
 #include "ioSubmitter.h"
 #include "kernelVDO.h"
-#include "memoryUsage.h"
 #include "vdoCommon.h"
 #include "workQueue.h"
 
@@ -508,7 +507,8 @@ void get_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 		      &vdo->stats.bios_acknowledged_partial);
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
-	stats->memory_usage = get_vdo_memory_usage();
+	get_memory_stats(&stats->memory_usage.bytes_used,
+			 &stats->memory_usage.peak_bytes_used);
 	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }
 

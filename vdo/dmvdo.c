@@ -38,7 +38,6 @@
 #include "instanceNumber.h"
 #include "ioSubmitter.h"
 #include "kernelLayer.h"
-#include "memoryUsage.h"
 #include "messageStats.h"
 #include "stringUtils.h"
 #include "vdo.h"
