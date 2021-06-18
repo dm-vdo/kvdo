@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#134 $
  */
 
 #include "dmvdo.h"
@@ -100,9 +100,7 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  **/
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-
-	return kvdo_map_bio(layer, bio);
+	return vdo_launch_bio(get_vdo_for_target(ti), bio);
 }
 
 /**********************************************************************/

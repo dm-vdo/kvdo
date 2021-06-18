@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#198 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#199 $
  */
 
 #include "kernelLayer.h"
@@ -161,13 +161,13 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	bool has_discard_permit;
 	int result;
 
-	uds_log_warning("kvdo_map_bio called from within a VDO thread!");
+	uds_log_warning("vdo_launch_bio called from within a VDO thread!");
 	/*
 	 * We're not yet entirely sure what circumstances are causing this
 	 * situation in [ESC-638], but it does appear to be happening and
 	 * causing VDO to deadlock.
 	 *
-	 * Somehow kvdo_map_bio is being called from generic_make_request
+	 * Somehow vdo_launch_bio is being called from generic_make_request
 	 * which is being called from the VDO code to pass a flush on down to
 	 * the underlying storage system; we've got 2000 requests in progress,
 	 * so we have to wait for one to complete, but none can complete while
@@ -213,49 +213,50 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 
 
 /**********************************************************************/
-int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
+int vdo_launch_bio(struct vdo *vdo, struct bio *bio)
 {
 	int result;
 	uint64_t arrival_jiffies = jiffies;
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state =
+		get_kernel_layer_state(vdo_as_kernel_layer(vdo));
 	struct vdo_work_queue *current_work_queue;
 	bool has_discard_permit = false;
 
 	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
-			"kvdo_map_bio should not be called while in state %d",
+			"vdo_launch_bio should not be called while in state %d",
 			state);
 
 	// Count all incoming bios.
-	vdo_count_bios(&layer->vdo.stats.bios_in, bio);
+	vdo_count_bios(&vdo->stats.bios_in, bio);
 
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		launch_vdo_flush(&layer->vdo, bio);
+		launch_vdo_flush(vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
 
 	current_work_queue = get_current_work_queue();
 
 	if ((current_work_queue != NULL) &&
-	    (&layer->vdo == get_work_queue_owner(current_work_queue))) {
+	    (vdo == get_work_queue_owner(current_work_queue))) {
 		/*
 		 * This prohibits sleeping during I/O submission to VDO from
 		 * its own thread.
 		 */
-		return launch_data_vio_from_vdo_thread(&layer->vdo,
+		return launch_data_vio_from_vdo_thread(vdo,
 						       bio,
 						       arrival_jiffies);
 	}
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		limiter_wait_for_one_free(&layer->vdo.discard_limiter);
+		limiter_wait_for_one_free(&vdo->discard_limiter);
 		has_discard_permit = true;
 	}
-	limiter_wait_for_one_free(&layer->vdo.request_limiter);
+	limiter_wait_for_one_free(&vdo->request_limiter);
 
-	result = vdo_launch_data_vio_from_bio(&layer->vdo,
+	result = vdo_launch_data_vio_from_bio(vdo,
 					      bio,
 					      arrival_jiffies,
 					      has_discard_permit);

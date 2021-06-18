@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#25 $
  */
 
 #include "uds.h"
@@ -136,7 +136,7 @@ void uds_configuration_set_sparse(struct uds_configuration *user_config,
 		return;
 	}
 
-        // Compute pre-conversion chapter count for sizing.
+	// Compute pre-conversion chapter count for sizing.
 	reduced_chapters = user_config->chapters_per_volume % 2;
 	prev_chapters_per_volume =
 		user_config->chapters_per_volume + reduced_chapters;
@@ -310,7 +310,7 @@ static int initialize_index_session(struct uds_index_session *index_session,
 
 	result = initialize_index_session_with_layout(index_session, layout,
 						      user_params, load_type);
-	put_index_layout(&layout);
+	put_index_layout(layout);
 	return result;
 }
 

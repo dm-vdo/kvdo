@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#85 $
  */
 
 #ifndef KERNELLAYER_H
@@ -234,14 +234,14 @@ get_kernel_layer_state(const struct kernel_layer *layer)
 /**
  * Function call to begin processing a bio passed in from the block layer
  *
- * @param layer  The physical layer
- * @param bio    The bio from the block layer
+ * @param vdo  The VDO instance
+ * @param bio  The bio from the block layer
  *
  * @return value to return from the VDO map function.  Either an error code
- *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see kvdo_map_bio for
+ *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdo_map_bio for
  *         details).
  **/
-int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);
+int vdo_launch_bio(struct vdo *vdo, struct bio *bio);
 
 /**
  * Convert a generic PhysicalLayer to a kernel_layer.

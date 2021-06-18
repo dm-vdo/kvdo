@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.h#3 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.h#4 $
  */
 
 #ifndef INDEX_VERSION_H
@@ -31,7 +31,7 @@ struct index_version {
 enum {
 	SUPER_VERSION_MINIMUM = 1,
 	SUPER_VERSION_CURRENT = 3,
-	SUPER_VERSION_MAXIMUM = 5,
+	SUPER_VERSION_MAXIMUM = 7,
 };
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#21 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -81,9 +81,9 @@ make_index_layout_from_factory(struct io_factory *factory,
  * Decrement the use count of an index layout.  If the count goes to zero, free
  * the index layout.
  *
- * @param layout_ptr  Where the layout is being stored.  Always reset to NULL.
+ * @param layout  The layout to release or free
  **/
-void put_index_layout(struct index_layout **layout_ptr);
+void put_index_layout(struct index_layout *layout);
 
 /**********************************************************************/
 int __must_check cancel_index_save(struct index_layout *layout,
@@ -249,14 +249,14 @@ get_index_version(struct index_layout *layout);
  *
  * @param layout      The index_layout to be reconfigured
  * @param config      The configuration to be written with the layout
- * @param lvm_blocks  The adjustment for lvm space
+ * @param lvm_offset  The adjustment for lvm space, in bytes
  * @param offset      The offset in bytes to move the index
  *
  * @return  UDS_SUCCESS or a error code
  */
 int update_layout(struct index_layout *layout,
 		  struct uds_configuration *config,
-		  off_t lvm_blocks,
+		  off_t lvm_offset,
 		  off_t offset);
 
 #endif // INDEX_LAYOUT_H

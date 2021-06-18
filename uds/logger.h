@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#20 $
  */
 
 #ifndef LOGGER_H
@@ -276,13 +276,11 @@ void __uds_log_message(int priority,
 /**
  * Log a debug message. Takes printf-style arguments.
  **/
-#define log_debug(...) uds_log_debug(__VA_ARGS__)
 #define uds_log_debug(...) uds_log_message(LOG_DEBUG, __VA_ARGS__)
 
 /**
  * Log an informational message. Takes printf-style arguments.
  **/
-#define log_info(...) uds_log_info(__VA_ARGS__)
 #define uds_log_info(...) uds_log_message(LOG_INFO, __VA_ARGS__)
 
 /**
@@ -293,7 +291,6 @@ void __uds_log_message(int priority,
 /**
  * Log a warning. Takes printf-style arguments.
  **/
-#define log_warning(...) uds_log_warning(__VA_ARGS__)
 #define uds_log_warning(...) uds_log_message(LOG_WARNING, __VA_ARGS__)
 
 /**
