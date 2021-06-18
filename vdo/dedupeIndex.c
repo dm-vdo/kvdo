@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#96 $
  */
 
 #include "dedupeIndex.h"
@@ -1006,7 +1006,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 	result = make_work_queue(layer->thread_name_prefix,
 				 "dedupeQ",
 				 &vdo->work_queue_directory,
-				 layer,
+				 vdo,
 				 index,
 				 &uds_queue_type,
 				 1,

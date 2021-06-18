@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#24 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -136,7 +136,7 @@ struct vdo_work_queue_type {
  *                                  names
  * @param [in]  name                The queue name
  * @param [in]  parent_kobject      The parent sysfs node
- * @param [in]  owner               The kernel layer owning the work queue
+ * @param [in]  owner               The VDO owning the work queue
  * @param [in]  private             Private data of the queue for use by work
  *                                  items or other queue-specific functions
  * @param [in]  thread_privates     If non-NULL, an array of separate private
@@ -153,7 +153,7 @@ struct vdo_work_queue_type {
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    struct kernel_layer *owner,
+		    struct vdo *owner,
 		    void *private,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -263,12 +263,12 @@ void *get_work_queue_private_data(void);
 struct vdo_work_queue *get_current_work_queue(void);
 
 /**
- * Returns the kernel layer that owns the work queue.
+ * Returns the VDO that owns the work queue.
  *
  * @param queue  The work queue
  *
  * @return The owner pointer supplied at work queue creation
  **/
-struct kernel_layer *get_work_queue_owner(struct vdo_work_queue *queue);
+struct vdo *get_work_queue_owner(struct vdo_work_queue *queue);
 
 #endif /* VDO_WORK_QUEUE_H */

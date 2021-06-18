@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#61 $
  */
 
 #include "workQueue.h"
@@ -502,7 +502,7 @@ static bool queue_started(struct simple_work_queue *queue)
  *                                 thread names
  * @param [in]  name               The queue name
  * @param [in]  parent_kobject     The parent sysfs node
- * @param [in]  owner              The kernel layer owning the work queue
+ * @param [in]  owner              The VDO owning the work queue
  * @param [in]  private            Private data of the queue for use by work
  *                                 items or other queue-specific functions
  * @param [in]  type               The work queue type defining the lifecycle
@@ -515,7 +515,7 @@ static bool queue_started(struct simple_work_queue *queue)
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
 				  struct kobject *parent_kobject,
-				  struct kernel_layer *owner,
+				  struct vdo *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
@@ -638,7 +638,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    struct kernel_layer *owner,
+		    struct vdo *owner,
 		    void *private,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -963,7 +963,7 @@ struct vdo_work_queue *get_current_work_queue(void)
 }
 
 /**********************************************************************/
-struct kernel_layer *get_work_queue_owner(struct vdo_work_queue *queue)
+struct vdo *get_work_queue_owner(struct vdo_work_queue *queue)
 {
 	return queue->owner;
 }

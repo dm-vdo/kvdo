@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#197 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#198 $
  */
 
 #include "kernelLayer.h"
@@ -239,7 +239,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	current_work_queue = get_current_work_queue();
 
 	if ((current_work_queue != NULL) &&
-	    (layer == get_work_queue_owner(current_work_queue))) {
+	    (&layer->vdo == get_work_queue_owner(current_work_queue))) {
 		/*
 		 * This prohibits sleeping during I/O submission to VDO from
 		 * its own thread.
@@ -443,7 +443,7 @@ int make_kernel_layer(unsigned int instance,
 		result = make_work_queue(layer->thread_name_prefix,
 					 "ackQ",
 					 &layer->vdo.work_queue_directory,
-					 layer,
+					 &layer->vdo,
 					 layer,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
@@ -462,7 +462,7 @@ int make_kernel_layer(unsigned int instance,
 	result = make_work_queue(layer->thread_name_prefix,
 				 "cpuQ",
 				 &layer->vdo.work_queue_directory,
-				 layer,
+				 &layer->vdo,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
