@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#19 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -215,11 +215,13 @@ int __must_check setup_index_save_slot(struct index_layout *layout,
  *
  * @param layout  the generic index layout
  * @param config  the index configuration to write
+ * @param offset  A block offset to apply when writing the configuration
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check write_index_config(struct index_layout *layout,
-				    struct uds_configuration *config);
+				    struct uds_configuration *config,
+				    off_t offset);
 
 /**
  * Get the index state buffer
@@ -243,23 +245,18 @@ const struct index_version *__must_check
 get_index_version(struct index_layout *layout);
 
 /**
- * Save an index layout table to persistent storage using the io_factory in
- * the layout.
+ * Update and write out an index layout and configuration with a block offset
  *
- * @param layout The layout to save
+ * @param layout      The index_layout to be reconfigured
+ * @param config      The configuration to be written with the layout
+ * @param lvm_blocks  The adjustment for lvm space
+ * @param offset      The offset in bytes to move the index
  *
- * @return UDS_SUCCESS or an error code
+ * @return  UDS_SUCCESS or a error code
  */
-int __must_check save_single_file_configuration(struct index_layout *layout);
-
-/**
- * Reconfigure an index layout with a block offset
- *
- * @param layout   The index_layout to be reconfigured
- * @param offset   The offset in blocks to move the index
- *
- */
-void reconfigure_layout(struct index_layout *layout,
-			off_t offset);
+int update_layout(struct index_layout *layout,
+		  struct uds_configuration *config,
+		  off_t lvm_blocks,
+		  off_t offset);
 
 #endif // INDEX_LAYOUT_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#135 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#136 $
  */
 
 /*
@@ -427,8 +427,7 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 
 
 /**********************************************************************/
-void get_vdo_statistics(const struct vdo *vdo,
-			struct vdo_statistics *stats)
+void get_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
 	enum vdo_state state;
 	slab_count_t slab_total;
@@ -437,8 +436,8 @@ void get_vdo_statistics(const struct vdo *vdo,
 	// query them from any thread.
 	struct recovery_journal *journal = vdo->recovery_journal;
 	struct slab_depot *depot = vdo->depot;
-	// XXX config.physical_blocks is actually mutated during resize and is in
-	// a packed structure, but resize runs on the admin thread so we're
+	// XXX config.physical_blocks is actually mutated during resize and is
+	// in a packed structure, but resize runs on the admin thread so we're
 	// usually OK.
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
@@ -475,12 +474,6 @@ void get_vdo_statistics(const struct vdo *vdo,
 		 sizeof(stats->mode),
 		 "%s",
 		 describe_vdo_state(state));
-}
-
-
-/**********************************************************************/
-void get_vdo_kernel_statistics(struct vdo *vdo, struct kernel_statistics *stats)
-{
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = vdo->instance;

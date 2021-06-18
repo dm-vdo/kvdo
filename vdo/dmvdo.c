@@ -434,27 +434,18 @@ static int vdo_message(struct dm_target *ti,
 	// Must be done here so we don't map return codes. The code in
 	// dm-ioctl expects a 1 for a return code to look at the buffer
 	// and see if it is full or not.
-	if (argc == 1) {
-		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
-			write_vdo_stats(vdo, result_buffer, maxlen);
-			uds_unregister_thread_device_id();
-			unregister_allocating_thread();
-			return 1;
-		}
-
-		if (strcasecmp(argv[0], "kernel_stats") == 0) {
-			write_vdo_kernel_stats(vdo, result_buffer, maxlen);
-			uds_unregister_thread_device_id();
-			unregister_allocating_thread();
-			return 1;
-		}
+	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
+		write_vdo_stats(vdo, result_buffer, maxlen);
+		result = 1;
+	} else {
+		result = map_to_system_error(process_vdo_message(vdo,
+								 argc,
+								 argv));
 	}
-
-	result = process_vdo_message(vdo, argc, argv);
 
 	uds_unregister_thread_device_id();
 	unregister_allocating_thread();
-	return map_to_system_error(result);
+	return result;
 }
 
 /**

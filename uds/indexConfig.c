@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#20 $
  */
 
 #include "indexConfig.h"
@@ -84,8 +84,8 @@ decode_index_config_06_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->remapped_chapter = 0;
-	config->chapter_offset = 0;
+	config->remapped_virtual = 0;
+	config->remapped_physical = 0;
 	if (ASSERT_LOG_ONLY(content_length(buffer) == 0,
 			    "%zu bytes decoded of %zu expected",
 			    buffer_length(buffer) - content_length(buffer),
@@ -145,11 +145,11 @@ decode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint64_le_from_buffer(buffer, &config->remapped_chapter);
+	result = get_uint64_le_from_buffer(buffer, &config->remapped_virtual);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint64_le_from_buffer(buffer, &config->chapter_offset);
+	result = get_uint64_le_from_buffer(buffer, &config->remapped_physical);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -342,12 +342,12 @@ encode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint64_le_into_buffer(buffer, config->remapped_chapter);
+	result = put_uint64_le_into_buffer(buffer, config->remapped_virtual);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	result = put_uint64_le_into_buffer(buffer,
-					   config->chapter_offset);
+					   config->remapped_physical);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -437,8 +437,8 @@ int make_configuration(const struct uds_configuration *conf,
 			       conf->record_pages_per_chapter,
 			       conf->chapters_per_volume,
 			       conf->sparse_chapters_per_volume,
-			       conf->remapped_chapter,
-			       conf->chapter_offset,
+			       conf->remapped_virtual,
+			       conf->remapped_physical,
 			       &config->geometry);
 	if (result != UDS_SUCCESS) {
 		free_configuration(config);

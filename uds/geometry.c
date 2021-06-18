@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#11 $
  */
 
 #include "geometry.h"
@@ -35,8 +35,8 @@ static int initialize_geometry(struct geometry *geometry,
 			       unsigned int record_pages_per_chapter,
 			       unsigned int chapters_per_volume,
 			       unsigned int sparse_chapters_per_volume,
-			       uint64_t remapped_chapter,
-			       uint64_t chapter_offset)
+			       uint64_t remapped_virtual,
+			       uint64_t remapped_physical)
 {
 	int result =
 		ASSERT_WITH_ERROR_CODE(bytes_per_page >= BYTES_PER_RECORD,
@@ -63,8 +63,8 @@ static int initialize_geometry(struct geometry *geometry,
 	geometry->sparse_chapters_per_volume = sparse_chapters_per_volume;
 	geometry->dense_chapters_per_volume =
 		chapters_per_volume - sparse_chapters_per_volume;
-	geometry->remapped_chapter = remapped_chapter;
-	geometry->chapter_offset = chapter_offset;
+	geometry->remapped_virtual = remapped_virtual;
+	geometry->remapped_physical = remapped_physical;
 
 	// Calculate the number of records in a page, chapter, and volume.
 	geometry->records_per_page = bytes_per_page / BYTES_PER_RECORD;
@@ -121,8 +121,8 @@ int make_geometry(size_t bytes_per_page,
 		  unsigned int record_pages_per_chapter,
 		  unsigned int chapters_per_volume,
 		  unsigned int sparse_chapters_per_volume,
-		  uint64_t remapped_chapter,
-		  uint64_t chapter_offset,
+		  uint64_t remapped_virtual,
+		  uint64_t remapped_physical,
 		  struct geometry **geometry_ptr)
 {
 	struct geometry *geometry;
@@ -135,8 +135,8 @@ int make_geometry(size_t bytes_per_page,
 				     record_pages_per_chapter,
 				     chapters_per_volume,
 				     sparse_chapters_per_volume,
-				     remapped_chapter,
-				     chapter_offset);
+				     remapped_virtual,
+				     remapped_physical);
 	if (result != UDS_SUCCESS) {
 		free_geometry(geometry);
 		return result;
@@ -153,8 +153,8 @@ int copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 			     source->record_pages_per_chapter,
 			     source->chapters_per_volume,
 			     source->sparse_chapters_per_volume,
-			     source->remapped_chapter,
-			     source->chapter_offset,
+			     source->remapped_virtual,
+			     source->remapped_physical,
 			     geometry_ptr);
 }
 
@@ -162,6 +162,38 @@ int copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 void free_geometry(struct geometry *geometry)
 {
 	FREE(geometry);
+}
+
+/**********************************************************************/
+unsigned int __must_check
+map_to_physical_chapter(const struct geometry *geometry,
+			uint64_t virtual_chapter)
+{
+	uint64_t delta;
+	if (!is_reduced_geometry(geometry)) {
+		return (virtual_chapter % geometry->chapters_per_volume);
+	}
+
+	if (likely(virtual_chapter > geometry->remapped_virtual)) {
+		delta = virtual_chapter - geometry->remapped_virtual;
+		if (likely(delta > geometry->remapped_physical)) {
+			return (delta % geometry->chapters_per_volume);
+		} else {
+			return (delta - 1);
+		}
+	}
+
+	if (virtual_chapter == geometry->remapped_virtual) {
+		return geometry->remapped_physical;
+	}
+
+	delta = geometry->remapped_virtual - virtual_chapter;
+	if (delta < geometry->chapters_per_volume) {
+		return (geometry->chapters_per_volume - delta);
+	}
+
+	// This chapter is so old the answer doesn't matter.
+	return 0;
 }
 
 /**********************************************************************/

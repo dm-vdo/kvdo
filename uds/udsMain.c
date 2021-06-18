@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#23 $
  */
 
 #include "uds.h"
@@ -255,7 +255,7 @@ initialize_index_session_with_layout(struct uds_index_session *index_session,
 	struct configuration *index_config;
 	int result = ((load_type == LOAD_CREATE) ?
 			write_index_config(layout,
-					   &index_session->user_config) :
+					   &index_session->user_config, 0) :
 			verify_index_config(layout,
 					    &index_session->user_config));
 	if (result != UDS_SUCCESS) {

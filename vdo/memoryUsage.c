@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/memoryUsage.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/memoryUsage.c#12 $
  */
 
 #include "memoryUsage.h"
 
 #include "memoryAlloc.h"
 
-#include "kernelStatistics.h"
+#include "statistics.h"
 
 /**********************************************************************/
 struct memory_usage get_vdo_memory_usage(void)

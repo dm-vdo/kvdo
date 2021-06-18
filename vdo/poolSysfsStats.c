@@ -26,7 +26,6 @@
 
 struct pool_stats_attribute {
 	struct attribute attr;
-	bool from_vdo;
 	ssize_t (*print)(struct kernel_layer *layer, char *buf);
 };
 
@@ -45,12 +44,7 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 	}
 
 	mutex_lock(&layer->stats_mutex);
-	if (pool_stats_attr->from_vdo) {
-		get_kvdo_statistics(vdo, &layer->vdo_stats_storage);
-	} else {
-		get_vdo_kernel_statistics(vdo, &layer->kernel_stats_storage);
-	}
-
+	get_kvdo_statistics(vdo, &layer->vdo_stats_storage);
 	size = pool_stats_attr->print(layer, buf);
 	mutex_unlock(&layer->stats_mutex);
 
@@ -71,7 +65,6 @@ static ssize_t pool_stats_print_data_blocks_used(struct kernel_layer *layer, cha
 
 static struct pool_stats_attribute pool_stats_attr_data_blocks_used = {
 	.attr = { .name = "data_blocks_used", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_data_blocks_used,
 };
 
@@ -84,7 +77,6 @@ static ssize_t pool_stats_print_overhead_blocks_used(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_overhead_blocks_used = {
 	.attr = { .name = "overhead_blocks_used", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_overhead_blocks_used,
 };
 
@@ -97,7 +89,6 @@ static ssize_t pool_stats_print_logical_blocks_used(struct kernel_layer *layer, 
 
 static struct pool_stats_attribute pool_stats_attr_logical_blocks_used = {
 	.attr = { .name = "logical_blocks_used", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_logical_blocks_used,
 };
 
@@ -110,7 +101,6 @@ static ssize_t pool_stats_print_physical_blocks(struct kernel_layer *layer, char
 
 static struct pool_stats_attribute pool_stats_attr_physical_blocks = {
 	.attr = { .name = "physical_blocks", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_physical_blocks,
 };
 
@@ -123,7 +113,6 @@ static ssize_t pool_stats_print_logical_blocks(struct kernel_layer *layer, char 
 
 static struct pool_stats_attribute pool_stats_attr_logical_blocks = {
 	.attr = { .name = "logical_blocks", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_logical_blocks,
 };
 
@@ -136,7 +125,6 @@ static ssize_t pool_stats_print_block_map_cache_size(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_block_map_cache_size = {
 	.attr = { .name = "block_map_cache_size", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_cache_size,
 };
 
@@ -149,7 +137,6 @@ static ssize_t pool_stats_print_block_size(struct kernel_layer *layer, char *buf
 
 static struct pool_stats_attribute pool_stats_attr_block_size = {
 	.attr = { .name = "block_size", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_size,
 };
 
@@ -162,7 +149,6 @@ static ssize_t pool_stats_print_complete_recoveries(struct kernel_layer *layer, 
 
 static struct pool_stats_attribute pool_stats_attr_complete_recoveries = {
 	.attr = { .name = "complete_recoveries", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_complete_recoveries,
 };
 
@@ -175,7 +161,6 @@ static ssize_t pool_stats_print_read_only_recoveries(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_read_only_recoveries = {
 	.attr = { .name = "read_only_recoveries", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_read_only_recoveries,
 };
 
@@ -188,7 +173,6 @@ static ssize_t pool_stats_print_mode(struct kernel_layer *layer, char *buf)
 
 static struct pool_stats_attribute pool_stats_attr_mode = {
 	.attr = { .name = "mode", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_mode,
 };
 
@@ -201,7 +185,6 @@ static ssize_t pool_stats_print_in_recovery_mode(struct kernel_layer *layer, cha
 
 static struct pool_stats_attribute pool_stats_attr_in_recovery_mode = {
 	.attr = { .name = "in_recovery_mode", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_in_recovery_mode,
 };
 
@@ -214,7 +197,6 @@ static ssize_t pool_stats_print_recovery_percentage(struct kernel_layer *layer, 
 
 static struct pool_stats_attribute pool_stats_attr_recovery_percentage = {
 	.attr = { .name = "recovery_percentage", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_recovery_percentage,
 };
 
@@ -227,7 +209,6 @@ static ssize_t pool_stats_print_packer_compressed_fragments_written(struct kerne
 
 static struct pool_stats_attribute pool_stats_attr_packer_compressed_fragments_written = {
 	.attr = { .name = "packer_compressed_fragments_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_packer_compressed_fragments_written,
 };
 
@@ -240,7 +221,6 @@ static ssize_t pool_stats_print_packer_compressed_blocks_written(struct kernel_l
 
 static struct pool_stats_attribute pool_stats_attr_packer_compressed_blocks_written = {
 	.attr = { .name = "packer_compressed_blocks_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_packer_compressed_blocks_written,
 };
 
@@ -253,7 +233,6 @@ static ssize_t pool_stats_print_packer_compressed_fragments_in_packer(struct ker
 
 static struct pool_stats_attribute pool_stats_attr_packer_compressed_fragments_in_packer = {
 	.attr = { .name = "packer_compressed_fragments_in_packer", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_packer_compressed_fragments_in_packer,
 };
 
@@ -266,7 +245,6 @@ static ssize_t pool_stats_print_allocator_slab_count(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_allocator_slab_count = {
 	.attr = { .name = "allocator_slab_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_allocator_slab_count,
 };
 
@@ -279,7 +257,6 @@ static ssize_t pool_stats_print_allocator_slabs_opened(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_allocator_slabs_opened = {
 	.attr = { .name = "allocator_slabs_opened", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_allocator_slabs_opened,
 };
 
@@ -292,7 +269,6 @@ static ssize_t pool_stats_print_allocator_slabs_reopened(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_allocator_slabs_reopened = {
 	.attr = { .name = "allocator_slabs_reopened", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_allocator_slabs_reopened,
 };
 
@@ -305,7 +281,6 @@ static ssize_t pool_stats_print_journal_disk_full(struct kernel_layer *layer, ch
 
 static struct pool_stats_attribute pool_stats_attr_journal_disk_full = {
 	.attr = { .name = "journal_disk_full", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_disk_full,
 };
 
@@ -318,7 +293,6 @@ static ssize_t pool_stats_print_journal_slab_journal_commits_requested(struct ke
 
 static struct pool_stats_attribute pool_stats_attr_journal_slab_journal_commits_requested = {
 	.attr = { .name = "journal_slab_journal_commits_requested", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_slab_journal_commits_requested,
 };
 
@@ -331,7 +305,6 @@ static ssize_t pool_stats_print_journal_entries_started(struct kernel_layer *lay
 
 static struct pool_stats_attribute pool_stats_attr_journal_entries_started = {
 	.attr = { .name = "journal_entries_started", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_entries_started,
 };
 
@@ -344,7 +317,6 @@ static ssize_t pool_stats_print_journal_entries_written(struct kernel_layer *lay
 
 static struct pool_stats_attribute pool_stats_attr_journal_entries_written = {
 	.attr = { .name = "journal_entries_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_entries_written,
 };
 
@@ -357,7 +329,6 @@ static ssize_t pool_stats_print_journal_entries_committed(struct kernel_layer *l
 
 static struct pool_stats_attribute pool_stats_attr_journal_entries_committed = {
 	.attr = { .name = "journal_entries_committed", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_entries_committed,
 };
 
@@ -370,7 +341,6 @@ static ssize_t pool_stats_print_journal_blocks_started(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_journal_blocks_started = {
 	.attr = { .name = "journal_blocks_started", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_blocks_started,
 };
 
@@ -383,7 +353,6 @@ static ssize_t pool_stats_print_journal_blocks_written(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_journal_blocks_written = {
 	.attr = { .name = "journal_blocks_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_blocks_written,
 };
 
@@ -396,7 +365,6 @@ static ssize_t pool_stats_print_journal_blocks_committed(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_journal_blocks_committed = {
 	.attr = { .name = "journal_blocks_committed", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_journal_blocks_committed,
 };
 
@@ -409,7 +377,6 @@ static ssize_t pool_stats_print_slab_journal_disk_full_count(struct kernel_layer
 
 static struct pool_stats_attribute pool_stats_attr_slab_journal_disk_full_count = {
 	.attr = { .name = "slab_journal_disk_full_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_journal_disk_full_count,
 };
 
@@ -422,7 +389,6 @@ static ssize_t pool_stats_print_slab_journal_flush_count(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_slab_journal_flush_count = {
 	.attr = { .name = "slab_journal_flush_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_journal_flush_count,
 };
 
@@ -435,7 +401,6 @@ static ssize_t pool_stats_print_slab_journal_blocked_count(struct kernel_layer *
 
 static struct pool_stats_attribute pool_stats_attr_slab_journal_blocked_count = {
 	.attr = { .name = "slab_journal_blocked_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_journal_blocked_count,
 };
 
@@ -448,7 +413,6 @@ static ssize_t pool_stats_print_slab_journal_blocks_written(struct kernel_layer 
 
 static struct pool_stats_attribute pool_stats_attr_slab_journal_blocks_written = {
 	.attr = { .name = "slab_journal_blocks_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_journal_blocks_written,
 };
 
@@ -461,7 +425,6 @@ static ssize_t pool_stats_print_slab_journal_tail_busy_count(struct kernel_layer
 
 static struct pool_stats_attribute pool_stats_attr_slab_journal_tail_busy_count = {
 	.attr = { .name = "slab_journal_tail_busy_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_journal_tail_busy_count,
 };
 
@@ -474,7 +437,6 @@ static ssize_t pool_stats_print_slab_summary_blocks_written(struct kernel_layer 
 
 static struct pool_stats_attribute pool_stats_attr_slab_summary_blocks_written = {
 	.attr = { .name = "slab_summary_blocks_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_slab_summary_blocks_written,
 };
 
@@ -487,7 +449,6 @@ static ssize_t pool_stats_print_ref_counts_blocks_written(struct kernel_layer *l
 
 static struct pool_stats_attribute pool_stats_attr_ref_counts_blocks_written = {
 	.attr = { .name = "ref_counts_blocks_written", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_ref_counts_blocks_written,
 };
 
@@ -500,7 +461,6 @@ static ssize_t pool_stats_print_block_map_dirty_pages(struct kernel_layer *layer
 
 static struct pool_stats_attribute pool_stats_attr_block_map_dirty_pages = {
 	.attr = { .name = "block_map_dirty_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_dirty_pages,
 };
 
@@ -513,7 +473,6 @@ static ssize_t pool_stats_print_block_map_clean_pages(struct kernel_layer *layer
 
 static struct pool_stats_attribute pool_stats_attr_block_map_clean_pages = {
 	.attr = { .name = "block_map_clean_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_clean_pages,
 };
 
@@ -526,7 +485,6 @@ static ssize_t pool_stats_print_block_map_free_pages(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_block_map_free_pages = {
 	.attr = { .name = "block_map_free_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_free_pages,
 };
 
@@ -539,7 +497,6 @@ static ssize_t pool_stats_print_block_map_failed_pages(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_block_map_failed_pages = {
 	.attr = { .name = "block_map_failed_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_failed_pages,
 };
 
@@ -552,7 +509,6 @@ static ssize_t pool_stats_print_block_map_incoming_pages(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_block_map_incoming_pages = {
 	.attr = { .name = "block_map_incoming_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_incoming_pages,
 };
 
@@ -565,7 +521,6 @@ static ssize_t pool_stats_print_block_map_outgoing_pages(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_block_map_outgoing_pages = {
 	.attr = { .name = "block_map_outgoing_pages", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_outgoing_pages,
 };
 
@@ -578,7 +533,6 @@ static ssize_t pool_stats_print_block_map_cache_pressure(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_block_map_cache_pressure = {
 	.attr = { .name = "block_map_cache_pressure", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_cache_pressure,
 };
 
@@ -591,7 +545,6 @@ static ssize_t pool_stats_print_block_map_read_count(struct kernel_layer *layer,
 
 static struct pool_stats_attribute pool_stats_attr_block_map_read_count = {
 	.attr = { .name = "block_map_read_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_read_count,
 };
 
@@ -604,7 +557,6 @@ static ssize_t pool_stats_print_block_map_write_count(struct kernel_layer *layer
 
 static struct pool_stats_attribute pool_stats_attr_block_map_write_count = {
 	.attr = { .name = "block_map_write_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_write_count,
 };
 
@@ -617,7 +569,6 @@ static ssize_t pool_stats_print_block_map_failed_reads(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_block_map_failed_reads = {
 	.attr = { .name = "block_map_failed_reads", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_failed_reads,
 };
 
@@ -630,7 +581,6 @@ static ssize_t pool_stats_print_block_map_failed_writes(struct kernel_layer *lay
 
 static struct pool_stats_attribute pool_stats_attr_block_map_failed_writes = {
 	.attr = { .name = "block_map_failed_writes", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_failed_writes,
 };
 
@@ -643,7 +593,6 @@ static ssize_t pool_stats_print_block_map_reclaimed(struct kernel_layer *layer, 
 
 static struct pool_stats_attribute pool_stats_attr_block_map_reclaimed = {
 	.attr = { .name = "block_map_reclaimed", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_reclaimed,
 };
 
@@ -656,7 +605,6 @@ static ssize_t pool_stats_print_block_map_read_outgoing(struct kernel_layer *lay
 
 static struct pool_stats_attribute pool_stats_attr_block_map_read_outgoing = {
 	.attr = { .name = "block_map_read_outgoing", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_read_outgoing,
 };
 
@@ -669,7 +617,6 @@ static ssize_t pool_stats_print_block_map_found_in_cache(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_block_map_found_in_cache = {
 	.attr = { .name = "block_map_found_in_cache", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_found_in_cache,
 };
 
@@ -682,7 +629,6 @@ static ssize_t pool_stats_print_block_map_discard_required(struct kernel_layer *
 
 static struct pool_stats_attribute pool_stats_attr_block_map_discard_required = {
 	.attr = { .name = "block_map_discard_required", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_discard_required,
 };
 
@@ -695,7 +641,6 @@ static ssize_t pool_stats_print_block_map_wait_for_page(struct kernel_layer *lay
 
 static struct pool_stats_attribute pool_stats_attr_block_map_wait_for_page = {
 	.attr = { .name = "block_map_wait_for_page", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_wait_for_page,
 };
 
@@ -708,7 +653,6 @@ static ssize_t pool_stats_print_block_map_fetch_required(struct kernel_layer *la
 
 static struct pool_stats_attribute pool_stats_attr_block_map_fetch_required = {
 	.attr = { .name = "block_map_fetch_required", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_fetch_required,
 };
 
@@ -721,7 +665,6 @@ static ssize_t pool_stats_print_block_map_pages_loaded(struct kernel_layer *laye
 
 static struct pool_stats_attribute pool_stats_attr_block_map_pages_loaded = {
 	.attr = { .name = "block_map_pages_loaded", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_pages_loaded,
 };
 
@@ -734,7 +677,6 @@ static ssize_t pool_stats_print_block_map_pages_saved(struct kernel_layer *layer
 
 static struct pool_stats_attribute pool_stats_attr_block_map_pages_saved = {
 	.attr = { .name = "block_map_pages_saved", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_pages_saved,
 };
 
@@ -747,7 +689,6 @@ static ssize_t pool_stats_print_block_map_flush_count(struct kernel_layer *layer
 
 static struct pool_stats_attribute pool_stats_attr_block_map_flush_count = {
 	.attr = { .name = "block_map_flush_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_block_map_flush_count,
 };
 
@@ -760,7 +701,6 @@ static ssize_t pool_stats_print_hash_lock_dedupe_advice_valid(struct kernel_laye
 
 static struct pool_stats_attribute pool_stats_attr_hash_lock_dedupe_advice_valid = {
 	.attr = { .name = "hash_lock_dedupe_advice_valid", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_hash_lock_dedupe_advice_valid,
 };
 
@@ -773,7 +713,6 @@ static ssize_t pool_stats_print_hash_lock_dedupe_advice_stale(struct kernel_laye
 
 static struct pool_stats_attribute pool_stats_attr_hash_lock_dedupe_advice_stale = {
 	.attr = { .name = "hash_lock_dedupe_advice_stale", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_hash_lock_dedupe_advice_stale,
 };
 
@@ -786,7 +725,6 @@ static ssize_t pool_stats_print_hash_lock_concurrent_data_matches(struct kernel_
 
 static struct pool_stats_attribute pool_stats_attr_hash_lock_concurrent_data_matches = {
 	.attr = { .name = "hash_lock_concurrent_data_matches", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_hash_lock_concurrent_data_matches,
 };
 
@@ -799,7 +737,6 @@ static ssize_t pool_stats_print_hash_lock_concurrent_hash_collisions(struct kern
 
 static struct pool_stats_attribute pool_stats_attr_hash_lock_concurrent_hash_collisions = {
 	.attr = { .name = "hash_lock_concurrent_hash_collisions", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_hash_lock_concurrent_hash_collisions,
 };
 
@@ -812,7 +749,6 @@ static ssize_t pool_stats_print_errors_invalid_advice_pbn_count(struct kernel_la
 
 static struct pool_stats_attribute pool_stats_attr_errors_invalid_advice_pbn_count = {
 	.attr = { .name = "errors_invalid_advice_pbn_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_errors_invalid_advice_pbn_count,
 };
 
@@ -825,7 +761,6 @@ static ssize_t pool_stats_print_errors_no_space_error_count(struct kernel_layer 
 
 static struct pool_stats_attribute pool_stats_attr_errors_no_space_error_count = {
 	.attr = { .name = "errors_no_space_error_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_errors_no_space_error_count,
 };
 
@@ -838,7 +773,6 @@ static ssize_t pool_stats_print_errors_read_only_error_count(struct kernel_layer
 
 static struct pool_stats_attribute pool_stats_attr_errors_read_only_error_count = {
 	.attr = { .name = "errors_read_only_error_count", .mode = 0444, },
-	.from_vdo = true,
 	.print = pool_stats_print_errors_read_only_error_count,
 };
 
@@ -846,12 +780,11 @@ static struct pool_stats_attribute pool_stats_attr_errors_read_only_error_count 
 /** The VDO instance */
 static ssize_t pool_stats_print_instance(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.instance);
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.instance);
 }
 
 static struct pool_stats_attribute pool_stats_attr_instance = {
 	.attr = { .name = "instance", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_instance,
 };
 
@@ -859,12 +792,11 @@ static struct pool_stats_attribute pool_stats_attr_instance = {
 /** Current number of active VIOs */
 static ssize_t pool_stats_print_current_vios_in_progress(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.current_vios_in_progress);
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.current_vios_in_progress);
 }
 
 static struct pool_stats_attribute pool_stats_attr_current_vios_in_progress = {
 	.attr = { .name = "current_vios_in_progress", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_current_vios_in_progress,
 };
 
@@ -872,12 +804,11 @@ static struct pool_stats_attribute pool_stats_attr_current_vios_in_progress = {
 /** Maximum number of active VIOs */
 static ssize_t pool_stats_print_max_vios(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.max_vios);
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.max_vios);
 }
 
 static struct pool_stats_attribute pool_stats_attr_max_vios = {
 	.attr = { .name = "max_vios", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_max_vios,
 };
 
@@ -885,12 +816,11 @@ static struct pool_stats_attribute pool_stats_attr_max_vios = {
 /** Number of times the UDS index was too slow in responding */
 static ssize_t pool_stats_print_dedupe_advice_timeouts(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.dedupe_advice_timeouts);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.dedupe_advice_timeouts);
 }
 
 static struct pool_stats_attribute pool_stats_attr_dedupe_advice_timeouts = {
 	.attr = { .name = "dedupe_advice_timeouts", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_dedupe_advice_timeouts,
 };
 
@@ -898,12 +828,11 @@ static struct pool_stats_attribute pool_stats_attr_dedupe_advice_timeouts = {
 /** Number of flush requests submitted to the storage device */
 static ssize_t pool_stats_print_flush_out(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.flush_out);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.flush_out);
 }
 
 static struct pool_stats_attribute pool_stats_attr_flush_out = {
 	.attr = { .name = "flush_out", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_flush_out,
 };
 
@@ -911,12 +840,11 @@ static struct pool_stats_attribute pool_stats_attr_flush_out = {
 /** Logical block size */
 static ssize_t pool_stats_print_logical_block_size(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.logical_block_size);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_block_size);
 }
 
 static struct pool_stats_attribute pool_stats_attr_logical_block_size = {
 	.attr = { .name = "logical_block_size", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_logical_block_size,
 };
 
@@ -924,12 +852,11 @@ static struct pool_stats_attribute pool_stats_attr_logical_block_size = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_read = {
 	.attr = { .name = "bios_in_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_read,
 };
 
@@ -937,12 +864,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_write = {
 	.attr = { .name = "bios_in_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_write,
 };
 
@@ -950,12 +876,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_in_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_empty_flush = {
 	.attr = { .name = "bios_in_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_empty_flush,
 };
 
@@ -963,12 +888,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_empty_flush = {
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_discard = {
 	.attr = { .name = "bios_in_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_discard,
 };
 
@@ -976,12 +900,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_flush = {
 	.attr = { .name = "bios_in_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_flush,
 };
 
@@ -989,12 +912,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_fua = {
 	.attr = { .name = "bios_in_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_fua,
 };
 
@@ -1002,12 +924,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_partial_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_read = {
 	.attr = { .name = "bios_in_partial_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_read,
 };
 
@@ -1015,12 +936,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_partial_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_write = {
 	.attr = { .name = "bios_in_partial_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_write,
 };
 
@@ -1028,12 +948,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_in_partial_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_empty_flush = {
 	.attr = { .name = "bios_in_partial_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_empty_flush,
 };
 
@@ -1041,12 +960,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_empty_flush =
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_partial_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_discard = {
 	.attr = { .name = "bios_in_partial_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_discard,
 };
 
@@ -1054,12 +972,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_partial_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_flush = {
 	.attr = { .name = "bios_in_partial_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_flush,
 };
 
@@ -1067,12 +984,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_partial_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_partial.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_partial_fua = {
 	.attr = { .name = "bios_in_partial_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_partial_fua,
 };
 
@@ -1080,12 +996,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_partial_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_out_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_read = {
 	.attr = { .name = "bios_out_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_read,
 };
 
@@ -1093,12 +1008,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_out_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_write = {
 	.attr = { .name = "bios_out_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_write,
 };
 
@@ -1106,12 +1020,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_out_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_empty_flush = {
 	.attr = { .name = "bios_out_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_empty_flush,
 };
 
@@ -1119,12 +1032,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_empty_flush = {
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_out_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_discard = {
 	.attr = { .name = "bios_out_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_discard,
 };
 
@@ -1132,12 +1044,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_out_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_flush = {
 	.attr = { .name = "bios_out_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_flush,
 };
 
@@ -1145,12 +1056,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_out_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_fua = {
 	.attr = { .name = "bios_out_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_fua,
 };
 
@@ -1158,12 +1068,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_meta_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_read = {
 	.attr = { .name = "bios_meta_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_read,
 };
 
@@ -1171,12 +1080,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_meta_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_write = {
 	.attr = { .name = "bios_meta_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_write,
 };
 
@@ -1184,12 +1092,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_meta_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_empty_flush = {
 	.attr = { .name = "bios_meta_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_empty_flush,
 };
 
@@ -1197,12 +1104,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_empty_flush = {
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_meta_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_discard = {
 	.attr = { .name = "bios_meta_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_discard,
 };
 
@@ -1210,12 +1116,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_meta_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_flush = {
 	.attr = { .name = "bios_meta_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_flush,
 };
 
@@ -1223,12 +1128,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_meta_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_fua = {
 	.attr = { .name = "bios_meta_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_fua,
 };
 
@@ -1236,12 +1140,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_journal_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_read = {
 	.attr = { .name = "bios_journal_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_read,
 };
 
@@ -1249,12 +1152,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_journal_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_write = {
 	.attr = { .name = "bios_journal_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_write,
 };
 
@@ -1262,12 +1164,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_journal_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_empty_flush = {
 	.attr = { .name = "bios_journal_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_empty_flush,
 };
 
@@ -1275,12 +1176,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_empty_flush = {
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_journal_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_discard = {
 	.attr = { .name = "bios_journal_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_discard,
 };
 
@@ -1288,12 +1188,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_journal_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_flush = {
 	.attr = { .name = "bios_journal_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_flush,
 };
 
@@ -1301,12 +1200,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_journal_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_fua = {
 	.attr = { .name = "bios_journal_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_fua,
 };
 
@@ -1314,12 +1212,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_page_cache_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_read = {
 	.attr = { .name = "bios_page_cache_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_read,
 };
 
@@ -1327,12 +1224,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_page_cache_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_write = {
 	.attr = { .name = "bios_page_cache_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_write,
 };
 
@@ -1340,12 +1236,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_page_cache_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_empty_flush = {
 	.attr = { .name = "bios_page_cache_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_empty_flush,
 };
 
@@ -1353,12 +1248,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_empty_flush =
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_page_cache_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_discard = {
 	.attr = { .name = "bios_page_cache_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_discard,
 };
 
@@ -1366,12 +1260,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_page_cache_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_flush = {
 	.attr = { .name = "bios_page_cache_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_flush,
 };
 
@@ -1379,12 +1272,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_page_cache_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_fua = {
 	.attr = { .name = "bios_page_cache_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_fua,
 };
 
@@ -1392,12 +1284,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_out_completed_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_read = {
 	.attr = { .name = "bios_out_completed_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_read,
 };
 
@@ -1405,12 +1296,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_out_completed_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_write = {
 	.attr = { .name = "bios_out_completed_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_write,
 };
 
@@ -1418,12 +1308,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_out_completed_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_empty_flush = {
 	.attr = { .name = "bios_out_completed_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_empty_flush,
 };
 
@@ -1431,12 +1320,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_empty_flus
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_out_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_discard = {
 	.attr = { .name = "bios_out_completed_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_discard,
 };
 
@@ -1444,12 +1332,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_discard = 
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_out_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_flush = {
 	.attr = { .name = "bios_out_completed_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_flush,
 };
 
@@ -1457,12 +1344,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_out_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_out_completed.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_out_completed_fua = {
 	.attr = { .name = "bios_out_completed_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_out_completed_fua,
 };
 
@@ -1470,12 +1356,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_out_completed_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_meta_completed_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_read = {
 	.attr = { .name = "bios_meta_completed_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_read,
 };
 
@@ -1483,12 +1368,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_meta_completed_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_write = {
 	.attr = { .name = "bios_meta_completed_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_write,
 };
 
@@ -1496,12 +1380,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_meta_completed_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_empty_flush = {
 	.attr = { .name = "bios_meta_completed_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_empty_flush,
 };
 
@@ -1509,12 +1392,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_empty_flu
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_meta_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_discard = {
 	.attr = { .name = "bios_meta_completed_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_discard,
 };
 
@@ -1522,12 +1404,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_discard =
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_meta_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_flush = {
 	.attr = { .name = "bios_meta_completed_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_flush,
 };
 
@@ -1535,12 +1416,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_meta_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_meta_completed.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_fua = {
 	.attr = { .name = "bios_meta_completed_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_meta_completed_fua,
 };
 
@@ -1548,12 +1428,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_meta_completed_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_journal_completed_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_read = {
 	.attr = { .name = "bios_journal_completed_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_read,
 };
 
@@ -1561,12 +1440,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_read =
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_journal_completed_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_write = {
 	.attr = { .name = "bios_journal_completed_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_write,
 };
 
@@ -1574,12 +1452,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_write 
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_journal_completed_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_empty_flush = {
 	.attr = { .name = "bios_journal_completed_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_empty_flush,
 };
 
@@ -1587,12 +1464,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_empty_
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_journal_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_discard = {
 	.attr = { .name = "bios_journal_completed_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_discard,
 };
 
@@ -1600,12 +1476,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_discar
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_journal_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_flush = {
 	.attr = { .name = "bios_journal_completed_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_flush,
 };
 
@@ -1613,12 +1488,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_flush 
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_journal_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_journal_completed.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_fua = {
 	.attr = { .name = "bios_journal_completed_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_journal_completed_fua,
 };
 
@@ -1626,12 +1500,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_journal_completed_fua = 
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_page_cache_completed_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_read = {
 	.attr = { .name = "bios_page_cache_completed_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_read,
 };
 
@@ -1639,12 +1512,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_rea
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_page_cache_completed_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_write = {
 	.attr = { .name = "bios_page_cache_completed_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_write,
 };
 
@@ -1652,12 +1524,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_wri
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_page_cache_completed_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_empty_flush = {
 	.attr = { .name = "bios_page_cache_completed_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_empty_flush,
 };
 
@@ -1665,12 +1536,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_emp
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_page_cache_completed_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_discard = {
 	.attr = { .name = "bios_page_cache_completed_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_discard,
 };
 
@@ -1678,12 +1548,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_dis
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_page_cache_completed_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_flush = {
 	.attr = { .name = "bios_page_cache_completed_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_flush,
 };
 
@@ -1691,12 +1560,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_flu
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_page_cache_completed_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_page_cache_completed.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_fua = {
 	.attr = { .name = "bios_page_cache_completed_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_page_cache_completed_fua,
 };
 
@@ -1704,12 +1572,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_page_cache_completed_fua
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_acknowledged_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_read = {
 	.attr = { .name = "bios_acknowledged_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_read,
 };
 
@@ -1717,12 +1584,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_acknowledged_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_write = {
 	.attr = { .name = "bios_acknowledged_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_write,
 };
 
@@ -1730,12 +1596,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_acknowledged_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_empty_flush = {
 	.attr = { .name = "bios_acknowledged_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_empty_flush,
 };
 
@@ -1743,12 +1608,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_empty_flush
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_acknowledged_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_discard = {
 	.attr = { .name = "bios_acknowledged_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_discard,
 };
 
@@ -1756,12 +1620,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_acknowledged_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_flush = {
 	.attr = { .name = "bios_acknowledged_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_flush,
 };
 
@@ -1769,12 +1632,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_acknowledged_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_fua = {
 	.attr = { .name = "bios_acknowledged_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_fua,
 };
 
@@ -1782,12 +1644,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_fua = {
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_acknowledged_partial_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_read = {
 	.attr = { .name = "bios_acknowledged_partial_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_read,
 };
 
@@ -1795,12 +1656,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_rea
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_acknowledged_partial_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_write = {
 	.attr = { .name = "bios_acknowledged_partial_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_write,
 };
 
@@ -1808,12 +1668,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_wri
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_acknowledged_partial_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_empty_flush = {
 	.attr = { .name = "bios_acknowledged_partial_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_empty_flush,
 };
 
@@ -1821,12 +1680,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_emp
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_acknowledged_partial_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_discard = {
 	.attr = { .name = "bios_acknowledged_partial_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_discard,
 };
 
@@ -1834,12 +1692,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_dis
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_acknowledged_partial_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_flush = {
 	.attr = { .name = "bios_acknowledged_partial_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_flush,
 };
 
@@ -1847,12 +1704,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_flu
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_acknowledged_partial_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_acknowledged_partial.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_fua = {
 	.attr = { .name = "bios_acknowledged_partial_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_acknowledged_partial_fua,
 };
 
@@ -1860,12 +1716,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_acknowledged_partial_fua
 /** Number of REQ_OP_READ bios */
 static ssize_t pool_stats_print_bios_in_progress_read(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.read);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.read);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_read = {
 	.attr = { .name = "bios_in_progress_read", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_read,
 };
 
@@ -1873,12 +1728,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_read = {
 /** Number of REQ_OP_WRITE bios with data */
 static ssize_t pool_stats_print_bios_in_progress_write(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.write);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.write);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_write = {
 	.attr = { .name = "bios_in_progress_write", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_write,
 };
 
@@ -1886,12 +1740,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_write = {
 /** Number of bios tagged with REQ_PREFLUSH and containing no data */
 static ssize_t pool_stats_print_bios_in_progress_empty_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.empty_flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.empty_flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_empty_flush = {
 	.attr = { .name = "bios_in_progress_empty_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_empty_flush,
 };
 
@@ -1899,12 +1752,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_empty_flush 
 /** Number of REQ_OP_DISCARD bios */
 static ssize_t pool_stats_print_bios_in_progress_discard(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.discard);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.discard);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_discard = {
 	.attr = { .name = "bios_in_progress_discard", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_discard,
 };
 
@@ -1912,12 +1764,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_discard = {
 /** Number of bios tagged with REQ_PREFLUSH */
 static ssize_t pool_stats_print_bios_in_progress_flush(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.flush);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.flush);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_flush = {
 	.attr = { .name = "bios_in_progress_flush", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_flush,
 };
 
@@ -1925,12 +1776,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_flush = {
 /** Number of bios tagged with REQ_FUA */
 static ssize_t pool_stats_print_bios_in_progress_fua(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.fua);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.bios_in_progress.fua);
 }
 
 static struct pool_stats_attribute pool_stats_attr_bios_in_progress_fua = {
 	.attr = { .name = "bios_in_progress_fua", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_bios_in_progress_fua,
 };
 
@@ -1938,12 +1788,11 @@ static struct pool_stats_attribute pool_stats_attr_bios_in_progress_fua = {
 /** Tracked bytes currently allocated. */
 static ssize_t pool_stats_print_memory_usage_bytes_used(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.bytes_used);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.memory_usage.bytes_used);
 }
 
 static struct pool_stats_attribute pool_stats_attr_memory_usage_bytes_used = {
 	.attr = { .name = "memory_usage_bytes_used", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_memory_usage_bytes_used,
 };
 
@@ -1951,12 +1800,11 @@ static struct pool_stats_attribute pool_stats_attr_memory_usage_bytes_used = {
 /** Maximum tracked bytes allocated. */
 static ssize_t pool_stats_print_memory_usage_peak_bytes_used(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.peak_bytes_used);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.memory_usage.peak_bytes_used);
 }
 
 static struct pool_stats_attribute pool_stats_attr_memory_usage_peak_bytes_used = {
 	.attr = { .name = "memory_usage_peak_bytes_used", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_memory_usage_peak_bytes_used,
 };
 
@@ -1964,12 +1812,11 @@ static struct pool_stats_attribute pool_stats_attr_memory_usage_peak_bytes_used 
 /** Number of chunk names stored in the index */
 static ssize_t pool_stats_print_index_entries_indexed(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.entries_indexed);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.entries_indexed);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_entries_indexed = {
 	.attr = { .name = "index_entries_indexed", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_entries_indexed,
 };
 
@@ -1977,12 +1824,11 @@ static struct pool_stats_attribute pool_stats_attr_index_entries_indexed = {
 /** Number of post calls that found an existing entry */
 static ssize_t pool_stats_print_index_posts_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.posts_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_posts_found = {
 	.attr = { .name = "index_posts_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_posts_found,
 };
 
@@ -1990,12 +1836,11 @@ static struct pool_stats_attribute pool_stats_attr_index_posts_found = {
 /** Number of post calls that added a new entry */
 static ssize_t pool_stats_print_index_posts_not_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_not_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.posts_not_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_posts_not_found = {
 	.attr = { .name = "index_posts_not_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_posts_not_found,
 };
 
@@ -2003,12 +1848,11 @@ static struct pool_stats_attribute pool_stats_attr_index_posts_not_found = {
 /** Number of query calls that found an existing entry */
 static ssize_t pool_stats_print_index_queries_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.queries_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_queries_found = {
 	.attr = { .name = "index_queries_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_queries_found,
 };
 
@@ -2016,12 +1860,11 @@ static struct pool_stats_attribute pool_stats_attr_index_queries_found = {
 /** Number of query calls that added a new entry */
 static ssize_t pool_stats_print_index_queries_not_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_not_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.queries_not_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_queries_not_found = {
 	.attr = { .name = "index_queries_not_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_queries_not_found,
 };
 
@@ -2029,12 +1872,11 @@ static struct pool_stats_attribute pool_stats_attr_index_queries_not_found = {
 /** Number of update calls that found an existing entry */
 static ssize_t pool_stats_print_index_updates_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.updates_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_updates_found = {
 	.attr = { .name = "index_updates_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_updates_found,
 };
 
@@ -2042,12 +1884,11 @@ static struct pool_stats_attribute pool_stats_attr_index_updates_found = {
 /** Number of update calls that added a new entry */
 static ssize_t pool_stats_print_index_updates_not_found(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_not_found);
+	return sprintf(buf, "%llu\n", layer->vdo_stats_storage.index.updates_not_found);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_updates_not_found = {
 	.attr = { .name = "index_updates_not_found", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_updates_not_found,
 };
 
@@ -2055,12 +1896,11 @@ static struct pool_stats_attribute pool_stats_attr_index_updates_not_found = {
 /** Current number of dedupe queries that are in flight */
 static ssize_t pool_stats_print_index_curr_dedupe_queries(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.curr_dedupe_queries);
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.index.curr_dedupe_queries);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
 	.attr = { .name = "index_curr_dedupe_queries", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_curr_dedupe_queries,
 };
 
@@ -2068,12 +1908,11 @@ static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
 /** Maximum number of dedupe queries that have been in flight */
 static ssize_t pool_stats_print_index_max_dedupe_queries(struct kernel_layer *layer, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.max_dedupe_queries);
+	return sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.index.max_dedupe_queries);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_max_dedupe_queries = {
 	.attr = { .name = "index_max_dedupe_queries", .mode = 0444, },
-	.from_vdo = false,
 	.print = pool_stats_print_index_max_dedupe_queries,
 };
 

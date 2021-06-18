@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/messageStats.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/messageStats.h#7 $
  *
  */
 
@@ -24,15 +24,6 @@
 #define MESSAGE_STATS_H
 
 #include "types.h"
-
-/**
- * Write kernel statistics to a buffer
- *
- * @param vdo     the vdo
- * @param buf     pointer to the buffer
- * @param maxlen  the maximum length of the buffer
- */
-int write_vdo_kernel_stats(struct vdo *vdo, char *buf, unsigned int maxlen);
 
 /**
  * Write vdo statistics to a buffer

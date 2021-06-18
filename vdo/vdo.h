@@ -16,15 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#35 $
  */
 
 #ifndef VDO_H
 #define VDO_H
 
 #include <linux/blk_types.h>
-
-#include "kernelStatistics.h"
 
 #include "types.h"
 
@@ -34,15 +32,6 @@
  * @param vdo  The vdo to destroy
  **/
 void destroy_vdo(struct vdo *vdo);
-
-/**
- * Retrieves the current kernel statistics.
- *
- * @param vdo    the vdo
- * @param stats  pointer to the structure to fill in
- */
-void get_vdo_kernel_statistics(struct vdo *vdo,
-			       struct kernel_statistics *stats);
 
 /**
  * Wait until there are no requests in progress.
@@ -95,8 +84,7 @@ bool get_vdo_compressing(struct vdo *vdo);
  * @param [in]  vdo    The vdo
  * @param [out] stats  The vdo statistics are returned here
  **/
-void get_vdo_statistics(const struct vdo *vdo,
-			struct vdo_statistics *stats);
+void get_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 /**
  * Get the number of physical blocks in use by user data.

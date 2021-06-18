@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#11 $
  */
 
 #ifndef CONFIG_H
@@ -57,13 +57,10 @@ struct uds_configuration {
 	unsigned int sparse_sample_rate;
 	/** Index Owner's nonce */
 	uds_nonce_t nonce;
-	/** Virtual chapter remapped from physical chapter 0 in order
-	 * to reduce chapters_per_volume by one */
-	uint64_t remapped_chapter;
-	/** Offset by which the remapped chapter was moved, one more
-	 * than the post-remapping physical chapter number to which it
-	 * was remapped */
-	uint64_t chapter_offset;
+	/** Virtual chapter remapped from physical chapter 0 */
+	uint64_t remapped_virtual;
+	/** New physical chapter which remapped chapter was moved to */
+	uint64_t remapped_physical;
 };
 
 /**

@@ -743,6 +743,213 @@ int write_error_statistics(char *prefix,
 }
 
 /**********************************************************************/
+int write_bio_stats(char *prefix,
+		    struct bio_stats *stats,
+		    char *suffix,
+		    char **buf,
+		    unsigned int *maxlen)
+{
+	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of REQ_OP_READ bios */
+	result = write_uint64_t("read : ",
+				stats->read,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of REQ_OP_WRITE bios with data */
+	result = write_uint64_t("write : ",
+				stats->write,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of bios tagged with REQ_PREFLUSH and containing no data */
+	result = write_uint64_t("emptyFlush : ",
+				stats->empty_flush,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of REQ_OP_DISCARD bios */
+	result = write_uint64_t("discard : ",
+				stats->discard,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of bios tagged with REQ_PREFLUSH */
+	result = write_uint64_t("flush : ",
+				stats->flush,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of bios tagged with REQ_FUA */
+	result = write_uint64_t("fua : ",
+				stats->fua,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	result = write_string(NULL, "}", suffix, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int write_memory_usage(char *prefix,
+		       struct memory_usage *stats,
+		       char *suffix,
+		       char **buf,
+		       unsigned int *maxlen)
+{
+	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Tracked bytes currently allocated. */
+	result = write_uint64_t("bytesUsed : ",
+				stats->bytes_used,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Maximum tracked bytes allocated. */
+	result = write_uint64_t("peakBytesUsed : ",
+				stats->peak_bytes_used,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	result = write_string(NULL, "}", suffix, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int write_index_statistics(char *prefix,
+			   struct index_statistics *stats,
+			   char *suffix,
+			   char **buf,
+			   unsigned int *maxlen)
+{
+	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of chunk names stored in the index */
+	result = write_uint64_t("entriesIndexed : ",
+				stats->entries_indexed,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of post calls that found an existing entry */
+	result = write_uint64_t("postsFound : ",
+				stats->posts_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of post calls that added a new entry */
+	result = write_uint64_t("postsNotFound : ",
+				stats->posts_not_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of query calls that found an existing entry */
+	result = write_uint64_t("queriesFound : ",
+				stats->queries_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of query calls that added a new entry */
+	result = write_uint64_t("queriesNotFound : ",
+				stats->queries_not_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of update calls that found an existing entry */
+	result = write_uint64_t("updatesFound : ",
+				stats->updates_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Number of update calls that added a new entry */
+	result = write_uint64_t("updatesNotFound : ",
+				stats->updates_not_found,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Current number of dedupe queries that are in flight */
+	result = write_uint32_t("currDedupeQueries : ",
+				stats->curr_dedupe_queries,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	/** Maximum number of dedupe queries that have been in flight */
+	result = write_uint32_t("maxDedupeQueries : ",
+				stats->max_dedupe_queries,
+				", ",
+				buf,
+				maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	result = write_string(NULL, "}", suffix, buf, maxlen);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
 int write_vdo_statistics(char *prefix,
 			 struct vdo_statistics *stats,
 			 char *suffix,
@@ -958,264 +1165,6 @@ int write_vdo_statistics(char *prefix,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	result = write_string(NULL, "}", suffix, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_vdo_stats(struct vdo *vdo,
-		    char *buf,
-		    unsigned int maxlen)
-{
-	struct vdo_statistics *stats;
-	int result = ALLOCATE(1, struct vdo_statistics, __func__, &stats);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	get_kvdo_statistics(vdo, stats);
-	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
-	FREE(stats);
-	return result;
-}
-
-/**********************************************************************/
-int write_bio_stats(char *prefix,
-		    struct bio_stats *stats,
-		    char *suffix,
-		    char **buf,
-		    unsigned int *maxlen)
-{
-	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of REQ_OP_READ bios */
-	result = write_uint64_t("read : ",
-				stats->read,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of REQ_OP_WRITE bios with data */
-	result = write_uint64_t("write : ",
-				stats->write,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of bios tagged with REQ_PREFLUSH and containing no data */
-	result = write_uint64_t("emptyFlush : ",
-				stats->empty_flush,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of REQ_OP_DISCARD bios */
-	result = write_uint64_t("discard : ",
-				stats->discard,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of bios tagged with REQ_PREFLUSH */
-	result = write_uint64_t("flush : ",
-				stats->flush,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of bios tagged with REQ_FUA */
-	result = write_uint64_t("fua : ",
-				stats->fua,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	result = write_string(NULL, "}", suffix, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_memory_usage(char *prefix,
-		       struct memory_usage *stats,
-		       char *suffix,
-		       char **buf,
-		       unsigned int *maxlen)
-{
-	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Tracked bytes currently allocated. */
-	result = write_uint64_t("bytesUsed : ",
-				stats->bytes_used,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Maximum tracked bytes allocated. */
-	result = write_uint64_t("peakBytesUsed : ",
-				stats->peak_bytes_used,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	result = write_string(NULL, "}", suffix, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_index_statistics(char *prefix,
-			   struct index_statistics *stats,
-			   char *suffix,
-			   char **buf,
-			   unsigned int *maxlen)
-{
-	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of chunk names stored in the index */
-	result = write_uint64_t("entriesIndexed : ",
-				stats->entries_indexed,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of post calls that found an existing entry */
-	result = write_uint64_t("postsFound : ",
-				stats->posts_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of post calls that added a new entry */
-	result = write_uint64_t("postsNotFound : ",
-				stats->posts_not_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of query calls that found an existing entry */
-	result = write_uint64_t("queriesFound : ",
-				stats->queries_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of query calls that added a new entry */
-	result = write_uint64_t("queriesNotFound : ",
-				stats->queries_not_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of update calls that found an existing entry */
-	result = write_uint64_t("updatesFound : ",
-				stats->updates_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Number of update calls that added a new entry */
-	result = write_uint64_t("updatesNotFound : ",
-				stats->updates_not_found,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Current number of dedupe queries that are in flight */
-	result = write_uint32_t("currDedupeQueries : ",
-				stats->curr_dedupe_queries,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	/** Maximum number of dedupe queries that have been in flight */
-	result = write_uint32_t("maxDedupeQueries : ",
-				stats->max_dedupe_queries,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	result = write_string(NULL, "}", suffix, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_kernel_statistics(char *prefix,
-			    struct kernel_statistics *stats,
-			    char *suffix,
-			    char **buf,
-			    unsigned int *maxlen)
-{
-	int result = write_string(prefix, "{ ", NULL, buf, maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	result = write_uint32_t("version : ",
-				stats->version,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	result = write_uint32_t("releaseVersion : ",
-				stats->release_version,
-				", ",
-				buf,
-				maxlen);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
 	/** The VDO instance */
 	result = write_uint32_t("instance : ",
 				stats->instance,
@@ -1404,18 +1353,18 @@ int write_kernel_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_vdo_kernel_stats(struct vdo *vdo,
-			   char *buf,
-			   unsigned int maxlen)
+int write_vdo_stats(struct vdo *vdo,
+		    char *buf,
+		    unsigned int maxlen)
 {
-	struct kernel_statistics *stats;
-	int result = ALLOCATE(1, struct kernel_statistics, __func__, &stats);
+	struct vdo_statistics *stats;
+	int result = ALLOCATE(1, struct vdo_statistics, __func__, &stats);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	get_vdo_kernel_statistics(vdo, stats);
-	result = write_kernel_statistics(NULL, stats, NULL, &buf, &maxlen);
+	get_kvdo_statistics(vdo, stats);
+	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
 	FREE(stats);
 	return result;
 }

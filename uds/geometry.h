@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#11 $
  */
 
 #ifndef GEOMETRY_H
@@ -72,11 +72,8 @@
  * <p>If the number of chapters per volume has been reduced by one by
  * eliminating physical chapter 0, the virtual chapter that formerly
  * mapped to physical chapter 0 may be remapped to another physical
- * chapter. This remapping is expressed in terms of how far the
- * physical mapping was moved before chapters per volume was
- * reduced. This means that a chapter offset of 0 means no chapter was
- * remapped.
- * XXX This representation subject to change.
+ * chapter. This remapping is expressed by storing which virtual
+ * chapter was remapped, and which physical chapter it was moved to.
  **/
 struct geometry {
 	/** Length of a page in a chapter, in bytes */
@@ -89,13 +86,10 @@ struct geometry {
 	unsigned int sparse_chapters_per_volume;
 	/** Number of bits used to determine delta list numbers */
 	unsigned int chapter_delta_list_bits;
-	/** Virtual chapter remapped from physical chapter 0 in order
-	 * to reduce chapters_per_volume by one */
-	uint64_t remapped_chapter;
-	/** Offset by which the remapped chapter was moved, one more
-	 * than the post-remapping physical chapter number to which it
-	 * was remapped */
-	uint64_t chapter_offset;
+	/** Virtual chapter remapped from physical chapter 0 */
+	uint64_t remapped_virtual;
+	/** New physical chapter which remapped chapter was moved to */
+	uint64_t remapped_physical;
 	// These are derived properties, expressed as fields for convenience.
 	/** Total number of pages in a volume, excluding header */
 	unsigned int pages_per_volume;
@@ -176,8 +170,8 @@ enum {
  * @param record_pages_per_chapter    The number of pages in a chapter
  * @param chapters_per_volume         The number of chapters in a volume
  * @param sparse_chapters_per_volume  The number of sparse chapters in a volume
- * @param remapped_chapter            The remapped chapter
- * @param chapter_offset              The offset to the remapped chapter
+ * @param remapped_virtual            The remapped virtual chapter
+ * @param remapped_physical           The physical chapter remapped to
  * @param geometry_ptr                A pointer to hold the new geometry
  *
  * @return UDS_SUCCESS or an error code
@@ -186,8 +180,8 @@ int __must_check make_geometry(size_t bytes_per_page,
 			       unsigned int record_pages_per_chapter,
 			       unsigned int chapters_per_volume,
 			       unsigned int sparse_chapters_per_volume,
-			       uint64_t remapped_chapter,
-			       uint64_t chapter_offset,
+			       uint64_t remapped_virtual,
+			       uint64_t remapped_physical,
 			       struct geometry **geometry_ptr);
 
 /**
@@ -212,39 +206,14 @@ void free_geometry(struct geometry *geometry);
 /**
  * Map a virtual chapter number to a physical chapter number
  *
- * XXX Pull out the case of unconverted first.
- *
  * @param geometry         The geometry
  * @param virtual_chapter  The virtual chapter number
  *
  * @return the corresponding physical chapter number
  **/
-static INLINE unsigned int __must_check
+unsigned int __must_check
 map_to_physical_chapter(const struct geometry *geometry,
-			uint64_t virtual_chapter)
-{
-	unsigned int p;
-	if (geometry->chapter_offset == 0) {
-		p = (virtual_chapter - geometry->remapped_chapter) %
-		    geometry->chapters_per_volume;
-	} else if (virtual_chapter < geometry->remapped_chapter) {
-		// Roll physical chapter backward if in the valid range
-		if (virtual_chapter >= geometry->remapped_chapter -
-		    (geometry->chapters_per_volume - geometry->chapter_offset))
-			p = geometry->chapters_per_volume -
-				(geometry->remapped_chapter - virtual_chapter);
-		else	// Should never happen in normal operation
-			p = 0;
-	} else if (virtual_chapter == geometry->remapped_chapter) {
-		p = geometry->chapter_offset - 1;
-	} else if (virtual_chapter <
-		   geometry->remapped_chapter + geometry->chapter_offset) {
-		p = virtual_chapter - geometry->remapped_chapter - 1;
-	} else
-		p = (virtual_chapter - geometry->remapped_chapter) %
-			geometry->chapters_per_volume;
-	return p;
-}
+			uint64_t virtual_chapter);
 
 /**
  * Check whether this geometry is reduced by a chapter

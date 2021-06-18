@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#84 $
  */
 
 #ifndef KERNELLAYER_H
@@ -41,7 +41,6 @@
 #include "deadlockQueue.h"
 #include "deviceConfig.h"
 #include "histogram.h"
-#include "kernelStatistics.h"
 #include "kernelTypes.h"
 #include "kernelVDO.h"
 #include "limiter.h"
@@ -97,7 +96,6 @@ struct kernel_layer {
 	bool stats_added;
 	/* Used to gather statistics without allocating memory */
 	struct vdo_statistics vdo_stats_storage;
-	struct kernel_statistics kernel_stats_storage;
 };
 
 enum bio_q_action {
