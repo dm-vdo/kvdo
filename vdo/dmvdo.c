@@ -222,48 +222,6 @@ get_underlying_device_block_count(const struct vdo *vdo)
 		/ VDO_BLOCK_SIZE);
 }
 
-/**********************************************************************/
-static int
-vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
-{
-	block_count_t logical_count;
-
-	if (sscanf(size_string, "%llu", &logical_count) != 1) {
-		uds_log_warning("Logical block count \"%s\" is not a number",
-				size_string);
-		return -EINVAL;
-	}
-
-	if (logical_count > MAXIMUM_VDO_LOGICAL_BLOCKS) {
-		uds_log_warning("Logical block count \"%llu\" exceeds the maximum (%llu)",
-				logical_count, MAXIMUM_VDO_LOGICAL_BLOCKS);
-		return -EINVAL;
-	}
-
-	return prepare_to_resize_logical(layer, logical_count);
-}
-
-/**********************************************************************/
-static int vdo_grow_physical(struct vdo *vdo)
-{
-	// The actual growPhysical will happen when the device is resumed.
-	if (vdo->device_config->version != 0) {
-		/*
-		 * XXX Uncomment this branch when new VDO manager is updated to
-		 * not send this message. Old style message on new style table
-		 * is unexpected; it means the user started the VDO with new
-		 * manager and is growing with old.
-		 */
-		// uds_log_info("Mismatch between growPhysical method and table version.");
-		// return -EINVAL;
-	} else {
-		vdo->device_config->physical_blocks =
-			get_underlying_device_block_count(vdo);
-
-	}
-	return 0;
-}
-
 /**
  * Process a dmsetup message now that we know no other message is being
  * processed.
@@ -288,18 +246,6 @@ process_vdo_message_locked(struct kernel_layer *layer,
 			return 0;
 		}
 
-
-		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-			block_count_t backing_blocks =
-				get_underlying_device_block_count(&layer->vdo);
-			return prepare_to_resize_physical(layer,
-							  backing_blocks);
-		}
-
-		if (strcasecmp(argv[0], "growPhysical") == 0) {
-			return vdo_grow_physical(&layer->vdo);
-		}
-
 		break;
 
 	case 2:
@@ -317,10 +263,6 @@ process_vdo_message_locked(struct kernel_layer *layer,
 			uds_log_warning("invalid argument '%s' to dmsetup compression message",
 					argv[1]);
 			return -EINVAL;
-		}
-
-		if (strcasecmp(argv[0], "prepareToGrowLogical") == 0) {
-			return vdo_prepare_to_grow_logical(layer, argv[1]);
 		}
 
 		break;
@@ -376,26 +318,6 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
 			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
 							argv[0]);
-		}
-
-		/*
-		 * XXX - the "connect" messages are misnamed for the kernel
-		 * index. These messages should go away when all callers have
-		 * been fixed to use "index-enable" or "index-disable".
-		 */
-		if (strcasecmp(argv[0], "reconnect") == 0) {
-			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
-							"index-enable");
-		}
-
-		if (strcasecmp(argv[0], "connect") == 0) {
-			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
-							"index-enable");
-		}
-
-		if (strcasecmp(argv[0], "disconnect") == 0) {
-			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
-							"index-disable");
 		}
 	}
 

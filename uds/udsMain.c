@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#24 $
  */
 
 #include "uds.h"
@@ -129,25 +129,29 @@ void uds_configuration_set_sparse(struct uds_configuration *user_config,
 				  bool sparse)
 {
 	unsigned int prev_chapters_per_volume;
+	unsigned int reduced_chapters;
 	bool prev_sparse = (user_config->sparse_chapters_per_volume != 0);
 	if (sparse == prev_sparse) {
 		// nothing to do
 		return;
 	}
 
-	prev_chapters_per_volume = user_config->chapters_per_volume;
+        // Compute pre-conversion chapter count for sizing.
+	reduced_chapters = user_config->chapters_per_volume % 2;
+	prev_chapters_per_volume =
+		user_config->chapters_per_volume + reduced_chapters;
 	if (sparse) {
 		// Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB)
 		// footprint
 		user_config->chapters_per_volume =
-			10 * prev_chapters_per_volume;
+			(10 * prev_chapters_per_volume) - reduced_chapters;
 		user_config->sparse_chapters_per_volume =
 			9 * prev_chapters_per_volume +
 			prev_chapters_per_volume / 2;
 		user_config->sparse_sample_rate = 32;
 	} else {
 		user_config->chapters_per_volume =
-			prev_chapters_per_volume / 10;
+			(prev_chapters_per_volume / 10) - reduced_chapters;
 		user_config->sparse_chapters_per_volume = 0;
 		user_config->sparse_sample_rate = 0;
 	}
