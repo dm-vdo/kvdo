@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#26 $
  */
 
 #ifndef BIO_H
@@ -123,6 +123,23 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      bio_end_io_t callback,
 			      unsigned int bi_opf,
 			      physical_block_number_t pbn);
+
+/**
+ * Clone a user bio, then edit our copy to fit our needs.
+ *
+ * @param bio       The bio to reset
+ * @param user_bio  The user bio to clone
+ * @param vio       The vio to which our bio belongs (may be NULL)
+ * @param callback  The callback our bio should call when IO finishes
+ * @param bi_opf    The operation and flags for our bio
+ * @param pbn       The physical block number to write to
+ **/
+void vdo_reset_bio_with_user_bio(struct bio *bio,
+				 struct bio *user_bio,
+				 struct vio *vio,
+				 bio_end_io_t callback,
+				 unsigned int bi_opf,
+				 physical_block_number_t pbn);
 
 /**
  * Create a new bio structure, which is guaranteed to be able to wrap any

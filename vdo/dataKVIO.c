@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#148 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#149 $
  */
 
 #include "dataKVIO.h"
@@ -386,18 +386,13 @@ void read_data_vio(struct data_vio *data_vio)
 						   REQ_OP_READ | opf,
 						   data_vio->mapped.pbn);
 	} else {
-		/*
-		 * A full 4k read. We reset, use __bio_clone_fast() to copy
-		 * over the original bio iovec information and opflags, then
-		 * edit what is essentially a copy of the user bio to fit our
-		 * needs.
-		 */
-		bio_reset(bio);
-		__bio_clone_fast(bio, data_vio->user_bio);
-		bio->bi_opf = REQ_OP_READ | opf;
-		bio->bi_private = vio;
-		bio->bi_end_io = acknowledge_user_bio;
-		bio->bi_iter.bi_sector = block_to_sector(data_vio->mapped.pbn);
+		// A full 4k read.
+		vdo_reset_bio_with_user_bio(bio,
+					    data_vio->user_bio,
+					    vio,
+					    acknowledge_user_bio,
+					    REQ_OP_READ | opf,
+					    data_vio->mapped.pbn);
 	}
 
 	if (result != VDO_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#55 $
  */
 
 #include "bio.h"
@@ -153,6 +153,27 @@ void vdo_complete_async_bio(struct bio *bio)
 	continue_vio(vio, vdo_get_bio_result(bio));
 }
 
+/**
+ * Set bio properties for a VDO read or write.
+ *
+ * @param bio       The bio to reset
+ * @param vio       The vio to which the bio belongs (may be NULL)
+ * @param callback  The callback the bio should call when IO finishes
+ * @param bi_opf    The operation and flags for the bio
+ * @param pbn       The physical block number to write to
+ **/
+static void vdo_set_bio_properties(struct bio *bio,
+				   struct vio *vio,
+				   bio_end_io_t callback,
+				   unsigned int bi_opf,
+				   physical_block_number_t pbn)
+{
+	bio->bi_private = vio;
+	bio->bi_end_io = callback;
+	bio->bi_opf = bi_opf;
+	bio->bi_iter.bi_sector = block_to_sector(pbn);
+}
+
 /**********************************************************************/
 int vdo_reset_bio_with_buffer(struct bio *bio,
 			      char *data,
@@ -172,10 +193,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 #endif // >= 5.1.0
 
 	bio_reset(bio); // Memsets most of the bio to reset most fields.
-	bio->bi_private = vio;
-	bio->bi_end_io = callback;
-	bio->bi_opf = bi_opf;
-	bio->bi_iter.bi_sector = block_to_sector(pbn);
+	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
 	if (data == NULL) {
 		return VDO_SUCCESS;
 	}
@@ -236,6 +254,21 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	}
 #endif // >= 5.1.0
 	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+void vdo_reset_bio_with_user_bio(struct bio *bio,
+				 struct bio *user_bio,
+				 struct vio *vio,
+				 bio_end_io_t callback,
+				 unsigned int bi_opf,
+				 physical_block_number_t pbn)
+{
+	// Use __bio_clone_fast() to copy over the original bio iovec
+	// information and opflags.
+	bio_reset(bio);
+	__bio_clone_fast(bio, user_bio);
+	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
 }
 
 /**********************************************************************/
