@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#27 $
  */
 
 #include "workQueueStats.h"
+
+#include "memoryAlloc.h"
 
 #include "logger.h"
 #include "workItemStats.h"
@@ -99,13 +101,13 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 /**********************************************************************/
 void cleanup_work_queue_stats(struct vdo_work_queue_stats *stats)
 {
-	free_histogram(&stats->queue_time_histogram);
-	free_histogram(&stats->reschedule_queue_length_histogram);
-	free_histogram(&stats->reschedule_time_histogram);
-	free_histogram(&stats->run_time_before_reschedule_histogram);
-	free_histogram(&stats->schedule_time_histogram);
-	free_histogram(&stats->wakeup_latency_histogram);
-	free_histogram(&stats->wakeup_queue_length_histogram);
+	free_histogram(FORGET(stats->queue_time_histogram));
+	free_histogram(FORGET(stats->reschedule_queue_length_histogram));
+	free_histogram(FORGET(stats->reschedule_time_histogram));
+	free_histogram(FORGET(stats->run_time_before_reschedule_histogram));
+	free_histogram(FORGET(stats->schedule_time_histogram));
+	free_histogram(FORGET(stats->wakeup_latency_histogram));
+	free_histogram(FORGET(stats->wakeup_queue_length_histogram));
 }
 
 /**********************************************************************/

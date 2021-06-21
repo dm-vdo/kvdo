@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#8 $
  */
 
 #ifndef HISTOGRAM_H
@@ -123,10 +123,10 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 void enter_histogram_sample(struct histogram *h, uint64_t sample);
 
 /**
- * Free a histogram and null out the reference to it.
+ * Free a histogram.
  *
- * @param hp  The reference to the histogram.
+ * @param histogram  The histogram to free
  **/
-void free_histogram(struct histogram **hp);
+void free_histogram(struct histogram *histogram);
 
 #endif /* HISTOGRAM_H */

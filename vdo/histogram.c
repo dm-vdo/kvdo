@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#23 $
  */
 
 #include <linux/kobject.h>
@@ -873,12 +873,9 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 }
 
 /***********************************************************************/
-void free_histogram(struct histogram **hp)
+void free_histogram(struct histogram *histogram)
 {
-	if (*hp != NULL) {
-		struct histogram *h = *hp;
-
-		kobject_put(&h->kobj);
-		*hp = NULL;
+	if (histogram != NULL) {
+		kobject_put(&histogram->kobj);
 	}
 }
