@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#43 $
  */
 
 #include "vdoSuspend.h"
@@ -119,8 +119,8 @@ static void suspend_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 	struct admin_state *admin_state = &vdo->admin_state;
 
-	ASSERT_LOG_ONLY(((admin_completion->type == ADMIN_OPERATION_SUSPEND) ||
-			 (admin_completion->type == ADMIN_OPERATION_SAVE)),
+	ASSERT_LOG_ONLY(((admin_completion->type == VDO_ADMIN_OPERATION_SUSPEND) ||
+			 (admin_completion->type == VDO_ADMIN_OPERATION_SAVE)),
 			"unexpected admin operation type %u is neither suspend nor save",
 			admin_completion->type);
 	assert_vdo_admin_phase_thread(admin_completion, __func__,
@@ -130,7 +130,7 @@ static void suspend_callback(struct vdo_completion *completion)
 	case SUSPEND_PHASE_START:
 		if (!start_vdo_draining(admin_state,
 					((admin_completion->type ==
-						ADMIN_OPERATION_SUSPEND) ?
+						VDO_ADMIN_OPERATION_SUSPEND) ?
 							ADMIN_STATE_SUSPENDING :
 							ADMIN_STATE_SAVING),
 					&admin_completion->completion,
@@ -213,8 +213,8 @@ static void suspend_callback(struct vdo_completion *completion)
 int perform_vdo_suspend(struct vdo *vdo, bool save)
 {
 	return perform_vdo_admin_operation(vdo,
-					   (save ? ADMIN_OPERATION_SAVE :
-						   ADMIN_OPERATION_SUSPEND),
+					   (save ? VDO_ADMIN_OPERATION_SAVE :
+						   VDO_ADMIN_OPERATION_SUSPEND),
 					   get_thread_id_for_phase,
 					   suspend_callback,
 					   preserve_vdo_completion_error_and_continue);

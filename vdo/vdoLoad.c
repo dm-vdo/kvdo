@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#89 $
  */
 
 #include "vdoLoad.h"
@@ -54,7 +54,7 @@
 static inline struct vdo *
 vdo_from_load_sub_task(struct vdo_completion *completion)
 {
-	return vdo_from_admin_sub_task(completion, ADMIN_OPERATION_LOAD);
+	return vdo_from_admin_sub_task(completion, VDO_ADMIN_OPERATION_LOAD);
 }
 
 /**
@@ -264,7 +264,7 @@ static void load_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_load(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo, ADMIN_OPERATION_LOAD, NULL,
+	return perform_vdo_admin_operation(vdo, VDO_ADMIN_OPERATION_LOAD, NULL,
 					   load_callback, load_callback);
 }
 
@@ -467,7 +467,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 int prepare_to_load_vdo(struct vdo *vdo)
 {
 	return perform_vdo_admin_operation(vdo,
-					   ADMIN_OPERATION_LOAD,
+					   VDO_ADMIN_OPERATION_LOAD,
 					   NULL,
 					   pre_load_callback,
 					   pre_load_callback);

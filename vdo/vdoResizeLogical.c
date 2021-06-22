@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#39 $
  */
 
 #include "vdoResizeLogical.h"
@@ -64,7 +64,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 
 	assert_vdo_admin_operation_type(admin_completion,
-					ADMIN_OPERATION_GROW_LOGICAL);
+					VDO_ADMIN_OPERATION_GROW_LOGICAL);
 	assert_vdo_admin_phase_thread(admin_completion, __func__,
 				      GROW_LOGICAL_PHASE_NAMES);
 
@@ -142,7 +142,7 @@ int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 	}
 
 	return perform_vdo_admin_operation(vdo,
-					   ADMIN_OPERATION_GROW_LOGICAL,
+					   VDO_ADMIN_OPERATION_GROW_LOGICAL,
 					   get_thread_id_for_phase,
 					   grow_logical_callback,
 					   handle_growth_error);

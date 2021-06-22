@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#53 $
  */
 
 #include "vdoResize.h"
@@ -71,7 +71,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 
 	assert_vdo_admin_operation_type(admin_completion,
-					ADMIN_OPERATION_GROW_PHYSICAL);
+					VDO_ADMIN_OPERATION_GROW_PHYSICAL);
 	assert_vdo_admin_phase_thread(admin_completion, __func__,
 				      GROW_PHYSICAL_PHASE_NAMES);
 
@@ -183,7 +183,7 @@ int perform_vdo_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks
 	}
 
 	result = perform_vdo_admin_operation(vdo,
-					     ADMIN_OPERATION_GROW_PHYSICAL,
+					     VDO_ADMIN_OPERATION_GROW_PHYSICAL,
 					     get_thread_id_for_phase,
 					     grow_physical_callback,
 					     handle_growth_error);
@@ -210,7 +210,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 
 	assert_vdo_admin_operation_type(admin_completion,
-					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+					VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 	assert_on_admin_thread(vdo, __func__);
 
 	reset_vdo_admin_sub_task(completion);
@@ -254,7 +254,7 @@ int prepare_vdo_to_grow_physical(struct vdo *vdo,
 	}
 
 	result = perform_vdo_admin_operation(vdo,
-					     ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+					     VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
 					     get_thread_id_for_phase,
 					     check_may_grow_physical,
 					     finish_vdo_completion_parent_callback);
