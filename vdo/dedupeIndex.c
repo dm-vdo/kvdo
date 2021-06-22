@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#98 $
  */
 
 #include "dedupeIndex.h"
@@ -950,6 +950,7 @@ static void finish_uds_queue(void *ptr __always_unused)
 int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 {
 	int result;
+	off_t uds_offset;
 	struct dedupe_index *index;
 	struct index_config *index_config;
 	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
@@ -971,9 +972,12 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 		return result;
 	}
 
+	uds_offset = ((vdo_get_index_region_start(vdo->geometry) -
+		       vdo->geometry.bio_offset) * VDO_BLOCK_SIZE);
 	result = alloc_sprintf("index name", &index->index_name,
-			       "dev=%s offset=4096 size=%llu",
+			       "dev=%s offset=%ld size=%llu",
 			       vdo->device_config->parent_device_name,
+			       uds_offset,
 			       (vdo_get_index_region_size(vdo->geometry) *
 				VDO_BLOCK_SIZE));
 	if (result != UDS_SUCCESS) {

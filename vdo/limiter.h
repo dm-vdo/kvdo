@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#2 $
  */
 
 #ifndef LIMITER_H
@@ -42,17 +42,6 @@ struct limiter {
 	// The limit to the number of resources that are allowed to be used
 	uint32_t limit;
 };
-
-/**
- * Get the limiter variable values (atomically under the lock)
- *
- * @param limiter  The limiter
- * @param active   The number of requests in progress
- * @param maximum  The maximum number of requests that have ever been active
- **/
-void get_limiter_values_atomically(struct limiter *limiter,
-				   uint32_t *active,
-				   uint32_t *maximum);
 
 /**
  * Initialize a limiter structure

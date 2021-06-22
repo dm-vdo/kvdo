@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#86 $
  */
 
 #ifndef KERNELLAYER_H
@@ -40,7 +40,6 @@
 #include "bufferPool.h"
 #include "deadlockQueue.h"
 #include "deviceConfig.h"
-#include "histogram.h"
 #include "kernelTypes.h"
 #include "kernelVDO.h"
 #include "limiter.h"
@@ -79,6 +78,7 @@ struct kernel_layer {
 	struct vdo_work_queue *bio_ack_queue;
 	// Memory allocation
 	struct buffer_pool *data_vio_pool;
+
 	// Debugging
 	/* Whether to dump VDO state on shutdown */
 	bool dump_on_shutdown;

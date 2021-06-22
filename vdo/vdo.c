@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#137 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#139 $
  */
 
 /*
@@ -58,6 +58,7 @@
 #include "kernelVDO.h"
 #include "vdoCommon.h"
 #include "workQueue.h"
+
 
 /**********************************************************************/
 void destroy_vdo(struct vdo *vdo)
@@ -426,7 +427,7 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 
 
 /**********************************************************************/
-void get_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
+void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 {
 	enum vdo_state state;
 	slab_count_t slab_total;
@@ -476,9 +477,11 @@ void get_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = vdo->instance;
-	get_limiter_values_atomically(&vdo->request_limiter,
-				      &stats->current_vios_in_progress,
-				      &stats->max_vios);
+
+	stats->current_vios_in_progress =
+		READ_ONCE(vdo->request_limiter.active);
+	stats->max_vios = READ_ONCE(vdo->request_limiter.maximum);
+
 	// get_vdo_dedupe_index_timeout_count() gives the number of timeouts,
 	// and dedupe_context_busy gives the number of queries not made because
 	// of earlier timeouts.

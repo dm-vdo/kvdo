@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#200 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#201 $
  */
 
 #include "kernelLayer.h"
@@ -386,7 +386,6 @@ int make_kernel_layer(unsigned int instance,
 		free_kernel_layer(layer);
 		return result;
 	}
-
 
 	/*
 	 * Part 3 - Do initializations that depend upon other previous
