@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#87 $
  */
 
 #include "packerInternals.h"
@@ -995,8 +995,8 @@ static void initiate_drain(struct admin_state *state)
 void drain_vdo_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
-	start_vdo_draining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
-			   initiate_drain);
+	start_vdo_draining(&packer->state, VDO_ADMIN_STATE_SUSPENDING,
+			   completion, initiate_drain);
 }
 
 /**********************************************************************/

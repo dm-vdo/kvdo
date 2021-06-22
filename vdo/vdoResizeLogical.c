@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#40 $
  */
 
 #include "vdoResizeLogical.h"
@@ -79,7 +79,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		}
 
 		if (start_vdo_operation_with_waiter(&vdo->admin_state,
-						    ADMIN_STATE_SUSPENDED_OPERATION,
+						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
 			vdo->states.vdo.config.logical_blocks =

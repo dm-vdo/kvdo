@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#97 $
  */
 
 #include "slabJournalInternals.h"
@@ -692,7 +692,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	journal->waiting_to_commit = false;
 
 	operation = get_vdo_admin_state_code(&journal->slab->state);
-	if (operation == ADMIN_STATE_WAITING_FOR_RECOVERY) {
+	if (operation == VDO_ADMIN_STATE_WAITING_FOR_RECOVERY) {
 		finish_vdo_operation_with_result(&journal->slab->state,
 						 (is_vdo_read_only(journal) ?
 						  VDO_READ_ONLY : VDO_SUCCESS));
@@ -839,7 +839,7 @@ bool attempt_replay_into_vdo_slab_journal(struct slab_journal *journal,
 
 	if (journal->waiting_to_commit) {
 		start_vdo_operation_with_waiter(&journal->slab->state,
-						ADMIN_STATE_WAITING_FOR_RECOVERY,
+						VDO_ADMIN_STATE_WAITING_FOR_RECOVERY,
 						parent,
 						NULL);
 		return false;
@@ -1195,9 +1195,9 @@ void drain_vdo_slab_journal(struct slab_journal *journal)
 	}
 
 	switch (get_vdo_admin_state_code(&journal->slab->state)) {
-	case ADMIN_STATE_REBUILDING:
-	case ADMIN_STATE_SUSPENDING:
-	case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+	case VDO_ADMIN_STATE_REBUILDING:
+	case VDO_ADMIN_STATE_SUSPENDING:
+	case VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING:
 		break;
 
 	default:

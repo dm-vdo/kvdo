@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#108 $
  */
 
 #include "slabDepot.h"
@@ -659,7 +659,7 @@ void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	ASSERT_LOG_ONLY(depot->new_slabs != NULL, "Must have new slabs to use");
 	schedule_vdo_operation(depot->action_manager,
-			       ADMIN_STATE_SUSPENDED_OPERATION,
+			       VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 			       NULL,
 			       register_new_vdo_slabs_for_allocator,
 			       finish_registration,
@@ -688,7 +688,7 @@ void resume_vdo_slab_depot(struct slab_depot *depot, struct vdo_completion *pare
 	}
 
 	schedule_vdo_operation(depot->action_manager,
-			       ADMIN_STATE_RESUMING,
+			       VDO_ADMIN_STATE_RESUMING,
 			       NULL,
 			       resume_vdo_block_allocator,
 			       NULL,

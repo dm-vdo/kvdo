@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#107 $
  */
 
 #include "blockMap.h"
@@ -490,7 +490,7 @@ static void resume_block_map_zone(void *context,
 void resume_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
-			       ADMIN_STATE_RESUMING,
+			       VDO_ADMIN_STATE_RESUMING,
 			       NULL,
 			       resume_block_map_zone,
 			       NULL,
@@ -538,7 +538,7 @@ static void grow_forest(void *context, struct vdo_completion *completion)
 void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	schedule_vdo_operation(map->action_manager,
-			       ADMIN_STATE_SUSPENDED_OPERATION,
+			       VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 			       grow_forest,
 			       NULL,
 			       NULL,

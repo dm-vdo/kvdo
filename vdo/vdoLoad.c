@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#90 $
  */
 
 #include "vdoLoad.h"
@@ -79,7 +79,8 @@ static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
-	drain_vdo_recovery_journal(vdo->recovery_journal, ADMIN_STATE_SAVING,
+	drain_vdo_recovery_journal(vdo->recovery_journal,
+				   VDO_ADMIN_STATE_SAVING,
 				   completion);
 }
 
@@ -255,8 +256,8 @@ static void load_callback(struct vdo_completion *completion)
 
 	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 	load_vdo_slab_depot(vdo->depot,
-			    (vdo_was_new(vdo) ? ADMIN_STATE_FORMATTING :
-						ADMIN_STATE_LOADING),
+			    (vdo_was_new(vdo) ? VDO_ADMIN_STATE_FORMATTING :
+						VDO_ADMIN_STATE_LOADING),
 			    completion,
 			    NULL);
 }

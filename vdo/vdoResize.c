@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#54 $
  */
 
 #include "vdoResize.h"
@@ -86,7 +86,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		}
 
 		if (start_vdo_operation_with_waiter(&vdo->admin_state,
-						    ADMIN_STATE_SUSPENDED_OPERATION,
+						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
 			// Copy the journal into the new layout.

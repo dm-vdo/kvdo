@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#80 $
  */
 
 #include "refCounts.h"
@@ -259,8 +259,8 @@ bool are_vdo_ref_counts_active(struct ref_counts *ref_counts)
 	// When not suspending or recovering, the ref_counts must be clean.
 	code = get_vdo_admin_state_code(&ref_counts->slab->state);
 	return (has_waiters(&ref_counts->dirty_blocks) &&
-		(code != ADMIN_STATE_SUSPENDING) &&
-		(code != ADMIN_STATE_RECOVERING));
+		(code != VDO_ADMIN_STATE_SUSPENDING) &&
+		(code != VDO_ADMIN_STATE_RECOVERING));
 }
 
 /**********************************************************************/
@@ -1499,7 +1499,7 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 	bool save = false;
 
 	switch (get_vdo_admin_state_code(&slab->state)) {
-	case ADMIN_STATE_SCRUBBING:
+	case VDO_ADMIN_STATE_SCRUBBING:
 		if (vdo_must_load_ref_counts(slab->allocator->summary,
 					     slab->slab_number)) {
 			load_reference_blocks(ref_counts);
@@ -1508,7 +1508,7 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 
 		break;
 
-	case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+	case VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING:
 		if (!vdo_must_load_ref_counts(slab->allocator->summary,
 					      slab->slab_number)) {
 			// These reference counts were never written, so mark
@@ -1518,19 +1518,19 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 		save = true;
 		break;
 
-	case ADMIN_STATE_REBUILDING:
+	case VDO_ADMIN_STATE_REBUILDING:
 		if (should_save_fully_built_vdo_slab(slab)) {
 			vdo_dirty_all_reference_blocks(ref_counts);
 			save = true;
 		}
 		break;
 
-	case ADMIN_STATE_SAVING:
+	case VDO_ADMIN_STATE_SAVING:
 		save = !is_unrecovered_vdo_slab(slab);
 		break;
 
-	case ADMIN_STATE_RECOVERING:
-	case ADMIN_STATE_SUSPENDING:
+	case VDO_ADMIN_STATE_RECOVERING:
+	case VDO_ADMIN_STATE_SUSPENDING:
 		break;
 
 	default:

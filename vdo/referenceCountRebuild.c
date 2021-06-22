@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#64 $
  */
 
 #include "referenceCountRebuild.h"
@@ -182,7 +182,7 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 	uds_log_info("Flushing block map changes");
 	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
 	drain_vdo_block_map(as_rebuild_completion(completion->parent)->block_map,
-						  ADMIN_STATE_RECOVERING,
+						  VDO_ADMIN_STATE_RECOVERING,
 						  completion);
 }
 

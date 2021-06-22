@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#103 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -586,7 +586,7 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 			 start_super_block_save,
 			 finish_vdo_completion_parent_callback,
 			 ZONE_TYPE_ADMIN);
-	drain_vdo_slab_depot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
+	drain_vdo_slab_depot(vdo->depot, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
 /**
@@ -866,7 +866,7 @@ static void apply_to_depot(struct vdo_completion *completion)
 		return;
 	}
 
-	load_vdo_slab_depot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY,
+	load_vdo_slab_depot(depot, VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 			    completion, recovery);
 }
 
@@ -1326,7 +1326,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_ADMIN);
 		load_vdo_slab_depot(get_slab_depot(vdo),
-				    ADMIN_STATE_LOADING_FOR_RECOVERY,
+				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
 				    recovery);
 		return;
@@ -1351,7 +1351,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 				 finish_vdo_completion_parent_callback,
 				 ZONE_TYPE_LOGICAL);
 		load_vdo_slab_depot(vdo->depot,
-				    ADMIN_STATE_LOADING_FOR_RECOVERY,
+				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
 				    recovery);
 		return;

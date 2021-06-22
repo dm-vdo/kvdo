@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#31 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -30,115 +30,125 @@
  **/
 enum admin_type {
 	/** Normal operation, data_vios may be active */
-	ADMIN_TYPE_NORMAL = 0,
+	VDO_ADMIN_TYPE_NORMAL = 0,
 	/**
 	 * Format: an operation for formatting a new VDO.
 	 **/
-	ADMIN_TYPE_FORMAT,
+	VDO_ADMIN_TYPE_FORMAT,
 	/**
 	 * Recover: a recovery operation.
 	 **/
-	ADMIN_TYPE_RECOVER,
+	VDO_ADMIN_TYPE_RECOVER,
 	/**
 	 * Rebuild: write data necessary for a full rebuild, drain outstanding
 	 *          I/O, and return to normal operation.
 	 **/
-	ADMIN_TYPE_REBUILD,
+	VDO_ADMIN_TYPE_REBUILD,
 	/**
 	 * Save: write all dirty metadata thereby restoring the VDO to a clean
 	 *       state, drain outstanding I/O, and become quiescent.
 	 **/
-	ADMIN_TYPE_SAVE,
+	VDO_ADMIN_TYPE_SAVE,
 	/**
 	 * Scrub: load and/or save state necessary to scrub a slab.
 	 **/
-	ADMIN_TYPE_SCRUB,
+	VDO_ADMIN_TYPE_SCRUB,
 	/**
 	 * Suspend: write enough dirty metadata to perform resize transactions,
 	 *          drain outstanding I/O, and become quiescent.
 	 **/
-	ADMIN_TYPE_SUSPEND,
+	VDO_ADMIN_TYPE_SUSPEND,
 	/**
 	 * Resume: return to normal from a quiescent state
 	 **/
-	ADMIN_TYPE_RESUME,
+	VDO_ADMIN_TYPE_RESUME,
 
 	/** The mask for extracting the admin_type from an admin_state_code */
-	ADMIN_TYPE_MASK = 0xff,
+	VDO_ADMIN_TYPE_MASK = 0xff,
 };
 
 /**
  * The bit position of flags used to categorize states.
  **/
 enum admin_flag_bit {
-	ADMIN_FLAG_BIT_START = 8,
+	VDO_ADMIN_FLAG_BIT_START = 8,
 	/** Flag indicating that I/O is draining */
-	ADMIN_FLAG_BIT_DRAINING = ADMIN_FLAG_BIT_START,
+	VDO_ADMIN_FLAG_BIT_DRAINING = VDO_ADMIN_FLAG_BIT_START,
 	/** Flag indicating a load operation */
-	ADMIN_FLAG_BIT_LOADING,
+	VDO_ADMIN_FLAG_BIT_LOADING,
 	/** Flag indicating that the next state will be a quiescent state */
-	ADMIN_FLAG_BIT_QUIESCING,
+	VDO_ADMIN_FLAG_BIT_QUIESCING,
 	/** Flag indicating that the state is quiescent */
-	ADMIN_FLAG_BIT_QUIESCENT,
+	VDO_ADMIN_FLAG_BIT_QUIESCENT,
 	/**
 	 * Flag indicating that an operation is in progress and so no other
 	 * operation may be started.
 	 **/
-	ADMIN_FLAG_BIT_OPERATING,
+	VDO_ADMIN_FLAG_BIT_OPERATING,
 };
 
 /**
  * The flags themselves.
  **/
 enum admin_flag {
-	ADMIN_FLAG_DRAINING = (uint32_t) (1 << ADMIN_FLAG_BIT_DRAINING),
-	ADMIN_FLAG_LOADING = (uint32_t) (1 << ADMIN_FLAG_BIT_LOADING),
-	ADMIN_FLAG_QUIESCING = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCING),
-	ADMIN_FLAG_QUIESCENT = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCENT),
-	ADMIN_FLAG_OPERATING = (uint32_t) (1 << ADMIN_FLAG_BIT_OPERATING),
+	VDO_ADMIN_FLAG_DRAINING = (uint32_t) (1 << VDO_ADMIN_FLAG_BIT_DRAINING),
+	VDO_ADMIN_FLAG_LOADING = (uint32_t) (1 << VDO_ADMIN_FLAG_BIT_LOADING),
+	VDO_ADMIN_FLAG_QUIESCING = (uint32_t) (1 << VDO_ADMIN_FLAG_BIT_QUIESCING),
+	VDO_ADMIN_FLAG_QUIESCENT = (uint32_t) (1 << VDO_ADMIN_FLAG_BIT_QUIESCENT),
+	VDO_ADMIN_FLAG_OPERATING = (uint32_t) (1 << VDO_ADMIN_FLAG_BIT_OPERATING),
 };
 
 /**
  * The state codes.
  **/
 enum admin_state_code {
-	ADMIN_STATE_NORMAL_OPERATION = ADMIN_TYPE_NORMAL,
-	ADMIN_STATE_OPERATING = (ADMIN_TYPE_NORMAL | ADMIN_FLAG_OPERATING),
-	ADMIN_STATE_FORMATTING =
-		(ADMIN_TYPE_FORMAT | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_LOADING),
-	ADMIN_STATE_LOADING =
-		(ADMIN_TYPE_NORMAL | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_LOADING),
-	ADMIN_STATE_LOADING_FOR_RECOVERY =
-		(ADMIN_TYPE_RECOVER | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_LOADING),
-	ADMIN_STATE_LOADING_FOR_REBUILD =
-		(ADMIN_TYPE_REBUILD | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_LOADING),
-	ADMIN_STATE_WAITING_FOR_RECOVERY =
-		(ADMIN_TYPE_RECOVER | ADMIN_FLAG_OPERATING),
-	ADMIN_STATE_NEW	= (ADMIN_TYPE_NORMAL | ADMIN_FLAG_QUIESCENT),
-	ADMIN_STATE_RECOVERING = (ADMIN_TYPE_RECOVER | ADMIN_FLAG_OPERATING |
-				  ADMIN_FLAG_DRAINING),
-	ADMIN_STATE_REBUILDING = (ADMIN_TYPE_REBUILD | ADMIN_FLAG_OPERATING |
-				  ADMIN_FLAG_DRAINING),
-	ADMIN_STATE_SAVING = (ADMIN_TYPE_SAVE | ADMIN_FLAG_OPERATING |
-				  ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING),
-	ADMIN_STATE_SAVED = (ADMIN_TYPE_SAVE | ADMIN_FLAG_QUIESCENT),
-	ADMIN_STATE_SCRUBBING = (ADMIN_TYPE_SCRUB | ADMIN_FLAG_OPERATING |
-				  ADMIN_FLAG_DRAINING | ADMIN_FLAG_LOADING),
-	ADMIN_STATE_SAVE_FOR_SCRUBBING =
-		(ADMIN_TYPE_SCRUB | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_DRAINING),
-	ADMIN_STATE_SUSPENDING = (ADMIN_TYPE_SUSPEND | ADMIN_FLAG_OPERATING |
-				  ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING),
-	ADMIN_STATE_SUSPENDED = (ADMIN_TYPE_SUSPEND | ADMIN_FLAG_QUIESCENT),
-	ADMIN_STATE_SUSPENDED_OPERATION =
-		(ADMIN_TYPE_SUSPEND | ADMIN_FLAG_OPERATING |
-		 ADMIN_FLAG_QUIESCENT),
-	ADMIN_STATE_RESUMING = (ADMIN_TYPE_RESUME | ADMIN_FLAG_OPERATING |
-				ADMIN_FLAG_QUIESCENT),
+	VDO_ADMIN_STATE_NORMAL_OPERATION = VDO_ADMIN_TYPE_NORMAL,
+	VDO_ADMIN_STATE_OPERATING =
+		(VDO_ADMIN_TYPE_NORMAL | VDO_ADMIN_FLAG_OPERATING),
+	VDO_ADMIN_STATE_FORMATTING =
+		(VDO_ADMIN_TYPE_FORMAT | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_LOADING =
+		(VDO_ADMIN_TYPE_NORMAL | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_LOADING_FOR_RECOVERY =
+		(VDO_ADMIN_TYPE_RECOVER | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_LOADING_FOR_REBUILD =
+		(VDO_ADMIN_TYPE_REBUILD | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_WAITING_FOR_RECOVERY =
+		(VDO_ADMIN_TYPE_RECOVER | VDO_ADMIN_FLAG_OPERATING),
+	VDO_ADMIN_STATE_NEW =
+		(VDO_ADMIN_TYPE_NORMAL | VDO_ADMIN_FLAG_QUIESCENT),
+	VDO_ADMIN_STATE_RECOVERING =
+		(VDO_ADMIN_TYPE_RECOVER | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING),
+	VDO_ADMIN_STATE_REBUILDING =
+		(VDO_ADMIN_TYPE_REBUILD | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING),
+	VDO_ADMIN_STATE_SAVING =
+		(VDO_ADMIN_TYPE_SAVE | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING | VDO_ADMIN_FLAG_QUIESCING),
+	VDO_ADMIN_STATE_SAVED =
+		(VDO_ADMIN_TYPE_SAVE | VDO_ADMIN_FLAG_QUIESCENT),
+	VDO_ADMIN_STATE_SCRUBBING =
+		(VDO_ADMIN_TYPE_SCRUB | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING | VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING =
+		(VDO_ADMIN_TYPE_SCRUB | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING),
+	VDO_ADMIN_STATE_SUSPENDING =
+		(VDO_ADMIN_TYPE_SUSPEND | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_DRAINING | VDO_ADMIN_FLAG_QUIESCING),
+	VDO_ADMIN_STATE_SUSPENDED =
+		(VDO_ADMIN_TYPE_SUSPEND | VDO_ADMIN_FLAG_QUIESCENT),
+	VDO_ADMIN_STATE_SUSPENDED_OPERATION =
+		(VDO_ADMIN_TYPE_SUSPEND | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_QUIESCENT),
+	VDO_ADMIN_STATE_RESUMING =
+		(VDO_ADMIN_TYPE_RESUME | VDO_ADMIN_FLAG_OPERATING |
+		 VDO_ADMIN_FLAG_QUIESCENT),
 };
 
 struct admin_state {
@@ -204,8 +214,8 @@ get_vdo_admin_state_code(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_normal(const struct admin_state *state)
 {
-	return ((get_vdo_admin_state_code(state) & ADMIN_TYPE_MASK)
-		== ADMIN_TYPE_NORMAL);
+	return ((get_vdo_admin_state_code(state) & VDO_ADMIN_TYPE_MASK)
+		== VDO_ADMIN_TYPE_NORMAL);
 }
 
 /**
@@ -218,7 +228,7 @@ is_vdo_state_normal(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_operation_state_code(enum admin_state_code code)
 {
-	return ((code & ADMIN_FLAG_OPERATING) == ADMIN_FLAG_OPERATING);
+	return ((code & VDO_ADMIN_FLAG_OPERATING) == VDO_ADMIN_FLAG_OPERATING);
 }
 
 /**
@@ -244,7 +254,7 @@ is_vdo_state_operating(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_suspending(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SUSPENDING);
+	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SUSPENDING);
 }
 
 /**
@@ -257,7 +267,7 @@ is_vdo_state_suspending(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_suspended(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SUSPENDED);
+	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SUSPENDED);
 }
 
 /**
@@ -270,7 +280,7 @@ is_vdo_state_suspended(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_saving(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SAVING);
+	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SAVING);
 }
 
 /**
@@ -283,7 +293,7 @@ is_vdo_state_saving(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_state_saved(const struct admin_state *state)
 {
-	return (get_vdo_admin_state_code(state) == ADMIN_STATE_SAVED);
+	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_SAVED);
 }
 
 /**
@@ -296,7 +306,7 @@ is_vdo_state_saved(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_drain_operation(enum admin_state_code code)
 {
-	return ((code & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
+	return ((code & VDO_ADMIN_FLAG_DRAINING) == VDO_ADMIN_FLAG_DRAINING);
 }
 
 /**
@@ -322,7 +332,7 @@ is_vdo_state_draining(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_load_operation(enum admin_state_code code)
 {
-	return ((code & ADMIN_FLAG_LOADING) == ADMIN_FLAG_LOADING);
+	return ((code & VDO_ADMIN_FLAG_LOADING) == VDO_ADMIN_FLAG_LOADING);
 }
 
 /**
@@ -348,7 +358,7 @@ is_vdo_state_loading(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_resume_operation(enum admin_state_code code)
 {
-	return ((code & ADMIN_TYPE_MASK) == ADMIN_TYPE_RESUME);
+	return ((code & VDO_ADMIN_TYPE_MASK) == VDO_ADMIN_TYPE_RESUME);
 }
 
 /**
@@ -375,8 +385,8 @@ static inline bool __must_check
 is_vdo_state_clean_load(const struct admin_state *state)
 {
 	enum admin_state_code code = get_vdo_admin_state_code(state);
-	return ((code == ADMIN_STATE_FORMATTING) ||
-		(code == ADMIN_STATE_LOADING));
+	return ((code == VDO_ADMIN_STATE_FORMATTING) ||
+		(code == VDO_ADMIN_STATE_LOADING));
 }
 
 /**
@@ -389,7 +399,7 @@ is_vdo_state_clean_load(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_quiescing_code(enum admin_state_code code)
 {
-	return ((code & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+	return ((code & VDO_ADMIN_FLAG_QUIESCING) == VDO_ADMIN_FLAG_QUIESCING);
 }
 
 /**
@@ -415,7 +425,7 @@ is_vdo_state_quiescing(const struct admin_state *state)
 static inline bool __must_check
 is_vdo_quiescent_code(enum admin_state_code code)
 {
-	return ((code & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
+	return ((code & VDO_ADMIN_FLAG_QUIESCENT) == VDO_ADMIN_FLAG_QUIESCENT);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#42 $
  */
 
 #include "actionManager.h"
@@ -301,7 +301,7 @@ bool schedule_vdo_default_action(struct action_manager *manager)
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.
 	enum admin_state_code code = get_current_vdo_manager_operation(manager);
-	return ((code == ADMIN_STATE_NORMAL_OPERATION)
+	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)
 		&& manager->scheduler(manager->context));
 }
 
@@ -346,7 +346,7 @@ bool schedule_vdo_action(struct action_manager *manager,
 			 struct vdo_completion *parent)
 {
 	return schedule_vdo_operation(manager,
-				      ADMIN_STATE_OPERATING,
+				      VDO_ADMIN_STATE_OPERATING,
 				      preamble,
 				      action,
 				      conclusion,

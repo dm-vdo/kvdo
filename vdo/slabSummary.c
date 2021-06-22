@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#69 $
  */
 
 #include "slabSummary.h"
@@ -661,8 +661,8 @@ void load_vdo_slab_summary(struct slab_summary *summary,
 		return;
 	}
 
-	if ((operation == ADMIN_STATE_FORMATTING)
-	    || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
+	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
+	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
 		prepare_vdo_completion(&extent->completion,
 				       finish_combining_zones,
 				       finish_combining_zones, 0, summary);

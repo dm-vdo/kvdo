@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#124 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#125 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -642,7 +642,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	enum admin_state_code operation =
 		get_vdo_admin_state_code(&allocator->state);
 
-	if (operation == ADMIN_STATE_LOADING_FOR_RECOVERY) {
+	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			get_current_vdo_action_context(allocator->depot->action_manager);
 		vdo_replay_into_slab_journals(allocator, completion, context);
@@ -663,7 +663,7 @@ static void initiate_load(struct admin_state *state)
 		container_of(state, struct block_allocator, state);
 	enum admin_state_code operation = get_vdo_admin_state_code(state);
 
-	if (operation == ADMIN_STATE_LOADING_FOR_REBUILD) {
+	if (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD) {
 		prepare_vdo_completion(&allocator->completion,
 				       finish_loading_allocator,
 				       handle_operation_error,
