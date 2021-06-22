@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#22 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -118,8 +118,8 @@ static inline void update_stats_for_enqueue(struct vdo_work_queue_stats *stats,
 					    struct vdo_work_item *item,
 					    int priority)
 {
-	update_work_item_stats_for_enqueue(&stats->work_item_stats, item,
-					   priority);
+	update_vdo_work_item_stats_for_enqueue(&stats->work_item_stats, item,
+					       priority);
 	item->enqueue_time = ktime_get_ns();
 }
 

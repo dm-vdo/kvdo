@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#28 $
  */
 
 #include "workQueueStats.h"
@@ -31,7 +31,7 @@
 int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 				struct kobject *queue_kobject)
 {
-	initialize_work_item_stats(&stats->work_item_stats);
+	initialize_vdo_work_item_stats(&stats->work_item_stats);
 
 	stats->queue_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "queue_time",
@@ -122,7 +122,7 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 	runtime_ms = runtime_ns / 1000;
 
 	total_processed =
-		count_work_items_processed(&queue->stats.work_item_stats);
+		count_vdo_work_items_processed(&queue->stats.work_item_stats);
 	if (total_processed > 0) {
 		ns_per_work_item = runtime_ns / total_processed;
 	}

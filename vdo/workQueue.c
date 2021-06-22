@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#62 $
  */
 
 #include "workQueue.h"
@@ -307,7 +307,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 				(ktime_get_ns() - first_wakeup) / 1000);
 			enter_histogram_sample(
 				queue->stats.wakeup_queue_length_histogram,
-				count_work_items_pending(
+				count_vdo_work_items_pending(
 					&queue->stats.work_item_stats));
 		}
 	}
@@ -340,9 +340,9 @@ static void process_work_item(struct simple_work_queue *queue,
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
 
-	update_work_item_stats_for_work_time(&queue->stats.work_item_stats,
-					     index,
-					     dequeue_time);
+	update_vdo_work_item_stats_for_work_time(&queue->stats.work_item_stats,
+						 index,
+						 dequeue_time);
 }
 
 /**
@@ -363,7 +363,7 @@ static void yield_to_scheduler(struct simple_work_queue *queue)
 	 * synchronization, but it's for stats reporting only, so being
 	 * imprecise isn't too big a deal.
 	 */
-	queue_length = count_work_items_pending(&stats->work_item_stats);
+	queue_length = count_vdo_work_items_pending(&stats->work_item_stats);
 
 	time_before_reschedule = ktime_get_ns();
 	cond_resched();
@@ -850,12 +850,12 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	uds_log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
 		     &queue->common,
 		     queue->common.name,
-		     count_work_items_pending(&queue->stats.work_item_stats),
+		     count_vdo_work_items_pending(&queue->stats.work_item_stats),
 		     READ_ONCE(queue->stats.waits),
 		     thread_status,
 		     task_state_report);
 
-	log_work_item_stats(&queue->stats.work_item_stats);
+	log_vdo_work_item_stats(&queue->stats.work_item_stats);
 	log_work_queue_stats(queue);
 
 	// ->lock spin lock status?
@@ -891,9 +891,9 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			  TASK_COMM_LEN,
 			  item->my_queue == NULL ? "-" : item->my_queue->name);
 	if (current_length < length) {
-		get_function_name(item->stats_function,
-				  buffer + current_length,
-				  length - current_length);
+		vdo_get_function_name(item->stats_function,
+				      buffer + current_length,
+				      length - current_length);
 	}
 }
 
