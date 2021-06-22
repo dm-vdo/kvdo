@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#48 $
  */
 
 #include "forest.h"
@@ -199,9 +199,9 @@ static int make_segment(struct forest *old_forest,
 				// Record the root.
 				struct block_map_page *page =
 					format_vdo_block_map_page(page_ptr->page_buffer,
-								  forest->map->nonce,
-								  INVALID_PBN,
-								  true);
+							      forest->map->nonce,
+							      VDO_INVALID_PBN,
+							      true);
 				page->entries[0] =
 					pack_vdo_pbn(forest->map->root_origin + root,
 						     MAPPING_STATE_UNCOMPRESSED);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#17 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -70,7 +70,7 @@ struct tree_page {
  * An invalid PBN used to indicate that the page holding the location of a
  * tree root has been "loaded".
  **/
-extern const physical_block_number_t INVALID_PBN;
+extern const physical_block_number_t VDO_INVALID_PBN;
 
 /**
  * Extract the block_map_page from a tree_page.

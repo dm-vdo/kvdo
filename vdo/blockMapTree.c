@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#102 $
  */
 
 #include "blockMapTree.h"
@@ -68,7 +68,7 @@ struct write_if_not_dirtied_context {
  * An invalid PBN used to indicate that the page holding the location of a
  * tree root has been "loaded".
  **/
-const physical_block_number_t INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
+const physical_block_number_t VDO_INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
 /**
  * Convert a list entry to a tree_page.
