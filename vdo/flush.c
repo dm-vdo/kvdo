@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#49 $
  */
 
 #include "flush.h"
@@ -191,6 +191,7 @@ static void flush_packer_callback(struct vdo_completion *completion)
  **/
 static void increment_generation(struct vdo_completion *completion)
 {
+	thread_id_t thread_id;
 	struct flusher *flusher = as_flusher(completion);
 	increment_vdo_logical_zone_flush_generation(flusher->logical_zone_to_notify,
 				   		    flusher->notify_generation);
@@ -203,7 +204,7 @@ static void increment_generation(struct vdo_completion *completion)
 		return;
 	}
 
-	thread_id_t thread_id =
+	thread_id =
 		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
 	launch_vdo_completion_callback(completion,
 				       increment_generation,
@@ -217,6 +218,7 @@ static void increment_generation(struct vdo_completion *completion)
  **/
 static void notify_flush(struct flusher *flusher)
 {
+	thread_id_t thread_id;
 	struct vdo_flush *flush =
 		waiter_as_flush(get_first_waiter(&flusher->notifiers));
 	flusher->notify_generation = flush->flush_generation;
@@ -224,7 +226,7 @@ static void notify_flush(struct flusher *flusher)
 		get_vdo_logical_zone(flusher->vdo->logical_zones, 0);
 	flusher->completion.requeue = true;
 
-	thread_id_t thread_id =
+	thread_id =
 		get_vdo_logical_zone_thread_id(flusher->logical_zone_to_notify);
 	launch_vdo_completion_callback(&flusher->completion,
 				       increment_generation,
