@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#30 $
  */
 
 #include "lockCounter.h"
@@ -93,42 +93,42 @@ int make_vdo_lock_counter(struct vdo *vdo,
 	result = ALLOCATE(locks, uint16_t, __func__,
 			  &lock_counter->journal_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks * logical_zones, uint16_t, __func__,
 			  &lock_counter->logical_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->logical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks * physical_zones, uint16_t, __func__,
 			  &lock_counter->physical_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	result = ALLOCATE(locks, atomic_t, __func__,
 			  &lock_counter->physical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
@@ -146,22 +146,19 @@ int make_vdo_lock_counter(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_lock_counter(struct lock_counter **lock_counter_ptr)
+void free_vdo_lock_counter(struct lock_counter *counter)
 {
-	struct lock_counter *lock_counter;
-	if (*lock_counter_ptr == NULL) {
+	if (counter == NULL) {
 		return;
 	}
 
-	lock_counter = *lock_counter_ptr;
-	FREE(lock_counter->physical_zone_counts);
-	FREE(lock_counter->logical_zone_counts);
-	FREE(lock_counter->journal_decrement_counts);
-	FREE(lock_counter->journal_counters);
-	FREE(lock_counter->logical_counters);
-	FREE(lock_counter->physical_counters);
-	FREE(lock_counter);
-	*lock_counter_ptr = NULL;
+	FREE(FORGET(counter->physical_zone_counts));
+	FREE(FORGET(counter->logical_zone_counts));
+	FREE(FORGET(counter->journal_decrement_counts));
+	FREE(FORGET(counter->journal_counters));
+	FREE(FORGET(counter->logical_counters));
+	FREE(FORGET(counter->physical_counters));
+	FREE(counter);
 }
 
 /**

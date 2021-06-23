@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#113 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#114 $
  */
 
 #include "recoveryJournal.h"
@@ -513,7 +513,7 @@ void free_vdo_recovery_journal(struct recovery_journal **journal_ptr)
 		return;
 	}
 
-	free_vdo_lock_counter(&journal->lock_counter);
+	free_vdo_lock_counter(FORGET(journal->lock_counter));
 	free_vio(&journal->flush_vio);
 
 	// XXX: eventually, the journal should be constructed in a quiescent
