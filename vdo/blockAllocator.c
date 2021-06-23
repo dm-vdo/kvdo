@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#125 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#126 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -819,22 +819,22 @@ static void do_drain_step(struct vdo_completion *completion)
 					   allocator->thread_id,
 					   NULL);
 	switch (++allocator->drain_step) {
-	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
+	case VDO_DRAIN_ALLOCATOR_STEP_SCRUBBER:
 		stop_vdo_slab_scrubbing(allocator->slab_scrubber, completion);
 		return;
 
-	case DRAIN_ALLOCATOR_STEP_SLABS:
+	case VDO_DRAIN_ALLOCATOR_STEP_SLABS:
 		apply_to_slabs(allocator, do_drain_step);
 		return;
 
-	case DRAIN_ALLOCATOR_STEP_SUMMARY:
+	case VDO_DRAIN_ALLOCATOR_STEP_SUMMARY:
 		drain_vdo_slab_summary_zone(
 			allocator->summary,
 			get_vdo_admin_state_code(&allocator->state),
 			completion);
 		return;
 
-	case DRAIN_ALLOCATOR_STEP_FINISHED:
+	case VDO_DRAIN_ALLOCATOR_STEP_FINISHED:
 		ASSERT_LOG_ONLY(!is_vio_pool_busy(allocator->vio_pool),
 				"vio pool not busy");
 		finish_vdo_draining_with_result(&allocator->state,
@@ -856,7 +856,7 @@ static void initiate_drain(struct admin_state *state)
 {
 	struct block_allocator *allocator =
 		container_of(state, struct block_allocator, state);
-	allocator->drain_step = DRAIN_ALLOCATOR_START;
+	allocator->drain_step = VDO_DRAIN_ALLOCATOR_START;
 	do_drain_step(&allocator->completion);
 }
 
@@ -889,19 +889,19 @@ static void do_resume_step(struct vdo_completion *completion)
 					   allocator->thread_id,
 					   NULL);
 	switch (--allocator->drain_step) {
-	case DRAIN_ALLOCATOR_STEP_SUMMARY:
+	case VDO_DRAIN_ALLOCATOR_STEP_SUMMARY:
 		resume_vdo_slab_summary_zone(allocator->summary, completion);
 		return;
 
-	case DRAIN_ALLOCATOR_STEP_SLABS:
+	case VDO_DRAIN_ALLOCATOR_STEP_SLABS:
 		apply_to_slabs(allocator, do_resume_step);
 		return;
 
-	case DRAIN_ALLOCATOR_STEP_SCRUBBER:
+	case VDO_DRAIN_ALLOCATOR_STEP_SCRUBBER:
 		resume_vdo_slab_scrubbing(allocator->slab_scrubber, completion);
 		return;
 
-	case DRAIN_ALLOCATOR_START:
+	case VDO_DRAIN_ALLOCATOR_START:
 		finish_vdo_resuming_with_result(&allocator->state,
 						completion->result);
 		return;
@@ -921,7 +921,7 @@ static void initiate_resume(struct admin_state *state)
 {
 	struct block_allocator *allocator =
 		container_of(state, struct block_allocator, state);
-	allocator->drain_step = DRAIN_ALLOCATOR_STEP_FINISHED;
+	allocator->drain_step = VDO_DRAIN_ALLOCATOR_STEP_FINISHED;
 	do_resume_step(&allocator->completion);
 }
 
