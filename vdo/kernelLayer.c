@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#202 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#203 $
  */
 
 #include "kernelLayer.h"
@@ -360,8 +360,6 @@ int make_kernel_layer(unsigned int instance,
 	 */
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-	mutex_init(&layer->stats_mutex);
-
 	snprintf(layer->thread_name_prefix,
 		 sizeof(layer->thread_name_prefix),
 		 "%s%u",
@@ -682,7 +680,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 static void pool_stats_release(struct kobject *directory)
 {
 	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
-	complete(&(vdo_as_kernel_layer(vdo)->stats_shutdown));
+	complete(&vdo->stats_shutdown);
 }
 
 /**********************************************************************/
@@ -738,7 +736,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		stop_kernel_layer(layer);
 		return result;
 	}
-	layer->stats_added = true;
+	layer->vdo.stats_added = true;
 
 	if (layer->vdo.device_config->deduplication) {
 		// Don't try to load or rebuild the index first (and log
@@ -759,11 +757,11 @@ void stop_kernel_layer(struct kernel_layer *layer)
 
 	// Stop services that need to gather VDO statistics from the worker
 	// threads.
-	if (layer->stats_added) {
-		layer->stats_added = false;
-		init_completion(&layer->stats_shutdown);
+	if (layer->vdo.stats_added) {
+		layer->vdo.stats_added = false;
+		init_completion(&layer->vdo.stats_shutdown);
 		kobject_put(&layer->vdo.stats_directory);
-		wait_for_completion(&layer->stats_shutdown);
+		wait_for_completion(&layer->vdo.stats_shutdown);
 	}
 
 	switch (get_kernel_layer_state(layer)) {

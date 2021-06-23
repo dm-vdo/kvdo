@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#18 $
  */
 
 #include "vdoInit.h"
@@ -25,6 +25,7 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 #include <linux/lz4.h>
+#include <linux/mutex.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -164,6 +165,7 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->allocations_allowed = true;
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
+	mutex_init(&vdo->stats_mutex);
 	initialize_limiter(&vdo->request_limiter, MAXIMUM_VDO_USER_VIOS);
 	initialize_limiter(&vdo->discard_limiter,
 			   MAXIMUM_VDO_USER_VIOS * 3 / 4);

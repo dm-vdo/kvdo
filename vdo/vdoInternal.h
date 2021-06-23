@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#70 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -146,8 +146,18 @@ struct vdo {
 	bool no_flush_suspend;
 	bool allocations_allowed;
 
-	/* Statistics */
+	// Statistics
+	/* Atomic stats counters */
 	struct atomic_statistics stats;
+	/* Used to gather statistics without allocating memory */
+	struct vdo_statistics stats_buffer;
+	/* Protects the stats_buffer */
+	struct mutex stats_mutex;
+	/* true if sysfs statistics directory is set up */
+	bool stats_added;
+	/* Used when shutting down the sysfs statistics */
+	struct completion stats_shutdown;
+
 
 	/** A list of all device_configs referencing this vdo */
 	struct list_head device_config_list;

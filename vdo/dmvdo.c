@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#135 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#136 $
  */
 
 #include "dmvdo.h"
@@ -168,7 +168,7 @@ static void vdo_status(struct dm_target *ti,
 		       char *result,
 		       unsigned int maxlen)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
 	struct device_config *device_config;
 	char name_buffer[BDEVNAME_SIZE];
@@ -179,20 +179,19 @@ static void vdo_status(struct dm_target *ti,
 	switch (status_type) {
 	case STATUSTYPE_INFO:
 		// Report info for dmsetup status
-		mutex_lock(&layer->stats_mutex);
-		get_kvdo_statistics(&layer->vdo, &layer->vdo_stats_storage);
-		stats = &layer->vdo_stats_storage;
+		mutex_lock(&vdo->stats_mutex);
+		get_kvdo_statistics(vdo, &vdo->stats_buffer);
+		stats = &vdo->stats_buffer;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(get_vdo_backing_device(&layer->vdo),
-				name_buffer),
+		       bdevname(get_vdo_backing_device(vdo), name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
-		       get_vdo_dedupe_index_state_name(layer->vdo.dedupe_index),
-		       get_vdo_compressing(&layer->vdo) ? "online" : "offline",
+		       get_vdo_dedupe_index_state_name(vdo->dedupe_index),
+		       get_vdo_compressing(vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
-		mutex_unlock(&layer->stats_mutex);
+		mutex_unlock(&vdo->stats_mutex);
 		break;
 
 	case STATUSTYPE_TABLE:

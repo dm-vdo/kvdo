@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#87 $
  */
 
 #ifndef KERNELLAYER_H
@@ -85,17 +85,6 @@ struct kernel_layer {
 
 	/* For returning batches of data_vios to their pool */
 	struct batch_processor *data_vio_releaser;
-
-	// Statistics reporting
-	/* Protects the *_stats_storage structs */
-	struct mutex stats_mutex;
-	/* Used when shutting down the sysfs statistics */
-	struct completion stats_shutdown;
-
-	/* true if sysfs statistics directory is set up */
-	bool stats_added;
-	/* Used to gather statistics without allocating memory */
-	struct vdo_statistics vdo_stats_storage;
 };
 
 enum bio_q_action {
