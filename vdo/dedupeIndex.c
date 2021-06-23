@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#100 $
  */
 
 #include "dedupeIndex.h"
@@ -761,16 +761,13 @@ void finish_vdo_dedupe_index(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-void free_vdo_dedupe_index(struct dedupe_index **index_ptr)
+void free_vdo_dedupe_index(struct dedupe_index *index)
 {
-	struct dedupe_index *index;
-	if (*index_ptr == NULL) {
+	if (index == NULL) {
 		return;
 	}
-	index = *index_ptr;
-	*index_ptr = NULL;
 
-	free_work_queue(&index->uds_queue);
+	free_work_queue(FORGET(index->uds_queue));
 	stop_periodic_event_reporter(&index->timeout_reporter);
 	spin_lock_bh(&index->pending_lock);
 	if (index->started_timer) {
@@ -1033,7 +1030,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 			     &vdo->vdo_directory,
 			     "dedupe");
 	if (result != VDO_SUCCESS) {
-		free_work_queue(&index->uds_queue);
+		free_work_queue(FORGET(index->uds_queue));
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);
 		FREE(index->index_name);

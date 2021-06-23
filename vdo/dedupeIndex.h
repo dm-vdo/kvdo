@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#30 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -53,9 +53,9 @@ void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue);
 /**
  * Free the dedupe index
  *
- * @param index_ptr  The dedupe index
+ * @param index  The dedupe index
  **/
-void free_vdo_dedupe_index(struct dedupe_index **index_ptr);
+void free_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Get the name of the deduplication state

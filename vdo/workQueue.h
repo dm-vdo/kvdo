@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#25 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -206,11 +206,11 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
 void finish_work_queue(struct vdo_work_queue *queue);
 
 /**
- * Free a work queue and null out the reference to it.
+ * Free a work queue.
  *
- * @param queue_ptr  Where the queue handle is found
+ * @param queue  The work queue to free
  **/
-void free_work_queue(struct vdo_work_queue **queue_ptr);
+void free_work_queue(struct vdo_work_queue *queue);
 
 /**
  * Print work queue state and statistics to the kernel log.

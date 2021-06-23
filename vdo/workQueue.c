@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#63 $
  */
 
 #include "workQueue.h"
@@ -720,8 +720,7 @@ int make_work_queue(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			// Destroy previously created subordinates.
-			finish_work_queue(*queue_ptr);
-			free_work_queue(queue_ptr);
+			free_work_queue(FORGET(*queue_ptr));
 			return result;
 		}
 		queue->service_queues[i]->parent_queue = *queue_ptr;
@@ -816,14 +815,11 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 }
 
 /**********************************************************************/
-void free_work_queue(struct vdo_work_queue **queue_ptr)
+void free_work_queue(struct vdo_work_queue *queue)
 {
-	struct vdo_work_queue *queue = *queue_ptr;
-
 	if (queue == NULL) {
 		return;
 	}
-	*queue_ptr = NULL;
 
 	finish_work_queue(queue);
 

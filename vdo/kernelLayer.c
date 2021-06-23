@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#204 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#205 $
  */
 
 #include "kernelLayer.h"
@@ -667,10 +667,10 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	// Late deallocation of resources in work queues.
 	if (used_cpu_queue) {
-		free_work_queue(&layer->vdo.cpu_queue);
+		free_work_queue(FORGET(layer->vdo.cpu_queue));
 	}
 	if (used_bio_ack_queue) {
-		free_work_queue(&layer->bio_ack_queue);
+		free_work_queue(FORGET(layer->bio_ack_queue));
 	}
 	if (layer->vdo.io_submitter) {
 		free_vdo_io_submitter(layer->vdo.io_submitter);

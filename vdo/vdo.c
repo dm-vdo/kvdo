@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#139 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#140 $
  */
 
 /*
@@ -67,7 +67,7 @@ void destroy_vdo(struct vdo *vdo)
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	unregister_vdo(vdo);
-	free_vdo_dedupe_index(&vdo->dedupe_index);
+	free_vdo_dedupe_index(FORGET(vdo->dedupe_index));
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
 	free_vdo_recovery_journal(&vdo->recovery_journal);
@@ -100,7 +100,7 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_thread_config(&vdo->thread_config);
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
-		free_work_queue(&vdo->threads[i].request_queue);
+		free_work_queue(FORGET(vdo->threads[i].request_queue));
 	}
 	FREE(vdo->threads);
 	vdo->threads = NULL;
