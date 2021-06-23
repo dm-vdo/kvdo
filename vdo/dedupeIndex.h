@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#29 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -30,13 +30,16 @@
 /**
  * Make a dedupe index
  *
- * @param index_ptr  dedupe index returned here
- * @param vdo        the vdo to which the index will belong
+ * @param index_ptr           dedupe index returned here
+ * @param vdo                 the vdo to which the index will belong
+ * @param thread_name_prefix  The per-device prefix to use in thread names
  *
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo);
+make_vdo_dedupe_index(struct dedupe_index **index_ptr,
+		      struct vdo *vdo,
+		      const char *thread_name_prefix);
 
 
 /**

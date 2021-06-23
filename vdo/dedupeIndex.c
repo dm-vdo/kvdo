@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#99 $
  */
 
 #include "dedupeIndex.h"
@@ -947,7 +947,9 @@ static void finish_uds_queue(void *ptr __always_unused)
 }
 
 /**********************************************************************/
-int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
+int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
+			  struct vdo *vdo,
+			  const char* thread_name_prefix)
 {
 	int result;
 	off_t uds_offset;
@@ -1007,7 +1009,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo)
 		return result;
 	}
 
-	result = make_work_queue(layer->thread_name_prefix,
+	result = make_work_queue(thread_name_prefix,
 				 "dedupeQ",
 				 &vdo->work_queue_directory,
 				 vdo,

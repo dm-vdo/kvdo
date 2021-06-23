@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#203 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#204 $
  */
 
 #include "kernelLayer.h"
@@ -312,6 +312,7 @@ int make_kernel_layer(unsigned int instance,
 {
 	int result;
 	struct kernel_layer *layer;
+	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
@@ -360,8 +361,8 @@ int make_kernel_layer(unsigned int instance,
 	 */
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-	snprintf(layer->thread_name_prefix,
-		 sizeof(layer->thread_name_prefix),
+	snprintf(thread_name_prefix,
+		 sizeof(thread_name_prefix),
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
@@ -377,8 +378,10 @@ int make_kernel_layer(unsigned int instance,
 	}
 
 	// Dedupe Index
-	BUG_ON(layer->thread_name_prefix[0] == '\0');
-	result = make_vdo_dedupe_index(&layer->vdo.dedupe_index, &layer->vdo);
+	BUG_ON(thread_name_prefix[0] == '\0');
+	result = make_vdo_dedupe_index(&layer->vdo.dedupe_index,
+				       &layer->vdo,
+				       thread_name_prefix);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);
@@ -412,7 +415,7 @@ int make_kernel_layer(unsigned int instance,
 	 */
 
 	// Base-code thread, etc
-	result = make_vdo_threads(&layer->vdo, reason);
+	result = make_vdo_threads(&layer->vdo, thread_name_prefix, reason);
 	if (result != VDO_SUCCESS) {
 		free_kernel_layer(layer);
 		return result;
@@ -421,7 +424,7 @@ int make_kernel_layer(unsigned int instance,
 	set_kernel_layer_state(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
 	// Bio queue
-	result = make_vdo_io_submitter(layer->thread_name_prefix,
+	result = make_vdo_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
 				       layer->vdo.request_limiter.limit,
@@ -438,7 +441,7 @@ int make_kernel_layer(unsigned int instance,
 
 	// Bio ack queue
 	if (use_bio_ack_queue(&layer->vdo)) {
-		result = make_work_queue(layer->thread_name_prefix,
+		result = make_work_queue(thread_name_prefix,
 					 "ackQ",
 					 &layer->vdo.work_queue_directory,
 					 &layer->vdo,
@@ -457,7 +460,7 @@ int make_kernel_layer(unsigned int instance,
 	set_kernel_layer_state(layer, LAYER_BIO_ACK_QUEUE_INITIALIZED);
 
 	// CPU Queues
-	result = make_work_queue(layer->thread_name_prefix,
+	result = make_work_queue(thread_name_prefix,
 				 "cpuQ",
 				 &layer->vdo.work_queue_directory,
 				 &layer->vdo,

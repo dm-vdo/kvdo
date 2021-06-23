@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#105 $
  */
 
 /*
@@ -89,9 +89,10 @@ static const struct vdo_work_queue_type request_queue_type = {
 };
 
 /**********************************************************************/
-int make_vdo_threads(struct vdo *vdo, char **reason)
+int make_vdo_threads(struct vdo *vdo,
+		     const char *thread_name_prefix,
+		     char **reason)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	unsigned int base_threads = vdo->thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
 			      struct vdo_thread,
@@ -118,9 +119,9 @@ int make_vdo_threads(struct vdo *vdo, char **reason)
 				    vdo->initialized_thread_count,
 				    queue_name,
 				    sizeof(queue_name));
-		result = make_work_queue(layer->thread_name_prefix,
+		result = make_work_queue(thread_name_prefix,
 					 queue_name,
-					 &layer->vdo.work_queue_directory,
+					 &vdo->work_queue_directory,
 					 vdo,
 					 thread,
 					 &request_queue_type,

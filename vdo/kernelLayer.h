@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#88 $
  */
 
 #ifndef KERNELLAYER_H
@@ -66,8 +66,6 @@ enum kernel_layer_state {
  **/
 struct kernel_layer {
 	PhysicalLayer common;
-	// Layer specific info
-	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
 	atomic_t processing_message;
