@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#35 $
  */
 
 #include "readOnlyNotifier.h"
@@ -33,12 +33,12 @@
 /**
  * A read_only_notifier has a single completion which is used to perform
  * read-only notifications, however, vdo_enter_read_only_mode() may be called
- * from any base thread. A pair of atomic fields are used to control the
- * read-only mode entry process. The first field holds the read-only error. The
- * second is the state field, which may hold any of the four special values
- * enumerated here.
+ * from any thread. A pair of atomic fields are used to control the read-only
+ * mode entry process. The first field holds the read-only error. The second is
+ * the state field, which may hold any of the four special values enumerated
+ * here.
  *
- * When vdo_enter_read_only_mode() is called from some base thread, a
+ * When vdo_enter_read_only_mode() is called on some base thread, a
  * compare-and-swap is done on read_only_error, setting it to the supplied
  * error if the value was VDO_SUCCESS. If this fails, some other thread has
  * already initiated read-only entry or scheduled a pending entry, so the call
@@ -46,8 +46,8 @@
  * NOTIFYING if the value was MAY_NOTIFY. If this succeeds, the caller
  * initiates the notification. If this failed due to notifications being
  * disallowed, the notifier will be in the MAY_NOT_NOTIFY state but
- * read_only_error will not be VDO_SUCCESS. This configuration will indicate
- * to vdo_allow_read_only_mode_entry() that there is a pending notification to
+ * read_only_error will not be VDO_SUCCESS. This configuration will indicate to
+ * vdo_allow_read_only_mode_entry() that there is a pending notification to
  * perform.
  **/
 enum {
@@ -381,26 +381,24 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 	int state;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 	struct thread_data *thread_data;
-	int result = ASSERT(thread_id != VDO_INVALID_THREAD_ID,
-			    "Must enter read-only mode only from a VDO thread");
-	if (result != UDS_SUCCESS) {
-		return;
+
+	if (thread_id != VDO_INVALID_THREAD_ID) {
+		thread_data = &notifier->thread_data[thread_id];
+		if (thread_data->is_read_only) {
+			// This thread has already gone read-only.
+			return;
+		}
+
+		// Record for this thread that the VDO is read-only.
+		thread_data->is_read_only = true;
 	}
 
-	thread_data = &notifier->thread_data[thread_id];
-	if (thread_data->is_read_only) {
-		// This thread has already gone read-only.
-		return;
-	}
-
-	// Record for this thread that the VDO is read-only.
-	thread_data->is_read_only = true;
-
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	// Extra barriers because this was original developed using a CAS
+	// operation that implicitly had them.
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->read_only_error,
-			       VDO_SUCCESS, error_code);
+			       VDO_SUCCESS,
+			       error_code);
 	smp_mb__after_atomic();
 
 	if (state != VDO_SUCCESS) {
@@ -409,8 +407,8 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 	}
 
 	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
-	// Extra barrier because this was original developed using
-	// a CAS operation that implicitly had them.
+	// Extra barrier because this was original developed using a CAS
+	// operation that implicitly had them.
 	smp_mb__after_atomic();
 
 	if (state != MAY_NOTIFY) {

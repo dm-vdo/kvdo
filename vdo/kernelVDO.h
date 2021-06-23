@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#41 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -130,14 +130,6 @@ int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
  * @return VDO_SUCCESS or error
  **/
 int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
-
-/**
- * Request the base code go read-only.
- *
- * @param vdo     The vdo to be updated
- * @param result  The error code causing the read only
- **/
-void set_vdo_read_only(struct vdo *vdo, int result);
 
 
 /**

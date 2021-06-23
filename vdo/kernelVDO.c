@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#104 $
  */
 
 /*
@@ -288,33 +288,6 @@ bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression)
 			      &data,
 			      vdo_get_packer_zone_thread(get_vdo_thread_config(vdo)));
 	return data.was_enabled;
-}
-
-/**********************************************************************/
-struct vdo_read_only_data {
-	int result;
-};
-
-/**********************************************************************/
-static void enter_read_only_mode_callback(struct vdo_completion *completion)
-{
-	struct sync_completion *sync = as_sync_completion(completion);
-	struct vdo_read_only_data *data = sync->data;
-
-	vdo_enter_read_only_mode(sync->vdo->read_only_notifier, data->result);
-	complete(&sync->completion);
-}
-
-/***********************************************************************/
-void set_vdo_read_only(struct vdo *vdo, int result)
-{
-	struct vdo_read_only_data data;
-
-	data.result = result;
-	perform_vdo_operation(vdo,
-			      enter_read_only_mode_callback,
-			      &data,
-			      vdo_get_admin_thread(get_vdo_thread_config(vdo)));
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#134 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#135 $
  */
 
 #include "dmvdo.h"
@@ -637,17 +637,18 @@ static void vdo_postsuspend(struct dm_target *ti)
 /**********************************************************************/
 static int vdo_preresume(struct dm_target *ti)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
 	const char *device_name;
 	block_count_t backing_blocks;
 	int result;
 
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 	device_name = get_vdo_device_name(ti);
 
-	backing_blocks = get_underlying_device_block_count(&layer->vdo);
+	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name, backing_blocks,
@@ -669,7 +670,8 @@ static int vdo_preresume(struct dm_target *ti)
 			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
 				      result,
 				      failure_reason);
-			set_vdo_read_only(&layer->vdo, result);
+			vdo_enter_read_only_mode(vdo->read_only_notifier,
+						 result);
 			uds_unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
@@ -687,16 +689,17 @@ static int vdo_preresume(struct dm_target *ti)
 		log_error_strerror(result,
 				   "Commit of modifications to device '%s' failed",
 				   device_name);
-		set_vdo_active_config(&layer->vdo, config);
-		set_vdo_read_only(&layer->vdo, result);
+		set_vdo_active_config(vdo, config);
+		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 	} else {
-		set_vdo_active_config(&layer->vdo, config);
+		set_vdo_active_config(vdo, config);
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			uds_log_error("resume of device '%s' failed with error: %d",
 				      device_name, result);
 		}
 	}
+
 	uds_unregister_thread_device_id();
 	return map_to_system_error(result);
 }

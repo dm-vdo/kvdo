@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#201 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#202 $
  */
 
 #include "kernelLayer.h"
@@ -792,6 +792,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * post suspend.
 	 */
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
+	struct vdo *vdo = &layer->vdo;
 	int result, suspend_result;
 
 	if (state == LAYER_SUSPENDED) {
@@ -808,10 +809,10 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * believe a suspended device is expected to have persisted all data
 	 * written before the suspend, even if it hasn't been flushed yet.
 	 */
-	vdo_wait_for_no_requests_active(&layer->vdo);
-	result = vdo_synchronous_flush(&layer->vdo);
+	vdo_wait_for_no_requests_active(vdo);
+	result = vdo_synchronous_flush(vdo);
 	if (result != VDO_SUCCESS) {
-		set_vdo_read_only(&layer->vdo, result);
+		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 	}
 
 	/*
@@ -819,14 +820,13 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * was not set on the dmsetup suspend call. This will ensure that we
 	 * don't have cause to write while suspended [VDO-4402].
 	 */
-	suspend_result = suspend_vdo(&layer->vdo);
+	suspend_result = suspend_vdo(vdo);
 
 	if (result == VDO_SUCCESS) {
 		result = suspend_result;
 	}
 
-	suspend_vdo_dedupe_index(layer->vdo.dedupe_index,
-				 !layer->vdo.no_flush_suspend);
+	suspend_vdo_dedupe_index(vdo->dedupe_index, !vdo->no_flush_suspend);
 	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
 }
