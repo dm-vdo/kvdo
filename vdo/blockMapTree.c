@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#103 $
  */
 
 #include "blockMapTree.h"
@@ -205,12 +205,12 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
 	enum block_map_page_validity validity =
 		validate_vdo_block_map_page(loaded, nonce, pbn);
-	if (validity == BLOCK_MAP_PAGE_VALID) {
+	if (validity == VDO_BLOCK_MAP_PAGE_VALID) {
 		memcpy(page, loaded, VDO_BLOCK_SIZE);
 		return true;
 	}
 
-	if (validity == BLOCK_MAP_PAGE_BAD) {
+	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
 		log_error_strerror(VDO_BAD_PAGE,
 				   "Expected page %llu but got page %llu instead",
 				   pbn, get_vdo_block_map_page_pbn(loaded));

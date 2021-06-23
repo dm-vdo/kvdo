@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#108 $
  */
 
 #include "blockMap.h"
@@ -70,14 +70,14 @@ static int validate_page_on_read(void *buffer,
 
 	enum block_map_page_validity validity =
 		validate_vdo_block_map_page(page, nonce, pbn);
-	if (validity == BLOCK_MAP_PAGE_BAD) {
+	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
 		return log_error_strerror(VDO_BAD_PAGE,
 					  "Expected page %llu but got page %llu instead",
 					  pbn,
 					  get_vdo_block_map_page_pbn(page));
 	}
 
-	if (validity == BLOCK_MAP_PAGE_INVALID) {
+	if (validity == VDO_BLOCK_MAP_PAGE_INVALID) {
 		format_vdo_block_map_page(page, nonce, pbn, false);
 	}
 
