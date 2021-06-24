@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#74 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -262,7 +262,7 @@ void free_vdo_page_cache(struct vdo_page_cache *cache)
 		for (info = cache->infos;
 		     info < cache->infos + cache->page_count;
 		     ++info) {
-			free_vio(&info->vio);
+			free_vio(FORGET(info->vio));
 		}
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#88 $
  */
 
 #include "packerInternals.h"
@@ -206,7 +206,7 @@ static void free_output_bin(struct output_bin **bin_ptr)
 	list_del_init(&bin->list);
 
 	vio = allocating_vio_as_vio(bin->writer);
-	free_vio(&vio);
+	free_vio(FORGET(vio));
 	FREE(bin->block);
 	FREE(bin);
 	*bin_ptr = NULL;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#70 $
  */
 
 #include "slabSummary.h"
@@ -280,7 +280,7 @@ void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr)
 		if (summary_zone != NULL) {
 			block_count_t i;
 			for (i = 0; i < summary->blocks_per_zone; i++) {
-				free_vio(&summary_zone->summary_blocks[i].vio);
+				free_vio(FORGET(summary_zone->summary_blocks[i].vio));
 				FREE(summary_zone->summary_blocks[i]
 					     .outgoing_entries);
 			}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#57 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -90,7 +90,7 @@ void free_vdo_recovery_block(struct recovery_journal_block **block_ptr)
 	}
 
 	FREE(block->block);
-	free_vio(&block->vio);
+	free_vio(FORGET(block->vio));
 	FREE(block);
 	*block_ptr = NULL;
 }

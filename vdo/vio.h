@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#52 $
  */
 
 #ifndef VIO_H
@@ -145,11 +145,11 @@ int __must_check create_metadata_vio(struct vdo *vdo,
 				     struct vio **vio_ptr);
 
 /**
- * Destroy a vio. The pointer to the vio will be nulled out.
+ * Destroy a vio.
  *
- * @param vio_ptr  A pointer to the vio to destroy
+ * @param vio  The vio to destroy
  **/
-void free_vio(struct vio **vio_ptr);
+void free_vio(struct vio *vio);
 
 /**
  * Initialize a vio.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#30 $
  */
 
 #include "extent.h"
@@ -85,7 +85,7 @@ void free_vdo_extent(struct vdo_extent *extent)
 	}
 
 	for (i = 0; i < extent->count; i++) {
-		free_vio(&extent->vios[i]);
+		free_vio(FORGET(extent->vios[i]));
 	}
 
 	FREE(FORGET(extent));
