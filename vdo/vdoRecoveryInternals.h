@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#21 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -133,8 +133,8 @@ make_vdo_recovery_completion(struct vdo *vdo,
 /**
  * Free a recovery_completion and all underlying structures.
  *
- * @param recovery_ptr  A pointer to the recovery completion to free
+ * @param recovery  The recovery completion to free
  **/
-void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr);
+void free_vdo_recovery_completion(struct recovery_completion *recovery);
 
 #endif // VDO_RECOVERY_INTERNALS_H

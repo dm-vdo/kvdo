@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#104 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -317,7 +317,7 @@ int make_vdo_recovery_completion(struct vdo *vdo,
 
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_completion(&recovery);
+		free_vdo_recovery_completion(recovery);
 		return result;
 	}
 
@@ -337,12 +337,11 @@ static void free_missing_decref(struct waiter *waiter,
 }
 
 /**********************************************************************/
-void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr)
+void free_vdo_recovery_completion(struct recovery_completion *recovery)
 {
 	const struct thread_config *thread_config;
 	zone_count_t z;
 
-	struct recovery_completion *recovery = *recovery_ptr;
 	if (recovery == NULL) {
 		return;
 	}
@@ -354,10 +353,9 @@ void free_vdo_recovery_completion(struct recovery_completion **recovery_ptr)
 				   free_missing_decref, NULL);
 	}
 
-	FREE(recovery->journal_data);
-	FREE(recovery->entries);
+	FREE(FORGET(recovery->journal_data));
+	FREE(FORGET(recovery->entries));
 	FREE(recovery);
-	*recovery_ptr = NULL;
 }
 
 /**
@@ -376,7 +374,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	initialize_vdo_recovery_journal_post_recovery(vdo->recovery_journal,
 						      recovery_count,
 						      recovery->highest_tail);
-	free_vdo_recovery_completion(&recovery);
+	free_vdo_recovery_completion(FORGET(recovery));
 	uds_log_info("Rebuild complete");
 
 	// Now that we've freed the recovery completion and its vast array of
@@ -396,7 +394,7 @@ static void abort_recovery(struct vdo_completion *completion)
 	int result = completion->result;
 	struct recovery_completion *recovery =
 		as_vdo_recovery_completion(completion);
-	free_vdo_recovery_completion(&recovery);
+	free_vdo_recovery_completion(FORGET(recovery));
 	uds_log_warning("Recovery aborted");
 	finish_vdo_completion(parent, result);
 }

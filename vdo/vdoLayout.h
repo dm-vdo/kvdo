@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#21 $
  */
 
 /**
@@ -49,11 +49,11 @@ int __must_check decode_vdo_layout(struct fixed_layout *layout,
 				   struct vdo_layout **vdo_layout_ptr);
 
 /**
- * Free a vdo_layout and NULL out the reference to it.
+ * Free a vdo_layout.
  *
- * @param vdo_layout_ptr  The pointer to a vdo_layout to free
+ * @param vdo_layout  The vdo_layout to free
  **/
-void free_vdo_layout(struct vdo_layout **vdo_layout_ptr);
+void free_vdo_layout(struct vdo_layout *vdo_layout);
 
 /**
  * Get a partition from a vdo_layout. Because the layout's fixed_layout has

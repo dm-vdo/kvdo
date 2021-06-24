@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#73 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -225,20 +225,20 @@ int make_vdo_page_cache(struct vdo *vdo,
 
 	result = allocate_cache_components(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
 	result = initialize_info(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
 	result = make_vdo_dirty_lists(maximum_age, write_dirty_pages_callback,
 				      cache, &cache->dirty_lists);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
@@ -251,9 +251,8 @@ int make_vdo_page_cache(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
+void free_vdo_page_cache(struct vdo_page_cache *cache)
 {
-	struct vdo_page_cache *cache = *cache_ptr;
 	if (cache == NULL) {
 		return;
 	}
@@ -269,10 +268,9 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 
 	FREE(FORGET(cache->dirty_lists));
 	free_int_map(FORGET(cache->page_map));
-	FREE(cache->infos);
-	FREE(cache->pages);
+	FREE(FORGET(cache->infos));
+	FREE(FORGET(cache->pages));
 	FREE(cache);
-	*cache_ptr = NULL;
 }
 
 /**********************************************************************/

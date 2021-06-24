@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#109 $
  */
 
 #include "blockMap.h"
@@ -235,7 +235,7 @@ static bool schedule_era_advance(void *context)
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	vdo_uninitialize_block_map_tree_zone(&zone->tree_zone);
-	free_vdo_page_cache(&zone->page_cache);
+	free_vdo_page_cache(FORGET(zone->page_cache));
 }
 
 /**********************************************************************/
