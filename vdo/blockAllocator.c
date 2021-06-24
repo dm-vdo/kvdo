@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#127 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -315,7 +315,7 @@ void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr)
 	}
 
 	free_vdo_slab_scrubber(&allocator->slab_scrubber);
-	free_vio_pool(&allocator->vio_pool);
+	free_vio_pool(FORGET(allocator->vio_pool));
 	free_priority_table(&allocator->prioritized_slabs);
 	FREE(allocator);
 	*block_allocator_ptr = NULL;
