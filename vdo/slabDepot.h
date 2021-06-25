@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#46 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -189,16 +189,6 @@ block_count_t __must_check
 get_vdo_slab_depot_allocated_blocks(const struct slab_depot *depot);
 
 /**
- * Get the total of the statistics from all the block allocators in the depot.
- *
- * @param depot  The slab depot
- *
- * @return The statistics from all block allocators in the depot
- **/
-struct block_allocator_statistics __must_check
-get_vdo_slab_depot_block_allocator_statistics(const struct slab_depot *depot);
-
-/**
  * Get the total number of data blocks in all the slabs in the depot. This may
  * be called from any thread.
  *
@@ -222,14 +212,13 @@ block_count_t __must_check
 get_vdo_slab_depot_free_blocks(const struct slab_depot *depot);
 
 /**
- * Get the total number of slabs in the depot
+ * Get all the vdo_statistics fields that are properties of the slab depot.
  *
  * @param depot  The slab depot
- *
- * @return The total number of slabs
+ * @param stats  The vdo statistics structure to partially fill
  **/
-slab_count_t __must_check
-get_vdo_slab_depot_slab_count(const struct slab_depot *depot);
+void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
+				   struct vdo_statistics *stats);
 
 /**
  * Get the total number of unrecovered slabs in the depot, which is the total
@@ -242,26 +231,6 @@ get_vdo_slab_depot_slab_count(const struct slab_depot *depot);
  **/
 slab_count_t __must_check
 get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *depot);
-
-/**
- * Get the aggregated slab journal statistics for the depot.
- *
- * @param depot  The slab depot
- *
- * @return The aggregated statistics for all slab journals in the depot
- **/
-struct slab_journal_statistics __must_check
-get_vdo_slab_depot_slab_journal_statistics(const struct slab_depot *depot);
-
-/**
- * Get the cumulative ref_counts statistics for the depot.
- *
- * @param depot  The slab depot
- *
- * @return The cumulative statistics for all ref_counts in the depot
- **/
-struct ref_counts_statistics __must_check
-get_vdo_slab_depot_ref_counts_statistics(const struct slab_depot *depot);
 
 /**
  * Asynchronously load any slab depot state that isn't included in the

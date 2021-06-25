@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#143 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#144 $
  */
 
 /*
@@ -430,12 +430,10 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 {
 	enum vdo_state state;
-	slab_count_t slab_total;
 
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.
 	struct recovery_journal *journal = vdo->recovery_journal;
-	struct slab_depot *depot = vdo->depot;
 	// XXX config.physical_blocks is actually mutated during resize and is
 	// in a packed structure, but resize runs on the admin thread so we're
 	// usually OK.
@@ -453,20 +451,12 @@ void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 	stats->overhead_blocks_used = get_vdo_physical_blocks_overhead(vdo);
 	stats->logical_blocks_used =
 		get_vdo_recovery_journal_logical_blocks_used(journal);
-	stats->allocator = get_vdo_slab_depot_block_allocator_statistics(depot);
+	get_vdo_slab_depot_statistics(vdo->depot, stats);
 	stats->journal = get_vdo_recovery_journal_statistics(journal);
 	stats->packer = get_vdo_packer_statistics(vdo->packer);
-	stats->slab_journal = get_vdo_slab_depot_slab_journal_statistics(depot);
-	stats->slab_summary =
-		get_vdo_slab_summary_statistics(get_vdo_slab_summary(depot));
-	stats->ref_counts = get_vdo_slab_depot_ref_counts_statistics(depot);
 	stats->block_map = get_vdo_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
-	slab_total = get_vdo_slab_depot_slab_count(depot);
-	stats->recovery_percentage =
-		(slab_total - get_vdo_slab_depot_unrecovered_slab_count(depot)) * 100 /
-		slab_total;
 
 	state = get_vdo_state(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);

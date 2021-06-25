@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#110 $
  */
 
 #include "slabDepot.h"
@@ -270,7 +270,7 @@ static int allocate_components(struct slab_depot *depot,
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
 		register_vdo_slab_with_allocator(slab->allocator, slab);
-		depot->slab_count++;
+		WRITE_ONCE(depot->slab_count, depot->slab_count + 1);
 	}
 
 	depot->slabs = depot->new_slabs;
@@ -499,10 +499,7 @@ block_count_t get_vdo_slab_depot_allocated_blocks(const struct slab_depot *depot
 /**********************************************************************/
 block_count_t get_vdo_slab_depot_data_blocks(const struct slab_depot *depot)
 {
-	// XXX This needs to be thread safe, but resize changes the slab count.
-	// It does so on the admin thread (our usual caller), so it's usually
-	// safe.
-	return (depot->slab_count * depot->slab_config.data_blocks);
+	return (READ_ONCE(depot->slab_count) * depot->slab_config.data_blocks);
 }
 
 /**********************************************************************/
@@ -519,12 +516,6 @@ block_count_t get_vdo_slab_depot_free_blocks(const struct slab_depot *depot)
 	block_count_t allocated = get_vdo_slab_depot_allocated_blocks(depot);
 	smp_mb();
 	return (get_vdo_slab_depot_data_blocks(depot) - allocated);
-}
-
-/**********************************************************************/
-slab_count_t get_vdo_slab_depot_slab_count(const struct slab_depot *depot)
-{
-	return depot->slab_count;
 }
 
 /**********************************************************************/
@@ -646,7 +637,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 static int finish_registration(void *context)
 {
 	struct slab_depot *depot = context;
-	depot->slab_count = depot->new_slab_count;
+	WRITE_ONCE(depot->slab_count, depot->new_slab_count);
 	FREE(depot->slabs);
 	depot->slabs = depot->new_slabs;
 	depot->new_slabs = NULL;
@@ -779,9 +770,15 @@ block_count_t get_vdo_slab_depot_new_size(const struct slab_depot *depot)
 }
 
 
-/**********************************************************************/
-struct block_allocator_statistics
-get_vdo_slab_depot_block_allocator_statistics(const struct slab_depot *depot)
+/**
+ * Get the total of the statistics from all the block allocators in the depot.
+ *
+ * @param depot  The slab depot
+ *
+ * @return The statistics from all block allocators in the depot
+ **/
+static struct block_allocator_statistics __must_check
+get_depot_block_allocator_statistics(const struct slab_depot *depot)
 {
 	struct block_allocator_statistics totals;
 	zone_count_t zone;
@@ -799,9 +796,15 @@ get_vdo_slab_depot_block_allocator_statistics(const struct slab_depot *depot)
 	return totals;
 }
 
-/**********************************************************************/
-struct ref_counts_statistics
-get_vdo_slab_depot_ref_counts_statistics(const struct slab_depot *depot)
+/**
+ * Get the cumulative ref_counts statistics for the depot.
+ *
+ * @param depot  The slab depot
+ *
+ * @return The cumulative statistics for all ref_counts in the depot
+ **/
+static struct ref_counts_statistics __must_check
+get_depot_ref_counts_statistics(const struct slab_depot *depot)
 {
 	struct ref_counts_statistics depot_stats;
 	zone_count_t zone;
@@ -817,9 +820,15 @@ get_vdo_slab_depot_ref_counts_statistics(const struct slab_depot *depot)
 	return depot_stats;
 }
 
-/**********************************************************************/
-struct slab_journal_statistics
-get_vdo_slab_depot_slab_journal_statistics(const struct slab_depot *depot)
+/**
+ * Get the aggregated slab journal statistics for the depot.
+ *
+ * @param depot  The slab depot
+ *
+ * @return The aggregated statistics for all slab journals in the depot
+ **/
+static struct slab_journal_statistics __must_check
+get_depot_slab_journal_statistics(const struct slab_depot *depot)
 {
 	struct slab_journal_statistics depot_stats;
 	zone_count_t zone;
@@ -840,13 +849,30 @@ get_vdo_slab_depot_slab_journal_statistics(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
+void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
+				   struct vdo_statistics *stats)
+{
+	slab_count_t slab_count = READ_ONCE(depot->slab_count);
+	slab_count_t unrecovered = 
+		get_vdo_slab_depot_unrecovered_slab_count(depot);
+
+	stats->recovery_percentage =
+		(slab_count - unrecovered) * 100 / slab_count;
+	stats->allocator = get_depot_block_allocator_statistics(depot);
+	stats->ref_counts = get_depot_ref_counts_statistics(depot);
+	stats->slab_journal = get_depot_slab_journal_statistics(depot);
+	stats->slab_summary =
+		get_vdo_slab_summary_statistics(depot->slab_summary);
+}
+
+/**********************************************************************/
 void dump_vdo_slab_depot(const struct slab_depot *depot)
 {
 	uds_log_info("vdo slab depot");
 	uds_log_info("  zone_count=%u old_zone_count=%u slabCount=%u active_release_request=%llu new_release_request=%llu",
 		     (unsigned int) depot->zone_count,
 		     (unsigned int) depot->old_zone_count,
-		     depot->slab_count,
+		     READ_ONCE(depot->slab_count),
 		     (unsigned long long) depot->active_release_request,
 		     (unsigned long long) depot->new_release_request);
 }
