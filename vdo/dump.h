@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#6 $
  */
 
 #ifndef DUMP_H
@@ -25,27 +25,26 @@
 #include "kernelLayer.h"
 
 /**
- * Dump internal state and/or statistics to the kernel log, as
- * specified by zero or more string arguments.
+ * Dump internal state and/or statistics to the kernel log, as specified by
+ * zero or more string arguments.
  *
- * @param layer  The kernel layer
- * @param argc   Number of arguments
- * @param argv   The argument list
- * @param why    Reason for doing the dump
+ * @param vdo   The vdo
+ * @param argc  Number of arguments
+ * @param argv  The argument list
+ * @param why   Reason for doing the dump
  **/
-int vdo_dump(struct kernel_layer *layer,
+int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,
 	     char *const *argv,
 	     const char *why);
 
 /**
- * Dump lots of internal state and statistics to the kernel log.
- * Identical to "dump all", without each caller needing to set up the
- * argument list.
+ * Dump lots of internal state and statistics to the kernel log. Identical to
+ * "dump all", without each caller needing to set up the argument list.
  *
- * @param layer  The kernel layer
- * @param why    Reason for doing the dump
+ * @param vdo  The vdo
+ * @param why  Reason for doing the dump
  **/
-void vdo_dump_all(struct kernel_layer *layer, const char *why);
+void vdo_dump_all(struct vdo *vdo, const char *why);
 
 #endif // DUMP_H

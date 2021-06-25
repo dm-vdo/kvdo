@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#42 $
  */
 
 #include "dump.h"
@@ -83,13 +83,13 @@ static inline bool is_arg_string(const char *arg, const char *this_option)
 }
 
 /**********************************************************************/
-static void do_dump(struct kernel_layer *layer,
+static void do_dump(struct vdo *vdo,
 		    unsigned int dump_options_requested,
 		    const char *why)
 {
 	uint32_t active, maximum;
 	int64_t outstanding;
-	struct vdo *vdo = &layer->vdo;
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	uds_log_info("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
@@ -204,7 +204,7 @@ static int parse_dump_options(unsigned int argc,
 }
 
 /**********************************************************************/
-int vdo_dump(struct kernel_layer *layer,
+int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,
 	     char *const *argv,
 	     const char *why)
@@ -215,12 +215,13 @@ int vdo_dump(struct kernel_layer *layer,
 	if (result != 0) {
 		return result;
 	}
-	do_dump(layer, dump_options_requested, why);
+
+	do_dump(vdo, dump_options_requested, why);
 	return 0;
 }
 
 /**********************************************************************/
-void vdo_dump_all(struct kernel_layer *layer, const char *why)
+void vdo_dump_all(struct vdo *vdo, const char *why)
 {
-	do_dump(layer, ~0, why);
+	do_dump(vdo, ~0, why);
 }

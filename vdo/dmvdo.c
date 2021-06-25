@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#137 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#138 $
  */
 
 #include "dmvdo.h"
@@ -223,7 +223,7 @@ get_underlying_device_block_count(const struct vdo *vdo)
  * Process a dmsetup message now that we know no other message is being
  * processed.
  *
- * @param layer  The layer to which the message was sent
+ * @param vdo    The vdo to which the message was sent
  * @param argc   The argument count of the message
  * @param argv   The arguments to the message
  *
@@ -231,7 +231,7 @@ get_underlying_device_block_count(const struct vdo *vdo)
  *                 the message
  **/
 static int __must_check
-process_vdo_message_locked(struct kernel_layer *layer,
+process_vdo_message_locked(struct vdo *vdo,
 			   unsigned int argc,
 			   char **argv)
 {
@@ -239,7 +239,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	switch (argc) {
 	case 1:
 		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			vdo_wait_for_no_requests_active(&layer->vdo);
+			vdo_wait_for_no_requests_active(vdo);
 			return 0;
 		}
 
@@ -248,12 +248,12 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
-				set_kvdo_compressing(&layer->vdo, true);
+				set_kvdo_compressing(vdo, true);
 				return 0;
 			}
 
 			if (strcasecmp(argv[1], "off") == 0) {
-				set_kvdo_compressing(&layer->vdo, false);
+				set_kvdo_compressing(vdo, false);
 				return 0;
 			}
 
@@ -288,7 +288,6 @@ static int __must_check
 process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 {
 	int result;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	/*
 	 * All messages which may be processed in parallel with other messages
@@ -299,12 +298,12 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 
 	// Dump messages should always be processed
 	if (strcasecmp(argv[0], "dump") == 0) {
-		return vdo_dump(layer, argc, argv, "dmsetup message");
+		return vdo_dump(vdo, argc, argv, "dmsetup message");
 	}
 
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
-			layer->dump_on_shutdown = true;
+			vdo->dump_on_shutdown = true;
 			return 0;
 		}
 
@@ -313,19 +312,19 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return message_vdo_dedupe_index(layer->vdo.dedupe_index,
+			return message_vdo_dedupe_index(vdo->dedupe_index,
 							argv[0]);
 		}
 	}
 
-	if (atomic_cmpxchg(&layer->processing_message, 0, 1) != 0) {
+	if (atomic_cmpxchg(&vdo->processing_message, 0, 1) != 0) {
 		return -EBUSY;
 	}
 
-	result = process_vdo_message_locked(layer, argc, argv);
+	result = process_vdo_message_locked(vdo, argc, argv);
 
 	smp_wmb();
-	atomic_set(&layer->processing_message, 0);
+	atomic_set(&vdo->processing_message, 0);
 	return result;
 }
 
@@ -557,14 +556,13 @@ static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
 	struct vdo *vdo = config->vdo;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	set_device_config_vdo(config, NULL);
 	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
 		// This was the last config referencing the layer. Free it.
-		unsigned int instance = layer->vdo.instance;
+		unsigned int instance = vdo->instance;
 		struct registered_thread allocating_thread, instance_thread;
 
 		uds_register_thread_device_id(&instance_thread, &instance);
@@ -575,11 +573,11 @@ static void vdo_dtr(struct dm_target *ti)
 
 		uds_log_info("stopping device '%s'", device_name);
 
-		if (layer->dump_on_shutdown) {
-			vdo_dump_all(layer, "device shutdown");
+		if (vdo->dump_on_shutdown) {
+			vdo_dump_all(vdo, "device shutdown");
 		}
 
-		free_kernel_layer(layer);
+		free_kernel_layer(vdo_as_kernel_layer(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		unregister_allocating_thread();

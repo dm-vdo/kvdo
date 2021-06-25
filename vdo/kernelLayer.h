@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#89 $
  */
 
 #ifndef KERNELLAYER_H
@@ -68,7 +68,6 @@ struct kernel_layer {
 	PhysicalLayer common;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
-	atomic_t processing_message;
 
 	struct vdo vdo;
 
@@ -76,10 +75,6 @@ struct kernel_layer {
 	struct vdo_work_queue *bio_ack_queue;
 	// Memory allocation
 	struct buffer_pool *data_vio_pool;
-
-	// Debugging
-	/* Whether to dump VDO state on shutdown */
-	bool dump_on_shutdown;
 
 	/* For returning batches of data_vios to their pool */
 	struct batch_processor *data_vio_releaser;
