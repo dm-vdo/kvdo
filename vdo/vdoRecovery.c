@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#105 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -691,7 +691,7 @@ static int compute_usages(struct recovery_completion *recovery)
 			default:
 				return log_error_strerror(VDO_CORRUPT_JOURNAL,
 							  "Recovery journal entry at sequence number %llu, sector %u, entry %u had invalid operation %u",
-							  recovery_point.sequence_number,
+							  (unsigned long long) recovery_point.sequence_number,
 							  recovery_point.sector_count,
 							  recovery_point.entry_count,
 							  entry.operation);
@@ -895,7 +895,7 @@ static int record_missing_decref(struct missing_decref *decref,
 	set_vdo_completion_result(&recovery->completion, error_code);
 	log_error_strerror(error_code,
 			   "Invalid mapping for pbn %llu with state %u",
-			   location.pbn,
+			   (unsigned long long) location.pbn,
 			   location.state);
 	return error_code;
 }
@@ -978,7 +978,7 @@ find_missing_decrefs(struct recovery_completion *recovery)
 			if (decref != NULL) {
 				return log_error_strerror(VDO_CORRUPT_JOURNAL,
 							  "decref found for block map block %llu with state %u",
-							  entry.mapping.pbn,
+							  (unsigned long long) entry.mapping.pbn,
 							  entry.mapping.state);
 			}
 
@@ -1306,9 +1306,9 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	    (recovery->slab_journal_head > recovery->tail)) {
 		result = log_error_strerror(VDO_CORRUPT_JOURNAL,
 					    "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
-					    recovery->block_map_head,
-					    recovery->slab_journal_head,
-					    recovery->tail);
+					    (unsigned long long) recovery->block_map_head,
+					    (unsigned long long) recovery->slab_journal_head,
+					    (unsigned long long) recovery->tail);
 		finish_vdo_completion(&recovery->completion, result);
 		return;
 	}
@@ -1331,8 +1331,8 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	uds_log_info("Highest-numbered recovery journal block has sequence number %llu, and the highest-numbered usable block is %llu",
-		     recovery->highest_tail,
-		     recovery->tail);
+		     (unsigned long long) recovery->highest_tail,
+		     (unsigned long long) recovery->tail);
 
 	if (is_replaying(vdo)) {
 		// We need to know how many entries the block map rebuild

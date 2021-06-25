@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#73 $
  */
 
 #include "slabScrubberInternals.h"
@@ -288,7 +288,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 			// This entry is out of bounds.
 			return log_error_strerror(VDO_CORRUPT_JOURNAL,
 						  "vdo_slab journal entry (%llu, %u) had invalid offset %u in slab (size %u blocks)",
-						  block_number,
+						  (unsigned long long) block_number,
 						  entry_point.entry_count,
 						  entry.sbn,
 						  max_sbn);
@@ -299,7 +299,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 		if (result != VDO_SUCCESS) {
 			log_error_strerror(result,
 					   "vdo_slab journal entry (%llu, %u) (%s of offset %u) could not be applied in slab %u",
-					   block_number,
+					   (unsigned long long) block_number,
 					   entry_point.entry_count,
 					   get_vdo_journal_operation_name(entry.operation),
 					   entry.sbn,

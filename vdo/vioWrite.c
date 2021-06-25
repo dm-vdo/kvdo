@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#78 $
  */
 
 /*
@@ -293,10 +293,10 @@ static bool abort_on_error(int result,
 			if (result != VDO_READ_ONLY) {
 				log_error_strerror(result,
 						   "Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
-						   data_vio->logical.lbn,
-						   data_vio->new_mapped.pbn,
-						   data_vio->mapped.pbn,
-						   get_data_vio_allocation(data_vio),
+						   (unsigned long long) data_vio->logical.lbn,
+						   (unsigned long long) data_vio->new_mapped.pbn,
+						   (unsigned long long) data_vio->mapped.pbn,
+						   (unsigned long long) get_data_vio_allocation(data_vio),
 						   get_data_vio_operation_name(data_vio));
 			}
 
@@ -421,9 +421,9 @@ static void update_reference_count(struct data_vio *data_vio)
 	physical_block_number_t pbn = data_vio->operation.pbn;
 	int result =
 		ASSERT(vdo_is_physical_data_block(depot, pbn),
-		       "Adding slab journal entry for impossible PBN %llufor LBN %llu",
-		       pbn,
-		       data_vio->logical.lbn);
+		       "Adding slab journal entry for impossible PBN %llu for LBN %llu",
+		       (unsigned long long) pbn,
+		       (unsigned long long) data_vio->logical.lbn);
 	if (abort_on_error(result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -525,7 +525,7 @@ static void increment_for_compression(struct vdo_completion *completion)
 
 	ASSERT_LOG_ONLY(vdo_is_state_compressed(data_vio->new_mapped.state),
 			"Impossible attempt to update reference counts for a block which was not compressed (logical block %llu)",
-			data_vio->logical.lbn);
+			(unsigned long long) data_vio->logical.lbn);
 
 	set_data_vio_logical_callback(data_vio,
 				      read_old_block_mapping_for_dedupe);
@@ -616,7 +616,7 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"Impossible attempt to update reference counts for a block which was not a duplicate (logical block %llu)",
-			data_vio->logical.lbn);
+			(unsigned long long) data_vio->logical.lbn);
 
 	set_data_vio_logical_callback(data_vio,
 				      read_old_block_mapping_for_dedupe);

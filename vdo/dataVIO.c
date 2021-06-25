@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#58 $
  */
 
 #include "dataVIO.h"
@@ -134,7 +134,7 @@ void complete_data_vio(struct vdo_completion *completion)
 		update_vio_error_stats(vio,
 				       "Completing %s vio for LBN %llu with error after %s",
 				       vio_operation,
-				       data_vio->logical.lbn,
+				       (unsigned long long) data_vio->logical.lbn,
 				       get_data_vio_operation_name(data_vio));
 	}
 
@@ -323,7 +323,7 @@ static void release_lock(struct data_vio *data_vio)
 		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
 		ASSERT_LOG_ONLY((data_vio != lock_holder),
 				"no logical block lock held for block %llu",
-				lock->lbn);
+				(unsigned long long) lock->lbn);
 		return;
 	}
 
@@ -331,7 +331,7 @@ static void release_lock(struct data_vio *data_vio)
 	lock_holder = int_map_remove(lock_map, lock->lbn);
 	ASSERT_LOG_ONLY((data_vio == lock_holder),
 			"logical block lock mismatch for block %llu",
-			lock->lbn);
+			(unsigned long long) lock->lbn);
 	lock->locked = false;
 	return;
 }
@@ -370,7 +370,7 @@ void vdo_release_logical_block_lock(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((lock_holder == data_vio),
 			"logical block lock mismatch for block %llu",
-			lock->lbn);
+			(unsigned long long) lock->lbn);
 	lock->locked = false;
 
 	/*

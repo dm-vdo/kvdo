@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#41 $
  */
 
 #include "vdoResizeLogical.h"
@@ -164,5 +164,5 @@ int prepare_vdo_to_grow_logical(struct vdo *vdo, block_count_t new_logical_block
 	return log_error_strerror(VDO_PARAMETER_MISMATCH,
 				  "%s%llu",
 				  message,
-				  logical_blocks);
+				  (unsigned long long) logical_blocks);
 }

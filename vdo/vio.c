@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#47 $
  */
 
 #include "vio.h"
@@ -214,7 +214,7 @@ static void handle_metadata_io_error(struct vdo_completion *completion)
 			       "Completing %s vio of type %u for physical block %llu with error",
 			       vio_operation,
 			       vio->type,
-			       vio->physical);
+			       (unsigned long long) vio->physical);
 	vio_done_callback(completion);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#110 $
  */
 
 #include "blockMap.h"
@@ -73,8 +73,8 @@ static int validate_page_on_read(void *buffer,
 	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
 		return log_error_strerror(VDO_BAD_PAGE,
 					  "Expected page %llu but got page %llu instead",
-					  pbn,
-					  get_vdo_block_map_page_pbn(page));
+					  (unsigned long long) pbn,
+					  (unsigned long long) get_vdo_block_map_page_pbn(page));
 	}
 
 	if (validity == VDO_BLOCK_MAP_PAGE_INVALID) {
@@ -641,7 +641,7 @@ set_mapped_entry(struct data_vio *data_vio,
 	// converting all cases to VDO_BAD_MAPPING.
 	log_error_strerror(VDO_BAD_MAPPING,
 			   "PBN %llu with state %u read from the block map was invalid",
-			   mapped.pbn,
+			   (unsigned long long) mapped.pbn,
 			   mapped.state);
 
 	// A read VIO has no option but to report the bad mapping--reading

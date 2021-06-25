@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#136 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#137 $
  */
 
 #include "dmvdo.h"
@@ -650,8 +650,9 @@ static int vdo_preresume(struct dm_target *ti)
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
-			      device_name, backing_blocks,
-			      config->physical_blocks);
+			      device_name,
+			      (unsigned long long) backing_blocks,
+			      (unsigned long long) config->physical_blocks);
 		uds_unregister_thread_device_id();
 		return -EINVAL;
 	}

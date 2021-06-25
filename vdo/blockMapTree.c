@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#106 $
  */
 
 #include "blockMapTree.h"
@@ -213,7 +213,8 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
 		log_error_strerror(VDO_BAD_PAGE,
 				   "Expected page %llu but got page %llu instead",
-				   pbn, get_vdo_block_map_page_pbn(loaded));
+				   (unsigned long long) pbn,
+				   (unsigned long long) get_vdo_block_map_page_pbn(loaded));
 	}
 
 	return false;
@@ -652,12 +653,15 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 	struct tree_lock *lock = &data_vio->tree_lock;
 	ASSERT_LOG_ONLY(lock->locked,
 			"release of unlocked block map page %s for key %llu in tree %u",
-			what, lock->key, lock->root_index);
+			what, (unsigned long long) lock->key,
+			lock->root_index);
+			
 	zone = get_block_map_tree_zone(data_vio);
 	lock_holder = int_map_remove(zone->loading_pages, lock->key);
 	ASSERT_LOG_ONLY((lock_holder == lock),
 			"block map page %s mismatch for key %llu in tree %u",
-			what, lock->key, lock->root_index);
+			what, (unsigned long long) lock->key,
+			lock->root_index);
 	lock->locked = false;
 }
 
@@ -792,7 +796,8 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 			          lock->height)) {
 		log_error_strerror(VDO_BAD_MAPPING,
 				   "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
-				   mapping.pbn, mapping.state,
+				   (unsigned long long) mapping.pbn,
+				   mapping.state,
 				   lock->tree_slots[lock->height - 1].page_index,
 				   lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);
@@ -1296,7 +1301,8 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 				  lock->height)) {
 		log_error_strerror(VDO_BAD_MAPPING,
 				   "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
-				   mapping.pbn, mapping.state,
+				   (unsigned long long) mapping.pbn,
+				   mapping.state,
 				   lock->tree_slots[lock->height - 1].page_index,
 				   lock->height - 1);
 		abort_load(data_vio, VDO_BAD_MAPPING);

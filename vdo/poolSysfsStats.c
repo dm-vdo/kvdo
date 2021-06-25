@@ -455,7 +455,7 @@ static struct pool_stats_attribute pool_stats_attr_ref_counts_blocks_written = {
 /** number of dirty (resident) pages */
 static ssize_t pool_stats_print_block_map_dirty_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.dirty_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.dirty_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_dirty_pages = {
@@ -467,7 +467,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_dirty_pages = {
 /** number of clean (resident) pages */
 static ssize_t pool_stats_print_block_map_clean_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.clean_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.clean_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_clean_pages = {
@@ -479,7 +479,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_clean_pages = {
 /** number of free pages */
 static ssize_t pool_stats_print_block_map_free_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.free_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.free_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_free_pages = {
@@ -491,7 +491,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_free_pages = {
 /** number of pages in failed state */
 static ssize_t pool_stats_print_block_map_failed_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.failed_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.failed_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_failed_pages = {
@@ -503,7 +503,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_failed_pages = {
 /** number of pages incoming */
 static ssize_t pool_stats_print_block_map_incoming_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.incoming_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.incoming_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_incoming_pages = {
@@ -515,7 +515,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_incoming_pages = {
 /** number of pages outgoing */
 static ssize_t pool_stats_print_block_map_outgoing_pages(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.outgoing_pages);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.outgoing_pages);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_outgoing_pages = {
@@ -527,7 +527,7 @@ static struct pool_stats_attribute pool_stats_attr_block_map_outgoing_pages = {
 /** how many times free page not avail */
 static ssize_t pool_stats_print_block_map_cache_pressure(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.block_map.cache_pressure);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.block_map.cache_pressure);
 }
 
 static struct pool_stats_attribute pool_stats_attr_block_map_cache_pressure = {
@@ -779,7 +779,7 @@ static struct pool_stats_attribute pool_stats_attr_errors_read_only_error_count 
 /** The VDO instance */
 static ssize_t pool_stats_print_instance(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.instance);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.instance);
 }
 
 static struct pool_stats_attribute pool_stats_attr_instance = {
@@ -791,7 +791,7 @@ static struct pool_stats_attribute pool_stats_attr_instance = {
 /** Current number of active VIOs */
 static ssize_t pool_stats_print_current_vios_in_progress(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.current_vios_in_progress);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.current_vios_in_progress);
 }
 
 static struct pool_stats_attribute pool_stats_attr_current_vios_in_progress = {
@@ -803,7 +803,7 @@ static struct pool_stats_attribute pool_stats_attr_current_vios_in_progress = {
 /** Maximum number of active VIOs */
 static ssize_t pool_stats_print_max_vios(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.max_vios);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.max_vios);
 }
 
 static struct pool_stats_attribute pool_stats_attr_max_vios = {
@@ -1895,7 +1895,7 @@ static struct pool_stats_attribute pool_stats_attr_index_updates_not_found = {
 /** Current number of dedupe queries that are in flight */
 static ssize_t pool_stats_print_index_curr_dedupe_queries(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.index.curr_dedupe_queries);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.index.curr_dedupe_queries);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
@@ -1907,7 +1907,7 @@ static struct pool_stats_attribute pool_stats_attr_index_curr_dedupe_queries = {
 /** Maximum number of dedupe queries that have been in flight */
 static ssize_t pool_stats_print_index_max_dedupe_queries(struct vdo *vdo, char *buf)
 {
-	return sprintf(buf, "%" PRIu32 "\n", vdo->stats_buffer.index.max_dedupe_queries);
+	return sprintf(buf, "%u\n", vdo->stats_buffer.index.max_dedupe_queries);
 }
 
 static struct pool_stats_attribute pool_stats_attr_index_max_dedupe_queries = {

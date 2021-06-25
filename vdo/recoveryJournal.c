@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#117 $
  */
 
 #include "recoveryJournal.h"
@@ -912,9 +912,9 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	ASSERT_LOG_ONLY(before_vdo_journal_point(&journal->commit_point,
 						 &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
-			journal->commit_point.sequence_number,
+			(unsigned long long) journal->commit_point.sequence_number,
 			journal->commit_point.entry_count,
-			data_vio->recovery_journal_point.sequence_number,
+			(unsigned long long) data_vio->recovery_journal_point.sequence_number,
 			data_vio->recovery_journal_point.entry_count);
 	journal->commit_point = data_vio->recovery_journal_point;
 
@@ -1038,7 +1038,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct recovery_journal *journal = block->journal;
 	log_error_strerror(completion->result,
 			   "cannot write recovery journal block %llu",
-			   block->sequence_number);
+			   (unsigned long long) block->sequence_number);
 	enter_journal_read_only_mode(journal, completion->result);
 	complete_write(completion);
 }
@@ -1315,19 +1315,24 @@ void dump_vdo_recovery_journal_statistics(const struct recovery_journal *journal
 		get_vdo_recovery_journal_statistics(journal);
 	uds_log_info("Recovery Journal");
 	uds_log_info("  block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
-		     journal->block_map_head, journal->slab_journal_head,
-		     journal->last_write_acknowledged, journal->tail,
-		     journal->block_map_reap_head,
-		     journal->slab_journal_reap_head,
-		     stats.disk_full, stats.slab_journal_commits_requested,
+		     (unsigned long long) journal->block_map_head,
+		     (unsigned long long) journal->slab_journal_head,
+		     (unsigned long long) journal->last_write_acknowledged,
+		     (unsigned long long) journal->tail,
+		     (unsigned long long) journal->block_map_reap_head,
+		     (unsigned long long) journal->slab_journal_reap_head,
+		     (unsigned long long) stats.disk_full,
+		     (unsigned long long) stats.slab_journal_commits_requested,
 		     count_waiters(&journal->increment_waiters),
 		     count_waiters(&journal->decrement_waiters));
 	uds_log_info("  entries: started=%llu written=%llu committed=%llu",
-		     stats.entries.started, stats.entries.written,
-		     stats.entries.committed);
+		     (unsigned long long) stats.entries.started,
+		     (unsigned long long) stats.entries.written,
+		     (unsigned long long) stats.entries.committed);
 	uds_log_info("  blocks: started=%llu written=%llu committed=%llu",
-		     stats.blocks.started, stats.blocks.written,
-		     stats.blocks.committed);
+		     (unsigned long long) stats.blocks.started,
+		     (unsigned long long) stats.blocks.written,
+		     (unsigned long long) stats.blocks.committed);
 
 	uds_log_info("  active blocks:");
 	head = &journal->active_tail_blocks;

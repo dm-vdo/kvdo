@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#142 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#143 $
  */
 
 /*
@@ -726,7 +726,8 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 	if ((advice->state == VDO_MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == VDO_ZERO_BLOCK)) {
 		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
-			      advice->pbn, advice->state, lbn);
+			      (unsigned long long) advice->pbn, advice->state,
+			      (unsigned long long) lbn);
 		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
 		return no_advice;
 	}
@@ -734,7 +735,8 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 	result = get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
 		uds_log_debug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
-			      advice->pbn, lbn);
+			      (unsigned long long) advice->pbn,
+			      (unsigned long long) lbn);
 		atomic64_inc(&vdo->stats.invalid_advice_pbn_count);
 		return no_advice;
 	}

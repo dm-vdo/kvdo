@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#39 $
  */
 
 #include "allocatingVIO.h"
@@ -64,7 +64,7 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 		// This block is already locked, which should be impossible.
 		return log_error_strerror(VDO_LOCK_ERROR,
 					  "Newly allocated block %llu was spuriously locked (holder_count=%u)",
-					  allocating_vio->allocation,
+					  (unsigned long long) allocating_vio->allocation,
 					  lock->holder_count);
 	}
 

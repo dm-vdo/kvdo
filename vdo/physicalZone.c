@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#33 $
  */
 
 #include "physicalZone.h"
@@ -161,7 +161,7 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
-				pbn);
+				(unsigned long long) pbn);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -196,7 +196,7 @@ void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 	holder = int_map_remove(zone->pbn_operations, locked_pbn);
 	ASSERT_LOG_ONLY((lock == holder),
 			"physical block lock mismatch for block %llu",
-			locked_pbn);
+			(unsigned long long) locked_pbn);
 
 	release_vdo_pbn_lock_provisional_reference(lock, locked_pbn,
 						   zone->allocator);

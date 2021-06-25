@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#90 $
  */
 
 #include "packerInternals.h"
@@ -461,7 +461,7 @@ static void complete_output_bin(struct vdo_completion *completion)
 	if (completion->result != VDO_SUCCESS) {
 		update_vio_error_stats(vio,
 				       "Completing compressed write vio for physical block %llu with error",
-				       vio->physical);
+				       (unsigned long long) vio->physical);
 	}
 
 	finish_output_bin(packer, completion->parent);
@@ -1052,11 +1052,12 @@ void dump_vdo_packer(const struct packer *packer)
 
 	uds_log_info("packer");
 	uds_log_info("  flushGeneration=%llu state %s writing_batches=%s",
-		     packer->flush_generation,
+		     (unsigned long long) packer->flush_generation,
 		     get_vdo_admin_state_name(&packer->state),
 		     bool_to_string(packer->writing_batches));
 
-	uds_log_info("  input_bin_count=%llu", packer->size);
+	uds_log_info("  input_bin_count=%llu",
+		     (unsigned long long) packer->size);
 	for (input = get_vdo_packer_fullest_bin(packer); input != NULL;
 	     input = next_vdo_packer_bin(packer, input)) {
 		dump_input_bin(input, false);

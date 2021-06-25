@@ -51,7 +51,7 @@ int write_uint32_t(char *prefix,
 		   char **buf,
 		   unsigned int *maxlen)
 {
-	int count = scnprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
+	int count = scnprintf(*buf, *maxlen, "%s%u%s",
 			      prefix == NULL ? "" : prefix,
 			      value,
 			      suffix == NULL ? "" : suffix);

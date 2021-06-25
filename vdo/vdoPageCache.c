@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#75 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -611,7 +611,7 @@ static void complete_with_page(struct page_info *info,
 	if (!available) {
 		log_error_strerror(VDO_BAD_PAGE,
 				   "Requested cache page %llu in state %s is not %s",
-				   info->pbn,
+				   (unsigned long long) info->pbn,
 				   get_page_state_name(info->state),
 				   vdo_page_comp->writable ? "present" :
 				   "valid");
@@ -1202,7 +1202,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 
 		if (__ratelimit(&error_limiter)) {
 			uds_log_error("failed to write block map page %llu",
-				      info->pbn);
+				      (unsigned long long) info->pbn);
 		}
 	}
 

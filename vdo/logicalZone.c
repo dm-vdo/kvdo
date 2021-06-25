@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#66 $
  */
 
 #include "logicalZone.h"
@@ -348,8 +348,9 @@ increment_vdo_logical_zone_flush_generation(struct logical_zone *zone,
 	assert_on_zone_thread(zone, __func__);
 	ASSERT_LOG_ONLY((zone->flush_generation == expected_generation),
 			"logical zone %u flush generation %llu should be %llu before increment",
-			zone->zone_number, zone->flush_generation,
-			expected_generation);
+			zone->zone_number,
+			(unsigned long long) zone->flush_generation,
+			(unsigned long long) expected_generation);
 
 	zone->flush_generation++;
 	zone->ios_in_flush_generation = 0;
@@ -438,8 +439,8 @@ void release_vdo_flush_generation_lock(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(zone->oldest_active_generation
 				<= data_vio->flush_generation,
 			"data_vio releasing lock on generation %llu is not older than oldest active generation %llu",
-			data_vio->flush_generation,
-			zone->oldest_active_generation);
+			(unsigned long long) data_vio->flush_generation,
+			(unsigned long long) zone->oldest_active_generation);
 
 	if (!update_oldest_active_generation(zone) || zone->notifying) {
 		return;
@@ -460,9 +461,9 @@ void dump_vdo_logical_zone(const struct logical_zone *zone)
 {
 	uds_log_info("logical_zone %u", zone->zone_number);
 	uds_log_info("  flush_generation=%llu oldest_active_generation=%llu notification_generation=%llu notifying=%s ios_in_flush_generation=%llu",
-		     READ_ONCE(zone->flush_generation),
-		     READ_ONCE(zone->oldest_active_generation),
-		     READ_ONCE(zone->notification_generation),
+		     (unsigned long long) READ_ONCE(zone->flush_generation),
+		     (unsigned long long) READ_ONCE(zone->oldest_active_generation),
+		     (unsigned long long) READ_ONCE(zone->notification_generation),
 		     bool_to_string(READ_ONCE(zone->notifying)),
-		     READ_ONCE(zone->ios_in_flush_generation));
+		     (unsigned long long) READ_ONCE(zone->ios_in_flush_generation));
 }

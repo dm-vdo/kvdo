@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#15 $
  */
 
 #include "vdoComponentStates.h"
@@ -141,8 +141,8 @@ int validate_vdo_component_states(struct vdo_component_states *states,
 	if (geometry_nonce != states->vdo.nonce) {
 		return log_error_strerror(VDO_BAD_NONCE,
 					  "Geometry nonce %llu does not match superblock nonce %llu",
-					  geometry_nonce,
-					  states->vdo.nonce);
+					  (unsigned long long) geometry_nonce,
+					  (unsigned long long) states->vdo.nonce);
 	}
 
 	return validate_vdo_config(&states->vdo.config, size, true);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#44 $
  */
 
 #include "recoveryUtils.h"
@@ -159,9 +159,9 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
  	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
 		return log_error_strerror(VDO_CORRUPT_JOURNAL,
 					  "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
-					  entry->slot.pbn,
+					  (unsigned long long) entry->slot.pbn,
 					  entry->slot.slot,
-					  entry->mapping.pbn,
+					  (unsigned long long) entry->mapping.pbn,
 					  get_vdo_journal_operation_name(entry->operation));
 	}
 
@@ -170,9 +170,9 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 	    (entry->mapping.pbn == VDO_ZERO_BLOCK))) {
 		return log_error_strerror(VDO_CORRUPT_JOURNAL,
 					  "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",
-					  entry->slot.pbn,
+					  (unsigned long long) entry->slot.pbn,
 					  entry->slot.slot,
-					  entry->mapping.pbn,
+					  (unsigned long long) entry->mapping.pbn,
 					  get_vdo_journal_operation_name(entry->operation));
 	}
 

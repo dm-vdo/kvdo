@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#98 $
  */
 
 #include "slabJournalInternals.h"
@@ -481,7 +481,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 			// we are already in read-only mode.
 			log_error_strerror(result,
 					   "failed slab summary update %llu",
-					   journal->summarized);
+					   (unsigned long long) journal->summarized);
 		}
 
 		journal->updating_slab_summary = false;
@@ -582,7 +582,7 @@ void reopen_vdo_slab_journal(struct slab_journal *journal)
 	for (block = 1; block <= journal->size; block++) {
 		ASSERT_LOG_ONLY((get_lock(journal, block)->count == 0),
 				"Scrubbed journal's block %llu is not locked",
-				block);
+				(unsigned long long) block);
 	}
 
 	add_entries(journal);
@@ -615,7 +615,7 @@ static void complete_write(struct vdo_completion *completion)
 	if (write_result != VDO_SUCCESS) {
 		log_error_strerror(write_result,
 				   "cannot write slab journal block %llu",
-				   committed);
+				   (unsigned long long) committed);
 		enter_journal_read_only_mode(journal, write_result);
 		return;
 	}
@@ -785,9 +785,9 @@ static void add_entry(struct slab_journal *journal,
 		ASSERT(before_vdo_journal_point(&journal->tail_header.recovery_point,
 						recovery_point),
 		       "recovery journal point is monotonically increasing, recovery point: %llu.%u, block recovery point: %llu.%u",
-		       recovery_point->sequence_number,
+		       (unsigned long long) recovery_point->sequence_number,
 		       recovery_point->entry_count,
-		       journal->tail_header.recovery_point.sequence_number,
+		       (unsigned long long) journal->tail_header.recovery_point.sequence_number,
 		       journal->tail_header.recovery_point.entry_count);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
@@ -1151,7 +1151,8 @@ void adjust_vdo_slab_journal_block_reference(struct slab_journal *journal,
 	if (adjustment < 0) {
 		ASSERT_LOG_ONLY((-adjustment <= lock->count),
 				"adjustment %d of lock count %u for slab journal block %llu must not underflow",
-			        adjustment, lock->count, sequence_number);
+			        adjustment, lock->count,
+				(unsigned long long) sequence_number);
 	}
 
 	lock->count += adjustment;
@@ -1332,13 +1333,13 @@ void dump_vdo_slab_journal(const struct slab_journal *journal)
 		     count_waiters(&journal->entry_waiters),
 		     bool_to_string(journal->waiting_to_commit),
 		     bool_to_string(journal->updating_slab_summary),
-		     journal->head,
-		     journal->unreapable,
-		     journal->tail,
-		     journal->next_commit,
-		     journal->summarized,
-		     journal->last_summarized,
-		     journal->recovery_lock,
+		     (unsigned long long) journal->head,
+		     (unsigned long long) journal->unreapable,
+		     (unsigned long long) journal->tail,
+		     (unsigned long long) journal->next_commit,
+		     (unsigned long long) journal->summarized,
+		     (unsigned long long) journal->last_summarized,
+		     (unsigned long long) journal->recovery_lock,
 		     bool_to_string(is_vdo_slab_journal_dirty(journal)));
 	// Given the frequency with which the locks are just a tiny bit off, it
 	// might be worth dumping all the locks, but that might be too much

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#15 $
  */
 
 #include "slabDepotFormat.h"
@@ -274,9 +274,9 @@ int configure_vdo_slab_depot(block_count_t block_count,
 	block_count_t slab_size = slab_config.slab_blocks;
 
 	uds_log_debug("slabDepot configure_vdo_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
-		      block_count,
-		      first_block,
-		      slab_size,
+		      (unsigned long long) block_count,
+		      (unsigned long long) first_block,
+		      (unsigned long long) slab_size,
 		      zone_count);
 
 	// We do not allow runt slabs, so we waste up to a slab's worth.
@@ -301,10 +301,10 @@ int configure_vdo_slab_depot(block_count_t block_count,
 	};
 
 	uds_log_debug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
-		      last_block,
-		      total_data_blocks,
+		      (unsigned long long) last_block,
+		      (unsigned long long) total_data_blocks,
 		      slab_count,
-		      block_count - (last_block - first_block));
+		      (unsigned long long) (block_count - (last_block - first_block)));
 
 	return VDO_SUCCESS;
 }

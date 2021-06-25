@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#81 $
  */
 
 #include "refCounts.h"
@@ -1566,7 +1566,7 @@ void dump_vdo_ref_counts(const struct ref_counts *ref_counts)
 		     ref_counts->reference_block_count,
 		     count_waiters(&ref_counts->dirty_blocks),
 		     ref_counts->active_count,
-		     ref_counts->slab_journal_point.sequence_number,
+		     (unsigned long long) ref_counts->slab_journal_point.sequence_number,
 		     ref_counts->slab_journal_point.entry_count,
 		     (ref_counts->updating_slab_summary ? " updating" : ""));
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#66 $
  */
 
 #include "referenceCountRebuild.h"
@@ -324,9 +324,9 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		if (result != VDO_SUCCESS) {
 			log_error_strerror(result,
 					   "Could not adjust reference count for PBN %llu, slot %u mapped to PBN %llu",
-					   get_vdo_block_map_page_pbn(page),
+					   (unsigned long long) get_vdo_block_map_page_pbn(page),
 					   slot,
-					   mapping.pbn);
+					   (unsigned long long) mapping.pbn);
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
 							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
@@ -460,7 +460,7 @@ static int process_entry(physical_block_number_t pbn,
 	    || !vdo_is_physical_data_block(rebuild->depot, pbn)) {
 		return log_error_strerror(VDO_BAD_CONFIGURATION,
 					  "PBN %llu out of range",
-					  pbn);
+					  (unsigned long long) pbn);
 	}
 
 	slab = get_vdo_slab(rebuild->depot, pbn);
@@ -470,7 +470,7 @@ static int process_entry(physical_block_number_t pbn,
 	if (result != VDO_SUCCESS) {
 		return log_error_strerror(result,
 					  "Could not adjust reference count for block map tree PBN %llu",
-					  pbn);
+					  (unsigned long long) pbn);
 	}
 
 	(*rebuild->block_map_data_blocks)++;

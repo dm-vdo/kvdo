@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#10 $
  */
 
 #include "blockMapFormat.h"
@@ -75,7 +75,7 @@ int decode_vdo_block_map_state_2_0(struct buffer *buffer,
 	result = ASSERT(flat_page_origin == VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			"Flat page origin must be %u (recorded as %llu)",
 			VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
-			state->flat_page_origin);
+			(unsigned long long) state->flat_page_origin);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -87,7 +87,7 @@ int decode_vdo_block_map_state_2_0(struct buffer *buffer,
 
 	result = ASSERT(flat_page_count == 0,
 			"Flat page count must be 0 (recorded as %llu)",
-			state->flat_page_count);
+			(unsigned long long) state->flat_page_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

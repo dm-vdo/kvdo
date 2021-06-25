@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#51 $
  */
 
 #include "flush.h"
@@ -289,8 +289,8 @@ void complete_vdo_flushes(struct flusher *flusher)
 		ASSERT_LOG_ONLY((flush->flush_generation
 				 == flusher->first_unacknowledged_generation),
 				"acknowledged next expected flush, %llu, was: %llu",
-				flusher->first_unacknowledged_generation,
-				flush->flush_generation);
+				(unsigned long long) flusher->first_unacknowledged_generation,
+				(unsigned long long) flush->flush_generation);
 		dequeue_next_waiter(&flusher->pending_flushes);
 		vdo_complete_flush(&flush);
 		flusher->first_unacknowledged_generation++;
@@ -302,8 +302,8 @@ void dump_vdo_flusher(const struct flusher *flusher)
 {
 	uds_log_info("struct flusher");
 	uds_log_info("  flush_generation=%llu first_unacknowledged_generation=%llu",
-		     flusher->flush_generation,
-		     flusher->first_unacknowledged_generation);
+		     (unsigned long long) flusher->flush_generation,
+		     (unsigned long long) flusher->first_unacknowledged_generation);
 	uds_log_info("  notifiers queue is %s; pending_flushes queue is %s",
 		     (has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
 		     (has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));

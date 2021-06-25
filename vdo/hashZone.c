@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#42 $
  */
 
 #include "hashZone.h"
@@ -297,9 +297,9 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	state = get_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
-		     lock->duplicate.pbn, lock->duplicate.state,
-		     lock->reference_count, count_waiters(&lock->waiters),
-		     (void *) lock->agent);
+		     (unsigned long long) lock->duplicate.pbn,
+		     lock->duplicate.state, lock->reference_count,
+		     count_waiters(&lock->waiters), (void *) lock->agent);
 }
 
 /**
