@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#15 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -76,7 +76,7 @@ unpack_vdo_block_map_entry(const struct block_map_entry *entry)
 /**********************************************************************/
 static inline bool vdo_is_mapped_location(const struct data_location *location)
 {
-	return (location->state != MAPPING_STATE_UNMAPPED);
+	return (location->state != VDO_MAPPING_STATE_UNMAPPED);
 }
 
 /**********************************************************************/

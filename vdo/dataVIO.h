@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#85 $
  */
 
 #ifndef DATA_VIO_H
@@ -478,7 +478,7 @@ static inline bool is_compressed_write_data_vio(struct data_vio *data_vio)
  **/
 static inline bool is_trim_data_vio(struct data_vio *data_vio)
 {
-	return (data_vio->new_mapped.state == MAPPING_STATE_UNMAPPED);
+	return (data_vio->new_mapped.state == VDO_MAPPING_STATE_UNMAPPED);
 }
 
 /**

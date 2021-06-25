@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#89 $
  */
 
 #include "packerInternals.h"
@@ -106,7 +106,8 @@ static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 static int __must_check make_input_bin(struct packer *packer)
 {
 	struct input_bin *bin;
-	int result = ALLOCATE_EXTENDED(struct input_bin, MAX_COMPRESSION_SLOTS,
+	int result = ALLOCATE_EXTENDED(struct input_bin,
+				       VDO_MAX_COMPRESSION_SLOTS,
 				       struct vio *, __func__, &bin);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -233,7 +234,7 @@ int make_vdo_packer(struct vdo *vdo,
 	packer->bin_data_size = (VDO_BLOCK_SIZE
 				 - sizeof(struct compressed_block_header));
 	packer->size = input_bin_count;
-	packer->max_slots = MAX_COMPRESSION_SLOTS;
+	packer->max_slots = VDO_MAX_COMPRESSION_SLOTS;
 	packer->output_bin_count = output_bin_count;
 	INIT_LIST_HEAD(&packer->input_bins);
 	INIT_LIST_HEAD(&packer->output_bins);

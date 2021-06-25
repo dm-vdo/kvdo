@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#141 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#142 $
  */
 
 /*
@@ -723,7 +723,7 @@ vdo_validate_dedupe_advice(struct vdo *vdo,
 	}
 
 	// Don't use advice that's clearly meaningless.
-	if ((advice->state == MAPPING_STATE_UNMAPPED) ||
+	if ((advice->state == VDO_MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == VDO_ZERO_BLOCK)) {
 		uds_log_debug("Invalid advice from deduplication server: pbn %llu, state %u. Giving up on deduplication of logical block %llu",
 			      advice->pbn, advice->state, lbn);

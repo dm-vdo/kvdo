@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#65 $
  */
 
 #include "referenceCountRebuild.h"
@@ -279,7 +279,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			if (vdo_is_mapped_location(&mapping)) {
 				page->entries[slot] =
 					pack_vdo_pbn(VDO_ZERO_BLOCK,
-						     MAPPING_STATE_UNMAPPED);
+						     VDO_MAPPING_STATE_UNMAPPED);
 				request_vdo_page_write(completion);
 			}
 		}
@@ -294,7 +294,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		if (!vdo_is_valid_location(&mapping)) {
 			// This entry is invalid, so remove it from the page.
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
-							   MAPPING_STATE_UNMAPPED);
+							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
 		}
@@ -312,7 +312,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			// This is a nonsense mapping. Remove it from the map so
 			// we're at least consistent and mark the page dirty.
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
-							   MAPPING_STATE_UNMAPPED);
+							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 			continue;
 		}
@@ -328,7 +328,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 					   slot,
 					   mapping.pbn);
 			page->entries[slot] = pack_vdo_pbn(VDO_ZERO_BLOCK,
-							   MAPPING_STATE_UNMAPPED);
+							   VDO_MAPPING_STATE_UNMAPPED);
 			request_vdo_page_write(completion);
 		}
 	}

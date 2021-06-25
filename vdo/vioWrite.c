@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#77 $
  */
 
 /*
@@ -955,7 +955,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 	data_vio->new_mapped = (struct zoned_pbn) {
 		.zone = allocating_vio->zone,
 		.pbn = allocating_vio->allocation,
-		.state = MAPPING_STATE_UNCOMPRESSED,
+		.state = VDO_MAPPING_STATE_UNCOMPRESSED,
 	};
 
 	// XXX prepare_for_dedupe can run from any thread, so this is a place

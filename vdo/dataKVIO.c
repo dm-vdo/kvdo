@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#151 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#152 $
  */
 
 #include "dataKVIO.h"
@@ -877,7 +877,7 @@ void check_data_vio_for_duplication(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero block not checked for duplication");
-	ASSERT_LOG_ONLY(data_vio->new_mapped.state != MAPPING_STATE_UNMAPPED,
+	ASSERT_LOG_ONLY(data_vio->new_mapped.state != VDO_MAPPING_STATE_UNMAPPED,
 			"discard not checked for duplication");
 
 	if (data_vio_has_allocation(data_vio)) {

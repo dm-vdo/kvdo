@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#105 $
  */
 
 #include "blockMapTree.h"
@@ -1068,7 +1068,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	page = (struct block_map_page *) tree_page->page_buffer;
 	old_lock = tree_page->recovery_lock;
 	update_vdo_block_map_page(page, data_vio, pbn,
-				  MAPPING_STATE_UNCOMPRESSED,
+				  VDO_MAPPING_STATE_UNCOMPRESSED,
 				  &tree_page->recovery_lock);
 
 	if (is_waiting(&tree_page->waiter)) {
@@ -1205,7 +1205,7 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 	lock->tree_slots[lock->height - 1].block_map_slot.pbn = pbn;
 	set_up_vdo_reference_operation_with_lock(BLOCK_MAP_INCREMENT,
 						 pbn,
-						 MAPPING_STATE_UNCOMPRESSED,
+						 VDO_MAPPING_STATE_UNCOMPRESSED,
 						 allocating_vio->allocation_lock,
 						 &data_vio->operation);
 	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation);

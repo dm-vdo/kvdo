@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#116 $
  */
 
 #include "recoveryJournal.h"
@@ -785,14 +785,14 @@ static void assign_entry(struct waiter *waiter, void *context)
 
 	switch (data_vio->operation.type) {
 	case DATA_INCREMENT:
-		if (data_vio->operation.state != MAPPING_STATE_UNMAPPED) {
+		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED) {
 			journal->logical_blocks_used++;
 		}
 		journal->pending_decrement_count++;
 		break;
 
 	case DATA_DECREMENT:
-		if (data_vio->operation.state != MAPPING_STATE_UNMAPPED) {
+		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED) {
 			journal->logical_blocks_used--;
 		}
 
