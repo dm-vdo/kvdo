@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#22 $
  */
 
 #include "indexState.h"
@@ -38,8 +38,8 @@ int make_index_state(struct index_layout *layout,
 	int result;
 
 	if (max_components == 0) {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "cannot make index state with max_components 0");
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "cannot make index state with max_components 0");
 	}
 
 	result = ALLOCATE_EXTENDED(struct index_state,
@@ -92,16 +92,16 @@ static int add_component_to_index_state(struct index_state *state,
 					struct index_component *component)
 {
 	if (find_index_component(state, component->info) != NULL) {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "cannot add state component %s: already present",
-					  component->info->name);
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "cannot add state component %s: already present",
+					      component->info->name);
 	}
 
 	if (state->count >= state->length) {
-		return log_error_strerror(UDS_RESOURCE_LIMIT_EXCEEDED,
-					  "cannot add state component %s, %u components already added",
-					  component->info->name,
-					  state->count);
+		return uds_log_error_strerror(UDS_RESOURCE_LIMIT_EXCEEDED,
+					      "cannot add state component %s, %u components already added",
+					      component->info->name,
+					      state->count);
 	}
 
 	state->entries[state->count] = component;
@@ -119,8 +119,8 @@ int add_index_state_component(struct index_state *state,
 	int result = make_index_component(state, info, state->zone_count, data,
 					  context, &component);
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "cannot make region index component");
+		return uds_log_error_strerror(result,
+					      "cannot make region index component");
 	}
 
 	result = add_component_to_index_state(state, component);
@@ -157,9 +157,9 @@ int load_index_state(struct index_state *state, bool *replay_ptr)
 {
 	bool replay_required = false;
 	unsigned int i;
-	int result = find_latest_index_save_slot(state->layout,
-						 &state->load_zones,
-						 &state->load_slot);
+	int result = find_latest_uds_index_save_slot(state->layout,
+						     &state->load_zones,
+						     &state->load_slot);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -171,9 +171,9 @@ int load_index_state(struct index_state *state, bool *replay_ptr)
 			if (!missing_index_component_requires_replay(component)) {
 				state->load_zones = 0;
 				state->load_slot = UINT_MAX;
-				return log_error_strerror(result,
-							  "index component %s",
-							  index_component_name(component));
+				return uds_log_error_strerror(result,
+							      "index component %s",
+							      index_component_name(component));
 			}
 			replay_required = true;
 		}
@@ -194,15 +194,15 @@ int prepare_to_save_index_state(struct index_state *state,
 	int result;
 
 	if (state->saving) {
-		return log_error_strerror(
+		return uds_log_error_strerror(
 			UDS_BAD_STATE, "already saving the index state");
 	}
-	result = setup_index_save_slot(state->layout, state->zone_count,
+	result = setup_uds_index_save_slot(state->layout, state->zone_count,
 					   save_type, &state->save_slot);
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "cannot prepare index %s",
-					  index_save_type_name(save_type));
+		return uds_log_error_strerror(result,
+					      "cannot prepare index %s",
+					      index_save_type_name(save_type));
 	}
 
 	return UDS_SUCCESS;
@@ -220,11 +220,11 @@ static int complete_index_saving(struct index_state *state)
 {
 	int result;
 	state->saving = false;
-	result = commit_index_save(state->layout, state->save_slot);
+	result = commit_uds_index_save(state->layout, state->save_slot);
 	state->save_slot = UINT_MAX;
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "cannot commit index state");
+		return uds_log_error_strerror(result,
+					      "cannot commit index state");
 	}
 	return UDS_SUCCESS;
 }
@@ -232,11 +232,11 @@ static int complete_index_saving(struct index_state *state)
 /**********************************************************************/
 static int cleanup_save(struct index_state *state)
 {
-	int result = cancel_index_save(state->layout, state->save_slot);
+	int result = cancel_uds_index_save(state->layout, state->save_slot);
 	state->save_slot = UINT_MAX;
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "cannot cancel index save");
+		return uds_log_error_strerror(result,
+					      "cannot cancel index save");
 	}
 	return UDS_SUCCESS;
 }
@@ -456,8 +456,8 @@ int abort_index_state_checkpoint(struct index_state *state)
 	int result = UDS_SUCCESS;
 	unsigned int i;
 	if (!state->saving) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "not saving the index state");
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "not saving the index state");
 	}
 
 	uds_log_error("aborting index state checkpoint");
@@ -483,12 +483,12 @@ int abort_index_state_checkpoint(struct index_state *state)
 /**********************************************************************/
 int discard_index_state_data(struct index_state *state)
 {
-	int result = discard_index_saves(state->layout, true);
+	int result = discard_uds_index_saves(state->layout, true);
 	state->save_slot = UINT_MAX;
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "%s: cannot destroy all index saves",
-					  __func__);
+		return uds_log_error_strerror(result,
+					      "%s: cannot destroy all index saves",
+					      __func__);
 	}
 	return UDS_SUCCESS;
 }
@@ -496,12 +496,12 @@ int discard_index_state_data(struct index_state *state)
 /**********************************************************************/
 int discard_last_index_state_save(struct index_state *state)
 {
-	int result = discard_index_saves(state->layout, false);
+	int result = discard_uds_index_saves(state->layout, false);
 	state->save_slot = UINT_MAX;
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "%s: cannot destroy latest index save",
-					  __func__);
+		return uds_log_error_strerror(result,
+					      "%s: cannot destroy latest index save",
+					      __func__);
 	}
 	return UDS_SUCCESS;
 }
@@ -512,7 +512,7 @@ struct buffer *get_state_index_state_buffer(struct index_state *state,
 {
 	unsigned int slot =
 		mode == IO_READ ? state->load_slot : state->save_slot;
-	return get_index_state_buffer(state->layout, slot);
+	return get_uds_index_state_buffer(state->layout, slot);
 }
 
 /**********************************************************************/
@@ -521,8 +521,8 @@ int open_state_buffered_reader(struct index_state   *state,
 			       unsigned int             zone,
 			       struct buffered_reader **reader_ptr)
 {
-	return open_index_buffered_reader(state->layout, state->load_slot,
-					  kind, zone, reader_ptr);
+	return open_uds_index_buffered_reader(state->layout, state->load_slot,
+					      kind, zone, reader_ptr);
 }
 
 /**********************************************************************/
@@ -531,6 +531,6 @@ int open_state_buffered_writer(struct index_state *state,
 			       unsigned int zone,
 			       struct buffered_writer **writer_ptr)
 {
-	return open_index_buffered_writer(state->layout, state->save_slot,
-					  kind, zone, writer_ptr);
+	return open_uds_index_buffered_writer(state->layout, state->save_slot,
+					      kind, zone, writer_ptr);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#29 $
  */
 #include "masterIndex006.h"
 
@@ -216,8 +216,8 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 					  content_length(buffer));
 	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
-		log_warning_strerror(result,
-				     "failed to write volume index header");
+		uds_log_warning_strerror(result,
+					 "failed to write volume index header");
 		return result;
 	}
 
@@ -367,8 +367,8 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(FORGET(buffer));
-			return log_warning_strerror(result,
-						    "failed to read volume index header");
+			return uds_log_warning_strerror(result,
+							"failed to read volume index header");
 		}
 
 		result = reset_buffer_end(buffer, buffer_length(buffer));
@@ -384,18 +384,18 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 		}
 
 		if (memcmp(header.magic, MAGIC_START, MAGIC_SIZE) != 0) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "volume index file had bad magic number");
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"volume index file had bad magic number");
 		}
 
 		if (i == 0) {
 			vi6->sparse_sample_rate = header.sparse_sample_rate;
 		} else if (vi6->sparse_sample_rate !=
 			   header.sparse_sample_rate) {
-			log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					     "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
-					     vi6->sparse_sample_rate,
-					     header.sparse_sample_rate);
+			uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						 "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
+						 vi6->sparse_sample_rate,
+						 header.sparse_sample_rate);
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -841,8 +841,8 @@ int make_volume_index006(const struct configuration *config,
 				      &vi6->vi_non_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index_006(&vi6->common);
-		return log_error_strerror(result,
-					  "Error creating non hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating non hook volume index");
 	}
 	set_volume_index_tag(vi6->vi_non_hook, 'd');
 
@@ -850,8 +850,8 @@ int make_volume_index006(const struct configuration *config,
 				      volume_nonce, &vi6->vi_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index_006(&vi6->common);
-		return log_error_strerror(result,
-					  "Error creating hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating hook volume index");
 	}
 	set_volume_index_tag(vi6->vi_hook, 's');
 

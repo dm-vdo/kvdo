@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#27 $
  */
 #include "deltaIndex.h"
 
@@ -624,10 +624,10 @@ int initialize_delta_index(struct delta_index *delta_index,
 			 */
 			if (delta_index->num_lists <= first_list_in_zone) {
 				uninitialize_delta_index(delta_index);
-				return log_error_strerror(UDS_INVALID_ARGUMENT,
-							  "%u delta-lists not enough for %u zones",
-							  num_lists,
-							  num_zones);
+				return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+							      "%u delta-lists not enough for %u zones",
+							      num_lists,
+							      num_zones);
 			}
 			num_lists_in_zone =
 				delta_index->num_lists - first_list_in_zone;
@@ -807,19 +807,19 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 	int num_bits;
 	struct delta_page_header *header;
 	if (!delta_index->is_mutable) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "Cannot pack an immutable index");
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "Cannot pack an immutable index");
 	}
 	if (delta_index->num_zones != 1) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "Cannot pack a delta index page when the index has %u zones",
-					  delta_index->num_zones);
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "Cannot pack a delta index page when the index has %u zones",
+					      delta_index->num_zones);
 	}
 	if (first_list > delta_index->num_lists) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "Cannot pack a delta index page when the first list (%u) is larger than the number of lists (%u)",
-					  first_list,
-					  delta_index->num_lists);
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "Cannot pack a delta index page when the first list (%u) is larger than the number of lists (%u)",
+					      first_list,
+					      delta_index->num_lists);
 	}
 
 	delta_zone = &delta_index->delta_zones[0];
@@ -836,9 +836,9 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 	num_bits -= POST_FIELD_GUARD_BYTES * CHAR_BIT;
 	if (num_bits < IMMUTABLE_HEADER_SIZE) {
 		// This page is too small to contain even one empty delta list
-		return log_error_strerror(UDS_OVERFLOW,
-					  "Chapter Index Page of %zu bytes is too small",
-					  mem_size);
+		return uds_log_error_strerror(UDS_OVERFLOW,
+					      "Chapter Index Page of %zu bytes is too small",
+					      mem_size);
 	}
 
 	while (n_lists < max_lists) {
@@ -960,8 +960,8 @@ static int __must_check read_delta_index_header(struct buffered_reader *reader,
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		free_buffer(FORGET(buffer));
-		return log_warning_strerror(result,
-					    "failed to read delta index header");
+		return uds_log_warning_strerror(result,
+						"failed to read delta index header");
 	}
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
@@ -990,18 +990,18 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 	};
 
 	if (!delta_index->is_mutable) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "Cannot restore to an immutable index");
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "Cannot restore to an immutable index");
 	}
 	if (num_readers <= 0) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "No delta index files");
+		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+						"No delta index files");
 	}
 
 	if (num_zones > MAX_ZONES) {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "zone count %u must not exceed MAX_ZONES",
-					  num_zones);
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "zone count %u must not exceed MAX_ZONES",
+					      num_zones);
 	}
 
 	// Read the header from each file, and make sure we have a matching set
@@ -1010,29 +1010,29 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 		int result =
 			read_delta_index_header(buffered_readers[z], &header);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to read delta index header");
+			return uds_log_warning_strerror(result,
+							"failed to read delta index header");
 		}
 		if (memcmp(header.magic, MAGIC_DI_START, MAGIC_SIZE) != 0) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "delta index file has bad magic number");
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"delta index file has bad magic number");
 		}
 		if (num_zones != header.num_zones) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "delta index files contain mismatched zone counts (%u,%u)",
-						    num_zones,
-						    header.num_zones);
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"delta index files contain mismatched zone counts (%u,%u)",
+							num_zones,
+							header.num_zones);
 		}
 		if (header.zone_number >= num_zones) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "delta index files contains zone %u of %u zones",
-						    header.zone_number,
-						    num_zones);
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"delta index files contains zone %u of %u zones",
+							header.zone_number,
+							num_zones);
 		}
 		if (zone_flags[header.zone_number]) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "delta index files contain two of zone %u",
-						    header.zone_number);
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"delta index files contain two of zone %u",
+							header.zone_number);
 		}
 		reader[header.zone_number] = buffered_readers[z];
 		first_list[header.zone_number] = header.first_list;
@@ -1043,25 +1043,25 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 	}
 	for (z = 0; z < num_zones; z++) {
 		if (first_list[z] != list_next) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "delta index file for zone %u starts with list %u instead of list %u",
-						    z,
-						    first_list[z],
-						    list_next);
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"delta index file for zone %u starts with list %u instead of list %u",
+							z,
+							first_list[z],
+							list_next);
 		}
 		list_next += num_lists[z];
 	}
 	if (list_next != delta_index->num_lists) {
-		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					    "delta index files contain %u delta lists instead of %u delta lists",
-					    list_next,
-					    delta_index->num_lists);
+		return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						"delta index files contain %u delta lists instead of %u delta lists",
+						list_next,
+						delta_index->num_lists);
 	}
 	if (collision_count > record_count) {
-		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					    "delta index files contain %ld collisions and %ld records",
-					    collision_count,
-					    record_count);
+		return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						"delta index files contain %ld collisions and %ld records",
+						collision_count,
+						record_count);
 	}
 
 	empty_delta_index(delta_index);
@@ -1082,8 +1082,8 @@ int start_restoring_delta_index(const struct delta_index *delta_index,
 							  delta_list_size_data,
 							  sizeof(delta_list_size_data));
 			if (result != UDS_SUCCESS) {
-				return log_warning_strerror(result,
-							    "failed to read delta index size");
+				return uds_log_warning_strerror(result,
+								"failed to read delta index size");
 			}
 			delta_list_size = get_unaligned_le16(delta_list_size_data);
 			list_number = first_list[z] + i;
@@ -1131,10 +1131,10 @@ int restore_delta_list_to_delta_index(const struct delta_index *delta_index,
 	}
 
 	if (dlsi->index >= delta_index->num_lists) {
-		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					    "invalid delta list number %u of %u",
-					    dlsi->index,
-					    delta_index->num_lists);
+		return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						"invalid delta list number %u of %u",
+						dlsi->index,
+						delta_index->num_lists);
 	}
 
 	zone_number = get_delta_index_zone(delta_index, dlsi->index);
@@ -1226,8 +1226,8 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 					  content_length(buffer));
 	free_buffer(FORGET(buffer));
 	if (result != UDS_SUCCESS) {
-		return log_warning_strerror(result,
-					    "failed to write delta index header");
+		return uds_log_warning_strerror(result,
+						"failed to write delta index header");
 	}
 
 	for (i = 0; i < delta_zone->num_lists; i++) {
@@ -1238,8 +1238,8 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 		result = write_to_buffered_writer(buffered_writer, data,
 						  sizeof(data));
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to write delta list size");
+			return uds_log_warning_strerror(result,
+							"failed to write delta list size");
 		}
 	}
 
@@ -1843,14 +1843,14 @@ unsigned int get_delta_index_page_count(unsigned int num_entries,
 /**********************************************************************/
 void log_delta_index_entry(struct delta_index_entry *delta_entry)
 {
-	log_ratelimit(uds_log_info,
-		      "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
-		      delta_entry->list_number,
-		      delta_entry->key,
-		      delta_entry->offset,
-		      delta_entry->at_end ? " end" : "",
-		      delta_entry->is_collision ? " collision" : "",
-		      get_delta_list_size(delta_entry->delta_list),
-		      delta_entry->list_overflow ? " overflow" : "");
+	uds_log_ratelimit(uds_log_info,
+			  "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
+			  delta_entry->list_number,
+			  delta_entry->key,
+			  delta_entry->offset,
+			  delta_entry->at_end ? " end" : "",
+			  delta_entry->is_collision ? " collision" : "",
+			  get_delta_list_size(delta_entry->delta_list),
+			  delta_entry->list_overflow ? " overflow" : "");
 	delta_entry->list_overflow = false;
 }

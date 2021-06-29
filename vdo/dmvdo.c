@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#138 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#139 $
  */
 
 #include "dmvdo.h"
@@ -684,9 +684,9 @@ static int vdo_preresume(struct dm_target *ti)
 	result = modify_kernel_layer(layer, config);
 
 	if (result != VDO_SUCCESS) {
-		log_error_strerror(result,
-				   "Commit of modifications to device '%s' failed",
-				   device_name);
+		uds_log_error_strerror(result,
+				       "Commit of modifications to device '%s' failed",
+				       device_name);
 		set_vdo_active_config(vdo, config);
 		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 	} else {

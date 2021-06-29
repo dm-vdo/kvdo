@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#144 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#145 $
  */
 
 /*
@@ -167,7 +167,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
 
 	atomic64_inc(&vdo->stats.flush_out);
 	if (result != 0) {
-		log_error_strerror(result, "synchronous flush failed");
+		uds_log_error_strerror(result, "synchronous flush failed");
 		result = -EIO;
 	}
 

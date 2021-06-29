@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#16 $
  */
 
 #include "vdoComponentStates.h"
@@ -105,10 +105,10 @@ int decode_vdo_component_states(struct buffer *buffer,
 	}
 
 	if (states->release_version != expected_release_version) {
-		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					  "Geometry release version %u does not match super block release version %u",
-					  expected_release_version,
-					  states->release_version);
+		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					      "Geometry release version %u does not match super block release version %u",
+					      expected_release_version,
+					      states->release_version);
 	}
 
 	// Check the VDO volume version
@@ -139,10 +139,10 @@ int validate_vdo_component_states(struct vdo_component_states *states,
 				  block_count_t size)
 {
 	if (geometry_nonce != states->vdo.nonce) {
-		return log_error_strerror(VDO_BAD_NONCE,
-					  "Geometry nonce %llu does not match superblock nonce %llu",
-					  (unsigned long long) geometry_nonce,
-					  (unsigned long long) states->vdo.nonce);
+		return uds_log_error_strerror(VDO_BAD_NONCE,
+					      "Geometry nonce %llu does not match superblock nonce %llu",
+					      (unsigned long long) geometry_nonce,
+					      (unsigned long long) states->vdo.nonce);
 	}
 
 	return validate_vdo_config(&states->vdo.config, size, true);

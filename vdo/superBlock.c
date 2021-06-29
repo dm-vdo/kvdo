@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#38 $
  */
 
 #include "superBlock.h"
@@ -128,7 +128,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
  **/
 static void handle_save_error(struct vdo_completion *completion)
 {
-	log_error_strerror(completion->result, "super block save failed");
+	uds_log_error_strerror(completion->result, "super block save failed");
 	/*
 	 * Mark the super block as unwritable so that we won't attempt to write
 	 * it again. This avoids the case where a growth attempt fails writing

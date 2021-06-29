@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#30 $
  */
 
 #include "openChapter.h"
@@ -128,8 +128,8 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 				overflow_count++;
 				break;
 			default:
-				log_error_strerror(result,
-						   "failed to build open chapter index");
+				uds_log_error_strerror(result,
+						       "failed to build open chapter index");
 				return result;
 			}
 		}
@@ -273,10 +273,10 @@ static int read_version(struct buffered_reader *reader, const byte **version)
 		return result;
 	}
 	if (memcmp(OPEN_CHAPTER_VERSION, buffer, sizeof(buffer)) != 0) {
-		return log_error_strerror(UDS_CORRUPT_COMPONENT,
-					  "Invalid open chapter version: %.*s",
-					  (int) sizeof(buffer),
-					  buffer);
+		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
+					      "Invalid open chapter version: %.*s",
+					      (int) sizeof(buffer),
+					      buffer);
 	}
 	*version = OPEN_CHAPTER_VERSION;
 	return UDS_SUCCESS;

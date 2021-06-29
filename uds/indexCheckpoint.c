@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#15 $
  */
 
 #include "indexCheckpoint.h"
@@ -291,8 +291,8 @@ static int do_checkpoint_start(struct index *index, unsigned int zone)
 	begin_save(index, true, checkpoint->chapter);
 	result = start_index_state_checkpoint(index->state);
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result,
-				   "cannot start index checkpoint");
+		uds_log_error_strerror(result,
+				       "cannot start index checkpoint");
 		index->last_checkpoint = index->prev_checkpoint;
 		unlock_mutex(&checkpoint->mutex);
 		return result;
@@ -315,8 +315,8 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 							    &status);
 	if (result != UDS_SUCCESS) {
 		lock_mutex(&checkpoint->mutex);
-		log_error_strerror(result,
-				   "cannot continue index checkpoint");
+		uds_log_error_strerror(result,
+				       "cannot continue index checkpoint");
 		result = abort_checkpointing(index, result);
 		unlock_mutex(&checkpoint->mutex);
 	} else if (status == CS_JUST_COMPLETED) {
@@ -326,9 +326,9 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 			uds_log_info("finished checkpoint");
 			result = finish_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
-				log_error_strerror(result,
-						   "%s checkpoint finish failed",
-						   __func__);
+				uds_log_error_strerror(result,
+						       "%s checkpoint finish failed",
+						       __func__);
 			}
 			checkpoint->state = NOT_CHECKPOINTING;
 		}
@@ -345,15 +345,15 @@ static int do_checkpoint_abort(struct index *index, unsigned int zone)
 	int result = abort_index_state_checkpoint_in_zone(index->state, zone,
 							  &status);
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result,
-				   "cannot abort index checkpoint");
+		uds_log_error_strerror(result,
+				       "cannot abort index checkpoint");
 	} else if (status == CS_JUST_COMPLETED) {
 		if (--checkpoint->zones_busy == 0) {
 			uds_log_info("aborted checkpoint");
 			result = abort_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
-				log_error_strerror(result,
-						   "checkpoint abort failed");
+				uds_log_error_strerror(result,
+						       "checkpoint abort failed");
 			}
 			checkpoint->state = NOT_CHECKPOINTING;
 		}
@@ -373,8 +373,8 @@ static int do_checkpoint_finish(struct index *index, unsigned int zone)
 	result = finish_index_state_checkpoint_in_zone(index->state, zone,
 							   &status);
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result,
-				   "cannot finish index checkpoint");
+		uds_log_error_strerror(result,
+				       "cannot finish index checkpoint");
 		lock_mutex(&checkpoint->mutex);
 		result = abort_checkpointing(index, result);
 		unlock_mutex(&checkpoint->mutex);
@@ -385,9 +385,9 @@ static int do_checkpoint_finish(struct index *index, unsigned int zone)
 			uds_log_info("finished checkpoint");
 			result = finish_index_state_checkpoint(index->state);
 			if (result != UDS_SUCCESS) {
-				log_error_strerror(result,
-						   "%s checkpoint finish failed",
-						   __func__);
+				uds_log_error_strerror(result,
+						       "%s checkpoint finish failed",
+						       __func__);
 			}
 			checkpoint->state = NOT_CHECKPOINTING;
 		}

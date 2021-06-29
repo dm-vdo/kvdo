@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#19 $
  */
 
 #include "indexInternals.h"
@@ -71,7 +71,7 @@ int allocate_index(struct index_layout *layout,
 	set_index_checkpoint_frequency(index->checkpoint,
 				       checkpoint_frequency);
 
-	get_index_layout(layout, &index->layout);
+	get_uds_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;
 
 	result = ALLOCATE(index->zone_count, struct index_zone *, "zones",
@@ -109,8 +109,8 @@ int allocate_index(struct index_layout *layout,
 		result = make_index_zone(index, i);
 		if (result != UDS_SUCCESS) {
 			free_index(index);
-			return log_error_strerror(result,
-						  "Could not create index zone");
+			return uds_log_error_strerror(result,
+						      "Could not create index zone");
 		}
 	}
 
@@ -118,8 +118,8 @@ int allocate_index(struct index_layout *layout,
 					   index, NULL);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return log_error_strerror(result,
-					  "Could not create open chapter");
+		return uds_log_error_strerror(result,
+					      "Could not create open chapter");
 	}
 
 	*new_index = index;
@@ -145,6 +145,6 @@ void release_index(struct index *index)
 
 	free_index_state(index->state);
 	free_index_checkpoint(index->checkpoint);
-	put_index_layout(FORGET(index->layout));
+	put_uds_index_layout(FORGET(index->layout));
 	FREE(index);
 }

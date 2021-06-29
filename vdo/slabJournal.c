@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#99 $
  */
 
 #include "slabJournalInternals.h"
@@ -479,9 +479,9 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		if (result != VDO_READ_ONLY) {
 			// Don't bother logging what might be lots of errors if
 			// we are already in read-only mode.
-			log_error_strerror(result,
-					   "failed slab summary update %llu",
-					   (unsigned long long) journal->summarized);
+			uds_log_error_strerror(result,
+					       "failed slab summary update %llu",
+					       (unsigned long long) journal->summarized);
 		}
 
 		journal->updating_slab_summary = false;
@@ -613,9 +613,9 @@ static void complete_write(struct vdo_completion *completion)
 	return_vdo_block_allocator_vio(journal->slab->allocator, entry);
 
 	if (write_result != VDO_SUCCESS) {
-		log_error_strerror(write_result,
-				   "cannot write slab journal block %llu",
-				   (unsigned long long) committed);
+		uds_log_error_strerror(write_result,
+				       "cannot write slab journal block %llu",
+				       (unsigned long long) committed);
 		enter_journal_read_only_mode(journal, write_result);
 		return;
 	}

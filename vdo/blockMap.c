@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#111 $
  */
 
 #include "blockMap.h"
@@ -71,10 +71,10 @@ static int validate_page_on_read(void *buffer,
 	enum block_map_page_validity validity =
 		validate_vdo_block_map_page(page, nonce, pbn);
 	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
-		return log_error_strerror(VDO_BAD_PAGE,
-					  "Expected page %llu but got page %llu instead",
-					  (unsigned long long) pbn,
-					  (unsigned long long) get_vdo_block_map_page_pbn(page));
+		return uds_log_error_strerror(VDO_BAD_PAGE,
+					      "Expected page %llu but got page %llu instead",
+					      (unsigned long long) pbn,
+					      (unsigned long long) get_vdo_block_map_page_pbn(page));
 	}
 
 	if (validity == VDO_BLOCK_MAP_PAGE_INVALID) {
@@ -639,10 +639,10 @@ set_mapped_entry(struct data_vio *data_vio,
 
 	// Log the corruption even if we wind up ignoring it for write VIOs,
 	// converting all cases to VDO_BAD_MAPPING.
-	log_error_strerror(VDO_BAD_MAPPING,
-			   "PBN %llu with state %u read from the block map was invalid",
-			   (unsigned long long) mapped.pbn,
-			   mapped.state);
+	uds_log_error_strerror(VDO_BAD_MAPPING,
+			       "PBN %llu with state %u read from the block map was invalid",
+			       (unsigned long long) mapped.pbn,
+			       mapped.state);
 
 	// A read VIO has no option but to report the bad mapping--reading
 	// zeros would be hiding known data loss.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#38 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#41 $
  */
 
 #include "volume.h"
@@ -198,9 +198,9 @@ static int init_chapter_index_page(const struct volume *volume,
 		return result;
 	}
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "Reading chapter index page for chapter %u page %u",
-					  chapter, index_page_number);
+		return uds_log_error_strerror(result,
+					      "Reading chapter index page for chapter %u page %u",
+					      chapter, index_page_number);
 	}
 
 	result = get_list_number_bounds(volume->index_page_map, chapter,
@@ -218,16 +218,17 @@ static int init_chapter_index_page(const struct volume *volume,
 	}
 
 	uds_log_warning("Index page map updated to %llu",
-			get_last_update(volume->index_page_map));
+			(unsigned long long) get_last_update(volume->index_page_map));
 	uds_log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
 			chapter,
 			index_page_number,
 			bounds.lowest_list,
 			bounds.highest_list,
-			ci_virtual,
+			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
-	return ASSERT_WITH_ERROR_CODE(false, UDS_CORRUPT_DATA,
+	return ASSERT_WITH_ERROR_CODE(false,
+				      UDS_CORRUPT_DATA,
 				      "index page map mismatch with chapter index");
 }
 
@@ -843,7 +844,8 @@ int forget_chapter(struct volume *volume,
 	int result;
 	unsigned int physical_chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
-	uds_log_debug("forgetting chapter %llu", virtual_chapter);
+	uds_log_debug("forgetting chapter %llu",
+		      (unsigned long long) virtual_chapter);
 	lock_mutex(&volume->read_threads_mutex);
 	result = invalidate_page_cache_for_chapter(volume->page_cache,
 						   physical_chapter,
@@ -927,8 +929,8 @@ int write_index_pages(struct volume *volume,
 							index_page_number,
 						     &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to prepare index page");
+			return uds_log_warning_strerror(result,
+							"failed to prepare index page");
 		}
 
 		// Pack as many delta lists into the index page as will fit.
@@ -940,16 +942,16 @@ int write_index_pages(struct volume *volume,
 						      last_page,
 						      &lists_packed);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to pack index page");
+			return uds_log_warning_strerror(result,
+							"failed to pack index page");
 		}
 
 		result = write_volume_page(&volume->volume_store,
 					   physical_page + index_page_number,
 					   &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to write chapter index page");
+			return uds_log_warning_strerror(result,
+							"failed to write chapter index page");
 		}
 
 		if (pages != NULL) {
@@ -973,8 +975,8 @@ int write_index_pages(struct volume *volume,
 					       index_page_number,
 					       delta_list_number - 1);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(result,
-						  "failed to update index page map");
+			return uds_log_error_strerror(result,
+						      "failed to update index page map");
 		}
 
 		// Donate the page data for the index page to the page cache.
@@ -1013,8 +1015,8 @@ int write_record_pages(struct volume *volume,
 							record_page_number,
 						     &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to prepare record page");
+			return uds_log_warning_strerror(result,
+							"failed to prepare record page");
 		}
 
 		// Sort the next page of records and copy them to the record
@@ -1022,9 +1024,9 @@ int write_record_pages(struct volume *volume,
 		result = encode_record_page(volume, next_record,
 					    get_page_data(&volume->scratch_page));
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to encode record page %u",
-						    record_page_number);
+			return uds_log_warning_strerror(result,
+							"failed to encode record page %u",
+							record_page_number);
 		}
 		next_record += geometry->records_per_page;
 
@@ -1032,8 +1034,8 @@ int write_record_pages(struct volume *volume,
 					   physical_page + record_page_number,
 					   &volume->scratch_page);
 		if (result != UDS_SUCCESS) {
-			return log_warning_strerror(result,
-						    "failed to write chapter record page");
+			return uds_log_warning_strerror(result,
+							"failed to write chapter record page");
 		}
 
 		if (pages != NULL) {
@@ -1115,7 +1117,10 @@ static int probe_chapter(struct volume *volume,
 			last_vcn = vcn;
 		} else if (vcn != last_vcn) {
 			uds_log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
-				      chapter_number, i, last_vcn, vcn);
+				      chapter_number,
+				      i,
+				      (unsigned long long) last_vcn,
+				      (unsigned long long) vcn);
 			return UDS_CORRUPT_COMPONENT;
 		}
 
@@ -1141,7 +1146,7 @@ static int probe_chapter(struct volume *volume,
 	if (chapter_number != map_to_physical_chapter(geometry, last_vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
 			      chapter_number,
-			      last_vcn,
+			      (unsigned long long) last_vcn,
 			      geometry->chapters_per_volume);
 		return UDS_CORRUPT_COMPONENT;
 	}
@@ -1194,8 +1199,8 @@ static int find_real_end_of_volume(struct volume *volume,
 				span *= 2;
 			}
 		} else {
-			return log_error_strerror(result,
-						  "cannot determine end of volume");
+			return uds_log_error_strerror(result,
+						      "cannot determine end of volume");
 		}
 	}
 
@@ -1216,8 +1221,8 @@ int find_volume_chapter_boundaries(struct volume *volume,
 	int result =
 		find_real_end_of_volume(volume, chapter_limit, &chapter_limit);
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "cannot find end of volume");
+		return uds_log_error_strerror(result,
+					      "cannot find end of volume");
 	}
 
 	if (chapter_limit == 0) {
@@ -1369,14 +1374,14 @@ static int __must_check allocate_volume(const struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	volume->nonce = get_volume_nonce(layout);
+	volume->nonce = get_uds_volume_nonce(layout);
 	// It is safe to call free_volume now to clean up and close the volume
 
 	result = copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
-		return log_warning_strerror(result,
-					    "failed to allocate geometry: error");
+		return uds_log_warning_strerror(result,
+						"failed to allocate geometry: error");
 	}
 
 	// Need a buffer for each entry in the page cache

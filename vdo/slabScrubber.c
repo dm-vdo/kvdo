@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#74 $
  */
 
 #include "slabScrubberInternals.h"
@@ -286,24 +286,24 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 						      entry_point.entry_count);
 		if (entry.sbn > max_sbn) {
 			// This entry is out of bounds.
-			return log_error_strerror(VDO_CORRUPT_JOURNAL,
-						  "vdo_slab journal entry (%llu, %u) had invalid offset %u in slab (size %u blocks)",
-						  (unsigned long long) block_number,
-						  entry_point.entry_count,
-						  entry.sbn,
-						  max_sbn);
+			return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
+						      "vdo_slab journal entry (%llu, %u) had invalid offset %u in slab (size %u blocks)",
+						      (unsigned long long) block_number,
+						      entry_point.entry_count,
+						      entry.sbn,
+						      max_sbn);
 		}
 
 		result = vdo_replay_reference_count_change(slab->reference_counts,
 							   &entry_point, entry);
 		if (result != VDO_SUCCESS) {
-			log_error_strerror(result,
-					   "vdo_slab journal entry (%llu, %u) (%s of offset %u) could not be applied in slab %u",
-					   (unsigned long long) block_number,
-					   entry_point.entry_count,
-					   get_vdo_journal_operation_name(entry.operation),
-					   entry.sbn,
-					   slab->slab_number);
+			uds_log_error_strerror(result,
+					       "vdo_slab journal entry (%llu, %u) (%s of offset %u) could not be applied in slab %u",
+					       (unsigned long long) block_number,
+					       entry_point.entry_count,
+					       get_vdo_journal_operation_name(entry.operation),
+					       entry.sbn,
+					       slab->slab_number);
 			return result;
 		}
 		entry_point.entry_count++;

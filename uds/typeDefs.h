@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/typeDefs.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/typeDefs.h#2 $
  */
 
 #ifndef TYPE_DEFS_H
@@ -44,14 +44,7 @@ typedef unsigned char byte;
 // Some recent versions of <linux/kernel.h> define this for us
 #ifndef SIZE_MAX
 #define SIZE_MAX   ((size_t)~0ul)
-#endif
+#endif /* SIZE_MAX */
 
-#define PRId64 "lld"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-
-typedef unsigned long uintmax_t;
-#define PRIuMAX "lu"
 
 #endif /* TYPE_DEFS_H */

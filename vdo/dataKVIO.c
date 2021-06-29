@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#152 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#153 $
  */
 
 #include "dataKVIO.h"
@@ -647,8 +647,8 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 	int result = alloc_buffer_from_pool(layer->data_vio_pool,
 					    (void **) &data_vio);
 	if (result != VDO_SUCCESS) {
-		return log_error_strerror(result,
-					  "data vio allocation failure");
+		return uds_log_error_strerror(result,
+					      "data vio allocation failure");
 	}
 
 	vio = data_vio_as_vio(data_vio);
@@ -919,8 +919,8 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 	int result = ALLOCATE(1, struct data_vio, __func__, &data_vio);
 
 	if (result != VDO_SUCCESS) {
-		return log_error_strerror(result,
-					  "data_vio allocation failure");
+		return uds_log_error_strerror(result,
+					      "data_vio allocation failure");
 	}
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
@@ -928,32 +928,32 @@ static int allocate_pooled_data_vio(struct data_vio **data_vio_ptr)
 				 &data_vio->data_block);
 	if (result != VDO_SUCCESS) {
 		free_data_vio(FORGET(data_vio));
-		return log_error_strerror(result,
-					  "data_vio data allocation failure");
+		return uds_log_error_strerror(result,
+					      "data_vio data allocation failure");
 	}
 
 	vio = data_vio_as_vio(data_vio);
 	result = vdo_create_bio(&vio->bio);
 	if (result != VDO_SUCCESS) {
 		free_data_vio(FORGET(data_vio));
-		return log_error_strerror(result,
-					  "data_vio data bio allocation failure");
+		return uds_log_error_strerror(result,
+					      "data_vio data bio allocation failure");
 	}
 
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "vio read buffer",
 				 &data_vio->read_block.buffer);
 	if (result != VDO_SUCCESS) {
 		free_data_vio(FORGET(data_vio));
-		return log_error_strerror(result,
-					  "data_vio read allocation failure");
+		return uds_log_error_strerror(result,
+					      "data_vio read allocation failure");
 	}
 
 	result = allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch",
 				 &data_vio->scratch_block);
 	if (result != VDO_SUCCESS) {
 		free_data_vio(FORGET(data_vio));
-		return log_error_strerror(result,
-					  "data_vio scratch allocation failure");
+		return uds_log_error_strerror(result,
+					      "data_vio scratch allocation failure");
 	}
 
 	*data_vio_ptr = data_vio;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#26 $
  */
 
 #include "sysfs.h"
@@ -45,7 +45,7 @@ static int vdo_status_show(char *buf,
 static int vdo_log_level_show(char *buf,
 			      const struct kernel_param *kp)
 {
-	return sprintf(buf, "%s\n", priority_to_string(get_log_level()));
+	return sprintf(buf, "%s\n", uds_log_priority_to_string(get_uds_log_level()));
 }
 
 /**********************************************************************/
@@ -64,7 +64,7 @@ static int vdo_log_level_store(const char *buf,
 	if (internal_buf[n - 1] == '\n') {
 		internal_buf[n - 1] = '\000';
 	}
-	set_log_level(string_to_priority(internal_buf));
+	set_uds_log_level(uds_log_string_to_priority(internal_buf));
 	return 0;
 }
 

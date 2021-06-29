@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedReader.c#12 $
  */
 
 #include "bufferedReader.h"
@@ -80,7 +80,7 @@ int make_buffered_reader(struct io_factory *factory,
 	};
 
 	read_ahead(reader, 0);
-	get_io_factory(factory);
+	get_uds_io_factory(factory);
 	*reader_ptr = reader;
 	return UDS_SUCCESS;
 }
@@ -95,7 +95,7 @@ void free_buffered_reader(struct buffered_reader *br)
 		dm_bufio_release(br->br_buffer);
 	}
 	dm_bufio_client_destroy(br->br_client);
-	put_io_factory(br->br_factory);
+	put_uds_io_factory(br->br_factory);
 	FREE(br);
 }
 

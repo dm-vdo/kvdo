@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#18 $
  */
 
 #include "pbnLockPool.h"
@@ -108,8 +108,8 @@ int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	idle_pbn_lock *idle;
 
 	if (pool->borrowed >= pool->capacity) {
-		return log_error_strerror(VDO_LOCK_ERROR,
-					  "no free PBN locks left to borrow");
+		return uds_log_error_strerror(VDO_LOCK_ERROR,
+					      "no free PBN locks left to borrow");
 	}
 	pool->borrowed += 1;
 

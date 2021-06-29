@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#46 $
  */
 
 #include "volumeGeometry.h"
@@ -265,7 +265,7 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 	}
 
-	result = decode_volume_geometry(buffer, geometry, 
+	result = decode_volume_geometry(buffer, geometry,
 					header.version.major_version);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -311,7 +311,7 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	result = blk_status_to_errno(bio->bi_status);
 	vdo_free_bio(bio);
 	if (result != 0) {
-		log_error_strerror(result, "synchronous read failed");
+		uds_log_error_strerror(result, "synchronous read failed");
 		FREE(block);
 		return -EIO;
 	}
@@ -353,9 +353,9 @@ int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 	free_buffer(FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version)) {
-		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					  "release version %d cannot be loaded",
-					  geometry->release_version);
+		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					      "release version %d cannot be loaded",
+					      geometry->release_version);
 	}
 
 	return ((checksum == saved_checksum) ? VDO_SUCCESS :
@@ -371,8 +371,8 @@ int vdo_index_config_to_uds_configuration(const struct index_config *index_confi
 	int result = uds_initialize_configuration(&uds_configuration,
 						  index_config->mem);
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "error initializing configuration");
+		return uds_log_error_strerror(result,
+					      "error initializing configuration");
 	}
 
 	uds_configuration_set_sparse(uds_configuration, index_config->sparse);

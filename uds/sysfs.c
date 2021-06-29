@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#9 $
  */
 
 #include "sysfs.h"
@@ -147,14 +147,14 @@ static ssize_t parameter_store(struct kobject *kobj,
 
 static const char *parameter_show_log_level(void)
 {
-	return priority_to_string(get_log_level());
+	return uds_log_priority_to_string(get_uds_log_level());
 }
 
 /**********************************************************************/
 
 static void parameter_store_log_level(const char *string)
 {
-	set_log_level(string_to_priority(string));
+	set_uds_log_level(uds_log_string_to_priority(string));
 }
 
 /**********************************************************************/

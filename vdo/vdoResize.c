@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#56 $
  */
 
 #include "vdoResize.h"
@@ -78,8 +78,8 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	switch (admin_completion->phase++) {
 	case GROW_PHYSICAL_PHASE_START:
 		if (vdo_is_read_only(vdo->read_only_notifier)) {
-			log_error_strerror(VDO_READ_ONLY,
-					   "Can't grow physical size of a read-only VDO");
+			uds_log_error_strerror(VDO_READ_ONLY,
+					       "Can't grow physical size of a read-only VDO");
 			set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
 						  VDO_READ_ONLY);
 			break;
@@ -240,8 +240,8 @@ int prepare_vdo_to_grow_physical(struct vdo *vdo,
 	block_count_t current_physical_blocks =
 		vdo->states.vdo.config.physical_blocks;
 	if (new_physical_blocks < current_physical_blocks) {
-		return log_error_strerror(VDO_NOT_IMPLEMENTED,
-					  "Removing physical storage from a VDO is not supported");
+		return uds_log_error_strerror(VDO_NOT_IMPLEMENTED,
+					      "Removing physical storage from a VDO is not supported");
 	}
 
 	if (new_physical_blocks == current_physical_blocks) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#16 $
  */
 
 #include "threadConfig.h"
@@ -107,17 +107,17 @@ int make_vdo_thread_config(zone_count_t logical_zone_count,
 	}
 
 	if (physical_zone_count > MAX_VDO_PHYSICAL_ZONES) {
-		return log_error_strerror(VDO_BAD_CONFIGURATION,
-					  "Physical zone count %u exceeds maximum (%u)",
-					  physical_zone_count,
-					  MAX_VDO_PHYSICAL_ZONES);
+		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "Physical zone count %u exceeds maximum (%u)",
+					      physical_zone_count,
+					      MAX_VDO_PHYSICAL_ZONES);
 	}
 
 	if (logical_zone_count > MAX_VDO_LOGICAL_ZONES) {
-		return log_error_strerror(VDO_BAD_CONFIGURATION,
-					  "Logical zone count %u exceeds maximum (%u)",
-					  logical_zone_count,
-					  MAX_VDO_LOGICAL_ZONES);
+		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "Logical zone count %u exceeds maximum (%u)",
+					      logical_zone_count,
+					      MAX_VDO_LOGICAL_ZONES);
 	}
 
 	total = logical_zone_count + physical_zone_count + hash_zone_count + 2;

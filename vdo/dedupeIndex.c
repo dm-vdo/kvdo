@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#101 $
  */
 
 #include "dedupeIndex.h"
@@ -549,9 +549,9 @@ static void close_index(struct dedupe_index *index)
 	result = uds_close_index(index->index_session);
 
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result,
-				   "Error closing index %s",
-				   index->index_name);
+		uds_log_error_strerror(result,
+				       "Error closing index %s",
+				       index->index_name);
 	}
 	spin_lock(&index->state_lock);
 	index->index_state = IS_CLOSED;
@@ -577,9 +577,9 @@ static void open_index(struct dedupe_index *index)
 				index->index_name, &index->uds_params,
 				index->configuration, index->index_session);
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result,
-				   "Error opening index %s",
-				   index->index_name);
+		uds_log_error_strerror(result,
+				       "Error opening index %s",
+				       index->index_name);
 	}
 	spin_lock(&index->state_lock);
 	if (!create_flag) {
@@ -706,8 +706,8 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 		int result = uds_suspend_index_session(index->index_session,
 						       save_flag);
 		if (result != UDS_SUCCESS) {
-			log_error_strerror(result,
-					   "Error suspending dedupe index");
+			uds_log_error_strerror(result,
+					       "Error suspending dedupe index");
 		}
 	}
 }
@@ -717,7 +717,7 @@ void resume_vdo_dedupe_index(struct dedupe_index *index)
 {
 	int result = uds_resume_index_session(index->index_session);
 	if (result != UDS_SUCCESS) {
-		log_error_strerror(result, "Error resuming dedupe index");
+		uds_log_error_strerror(result, "Error resuming dedupe index");
 	}
 
 	spin_lock(&index->state_lock);
@@ -809,8 +809,8 @@ void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 		if (result == UDS_SUCCESS) {
 			stats->entries_indexed = index_stats.entries_indexed;
 		} else {
-			log_error_strerror(result,
-					   "Error reading index stats");
+			uds_log_error_strerror(result,
+					       "Error reading index stats");
 		}
 
 		result = uds_get_index_session_stats(index->index_session,
@@ -825,8 +825,8 @@ void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 			stats->updates_not_found =
 				context_stats.updates_not_found;
 		} else {
-			log_error_strerror(result,
-					   "Error reading context stats");
+			uds_log_error_strerror(result,
+					       "Error reading context stats");
 		}
 	}
 }

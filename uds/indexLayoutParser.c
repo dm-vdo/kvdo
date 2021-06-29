@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#11 $
  */
 
 #include "indexLayoutParser.h"
@@ -35,16 +35,16 @@ static int __must_check set_parameter_value(struct layout_parameter *lp,
 	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
 		int result = parse_uint64(data, lp->value.num);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-						  "bad numeric value %s",
-						  data);
+			return uds_log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+						      "bad numeric value %s",
+						      data);
 		}
 	} else if ((lp->type & LP_TYPE_MASK) == LP_STRING) {
 		*lp->value.str = data;
 	} else {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "unknown layout parameter type code %x",
-					  (lp->type & LP_TYPE_MASK));
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "unknown layout parameter type code %x",
+					      (lp->type & LP_TYPE_MASK));
 	}
 	return UDS_SUCCESS;
 }
@@ -83,14 +83,14 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 				}
 			}
 			if (lp->type == LP_NULL) {
-				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-							  "unknown index parameter %s",
-							  token);
+				return uds_log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+							      "unknown index parameter %s",
+							      token);
 			}
 			if (lp->seen) {
-				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-							  "duplicate index parameter %s",
-							  token);
+				return uds_log_error_strerror(UDS_INDEX_NAME_REQUIRED,
+							      "duplicate index parameter %s",
+							      token);
 			}
 			lp->seen = true;
 			result = set_parameter_value(

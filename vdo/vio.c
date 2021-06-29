@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#48 $
  */
 
 #include "vio.h"
@@ -183,11 +183,11 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 
 	case VDO_NO_SPACE:
 		atomic64_inc(&vio->vdo->stats.no_space_error_count);
-		priority = LOG_DEBUG;
+		priority = UDS_LOG_DEBUG;
 		break;
 
 	default:
-		priority = LOG_ERR;
+		priority = UDS_LOG_ERR;
 	}
 
 	if (!__ratelimit(&error_limiter)) {

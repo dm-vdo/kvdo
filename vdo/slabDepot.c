@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#111 $
  */
 
 #include "slabDepot.h"
@@ -237,10 +237,10 @@ static int allocate_components(struct slab_depot *depot,
 
 	slab_count = vdo_calculate_slab_count(depot);
 	if (thread_config->physical_zone_count > slab_count) {
-		return log_error_strerror(VDO_BAD_CONFIGURATION,
-					  "%u physical zones exceeds slab count %u",
-					  thread_config->physical_zone_count,
-					  slab_count);
+		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "%u physical zones exceeds slab count %u",
+					      thread_config->physical_zone_count,
+					      slab_count);
 	}
 
 	// Allocate the block allocators.
@@ -295,8 +295,8 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	// slabs. Using a shift requires that the slab size be a power of two.
 	block_count_t slab_size = state.slab_config.slab_blocks;
 	if (!is_power_of_2(slab_size)) {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "slab size must be a power of two");
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "slab size must be a power of two");
 	}
 	slab_size_shift = log_base_two(slab_size);
 
@@ -606,8 +606,8 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 						new_state.last_block,
 						depot->slab_size_shift);
 	if (new_slab_count <= depot->slab_count) {
-		return log_error_strerror(VDO_INCREMENT_TOO_SMALL,
-					  "Depot can only grow");
+		return uds_log_error_strerror(VDO_INCREMENT_TOO_SMALL,
+					      "Depot can only grow");
 	}
 	if (new_slab_count == depot->new_slab_count) {
 		// Check it out, we've already got all the new slabs allocated!
@@ -853,7 +853,7 @@ void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats)
 {
 	slab_count_t slab_count = READ_ONCE(depot->slab_count);
-	slab_count_t unrecovered = 
+	slab_count_t unrecovered =
 		get_vdo_slab_depot_unrecovered_slab_count(depot);
 
 	stats->recovery_percentage =

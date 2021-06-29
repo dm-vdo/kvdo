@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#25 $
  */
 
 #include "fixedLayout.h"
@@ -576,8 +576,8 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	block_count_t necessary_size = (starting_offset + block_map_blocks +
 					journal_blocks + summary_blocks);
 	if (necessary_size > physical_blocks) {
-		return log_error_strerror(VDO_NO_SPACE,
-					  "Not enough space to make a VDO");
+		return uds_log_error_strerror(VDO_NO_SPACE,
+					      "Not enough space to make a VDO");
 	}
 
 	result = make_vdo_fixed_layout(physical_blocks - starting_offset,

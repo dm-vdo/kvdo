@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#22 $
  */
 
 #ifndef LOGGER_H
@@ -26,26 +26,19 @@
 #include <linux/ratelimit.h>
 #include <linux/version.h>
 
-#define LOG_EMERG 0 /* system is unusable */
-#define LOG_ALERT 1 /* action must be taken immediately */
-#define LOG_CRIT 2 /* critical conditions */
-#define LOG_ERR 3 /* error conditions */
-#define LOG_WARNING 4 /* warning conditions */
-#define LOG_NOTICE 5 /* normal but significant condition */
-#define LOG_INFO 6 /* informational */
-#define LOG_DEBUG 7 /* debug-level messages */
+#define UDS_LOG_EMERG 0 /* system is unusable */
+#define UDS_LOG_ALERT 1 /* action must be taken immediately */
+#define UDS_LOG_CRIT 2 /* critical conditions */
+#define UDS_LOG_ERR 3 /* error conditions */
+#define UDS_LOG_WARNING 4 /* warning conditions */
+#define UDS_LOG_NOTICE 5 /* normal but significant condition */
+#define UDS_LOG_INFO 6 /* informational */
+#define UDS_LOG_DEBUG 7 /* debug-level messages */
 
 #if defined(__KERNEL__) && defined(MODULE)
 #define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
 #else // either userspace or compiled into the kernel
 #define UDS_LOGGING_MODULE_NAME "vdo"
-#endif
-
-// Make it easy to log real pointer values using %px when in development.
-#ifdef LOG_INTERNAL
-#define PRIptr "px"
-#else
-#define PRIptr "pK"
 #endif
 
 /*
@@ -55,7 +48,7 @@
  *                running in the kernel and the ratelimiter detects that we
  *                are calling it frequently.
  */
-#define log_ratelimit(log_fn, ...)                                        \
+#define uds_log_ratelimit(log_fn, ...)                                        \
 	do {                                                              \
 		static DEFINE_RATELIMIT_STATE(_rs,                        \
 					      DEFAULT_RATELIMIT_INTERVAL, \
@@ -77,30 +70,31 @@
  *
  * @return  the current logging priority level.
  **/
-int get_log_level(void);
+int get_uds_log_level(void);
 
 /**
  * Set the current logging level.
  *
  * @param new_log_level  the new value for the logging priority level.
  **/
-void set_log_level(int new_log_level);
+void set_uds_log_level(int new_log_level);
 
 /**
  * Return the integer logging priority represented by a name.
  *
  * @param string  the name of the logging priority (case insensitive).
  *
- * @return the integer priority named by string, or LOG_INFO if not recognized.
+ * @return the integer priority named by string, or UDS_LOG_INFO if not
+ *          recognized.
  **/
-int string_to_priority(const char *string);
+int uds_log_string_to_priority(const char *string);
 
 /**
  * Return the printable name of a logging priority.
  *
  * @return the priority name
  **/
-const char *priority_to_string(int priority);
+const char *uds_log_priority_to_string(int priority);
 
 /**
  * Log a message embedded within another message.
@@ -204,40 +198,28 @@ int uds_vlog_strerror(int priority,
  *
  * @return errnum
  **/
-#define log_error_strerror(errnum, ...) \
-	uds_log_error_strerror(errnum, __VA_ARGS__)
 #define uds_log_error_strerror(errnum, ...) \
-	uds_log_strerror(LOG_ERR, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_ERR, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-#define log_debug_strerror(errnum, ...) \
-	uds_log_debug_strerror(errnum, __VA_ARGS__)
 #define uds_log_debug_strerror(errnum, ...) \
-	uds_log_strerror(LOG_DEBUG, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_DEBUG, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-#define log_info_strerror(errnum, ...) \
-	uds_log_info_strerror(errnum, __VA_ARGS__)
 #define uds_log_info_strerror(errnum, ...) \
-	uds_log_strerror(LOG_INFO, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_INFO, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-#define log_notice_strerror(errnum, ...) \
-	uds_log_notice_strerror(errnum, __VA_ARGS__)
 #define uds_log_notice_strerror(errnum, ...) \
-	uds_log_strerror(LOG_NOTICE, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_NOTICE, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-#define log_warning_strerror(errnum, ...) \
-	uds_log_warning_strerror(errnum, __VA_ARGS__)
 #define uds_log_warning_strerror(errnum, ...) \
-	uds_log_strerror(LOG_WARNING, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_WARNING, errnum, __VA_ARGS__);
 
 /**********************************************************************/
-#define log_fatal_strerror(errnum, ...) \
-	uds_log_fatal_strerror(errnum, __VA_ARGS__)
 #define uds_log_fatal_strerror(errnum, ...) \
-	uds_log_strerror(LOG_CRIT, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_CRIT, errnum, __VA_ARGS__);
 
 /**
  * IF the result is an error, log a FATAL level message and return the result
@@ -249,7 +231,7 @@ int uds_vlog_strerror(int priority,
  *
  * @return make_unrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
-int log_unrecoverable(int errnum, const char *format, ...)
+int uds_log_unrecoverable(int errnum, const char *format, ...)
 	__printf(2, 3);
 
 /**
@@ -276,32 +258,32 @@ void __uds_log_message(int priority,
 /**
  * Log a debug message. Takes printf-style arguments.
  **/
-#define uds_log_debug(...) uds_log_message(LOG_DEBUG, __VA_ARGS__)
+#define uds_log_debug(...) uds_log_message(UDS_LOG_DEBUG, __VA_ARGS__)
 
 /**
  * Log an informational message. Takes printf-style arguments.
  **/
-#define uds_log_info(...) uds_log_message(LOG_INFO, __VA_ARGS__)
+#define uds_log_info(...) uds_log_message(UDS_LOG_INFO, __VA_ARGS__)
 
 /**
  * Log a normal (but notable) condition. Takes printf-style arguments.
  **/
-#define uds_log_notice(...) uds_log_message(LOG_NOTICE, __VA_ARGS__)
+#define uds_log_notice(...) uds_log_message(UDS_LOG_NOTICE, __VA_ARGS__)
 
 /**
  * Log a warning. Takes printf-style arguments.
  **/
-#define uds_log_warning(...) uds_log_message(LOG_WARNING, __VA_ARGS__)
+#define uds_log_warning(...) uds_log_message(UDS_LOG_WARNING, __VA_ARGS__)
 
 /**
  * Log an error. Takes printf-style arguments.
  **/
-#define uds_log_error(...) uds_log_message(LOG_ERR, __VA_ARGS__)
+#define uds_log_error(...) uds_log_message(UDS_LOG_ERR, __VA_ARGS__)
 
 /**
  * Log a fatal error. Takes printf-style arguments.
  **/
-#define uds_log_fatal(...) uds_log_message(LOG_CRIT, __VA_ARGS__)
+#define uds_log_fatal(...) uds_log_message(UDS_LOG_CRIT, __VA_ARGS__)
 
 /**
  * Sleep or delay a short time (likely a few milliseconds) in an attempt allow
@@ -310,7 +292,7 @@ void __uds_log_message(int priority,
  * quickly issuing a lot of log output in the Linux kernel, as when dumping a
  * large number of data structures.
  **/
-void pause_for_logger(void);
+void uds_pause_for_logger(void);
 
 
 #endif /* LOGGER_H */

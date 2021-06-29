@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#17 $
  */
 
 #include "logger.h"
@@ -33,19 +33,19 @@ typedef struct {
 } PriorityName;
 
 static const PriorityName PRIORITIES[] = {
-	{ "ALERT", LOG_ALERT },
-	{ "CRITICAL", LOG_CRIT },
-	{ "CRIT", LOG_CRIT },
-	{ "DEBUG", LOG_DEBUG },
-	{ "EMERGENCY", LOG_EMERG },
-	{ "EMERG", LOG_EMERG },
-	{ "ERROR", LOG_ERR },
-	{ "ERR", LOG_ERR },
-	{ "INFO", LOG_INFO },
-	{ "NOTICE", LOG_NOTICE },
-	{ "PANIC", LOG_EMERG },
-	{ "WARN", LOG_WARNING },
-	{ "WARNING", LOG_WARNING },
+	{ "ALERT", UDS_LOG_ALERT },
+	{ "CRITICAL", UDS_LOG_CRIT },
+	{ "CRIT", UDS_LOG_CRIT },
+	{ "DEBUG", UDS_LOG_DEBUG },
+	{ "EMERGENCY", UDS_LOG_EMERG },
+	{ "EMERG", UDS_LOG_EMERG },
+	{ "ERROR", UDS_LOG_ERR },
+	{ "ERR", UDS_LOG_ERR },
+	{ "INFO", UDS_LOG_INFO },
+	{ "NOTICE", UDS_LOG_NOTICE },
+	{ "PANIC", UDS_LOG_EMERG },
+	{ "WARN", UDS_LOG_WARNING },
+	{ "WARNING", UDS_LOG_WARNING },
 	{ NULL, -1 },
 };
 
@@ -60,22 +60,22 @@ static const char *const PRIORITY_STRINGS[] = {
 	"DEBUG",
 };
 
-static int log_level = LOG_INFO;
+static int log_level = UDS_LOG_INFO;
 
 /**********************************************************************/
-int get_log_level(void)
+int get_uds_log_level(void)
 {
 	return log_level;
 }
 
 /**********************************************************************/
-void set_log_level(int new_log_level)
+void set_uds_log_level(int new_log_level)
 {
 	log_level = new_log_level;
 }
 
 /**********************************************************************/
-int string_to_priority(const char *string)
+int uds_log_string_to_priority(const char *string)
 {
 	int i;
 	for (i = 0; PRIORITIES[i].name != NULL; i++) {
@@ -83,11 +83,11 @@ int string_to_priority(const char *string)
 			return PRIORITIES[i].priority;
 		}
 	}
-	return LOG_INFO;
+	return UDS_LOG_INFO;
 }
 
 /**********************************************************************/
-const char *priority_to_string(int priority)
+const char *uds_log_priority_to_string(int priority)
 {
 	if ((priority < 0) || (priority >= (int) COUNT_OF(PRIORITY_STRINGS))) {
 		return "unknown";
@@ -145,7 +145,7 @@ int __uds_log_strerror(int priority,
 }
 
 /**********************************************************************/
-int log_unrecoverable(int errnum, const char *format, ...)
+int uds_log_unrecoverable(int errnum, const char *format, ...)
 {
 	va_list args;
 
@@ -154,7 +154,7 @@ int log_unrecoverable(int errnum, const char *format, ...)
 	}
 
 	va_start(args, format);
-	uds_vlog_strerror(LOG_CRIT, errnum, NULL, format, args);
+	uds_vlog_strerror(UDS_LOG_CRIT, errnum, NULL, format, args);
 	va_end(args);
 	return make_unrecoverable(errnum);
 }
