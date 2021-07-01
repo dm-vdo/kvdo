@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#39 $
  */
 
 #include "superBlock.h"
@@ -82,7 +82,7 @@ int make_vdo_super_block(struct vdo *vdo,
 	struct vdo_super_block *super_block;
 	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
+		free_vdo_super_block(super_block);
 		return result;
 	}
 
@@ -91,18 +91,15 @@ int make_vdo_super_block(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_super_block(struct vdo_super_block **super_block_ptr)
+void free_vdo_super_block(struct vdo_super_block *super_block)
 {
-	struct vdo_super_block *super_block;
-	if (*super_block_ptr == NULL) {
+	if (super_block == NULL) {
 		return;
 	}
 
-	super_block = *super_block_ptr;
 	free_vio(FORGET(super_block->vio));
 	destroy_vdo_super_block_codec(&super_block->codec);
 	FREE(super_block);
-	*super_block_ptr = NULL;
 }
 
 /**
@@ -198,7 +195,7 @@ void load_vdo_super_block(struct vdo *vdo,
 	struct vdo_super_block *super_block = NULL;
 	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
+		free_vdo_super_block(super_block);
 		finish_vdo_completion(parent, result);
 		return;
 	}

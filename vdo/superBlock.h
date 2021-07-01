@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#16 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -38,11 +38,11 @@ int __must_check make_vdo_super_block(struct vdo *vdo,
 				      struct vdo_super_block **super_block_ptr);
 
 /**
- * Free a super block and null out the reference to it.
+ * Free a super block.
  *
- * @param super_block_ptr the reference to the super block to free
+ * @param super_block  The super block to free
  **/
-void free_super_block(struct vdo_super_block **super_block_ptr);
+void free_vdo_super_block(struct vdo_super_block *super_block);
 
 /**
  * Save a super block.
