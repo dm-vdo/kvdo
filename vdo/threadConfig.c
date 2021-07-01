@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#17 $
  */
 
 #include "threadConfig.h"
@@ -48,7 +48,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "logical thread array",
 			  &config->logical_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(&config);
+		free_vdo_thread_config(config);
 		return result;
 	}
 
@@ -57,7 +57,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "physical thread array",
 			  &config->physical_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(&config);
+		free_vdo_thread_config(config);
 		return result;
 	}
 
@@ -66,7 +66,7 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 			  "hash thread array",
 			  &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(&config);
+		free_vdo_thread_config(config);
 		return result;
 	}
 
@@ -192,19 +192,15 @@ int copy_vdo_thread_config(const struct thread_config *old_config,
 }
 
 /**********************************************************************/
-void free_vdo_thread_config(struct thread_config **config_ptr)
+void free_vdo_thread_config(struct thread_config *config)
 {
-	struct thread_config *config;
-	if (*config_ptr == NULL) {
+	if (config == NULL) {
 		return;
 	}
 
-	config = *config_ptr;
-	*config_ptr = NULL;
-
-	FREE(config->logical_threads);
-	FREE(config->physical_threads);
-	FREE(config->hash_zone_threads);
+	FREE(FORGET(config->logical_threads));
+	FREE(FORGET(config->physical_threads));
+	FREE(FORGET(config->hash_zone_threads));
 	FREE(config);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#10 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -78,11 +78,11 @@ int __must_check copy_vdo_thread_config(const struct thread_config *old_config,
 					struct thread_config **config_ptr);
 
 /**
- * Destroy a thread configuration and null out the reference to it.
+ * Destroy a thread configuration.
  *
- * @param config_ptr  The reference to the thread configuration to destroy
+ * @param config  The thread configuration to destroy
  **/
-void free_vdo_thread_config(struct thread_config **config_ptr);
+void free_vdo_thread_config(struct thread_config *config);
 
 /**
  * Get the thread id for a given logical zone.
