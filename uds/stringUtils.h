@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#6 $
  */
 
 #ifndef STRING_UTILS_H
@@ -36,7 +36,7 @@
  *
  * @return "true" if value is true, "false" otherwise.
  **/
-static INLINE const char *bool_to_string(bool value)
+static INLINE const char *uds_bool_to_string(bool value)
 {
 	return (value ? "true" : "false");
 }
@@ -51,9 +51,9 @@ static INLINE const char *bool_to_string(bool value)
  *
  * @return UDS_SUCCESS, or the appropriately translated asprintf error
  **/
-int __must_check alloc_sprintf(const char *what,
-			       char **strp,
-			       const char *fmt, ...)
+int __must_check uds_alloc_sprintf(const char *what,
+				   char **strp,
+				   const char *fmt, ...)
 	__printf(3, 4);
 
 /**
@@ -69,11 +69,11 @@ int __must_check alloc_sprintf(const char *what,
  *
  * @return <code>UDS_SUCCESS</code> or <code>error</code>
  **/
-int __must_check fixed_sprintf(const char *what,
-			       char *buf,
-			       size_t buf_size,
-			       int error,
-			       const char *fmt, ...)
+int __must_check uds_fixed_sprintf(const char *what,
+				   char *buf,
+				   size_t buf_size,
+				   int error,
+				   const char *fmt, ...)
 	__printf(5, 6);
 
 /**
@@ -98,13 +98,13 @@ int __must_check fixed_sprintf(const char *what,
  *         UDS_UNEXPECTED_RESULT if vsnprintf fails in some other undocumented
  *         way.
  **/
-int __must_check wrap_vsnprintf(const char *what,
-				char *buf,
-				size_t buf_size,
-				int error,
-				const char *fmt,
-				va_list ap,
-				size_t *needed)
+int __must_check uds_wrap_vsnprintf(const char *what,
+				    char *buf,
+				    size_t buf_size,
+				    int error,
+				    const char *fmt,
+				    va_list ap,
+				    size_t *needed)
 	__printf(5, 0);
 
 /**
@@ -118,7 +118,7 @@ int __must_check wrap_vsnprintf(const char *what,
  *
  * if insufficient space is available, the contents are silently truncated
  **/
-char *append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
+char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 	__printf(3, 4);
 
 /**
@@ -133,8 +133,8 @@ char *append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
  *
  * if insufficient space is available, the contents are silently truncated
  **/
-char *
-v_append_to_buffer(char *buffer, char *buf_end, const char *fmt, va_list args)
+char *uds_v_append_to_buffer(char *buffer, char *buf_end, const char *fmt,
+			     va_list args)
 	__printf(3, 0);
 
 /**
@@ -144,11 +144,11 @@ v_append_to_buffer(char *buffer, char *buf_end, const char *fmt, va_list args)
  *                      calls, NULL.
  * @param delims        The set of delimiter characters.
  * @param state_ptr     The address of a variable which holds the state of
- *                      the tokenization between calls to next_token.
+ *                      the tokenization between calls to uds_next_token.
  *
  * @return the next token if any, or NULL
  **/
-char *next_token(char *str, const char *delims, char **state_ptr);
+char *uds_next_token(char *str, const char *delims, char **state_ptr);
 
 /**
  * Parse a string representing a decimal uint64_t.
@@ -159,7 +159,7 @@ char *next_token(char *str, const char *delims, char **state_ptr);
  * @return UDS_SUCCESS or the error UDS_INVALID_ARGUMENT if the string
  *         is not in the correct format.
  **/
-int __must_check parse_uint64(const char *str, uint64_t *num);
+int __must_check uds_parse_uint64(const char *str, uint64_t *num);
 
 /**
  * Attempt to convert a string to an integer (base 10)
@@ -169,7 +169,7 @@ int __must_check parse_uint64(const char *str, uint64_t *num);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check string_to_signed_int(const char *nptr, int *num);
+int __must_check uds_string_to_signed_int(const char *nptr, int *num);
 
 /**
  * Attempt to convert a string to a long integer (base 10)
@@ -179,7 +179,7 @@ int __must_check string_to_signed_int(const char *nptr, int *num);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check string_to_signed_long(const char *nptr, long *num);
+int __must_check uds_string_to_signed_long(const char *nptr, long *num);
 
 /**
  * Attempt to convert a string to an unsigned integer (base 10).
@@ -189,7 +189,8 @@ int __must_check string_to_signed_long(const char *nptr, long *num);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check string_to_unsigned_int(const char *nptr, unsigned int *num);
+int __must_check
+uds_string_to_unsigned_int(const char *nptr, unsigned int *num);
 
 /**
  * Attempt to convert a string to an unsigned long integer (base 10).
@@ -199,6 +200,7 @@ int __must_check string_to_unsigned_int(const char *nptr, unsigned int *num);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check string_to_unsigned_long(const char *nptr, unsigned long *num);
+int __must_check
+uds_string_to_unsigned_long(const char *nptr, unsigned long *num);
 
 #endif /* STRING_UTILS_H */

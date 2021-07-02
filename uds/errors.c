@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#10 $
  */
 
 #include "errors.h"
@@ -277,8 +277,8 @@ const char *string_error(int errnum, char *buf, size_t buflen)
 	}
 
 	if (is_unrecoverable(errnum)) {
-		buffer = append_to_buffer(buffer, buf_end,
-					  "Unrecoverable error: ");
+		buffer = uds_append_to_buffer(buffer, buf_end,
+					      "Unrecoverable error: ");
 
 		errnum = sans_unrecoverable(errnum);
 	}
@@ -287,26 +287,27 @@ const char *string_error(int errnum, char *buf, size_t buflen)
 
 	if (block_name != NULL) {
 		if (info != NULL) {
-			buffer = append_to_buffer(buffer,
-						  buf_end,
-						  "%s: %s",
-						  block_name,
-						  info->message);
+			buffer = uds_append_to_buffer(buffer,
+						      buf_end,
+						      "%s: %s",
+						      block_name,
+						      info->message);
 		} else {
-			buffer = append_to_buffer(buffer,
-						  buf_end,
-						  "Unknown %s %d",
-						  block_name,
-						  errnum);
+			buffer = uds_append_to_buffer(buffer,
+						      buf_end,
+						      "Unknown %s %d",
+						      block_name,
+						      errnum);
 		}
 	} else if (info != NULL) {
-		buffer =
-			append_to_buffer(buffer, buf_end, "%s", info->message);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+					      info->message);
 	} else {
 		const char *tmp =
 			system_string_error(errnum, buffer, buf_end - buffer);
 		if (tmp != buffer) {
-			buffer = append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      tmp);
 		} else {
 			buffer += strlen(tmp);
 		}
@@ -327,19 +328,21 @@ const char *string_error_name(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL) {
-			buffer = append_to_buffer(buffer, buf_end, "%s",
-						  info->name);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      info->name);
 		} else {
-			buffer = append_to_buffer(buffer, buf_end, "%s %d",
-						  block_name, errnum);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s %d",
+						      block_name, errnum);
 		}
 	} else if (info != NULL) {
-		buffer = append_to_buffer(buffer, buf_end, "%s", info->name);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+					      info->name);
 	} else {
 		const char *tmp =
 			system_string_error(errnum, buffer, buf_end - buffer);
 		if (tmp != buffer) {
-			buffer = append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      tmp);
 		} else {
 			buffer += strlen(tmp);
 		}

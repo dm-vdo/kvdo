@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/hashUtils.c#10 $
  */
 
 #include "hashUtils.h"
@@ -50,12 +50,12 @@ static int data_to_hex(const unsigned char *data,
 						"hex data incorrect size");
 	}
 	for (i = 0; i < data_len; ++i) {
-		int rc = fixed_sprintf(__func__,
-				       &hex[2 * i],
-				       hex_len - (2 * i),
-				       UDS_INVALID_ARGUMENT,
-				       "%02X",
-				       data[i]);
+		int rc = uds_fixed_sprintf(__func__,
+					   &hex[2 * i],
+					   hex_len - (2 * i),
+					   UDS_INVALID_ARGUMENT,
+					   "%02X",
+					   data[i]);
 
 		if (rc != UDS_SUCCESS) {
 			return rc;

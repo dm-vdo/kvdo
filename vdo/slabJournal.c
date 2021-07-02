@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#101 $
  */
 
 #include "slabJournalInternals.h"
@@ -1331,8 +1331,8 @@ void dump_vdo_slab_journal(const struct slab_journal *journal)
 {
 	uds_log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s" " updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
 		     count_waiters(&journal->entry_waiters),
-		     bool_to_string(journal->waiting_to_commit),
-		     bool_to_string(journal->updating_slab_summary),
+		     uds_bool_to_string(journal->waiting_to_commit),
+		     uds_bool_to_string(journal->updating_slab_summary),
 		     (unsigned long long) journal->head,
 		     (unsigned long long) journal->unreapable,
 		     (unsigned long long) journal->tail,
@@ -1340,7 +1340,7 @@ void dump_vdo_slab_journal(const struct slab_journal *journal)
 		     (unsigned long long) journal->summarized,
 		     (unsigned long long) journal->last_summarized,
 		     (unsigned long long) journal->recovery_lock,
-		     bool_to_string(is_vdo_slab_journal_dirty(journal)));
+		     uds_bool_to_string(is_vdo_slab_journal_dirty(journal)));
 	// Given the frequency with which the locks are just a tiny bit off, it
 	// might be worth dumping all the locks, but that might be too much
 	// logging.

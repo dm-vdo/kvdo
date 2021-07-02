@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#10 $
  */
 
 #include "vdoStringUtils.h"
@@ -130,10 +130,10 @@ int vdo_join_strings(char **substring_array, size_t array_length,
 	current_position = &output[0];
 
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
-		current_position = append_to_buffer(current_position,
-						    output + string_length,
-						    "%s",
-						    substring_array[i]);
+		current_position = uds_append_to_buffer(current_position,
+							output + string_length,
+							"%s",
+							substring_array[i]);
 		*current_position = separator;
 		current_position++;
 	}

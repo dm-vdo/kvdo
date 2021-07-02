@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#12 $
  */
 
 #include "indexLayoutParser.h"
@@ -33,7 +33,7 @@ static int __must_check set_parameter_value(struct layout_parameter *lp,
 					    char *data)
 {
 	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
-		int result = parse_uint64(data, lp->value.num);
+		int result = uds_parse_uint64(data, lp->value.num);
 		if (result != UDS_SUCCESS) {
 			return uds_log_error_strerror(UDS_INDEX_NAME_REQUIRED,
 						      "bad numeric value %s",
@@ -66,8 +66,8 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 	} else {
 		char *data = NULL;
 		char *token;
-		for (token = next_token(info, " ", &data); token;
-		     token = next_token(NULL, " ", &data)) {
+		for (token = uds_next_token(info, " ", &data); token;
+		     token = uds_next_token(NULL, " ", &data)) {
 			int result;
 			char *equal = strchr(token, '=');
 			struct layout_parameter *lp;
