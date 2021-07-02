@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#86 $
  */
 
 #ifndef TYPES_H
@@ -298,17 +298,6 @@ struct slab_config {
 } __packed;
 
 /**
- * The configuration of the VDO service.
- **/
-struct vdo_config {
-	block_count_t logical_blocks; ///< number of logical blocks
-	block_count_t physical_blocks; ///< number of physical blocks
-	block_count_t slab_size; ///< number of blocks in a slab
-	block_count_t recovery_journal_size; ///< number of recovery journal blocks
-	block_count_t slab_journal_blocks; ///< number of slab journal blocks
-} __packed;
-
-/**
  * Forward declarations of abstract types
  **/
 struct action_manager;
@@ -345,6 +334,7 @@ struct slab_summary;
 struct slab_summary_zone;
 struct vdo;
 struct vdo_completion;
+struct vdo_config;
 struct vdo_extent;
 struct vdo_flush;
 struct vdo_layout;

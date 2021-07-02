@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#4 $
  */
 
 #ifndef VDO_COMPONENT_H
@@ -26,6 +26,17 @@
 
 #include "types.h"
 #include "vdoState.h"
+
+/**
+ * The configuration of the VDO service.
+ **/
+struct vdo_config {
+	block_count_t logical_blocks; ///< number of logical blocks
+	block_count_t physical_blocks; ///< number of physical blocks
+	block_count_t slab_size; ///< number of blocks in a slab
+	block_count_t recovery_journal_size; ///< number of recovery journal blocks
+	block_count_t slab_journal_blocks; ///< number of slab journal blocks
+} __packed;
 
 /**
  * This is the structure that captures the vdo fields saved as a super block
