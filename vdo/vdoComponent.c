@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#13 $
  */
 
 #include "vdoComponent.h"
@@ -45,7 +45,7 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 /**********************************************************************/
 size_t get_vdo_component_encoded_size(void)
 {
-	return (sizeof(struct version_number)
+	return (sizeof(struct packed_version_number)
 		+ sizeof(struct vdo_component_41_0));
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#17 $
  */
 
 #include "vdoComponentStates.h"
@@ -158,7 +158,7 @@ int validate_vdo_component_states(struct vdo_component_states *states,
 static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 {
 	return (sizeof(release_version_number_t) +
-		sizeof(struct version_number) +
+		sizeof(struct packed_version_number) +
 		get_vdo_component_encoded_size() +
 		get_vdo_fixed_layout_encoded_size(layout) +
 		get_vdo_recovery_journal_encoded_size() +
