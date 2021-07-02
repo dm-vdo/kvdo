@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#6 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -51,7 +51,7 @@ struct vdo_component_states {
 	struct version_number volume_version;
 
 	/* Components */
-	struct vdo_component_41_0 vdo;
+	struct vdo_component vdo;
 	struct block_map_state_2_0 block_map;
 	struct recovery_journal_state_7_0 recovery_journal;
 	struct slab_depot_state_2_0 slab_depot;

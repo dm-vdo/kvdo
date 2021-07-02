@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#14 $
  */
 
 #include "vdoComponent.h"
@@ -42,203 +42,162 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 	.minor_version = 0,
 };
 
+/**
+ * A packed, machine-independent, on-disk representation of the vdo_config
+ * in the VDO component data in the super block.
+ **/
+struct packed_vdo_config {
+	__le64 logical_blocks;
+	__le64 physical_blocks;
+	__le64 slab_size;
+	__le64 recovery_journal_size;
+	__le64 slab_journal_blocks;
+} __packed;
+
+/**
+ * A packed, machine-independent, on-disk representation of version 41.0
+ * of the VDO component data in the super block.
+ **/
+struct packed_vdo_component_41_0 {
+	__le32 state;
+	__le64 complete_recoveries;
+	__le64 read_only_recoveries;
+	struct packed_vdo_config config;
+	__le64 nonce;
+} __packed;
+
 /**********************************************************************/
 size_t get_vdo_component_encoded_size(void)
 {
 	return (sizeof(struct packed_version_number)
-		+ sizeof(struct vdo_component_41_0));
+		+ sizeof(struct packed_vdo_component_41_0));
 }
 
 /**
- * Encode a vdo_config structure into a buffer.
+ * Convert a vdo_config to its packed on-disk representation.
  *
- * @param config  The config structure to encode
- * @param buffer  A buffer positioned at the start of the encoding
+ * @param config  The vdo config to convert
  *
- * @return VDO_SUCCESS or an error
+ * @return the platform-independent representation of the config
  **/
-static int __must_check
-encode_vdo_config(const struct vdo_config *config, struct buffer *buffer)
+static inline struct packed_vdo_config
+pack_vdo_config(struct vdo_config config)
 {
-	int result = put_uint64_le_into_buffer(buffer, config->logical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
+	return (struct packed_vdo_config) {
+		.logical_blocks = __cpu_to_le64(config.logical_blocks),
+		.physical_blocks = __cpu_to_le64(config.physical_blocks),
+		.slab_size = __cpu_to_le64(config.slab_size),
+		.recovery_journal_size =
+			__cpu_to_le64(config.recovery_journal_size),
+		.slab_journal_blocks =
+			__cpu_to_le64(config.slab_journal_blocks),
+	};
+}
 
-	result = put_uint64_le_into_buffer(buffer, config->physical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, config->slab_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer,
-					   config->recovery_journal_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	return put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
+/**
+ * Convert a vdo_component to its packed on-disk representation.
+ *
+ * @param component  The VDO component data to convert
+ *
+ * @return the platform-independent representation of the component
+ **/
+static inline struct packed_vdo_component_41_0
+pack_vdo_component(const struct vdo_component component)
+{
+	return (struct packed_vdo_component_41_0) {
+		.state = __cpu_to_le32(component.state),
+		.complete_recoveries =
+			__cpu_to_le64(component.complete_recoveries),
+		.read_only_recoveries =
+			__cpu_to_le64(component.read_only_recoveries),
+		.config = pack_vdo_config(component.config),
+		.nonce = __cpu_to_le64(component.nonce),
+	};
 }
 
 /**********************************************************************/
-int encode_vdo_component(struct vdo_component_41_0 state,
-			 struct buffer *buffer)
+int encode_vdo_component(struct vdo_component component, struct buffer *buffer)
 {
-	size_t initial_length, encoded_size;
+	int result;
+	struct packed_vdo_component_41_0 packed;
 
-	int result = encode_vdo_version_number(VDO_COMPONENT_DATA_41_0, buffer);
+	result = encode_vdo_version_number(VDO_COMPONENT_DATA_41_0, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	initial_length = content_length(buffer);
-
-	result = put_uint32_le_into_buffer(buffer, state.state);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, state.complete_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, state.read_only_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = encode_vdo_config(&state.config, buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = put_uint64_le_into_buffer(buffer, state.nonce);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	encoded_size = content_length(buffer) - initial_length;
-	return ASSERT(encoded_size == sizeof(struct vdo_component_41_0),
-		      "encoded VDO component size must match structure size");
+	packed = pack_vdo_component(component);
+	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
 /**
- * Decode a vdo_config structure from a buffer.
+ * Convert a packed_vdo_config to its native in-memory representation.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param config  The config structure to receive the decoded values
+ * @param config  The packed vdo config to convert
  *
- * @return UDS_SUCCESS or an error code
+ * @return the native in-memory representation of the vdo config
  **/
-static int __must_check
-decode_vdo_config(struct buffer *buffer, struct vdo_config *config)
+static inline struct vdo_config
+unpack_vdo_config(struct packed_vdo_config config)
 {
-	block_count_t logical_blocks, physical_blocks, slab_size;
-	block_count_t recovery_journal_size, slab_journal_blocks;
-
-	int result = get_uint64_le_from_buffer(buffer, &logical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &physical_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &slab_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &recovery_journal_size);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &slab_journal_blocks);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*config = (struct vdo_config) {
-		.logical_blocks = logical_blocks,
-		.physical_blocks = physical_blocks,
-		.slab_size = slab_size,
-		.recovery_journal_size = recovery_journal_size,
-		.slab_journal_blocks = slab_journal_blocks,
+	return (struct vdo_config) {
+		.logical_blocks = __le64_to_cpu(config.logical_blocks),
+		.physical_blocks = __le64_to_cpu(config.physical_blocks),
+		.slab_size = __le64_to_cpu(config.slab_size),
+		.recovery_journal_size =
+			__le64_to_cpu(config.recovery_journal_size),
+		.slab_journal_blocks =
+			__le64_to_cpu(config.slab_journal_blocks),
 	};
-	return VDO_SUCCESS;
 }
 
 /**
- * Decode the version 41.0 component state for the vdo itself from a buffer.
+ * Convert a packed_vdo_component_41_0 to its native in-memory representation.
  *
- * @param buffer  A buffer positioned at the start of the encoding
- * @param state   The state structure to receive the decoded values
+ * @param component  The packed vdo component data to convert
+ *
+ * @return the native in-memory representation of the component
+ **/
+static inline struct vdo_component
+unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
+{
+	return (struct vdo_component) {
+		.state = __le32_to_cpu(component.state),
+		.complete_recoveries =
+			__le64_to_cpu(component.complete_recoveries),
+		.read_only_recoveries =
+			__le64_to_cpu(component.read_only_recoveries),
+		.config = unpack_vdo_config(component.config),
+		.nonce = __le64_to_cpu(component.nonce),
+	};
+}
+
+/**
+ * Decode the version 41.0 component data for the vdo itself from a buffer.
+ *
+ * @param buffer     A buffer positioned at the start of the encoding
+ * @param component  The component structure to receive the decoded values
  *
  * @return VDO_SUCCESS or an error
  **/
 static int __must_check
 decode_vdo_component_41_0(struct buffer *buffer,
-			  struct vdo_component_41_0 *state)
+			  struct vdo_component *component)
 {
-	size_t decoded_size, initial_length = content_length(buffer);
-
-	uint64_t complete_recoveries;
-	uint64_t read_only_recoveries;
-	struct vdo_config config;
-	nonce_t nonce;
-	enum vdo_state vdo_state;
-
-	int result = get_uint32_le_from_buffer(buffer, &vdo_state);
-	if (result != VDO_SUCCESS) {
+	struct packed_vdo_component_41_0 packed;
+	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
+	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &complete_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &read_only_recoveries);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_vdo_config(buffer, &config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = get_uint64_le_from_buffer(buffer, &nonce);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*state = (struct vdo_component_41_0) {
-		.state = vdo_state,
-		.complete_recoveries = complete_recoveries,
-		.read_only_recoveries = read_only_recoveries,
-		.config = config,
-		.nonce = nonce,
-	};
-
-	decoded_size = initial_length - content_length(buffer);
-	return ASSERT(decoded_size == sizeof(struct vdo_component_41_0),
-		      "decoded VDO component size must match structure size");
+	*component = unpack_vdo_component_41_0(packed);
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 int decode_vdo_component(struct buffer *buffer,
-			 struct vdo_component_41_0 *component_ptr)
+			 struct vdo_component *component)
 {
-	struct vdo_component_41_0 component;
 	struct version_number version;
 	int result = decode_vdo_version_number(buffer, &version);
 	if (result != VDO_SUCCESS) {
@@ -251,13 +210,7 @@ int decode_vdo_component(struct buffer *buffer,
 		return result;
 	}
 
-	result = decode_vdo_component_41_0(buffer, &component);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	*component_ptr = component;
-	return VDO_SUCCESS;
+	return decode_vdo_component_41_0(buffer, component);
 }
 
 /**********************************************************************/
