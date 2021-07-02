@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#34 $
  */
 
 #include "completion.h"
@@ -153,22 +153,10 @@ void release_vdo_completion(struct vdo_completion **completion_ptr)
 }
 
 /**********************************************************************/
-void release_vdo_completion_with_result(struct vdo_completion **completion_ptr,
-					int result)
-{
-	if (*completion_ptr == NULL) {
-		return;
-	}
-
-	set_vdo_completion_result(*completion_ptr, result);
-	release_vdo_completion(completion_ptr);
-}
-
-/**********************************************************************/
 void finish_vdo_completion_parent_callback(struct vdo_completion *completion)
 {
 	finish_vdo_completion((struct vdo_completion *) completion->parent,
-			  completion->result);
+			      completion->result);
 }
 
 /**********************************************************************/
