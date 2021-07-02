@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#22 $
  */
 
 #include "indexConfig.h"
@@ -186,14 +186,14 @@ static int read_version(struct buffered_reader *reader,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result,
 						      "cannot read config data");
 		}
 
 		clear_buffer(buffer);
 		result = decode_index_config_06_02(buffer, conf);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 	} else if (memcmp(INDEX_CONFIG_VERSION_8_02, version_buffer,
 			  INDEX_CONFIG_VERSION_LENGTH) == 0) {
 		struct buffer *buffer;
@@ -205,13 +205,13 @@ static int read_version(struct buffered_reader *reader,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result,
 						      "cannot read config data");
 		}
 		clear_buffer(buffer);
 		result = decode_index_config_08_02(buffer, conf);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 	} else {
 		uds_log_error_strerror(result,
 				       "unsupported configuration version: '%.*s'",
@@ -389,7 +389,7 @@ int write_config_contents(struct buffered_writer *writer,
 		}
 		result = encode_index_config_06_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	} else {
@@ -405,13 +405,13 @@ int write_config_contents(struct buffered_writer *writer,
 		}
 		result = encode_index_config_08_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	return result;
 }
 
@@ -428,7 +428,8 @@ int make_configuration(const struct uds_configuration *conf,
 					      "received an invalid config");
 	}
 
-	result = ALLOCATE(1, struct configuration, "configuration", &config);
+	result = UDS_ALLOCATE(1, struct configuration, "configuration",
+			      &config);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -458,6 +459,6 @@ void free_configuration(struct configuration *config)
 {
 	if (config != NULL) {
 		free_geometry(config->geometry);
-		FREE(config);
+		UDS_FREE(config);
 	}
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#18 $
  */
 
 #include "threadConfig.h"
@@ -38,33 +38,33 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 {
 	struct thread_config *config;
 	int result =
-		ALLOCATE(1, struct thread_config, "thread config", &config);
+		UDS_ALLOCATE(1, struct thread_config, "thread config", &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(logical_zone_count,
-			  thread_id_t,
-			  "logical thread array",
-			  &config->logical_threads);
-	if (result != VDO_SUCCESS) {
-		free_vdo_thread_config(config);
-		return result;
-	}
-
-	result = ALLOCATE(physical_zone_count,
-			  thread_id_t,
-			  "physical thread array",
-			  &config->physical_threads);
+	result = UDS_ALLOCATE(logical_zone_count,
+			      thread_id_t,
+			      "logical thread array",
+			      &config->logical_threads);
 	if (result != VDO_SUCCESS) {
 		free_vdo_thread_config(config);
 		return result;
 	}
 
-	result = ALLOCATE(hash_zone_count,
-			  thread_id_t,
-			  "hash thread array",
-			  &config->hash_zone_threads);
+	result = UDS_ALLOCATE(physical_zone_count,
+			      thread_id_t,
+			      "physical thread array",
+			      &config->physical_threads);
+	if (result != VDO_SUCCESS) {
+		free_vdo_thread_config(config);
+		return result;
+	}
+
+	result = UDS_ALLOCATE(hash_zone_count,
+			      thread_id_t,
+			      "hash thread array",
+			      &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
 		free_vdo_thread_config(config);
 		return result;
@@ -198,10 +198,10 @@ void free_vdo_thread_config(struct thread_config *config)
 		return;
 	}
 
-	FREE(FORGET(config->logical_threads));
-	FREE(FORGET(config->physical_threads));
-	FREE(FORGET(config->hash_zone_threads));
-	FREE(config);
+	UDS_FREE(UDS_FORGET(config->logical_threads));
+	UDS_FREE(UDS_FORGET(config->physical_threads));
+	UDS_FREE(UDS_FORGET(config->hash_zone_threads));
+	UDS_FREE(config);
 }
 
 /**********************************************************************/

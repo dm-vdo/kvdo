@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#16 $
  */
 
 #include "workQueueSysfs.h"
@@ -178,11 +178,11 @@ static void work_queue_release(struct kobject *kobj)
 {
 	struct vdo_work_queue *queue =
 		container_of(kobj, struct vdo_work_queue, kobj);
-	FREE(queue->name);
+	UDS_FREE(queue->name);
 	if (queue->round_robin_mode) {
-		FREE(as_round_robin_work_queue(queue));
+		UDS_FREE(as_round_robin_work_queue(queue));
 	} else {
-		FREE(as_simple_work_queue(queue));
+		UDS_FREE(as_simple_work_queue(queue));
 	}
 }
 

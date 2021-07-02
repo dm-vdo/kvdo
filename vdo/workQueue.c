@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#64 $
  */
 
 #include "workQueue.h"
@@ -525,10 +525,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	int i;
 	struct task_struct *thread = NULL;
 
-	int result = ALLOCATE(1,
-			      struct simple_work_queue,
-			      "simple work queue",
-			      &queue);
+	int result = UDS_ALLOCATE(1,
+				  struct simple_work_queue,
+				  "simple work queue",
+				  &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -552,7 +552,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			"invalid action code %u in work queue initialization",
 			code);
 		if (result != VDO_SUCCESS) {
-			FREE(queue);
+			UDS_FREE(queue);
 			return result;
 		}
 		result = ASSERT(
@@ -560,7 +560,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			"invalid action priority %u in work queue initialization",
 			priority);
 		if (result != VDO_SUCCESS) {
-			FREE(queue);
+			UDS_FREE(queue);
 			return result;
 		}
 		queue->priority_map[code] = priority;
@@ -569,9 +569,9 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	result = duplicate_string(name, "queue name", &queue->common.name);
+	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		FREE(queue);
+		UDS_FREE(queue);
 		return -ENOMEM;
 	}
 
@@ -667,18 +667,18 @@ int make_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct round_robin_work_queue,
-			  "round-robin work queue", &queue);
+	result = UDS_ALLOCATE(1, struct round_robin_work_queue,
+			      "round-robin work queue", &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(thread_count,
-			  struct simple_work_queue *,
-			  "subordinate work queues",
-			  &queue->service_queues);
+	result = UDS_ALLOCATE(thread_count,
+			      struct simple_work_queue *,
+			      "subordinate work queues",
+			      &queue->service_queues);
 	if (result != UDS_SUCCESS) {
-		FREE(queue);
+		UDS_FREE(queue);
 		return result;
 	}
 
@@ -686,10 +686,10 @@ int make_work_queue(const char *thread_name_prefix,
 	queue->common.round_robin_mode = true;
 	queue->common.owner = owner;
 
-	result = duplicate_string(name, "queue name", &queue->common.name);
+	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		FREE(queue->service_queues);
-		FREE(queue);
+		UDS_FREE(queue->service_queues);
+		UDS_FREE(queue);
 		return -ENOMEM;
 	}
 
@@ -720,7 +720,7 @@ int make_work_queue(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			// Destroy previously created subordinates.
-			free_work_queue(FORGET(*queue_ptr));
+			free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
 		queue->service_queues[i]->parent_queue = *queue_ptr;
@@ -810,7 +810,7 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 	for (i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
 	}
-	FREE(queue_table);
+	UDS_FREE(queue_table);
 	kobject_put(&queue->common.kobj);
 }
 

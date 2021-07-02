@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#71 $
  */
 
 #include "slabSummary.h"
@@ -113,8 +113,8 @@ initialize_slab_summary_block(struct vdo *vdo,
 			      block_count_t index,
 			      struct slab_summary_block *slab_summary_block)
 {
-	int result = ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
-			      &slab_summary_block->outgoing_entries);
+	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
+				  &slab_summary_block->outgoing_entries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -155,10 +155,10 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 {
 	struct slab_summary_zone *summary_zone;
 	block_count_t i;
-	int result = ALLOCATE_EXTENDED(struct slab_summary_zone,
-				       summary->blocks_per_zone,
-				       struct slab_summary_block, __func__,
-				       &summary->zones[zone_number]);
+	int result = UDS_ALLOCATE_EXTENDED(struct slab_summary_zone,
+					   summary->blocks_per_zone,
+					   struct slab_summary_block, __func__,
+					   &summary->zones[zone_number]);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -210,11 +210,11 @@ int make_vdo_slab_summary(struct vdo *vdo,
 		return VDO_SUCCESS;
 	}
 
-	result = ALLOCATE_EXTENDED(struct slab_summary,
-				   thread_config->physical_zone_count,
-				   struct slab_summary_zone *,
-				   __func__,
-				   &summary);
+	result = UDS_ALLOCATE_EXTENDED(struct slab_summary,
+				       thread_config->physical_zone_count,
+				       struct slab_summary_zone *,
+				       __func__,
+				       &summary);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -226,8 +226,8 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	summary->entries_per_block = entries_per_block;
 
 	total_entries = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES;
-	result = ALLOCATE(total_entries, struct slab_summary_entry,
-			  "summary entries", &summary->entries);
+	result = UDS_ALLOCATE(total_entries, struct slab_summary_entry,
+			      "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
 		free_vdo_slab_summary(&summary);
 		return result;
@@ -280,15 +280,15 @@ void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr)
 		if (summary_zone != NULL) {
 			block_count_t i;
 			for (i = 0; i < summary->blocks_per_zone; i++) {
-				free_vio(FORGET(summary_zone->summary_blocks[i].vio));
-				FREE(summary_zone->summary_blocks[i]
+				free_vio(UDS_FORGET(summary_zone->summary_blocks[i].vio));
+				UDS_FREE(summary_zone->summary_blocks[i]
 					     .outgoing_entries);
 			}
-			FREE(summary_zone);
+			UDS_FREE(summary_zone);
 		}
 	}
-	FREE(summary->entries);
-	FREE(summary);
+	UDS_FREE(summary->entries);
+	UDS_FREE(summary);
 	*slab_summary_ptr = NULL;
 }
 
@@ -580,7 +580,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
-	free_vdo_extent(vdo_completion_as_extent(FORGET(completion)));
+	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 

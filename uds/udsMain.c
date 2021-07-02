@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#28 $
  */
 
 #include "uds.h"
@@ -104,7 +104,7 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 		return UDS_INVALID_MEMORY_SIZE;
 	}
 
-	result = ALLOCATE(1, struct uds_configuration, "uds_configuration",
+	result = UDS_ALLOCATE(1, struct uds_configuration, "uds_configuration",
 			      user_config);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -228,7 +228,7 @@ uds_configuration_get_chapters_per_volume(struct uds_configuration *user_config)
 /**********************************************************************/
 void uds_free_configuration(struct uds_configuration *user_config)
 {
-	FREE(user_config);
+	UDS_FREE(user_config);
 }
 
 /**********************************************************************/

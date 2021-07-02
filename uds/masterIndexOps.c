@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#19 $
  */
 #include "masterIndexOps.h"
 
@@ -227,12 +227,12 @@ int restore_volume_index(struct buffered_reader **buffered_readers,
 {
 	byte *dl_data;
 	int result =
-		ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
+		UDS_ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	result = restore_volume_index_body(buffered_readers, num_readers,
 					   volume_index, dl_data);
-	FREE(dl_data);
+	UDS_FREE(dl_data);
 	return result;
 }

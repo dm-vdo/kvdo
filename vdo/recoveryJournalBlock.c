@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#60 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -48,15 +48,15 @@ int make_vdo_recovery_block(struct vdo *vdo,
 		      	    - sizeof(struct packed_journal_header))
 			  / sizeof(struct packed_recovery_journal_entry)));
 
-	result = ALLOCATE(1, struct recovery_journal_block, __func__, &block);
+	result = UDS_ALLOCATE(1, struct recovery_journal_block, __func__, &block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	// Allocate a full block for the journal block even though not all of
 	// the space is used since the VIO needs to write a full disk block.
-	result = ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
-			  &block->block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
+			      &block->block);
 	if (result != VDO_SUCCESS) {
 		free_vdo_recovery_block(&block);
 		return result;
@@ -89,9 +89,9 @@ void free_vdo_recovery_block(struct recovery_journal_block **block_ptr)
 		return;
 	}
 
-	FREE(block->block);
-	free_vio(FORGET(block->vio));
-	FREE(block);
+	UDS_FREE(block->block);
+	free_vio(UDS_FORGET(block->vio));
+	UDS_FREE(block);
 	*block_ptr = NULL;
 }
 

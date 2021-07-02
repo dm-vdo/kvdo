@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#26 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -106,7 +106,7 @@ struct ref_counts {
 	/** The number of free blocks */
 	uint32_t free_blocks;
 	/** The array of reference counts */
-	vdo_refcount_t *counters; // use ALLOCATE to align data ptr
+	vdo_refcount_t *counters; // use UDS_ALLOCATE to align data ptr
 
 	/**
 	 * The saved block pointer and array indexes for the free block search

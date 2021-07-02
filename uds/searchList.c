@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/searchList.c#11 $
  */
 
 #include "searchList.h"
@@ -44,7 +44,7 @@ int make_search_list(unsigned int capacity, struct search_list **list_ptr)
 	// We need three temporary entry arrays for purge_search_list().
 	// Allocate them contiguously with the main array.
 	bytes = sizeof(struct search_list) + (4 * capacity * sizeof(uint8_t));
-	result = allocate_cache_aligned(bytes, "search list", &list);
+	result = uds_allocate_cache_aligned(bytes, "search list", &list);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

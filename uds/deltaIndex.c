@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#28 $
  */
 #include "deltaIndex.h"
 
@@ -593,10 +593,10 @@ int initialize_delta_index(struct delta_index *delta_index,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	result = ALLOCATE(num_zones,
-			  struct delta_memory,
-			  "Delta Index Zones",
-			  &delta_index->delta_zones);
+	result = UDS_ALLOCATE(num_zones,
+			      struct delta_memory,
+			      "Delta Index Zones",
+			      &delta_index->delta_zones);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -770,7 +770,7 @@ void uninitialize_delta_index(struct delta_index *delta_index)
 		for (z = 0; z < delta_index->num_zones; z++) {
 			uninitialize_delta_memory(&delta_index->delta_zones[z]);
 		}
-		FREE(delta_index->delta_zones);
+		UDS_FREE(delta_index->delta_zones);
 		memset(delta_index, 0, sizeof(struct delta_index));
 	}
 }
@@ -959,19 +959,19 @@ static int __must_check read_delta_index_header(struct buffered_reader *reader,
 	result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return uds_log_warning_strerror(result,
 						"failed to read delta index header");
 	}
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_delta_index_header(buffer, header);
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	return result;
 }
 
@@ -1217,14 +1217,14 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 
 	result = encode_delta_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_warning_strerror(result,
 						"failed to write delta index header");

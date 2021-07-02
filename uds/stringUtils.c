@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.c#9 $
  */
 
 #include "stringUtils.h"
@@ -36,11 +36,12 @@ int alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	if (strp == NULL) {
 		return UDS_INVALID_ARGUMENT;
 	}
-	// We want the memory allocation to use our own ALLOCATE/FREE wrappers.
+	// We want the memory allocation to use our own UDS_ALLOCATE/UDS_FREE
+	// wrappers.
 	va_start(args, fmt);
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
 	va_end(args);
-	result = ALLOCATE(count, char, what, strp);
+	result = UDS_ALLOCATE(count, char, what, strp);
 	if (result == UDS_SUCCESS) {
 		va_start(args, fmt);
 		vsnprintf(*strp, count, fmt, args);

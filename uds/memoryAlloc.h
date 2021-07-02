@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#11 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -43,17 +43,17 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check allocate_memory(size_t size,
-				 size_t align,
-				 const char *what,
-				 void *ptr);
+int __must_check uds_allocate_memory(size_t size,
+				     size_t align,
+				     const char *what,
+				     void *ptr);
 
 /**
  * Free storage
  *
  * @param ptr  The memory to be freed
  **/
-void free_memory(void *ptr);
+void uds_free_memory(void *ptr);
 
 /**
  * Null out a reference and return a copy of the referenced object.
@@ -62,7 +62,7 @@ void free_memory(void *ptr);
  *
  * @return A copy of the reference
  **/
-static INLINE void *forget(void **ptr_ptr)
+static INLINE void *uds_forget(void **ptr_ptr)
 {
         void *ptr = *ptr_ptr;
 
@@ -79,7 +79,7 @@ static INLINE void *forget(void **ptr_ptr)
  *
  * @return A copy of the NULLed out pointer
  **/
-#define FORGET(ptr) forget((void **) &(ptr))
+#define UDS_FORGET(ptr) uds_forget((void **) &(ptr))
 
 /**
  * Allocate storage based on element counts, sizes, and alignment.
@@ -106,12 +106,12 @@ static INLINE void *forget(void **ptr_ptr)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int do_allocation(size_t count,
-				size_t size,
-				size_t extra,
-				size_t align,
-				const char *what,
-				void *ptr)
+static INLINE int uds_do_allocation(size_t count,
+				    size_t size,
+				    size_t extra,
+				    size_t align,
+				    const char *what,
+				    void *ptr)
 {
 	size_t total_size = count * size + extra;
 	// Overflow check:
@@ -126,7 +126,7 @@ static INLINE int do_allocation(size_t count,
 		total_size = SIZE_MAX;
 	}
 
-	return allocate_memory(total_size, align, what, ptr);
+	return uds_allocate_memory(total_size, align, what, ptr);
 }
 
 /**
@@ -142,11 +142,11 @@ static INLINE int do_allocation(size_t count,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check reallocate_memory(void *ptr,
-				   size_t old_size,
-				   size_t size,
-				   const char *what,
-				   void *new_ptr);
+int __must_check uds_reallocate_memory(void *ptr,
+				       size_t old_size,
+				       size_t size,
+				       const char *what,
+				       void *new_ptr);
 
 /**
  * Allocate one or more elements of the indicated type, logging an
@@ -160,8 +160,8 @@ int __must_check reallocate_memory(void *ptr,
  *
  * @return UDS_SUCCESS or an error code
  **/
-#define ALLOCATE(COUNT, TYPE, WHAT, PTR) \
-	do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
+#define UDS_ALLOCATE(COUNT, TYPE, WHAT, PTR) \
+	uds_do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
 
 /**
  * Allocate one object of an indicated type, followed by one or more
@@ -177,12 +177,12 @@ int __must_check reallocate_memory(void *ptr,
  *
  * @return UDS_SUCCESS or an error code
  **/
-#define ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)                \
+#define UDS_ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)            \
 	__extension__({                                                  \
 		int _result;						 \
 		TYPE1 **_ptr = (PTR);                                    \
 		STATIC_ASSERT(__alignof__(TYPE1) >= __alignof__(TYPE2)); \
-		_result = do_allocation(COUNT,                       \
+		_result = uds_do_allocation(COUNT,                       \
 					    sizeof(TYPE2),               \
 					    sizeof(TYPE1),               \
 					    __alignof__(TYPE1),          \
@@ -203,17 +203,17 @@ int __must_check reallocate_memory(void *ptr,
  *
  * @return UDS_SUCCESS or an error code
  **/
-#define ALLOCATE_IO_ALIGNED(COUNT, TYPE, WHAT, PTR) \
-	do_allocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
+#define UDS_ALLOCATE_IO_ALIGNED(COUNT, TYPE, WHAT, PTR) \
+	uds_do_allocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
 
 /**
- * Free memory allocated with ALLOCATE().
+ * Free memory allocated with UDS_ALLOCATE().
  *
  * @param ptr    Pointer to the memory to free
  **/
-static INLINE void FREE(void *ptr)
+static INLINE void UDS_FREE(void *ptr)
 {
-	free_memory(ptr);
+	uds_free_memory(ptr);
 }
 
 /**
@@ -226,11 +226,11 @@ static INLINE void FREE(void *ptr)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static INLINE int __must_check allocate_cache_aligned(size_t size,
-						      const char *what,
-						      void *ptr)
+static INLINE int __must_check uds_allocate_cache_aligned(size_t size,
+							  const char *what,
+							  void *ptr)
 {
-	return allocate_memory(size, CACHE_LINE_BYTES, what, ptr);
+	return uds_allocate_memory(size, CACHE_LINE_BYTES, what, ptr);
 }
 
 /**
@@ -243,7 +243,7 @@ static INLINE int __must_check allocate_cache_aligned(size_t size,
  * @return pointer to the allocated memory, or NULL if the required space is
  *         not available.
  **/
-void *__must_check allocate_memory_nowait(size_t size, const char *what);
+void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
 
 /**
  * Allocate one element of the indicated type immediately, failing if the
@@ -254,7 +254,8 @@ void *__must_check allocate_memory_nowait(size_t size, const char *what);
  *
  * @return pointer to the memory, or NULL if the memory is not available.
  **/
-#define ALLOCATE_NOWAIT(TYPE, WHAT) allocate_memory_nowait(sizeof(TYPE), WHAT)
+#define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) \
+	uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
 
 /**
  * Duplicate a string.
@@ -265,9 +266,9 @@ void *__must_check allocate_memory_nowait(size_t size, const char *what);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check duplicate_string(const char *string,
-				  const char *what,
-				  char **new_string);
+int __must_check uds_duplicate_string(const char *string,
+				      const char *what,
+				      char **new_string);
 
 /**
  * Duplicate a buffer, logging an error if the allocation fails.
@@ -279,34 +280,34 @@ int __must_check duplicate_string(const char *string,
  *
  * @return UDS_SUCCESS or ENOMEM
  **/
-int __must_check memdup(const void *ptr,
-			size_t size,
-			const char *what,
-			void *dup_ptr);
+int __must_check uds_memdup(const void *ptr,
+			    size_t size,
+			    const char *what,
+			    void *dup_ptr);
 
 /**
  * Wrapper which permits freeing a const pointer.
  *
  * @param pointer  the pointer to be freed
  **/
-static INLINE void free_const(const void *pointer)
+static INLINE void uds_free_const(const void *pointer)
 {
 	union {
 		const void *const_p;
 		void *not_const;
 	} u = { .const_p = pointer };
-	FREE(u.not_const);
+	UDS_FREE(u.not_const);
 }
 
 /**
  * Perform termination of the memory allocation subsystem.
  **/
-void memory_exit(void);
+void uds_memory_exit(void);
 
 /**
  * Perform initialization of the memory allocation subsystem.
  **/
-void memory_init(void);
+void uds_memory_init(void);
 
 /**
  * Register the current thread as an allocating thread.
@@ -322,13 +323,13 @@ void memory_init(void);
  * @param new_thread  registered_thread structure to use for the current thread
  * @param flag_ptr    Location of the allocation-allowed flag
  **/
-void register_allocating_thread(struct registered_thread *new_thread,
-				const bool *flag_ptr);
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr);
 
 /**
  * Unregister the current thread as an allocating thread.
  **/
-void unregister_allocating_thread(void);
+void uds_unregister_allocating_thread(void);
 
 /**
  * Get the memory statistics.
@@ -337,7 +338,7 @@ void unregister_allocating_thread(void);
  * @param peak_bytes_used A pointer to hold the maximum value bytes_used has
  *                      attained
  **/
-void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used);
+void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used);
 
 /**
  * Report stats on any allocated memory that we're tracking.
@@ -345,7 +346,7 @@ void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used);
  * Not all allocation types are guaranteed to be tracked in bytes
  * (e.g., bios).
  **/
-void report_memory_usage(void);
+void report_uds_memory_usage(void);
 
 
 #endif /* MEMORY_ALLOC_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#92 $
  */
 
 #include "vdoLoad.h"
@@ -390,10 +390,10 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = ALLOCATE(thread_config->hash_zone_count,
-			  struct hash_zone *,
-			  __func__,
-			  &vdo->hash_zones);
+	result = UDS_ALLOCATE(thread_config->hash_zone_count,
+			      struct hash_zone *,
+			      __func__,
+			      &vdo->hash_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -410,10 +410,10 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	result = ALLOCATE(thread_config->physical_zone_count,
-			  struct physical_zone *,
-			  __func__,
-			  &vdo->physical_zones);
+	result = UDS_ALLOCATE(thread_config->physical_zone_count,
+			      struct physical_zone *,
+			      __func__,
+			      &vdo->physical_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

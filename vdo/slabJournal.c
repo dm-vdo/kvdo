@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#99 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#100 $
  */
 
 #include "slabJournalInternals.h"
@@ -181,11 +181,11 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 	struct slab_journal *journal;
 	const struct slab_config *slab_config =
 		get_vdo_slab_config(allocator->depot);
-	int result = ALLOCATE_EXTENDED(struct slab_journal,
-				       slab_config->slab_journal_blocks,
-				       struct journal_lock,
-				       __func__,
-				       &journal);
+	int result = UDS_ALLOCATE_EXTENDED(struct slab_journal,
+					   slab_config->slab_journal_blocks,
+					   struct journal_lock,
+					   __func__,
+					   &journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -215,10 +215,10 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 
 	journal->slab_summary_waiter.callback = release_journal_locks;
 
-	result = ALLOCATE(VDO_BLOCK_SIZE,
-			  char,
-			  "struct packed_slab_journal_block",
-			  (char **)&journal->block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
+			      char,
+			      "struct packed_slab_journal_block",
+			      (char **)&journal->block);
 	if (result != VDO_SUCCESS) {
 		free_vdo_slab_journal(&journal);
 		return result;
@@ -243,8 +243,8 @@ void free_vdo_slab_journal(struct slab_journal **journal_ptr)
 		return;
 	}
 
-	FREE(journal->block);
-	FREE(journal);
+	UDS_FREE(journal->block);
+	UDS_FREE(journal);
 	*journal_ptr = NULL;
 }
 

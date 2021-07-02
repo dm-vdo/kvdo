@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#59 $
  */
 
 #include "bio.h"
@@ -76,7 +76,7 @@ void vdo_free_bio(struct bio *bio)
 	}
 
 	bio_uninit(bio);
-	FREE(FORGET(bio));
+	UDS_FREE(UDS_FORGET(bio));
 }
 
 /**********************************************************************/
@@ -278,8 +278,8 @@ void vdo_reset_bio_with_user_bio(struct bio *bio,
 int vdo_create_bio(struct bio **bio_ptr)
 {
 	struct bio *bio = NULL;
-	int result = ALLOCATE_EXTENDED(struct bio, INLINE_BVEC_COUNT,
-				       struct bio_vec, "bio", &bio);
+	int result = UDS_ALLOCATE_EXTENDED(struct bio, INLINE_BVEC_COUNT,
+					   struct bio_vec, "bio", &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

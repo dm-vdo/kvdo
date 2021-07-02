@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#119 $
  */
 
 #include "recoveryJournal.h"
@@ -425,7 +425,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 	block_count_t journal_length;
 	block_count_t i;
 	struct recovery_journal *journal;
-	int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
+	int result = UDS_ALLOCATE(1, struct recovery_journal, __func__, &journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -513,8 +513,8 @@ void free_vdo_recovery_journal(struct recovery_journal **journal_ptr)
 		return;
 	}
 
-	free_vdo_lock_counter(FORGET(journal->lock_counter));
-	free_vio(FORGET(journal->flush_vio));
+	free_vdo_lock_counter(UDS_FORGET(journal->lock_counter));
+	free_vio(UDS_FORGET(journal->flush_vio));
 
 	// XXX: eventually, the journal should be constructed in a quiescent
 	// state
@@ -535,7 +535,7 @@ void free_vdo_recovery_journal(struct recovery_journal **journal_ptr)
 		free_vdo_recovery_block(&block);
 	}
 
-	FREE(journal);
+	UDS_FREE(journal);
 	*journal_ptr = NULL;
 }
 

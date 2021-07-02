@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#112 $
  */
 
 #include "blockMap.h"
@@ -235,7 +235,7 @@ static bool schedule_era_advance(void *context)
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	vdo_uninitialize_block_map_tree_zone(&zone->tree_zone);
-	free_vdo_page_cache(FORGET(zone->page_cache));
+	free_vdo_page_cache(UDS_FORGET(zone->page_cache));
 }
 
 /**********************************************************************/
@@ -253,9 +253,9 @@ void free_vdo_block_map(struct block_map **map_ptr)
 
 	vdo_abandon_block_map_growth(map);
 	free_vdo_forest(&map->forest);
-	FREE(FORGET(map->action_manager));
+	UDS_FREE(UDS_FORGET(map->action_manager));
 
-	FREE(map);
+	UDS_FREE(map);
 	*map_ptr = NULL;
 }
 
@@ -284,11 +284,11 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 		return result;
 	}
 
-	result = ALLOCATE_EXTENDED(struct block_map,
-				   thread_config->logical_zone_count,
-				   struct block_map_zone,
-				   __func__,
-				   &map);
+	result = UDS_ALLOCATE_EXTENDED(struct block_map,
+				       thread_config->logical_zone_count,
+				       struct block_map_zone,
+				       __func__,
+				       &map);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#77 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -133,16 +133,16 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
 	uint64_t size = cache->page_count * (uint64_t) VDO_BLOCK_SIZE;
 
-	int result = ALLOCATE(cache->page_count,
-			      struct page_info,
-			      "page infos",
-			      &cache->infos);
+	int result = UDS_ALLOCATE(cache->page_count,
+				  struct page_info,
+				  "page infos",
+				  &cache->infos);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = allocate_memory(size, VDO_BLOCK_SIZE, "cache pages",
-				 &cache->pages);
+	result = uds_allocate_memory(size, VDO_BLOCK_SIZE, "cache pages",
+				     &cache->pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -211,7 +211,7 @@ int make_vdo_page_cache(struct vdo *vdo,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct vdo_page_cache, "page cache", &cache);
+	result = UDS_ALLOCATE(1, struct vdo_page_cache, "page cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -262,15 +262,15 @@ void free_vdo_page_cache(struct vdo_page_cache *cache)
 		for (info = cache->infos;
 		     info < cache->infos + cache->page_count;
 		     ++info) {
-			free_vio(FORGET(info->vio));
+			free_vio(UDS_FORGET(info->vio));
 		}
 	}
 
-	FREE(FORGET(cache->dirty_lists));
-	free_int_map(FORGET(cache->page_map));
-	FREE(FORGET(cache->infos));
-	FREE(FORGET(cache->pages));
-	FREE(cache);
+	UDS_FREE(UDS_FORGET(cache->dirty_lists));
+	free_int_map(UDS_FORGET(cache->page_map));
+	UDS_FREE(UDS_FORGET(cache->infos));
+	UDS_FREE(UDS_FORGET(cache->pages));
+	UDS_FREE(cache);
 }
 
 /**********************************************************************/
@@ -350,7 +350,7 @@ get_page_state_name(enum vdo_page_buffer_state state)
 {
 	int result;
 	static const char *state_names[] = {
-		"FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
+		"UDS_FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
 	};
 	STATIC_ASSERT(COUNT_OF(state_names) == PAGE_STATE_COUNT);
 
@@ -1539,6 +1539,6 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	}
 
 	// Reset the page map by re-allocating it.
-	free_int_map(FORGET(cache->page_map));
+	free_int_map(UDS_FORGET(cache->page_map));
 	return make_int_map(cache->page_count, 0, &cache->page_map);
 }

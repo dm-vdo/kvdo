@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#107 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -97,7 +97,7 @@ static int enqueue_missing_decref(struct wait_queue *queue,
 		vdo_enter_read_only_mode(decref->recovery->vdo->read_only_notifier,
 					 result);
 		set_vdo_completion_result(&decref->recovery->completion, result);
-		FREE(decref);
+		UDS_FREE(decref);
 	}
 
 	return result;
@@ -132,7 +132,7 @@ make_missing_decref(struct recovery_completion *recovery,
 		    struct missing_decref **decref_ptr)
 {
 	struct missing_decref *decref;
-	int result = ALLOCATE(1, struct missing_decref, __func__, &decref);
+	int result = UDS_ALLOCATE(1, struct missing_decref, __func__, &decref);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -296,11 +296,11 @@ int make_vdo_recovery_completion(struct vdo *vdo,
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	struct recovery_completion *recovery;
 	zone_count_t z;
-	int result = ALLOCATE_EXTENDED(struct recovery_completion,
-				       thread_config->physical_zone_count,
-				       struct list_head,
-				       __func__,
-				       &recovery);
+	int result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
+					   thread_config->physical_zone_count,
+					   struct list_head,
+					   __func__,
+					   &recovery);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -333,7 +333,7 @@ int make_vdo_recovery_completion(struct vdo *vdo,
 static void free_missing_decref(struct waiter *waiter,
 				void *context __always_unused)
 {
-	FREE(as_missing_decref(waiter));
+	UDS_FREE(as_missing_decref(waiter));
 }
 
 /**********************************************************************/
@@ -346,16 +346,16 @@ void free_vdo_recovery_completion(struct recovery_completion *recovery)
 		return;
 	}
 
-	free_int_map(FORGET(recovery->slot_entry_map));
+	free_int_map(UDS_FORGET(recovery->slot_entry_map));
 	thread_config = get_vdo_thread_config(recovery->vdo);
 	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],
 				   free_missing_decref, NULL);
 	}
 
-	FREE(FORGET(recovery->journal_data));
-	FREE(FORGET(recovery->entries));
-	FREE(recovery);
+	UDS_FREE(UDS_FORGET(recovery->journal_data));
+	UDS_FREE(UDS_FORGET(recovery->entries));
+	UDS_FREE(recovery);
 }
 
 /**
@@ -374,7 +374,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	initialize_vdo_recovery_journal_post_recovery(vdo->recovery_journal,
 						      recovery_count,
 						      recovery->highest_tail);
-	free_vdo_recovery_completion(FORGET(recovery));
+	free_vdo_recovery_completion(UDS_FORGET(recovery));
 	uds_log_info("Rebuild complete");
 
 	// Now that we've freed the recovery completion and its vast array of
@@ -394,7 +394,7 @@ static void abort_recovery(struct vdo_completion *completion)
 	int result = completion->result;
 	struct recovery_completion *recovery =
 		as_vdo_recovery_completion(completion);
-	free_vdo_recovery_completion(FORGET(recovery));
+	free_vdo_recovery_completion(UDS_FORGET(recovery));
 	uds_log_warning("Recovery aborted");
 	finish_vdo_completion(parent, result);
 }
@@ -461,10 +461,10 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 	 * enough to transcribe every increment packed_recovery_journal_entry
 	 * from every valid journal block.
 	 */
-	int result = ALLOCATE(recovery->incref_count,
-			      struct numbered_block_mapping,
-			      __func__,
-			      &recovery->entries);
+	int result = UDS_ALLOCATE(recovery->incref_count,
+				  struct numbered_block_mapping,
+				  __func__,
+				  &recovery->entries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -633,7 +633,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 		}
 
 		dequeue_next_waiter(missing_decrefs);
-		FREE(decref);
+		UDS_FREE(decref);
 	}
 
 	notify_vdo_slab_journals_are_recovered(recovery->allocator,
@@ -829,7 +829,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 
 	if (mapping.pbn == VDO_ZERO_BLOCK) {
 		// Decrefs of zero are not applied to slab journals.
-		FREE(decref);
+		UDS_FREE(decref);
 		return;
 	}
 
@@ -1317,7 +1317,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		// This message must be recognizable by VDOTest::RebuildBase.
 		uds_log_info("Replaying 0 recovery entries into block map");
 		// We still need to load the slab_depot.
-		FREE(recovery->journal_data);
+		UDS_FREE(recovery->journal_data);
 		recovery->journal_data = NULL;
 		prepare_sub_task(recovery,
 				 finish_vdo_completion_parent_callback,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#15 $
  */
 
 #include "chapterIndex.h"
@@ -38,10 +38,10 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 {
 	size_t memory_size;
 
-	int result = ALLOCATE(1,
-			      struct open_chapter_index,
-			      "open chapter index",
-			      open_chapter_index);
+	int result = UDS_ALLOCATE(1,
+				  struct open_chapter_index,
+				  "open chapter index",
+				  open_chapter_index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -61,7 +61,7 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 				        geometry->chapter_payload_bits,
 				        memory_size);
 	if (result != UDS_SUCCESS) {
-		FREE(*open_chapter_index);
+		UDS_FREE(*open_chapter_index);
 		*open_chapter_index = NULL;
 	}
 	return result;
@@ -76,7 +76,7 @@ void free_open_chapter_index(struct open_chapter_index *open_chapter_index)
 
 
 	uninitialize_delta_index(&open_chapter_index->delta_index);
-	FREE(open_chapter_index);
+	UDS_FREE(open_chapter_index);
 }
 
 /**********************************************************************/

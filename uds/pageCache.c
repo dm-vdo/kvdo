@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#22 $
  */
 
 #include "pageCache.h"
@@ -289,18 +289,18 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	cache->zone_count = zone_count;
 	atomic64_set(&cache->clock, 1);
 
-	result = ALLOCATE(read_queue_max_size,
-			  struct queued_read,
-			  "volume read queue",
-			  &cache->read_queue);
+	result = UDS_ALLOCATE(read_queue_max_size,
+			      struct queued_read,
+			      "volume read queue",
+			      &cache->read_queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(cache->zone_count,
-			  struct search_pending_counter,
-			  "Volume Cache Zones",
-			  &cache->search_pending_counters);
+	result = UDS_ALLOCATE(cache->zone_count,
+			      struct search_pending_counter,
+			      "Volume Cache Zones",
+			      &cache->search_pending_counters);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -313,10 +313,10 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 		return result;
 	}
 
-	result = ALLOCATE(cache->num_index_entries,
-			  uint16_t,
-			  "page cache index",
-			  &cache->index);
+	result = UDS_ALLOCATE(cache->num_index_entries,
+			      uint16_t,
+			      "page cache index",
+			      &cache->index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -326,10 +326,10 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 		cache->index[i] = cache->num_cache_entries;
 	}
 
-	result = ALLOCATE(cache->num_cache_entries,
-			  struct cached_page,
-			  "page cache cache",
-			  &cache->cache);
+	result = UDS_ALLOCATE(cache->num_cache_entries,
+			      struct cached_page,
+			      "page cache cache",
+			      &cache->cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -369,7 +369,7 @@ int make_page_cache(const struct geometry  *geometry,
 						"cache must have at least one zone");
 	}
 
-	result = ALLOCATE(1, struct page_cache, "volume cache", &cache);
+	result = UDS_ALLOCATE(1, struct page_cache, "volume cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -400,11 +400,11 @@ void free_page_cache(struct page_cache *cache)
 			destroy_volume_page(&cache->cache[i].cp_page_data);
 		}
 	}
-	FREE(cache->index);
-	FREE(cache->cache);
-	FREE(cache->search_pending_counters);
-	FREE(cache->read_queue);
-	FREE(cache);
+	UDS_FREE(cache->index);
+	UDS_FREE(cache->cache);
+	UDS_FREE(cache->search_pending_counters);
+	UDS_FREE(cache->read_queue);
+	UDS_FREE(cache);
 }
 
 /**********************************************************************/

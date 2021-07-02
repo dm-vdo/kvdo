@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#52 $
  */
 
 #include "flush.h"
@@ -94,7 +94,7 @@ static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 /**********************************************************************/
 int make_vdo_flusher(struct vdo *vdo)
 {
-	int result = ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
+	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -107,8 +107,8 @@ int make_vdo_flusher(struct vdo *vdo)
 
 	spin_lock_init(&vdo->flusher->lock);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
-	result = ALLOCATE(1, struct vdo_flush, __func__,
-			  &vdo->flusher->spare_flush);
+	result = UDS_ALLOCATE(1, struct vdo_flush, __func__,
+			      &vdo->flusher->spare_flush);
 	return result;
 }
 
@@ -120,8 +120,8 @@ void free_vdo_flusher(struct flusher **flusher_ptr)
 		return;
 	}
 
-	FREE(flusher->spare_flush);
-	FREE(flusher);
+	UDS_FREE(flusher->spare_flush);
+	UDS_FREE(flusher);
 	*flusher_ptr = NULL;
 }
 
@@ -344,7 +344,7 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 {
 	// Try to allocate a vdo_flush to represent the flush request. If the
 	// allocation fails, we'll deal with it later.
-	struct vdo_flush *flush = ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+	struct vdo_flush *flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
 	spin_lock(&flusher->lock);
 
@@ -419,7 +419,7 @@ static void release_flush(struct vdo_flush *flush)
 	}
 
 	if (flush != NULL) {
-		FREE(flush);
+		UDS_FREE(flush);
 	}
 }
 

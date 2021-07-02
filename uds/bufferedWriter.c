@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bufferedWriter.c#15 $
  */
 
 #include "bufferedWriter.h"
@@ -99,7 +99,8 @@ int make_buffered_writer(struct io_factory *factory,
 {
 	struct buffered_writer *writer;
 	int result =
-		ALLOCATE(1, struct buffered_writer, "buffered writer", &writer);
+		UDS_ALLOCATE(1, struct buffered_writer, "buffered writer",
+			     &writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -132,12 +133,11 @@ void free_buffered_writer(struct buffered_writer *bw)
 	result = -dm_bufio_write_dirty_buffers(bw->bw_client);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result,
-					 "%s cannot sync storage", __func__);
-
+				         "%s cannot sync storage", __func__);
 	}
 	dm_bufio_client_destroy(bw->bw_client);
 	put_uds_io_factory(bw->bw_factory);
-	FREE(bw);
+	UDS_FREE(bw);
 }
 
 /**********************************************************************/

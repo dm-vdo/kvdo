@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#31 $
  */
 
 #include "partitionCopy.h"
@@ -74,9 +74,9 @@ as_copy_completion(struct vdo_completion *completion)
  **/
 static void free_copy_completion(struct copy_completion *copy)
 {
-	free_vdo_extent(FORGET(copy->extent));
-	FREE(copy->data);
-	FREE(copy);
+	free_vdo_extent(UDS_FORGET(copy->extent));
+	UDS_FREE(copy->data);
+	UDS_FREE(copy);
 }
 
 /**********************************************************************/
@@ -84,7 +84,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 			     struct vdo_completion **completion_ptr)
 {
 	struct copy_completion *copy;
-	int result = ALLOCATE(1, struct copy_completion, __func__, &copy);
+	int result = UDS_ALLOCATE(1, struct copy_completion, __func__, &copy);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -92,12 +92,12 @@ int make_vdo_copy_completion(struct vdo *vdo,
 	initialize_vdo_completion(&copy->completion, vdo,
 				  PARTITION_COPY_COMPLETION);
 
-	result = ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
-			  char,
-			  "partition copy extent",
-			  &copy->data);
+	result = UDS_ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
+			      char,
+			      "partition copy extent",
+			      &copy->data);
 	if (result != VDO_SUCCESS) {
-		free_copy_completion(FORGET(copy));
+		free_copy_completion(UDS_FORGET(copy));
 		return result;
 	}
 
@@ -123,7 +123,7 @@ void free_vdo_copy_completion(struct vdo_completion *completion)
 		return;
 	}
 
-	free_copy_completion(as_copy_completion(FORGET(completion)));
+	free_copy_completion(as_copy_completion(UDS_FORGET(completion)));
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#31 $
  */
 
 #include "lockCounter.h"
@@ -85,48 +85,48 @@ int make_vdo_lock_counter(struct vdo *vdo,
 {
 	struct lock_counter *lock_counter;
 
-	int result = ALLOCATE(1, struct lock_counter, __func__, &lock_counter);
+	int result = UDS_ALLOCATE(1, struct lock_counter, __func__, &lock_counter);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(locks, uint16_t, __func__,
-			  &lock_counter->journal_counters);
-	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(lock_counter);
-		return result;
-	}
-
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->journal_decrement_counts);
+	result = UDS_ALLOCATE(locks, uint16_t, __func__,
+			      &lock_counter->journal_counters);
 	if (result != VDO_SUCCESS) {
 		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks * logical_zones, uint16_t, __func__,
-			  &lock_counter->logical_counters);
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS) {
 		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->logical_zone_counts);
+	result = UDS_ALLOCATE(locks * logical_zones, uint16_t, __func__,
+			      &lock_counter->logical_counters);
 	if (result != VDO_SUCCESS) {
 		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks * physical_zones, uint16_t, __func__,
-			  &lock_counter->physical_counters);
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->logical_zone_counts);
 	if (result != VDO_SUCCESS) {
 		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->physical_zone_counts);
+	result = UDS_ALLOCATE(locks * physical_zones, uint16_t, __func__,
+			      &lock_counter->physical_counters);
+	if (result != VDO_SUCCESS) {
+		free_vdo_lock_counter(lock_counter);
+		return result;
+	}
+
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->physical_zone_counts);
 	if (result != VDO_SUCCESS) {
 		free_vdo_lock_counter(lock_counter);
 		return result;
@@ -152,13 +152,13 @@ void free_vdo_lock_counter(struct lock_counter *counter)
 		return;
 	}
 
-	FREE(FORGET(counter->physical_zone_counts));
-	FREE(FORGET(counter->logical_zone_counts));
-	FREE(FORGET(counter->journal_decrement_counts));
-	FREE(FORGET(counter->journal_counters));
-	FREE(FORGET(counter->logical_counters));
-	FREE(FORGET(counter->physical_counters));
-	FREE(counter);
+	UDS_FREE(UDS_FORGET(counter->physical_zone_counts));
+	UDS_FREE(UDS_FORGET(counter->logical_zone_counts));
+	UDS_FREE(UDS_FORGET(counter->journal_decrement_counts));
+	UDS_FREE(UDS_FORGET(counter->journal_counters));
+	UDS_FREE(UDS_FORGET(counter->logical_counters));
+	UDS_FREE(UDS_FORGET(counter->physical_counters));
+	UDS_FREE(counter);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#75 $
  */
 
 #include "slabScrubberInternals.h"
@@ -52,8 +52,8 @@ allocate_extent_and_buffer(struct slab_scrubber *scrubber,
 			   block_count_t slab_journal_size)
 {
 	size_t buffer_size = VDO_BLOCK_SIZE * slab_journal_size;
-	int result =
-		ALLOCATE(buffer_size, char, __func__, &scrubber->journal_data);
+	int result = UDS_ALLOCATE(buffer_size, char, __func__,
+				  &scrubber->journal_data);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -73,7 +73,7 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
 			   struct slab_scrubber **scrubber_ptr)
 {
 	struct slab_scrubber *scrubber;
-	int result = ALLOCATE(1, struct slab_scrubber, __func__, &scrubber);
+	int result = UDS_ALLOCATE(1, struct slab_scrubber, __func__, &scrubber);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -101,9 +101,9 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
  **/
 static void free_extent_and_buffer(struct slab_scrubber *scrubber)
 {
-	free_vdo_extent(FORGET(scrubber->extent));
+	free_vdo_extent(UDS_FORGET(scrubber->extent));
 	if (scrubber->journal_data != NULL) {
-		FREE(scrubber->journal_data);
+		UDS_FREE(scrubber->journal_data);
 		scrubber->journal_data = NULL;
 	}
 }
@@ -118,7 +118,7 @@ void free_vdo_slab_scrubber(struct slab_scrubber **scrubber_ptr)
 
 	scrubber = *scrubber_ptr;
 	free_extent_and_buffer(scrubber);
-	FREE(scrubber);
+	UDS_FREE(scrubber);
 	*scrubber_ptr = NULL;
 }
 

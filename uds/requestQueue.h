@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#6 $
  */
 
 #ifndef REQUEST_QUEUE_H
@@ -27,7 +27,7 @@
 #include "typeDefs.h"
 
 /* void return value because this function will process its own errors */
-typedef void request_queue_processor_t(Request *);
+typedef void uds_request_queue_processor_t(Request *);
 
 /**
  * Allocate a new request processing queue and start a worker thread to
@@ -39,9 +39,10 @@ typedef void request_queue_processor_t(Request *);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check make_request_queue(const char *queue_name,
-				    request_queue_processor_t *process_one,
-				    RequestQueue **queue_ptr);
+int __must_check
+make_uds_request_queue(const char *queue_name,
+		       uds_request_queue_processor_t *process_one,
+		       RequestQueue **queue_ptr);
 
 /**
  * Add a request to the end of the queue for processing by the worker thread.
@@ -51,13 +52,13 @@ int __must_check make_request_queue(const char *queue_name,
  * @param queue    the request queue that should process the request
  * @param request  the request to be processed on the queue's worker thread
  **/
-void request_queue_enqueue(RequestQueue *queue, Request *request);
+void uds_request_queue_enqueue(RequestQueue *queue, Request *request);
 
 /**
  * Shut down the request queue worker thread, then destroy and free the queue.
  *
  * @param queue  the queue to shut down and free
  **/
-void request_queue_finish(RequestQueue *queue);
+void uds_request_queue_finish(RequestQueue *queue);
 
 #endif /* REQUEST_QUEUE_H */

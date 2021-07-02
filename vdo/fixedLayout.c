@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#26 $
  */
 
 #include "fixedLayout.h"
@@ -78,7 +78,7 @@ int make_vdo_fixed_layout(block_count_t total_blocks,
 			  struct fixed_layout **layout_ptr)
 {
 	struct fixed_layout *layout;
-	int result = ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
+	int result = UDS_ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -103,10 +103,10 @@ void free_vdo_fixed_layout(struct fixed_layout **layout_ptr)
 	while (layout->head != NULL) {
 		struct partition *part = layout->head;
 		layout->head = part->next;
-		FREE(part);
+		UDS_FREE(part);
 	}
 
-	FREE(layout);
+	UDS_FREE(layout);
 	*layout_ptr = NULL;
 }
 
@@ -217,8 +217,8 @@ static int allocate_partition(struct fixed_layout *layout,
 			      block_count_t block_count)
 {
 	struct partition *partition;
-	int result = ALLOCATE(1, struct partition,
-			      "fixed layout partition", &partition);
+	int result = UDS_ALLOCATE(1, struct partition,
+				  "fixed layout partition", &partition);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -543,7 +543,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 		return VDO_UNSUPPORTED_VERSION;
 	}
 
-	result = ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
+	result = UDS_ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

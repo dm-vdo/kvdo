@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#16 $
  */
 
 #include "indexCheckpoint.h"
@@ -85,17 +85,17 @@ checkpoint_function_t *const checkpoint_funcs[] = {
 int make_index_checkpoint(struct index *index)
 {
 	struct index_checkpoint *checkpoint;
-	int result = ALLOCATE(1,
-			      struct index_checkpoint,
-			      "struct index_checkpoint",
-			      &checkpoint);
+	int result = UDS_ALLOCATE(1,
+				  struct index_checkpoint,
+				  "struct index_checkpoint",
+				  &checkpoint);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = init_mutex(&checkpoint->mutex);
 	if (result != UDS_SUCCESS) {
-		FREE(checkpoint);
+		UDS_FREE(checkpoint);
 		return result;
 	}
 
@@ -110,7 +110,7 @@ void free_index_checkpoint(struct index_checkpoint *checkpoint)
 {
 	if (checkpoint != NULL) {
 		destroy_mutex(&checkpoint->mutex);
-		FREE(checkpoint);
+		UDS_FREE(checkpoint);
 	}
 }
 

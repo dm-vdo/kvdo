@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#12 $
  */
 
 #include "geometry.h"
@@ -126,7 +126,7 @@ int make_geometry(size_t bytes_per_page,
 		  struct geometry **geometry_ptr)
 {
 	struct geometry *geometry;
-	int result = ALLOCATE(1, struct geometry, "geometry", &geometry);
+	int result = UDS_ALLOCATE(1, struct geometry, "geometry", &geometry);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -161,7 +161,7 @@ int copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 /**********************************************************************/
 void free_geometry(struct geometry *geometry)
 {
-	FREE(geometry);
+	UDS_FREE(geometry);
 }
 
 /**********************************************************************/

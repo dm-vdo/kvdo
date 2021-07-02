@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#205 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#206 $
  */
 
 #include "kernelLayer.h"
@@ -323,7 +323,7 @@ int make_kernel_layer(unsigned int instance,
 	 * works correctly through the freeing of the kernel layer. After this
 	 * part you must use free_kernel_layer.
 	 */
-	result = ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
+	result = UDS_ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO configuration";
 		release_vdo_instance(instance);
@@ -653,12 +653,12 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(FORGET(layer->data_vio_pool));
+		free_buffer_pool(UDS_FORGET(layer->data_vio_pool));
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		finish_vdo_dedupe_index(layer->vdo.dedupe_index);
-		free_batch_processor(FORGET(layer->data_vio_releaser));
+		free_batch_processor(UDS_FORGET(layer->data_vio_releaser));
 		break;
 
 	default:
@@ -667,10 +667,10 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	// Late deallocation of resources in work queues.
 	if (used_cpu_queue) {
-		free_work_queue(FORGET(layer->vdo.cpu_queue));
+		free_work_queue(UDS_FORGET(layer->vdo.cpu_queue));
 	}
 	if (used_bio_ack_queue) {
-		free_work_queue(FORGET(layer->bio_ack_queue));
+		free_work_queue(UDS_FORGET(layer->bio_ack_queue));
 	}
 	if (layer->vdo.io_submitter) {
 		free_vdo_io_submitter(layer->vdo.io_submitter);

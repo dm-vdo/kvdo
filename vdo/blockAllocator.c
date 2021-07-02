@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#129 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#130 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -284,7 +284,7 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 			     struct block_allocator **allocator_ptr)
 {
 	struct block_allocator *allocator;
-	int result = ALLOCATE(1, struct block_allocator, __func__, &allocator);
+	int result = UDS_ALLOCATE(1, struct block_allocator, __func__, &allocator);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -315,9 +315,9 @@ void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr)
 	}
 
 	free_vdo_slab_scrubber(&allocator->slab_scrubber);
-	free_vio_pool(FORGET(allocator->vio_pool));
+	free_vio_pool(UDS_FORGET(allocator->vio_pool));
 	free_priority_table(&allocator->prioritized_slabs);
-	FREE(allocator);
+	UDS_FREE(allocator);
 	*block_allocator_ptr = NULL;
 }
 
@@ -719,8 +719,8 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 	WRITE_ONCE(allocator->allocated_blocks,
 		   get_data_block_count(allocator));
 
-	result = ALLOCATE(slab_count, struct slab_status, __func__,
-			  &slab_statuses);
+	result = UDS_ALLOCATE(slab_count, struct slab_status, __func__,
+			      &slab_statuses);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -761,7 +761,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 						slab,
 						high_priority);
 	}
-	FREE(slab_statuses);
+	UDS_FREE(slab_statuses);
 
 	return VDO_SUCCESS;
 }

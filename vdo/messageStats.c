@@ -1358,13 +1358,13 @@ int write_vdo_stats(struct vdo *vdo,
 		    unsigned int maxlen)
 {
 	struct vdo_statistics *stats;
-	int result = ALLOCATE(1, struct vdo_statistics, __func__, &stats);
+	int result = UDS_ALLOCATE(1, struct vdo_statistics, __func__, &stats);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	get_kvdo_statistics(vdo, stats);
 	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
-	FREE(stats);
+	UDS_FREE(stats);
 	return result;
 }

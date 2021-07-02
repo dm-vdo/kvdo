@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.c#10 $
  */
 
 #include "config.h"
@@ -32,9 +32,9 @@ void free_index_location(struct index_location *loc)
 		return;
 	}
 
-	FREE(loc->host);
-	FREE(loc->port);
-	FREE(loc->directory);
+	UDS_FREE(loc->host);
+	UDS_FREE(loc->port);
+	UDS_FREE(loc->directory);
 }
 
 /**********************************************************************/

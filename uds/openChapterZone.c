@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#16 $
  */
 
 #include "openChapterZone.h"
@@ -97,19 +97,19 @@ int make_open_chapter(const struct geometry *geometry,
 	// will never fail if the hash table is not full.
 	slot_count = next_power_of_two(capacity *
 				       geometry->open_chapter_load_ratio);
-	result = ALLOCATE_EXTENDED(struct open_chapter_zone,
-				   slot_count,
-				   struct open_chapter_zone_slot,
-				   "open chapter",
-				   &open_chapter);
+	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
+				       slot_count,
+				       struct open_chapter_zone_slot,
+				       "open chapter",
+				       &open_chapter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	open_chapter->slot_count = slot_count;
 	open_chapter->capacity = capacity;
-	result = allocate_cache_aligned(records_size(open_chapter),
-				        "record pages",
-				        &open_chapter->records);
+	result = uds_allocate_cache_aligned(records_size(open_chapter),
+					    "record pages",
+					    &open_chapter->records);
 	if (result != UDS_SUCCESS) {
 		free_open_chapter(open_chapter);
 		return result;
@@ -265,7 +265,7 @@ void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 void free_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	if (open_chapter != NULL) {
-		FREE(open_chapter->records);
-		FREE(open_chapter);
+		UDS_FREE(open_chapter->records);
+		UDS_FREE(open_chapter);
 	}
 }

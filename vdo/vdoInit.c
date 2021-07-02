@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#19 $
  */
 
 #include "vdoInit.h"
@@ -92,7 +92,7 @@ static int handle_initialization_failure(struct vdo *vdo, int result)
 {
 	release_vdo_instance(vdo->instance);
 	unregister_vdo(vdo);
-	FREE(vdo->layer);
+	UDS_FREE(vdo->layer);
 	return result;
 }
 
@@ -126,20 +126,20 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 		     vdo->thread_config->base_thread_count);
 
 	// Compression context storage
-	result = ALLOCATE(config->thread_counts.cpu_threads,
-			  char *,
-			  "LZ4 context",
-			  &vdo->compression_context);
+	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
+			      char *,
+			      "LZ4 context",
+			      &vdo->compression_context);
 	if (result != VDO_SUCCESS) {
 		*reason = "cannot allocate LZ4 context";
 		return result;
 	}
 
 	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = ALLOCATE(LZ4_MEM_COMPRESS,
-				  char,
-				  "LZ4 context",
-				  &vdo->compression_context[i]);
+		result = UDS_ALLOCATE(LZ4_MEM_COMPRESS,
+				      char,
+				      "LZ4 context",
+				      &vdo->compression_context[i]);
 		if (result != VDO_SUCCESS) {
 			*reason = "cannot allocate LZ4 context";
 			return result;

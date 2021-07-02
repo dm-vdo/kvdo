@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#91 $
  */
 
 #include "packerInternals.h"
@@ -106,9 +106,9 @@ static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 static int __must_check make_input_bin(struct packer *packer)
 {
 	struct input_bin *bin;
-	int result = ALLOCATE_EXTENDED(struct input_bin,
-				       VDO_MAX_COMPRESSION_SLOTS,
-				       struct vio *, __func__, &bin);
+	int result = UDS_ALLOCATE_EXTENDED(struct input_bin,
+					   VDO_MAX_COMPRESSION_SLOTS,
+					   struct vio *, __func__, &bin);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -166,7 +166,7 @@ static int __must_check
 make_output_bin(struct packer *packer, struct vdo *vdo)
 {
 	struct output_bin *output;
-	int result = ALLOCATE(1, struct output_bin, __func__, &output);
+	int result = UDS_ALLOCATE(1, struct output_bin, __func__, &output);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -177,10 +177,10 @@ make_output_bin(struct packer *packer, struct vdo *vdo)
 	list_add_tail(&output->list, &packer->output_bins);
 	push_output_bin(packer, output);
 
-	result = ALLOCATE_EXTENDED(struct compressed_block,
-				   packer->bin_data_size,
-				   char, "compressed block",
-				   &output->block);
+	result = UDS_ALLOCATE_EXTENDED(struct compressed_block,
+				       packer->bin_data_size,
+				       char, "compressed block",
+				       &output->block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -207,9 +207,9 @@ static void free_output_bin(struct output_bin **bin_ptr)
 	list_del_init(&bin->list);
 
 	vio = allocating_vio_as_vio(bin->writer);
-	free_vio(FORGET(vio));
-	FREE(bin->block);
-	FREE(bin);
+	free_vio(UDS_FORGET(vio));
+	UDS_FREE(bin->block);
+	UDS_FREE(bin);
 	*bin_ptr = NULL;
 }
 
@@ -224,8 +224,9 @@ int make_vdo_packer(struct vdo *vdo,
 	struct packer *packer;
 	block_count_t i;
 
-	int result = ALLOCATE_EXTENDED(struct packer, output_bin_count,
-				       struct output_bin *, __func__, &packer);
+	int result = UDS_ALLOCATE_EXTENDED(struct packer, output_bin_count,
+					   struct output_bin *, __func__,
+					   &packer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -259,9 +260,10 @@ int make_vdo_packer(struct vdo *vdo,
 	 * canceled vio in the bin must have a canceler for which it is waiting,
 	 * and any canceler will only have canceled one lock holder at a time.
 	 */
-	result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_VDO_USER_VIOS / 2,
-				   struct vio *, __func__,
-				   &packer->canceled_bin);
+	result = UDS_ALLOCATE_EXTENDED(struct input_bin,
+				       MAXIMUM_VDO_USER_VIOS / 2,
+				       struct vio *, __func__,
+				       &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
 		free_vdo_packer(&packer);
 		return result;
@@ -292,17 +294,17 @@ void free_vdo_packer(struct packer **packer_ptr)
 
 	while ((input = get_vdo_packer_fullest_bin(packer)) != NULL) {
 		list_del_init(&input->list);
-		FREE(input);
+		UDS_FREE(input);
 	}
 
-	FREE(packer->canceled_bin);
+	UDS_FREE(packer->canceled_bin);
 
 	while ((output = pop_output_bin(packer)) != NULL) {
 		free_output_bin(&output);
 	}
 
-	FREE(FORGET(packer->selector));
-	FREE(packer);
+	UDS_FREE(UDS_FORGET(packer->selector));
+	UDS_FREE(packer);
 	*packer_ptr = NULL;
 }
 

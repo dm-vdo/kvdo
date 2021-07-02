@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#20 $
  */
 
 #include "indexComponent.h"
@@ -55,8 +55,8 @@ int make_index_component(struct index_state *state,
 					      info->name);
 	}
 
-	result = ALLOCATE(1, struct index_component, "index component",
-			  &component);
+	result = UDS_ALLOCATE(1, struct index_component, "index component",
+			      &component);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -82,9 +82,9 @@ static void free_write_zones(struct index_component *component)
 				continue;
 			}
 			free_buffered_writer(wz->writer);
-			FREE(wz);
+			UDS_FREE(wz);
 		}
-		FREE(component->write_zones);
+		UDS_FREE(component->write_zones);
 		component->write_zones = NULL;
 	}
 }
@@ -97,7 +97,7 @@ void free_index_component(struct index_component *component)
 	}
 
 	free_write_zones(component);
-	FREE(component);
+	UDS_FREE(component);
 }
 
 /**
@@ -116,8 +116,8 @@ static void free_read_portal(struct read_portal *read_portal)
 			free_buffered_reader(read_portal->readers[z]);
 		}
 	}
-	FREE(read_portal->readers);
-	FREE(read_portal);
+	UDS_FREE(read_portal->readers);
+	UDS_FREE(read_portal);
 }
 
 /**********************************************************************/
@@ -155,18 +155,18 @@ int read_index_component(struct index_component *component)
 {
 	struct read_portal *portal;
 	int read_zones, result;
-	result = ALLOCATE(1, struct read_portal,
+	result = UDS_ALLOCATE(1, struct read_portal,
 			      "index component read portal", &portal);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	read_zones = component->state->load_zones;
-	result = ALLOCATE(read_zones,
-			  struct buffered_reader *,
-			  "read zone buffered readers",
-			  &portal->readers);
+	result = UDS_ALLOCATE(read_zones,
+			      struct buffered_reader *,
+			      "read zone buffered readers",
+			      &portal->readers);
 	if (result != UDS_SUCCESS) {
-		FREE(portal);
+		UDS_FREE(portal);
 		return result;
 	}
 
@@ -299,19 +299,19 @@ static int make_write_zones(struct index_component *component)
 		return UDS_SUCCESS;
 	}
 
-	result = ALLOCATE(component->num_zones,
-			  struct write_zone *,
-			  "index component write zones",
-			  &component->write_zones);
+	result = UDS_ALLOCATE(component->num_zones,
+			      struct write_zone *,
+			      "index component write zones",
+			      &component->write_zones);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	for (z = 0; z < component->num_zones; ++z) {
-		result = ALLOCATE(1,
-				  struct write_zone,
-				  "plain write zone",
-				  &component->write_zones[z]);
+		result = UDS_ALLOCATE(1,
+				      struct write_zone,
+				      "plain write zone",
+				      &component->write_zones[z]);
 		if (result != UDS_SUCCESS) {
 			free_write_zones(component);
 			return result;

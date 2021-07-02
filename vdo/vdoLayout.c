@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#31 $
  */
 
 #include "vdoLayout.h"
@@ -77,7 +77,7 @@ int decode_vdo_layout(struct fixed_layout *layout,
 		}
 	}
 
-	result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
+	result = UDS_ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -99,11 +99,11 @@ void free_vdo_layout(struct vdo_layout *vdo_layout)
 		return;
 	}
 
-	free_vdo_copy_completion(FORGET(vdo_layout->copy_completion));
+	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 	free_vdo_fixed_layout(&vdo_layout->next_layout);
 	free_vdo_fixed_layout(&vdo_layout->layout);
 	free_vdo_fixed_layout(&vdo_layout->previous_layout);
-	FREE(vdo_layout);
+	UDS_FREE(vdo_layout);
 }
 
 /**
@@ -205,7 +205,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 								      SLAB_SUMMARY_PARTITION),
 						   &vdo_layout->next_layout);
 	if (result != VDO_SUCCESS) {
-		free_vdo_copy_completion(FORGET(vdo_layout->copy_completion));
+		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return result;
 	}
 
@@ -225,7 +225,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 		// Copying the journal and summary would destroy some old
 		// metadata.
 		free_vdo_fixed_layout(&vdo_layout->next_layout);
-		free_vdo_copy_completion(FORGET(vdo_layout->copy_completion));
+		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
@@ -295,7 +295,7 @@ void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 		free_vdo_fixed_layout(&vdo_layout->next_layout);
 	}
 
-	free_vdo_copy_completion(FORGET(vdo_layout->copy_completion));
+	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 }
 
 /**********************************************************************/

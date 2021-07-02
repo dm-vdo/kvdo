@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#28 $
  */
 
 #include "vioPool.h"
@@ -66,8 +66,9 @@ int make_vio_pool(struct vdo *vdo,
 	char *ptr;
 	size_t i;
 
-	int result = ALLOCATE_EXTENDED(struct vio_pool, pool_size,
-				       struct vio_pool_entry, __func__, &pool);
+	int result = UDS_ALLOCATE_EXTENDED(struct vio_pool, pool_size,
+					   struct vio_pool_entry, __func__,
+					   &pool);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -76,8 +77,8 @@ int make_vio_pool(struct vdo *vdo,
 	INIT_LIST_HEAD(&pool->available);
 	INIT_LIST_HEAD(&pool->busy);
 
-	result = ALLOCATE(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
-			  &pool->buffer);
+	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE, char,
+			      "VIO pool buffer", &pool->buffer);
 	if (result != VDO_SUCCESS) {
 		free_vio_pool(pool);
 		return result;
@@ -126,7 +127,7 @@ void free_vio_pool(struct vio_pool *pool)
 	while (!list_empty(&pool->available)) {
 		entry = as_vio_pool_entry(pool->available.next);
 		list_del_init(pool->available.next);
-		free_vio(FORGET(entry->vio));
+		free_vio(UDS_FORGET(entry->vio));
 	}
 
 	// Make sure every vio_pool_entry has been removed.
@@ -138,8 +139,8 @@ void free_vio_pool(struct vio_pool *pool)
 				entry->vio->operation);
 	}
 
-	FREE(FORGET(pool->buffer));
-	FREE(pool);
+	UDS_FREE(UDS_FORGET(pool->buffer));
+	UDS_FREE(pool);
 }
 
 /**********************************************************************/

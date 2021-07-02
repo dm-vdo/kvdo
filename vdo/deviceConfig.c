@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#43 $
  */
 
 #include "deviceConfig.h"
@@ -485,7 +485,7 @@ int parse_vdo_device_config(int argc,
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
 	int result =
-		ALLOCATE(1, struct device_config, "device_config", &config);
+		UDS_ALLOCATE(1, struct device_config, "device_config", &config);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -541,9 +541,9 @@ int parse_vdo_device_config(int argc,
 		dm_shift_arg(&arg_set);
 	}
 
-	result = duplicate_string(dm_shift_arg(&arg_set),
-				  "parent device name",
-				  &config->parent_device_name);
+	result = uds_duplicate_string(dm_shift_arg(&arg_set),
+				      "parent device name",
+				      &config->parent_device_name);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -692,13 +692,13 @@ void free_vdo_device_config(struct device_config *config)
 		dm_put_device(config->owning_target, config->owned_device);
 	}
 
-	FREE(config->parent_device_name);
-	FREE(config->original_string);
+	UDS_FREE(config->parent_device_name);
+	UDS_FREE(config->original_string);
 
 	// Reduce the chance a use-after-free (as in BZ 1669960) happens to work.
 	memset(config, 0, sizeof(*config));
 
-	FREE(config);
+	UDS_FREE(config);
 }
 
 /**********************************************************************/

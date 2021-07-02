@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#9 $
  */
 
 #include "vdoStringUtils.h"
@@ -34,9 +34,9 @@ void vdo_free_string_array(char **string_array)
 	unsigned int offset;
 
 	for (offset = 0; string_array[offset] != NULL; offset++) {
-		FREE(string_array[offset]);
+		UDS_FREE(string_array[offset]);
 	}
-	FREE(string_array);
+	UDS_FREE(string_array);
 }
 
 /**********************************************************************/
@@ -56,10 +56,10 @@ int vdo_split_string(const char *string,
 		}
 	}
 
-	result = ALLOCATE(substring_count + 1,
-			  char *,
-			  "string-splitting array",
-			  &substrings);
+	result = UDS_ALLOCATE(substring_count + 1,
+			      char *,
+			      "string-splitting array",
+			      &substrings);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -68,10 +68,10 @@ int vdo_split_string(const char *string,
 		if (*s == separator) {
 			ptrdiff_t length = s - string;
 
-			result = ALLOCATE(length + 1,
-					  char,
-					  "split string",
-					  &substrings[current_substring]);
+			result = UDS_ALLOCATE(length + 1,
+					      char,
+					      "split string",
+					      &substrings[current_substring]);
 			if (result != UDS_SUCCESS) {
 				vdo_free_string_array(substrings);
 				return result;
@@ -93,10 +93,10 @@ int vdo_split_string(const char *string,
 	BUG_ON(current_substring != (substring_count - 1));
 	length = strlen(string);
 
-	result = ALLOCATE(length + 1,
-			  char,
-			  "split string",
-			  &substrings[current_substring]);
+	result = UDS_ALLOCATE(length + 1,
+			      char,
+			      "split string",
+			      &substrings[current_substring]);
 	if (result != UDS_SUCCESS) {
 		vdo_free_string_array(substrings);
 		return result;
@@ -121,7 +121,7 @@ int vdo_join_strings(char **substring_array, size_t array_length,
 		string_length += strlen(substring_array[i]) + 1;
 	}
 
-	result = ALLOCATE(string_length, char, __func__, &output);
+	result = UDS_ALLOCATE(string_length, char, __func__, &output);
 
 	if (result != VDO_SUCCESS) {
 		return result;

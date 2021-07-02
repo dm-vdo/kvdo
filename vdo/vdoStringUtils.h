@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.h#8 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -31,7 +31,7 @@
  * pointers.
  *
  * The string pointers and the pointer array itself should both be
- * freed with FREE() when no longer needed. This can be done with
+ * freed with UDS_FREE() when no longer needed. This can be done with
  * vdo_free_string_array (below) if the pointers in the array are not
  * changed. Since the array and copied strings are allocated by this
  * function, it may only be used in contexts where allocation is

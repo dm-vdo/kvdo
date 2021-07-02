@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#41 $
  */
 
 #include "allocatingVIO.h"
@@ -283,8 +283,8 @@ int create_compressed_write_vio(struct vdo *vdo,
 	// Compressed write vios should use direct allocation and not use the
 	// buffer pool, which is reserved for submissions from the linux block
 	// layer.
-	int result = ALLOCATE(1, struct allocating_vio, __func__,
-			      &allocating_vio);
+	int result = UDS_ALLOCATE(1, struct allocating_vio, __func__,
+				  &allocating_vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("compressed write vio allocation failure %d",
 			      result);
@@ -293,7 +293,7 @@ int create_compressed_write_vio(struct vdo *vdo,
 
 	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
-		FREE(allocating_vio);
+		UDS_FREE(allocating_vio);
 		return result;
 	}
 

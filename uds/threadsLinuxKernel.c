@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#12 $
  */
 
 #include <linux/completion.h>
@@ -56,9 +56,9 @@ static int thread_starter(void *arg)
 	mutex_lock(&kernel_thread_mutex);
 	hlist_add_head(&kt->thread_links, &kernel_thread_list);
 	mutex_unlock(&kernel_thread_mutex);
-	register_allocating_thread(&allocating_thread, NULL);
+	uds_register_allocating_thread(&allocating_thread, NULL);
 	kt->thread_func(kt->thread_data);
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	complete(&kt->thread_done);
 	return 0;
 }
@@ -75,7 +75,7 @@ int create_thread(void (*thread_func)(void *),
 	struct thread *kt;
 	int result;
 
-	result = ALLOCATE(1, struct thread, __func__, &kt);
+	result = UDS_ALLOCATE(1, struct thread, __func__, &kt);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;
@@ -110,7 +110,7 @@ int create_thread(void (*thread_func)(void *),
 		thread = kthread_run(thread_starter, kt, "%s", name);
 	}
 	if (IS_ERR(thread)) {
-		FREE(kt);
+		UDS_FREE(kt);
 		return UDS_ENOTHREADS;
 	}
 	*new_thread = kt;
@@ -124,7 +124,7 @@ int join_threads(struct thread *kt)
 	mutex_lock(&kernel_thread_mutex);
 	hlist_del(&kt->thread_links);
 	mutex_unlock(&kernel_thread_mutex);
-	FREE(kt);
+	UDS_FREE(kt);
 	return UDS_SUCCESS;
 }
 
@@ -155,7 +155,7 @@ void thread_exit(void)
 		}
 	}
 	mutex_unlock(&kernel_thread_mutex);
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	complete_and_exit(completion, 1);
 }
 

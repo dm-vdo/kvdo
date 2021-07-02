@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#108 $
  */
 
 #include "blockMapTree.h"
@@ -142,7 +142,7 @@ int vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
 				   struct vdo *vdo,
 				   size_t pool_size)
 {
-	free_vio_pool(FORGET(zone->vio_pool));
+	free_vio_pool(UDS_FORGET(zone->vio_pool));
 	return make_vio_pool(vdo,
 			     pool_size,
 			     zone->map_zone->thread_id,
@@ -154,9 +154,9 @@ int vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
 /**********************************************************************/
 void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 {
-	FREE(FORGET(tree_zone->dirty_lists));
-	free_vio_pool(FORGET(tree_zone->vio_pool));
-	free_int_map(FORGET(tree_zone->loading_pages));
+	UDS_FREE(UDS_FORGET(tree_zone->dirty_lists));
+	free_vio_pool(UDS_FORGET(tree_zone->vio_pool));
+	free_int_map(UDS_FORGET(tree_zone->loading_pages));
 }
 
 /**********************************************************************/

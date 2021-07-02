@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#23 $
  */
 
 #include "indexState.h"
@@ -42,11 +42,11 @@ int make_index_state(struct index_layout *layout,
 					      "cannot make index state with max_components 0");
 	}
 
-	result = ALLOCATE_EXTENDED(struct index_state,
-				   max_components,
-				   struct index_component *,
-				   "index state",
-				   &state);
+	result = UDS_ALLOCATE_EXTENDED(struct index_state,
+				       max_components,
+				       struct index_component *,
+				       "index state",
+				       &state);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -74,9 +74,9 @@ void free_index_state(struct index_state *state)
 	}
 
 	for (i = 0; i < state->count; ++i) {
-		free_index_component(FORGET(state->entries[i]));
+		free_index_component(UDS_FORGET(state->entries[i]));
 	}
-	FREE(state);
+	UDS_FREE(state);
 }
 
 /**********************************************************************/

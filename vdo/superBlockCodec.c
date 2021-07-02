@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#14 $
  */
 
 #include "superBlockCodec.h"
@@ -58,8 +58,8 @@ int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 		return result;
 	}
 
-	result = ALLOCATE(VDO_BLOCK_SIZE, char, "encoded super block",
-			  (char **) &codec->encoded_super_block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "encoded super block",
+			      (char **) &codec->encoded_super_block);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -76,9 +76,9 @@ int initialize_vdo_super_block_codec(struct super_block_codec *codec)
 /**********************************************************************/
 void destroy_vdo_super_block_codec(struct super_block_codec *codec)
 {
-	free_buffer(FORGET(codec->block_buffer));
-	free_buffer(FORGET(codec->component_buffer));
-	FREE(codec->encoded_super_block);
+	free_buffer(UDS_FORGET(codec->block_buffer));
+	free_buffer(UDS_FORGET(codec->component_buffer));
+	UDS_FREE(codec->encoded_super_block);
 }
 
 /**********************************************************************/

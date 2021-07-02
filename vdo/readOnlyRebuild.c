@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#64 $
  */
 
 #include "readOnlyRebuild.h"
@@ -95,9 +95,9 @@ free_rebuild_completion(struct read_only_rebuild_completion **rebuild_ptr)
 		return;
 	}
 
-	FREE(rebuild->journal_data);
-	FREE(rebuild->entries);
-	FREE(rebuild);
+	UDS_FREE(rebuild->journal_data);
+	UDS_FREE(rebuild->entries);
+	UDS_FREE(rebuild);
 	*rebuild_ptr = NULL;
 }
 
@@ -114,8 +114,8 @@ make_rebuild_completion(struct vdo *vdo,
 			struct read_only_rebuild_completion **rebuild_ptr)
 {
 	struct read_only_rebuild_completion *rebuild;
-	int result = ALLOCATE(1, struct read_only_rebuild_completion, __func__,
-			      &rebuild);
+	int result = UDS_ALLOCATE(1, struct read_only_rebuild_completion,
+				  __func__, &rebuild);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -312,10 +312,10 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 	 * enough to transcribe every packed_recovery_journal_entry from every
 	 * valid journal block.
 	 */
-	int result = ALLOCATE(max_count,
-			      struct numbered_block_mapping,
-			      __func__,
-			      &rebuild->entries);
+	int result = UDS_ALLOCATE(max_count,
+				  struct numbered_block_mapping,
+				  __func__,
+				  &rebuild->entries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

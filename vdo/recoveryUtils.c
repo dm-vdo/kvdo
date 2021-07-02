@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#46 $
  */
 
 #include "recoveryUtils.h"
@@ -44,7 +44,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	free_vdo_extent(vdo_completion_as_extent(FORGET(completion)));
+	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
 
@@ -54,8 +54,8 @@ void load_vdo_recovery_journal(struct recovery_journal *journal,
 			       char **journal_data_ptr)
 {
 	struct vdo_extent *extent;
-	int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,
-			      journal_data_ptr);
+	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE, char,
+				  __func__, journal_data_ptr);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;

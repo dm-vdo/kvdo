@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#26 $
  */
 
 #include "chapterWriter.h"
@@ -137,11 +137,11 @@ int make_chapter_writer(struct index *index,
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
 		 (1 + index->volume->geometry->records_per_chapter));
-	int result = ALLOCATE_EXTENDED(struct chapter_writer,
-				       index->zone_count,
-				       struct open_chapter_zone *,
-				       "Chapter Writer",
-				       &writer);
+	int result = UDS_ALLOCATE_EXTENDED(struct chapter_writer,
+					   index->zone_count,
+					   struct open_chapter_zone *,
+					   "Chapter Writer",
+					   &writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -149,21 +149,21 @@ int make_chapter_writer(struct index *index,
 
 	result = init_mutex(&writer->mutex);
 	if (result != UDS_SUCCESS) {
-		FREE(writer);
+		UDS_FREE(writer);
 		return result;
 	}
 	result = init_cond(&writer->cond);
 	if (result != UDS_SUCCESS) {
 		destroy_mutex(&writer->mutex);
-		FREE(writer);
+		UDS_FREE(writer);
 		return result;
 	}
 
 	// Now that we have the mutex+cond, it is safe to call
 	// free_chapter_writer.
-	result = allocate_cache_aligned(collated_records_size,
-					"collated records",
-					&writer->collated_records);
+	result = uds_allocate_cache_aligned(collated_records_size,
+					    "collated records",
+					    &writer->collated_records);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
 		return make_unrecoverable(result);
@@ -210,8 +210,8 @@ void free_chapter_writer(struct chapter_writer *writer)
 	destroy_mutex(&writer->mutex);
 	destroy_cond(&writer->cond);
 	free_open_chapter_index(writer->open_chapter_index);
-	FREE(writer->collated_records);
-	FREE(writer);
+	UDS_FREE(writer->collated_records);
+	UDS_FREE(writer);
 }
 
 /**********************************************************************/

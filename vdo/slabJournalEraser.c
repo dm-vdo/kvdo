@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#28 $
  */
 
 #include "slabJournalEraser.h"
@@ -46,9 +46,9 @@ struct slab_journal_eraser {
 static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 {
 	struct vdo_completion *parent = eraser->parent;
-	free_vdo_extent(FORGET(eraser->extent));
-	FREE(eraser->zero_buffer);
-	FREE(eraser);
+	free_vdo_extent(UDS_FORGET(eraser->extent));
+	UDS_FREE(eraser->zero_buffer);
+	UDS_FREE(eraser);
 	finish_vdo_completion(parent, result);
 }
 
@@ -91,7 +91,7 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 	block_count_t journal_size;
 	struct vdo_completion *extent_completion;
 
-	int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
+	int result = UDS_ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;
@@ -101,10 +101,10 @@ void erase_vdo_slab_journals(struct slab_depot *depot,
 	eraser->slabs = slabs;
 
 	journal_size = get_vdo_slab_config(depot)->slab_journal_blocks;
-	result = ALLOCATE(journal_size * VDO_BLOCK_SIZE,
-			  char,
-			  __func__,
-			  &eraser->zero_buffer);
+	result = UDS_ALLOCATE(journal_size * VDO_BLOCK_SIZE,
+			      char,
+			      __func__,
+			      &eraser->zero_buffer);
 	if (result != VDO_SUCCESS) {
 		finish_erasing(eraser, result);
 		return;

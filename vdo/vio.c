@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#49 $
  */
 
 #include "vio.h"
@@ -56,7 +56,7 @@ int create_metadata_vio(struct vdo *vdo,
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.
-	result = ALLOCATE(1, struct vio, __func__, &vio);
+	result = UDS_ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata vio allocation failure %d", result);
 		return result;
@@ -64,7 +64,7 @@ int create_metadata_vio(struct vdo *vdo,
 
 	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
-		FREE(vio);
+		UDS_FREE(vio);
 		return result;
 	}
 
@@ -88,8 +88,8 @@ void free_vio(struct vio *vio)
 	}
 
 	BUG_ON(is_data_vio(vio));
-	vdo_free_bio(FORGET(vio->bio));
-	FREE(vio);
+	vdo_free_bio(UDS_FORGET(vio->bio));
+	UDS_FREE(vio);
 }
 
 /**********************************************************************/

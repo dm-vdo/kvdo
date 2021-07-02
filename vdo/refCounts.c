@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#83 $
  */
 
 #include "refCounts.h"
@@ -177,8 +177,8 @@ int make_vdo_ref_counts(block_count_t block_count,
 	block_count_t ref_block_count =
 		vdo_get_saved_reference_count_size(block_count);
 	struct ref_counts *ref_counts;
-	int result = ALLOCATE_EXTENDED(struct ref_counts,
-				       ref_block_count,
+	int result = UDS_ALLOCATE_EXTENDED(struct ref_counts,
+					   ref_block_count,
 				       struct reference_block,
 				       "ref counts structure",
 				       &ref_counts);
@@ -189,10 +189,10 @@ int make_vdo_ref_counts(block_count_t block_count,
 	// Allocate such that the runt slab has a full-length memory array,
 	// plus a little padding so we can word-search even at the very end.
 	bytes = ((ref_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
-	result = ALLOCATE(bytes,
-			  vdo_refcount_t,
-			  "ref counts array",
-			  &ref_counts->counters);
+	result = UDS_ALLOCATE(bytes,
+			      vdo_refcount_t,
+			      "ref counts array",
+			      &ref_counts->counters);
 	if (result != UDS_SUCCESS) {
 		free_vdo_ref_counts(&ref_counts);
 		return result;
@@ -228,8 +228,8 @@ void free_vdo_ref_counts(struct ref_counts **ref_counts_ptr)
 		return;
 	}
 
-	FREE(ref_counts->counters);
-	FREE(ref_counts);
+	UDS_FREE(ref_counts->counters);
+	UDS_FREE(ref_counts);
 	*ref_counts_ptr = NULL;
 }
 

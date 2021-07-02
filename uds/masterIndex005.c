@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#42 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#43 $
  */
 #include "masterIndex005.h"
 
@@ -341,12 +341,12 @@ static void free_volume_index_005(struct volume_index *volume_index)
 		struct volume_index5 *vi5 = container_of(volume_index,
 							 struct volume_index5,
 							 common);
-		FREE(vi5->flush_chapters);
+		UDS_FREE(vi5->flush_chapters);
 		vi5->flush_chapters = NULL;
-		FREE(vi5->zones);
+		UDS_FREE(vi5->zones);
 		vi5->zones = NULL;
 		uninitialize_delta_index(&vi5->delta_index);
-		FREE(volume_index);
+		UDS_FREE(volume_index);
 	}
 }
 
@@ -465,14 +465,14 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_warning_strerror(result,
 						"failed to write volume index header");
@@ -487,14 +487,14 @@ start_saving_volume_index_005(const struct volume_index *volume_index,
 	result = put_uint64_les_into_buffer(buffer, num_lists,
 					    first_flush_chapter);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_warning_strerror(result,
 						"failed to write volume index flush ranges");
@@ -644,19 +644,19 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
 		}
 
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -700,20 +700,20 @@ start_restoring_volume_index_005(struct volume_index *volume_index,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index flush ranges");
 		}
 
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = get_uint64_les_from_buffer(buffer, header.num_lists,
 						    first_flush_chapter);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -1536,7 +1536,7 @@ int make_volume_index005(const struct configuration *config,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct volume_index5, "volume index", &vi5);
+	result = UDS_ALLOCATE(1, struct volume_index5, "volume index", &vi5);
 	if (result != UDS_SUCCESS) {
 		*volume_index = NULL;
 		return result;
@@ -1597,19 +1597,19 @@ int make_volume_index005(const struct configuration *config,
 	// Initialize the chapter flush ranges to be empty.  This depends upon
 	// allocate returning zeroed memory.
 	if (result == UDS_SUCCESS) {
-		result = ALLOCATE(params.num_delta_lists,
-				  uint64_t,
-				  "first chapter to flush",
-				  &vi5->flush_chapters);
+		result = UDS_ALLOCATE(params.num_delta_lists,
+				      uint64_t,
+				      "first chapter to flush",
+				      &vi5->flush_chapters);
 	}
 
 	// Initialize the virtual chapter ranges to start at zero.  This
 	// depends upon allocate returning zeroed memory.
 	if (result == UDS_SUCCESS) {
-		result = ALLOCATE(num_zones,
-				  struct volume_index_zone,
-				  "volume index zones",
-				  &vi5->zones);
+		result = UDS_ALLOCATE(num_zones,
+				      struct volume_index_zone,
+				      "volume index zones",
+				      &vi5->zones);
 	}
 
 	if (result == UDS_SUCCESS) {

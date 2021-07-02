@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#20 $
  */
 
 #include "indexInternals.h"
@@ -54,7 +54,7 @@ int allocate_index(struct index_layout *layout,
 		return UDS_BAD_CHECKPOINT_FREQUENCY;
 	}
 
-	result = ALLOCATE(1, struct index, "index", &index);
+	result = UDS_ALLOCATE(1, struct index, "index", &index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -74,8 +74,8 @@ int allocate_index(struct index_layout *layout,
 	get_uds_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;
 
-	result = ALLOCATE(index->zone_count, struct index_zone *, "zones",
-			  &index->zones);
+	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones",
+			      &index->zones);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -138,13 +138,13 @@ void release_index(struct index *index)
 		for (i = 0; i < index->zone_count; i++) {
 			free_index_zone(index->zones[i]);
 		}
-		FREE(index->zones);
+		UDS_FREE(index->zones);
 	}
 
 	free_volume(index->volume);
 
 	free_index_state(index->state);
 	free_index_checkpoint(index->checkpoint);
-	put_uds_index_layout(FORGET(index->layout));
-	FREE(index);
+	put_uds_index_layout(UDS_FORGET(index->layout));
+	UDS_FREE(index);
 }

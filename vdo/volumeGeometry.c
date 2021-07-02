@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#47 $
  */
 
 #include "volumeGeometry.h"
@@ -283,14 +283,14 @@ int vdo_read_geometry_block(struct block_device *bdev,
 {
 	struct bio *bio;
 	byte *block;
-	int result = ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
+	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
-		FREE(block);
+		UDS_FREE(block);
 		return result;
 	}
 
@@ -302,7 +302,7 @@ int vdo_read_geometry_block(struct block_device *bdev,
 					   GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
 		vdo_free_bio(bio);
-		FREE(block);
+		UDS_FREE(block);
 		return result;
 	}
 
@@ -312,13 +312,13 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	vdo_free_bio(bio);
 	if (result != 0) {
 		uds_log_error_strerror(result, "synchronous read failed");
-		FREE(block);
+		UDS_FREE(block);
 		return -EIO;
 	}
 
 
 	result = vdo_parse_geometry_block(block, geometry);
-	FREE(block);
+	UDS_FREE(block);
 	return result;
 }
 
@@ -336,7 +336,7 @@ int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
@@ -345,12 +345,12 @@ int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 				    uncompacted_amount(buffer));
 	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	// Finished all decoding. Everything that follows is validation code.
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version)) {
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,

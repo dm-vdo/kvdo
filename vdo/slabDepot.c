@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#111 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#112 $
  */
 
 #include "slabDepot.h"
@@ -86,10 +86,10 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	physical_block_number_t slab_origin;
 	block_count_t translation;
 
-	int result = ALLOCATE(slab_count,
-			      struct vdo_slab *,
-			      "slab pointer array",
-			      &depot->new_slabs);
+	int result = UDS_ALLOCATE(slab_count,
+				  struct vdo_slab *,
+				  "slab pointer array",
+				  &depot->new_slabs);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -144,7 +144,7 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 		free_vdo_slab(&depot->new_slabs[i]);
 	}
 	depot->new_slab_count = 0;
-	FREE(depot->new_slabs);
+	UDS_FREE(depot->new_slabs);
 	depot->new_slabs = NULL;
 	depot->new_size = 0;
 }
@@ -300,11 +300,11 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 	}
 	slab_size_shift = log_base_two(slab_size);
 
-	result = ALLOCATE_EXTENDED(struct slab_depot,
-				   thread_config->physical_zone_count,
-				   struct block_allocator *,
-				   __func__,
-				   &depot);
+	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
+				       thread_config->physical_zone_count,
+				       struct block_allocator *,
+				       __func__,
+				       &depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -349,10 +349,10 @@ void free_vdo_slab_depot(struct slab_depot **depot_ptr)
 		}
 	}
 
-	FREE(depot->slabs);
-	FREE(FORGET(depot->action_manager));
+	UDS_FREE(depot->slabs);
+	UDS_FREE(UDS_FORGET(depot->action_manager));
 	free_vdo_slab_summary(&depot->slab_summary);
-	FREE(depot);
+	UDS_FREE(depot);
 	*depot_ptr = NULL;
 }
 
@@ -638,7 +638,7 @@ static int finish_registration(void *context)
 {
 	struct slab_depot *depot = context;
 	WRITE_ONCE(depot->slab_count, depot->new_slab_count);
-	FREE(depot->slabs);
+	UDS_FREE(depot->slabs);
 	depot->slabs = depot->new_slabs;
 	depot->new_slabs = NULL;
 	depot->new_slab_count = 0;

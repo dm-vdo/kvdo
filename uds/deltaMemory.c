@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#21 $
  */
 #include "deltaMemory.h"
 
@@ -282,21 +282,21 @@ int initialize_delta_memory(struct delta_memory *delta_memory,
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 					    	"cannot initialize delta memory with 0 delta lists");
 	}
-	result = ALLOCATE(size, byte, "delta list", &memory);
+	result = UDS_ALLOCATE(size, byte, "delta list", &memory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = ALLOCATE(num_lists + 2, uint64_t, "delta list temp",
-			  &temp_offsets);
+	result = UDS_ALLOCATE(num_lists + 2, uint64_t, "delta list temp",
+			      &temp_offsets);
 	if (result != UDS_SUCCESS) {
-		FREE(memory);
+		UDS_FREE(memory);
 		return result;
 	}
-	result = ALLOCATE(get_size_of_flags(num_lists), byte,
-			  "delta list flags", &flags);
+	result = UDS_ALLOCATE(get_size_of_flags(num_lists), byte,
+			      "delta list flags", &flags);
 	if (result != UDS_SUCCESS) {
-		FREE(memory);
-		FREE(temp_offsets);
+		UDS_FREE(memory);
+		UDS_FREE(temp_offsets);
 		return result;
 	}
 
@@ -324,8 +324,8 @@ int initialize_delta_memory(struct delta_memory *delta_memory,
 	delta_memory->tag = 'm';
 
 	// Allocate the delta lists.
-	result = ALLOCATE(delta_memory->num_lists + 2, struct delta_list,
-			  "delta lists", &delta_memory->delta_lists);
+	result = UDS_ALLOCATE(delta_memory->num_lists + 2, struct delta_list,
+			      "delta lists", &delta_memory->delta_lists);
 	if (result != UDS_SUCCESS) {
 		uninitialize_delta_memory(delta_memory);
 		return result;
@@ -338,13 +338,13 @@ int initialize_delta_memory(struct delta_memory *delta_memory,
 /**********************************************************************/
 void uninitialize_delta_memory(struct delta_memory *delta_memory)
 {
-	FREE(delta_memory->flags);
+	UDS_FREE(delta_memory->flags);
 	delta_memory->flags = NULL;
-	FREE(delta_memory->temp_offsets);
+	UDS_FREE(delta_memory->temp_offsets);
 	delta_memory->temp_offsets = NULL;
-	FREE(delta_memory->delta_lists);
+	UDS_FREE(delta_memory->delta_lists);
 	delta_memory->delta_lists = NULL;
-	FREE(delta_memory->memory);
+	UDS_FREE(delta_memory->memory);
 	delta_memory->memory = NULL;
 }
 

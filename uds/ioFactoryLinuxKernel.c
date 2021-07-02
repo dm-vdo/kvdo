@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#12 $
  */
 
 #include <linux/blkdev.h>
@@ -62,7 +62,7 @@ int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	result = ALLOCATE(1, struct io_factory, __func__, &factory);
+	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS) {
 		blkdev_put(bdev, BLK_FMODE);
 		return result;
@@ -80,7 +80,7 @@ void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
 		blkdev_put(factory->bdev, BLK_FMODE);
-		FREE(factory);
+		UDS_FREE(factory);
 	}
 }
 

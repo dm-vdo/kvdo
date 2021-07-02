@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#90 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#92 $
  */
 
 #include <linux/module.h>
@@ -37,7 +37,7 @@
 static int __init dedupe_init(void)
 {
 	uds_initialize_thread_device_registry();
-	memory_init();
+	uds_memory_init();
 	uds_log_info("loaded version %s", UDS_VERSION);
 	init_sysfs();
 	return 0;
@@ -47,7 +47,7 @@ static int __init dedupe_init(void)
 static void __exit dedupe_exit(void)
 {
 	put_sysfs();
-	memory_exit();
+	uds_memory_exit();
 	uds_log_info("unloaded version %s", UDS_VERSION);
 }
 
@@ -90,8 +90,8 @@ EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
 EXPORT_SYMBOL_GPL(__uds_log_message);
 EXPORT_SYMBOL_GPL(__uds_log_strerror);
 EXPORT_SYMBOL_GPL(alloc_sprintf);
-EXPORT_SYMBOL_GPL(allocate_memory);
-EXPORT_SYMBOL_GPL(allocate_memory_nowait);
+EXPORT_SYMBOL_GPL(uds_allocate_memory);
+EXPORT_SYMBOL_GPL(uds_allocate_memory_nowait);
 EXPORT_SYMBOL_GPL(append_to_buffer);
 EXPORT_SYMBOL_GPL(available_space);
 EXPORT_SYMBOL_GPL(buffer_length);
@@ -101,20 +101,20 @@ EXPORT_SYMBOL_GPL(compact_buffer);
 EXPORT_SYMBOL_GPL(content_length);
 EXPORT_SYMBOL_GPL(copy_bytes);
 EXPORT_SYMBOL_GPL(current_time_us);
-EXPORT_SYMBOL_GPL(duplicate_string);
+EXPORT_SYMBOL_GPL(uds_duplicate_string);
 EXPORT_SYMBOL_GPL(ensure_available_space);
 EXPORT_SYMBOL_GPL(equal_buffers);
 EXPORT_SYMBOL_GPL(fixed_sprintf);
 EXPORT_SYMBOL_GPL(free_buffer);
 EXPORT_SYMBOL_GPL(free_funnel_queue);
-EXPORT_SYMBOL_GPL(free_memory);
+EXPORT_SYMBOL_GPL(uds_free_memory);
 EXPORT_SYMBOL_GPL(funnel_queue_poll);
 EXPORT_SYMBOL_GPL(get_boolean);
 EXPORT_SYMBOL_GPL(get_buffer_contents);
 EXPORT_SYMBOL_GPL(get_byte);
 EXPORT_SYMBOL_GPL(get_bytes_from_buffer);
 EXPORT_SYMBOL_GPL(get_uds_log_level);
-EXPORT_SYMBOL_GPL(get_memory_stats);
+EXPORT_SYMBOL_GPL(get_uds_memory_stats);
 EXPORT_SYMBOL_GPL(get_uint16_le_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint16_les_from_buffer);
 EXPORT_SYMBOL_GPL(get_uint32_le_from_buffer);
@@ -141,11 +141,11 @@ EXPORT_SYMBOL_GPL(put_uint16_les_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint32_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_le_into_buffer);
 EXPORT_SYMBOL_GPL(put_uint64_les_into_buffer);
-EXPORT_SYMBOL_GPL(reallocate_memory);
-EXPORT_SYMBOL_GPL(register_allocating_thread);
+EXPORT_SYMBOL_GPL(uds_reallocate_memory);
+EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(register_error_block);
 EXPORT_SYMBOL_GPL(register_thread);
-EXPORT_SYMBOL_GPL(report_memory_usage);
+EXPORT_SYMBOL_GPL(report_uds_memory_usage);
 EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
 EXPORT_SYMBOL_GPL(set_uds_log_level);
@@ -160,7 +160,7 @@ EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
-EXPORT_SYMBOL_GPL(unregister_allocating_thread);
+EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(unregister_thread);
 EXPORT_SYMBOL_GPL(v_append_to_buffer);
 EXPORT_SYMBOL_GPL(uds_vlog_strerror);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#26 $
  */
 
 #include "indexPageMap.h"
@@ -79,17 +79,17 @@ int make_index_page_map(const struct geometry *geometry,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct index_page_map, "Index Page Map", &map);
+	result = UDS_ALLOCATE(1, struct index_page_map, "Index Page Map", &map);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	map->geometry = geometry;
 
-	result = ALLOCATE(num_entries(geometry),
-			  index_page_map_entry_t,
-			  "Index Page Map Entries",
-			  &map->entries);
+	result = UDS_ALLOCATE(num_entries(geometry),
+			      index_page_map_entry_t,
+			      "Index Page Map Entries",
+			      &map->entries);
 	if (result != UDS_SUCCESS) {
 		free_index_page_map(map);
 		return result;
@@ -103,8 +103,8 @@ int make_index_page_map(const struct geometry *geometry,
 void free_index_page_map(struct index_page_map *map)
 {
 	if (map != NULL) {
-		FREE(map->entries);
-		FREE(map);
+		UDS_FREE(map->entries);
+		UDS_FREE(map);
 	}
 }
 
@@ -271,19 +271,19 @@ static int write_index_page_map(struct index_component *component,
 	result = put_bytes(buffer, INDEX_PAGE_MAP_MAGIC_LENGTH,
 			   INDEX_PAGE_MAP_MAGIC);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = put_uint64_le_into_buffer(buffer, map->last_update);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot write index page map header");
@@ -297,13 +297,13 @@ static int write_index_page_map(struct index_component *component,
 	result = put_uint16_les_into_buffer(buffer, num_entries(map->geometry),
 					    map->entries);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot write index page map data");
@@ -368,7 +368,7 @@ static int read_index_page_map(struct read_portal *portal)
 	result = read_from_buffered_reader(reader, get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		uds_log_error_strerror(result,
 				       "cannot read index page map data");
 		return result;
@@ -376,12 +376,12 @@ static int read_index_page_map(struct read_portal *portal)
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_index_page_map(buffer, map);
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

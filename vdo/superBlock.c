@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#40 $
  */
 
 #include "superBlock.h"
@@ -57,8 +57,8 @@ allocate_super_block(struct vdo *vdo,
 {
 	struct vdo_super_block *super_block;
 
-	int result =
-		ALLOCATE(1, struct vdo_super_block, __func__, super_block_ptr);
+	int result = UDS_ALLOCATE(1, struct vdo_super_block, __func__,
+				  super_block_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -97,9 +97,9 @@ void free_vdo_super_block(struct vdo_super_block *super_block)
 		return;
 	}
 
-	free_vio(FORGET(super_block->vio));
+	free_vio(UDS_FORGET(super_block->vio));
 	destroy_vdo_super_block_codec(&super_block->codec);
-	FREE(super_block);
+	UDS_FREE(super_block);
 }
 
 /**

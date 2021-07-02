@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#56 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#57 $
  */
 
 #include "indexLayout.h"
@@ -426,19 +426,19 @@ static int __must_check load_region_table(struct buffered_reader *reader,
 					   get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(result,
 					      "cannot read region table header");
 	}
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_region_header(buffer, &header);
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -453,11 +453,11 @@ static int __must_check load_region_table(struct buffered_reader *reader,
 					      header.version);
 	}
 
-	result = ALLOCATE_EXTENDED(struct region_table,
-				   header.num_regions,
-				   struct layout_region,
-				   "single file layout region table",
-				   &table);
+	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+				       header.num_regions,
+				       struct layout_region,
+				       "single file layout region table",
+				       &table);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -466,7 +466,7 @@ static int __must_check load_region_table(struct buffered_reader *reader,
 	result = make_buffer(header.num_regions * sizeof(struct layout_region),
 			     &buffer);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return result;
 	}
 
@@ -474,29 +474,29 @@ static int __must_check load_region_table(struct buffered_reader *reader,
 					   get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		FREE(table);
-		free_buffer(FORGET(buffer));
+		UDS_FREE(table);
+		free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
 					      "cannot read region table layouts");
 	}
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		FREE(table);
-		free_buffer(FORGET(buffer));
+		UDS_FREE(table);
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	for (i = 0; i < header.num_regions; i++) {
 		result = decode_layout_region(buffer, &table->regions[i]);
 		if (result != UDS_SUCCESS) {
-			FREE(table);
-			free_buffer(FORGET(buffer));
+			UDS_FREE(table);
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	*table_ptr = table;
 	return UDS_SUCCESS;
 }
@@ -594,19 +594,19 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					   get_buffer_contents(buffer),
 					   buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(result,
 					      "cannot read region table header");
 	}
 
 	result = reset_buffer_end(buffer, buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_super_block_data(buffer, super);
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot read super block data");
@@ -657,10 +657,10 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 static int __must_check
 allocate_single_file_parts(struct index_layout *layout)
 {
-	int result = ALLOCATE(layout->super.max_saves,
-			      struct index_save_layout,
-			      __func__,
-			      &layout->index.saves);
+	int result = UDS_ALLOCATE(layout->super.max_saves,
+				  struct index_save_layout,
+				  __func__,
+				  &layout->index.saves);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -683,20 +683,20 @@ load_super_block(struct index_layout *layout,
 	}
 
 	if (table->header.type != RH_TYPE_SUPER) {
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
 					      "not a superblock region table");
 	}
 
 	result = read_super_block_data(reader, layout, table->header.payload);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(result,
 					      "unknown superblock format");
 	}
 
 	if (super->block_size != block_size) {
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(UDS_WRONG_INDEX_CONFIG,
 					      "superblock saved block_size %u differs from supplied block_size %zu",
 					      super->block_size,
@@ -706,13 +706,13 @@ load_super_block(struct index_layout *layout,
 
 	result = allocate_single_file_parts(layout);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return result;
 	}
 
 	first_block -= (super->volume_offset - super->start_offset);
 	result = reconstitute_single_file_layout(layout, table, first_block);
-	FREE(table);
+	UDS_FREE(table);
 	return result;
 }
 
@@ -744,19 +744,19 @@ read_index_save_data(struct buffered_reader *reader,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result,
 						      "cannot read index save data");
 		}
 
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = decode_index_save_data(buffer, save_data);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -787,13 +787,13 @@ read_index_save_data(struct buffered_reader *reader,
 							   get_buffer_contents(buffer),
 							   saved_size);
 			if (result != UDS_SUCCESS) {
-				free_buffer(FORGET(buffer));
+				free_buffer(UDS_FORGET(buffer));
 				return result;
 			}
 
 			result = reset_buffer_end(buffer, saved_size);
 			if (result != UDS_SUCCESS) {
-				free_buffer(FORGET(buffer));
+				free_buffer(UDS_FORGET(buffer));
 				return result;
 			}
 		}
@@ -1012,22 +1012,22 @@ reconstruct_index_save(struct index_save_layout *isl,
 	isl->num_zones = n;
 
 	if (isl->num_zones > 0) {
-		result = ALLOCATE(n,
-				  struct layout_region,
-				  "volume index layout regions",
-				  &isl->volume_index_zones);
+		result = UDS_ALLOCATE(n,
+				      struct layout_region,
+				      "volume index layout regions",
+				      &isl->volume_index_zones);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 	}
 
 	if (isl->save_type == IS_SAVE) {
-		result = ALLOCATE(1,
-				  struct layout_region,
-				  "open chapter layout region",
-				  &isl->open_chapter);
+		result = UDS_ALLOCATE(1,
+				      struct layout_region,
+				      "open chapter layout region",
+				      &isl->open_chapter);
 		if (result != UDS_SUCCESS) {
-			FREE(isl->volume_index_zones);
+			UDS_FREE(isl->volume_index_zones);
 			return result;
 		}
 	}
@@ -1101,7 +1101,7 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 
 	if (table->header.region_blocks != isl->index_save.num_blocks) {
 		uint64_t region_blocks = table->header.region_blocks;
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
 					      "unexpected index 0 save %u "
 					      "region block count %llu",
@@ -1113,7 +1113,7 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 	    table->header.type != RH_TYPE_CHECKPOINT &&
 	    table->header.type != RH_TYPE_UNSAVED) {
 		unsigned int type = table->header.type;
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
 					      "unexpected index 0 save %u header type %u",
 					      save_id,
@@ -1125,17 +1125,17 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 				      table->header.payload,
 				      &isl->index_state_buffer);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return uds_log_error_strerror(result,
 					      "unknown index 0 save %u data format",
 					      save_id);
 	}
 
 	result = reconstruct_index_save(isl, &index_data, super, table);
-	FREE(table);
+	UDS_FREE(table);
 
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(isl->index_state_buffer));
+		free_buffer(UDS_FORGET(isl->index_state_buffer));
 		return uds_log_error_strerror(result,
 					      "cannot reconstruct index 0 save %u",
 					      save_id);
@@ -1166,9 +1166,9 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 			while (j-- > 0) {
 				struct index_save_layout *isl =
 					&layout->index.saves[j];
-				FREE(isl->volume_index_zones);
-				FREE(isl->open_chapter);
-				free_buffer(FORGET(isl->index_state_buffer));
+				UDS_FREE(isl->volume_index_zones);
+				UDS_FREE(isl->open_chapter);
+				free_buffer(UDS_FORGET(isl->index_state_buffer));
 			}
 
 			return result;
@@ -1180,9 +1180,9 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 			while (j-- > 0) {
 				struct index_save_layout *isl =
 					&layout->index.saves[j];
-				FREE(isl->volume_index_zones);
-				FREE(isl->open_chapter);
-				free_buffer(FORGET(isl->index_state_buffer));
+				UDS_FREE(isl->volume_index_zones);
+				UDS_FREE(isl->open_chapter);
+				free_buffer(UDS_FORGET(isl->index_state_buffer));
 			}
 			return result;
 		}
@@ -1208,14 +1208,14 @@ static int load_index_layout(struct index_layout *layout)
 				  reader);
 	free_buffered_reader(reader);
 	if (result != UDS_SUCCESS) {
-		FREE(layout->index.saves);
+		UDS_FREE(layout->index.saves);
 		layout->index.saves = NULL;
 		return result;
 	}
 
 	result = load_sub_index_regions(layout);
 	if (result != UDS_SUCCESS) {
-		FREE(layout->index.saves);
+		UDS_FREE(layout->index.saves);
 		layout->index.saves = NULL;
 		return result;
 	}
@@ -1259,15 +1259,15 @@ reset_index_save_layout(struct index_save_layout *isl,
 	uint64_t start_block = *next_block_ptr;
 
 	if (isl->volume_index_zones) {
-		FREE(isl->volume_index_zones);
+		UDS_FREE(isl->volume_index_zones);
 	}
 
 	if (isl->open_chapter) {
-		FREE(isl->open_chapter);
+		UDS_FREE(isl->open_chapter);
 	}
 
 	if (isl->index_state_buffer) {
-		free_buffer(FORGET(isl->index_state_buffer));
+		free_buffer(UDS_FORGET(isl->index_state_buffer));
 	}
 
 	memset(isl, 0, sizeof(*isl));
@@ -1557,11 +1557,11 @@ make_single_file_region_table(struct index_layout *layout,
 	struct sub_index_layout *sil;
 	unsigned int j;
 	struct layout_region *lr;
-	int result = ALLOCATE_EXTENDED(struct region_table,
-				       num_regions,
-				       struct layout_region,
-				       "layout region table",
-				       &table);
+	int result = UDS_ALLOCATE_EXTENDED(struct region_table,
+					   num_regions,
+					   struct layout_region,
+					   "layout region table",
+					   &table);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1799,7 +1799,7 @@ write_single_file_header(struct index_layout *layout,
 					          content_length(buffer));
 	}
 
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1811,13 +1811,13 @@ write_single_file_header(struct index_layout *layout,
 
 	result = encode_super_block_data(buffer, &layout->super);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 				          content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1849,12 +1849,12 @@ save_single_file_layout(struct index_layout *layout, off_t offset)
 
 	result = open_layout_writer(layout, &layout->header, offset, &writer);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return result;
 	}
 
  	result = write_single_file_header(layout, table, num_regions, writer);
-	FREE(table);
+	UDS_FREE(table);
 	free_buffered_writer(writer);
 
 	return result;
@@ -1874,18 +1874,18 @@ void put_uds_index_layout(struct index_layout *layout)
 		unsigned int j;
 		for (j = 0; j < layout->super.max_saves; ++j) {
 			struct index_save_layout *isl = &sil->saves[j];
-			FREE(isl->volume_index_zones);
-			FREE(isl->open_chapter);
-			free_buffer(FORGET(isl->index_state_buffer));
+			UDS_FREE(isl->volume_index_zones);
+			UDS_FREE(isl->open_chapter);
+			free_buffer(UDS_FORGET(isl->index_state_buffer));
 		}
 	}
 
-	FREE(sil->saves);
+	UDS_FREE(sil->saves);
 
 	if (layout->factory != NULL) {
 		put_uds_io_factory(layout->factory);
 	}
-	FREE(layout);
+	UDS_FREE(layout);
 }
 
 /**********************************************************************/
@@ -2106,25 +2106,25 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 {
 	int result = UDS_SUCCESS;
 	if (isl->open_chapter && save_type == IS_CHECKPOINT) {
-		FREE(isl->open_chapter);
+		UDS_FREE(isl->open_chapter);
 		isl->open_chapter = NULL;
 	} else if (isl->open_chapter == NULL && save_type == IS_SAVE) {
-		result = ALLOCATE(1,
-				  struct layout_region,
-				  "open chapter layout",
-				  &isl->open_chapter);
+		result = UDS_ALLOCATE(1,
+				      struct layout_region,
+				      "open chapter layout",
+				      &isl->open_chapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 	}
 	if (num_zones != isl->num_zones) {
 		if (isl->volume_index_zones != NULL) {
-			FREE(isl->volume_index_zones);
+			UDS_FREE(isl->volume_index_zones);
 		}
-		result = ALLOCATE(num_zones,
-				  struct layout_region,
-				  "volume index zone layouts",
-				  &isl->volume_index_zones);
+		result = UDS_ALLOCATE(num_zones,
+				      struct layout_region,
+				      "volume index zone layouts",
+				      &isl->volume_index_zones);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -2244,11 +2244,11 @@ make_index_save_region_table(struct index_save_layout *isl,
 		num_regions++;
 	}
 
-	result = ALLOCATE_EXTENDED(struct region_table,
-				   num_regions,
-				   struct layout_region,
-				   "layout region table for ISL",
-				   &table);
+	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+				       num_regions,
+				       struct layout_region,
+				       "layout region table for ISL",
+				       &table);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2328,14 +2328,14 @@ write_index_save_header(struct index_save_layout *isl,
 
 	result = encode_region_header(buffer, &table->header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	for (i = 0; i < num_regions; i++) {
 		result = encode_layout_region(buffer, &table->regions[i]);
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
@@ -2344,13 +2344,13 @@ write_index_save_header(struct index_save_layout *isl,
 				 content_length(buffer),
 				 table_size);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2362,13 +2362,13 @@ write_index_save_header(struct index_save_layout *isl,
 
 	result = encode_index_save_data(buffer, &isl->save_data);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer, get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2401,12 +2401,12 @@ static int write_index_save_layout(struct index_layout *layout,
 				    -layout->super.start_offset,
 				    &writer);
 	if (result != UDS_SUCCESS) {
-		FREE(table);
+		UDS_FREE(table);
 		return result;
 	}
 
 	result = write_index_save_header(isl, table, num_regions, writer);
-	FREE(table);
+	UDS_FREE(table);
 	free_buffered_writer(writer);
 
 	isl->written = true;
@@ -2442,7 +2442,7 @@ static void mutilate_index_save_info(struct index_save_layout *isl)
 	isl->read = isl->written = 0;
 	isl->save_type = NO_SAVE;
 	isl->num_zones = 0;
-	free_buffer(FORGET(isl->index_state_buffer));
+	free_buffer(UDS_FORGET(isl->index_state_buffer));
 }
 
 /**********************************************************************/
@@ -2656,7 +2656,7 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 	}
 	size = config_size;
 
-	result = ALLOCATE(1, struct index_layout, __func__, &layout);
+	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

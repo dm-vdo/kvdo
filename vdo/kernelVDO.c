@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#108 $
  */
 
 /*
@@ -54,14 +54,14 @@ static void start_vdo_request_queue(void *ptr)
 {
 	struct vdo_thread *thread = ptr;
 	struct vdo *vdo = thread->vdo;
-	register_allocating_thread(&thread->allocating_thread,
-				   &vdo->allocations_allowed);
+	uds_register_allocating_thread(&thread->allocating_thread,
+				       &vdo->allocations_allowed);
 }
 
 /**********************************************************************/
 static void finish_vdo_request_queue(void *ptr)
 {
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 }
 
 /**********************************************************************/
@@ -94,10 +94,10 @@ int make_vdo_threads(struct vdo *vdo,
 		     char **reason)
 {
 	unsigned int base_threads = vdo->thread_config->base_thread_count;
-	int result = ALLOCATE(base_threads,
-			      struct vdo_thread,
-			      "request processing work queue",
-			      &vdo->threads);
+	int result = UDS_ALLOCATE(base_threads,
+				  struct vdo_thread,
+				  "request processing work queue",
+				  &vdo->threads);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocation thread structures";
 		return result;
@@ -135,11 +135,11 @@ int make_vdo_threads(struct vdo *vdo,
 					vdo->initialized_thread_count - 1;
 				thread = &vdo->threads[thread_to_destroy];
 				finish_work_queue(thread->request_queue);
-				free_work_queue(FORGET(thread->request_queue));
+				free_work_queue(UDS_FORGET(thread->request_queue));
 				vdo->initialized_thread_count--;
 			}
 
-			FREE(vdo->threads);
+			UDS_FREE(vdo->threads);
 			vdo->threads = NULL;
 			return result;
 		}

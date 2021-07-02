@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#139 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#140 $
  */
 
 #include "dmvdo.h"
@@ -345,7 +345,7 @@ static int vdo_message(struct dm_target *ti,
 	}
 
 	vdo = get_vdo_for_target(ti);
-	register_allocating_thread(&allocating_thread, NULL);
+	uds_register_allocating_thread(&allocating_thread, NULL);
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
 	// Must be done here so we don't map return codes. The code in
@@ -361,7 +361,7 @@ static int vdo_message(struct dm_target *ti,
 	}
 
 	uds_unregister_thread_device_id();
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	return result;
 }
 
@@ -487,14 +487,14 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	unsigned int instance;
 	struct device_config *config = NULL;
 
-	register_allocating_thread(&allocating_thread, NULL);
+	uds_register_allocating_thread(&allocating_thread, NULL);
 
 	device_name = get_vdo_device_name(ti);
 	old_vdo = find_vdo_matching(vdo_is_named, (void *) device_name);
 	if (old_vdo == NULL) {
 		result = allocate_vdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
-			unregister_allocating_thread();
+			uds_unregister_allocating_thread();
 			return -ENOMEM;
 		}
 	} else {
@@ -505,7 +505,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	result = parse_vdo_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 		if (old_vdo == NULL) {
 			release_vdo_instance(instance);
 		}
@@ -528,14 +528,14 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 							&ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
-			free_vdo_device_config(FORGET(config));
+			free_vdo_device_config(UDS_FORGET(config));
 		} else {
 			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
 			configure_target_capabilities(ti, layer);
 		}
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 		return result;
 	}
 
@@ -547,7 +547,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	uds_unregister_thread_device_id();
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	return result;
 }
 
@@ -566,7 +566,7 @@ static void vdo_dtr(struct dm_target *ti)
 		struct registered_thread allocating_thread, instance_thread;
 
 		uds_register_thread_device_id(&instance_thread, &instance);
-		register_allocating_thread(&allocating_thread, NULL);
+		uds_register_allocating_thread(&allocating_thread, NULL);
 
 		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
@@ -580,7 +580,7 @@ static void vdo_dtr(struct dm_target *ti)
 		free_kernel_layer(vdo_as_kernel_layer(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
 		// The layer still references this config. Give it a reference
 		// to a config that isn't being destroyed.

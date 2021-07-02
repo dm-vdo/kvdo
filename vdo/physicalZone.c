@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#34 $
  */
 
 #include "physicalZone.h"
@@ -62,7 +62,7 @@ int make_vdo_physical_zone(struct vdo *vdo,
 			   struct physical_zone **zone_ptr)
 {
 	struct physical_zone *zone;
-	int result = ALLOCATE(1, struct physical_zone, __func__, &zone);
+	int result = UDS_ALLOCATE(1, struct physical_zone, __func__, &zone);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -100,8 +100,8 @@ void free_vdo_physical_zone(struct physical_zone **zone_ptr)
 	}
 	zone = *zone_ptr;
 	free_vdo_pbn_lock_pool(&zone->lock_pool);
-	free_int_map(FORGET(zone->pbn_operations));
-	FREE(zone);
+	free_int_map(UDS_FORGET(zone->pbn_operations));
+	UDS_FREE(zone);
 	*zone_ptr = NULL;
 }
 

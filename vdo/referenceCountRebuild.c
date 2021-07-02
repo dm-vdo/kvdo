@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#68 $
  */
 
 #include "referenceCountRebuild.h"
@@ -102,7 +102,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	FREE(FORGET(completion));
+	UDS_FREE(UDS_FORGET(completion));
 	finish_vdo_completion(parent, result);
 }
 
@@ -131,9 +131,11 @@ static int make_rebuild_completion(struct vdo *vdo,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
 
 	struct rebuild_completion *rebuild;
-	int result = ALLOCATE_EXTENDED(struct rebuild_completion, page_count,
-				       struct vdo_page_completion, __func__,
-				       &rebuild);
+	int result = UDS_ALLOCATE_EXTENDED(struct rebuild_completion,
+					   page_count,
+					   struct vdo_page_completion,
+					   __func__,
+					   &rebuild);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -143,7 +145,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 	initialize_vdo_completion(&rebuild->sub_task_completion, vdo,
 				  SUB_TASK_COMPLETION);
 	if (result != VDO_SUCCESS) {
-		FREE(FORGET(rebuild));
+		UDS_FREE(UDS_FORGET(rebuild));
 		return result;
 	}
 

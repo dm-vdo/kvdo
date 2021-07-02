@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#9 $
  */
 
 /**
@@ -236,7 +236,7 @@ int make_event_count(struct event_count **ec_ptr)
 	// The event count will be allocated on a cache line boundary so there
 	// will not be false sharing of the line with any other data structure.
 	struct event_count *ec = NULL;
-	int result = ALLOCATE(1, struct event_count, "event count", &ec);
+	int result = UDS_ALLOCATE(1, struct event_count, "event count", &ec);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -244,7 +244,7 @@ int make_event_count(struct event_count **ec_ptr)
 	atomic64_set(&ec->state, 0);
 	result = initialize_semaphore(&ec->semaphore, 0);
 	if (result != UDS_SUCCESS) {
-		FREE(ec);
+		UDS_FREE(ec);
 		return result;
 	}
 
@@ -259,7 +259,7 @@ void free_event_count(struct event_count *ec)
 		return;
 	}
 	destroy_semaphore(&ec->semaphore);
-	FREE(ec);
+	UDS_FREE(ec);
 }
 
 /**********************************************************************/

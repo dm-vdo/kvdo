@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#147 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#148 $
  */
 
 /*
@@ -67,13 +67,13 @@ void destroy_vdo(struct vdo *vdo)
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
 	unregister_vdo(vdo);
-	free_vdo_dedupe_index(FORGET(vdo->dedupe_index));
+	free_vdo_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	free_vdo_flusher(&vdo->flusher);
 	free_vdo_packer(&vdo->packer);
 	free_vdo_recovery_journal(&vdo->recovery_journal);
 	free_vdo_slab_depot(&vdo->depot);
-	free_vdo_layout(FORGET(vdo->layout));
-	free_vdo_super_block(FORGET(vdo->super_block));
+	free_vdo_layout(UDS_FORGET(vdo->layout));
+	free_vdo_super_block(UDS_FORGET(vdo->super_block));
 	free_vdo_block_map(&vdo->block_map);
 
 	if (vdo->hash_zones != NULL) {
@@ -82,7 +82,7 @@ void destroy_vdo(struct vdo *vdo)
 			free_vdo_hash_zone(&vdo->hash_zones[zone]);
 		}
 	}
-	FREE(vdo->hash_zones);
+	UDS_FREE(vdo->hash_zones);
 	vdo->hash_zones = NULL;
 
 	free_logical_zones(&vdo->logical_zones);
@@ -94,22 +94,22 @@ void destroy_vdo(struct vdo *vdo)
 		}
 	}
 
-	FREE(vdo->physical_zones);
+	UDS_FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
 	free_vdo_read_only_notifier(&vdo->read_only_notifier);
-	free_vdo_thread_config(FORGET(vdo->thread_config));
+	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
-		free_work_queue(FORGET(vdo->threads[i].request_queue));
+		free_work_queue(UDS_FORGET(vdo->threads[i].request_queue));
 	}
-	FREE(vdo->threads);
+	UDS_FREE(vdo->threads);
 	vdo->threads = NULL;
 
 	for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++) {
-		FREE(FORGET(vdo->compression_context[i]));
+		UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
 	}
 
-	FREE(FORGET(vdo->compression_context));
+	UDS_FREE(UDS_FORGET(vdo->compression_context));
 	release_vdo_instance(vdo->instance);
 
 	/*
@@ -500,8 +500,8 @@ void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 		      &vdo->stats.bios_acknowledged_partial);
 	stats->bios_in_progress =
 		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
-	get_memory_stats(&stats->memory_usage.bytes_used,
-			 &stats->memory_usage.peak_bytes_used);
+	get_uds_memory_stats(&stats->memory_usage.bytes_used,
+			     &stats->memory_usage.peak_bytes_used);
 	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
 }
 

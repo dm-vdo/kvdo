@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#83 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#84 $
  */
 
 #include "ioSubmitter.h"
@@ -528,11 +528,11 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 	char queue_name[MAX_QUEUE_NAME_LEN];
 	unsigned int i;
 	struct io_submitter *io_submitter;
-	int result = ALLOCATE_EXTENDED(struct io_submitter,
-				       thread_count,
-				       struct bio_queue_data,
-				       "bio submission data",
-				       &io_submitter);
+	int result = UDS_ALLOCATE_EXTENDED(struct io_submitter,
+					   thread_count,
+					   struct bio_queue_data,
+					   "bio submission data",
+					   &io_submitter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -578,7 +578,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			// Clean up the partially initialized bio-queue
 			// entirely and indicate that initialization failed.
-			free_int_map(FORGET(bio_queue_data->map));
+			free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
 				      result);
 			cleanup_vdo_io_submitter(io_submitter);
@@ -611,10 +611,10 @@ void free_vdo_io_submitter(struct io_submitter *io_submitter)
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
-		free_work_queue(FORGET(io_submitter->bio_queue_data[i].queue));
-		free_int_map(FORGET(io_submitter->bio_queue_data[i].map));
+		free_work_queue(UDS_FORGET(io_submitter->bio_queue_data[i].queue));
+		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}
-	FREE(io_submitter);
+	UDS_FREE(io_submitter);
 }
 
 /**********************************************************************/

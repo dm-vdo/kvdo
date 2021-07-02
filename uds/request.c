@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#14 $
  */
 
 #include "request.h"
@@ -70,7 +70,7 @@ int launch_zone_control_message(enum request_action action,
 				struct index_router *router)
 {
 	Request *request;
-	int result = ALLOCATE(1, Request, __func__, &request);
+	int result = UDS_ALLOCATE(1, Request, __func__, &request);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -107,7 +107,7 @@ void enqueue_request(Request *request, enum request_stage next_stage)
 		return;
 	}
 
-	request_queue_enqueue(next_queue, request);
+	uds_request_queue_enqueue(next_queue, request);
 }
 
 /*
@@ -239,6 +239,6 @@ void enter_callback_stage(Request *request)
 		 * callback thread. The message has been completely processed,
 		 * so just free it.
 		 */
-		FREE(request);
+		UDS_FREE(request);
 	}
 }

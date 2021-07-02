@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#14 $
  */
 
 /**
@@ -140,10 +140,10 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
 	// Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a
 	// full neighborhood without have to wrap back around to element zero.
 	map->bucket_count = capacity + (NEIGHBORHOOD - 1);
-	return ALLOCATE(map->bucket_count,
-			struct bucket,
-			"pointer_map buckets",
-			&map->buckets);
+	return UDS_ALLOCATE(map->bucket_count,
+			    struct bucket,
+			    "pointer_map buckets",
+			    &map->buckets);
 }
 
 /**********************************************************************/
@@ -165,7 +165,7 @@ int make_pointer_map(size_t initial_capacity,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	result = ALLOCATE(1, struct pointer_map, "pointer_map", &map);
+	result = UDS_ALLOCATE(1, struct pointer_map, "pointer_map", &map);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -183,7 +183,7 @@ int make_pointer_map(size_t initial_capacity,
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		free_pointer_map(FORGET(map));
+		free_pointer_map(UDS_FORGET(map));
 		return result;
 	}
 
@@ -198,8 +198,8 @@ void free_pointer_map(struct pointer_map *map)
 		return;
 	}
 
-	FREE(FORGET(map->buckets));
-	FREE(FORGET(map));
+	UDS_FREE(UDS_FORGET(map->buckets));
+	UDS_FREE(UDS_FORGET(map));
 }
 
 /**********************************************************************/
@@ -370,14 +370,14 @@ static int resize_buckets(struct pointer_map *map)
 		if (result != UDS_SUCCESS) {
 			// Destroy the new partial map and restore the map from
 			// the stack.
-			FREE(FORGET(map->buckets));
+			UDS_FREE(UDS_FORGET(map->buckets));
 			*map = old_map;
 			return result;
 		}
 	}
 
 	// Destroy the old bucket array.
-	FREE(FORGET(old_map.buckets));
+	UDS_FREE(UDS_FORGET(old_map.buckets));
 	return UDS_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#9 $
  */
 
 #include "allocationSelector.h"
@@ -36,10 +36,10 @@ int make_vdo_allocation_selector(zone_count_t physical_zone_count,
 				 struct allocation_selector **selector_ptr)
 {
 	struct allocation_selector *selector;
-	int result = ALLOCATE(1,
-			      struct allocation_selector,
-			      __func__,
-			      &selector);
+	int result = UDS_ALLOCATE(1,
+				  struct allocation_selector,
+				  __func__,
+				  &selector);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

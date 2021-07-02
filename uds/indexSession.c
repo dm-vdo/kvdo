@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#29 $
  */
 
 #include "indexSession.h"
@@ -163,21 +163,21 @@ void disable_index_session(struct uds_index_session *index_session)
 int make_empty_index_session(struct uds_index_session **index_session_ptr)
 {
 	struct uds_index_session *session;
-	int result = ALLOCATE(1, struct uds_index_session, __func__, &session);
+	int result = UDS_ALLOCATE(1, struct uds_index_session, __func__, &session);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = init_mutex(&session->request_mutex);
 	if (result != UDS_SUCCESS) {
-		FREE(session);
+		UDS_FREE(session);
 		return result;
 	}
 
 	result = init_cond(&session->request_cond);
 	if (result != UDS_SUCCESS) {
 		destroy_mutex(&session->request_mutex);
-		FREE(session);
+		UDS_FREE(session);
 		return result;
 	}
 
@@ -185,7 +185,7 @@ int make_empty_index_session(struct uds_index_session **index_session_ptr)
 	if (result != UDS_SUCCESS) {
 		destroy_cond(&session->request_cond);
 		destroy_mutex(&session->request_mutex);
-		FREE(session);
+		UDS_FREE(session);
 		return result;
 	}
 
@@ -194,18 +194,18 @@ int make_empty_index_session(struct uds_index_session **index_session_ptr)
 		destroy_mutex(&session->load_context.mutex);
 		destroy_cond(&session->request_cond);
 		destroy_mutex(&session->request_mutex);
-		FREE(session);
+		UDS_FREE(session);
 		return result;
 	}
 
-	result = make_request_queue("callbackW", &handle_callbacks,
-				    &session->callback_queue);
+	result = make_uds_request_queue("callbackW", &handle_callbacks,
+					&session->callback_queue);
 	if (result != UDS_SUCCESS) {
 		destroy_cond(&session->load_context.cond);
 		destroy_mutex(&session->load_context.mutex);
 		destroy_cond(&session->request_cond);
 		destroy_mutex(&session->request_mutex);
-		FREE(session);
+		UDS_FREE(session);
 		return result;
 	}
 
@@ -491,14 +491,14 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	wait_for_no_requests_in_progress(index_session);
 	result = save_and_free_index(index_session);
-	request_queue_finish(index_session->callback_queue);
+	uds_request_queue_finish(index_session->callback_queue);
 	index_session->callback_queue = NULL;
 	destroy_cond(&index_session->load_context.cond);
 	destroy_mutex(&index_session->load_context.mutex);
 	destroy_cond(&index_session->request_cond);
 	destroy_mutex(&index_session->request_mutex);
 	uds_log_debug("Destroyed index session");
-	FREE(index_session);
+	UDS_FREE(index_session);
 	return result;
 }
 
@@ -537,7 +537,7 @@ int uds_get_index_configuration(struct uds_index_session *index_session,
 		return uds_log_error_strerror(UDS_CONF_PTR_REQUIRED,
 					      "received a NULL config pointer");
 	}
-	result = ALLOCATE(1, struct uds_configuration, __func__, conf);
+	result = UDS_ALLOCATE(1, struct uds_configuration, __func__, conf);
 	if (result == UDS_SUCCESS) {
 		**conf = index_session->user_config;
 	}

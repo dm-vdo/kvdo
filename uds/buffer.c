@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.c#12 $
  */
 
 #include "buffer.h"
@@ -39,7 +39,7 @@ int wrap_buffer(byte *bytes,
 			    length,
 			    content_length);
 	struct buffer *buffer;
-	result = ALLOCATE(1, struct buffer, "buffer", &buffer);
+	result = UDS_ALLOCATE(1, struct buffer, "buffer", &buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -59,14 +59,14 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 {
 	byte *data;
 	struct buffer *buffer;
-	int result = ALLOCATE(size, byte, "buffer data", &data);
+	int result = UDS_ALLOCATE(size, byte, "buffer data", &data);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = wrap_buffer(data, size, 0, &buffer);
 	if (result != UDS_SUCCESS) {
-		FREE(FORGET(data));
+		UDS_FREE(UDS_FORGET(data));
 		return result;
 	}
 
@@ -83,10 +83,10 @@ void free_buffer(struct buffer *buffer)
 	}
 
 	if (!buffer->wrapped) {
-		FREE(FORGET(buffer->data));
+		UDS_FREE(UDS_FORGET(buffer->data));
 	}
 
-	FREE(buffer);
+	UDS_FREE(buffer);
 }
 
 /**********************************************************************/
@@ -245,14 +245,15 @@ int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
 {
 	byte *destination;
 	int result =
-		ALLOCATE(length, byte, "copy_bytes() buffer", &destination);
+		UDS_ALLOCATE(length, byte, "copy_bytes() buffer",
+			     &destination);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = get_bytes_from_buffer(buffer, length, destination);
 	if (result != UDS_SUCCESS) {
-		FREE(destination);
+		UDS_FREE(destination);
 	} else {
 		*destination_ptr = destination;
 	}

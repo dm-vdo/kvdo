@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#37 $
  */
 
 #include "readOnlyNotifier.h"
@@ -130,11 +130,11 @@ int make_vdo_read_only_notifier(bool is_read_only,
 {
 	struct read_only_notifier *notifier;
 	thread_count_t id;
-	int result = ALLOCATE_EXTENDED(struct read_only_notifier,
-				       thread_config->base_thread_count,
-				       struct thread_data,
-				       __func__,
-				       &notifier);
+	int result = UDS_ALLOCATE_EXTENDED(struct read_only_notifier,
+					   thread_config->base_thread_count,
+					   struct thread_data,
+					   __func__,
+					   &notifier);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -173,11 +173,11 @@ void free_vdo_read_only_notifier(struct read_only_notifier **notifier_ptr)
 		while (listener != NULL) {
 			struct read_only_listener *to_free = listener;
 			listener = listener->next;
-			FREE(to_free);
+			UDS_FREE(to_free);
 		}
 	}
 
-	FREE(notifier);
+	UDS_FREE(notifier);
 	*notifier_ptr = NULL;
 }
 
@@ -440,10 +440,10 @@ int register_vdo_read_only_listener(struct read_only_notifier *notifier,
 {
 	struct thread_data *thread_data = &notifier->thread_data[thread_id];
 	struct read_only_listener *read_only_listener;
-	int result = ALLOCATE(1,
-			      struct read_only_listener,
-			      __func__,
-			      &read_only_listener);
+	int result = UDS_ALLOCATE(1,
+				  struct read_only_listener,
+				  __func__,
+				  &read_only_listener);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#30 $
  */
 #include "masterIndex006.h"
 
@@ -116,7 +116,7 @@ static void free_volume_index_006(struct volume_index *volume_index)
 			for (zone = 0; zone < vi6->num_zones; zone++) {
 				destroy_mutex(&vi6->zones[zone].hook_mutex);
 			}
-			FREE(vi6->zones);
+			UDS_FREE(vi6->zones);
 			vi6->zones = NULL;
 		}
 		if (vi6->vi_non_hook != NULL) {
@@ -127,7 +127,7 @@ static void free_volume_index_006(struct volume_index *volume_index)
 			free_volume_index(vi6->vi_hook);
 			vi6->vi_hook = NULL;
 		}
-		FREE(volume_index);
+		UDS_FREE(volume_index);
 	}
 }
 
@@ -207,14 +207,14 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	header.sparse_sample_rate = vi6->sparse_sample_rate;
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(FORGET(buffer));
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result,
 					 "failed to write volume index header");
@@ -366,19 +366,19 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
 		}
 
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(FORGET(buffer));
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(FORGET(buffer));
+		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -783,7 +783,7 @@ int make_volume_index006(const struct configuration *config,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct volume_index6, "volume index", &vi6);
+	result = UDS_ALLOCATE(1, struct volume_index6, "volume index", &vi6);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -821,10 +821,10 @@ int make_volume_index006(const struct configuration *config,
 	vi6->num_zones = num_zones;
 	vi6->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = ALLOCATE(num_zones,
-			  struct volume_index_zone,
-			  "volume index zones",
-			  &vi6->zones);
+	result = UDS_ALLOCATE(num_zones,
+			      struct volume_index_zone,
+			      "volume index zones",
+			      &vi6->zones);
 	for (zone = 0; zone < num_zones; zone++) {
 		if (result == UDS_SUCCESS) {
 			result = init_mutex(&vi6->zones[zone].hook_mutex);

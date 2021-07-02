@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#28 $
  */
 
 #include "indexZone.h"
@@ -36,7 +36,7 @@
 int make_index_zone(struct index *index, unsigned int zone_number)
 {
 	struct index_zone *zone;
-	int result = ALLOCATE(1, struct index_zone, "index zone", &zone);
+	int result = UDS_ALLOCATE(1, struct index_zone, "index zone", &zone);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -73,7 +73,7 @@ void free_index_zone(struct index_zone *zone)
 
 	free_open_chapter(zone->open_chapter);
 	free_open_chapter(zone->writing_chapter);
-	FREE(zone);
+	UDS_FREE(zone);
 }
 
 /**********************************************************************/

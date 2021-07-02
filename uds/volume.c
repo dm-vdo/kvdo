@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#41 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#42 $
  */
 
 #include "volume.h"
@@ -1370,7 +1370,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 {
 	struct volume *volume;
 	unsigned int reserved_buffers;
-	int result = ALLOCATE(1, struct volume, "volume", &volume);
+	int result = UDS_ALLOCATE(1, struct volume, "volume", &volume);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1416,10 +1416,10 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
-	result = ALLOCATE(config->geometry->records_per_page,
-			  const struct uds_chunk_record *,
-			  "record pointers",
-			  &volume->record_pointers);
+	result = UDS_ALLOCATE(config->geometry->records_per_page,
+			      const struct uds_chunk_record *,
+			      "record pointers",
+			      &volume->record_pointers);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1496,10 +1496,10 @@ int make_volume(const struct configuration *config,
 
 	// Start the reader threads.  If this allocation succeeds, free_volume
 	// knows that it needs to try and stop those threads.
-	result = ALLOCATE(volume_read_threads,
-			  struct thread *,
-			  "reader threads",
-			  &volume->reader_threads);
+	result = UDS_ALLOCATE(volume_read_threads,
+			      struct thread *,
+			      "reader threads",
+			      &volume->reader_threads);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1541,7 +1541,7 @@ void free_volume(struct volume *volume)
 		for (i = 0; i < volume->num_read_threads; i++) {
 			join_threads(volume->reader_threads[i]);
 		}
-		FREE(volume->reader_threads);
+		UDS_FREE(volume->reader_threads);
 		volume->reader_threads = NULL;
 	}
 
@@ -1557,7 +1557,7 @@ void free_volume(struct volume *volume)
 	destroy_mutex(&volume->read_threads_mutex);
 	free_index_page_map(volume->index_page_map);
 	free_radix_sorter(volume->radix_sorter);
-	FREE(volume->geometry);
-	FREE(volume->record_pointers);
-	FREE(volume);
+	UDS_FREE(volume->geometry);
+	UDS_FREE(volume->record_pointers);
+	UDS_FREE(volume);
 }

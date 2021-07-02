@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#23 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#25 $
  */
 
 #include "indexRouter.h"
@@ -105,9 +105,9 @@ static int initialize_local_index_queues(struct index_router *router,
 {
 	unsigned int i;
 	for (i = 0; i < router->zone_count; i++) {
-		int result = make_request_queue("indexW",
-						&execute_zone_request,
-						&router->zone_queues[i]);
+		int result = make_uds_request_queue("indexW",
+						    &execute_zone_request,
+						    &router->zone_queues[i]);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -115,8 +115,8 @@ static int initialize_local_index_queues(struct index_router *router,
 
 	// The triage queue is only needed for sparse multi-zone indexes.
 	if ((router->zone_count > 1) && is_sparse(geometry)) {
-		int result = make_request_queue("triageW", &triage_request,
-						&router->triage_queue);
+		int result = make_uds_request_queue("triageW", &triage_request,
+						    &router->triage_queue);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -143,11 +143,11 @@ int make_index_router(struct index_layout *layout,
 {
 	unsigned int zone_count = get_zone_count(user_params);
 	struct index_router *router;
-	int result = ALLOCATE_EXTENDED(struct index_router,
-				       zone_count,
-				       RequestQueue *,
-				       "index router",
-				       &router);
+	int result = UDS_ALLOCATE_EXTENDED(struct index_router,
+					   zone_count,
+					   RequestQueue *,
+					   "index router",
+					   &router);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -198,12 +198,12 @@ void free_index_router(struct index_router *router)
 	if (router == NULL) {
 		return;
 	}
-	request_queue_finish(router->triage_queue);
+	uds_request_queue_finish(router->triage_queue);
 	for (i = 0; i < router->zone_count; i++) {
-		request_queue_finish(router->zone_queues[i]);
+		uds_request_queue_finish(router->zone_queues[i]);
 	}
 	free_index(router->index);
-	FREE(router);
+	UDS_FREE(router);
 }
 
 /**********************************************************************/

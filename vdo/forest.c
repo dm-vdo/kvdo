@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#50 $
  */
 
 #include "forest.h"
@@ -125,24 +125,24 @@ static int make_segment(struct forest *old_forest,
 
 	forest->segments = index + 1;
 
-	result = ALLOCATE(forest->segments, struct boundary,
-			  "forest boundary array", &forest->boundaries);
+	result = UDS_ALLOCATE(forest->segments, struct boundary,
+			      "forest boundary array", &forest->boundaries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(forest->segments,
-			  struct tree_page *,
-			  "forest page pointers",
-			  &forest->pages);
+	result = UDS_ALLOCATE(forest->segments,
+			       struct tree_page *,
+			       "forest page pointers",
+			       &forest->pages);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(new_pages,
-			  struct tree_page,
-			  "new forest pages",
-			  &forest->pages[index]);
+	result = UDS_ALLOCATE(new_pages,
+			      struct tree_page,
+			      "new forest pages",
+			      &forest->pages[index]);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -174,10 +174,10 @@ static int make_segment(struct forest *old_forest,
 		struct block_map_tree *tree = &(forest->trees[root]);
 		height_t height;
 
-		int result = ALLOCATE(forest->segments,
-				      struct block_map_tree_segment,
-				      "tree root segments",
-				      &tree->segments);
+		int result = UDS_ALLOCATE(forest->segments,
+					  struct block_map_tree_segment,
+					  "tree root segments",
+					  &tree->segments);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -223,18 +223,18 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 
 		for (segment = first_page_segment; segment < forest->segments;
 		     segment++) {
-			FREE(forest->pages[segment]);
+			UDS_FREE(forest->pages[segment]);
 		}
-		FREE(forest->pages);
+		UDS_FREE(forest->pages);
 	}
 
 	for (root = 0; root < forest->map->root_count; root++) {
 		struct block_map_tree *tree = &(forest->trees[root]);
-		FREE(tree->segments);
+		UDS_FREE(tree->segments);
 	}
 
-	FREE(forest->boundaries);
-	FREE(forest);
+	UDS_FREE(forest->boundaries);
+	UDS_FREE(forest);
 }
 
 /**********************************************************************/
@@ -257,8 +257,9 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
 		return VDO_SUCCESS;
 	}
 
-	result = ALLOCATE_EXTENDED(struct forest, map->root_count,
-				   struct block_map_tree, __func__, &forest);
+	result = UDS_ALLOCATE_EXTENDED(struct forest, map->root_count,
+				       struct block_map_tree, __func__,
+				       &forest);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -330,7 +331,7 @@ static void finish_cursor(struct cursor *cursor)
 		return;
 	}
 
-	FREE(cursors);
+	UDS_FREE(cursors);
 
 	finish_vdo_completion(parent, VDO_SUCCESS);
 }
@@ -528,11 +529,11 @@ void traverse_vdo_forest(struct block_map *map,
 {
 	root_count_t root;
 	struct cursors *cursors;
-	int result = ALLOCATE_EXTENDED(struct cursors,
-				       map->root_count,
-				       struct cursor,
-				       __func__,
-				       &cursors);
+	int result = UDS_ALLOCATE_EXTENDED(struct cursors,
+					   map->root_count,
+					   struct cursor,
+					   __func__,
+					   &cursors);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;

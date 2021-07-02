@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.c#5 $
  */
 
 /*
@@ -268,11 +268,11 @@ int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 {
 	unsigned int stack_size = count / INSERTION_SORT_THRESHOLD;
 	struct radix_sorter *radix_sorter;
-	int result = ALLOCATE_EXTENDED(struct radix_sorter,
-				       stack_size,
-				       struct task,
-				       __func__,
-				       &radix_sorter);
+	int result = UDS_ALLOCATE_EXTENDED(struct radix_sorter,
+					   stack_size,
+					   struct task,
+					   __func__,
+					   &radix_sorter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -285,7 +285,7 @@ int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 /**********************************************************************/
 void free_radix_sorter(struct radix_sorter *sorter)
 {
-	FREE(sorter);
+	UDS_FREE(sorter);
 }
 
 /**********************************************************************/

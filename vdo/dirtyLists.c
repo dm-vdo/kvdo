@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#14 $
  */
 
 #include "dirtyLists.h"
@@ -55,9 +55,9 @@ int make_vdo_dirty_lists(block_count_t maximum_age,
 {
 	block_count_t i;
 	struct dirty_lists *dirty_lists;
-	int result = ALLOCATE_EXTENDED(struct dirty_lists, maximum_age,
-				       struct list_head, __func__,
-				       &dirty_lists);
+	int result = UDS_ALLOCATE_EXTENDED(struct dirty_lists, maximum_age,
+					   struct list_head, __func__,
+					   &dirty_lists);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

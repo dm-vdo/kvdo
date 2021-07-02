@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#18 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#19 $
  */
 
 #include <linux/delay.h>
@@ -50,8 +50,8 @@ static bool allocations_allowed(void)
 }
 
 /**********************************************************************/
-void register_allocating_thread(struct registered_thread *new_thread,
-				const bool *flag_ptr)
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
@@ -61,7 +61,7 @@ void register_allocating_thread(struct registered_thread *new_thread,
 }
 
 /**********************************************************************/
-void unregister_allocating_thread(void)
+void uds_unregister_allocating_thread(void)
 {
 	unregister_thread(&allocating_threads);
 }
@@ -160,7 +160,7 @@ static void remove_vmalloc_block(void *ptr)
 	}
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	if (block != NULL) {
-		FREE(block);
+		UDS_FREE(block);
 	} else {
 		uds_log_info("attempting to remove ptr %pK not found in vmalloc list",
 			     ptr);
@@ -208,7 +208,7 @@ static INLINE bool use_kmalloc(size_t size)
 }
 
 /**********************************************************************/
-int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
+int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
 	/*
 	 * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry
@@ -267,7 +267,7 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		}
 	} else {
 		struct vmalloc_block_info *block;
-		if (ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
+		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
 		    UDS_SUCCESS) {
 			/*
 			 * If we just do __vmalloc(size, gfp_flags,
@@ -316,7 +316,7 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #endif
 			}
 			if (p == NULL) {
-				FREE(block);
+				UDS_FREE(block);
 			} else {
 				block->ptr = p;
 				block->size = PAGE_ALIGN(size);
@@ -342,8 +342,8 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 }
 
 /**********************************************************************/
-void *allocate_memory_nowait(size_t size,
-			     const char *what __attribute__((unused)))
+void *uds_allocate_memory_nowait(size_t size,
+				 const char *what __attribute__((unused)))
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
 	if (p != NULL) {
@@ -353,7 +353,7 @@ void *allocate_memory_nowait(size_t size,
 }
 
 /**********************************************************************/
-void free_memory(void *ptr)
+void uds_free_memory(void *ptr)
 {
 	if (ptr != NULL) {
 		if (is_vmalloc_addr(ptr)) {
@@ -367,21 +367,21 @@ void free_memory(void *ptr)
 }
 
 /**********************************************************************/
-int reallocate_memory(void *ptr,
-		      size_t old_size,
-		      size_t size,
-		      const char *what,
-		      void *new_ptr)
+int uds_reallocate_memory(void *ptr,
+			  size_t old_size,
+			  size_t size,
+			  const char *what,
+			  void *new_ptr)
 {
 	int result;
 	// Handle special case of zero sized result
 	if (size == 0) {
-		FREE(ptr);
+		UDS_FREE(ptr);
 		*(void **) new_ptr = NULL;
 		return UDS_SUCCESS;
 	}
 
-	result = ALLOCATE(size, char, what, new_ptr);
+	result = UDS_ALLOCATE(size, char, what, new_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -391,13 +391,13 @@ int reallocate_memory(void *ptr,
 			size = old_size;
 		}
 		memcpy(*((void **) new_ptr), ptr, size);
-		FREE(ptr);
+		UDS_FREE(ptr);
 	}
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void memory_init(void)
+void uds_memory_init(void)
 {
 
 	spin_lock_init(&memory_stats.lock);
@@ -405,7 +405,7 @@ void memory_init(void)
 }
 
 /**********************************************************************/
-void memory_exit(void)
+void uds_memory_exit(void)
 {
 
 	ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
@@ -420,7 +420,7 @@ void memory_exit(void)
 }
 
 /**********************************************************************/
-void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
+void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&memory_stats.lock, flags);
@@ -430,7 +430,7 @@ void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 }
 
 /**********************************************************************/
-void report_memory_usage()
+void report_uds_memory_usage()
 {
 	unsigned long flags;
 	uint64_t kmalloc_blocks, kmalloc_bytes, vmalloc_blocks, vmalloc_bytes;

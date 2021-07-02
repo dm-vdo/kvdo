@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#102 $
  */
 
 #include "dedupeIndex.h"
@@ -767,7 +767,7 @@ void free_vdo_dedupe_index(struct dedupe_index *index)
 		return;
 	}
 
-	free_work_queue(FORGET(index->uds_queue));
+	free_work_queue(UDS_FORGET(index->uds_queue));
 	stop_periodic_event_reporter(&index->timeout_reporter);
 	spin_lock_bh(&index->pending_lock);
 	if (index->started_timer) {
@@ -870,8 +870,8 @@ static void dedupe_kobj_release(struct kobject *directory)
 						  struct dedupe_index,
 						  dedupe_directory);
 	uds_free_configuration(index->configuration);
-	FREE(index->index_name);
-	FREE(index);
+	UDS_FREE(index->index_name);
+	UDS_FREE(index);
 }
 
 /**********************************************************************/
@@ -934,13 +934,13 @@ static void start_uds_queue(void *ptr)
 	 * embellishment.
 	 */
 	struct dedupe_index *index = ptr;
-	register_allocating_thread(&index->allocating_thread, NULL);
+	uds_register_allocating_thread(&index->allocating_thread, NULL);
 }
 
 /**********************************************************************/
 static void finish_uds_queue(void *ptr __always_unused)
 {
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 }
 
 /**********************************************************************/
@@ -965,7 +965,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	set_vdo_dedupe_index_timeout_interval(vdo_dedupe_index_timeout_interval);
 	set_vdo_dedupe_index_min_timer_interval(vdo_dedupe_index_min_timer_interval);
 
-	result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
+	result = UDS_ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -981,7 +981,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 				VDO_BLOCK_SIZE));
 	if (result != UDS_SUCCESS) {
 		uds_log_error("Creating index name failed (%d)", result);
-		FREE(index);
+		UDS_FREE(index);
 		return result;
 	}
 
@@ -991,8 +991,8 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	result = vdo_index_config_to_uds_configuration(index_config,
 						       &index->configuration);
 	if (result != VDO_SUCCESS) {
-		FREE(index->index_name);
-		FREE(index);
+		UDS_FREE(index->index_name);
+		UDS_FREE(index);
 		return result;
 	}
 	uds_configuration_set_nonce(index->configuration,
@@ -1001,8 +1001,8 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	result = uds_create_index_session(&index->index_session);
 	if (result != UDS_SUCCESS) {
 		uds_free_configuration(index->configuration);
-		FREE(index->index_name);
-		FREE(index);
+		UDS_FREE(index->index_name);
+		UDS_FREE(index);
 		return result;
 	}
 
@@ -1020,8 +1020,8 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 			  result);
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);
-		FREE(index->index_name);
-		FREE(index);
+		UDS_FREE(index->index_name);
+		UDS_FREE(index);
 		return result;
 	}
 
@@ -1030,11 +1030,11 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 			     &vdo->vdo_directory,
 			     "dedupe");
 	if (result != VDO_SUCCESS) {
-		free_work_queue(FORGET(index->uds_queue));
+		free_work_queue(UDS_FORGET(index->uds_queue));
 		uds_destroy_index_session(index->index_session);
 		uds_free_configuration(index->configuration);
-		FREE(index->index_name);
-		FREE(index);
+		UDS_FREE(index->index_name);
+		UDS_FREE(index);
 		return result;
 	}
 

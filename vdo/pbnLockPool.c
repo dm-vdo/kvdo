@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#19 $
  */
 
 #include "pbnLockPool.h"
@@ -62,8 +62,8 @@ int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
 	struct pbn_lock_pool *pool;
-	int result = ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
-				       idle_pbn_lock, __func__, &pool);
+	int result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
+					   idle_pbn_lock, __func__, &pool);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -94,7 +94,7 @@ void free_vdo_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
 	ASSERT_LOG_ONLY(pool->borrowed == 0,
 			"All PBN locks must be returned to the pool before it is freed, but %zu locks are still on loan",
 			pool->borrowed);
-	FREE(pool);
+	UDS_FREE(pool);
 	*pool_ptr = NULL;
 }
 

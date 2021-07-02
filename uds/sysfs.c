@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#10 $
  */
 
 #include "sysfs.h"
@@ -42,7 +42,7 @@ static struct {
 static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
-	if (ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
 		return NULL;
 	}
 	memcpy(string, buf, length);
@@ -139,7 +139,7 @@ static ssize_t parameter_store(struct kobject *kobj,
 		return -ENOMEM;
 	}
 	pa->store_string(string);
-	FREE(string);
+	UDS_FREE(string);
 	return length;
 }
 
