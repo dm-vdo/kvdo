@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#8 $
  */
 
 #include "threads.h"
@@ -24,51 +24,51 @@
 #include "uds-error.h"
 
 /**********************************************************************/
-int init_cond(struct cond_var *cv)
+int uds_init_cond(struct cond_var *cv)
 {
 	cv->event_count = NULL;
 	return make_event_count(&cv->event_count);
 }
 
 /**********************************************************************/
-int signal_cond(struct cond_var *cv)
+int uds_signal_cond(struct cond_var *cv)
 {
 	event_count_broadcast(cv->event_count);
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int broadcast_cond(struct cond_var *cv)
+int uds_broadcast_cond(struct cond_var *cv)
 {
 	event_count_broadcast(cv->event_count);
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int wait_cond(struct cond_var *cv, struct mutex *mutex)
+int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 {
 	event_token_t token = event_count_prepare(cv->event_count);
-	unlock_mutex(mutex);
+	uds_unlock_mutex(mutex);
 	event_count_wait(cv->event_count, token, NULL);
-	lock_mutex(mutex);
+	uds_lock_mutex(mutex);
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int timed_wait_cond(struct cond_var *cv,
-		    struct mutex *mutex,
-		    ktime_t timeout)
+int uds_timed_wait_cond(struct cond_var *cv,
+			struct mutex *mutex,
+			ktime_t timeout)
 {
 	bool happened;
 	event_token_t token = event_count_prepare(cv->event_count);
-	unlock_mutex(mutex);
+	uds_unlock_mutex(mutex);
 	happened = event_count_wait(cv->event_count, token, &timeout);
-	lock_mutex(mutex);
+	uds_lock_mutex(mutex);
 	return happened ? UDS_SUCCESS : ETIMEDOUT;
 }
 
 /**********************************************************************/
-int destroy_cond(struct cond_var *cv)
+int uds_destroy_cond(struct cond_var *cv)
 {
 	free_event_count(cv->event_count);
 	cv->event_count = NULL;

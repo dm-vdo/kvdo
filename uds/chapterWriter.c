@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#27 $
  */
 
 #include "chapterWriter.h"
@@ -65,18 +65,18 @@ static void close_chapters(void *arg)
 	int result;
 	struct chapter_writer *writer = arg;
 	uds_log_debug("chapter writer starting");
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	for (;;) {
 		while (writer->zones_to_write < writer->index->zone_count) {
 			if (writer->stop && (writer->zones_to_write == 0)) {
 				// We've been told to stop, and all of the
 				// zones are in the same open chapter, so we
 				// can exit now.
-				unlock_mutex(&writer->mutex);
+				uds_unlock_mutex(&writer->mutex);
 				uds_log_debug("chapter writer stopping");
 				return;
 			}
-			wait_cond(&writer->cond, &writer->mutex);
+			uds_wait_cond(&writer->cond, &writer->mutex);
 		}
 
 		/*
@@ -85,7 +85,7 @@ static void close_chapters(void *arg)
 		 * access the chapter and chapterNumber fields without the lock
 		 * since those aren't allowed to change until we're done.
 		 */
-		unlock_mutex(&writer->mutex);
+		uds_unlock_mutex(&writer->mutex);
 
 		if (writer->index->has_saved_open_chapter) {
 			struct index_component *oc;
@@ -117,13 +117,13 @@ static void close_chapters(void *arg)
 		}
 
 
-		lock_mutex(&writer->mutex);
+		uds_lock_mutex(&writer->mutex);
 		// Note that the index is totally finished with the writing
 		// chapter
 		advance_active_chapters(writer->index);
 		writer->result = result;
 		writer->zones_to_write = 0;
-		broadcast_cond(&writer->cond);
+		uds_broadcast_cond(&writer->cond);
 	}
 }
 
@@ -147,14 +147,14 @@ int make_chapter_writer(struct index *index,
 	}
 	writer->index = index;
 
-	result = init_mutex(&writer->mutex);
+	result = uds_init_mutex(&writer->mutex);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(writer);
 		return result;
 	}
-	result = init_cond(&writer->cond);
+	result = uds_init_cond(&writer->cond);
 	if (result != UDS_SUCCESS) {
-		destroy_mutex(&writer->mutex);
+		uds_destroy_mutex(&writer->mutex);
 		UDS_FREE(writer);
 		return result;
 	}
@@ -187,8 +187,8 @@ int make_chapter_writer(struct index *index,
 		 collated_records_size + open_chapter_index_memory_allocated);
 
 	// We're initialized, so now it's safe to start the writer thread.
-	result = create_thread(close_chapters, writer, "writer",
-			       &writer->thread);
+	result = uds_create_thread(close_chapters, writer, "writer",
+				   &writer->thread);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
 		return make_unrecoverable(result);
@@ -207,8 +207,8 @@ void free_chapter_writer(struct chapter_writer *writer)
 	}
 
 	result = stop_chapter_writer(writer);
-	destroy_mutex(&writer->mutex);
-	destroy_cond(&writer->cond);
+	uds_destroy_mutex(&writer->mutex);
+	uds_destroy_cond(&writer->cond);
 	free_open_chapter_index(writer->open_chapter_index);
 	UDS_FREE(writer->collated_records);
 	UDS_FREE(writer);
@@ -220,11 +220,11 @@ unsigned int start_closing_chapter(struct chapter_writer *writer,
 				   struct open_chapter_zone *chapter)
 {
 	unsigned int finished_zones;
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	finished_zones = ++writer->zones_to_write;
 	writer->chapters[zone_number] = chapter;
-	broadcast_cond(&writer->cond);
-	unlock_mutex(&writer->mutex);
+	uds_broadcast_cond(&writer->cond);
+	uds_unlock_mutex(&writer->mutex);
 
 	return finished_zones;
 }
@@ -234,13 +234,13 @@ int finish_previous_chapter(struct chapter_writer *writer,
 			    uint64_t current_chapter_number)
 {
 	int result;
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	while (writer->index->newest_virtual_chapter <
 	       current_chapter_number) {
-		wait_cond(&writer->cond, &writer->mutex);
+		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
 	result = writer->result;
-	unlock_mutex(&writer->mutex);
+	uds_unlock_mutex(&writer->mutex);
 
 	if (result != UDS_SUCCESS) {
 		return uds_log_unrecoverable(
@@ -252,13 +252,13 @@ int finish_previous_chapter(struct chapter_writer *writer,
 /**********************************************************************/
 void wait_for_idle_chapter_writer(struct chapter_writer *writer)
 {
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	while (writer->zones_to_write > 0) {
 		// The chapter writer is probably writing a chapter.  If it is
 		// not, it will soon wake up and write a chapter.
-		wait_cond(&writer->cond, &writer->mutex);
+		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
-	unlock_mutex(&writer->mutex);
+	uds_unlock_mutex(&writer->mutex);
 }
 
 /**********************************************************************/
@@ -267,18 +267,18 @@ int stop_chapter_writer(struct chapter_writer *writer)
 	int result;
 	struct thread *writer_thread = 0;
 
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	if (writer->thread != 0) {
 		writer_thread = writer->thread;
 		writer->thread = 0;
 		writer->stop = true;
-		broadcast_cond(&writer->cond);
+		uds_broadcast_cond(&writer->cond);
 	}
 	result = writer->result;
-	unlock_mutex(&writer->mutex);
+	uds_unlock_mutex(&writer->mutex);
 
 	if (writer_thread != 0) {
-		join_threads(writer_thread);
+		uds_join_threads(writer_thread);
 	}
 
 	if (result != UDS_SUCCESS) {

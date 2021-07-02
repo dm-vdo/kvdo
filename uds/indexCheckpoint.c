@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#17 $
  */
 
 #include "indexCheckpoint.h"
@@ -93,7 +93,7 @@ int make_index_checkpoint(struct index *index)
 		return result;
 	}
 
-	result = init_mutex(&checkpoint->mutex);
+	result = uds_init_mutex(&checkpoint->mutex);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(checkpoint);
 		return result;
@@ -109,7 +109,7 @@ int make_index_checkpoint(struct index *index)
 void free_index_checkpoint(struct index_checkpoint *checkpoint)
 {
 	if (checkpoint != NULL) {
-		destroy_mutex(&checkpoint->mutex);
+		uds_destroy_mutex(&checkpoint->mutex);
 		UDS_FREE(checkpoint);
 	}
 }
@@ -119,9 +119,9 @@ unsigned int
 get_index_checkpoint_frequency(struct index_checkpoint *checkpoint)
 {
 	unsigned int frequency;
-	lock_mutex(&checkpoint->mutex);
+	uds_lock_mutex(&checkpoint->mutex);
 	frequency = checkpoint->frequency;
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	return frequency;
 }
 
@@ -131,10 +131,10 @@ set_index_checkpoint_frequency(struct index_checkpoint *checkpoint,
 			       unsigned int frequency)
 {
 	unsigned int old_frequency;
-	lock_mutex(&checkpoint->mutex);
+	uds_lock_mutex(&checkpoint->mutex);
 	old_frequency = checkpoint->frequency;
 	checkpoint->frequency = frequency;
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	return old_frequency;
 }
 
@@ -179,7 +179,7 @@ int process_checkpointing(struct index *index,
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	checkpoint_function_t *func;
 	enum index_checkpoint_trigger_value ictv;
-	lock_mutex(&checkpoint->mutex);
+	uds_lock_mutex(&checkpoint->mutex);
 
 	ictv = get_checkpoint_action(checkpoint, new_virtual_chapter);
 
@@ -190,7 +190,7 @@ int process_checkpointing(struct index *index,
 	func = checkpoint_funcs[ictv];
 	if (func == NULL) {
 		// nothing to do in idle state
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 		return UDS_SUCCESS;
 	}
 
@@ -204,7 +204,7 @@ int process_chapter_writer_checkpoint_saves(struct index *index)
 
 	int result = UDS_SUCCESS;
 
-	lock_mutex(&checkpoint->mutex);
+	uds_lock_mutex(&checkpoint->mutex);
 	if (checkpoint->state == CHECKPOINT_IN_PROGRESS) {
 		result = perform_index_state_checkpoint_chapter_synchronized_saves(index->state);
 
@@ -215,7 +215,7 @@ int process_chapter_writer_checkpoint_saves(struct index *index)
 		}
 	}
 
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	return result;
 }
 
@@ -248,7 +248,7 @@ int finish_checkpointing(struct index *index)
 		return result;
 	}
 
-	lock_mutex(&checkpoint->mutex);
+	uds_lock_mutex(&checkpoint->mutex);
 
 	for (z = 0; z < index->zone_count; ++z) {
 		if (checkpoint->state != CHECKPOINT_IN_PROGRESS) {
@@ -256,7 +256,7 @@ int finish_checkpointing(struct index *index)
 		}
 		result = do_checkpoint_finish(index, z);
 		// reacquire mutex released by do_checkpoint_finish
-		lock_mutex(&checkpoint->mutex);
+		uds_lock_mutex(&checkpoint->mutex);
 		if (result != UDS_SUCCESS) {
 			break;
 		}
@@ -270,7 +270,7 @@ int finish_checkpointing(struct index *index)
 		}
 	}
 
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	return result;
 }
 
@@ -294,7 +294,7 @@ static int do_checkpoint_start(struct index *index, unsigned int zone)
 		uds_log_error_strerror(result,
 				       "cannot start index checkpoint");
 		index->last_checkpoint = index->prev_checkpoint;
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 		return result;
 	}
 
@@ -310,17 +310,17 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	enum completion_status status = CS_NOT_COMPLETED;
 	int result;
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	result = perform_index_state_checkpoint_in_zone(index->state, zone,
-							    &status);
+							&status);
 	if (result != UDS_SUCCESS) {
-		lock_mutex(&checkpoint->mutex);
+		uds_lock_mutex(&checkpoint->mutex);
 		uds_log_error_strerror(result,
 				       "cannot continue index checkpoint");
 		result = abort_checkpointing(index, result);
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 	} else if (status == CS_JUST_COMPLETED) {
-		lock_mutex(&checkpoint->mutex);
+		uds_lock_mutex(&checkpoint->mutex);
 		if (--checkpoint->zones_busy == 0) {
 			checkpoint->checkpoints += 1;
 			uds_log_info("finished checkpoint");
@@ -332,7 +332,7 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 			}
 			checkpoint->state = NOT_CHECKPOINTING;
 		}
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 	}
 	return result;
 }
@@ -358,7 +358,7 @@ static int do_checkpoint_abort(struct index *index, unsigned int zone)
 			checkpoint->state = NOT_CHECKPOINTING;
 		}
 	}
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 
 	return result;
 }
@@ -369,17 +369,17 @@ static int do_checkpoint_finish(struct index *index, unsigned int zone)
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	enum completion_status status = CS_NOT_COMPLETED;
 	int result;
-	unlock_mutex(&checkpoint->mutex);
+	uds_unlock_mutex(&checkpoint->mutex);
 	result = finish_index_state_checkpoint_in_zone(index->state, zone,
-							   &status);
+						       &status);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result,
 				       "cannot finish index checkpoint");
-		lock_mutex(&checkpoint->mutex);
+		uds_lock_mutex(&checkpoint->mutex);
 		result = abort_checkpointing(index, result);
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 	} else if (status == CS_JUST_COMPLETED) {
-		lock_mutex(&checkpoint->mutex);
+		uds_lock_mutex(&checkpoint->mutex);
 		if (--checkpoint->zones_busy == 0) {
 			checkpoint->checkpoints += 1;
 			uds_log_info("finished checkpoint");
@@ -391,7 +391,7 @@ static int do_checkpoint_finish(struct index *index, unsigned int zone)
 			}
 			checkpoint->state = NOT_CHECKPOINTING;
 		}
-		unlock_mutex(&checkpoint->mutex);
+		uds_unlock_mutex(&checkpoint->mutex);
 	}
 	return result;
 }

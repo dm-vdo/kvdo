@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#30 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#31 $
  */
 #include "masterIndex006.h"
 
@@ -114,7 +114,7 @@ static void free_volume_index_006(struct volume_index *volume_index)
 		if (vi6->zones != NULL) {
 			unsigned int zone;
 			for (zone = 0; zone < vi6->num_zones; zone++) {
-				destroy_mutex(&vi6->zones[zone].hook_mutex);
+				uds_destroy_mutex(&vi6->zones[zone].hook_mutex);
 			}
 			UDS_FREE(vi6->zones);
 			vi6->zones = NULL;
@@ -493,10 +493,10 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 
 	// We need to prevent a lookup_volume_index_name() happening while we
 	// are changing the open chapter number
-	lock_mutex(mutex);
+	uds_lock_mutex(mutex);
 	set_volume_index_zone_open_chapter(vi6->vi_hook, zone_number,
 					   virtual_chapter);
-	unlock_mutex(mutex);
+	uds_unlock_mutex(mutex);
 }
 
 /**********************************************************************/
@@ -561,10 +561,10 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
 	if (triage->is_sample) {
 		struct mutex *mutex =
 			&vi6->zones[triage->zone].hook_mutex;
-		lock_mutex(mutex);
+		uds_lock_mutex(mutex);
 		result = lookup_volume_index_sampled_name(vi6->vi_hook, name,
 							  triage);
-		unlock_mutex(mutex);
+		uds_unlock_mutex(mutex);
 	}
 	return result;
 }
@@ -638,9 +638,9 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 		 */
 		unsigned int zone = get_volume_index_zone(vi6->vi_hook, name);
 		struct mutex *mutex = &vi6->zones[zone].hook_mutex;
-		lock_mutex(mutex);
+		uds_lock_mutex(mutex);
 		result = get_volume_index_record(vi6->vi_hook, name, record);
-		unlock_mutex(mutex);
+		uds_unlock_mutex(mutex);
 		// Remember the mutex so that other operations on the
 		// volume_index_record can use it
 		record->mutex = mutex;
@@ -827,7 +827,7 @@ int make_volume_index006(const struct configuration *config,
 			      &vi6->zones);
 	for (zone = 0; zone < num_zones; zone++) {
 		if (result == UDS_SUCCESS) {
-			result = init_mutex(&vi6->zones[zone].hook_mutex);
+			result = uds_init_mutex(&vi6->zones[zone].hook_mutex);
 		}
 	}
 	if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#23 $
  */
 
 #include "pageCache.h"
@@ -168,7 +168,7 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			// We need to wait for the search to finish.
 			while (initial_counters[i] ==
 			       get_invalidate_counter(cache, i)) {
-				yield_scheduler();
+				uds_yield_scheduler();
 			}
 		}
 	}

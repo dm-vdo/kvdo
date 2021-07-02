@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.h#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.h#3 $
  */
 
 #ifndef SYSFS_H
@@ -28,12 +28,12 @@
  *
  * @return 0 on success, or non-zero on error
  **/
-int init_sysfs(void);
+int init_uds_sysfs(void);
 
 /**
  * Called when the module is being unloaded to terminate the
  * /sys/\<module_name\> tree.
  **/
-void put_sysfs(void);
+void put_uds_sysfs(void);
 
 #endif /*  SYSFS_H  */

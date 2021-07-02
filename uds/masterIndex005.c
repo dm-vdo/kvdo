@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#43 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex005.c#44 $
  */
 #include "masterIndex005.h"
 
@@ -1199,14 +1199,14 @@ int put_volume_index_record(struct volume_index_record *record,
 	}
 	address = extract_address(vi5, record->name);
 	if (unlikely(record->mutex != NULL)) {
-		lock_mutex(record->mutex);
+		uds_lock_mutex(record->mutex);
 	}
 	result = put_delta_index_entry(&record->delta_entry,
 				       address,
 				       convert_virtual_to_index(vi5, virtual_chapter),
 				       record->is_found ? record->name->name : NULL);
 	if (unlikely(record->mutex != NULL)) {
-		unlock_mutex(record->mutex);
+		uds_unlock_mutex(record->mutex);
 	}
 	switch (result) {
 	case UDS_SUCCESS:
@@ -1257,11 +1257,11 @@ int remove_volume_index_record(struct volume_index_record *record)
 	// Mark the record so that it cannot be used again
 	record->magic = bad_magic;
 	if (unlikely(record->mutex != NULL)) {
-		lock_mutex(record->mutex);
+		uds_lock_mutex(record->mutex);
 	}
 	result = remove_delta_index_entry(&record->delta_entry);
 	if (unlikely(record->mutex != NULL)) {
-		unlock_mutex(record->mutex);
+		uds_unlock_mutex(record->mutex);
 	}
 	return result;
 }
@@ -1287,13 +1287,13 @@ int set_volume_index_record_chapter(struct volume_index_record *record,
 						(unsigned long long) volume_index_zone->virtual_chapter_high);
 	}
 	if (unlikely(record->mutex != NULL)) {
-		lock_mutex(record->mutex);
+		uds_lock_mutex(record->mutex);
 	}
 	result = set_delta_entry_value(&record->delta_entry,
 				       convert_virtual_to_index(vi5,
 				       				virtual_chapter));
 	if (unlikely(record->mutex != NULL)) {
-		unlock_mutex(record->mutex);
+		uds_unlock_mutex(record->mutex);
 	}
 	if (result != UDS_SUCCESS) {
 		return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#42 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#43 $
  */
 
 #include "volume.h"
@@ -115,9 +115,9 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 
 	while (read_queue_is_full(volume->page_cache)) {
 		uds_log_debug("Waiting until read queue not full");
-		signal_cond(&volume->read_threads_cond);
-		wait_cond(&volume->read_threads_read_done_cond,
-			  &volume->read_threads_mutex);
+		uds_signal_cond(&volume->read_threads_cond);
+		uds_wait_cond(&volume->read_threads_read_done_cond,
+			      &volume->read_threads_mutex);
 	}
 
 	if (search_pending(invalidate_counter)) {
@@ -153,7 +153,7 @@ int enqueue_page_read(struct volume *volume,
 
 	if (result == UDS_QUEUED) {
 		/* signal a read thread */
-		signal_cond(&volume->read_threads_cond);
+		uds_signal_cond(&volume->read_threads_cond);
 	}
 
 	return result;
@@ -174,8 +174,8 @@ wait_to_reserve_read_queue_entry(struct volume *volume,
 					  request_list,
 					  physical_page,
 					  invalid))) {
-		wait_cond(&volume->read_threads_cond,
-			  &volume->read_threads_mutex);
+		uds_wait_cond(&volume->read_threads_cond,
+			      &volume->read_threads_mutex);
 	}
 }
 
@@ -260,7 +260,7 @@ static void read_thread_function(void *arg)
 	bool invalid = false;
 
 	uds_log_debug("reader starting");
-	lock_mutex(&volume->read_threads_mutex);
+	uds_lock_mutex(&volume->read_threads_mutex);
 	while (true) {
 		bool record_page;
 		struct cached_page *page = NULL;
@@ -284,7 +284,7 @@ static void read_thread_function(void *arg)
 			result = select_victim_in_cache(volume->page_cache,
 							&page);
 			if (result == UDS_SUCCESS) {
-				unlock_mutex(&volume->read_threads_mutex);
+				uds_unlock_mutex(&volume->read_threads_mutex);
 				result =
 					read_volume_page(&volume->volume_store,
 							 physical_page,
@@ -296,7 +296,7 @@ static void read_thread_function(void *arg)
 							     physical_page,
 							     page);
 				}
-				lock_mutex(&volume->read_threads_mutex);
+				uds_lock_mutex(&volume->read_threads_mutex);
 			} else {
 				uds_log_warning("Error selecting cache victim for page read");
 			}
@@ -384,9 +384,9 @@ static void read_thread_function(void *arg)
 		release_read_queue_entry(volume->page_cache, queue_pos);
 
 		volume->busy_reader_threads--;
-		broadcast_cond(&volume->read_threads_read_done_cond);
+		uds_broadcast_cond(&volume->read_threads_read_done_cond);
 	}
-	unlock_mutex(&volume->read_threads_mutex);
+	uds_unlock_mutex(&volume->read_threads_mutex);
 	uds_log_debug("reader done");
 }
 
@@ -508,7 +508,7 @@ int get_volume_page_protected(struct volume *volume,
 	// case we need to grab the mutex.
 	if (page == NULL) {
 		end_pending_search(volume->page_cache, zone_number);
-		lock_mutex(&volume->read_threads_mutex);
+		uds_lock_mutex(&volume->read_threads_mutex);
 
 		/*
 		 * Do the lookup again while holding the read mutex (no longer
@@ -540,7 +540,7 @@ int get_volume_page_protected(struct volume *volume,
 			 * the "search pending" state that can block the reader
 			 * thread as the last thing.
 			 */
-			unlock_mutex(&volume->read_threads_mutex);
+			uds_unlock_mutex(&volume->read_threads_mutex);
 			begin_pending_search(volume->page_cache,
 					     physical_page,
 					     zone_number);
@@ -561,7 +561,7 @@ int get_volume_page_protected(struct volume *volume,
 			begin_pending_search(volume->page_cache,
 					     physical_page,
 					     zone_number);
-			unlock_mutex(&volume->read_threads_mutex);
+			uds_unlock_mutex(&volume->read_threads_mutex);
 		}
 	}
 
@@ -575,7 +575,7 @@ int get_volume_page_protected(struct volume *volume,
 			 * while "search pending" mode is off, turns out to be
 			 * significant in some cases.
 			 */
-			unlock_mutex(&volume->read_threads_mutex);
+			uds_unlock_mutex(&volume->read_threads_mutex);
 			begin_pending_search(volume->page_cache,
 					     physical_page,
 					     zone_number);
@@ -585,7 +585,7 @@ int get_volume_page_protected(struct volume *volume,
 		// See above re: ordering requirement.
 		begin_pending_search(volume->page_cache, physical_page,
 				     zone_number);
-		unlock_mutex(&volume->read_threads_mutex);
+		uds_unlock_mutex(&volume->read_threads_mutex);
 	} else {
 		if (get_zone_number(request) == 0) {
 			// Only 1 zone is responsible for updating LRU
@@ -610,10 +610,10 @@ int get_volume_page(struct volume *volume,
 	unsigned int physical_page =
 		map_to_physical_page(volume->geometry, chapter, page_number);
 
-	lock_mutex(&volume->read_threads_mutex);
+	uds_lock_mutex(&volume->read_threads_mutex);
 	result = get_volume_page_locked(volume, NULL, physical_page,
 					probe_type, &page);
-	unlock_mutex(&volume->read_threads_mutex);
+	uds_unlock_mutex(&volume->read_threads_mutex);
 
 	if (data_ptr != NULL) {
 		*data_ptr = (page != NULL) ?
@@ -846,12 +846,12 @@ int forget_chapter(struct volume *volume,
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
 	uds_log_debug("forgetting chapter %llu",
 		      (unsigned long long) virtual_chapter);
-	lock_mutex(&volume->read_threads_mutex);
+	uds_lock_mutex(&volume->read_threads_mutex);
 	result = invalidate_page_cache_for_chapter(volume->page_cache,
 						   physical_chapter,
 						   volume->geometry->pages_per_chapter,
 						   reason);
-	unlock_mutex(&volume->read_threads_mutex);
+	uds_unlock_mutex(&volume->read_threads_mutex);
 	return result;
 }
 
@@ -980,12 +980,12 @@ int write_index_pages(struct volume *volume,
 		}
 
 		// Donate the page data for the index page to the page cache.
-		lock_mutex(&volume->read_threads_mutex);
+		uds_lock_mutex(&volume->read_threads_mutex);
 		result = donate_index_page_locked(volume,
 						  physical_chapter_number,
 						  index_page_number,
 						  &volume->scratch_page);
-		unlock_mutex(&volume->read_threads_mutex);
+		uds_unlock_mutex(&volume->read_threads_mutex);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -1478,17 +1478,17 @@ int make_volume(const struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = init_mutex(&volume->read_threads_mutex);
+	result = uds_init_mutex(&volume->read_threads_mutex);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
-	result = init_cond(&volume->read_threads_read_done_cond);
+	result = uds_init_cond(&volume->read_threads_read_done_cond);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
-	result = init_cond(&volume->read_threads_cond);
+	result = uds_init_cond(&volume->read_threads_cond);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1505,10 +1505,10 @@ int make_volume(const struct configuration *config,
 		return result;
 	}
 	for (i = 0; i < volume_read_threads; i++) {
-		result = create_thread(read_thread_function,
-				       (void *) volume,
-				       "reader",
-				       &volume->reader_threads[i]);
+		result = uds_create_thread(read_thread_function,
+					   (void *) volume,
+					   "reader",
+					   &volume->reader_threads[i]);
 		if (result != UDS_SUCCESS) {
 			free_volume(volume);
 			return result;
@@ -1534,12 +1534,12 @@ void free_volume(struct volume *volume)
 		unsigned int i;
 		// Stop the reader threads.  It is ok if there aren't any of
 		// them.
-		lock_mutex(&volume->read_threads_mutex);
+		uds_lock_mutex(&volume->read_threads_mutex);
 		volume->reader_state |= READER_STATE_EXIT;
-		broadcast_cond(&volume->read_threads_cond);
-		unlock_mutex(&volume->read_threads_mutex);
+		uds_broadcast_cond(&volume->read_threads_cond);
+		uds_unlock_mutex(&volume->read_threads_mutex);
 		for (i = 0; i < volume->num_read_threads; i++) {
-			join_threads(volume->reader_threads[i]);
+			uds_join_threads(volume->reader_threads[i]);
 		}
 		UDS_FREE(volume->reader_threads);
 		volume->reader_threads = NULL;
@@ -1552,9 +1552,9 @@ void free_volume(struct volume *volume)
 	free_sparse_cache(volume->sparse_cache);
 	close_volume_store(&volume->volume_store);
 
-	destroy_cond(&volume->read_threads_cond);
-	destroy_cond(&volume->read_threads_read_done_cond);
-	destroy_mutex(&volume->read_threads_mutex);
+	uds_destroy_cond(&volume->read_threads_cond);
+	uds_destroy_cond(&volume->read_threads_read_done_cond);
+	uds_destroy_mutex(&volume->read_threads_mutex);
 	free_index_page_map(volume->index_page_map);
 	free_radix_sorter(volume->radix_sorter);
 	UDS_FREE(volume->geometry);

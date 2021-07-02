@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#11 $
  */
 
 #include "sysfs.h"
@@ -182,7 +182,7 @@ static struct kobj_type parameter_object_type = {
 };
 
 /**********************************************************************/
-int init_sysfs(void)
+int init_uds_sysfs(void)
 {
 	int result;
 	memset(&object_root, 0, sizeof(object_root));
@@ -200,13 +200,13 @@ int init_sysfs(void)
 		}
 	}
 	if (result != 0) {
-		put_sysfs();
+		put_uds_sysfs();
 	}
 	return result;
 }
 
 /**********************************************************************/
-void put_sysfs()
+void put_uds_sysfs()
 {
 	if (object_root.parameter_flag) {
 		kobject_put(&object_root.parameter_kobj);

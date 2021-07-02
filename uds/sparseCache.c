@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#28 $
  */
 
 /**
@@ -212,11 +212,11 @@ static int __must_check initialize_sparse_cache(struct sparse_cache *cache,
 	// the chapter search misses only in zone zero.
 	cache->skip_search_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	result = initialize_barrier(&cache->begin_cache_update, zone_count);
+	result = uds_initialize_barrier(&cache->begin_cache_update, zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = initialize_barrier(&cache->end_cache_update, zone_count);
+	result = uds_initialize_barrier(&cache->end_cache_update, zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -376,8 +376,8 @@ void free_sparse_cache(struct sparse_cache *cache)
 		destroy_cached_chapter_index(chapter);
 	}
 
-	destroy_barrier(&cache->begin_cache_update);
-	destroy_barrier(&cache->end_cache_update);
+	uds_destroy_barrier(&cache->begin_cache_update);
+	uds_destroy_barrier(&cache->end_cache_update);
 	UDS_FREE(cache);
 }
 
@@ -437,7 +437,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	// Wait for every zone thread to have reached its corresponding barrier
 	// request and invoked this function before starting to modify the
 	// cache.
-	enter_barrier(&cache->begin_cache_update, NULL);
+	uds_enter_barrier(&cache->begin_cache_update, NULL);
 
 	/*
 	 * This is the start of the critical section: the zone zero thread is
@@ -491,7 +491,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	// have been restored--it will be shared/read-only again beyond the
 	// barrier.
 
-	enter_barrier(&cache->end_cache_update, NULL);
+	uds_enter_barrier(&cache->end_cache_update, NULL);
 	return result;
 }
 

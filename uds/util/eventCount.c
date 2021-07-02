@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#10 $
  */
 
 /**
@@ -32,9 +32,9 @@
  * call to event_count_prepare() issues a wait token by atomically incrementing
  * the waiter count. The key invariant is a strict accounting of the number of
  * tokens issued. Every token returned by event_count_prepare() is a contract
- * that the caller will call acquire_semaphore() and a signaller will call
- * release_semaphore(), each exactly once. Atomic updates to the state field
- * ensure that each token is counted once and that tokens are not lost.
+ * that the caller will call uds_acquire_semaphore() and a signaller will call
+ * uds_release_semaphore(), each exactly once. Atomic updates to the state
+ * field ensure that each token is counted once and that tokens are not lost.
  * Cancelling a token attempts to take a fast-path by simply decrementing the
  * waiters field, but if the token has already been claimed by a signaller,
  * the canceller must still wait on the semaphore to consume the transferred
@@ -169,7 +169,7 @@ void event_count_broadcast(struct event_count *ec)
 	 * post for posix semaphores, so we've got to loop to do them all.
 	 */
 	while (waiters-- > 0) {
-		release_semaphore(&ec->semaphore);
+		uds_release_semaphore(&ec->semaphore);
 	}
 }
 
@@ -208,7 +208,7 @@ static INLINE bool fast_cancel(struct event_count *ec, event_token_t token)
  * in the semaphore, and the number of times the wait times out.
  *
  * @param ec       the event count instance
- * @param timeout  an optional timeout value to pass to attempt_semaphore()
+ * @param timeout  an optional timeout value to pass to uds_attempt_semaphore()
  *
  * @return true if a token was consumed, otherwise false only if a timeout
  *         was specified and we timed out
@@ -217,14 +217,14 @@ static bool consume_wait_token(struct event_count *ec,
 			       const ktime_t *timeout)
 {
 	// Try to grab a token without waiting.
-	if (attempt_semaphore(&ec->semaphore, 0)) {
+	if (uds_attempt_semaphore(&ec->semaphore, 0)) {
 		return true;
 	}
 
 
 	if (timeout == NULL) {
-		acquire_semaphore(&ec->semaphore);
-	} else if (!attempt_semaphore(&ec->semaphore, *timeout)) {
+		uds_acquire_semaphore(&ec->semaphore);
+	} else if (!uds_attempt_semaphore(&ec->semaphore, *timeout)) {
 		return false;
 	}
 	return true;
@@ -242,7 +242,7 @@ int make_event_count(struct event_count **ec_ptr)
 	}
 
 	atomic64_set(&ec->state, 0);
-	result = initialize_semaphore(&ec->semaphore, 0);
+	result = uds_initialize_semaphore(&ec->semaphore, 0);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(ec);
 		return result;
@@ -258,7 +258,7 @@ void free_event_count(struct event_count *ec)
 	if (ec == NULL) {
 		return;
 	}
-	destroy_semaphore(&ec->semaphore);
+	uds_destroy_semaphore(&ec->semaphore);
 	UDS_FREE(ec);
 }
 
@@ -321,9 +321,9 @@ bool event_count_wait(struct event_count *ec,
 		// We consumed someone else's wait token. Put it back in the
 		// semaphore, which will wake another waiter, hopefully one who
 		// can stop waiting.
-		release_semaphore(&ec->semaphore);
+		uds_release_semaphore(&ec->semaphore);
 
 		// Attempt to give an earlier waiter a shot at the semaphore.
-		yield_scheduler();
+		uds_yield_scheduler();
 	}
 }
