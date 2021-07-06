@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#29 $
  */
 
 #include "indexZone.h"
@@ -254,8 +254,7 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 	uint64_t closed_chapter, victim;
 	int result;
 	unsigned int finished_zones;
-	bool match_oldest;
-	bool match_next_oldest;
+	unsigned int expired_chapters;
 	uds_log_debug("closing chapter %llu of zone %u after %u entries (%u short)",
 		      (unsigned long long) zone->newest_virtual_chapter,
 		      zone->id,
@@ -299,32 +298,11 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 		}
 	}
 
-	/*
-	 * If the chapter being opened won't overwrite one of the oldest two
-	 * chapters, we're done. Usually if the index is full, the oldest
-	 * is in the same physical chapter as the newly opened one. If the
-	 * oldest chapter was moved during conversion, however, the physical
-	 * chapter we want to use contains the second oldest chapter. In that
-	 * case, we must invalidate two chapters to free the physical space.
-	 * Don't do this if the valid range is only two chapters, however.
-	 */
-	match_oldest = are_same_physical_chapter(zone->index->volume->geometry,
-						 zone->newest_virtual_chapter,
-						 zone->oldest_virtual_chapter);
-	match_next_oldest =
-		((zone->newest_virtual_chapter >
-		 zone->oldest_virtual_chapter + 1) &&
-		 are_same_physical_chapter(zone->index->volume->geometry,
-					   zone->newest_virtual_chapter,
-					   zone->oldest_virtual_chapter + 1));
-	if (!match_oldest && !match_next_oldest) {
-		return UDS_SUCCESS;
-	}
+	victim = zone->oldest_virtual_chapter;
+	expired_chapters = chapters_to_expire(zone->index->volume->geometry,
+					      zone->newest_virtual_chapter);
+	zone->oldest_virtual_chapter += expired_chapters;
 
-	victim = zone->oldest_virtual_chapter++;
-	if (match_next_oldest) {
-		zone->oldest_virtual_chapter++;
-	}
 	if (finished_zones < zone->index->zone_count) {
 		// We are not the last zone to close the chapter, so we're done
 		return UDS_SUCCESS;
@@ -337,14 +315,12 @@ int open_next_chapter(struct index_zone *zone, Request *request)
 	 * shadows the oldest chapter in the cache, until we write the new open
 	 * chapter to disk, we'll never look for it in the cache.
 	 */
-	result = forget_chapter(zone->index->volume, victim,
-				INVALIDATION_EXPIRE);
-	if ((result != UDS_SUCCESS) || !match_next_oldest) {
-		return result;
+	while ((expired_chapters-- > 0) && (result == UDS_SUCCESS)) {
+		result = forget_chapter(zone->index->volume, victim++,
+					INVALIDATION_EXPIRE);
 	}
 
-	return forget_chapter(zone->index->volume, victim + 1,
-			      INVALIDATION_EXPIRE);
+        return result;
 }
 
 /**********************************************************************/

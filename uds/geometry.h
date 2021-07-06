@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#12 $
  */
 
 #ifndef GEOMETRY_H
@@ -217,7 +217,7 @@ map_to_physical_chapter(const struct geometry *geometry,
 
 /**
  * Check whether this geometry is reduced by a chapter
- * 
+ *
  * @param geometry  The geometry to check
  *
  * @return true if this geometry is reduced by a chapter
@@ -272,18 +272,14 @@ bool __must_check is_chapter_sparse(const struct geometry *geometry,
 				    uint64_t virtual_chapter_number);
 
 /**
- * Check whether two virtual chapter numbers correspond to the same
- * physical chapter.
+ * Calculate how many chapters to expire after opening the newest chapter.
  *
- * @param geometry The geometry of the index
- * @param chapter1 The first chapter to compare
- * @param chapter2 The second chapter to compare
+ * @param geometry        The geometry of the index
+ * @param newest_chapter  The newest virtual chapter number
  *
- * @return <code>true</code> if both chapters correspond to the same
- *         physical chapter
+ * @return The number of oldest chapters to expire
  **/
-bool __must_check are_same_physical_chapter(const struct geometry *geometry,
-					    uint64_t chapter1,
-					    uint64_t chapter2);
+unsigned int __must_check chapters_to_expire(const struct geometry *geometry,
+					     uint64_t newest_chapter);
 
 #endif /* GEOMETRY_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#72 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -78,6 +78,8 @@ struct vdo {
 	 * CPU-intensive, non-blocking work.
 	 **/
 	struct vdo_work_queue *cpu_queue;
+	/** Optional work queue for calling bio_endio. */
+	struct vdo_work_queue *bio_ack_queue;
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
 

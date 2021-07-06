@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#44 $
  */
 
 #include "dump.h"
@@ -114,7 +114,7 @@ static void do_dump(struct vdo *vdo,
 
 	if (use_bio_ack_queue(vdo) &&
 	    ((dump_options_requested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
-		dump_work_queue(layer->bio_ack_queue);
+		dump_work_queue(vdo->bio_ack_queue);
 	}
 
 	if ((dump_options_requested & FLAG_SHOW_CPU_QUEUES) != 0) {

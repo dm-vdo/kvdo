@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.c#13 $
  */
 
 #include "geometry.h"
@@ -221,10 +221,33 @@ bool is_chapter_sparse(const struct geometry *geometry,
 }
 
 /**********************************************************************/
-bool are_same_physical_chapter(const struct geometry *geometry,
-			       uint64_t chapter1,
-			       uint64_t chapter2)
+unsigned int chapters_to_expire(const struct geometry *geometry,
+				uint64_t newest_chapter)
 {
-	return (map_to_physical_chapter(geometry, chapter1) ==
-		map_to_physical_chapter(geometry, chapter2));
+	// If the index isn't full yet, don't expire anything.
+	if (newest_chapter < geometry->chapters_per_volume) {
+		return 0;
+	}
+
+	// If a chapter is out of order...
+	if (geometry->remapped_physical > 0) {
+		uint64_t oldest_chapter =
+			newest_chapter - geometry->chapters_per_volume;
+
+		// ... expire an extra chapter when expiring the moved chapter
+		// to free physical space for the new chapter ...
+		if (oldest_chapter == geometry->remapped_virtual) {
+			return 2;
+		}
+
+		// ... but don't expire anything when the new chapter will use
+		// the physical chapter freed by expiring the moved chapter.
+		if (oldest_chapter == (geometry->remapped_virtual +
+				       geometry->remapped_physical)) {
+			return 0;
+		}
+	}
+
+	// Normally, just expire one.
+	return 1;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#206 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#207 $
  */
 
 #include "kernelLayer.h"
@@ -449,7 +449,7 @@ int make_kernel_layer(unsigned int instance,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
 					 NULL,
-					 &layer->bio_ack_queue);
+					 &layer->vdo.bio_ack_queue);
 		if (result != VDO_SUCCESS) {
 			*reason = "bio ack queue initialization failed";
 			free_kernel_layer(layer);
@@ -639,7 +639,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
 		if (use_bio_ack_queue(&layer->vdo)) {
-			finish_work_queue(layer->bio_ack_queue);
+			finish_work_queue(layer->vdo.bio_ack_queue);
 			used_bio_ack_queue = true;
 		}
 		// fall through
@@ -670,7 +670,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		free_work_queue(UDS_FORGET(layer->vdo.cpu_queue));
 	}
 	if (used_bio_ack_queue) {
-		free_work_queue(UDS_FORGET(layer->bio_ack_queue));
+		free_work_queue(UDS_FORGET(layer->vdo.bio_ack_queue));
 	}
 	if (layer->vdo.io_submitter) {
 		free_vdo_io_submitter(layer->vdo.io_submitter);

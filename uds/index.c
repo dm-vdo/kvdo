@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#46 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#47 $
  */
 
 
@@ -969,11 +969,9 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 void advance_active_chapters(struct index *index)
 {
 	index->newest_virtual_chapter++;
-	if (are_same_physical_chapter(index->volume->geometry,
-				      index->newest_virtual_chapter,
-				      index->oldest_virtual_chapter)) {
-		index->oldest_virtual_chapter++;
-	}
+	index->oldest_virtual_chapter +=
+		chapters_to_expire(index->volume->geometry,
+				   index->newest_virtual_chapter);
 }
 
 /**********************************************************************/
