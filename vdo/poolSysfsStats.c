@@ -43,7 +43,7 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 	}
 
 	mutex_lock(&vdo->stats_mutex);
-	get_kvdo_statistics(vdo, &vdo->stats_buffer);
+	fetch_vdo_statistics(vdo, &vdo->stats_buffer);
 	size = pool_stats_attr->print(&vdo->stats_buffer, buf);
 	mutex_unlock(&vdo->stats_mutex);
 

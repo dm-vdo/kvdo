@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#37 $
  */
 
 #ifndef VDO_H
@@ -60,14 +60,14 @@ get_vdo_backing_device(const struct vdo *vdo);
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
 /**
- * Set whether compression is enabled in a vdo.
+ * Turn compression on or off.
  *
- * @param vdo                 The vdo
- * @param enable_compression  Whether to enable compression in vdo
+ * @param vdo     The vdo
+ * @param enable  Whether to enable or disable compression
  *
- * @return State of compression before new value is set
+ * @return Whether compression was previously on or off
  **/
-bool set_vdo_compressing(struct vdo *vdo, bool enable_compression);
+bool set_vdo_compressing(struct vdo *vdo, bool enable);
 
 /**
  * Get whether compression is enabled in a vdo.
@@ -79,12 +79,12 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression);
 bool get_vdo_compressing(struct vdo *vdo);
 
 /**
- * Get the vdo statistics.
+ * Fetch statistics on the correct thread.
  *
  * @param [in]  vdo    The vdo
  * @param [out] stats  The vdo statistics are returned here
  **/
-void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats);
+void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 /**
  * Get the number of physical blocks in use by user data.
@@ -93,7 +93,8 @@ void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats);
  *
  * @return The number of blocks allocated for user data
  **/
-block_count_t __must_check get_vdo_physical_blocks_allocated(const struct vdo *vdo);
+block_count_t __must_check
+get_vdo_physical_blocks_allocated(const struct vdo *vdo);
 
 /**
  * Get the number of unallocated physical blocks.

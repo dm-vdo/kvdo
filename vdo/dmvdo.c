@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#140 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#141 $
  */
 
 #include "dmvdo.h"
@@ -180,7 +180,7 @@ static void vdo_status(struct dm_target *ti,
 	case STATUSTYPE_INFO:
 		// Report info for dmsetup status
 		mutex_lock(&vdo->stats_mutex);
-		get_kvdo_statistics(vdo, &vdo->stats_buffer);
+		fetch_vdo_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
@@ -248,12 +248,12 @@ process_vdo_message_locked(struct vdo *vdo,
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
-				set_kvdo_compressing(vdo, true);
+				set_vdo_compressing(vdo, true);
 				return 0;
 			}
 
 			if (strcasecmp(argv[1], "off") == 0) {
-				set_kvdo_compressing(vdo, false);
+				set_vdo_compressing(vdo, false);
 				return 0;
 			}
 

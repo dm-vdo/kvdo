@@ -1363,7 +1363,7 @@ int write_vdo_stats(struct vdo *vdo,
 		return result;
 	}
 
-	get_kvdo_statistics(vdo, stats);
+	fetch_vdo_statistics(vdo, stats);
 	result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
 	UDS_FREE(stats);
 	return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#43 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -95,16 +95,6 @@ void finish_vdo(struct vdo *vdo);
  * @param vdo  The vdo object to be examined
  **/
 void dump_vdo_work_queue(struct vdo *vdo);
-
-/**
- * Set whether compression is enabled.
- *
- * @param vdo                 The vdo object
- * @param enable_compression  The new compression mode
- *
- * @return state of compression before new value is set
- **/
-bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression);
 
 /**
  * Gets the latest statistics gathered by the base code.

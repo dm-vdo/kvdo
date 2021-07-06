@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#148 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#149 $
  */
 
 /*
@@ -48,6 +48,7 @@
 #include "statusCodes.h"
 #include "superBlock.h"
 #include "superBlockCodec.h"
+#include "syncCompletion.h"
 #include "threadConfig.h"
 #include "vdoComponentStates.h"
 #include "vdoLayout.h"
@@ -137,15 +138,14 @@ void vdo_wait_for_no_requests_active(struct vdo *vdo)
 	 * by turning off compression, which also means no new entries coming
 	 * in while waiting will end up in the packer.
 	 */
-	was_compressing = set_kvdo_compressing(vdo, false);
+	was_compressing = set_vdo_compressing(vdo, false);
 	// Now wait for there to be no active requests
 	limiter_wait_for_idle(&vdo->request_limiter);
 	// Reset the compression state after all requests are done
 	if (was_compressing) {
-		set_kvdo_compressing(vdo, true);
+		set_vdo_compressing(vdo, true);
 	}
 }
-
 
 /**********************************************************************/
 struct block_device *get_vdo_backing_device(const struct vdo *vdo)
@@ -321,20 +321,41 @@ void enter_recovery_mode(struct vdo *vdo)
 	set_vdo_state(vdo, VDO_RECOVERING);
 }
 
-/**********************************************************************/
-bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
+/**
+ * Callback to turn compression on or off.
+ *
+ * @param completion  The completion
+ **/
+static void set_compression_callback(struct vdo_completion *completion)
 {
-	bool was_enabled = vdo->compressing;
-	WRITE_ONCE(vdo->compressing, enable_compression);
-	if (was_enabled && !enable_compression) {
-		// Flushing the packer is asynchronous, but we don't care when
-		// it finishes.
-		flush_vdo_packer(vdo->packer);
+	struct vdo *vdo = completion->vdo;
+	bool *enable = completion->parent;
+	bool was_enabled = get_vdo_compressing(vdo);
+
+	if (*enable != was_enabled) {
+		WRITE_ONCE(vdo->compressing, *enable);
+		if (was_enabled) {
+			// Signal the packer to flush since compression has
+			// been disabled.
+			flush_vdo_packer(vdo->packer);
+		}
 	}
 
-	uds_log_info("compression is %s",
-		     (enable_compression ? "enabled" : "disabled"));
-	return was_enabled;
+	uds_log_info("compression is %s", (*enable ? "enabled" : "disabled"));
+	*enable = was_enabled;
+	complete_vdo_completion(completion);
+}
+
+/**********************************************************************/
+bool set_vdo_compressing(struct vdo *vdo, bool enable)
+{
+	thread_id_t packer_thread
+		= vdo_get_packer_zone_thread(get_vdo_thread_config(vdo));
+	perform_synchronous_vdo_action(vdo,
+				       set_compression_callback,
+				       packer_thread,
+				       &enable);
+	return enable;
 }
 
 /**********************************************************************/
@@ -426,20 +447,31 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
 }
 
 
-/**********************************************************************/
-void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
+/**
+ * Populate a vdo_statistics structure on the admin thread.
+ *
+ * @param vdo    The vdo
+ * @param stats  The statistics structure to populate
+ **/
+static void get_vdo_statistics(const struct vdo *vdo,
+			       struct vdo_statistics *stats)
 {
-	enum vdo_state state;
+	struct recovery_journal *journal = vdo->recovery_journal;
+	enum vdo_state state = get_vdo_state(vdo);
+
+	assert_on_admin_thread(vdo, __func__);
+
+	// start with a clean slate
+	memset(stats, 0, sizeof(struct vdo_statistics));
 
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.
-	struct recovery_journal *journal = vdo->recovery_journal;
-	// XXX config.physical_blocks is actually mutated during resize and is
-	// in a packed structure, but resize runs on the admin thread so we're
-	// usually OK.
 	stats->version = STATISTICS_VERSION;
 	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
+	// XXX config.physical_blocks is actually mutated during resize and is
+	// in a packed structure, but resize runs on the admin thread so we're
+	// usually OK.
 	stats->physical_blocks = vdo->states.vdo.config.physical_blocks;
 	stats->block_size = VDO_BLOCK_SIZE;
 	stats->complete_recoveries = vdo->states.vdo.complete_recoveries;
@@ -457,8 +489,6 @@ void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 	stats->block_map = get_vdo_block_map_statistics(vdo->block_map);
 	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
-
-	state = get_vdo_state(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
 		 sizeof(stats->mode),
@@ -503,6 +533,27 @@ void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
 	get_uds_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
 	get_vdo_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
+}
+
+/**
+ * Action to populate a vdo_statistics structure on the admin thread;
+ * registered in fetch_vdo_statistics().
+ *
+ * @param completion  The completion
+ **/
+static void fetch_vdo_statistics_callback(struct vdo_completion *completion)
+{
+	get_vdo_statistics(completion->vdo, completion->parent);
+	complete_vdo_completion(completion);
+}
+
+/***********************************************************************/
+void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
+{
+	perform_synchronous_vdo_action(vdo,
+				       fetch_vdo_statistics_callback,
+				       vdo_get_admin_thread(get_vdo_thread_config(vdo)),
+				       stats);
 }
 
 /**********************************************************************/
@@ -609,7 +660,7 @@ void dump_vdo_status(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-void assert_on_admin_thread(struct vdo *vdo, const char *name)
+void assert_on_admin_thread(const struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 vdo_get_admin_thread(get_vdo_thread_config(vdo))),

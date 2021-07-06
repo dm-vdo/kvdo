@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#74 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -353,7 +353,7 @@ void enter_recovery_mode(struct vdo *vdo);
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assert_on_admin_thread(struct vdo *vdo, const char *name);
+void assert_on_admin_thread(const struct vdo *vdo, const char *name);
 
 /**
  * Assert that this function was called on the specified logical zone thread.
