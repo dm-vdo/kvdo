@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#45 $
  */
 
 #include "dump.h"
@@ -89,7 +89,6 @@ static void do_dump(struct vdo *vdo,
 {
 	uint32_t active, maximum;
 	int64_t outstanding;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	uds_log_info("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
@@ -124,7 +123,7 @@ static void do_dump(struct vdo *vdo,
 	dump_vdo_dedupe_index(vdo->dedupe_index,
 			      (dump_options_requested & FLAG_SHOW_INDEX_QUEUE) !=
 				  0);
-	dump_buffer_pool(layer->data_vio_pool,
+	dump_buffer_pool(vdo->data_vio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
 		// Options should become more fine-grained when we have more to

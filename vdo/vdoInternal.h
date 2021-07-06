@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#73 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -82,6 +82,10 @@ struct vdo {
 	struct vdo_work_queue *bio_ack_queue;
 	/** The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
+	/** The pool of data_vios for handling incoming bios */
+	struct buffer_pool *data_vio_pool;
+	/* For returning batches of data_vios to their pool */
+	struct batch_processor *data_vio_releaser;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;

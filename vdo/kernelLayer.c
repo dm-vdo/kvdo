@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#207 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#208 $
  */
 
 #include "kernelLayer.h"
@@ -370,7 +370,7 @@ int make_kernel_layer(unsigned int instance,
 	result = make_batch_processor(&layer->vdo,
 				      return_data_vio_batch_to_pool,
 				      layer,
-				      &layer->data_vio_releaser);
+				      &layer->vdo.data_vio_releaser);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate vio-freeing batch processor";
 		free_kernel_layer(layer);
@@ -401,7 +401,7 @@ int make_kernel_layer(unsigned int instance,
 	BUG_ON(layer->vdo.request_limiter.limit <= 0);
 	BUG_ON(layer->vdo.device_config->owned_device == NULL);
 	result = make_data_vio_buffer_pool(layer->vdo.request_limiter.limit,
-					   &layer->data_vio_pool);
+					   &layer->vdo.data_vio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
 		free_kernel_layer(layer);
@@ -653,12 +653,12 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(UDS_FORGET(layer->data_vio_pool));
+		free_buffer_pool(UDS_FORGET(layer->vdo.data_vio_pool));
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		finish_vdo_dedupe_index(layer->vdo.dedupe_index);
-		free_batch_processor(UDS_FORGET(layer->data_vio_releaser));
+		free_batch_processor(UDS_FORGET(layer->vdo.data_vio_releaser));
 		break;
 
 	default:

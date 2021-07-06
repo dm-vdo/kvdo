@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#154 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#155 $
  */
 
 #include "dataKVIO.h"
@@ -123,7 +123,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 	ASSERT_LOG_ONLY(layer != NULL, "layer not null");
 
 
-	init_free_buffer_pointers(&fbp, layer->data_vio_pool);
+	init_free_buffer_pointers(&fbp, layer->vdo.data_vio_pool);
 
 	while ((item = next_batch_item(batch)) != NULL) {
 		clean_data_vio(work_item_as_data_vio(item), &fbp);
@@ -144,9 +144,8 @@ vdo_acknowledge_and_batch(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	vdo_acknowledge_data_vio(data_vio);
-	add_to_batch_processor(layer->data_vio_releaser, item);
+	add_to_batch_processor(vdo->data_vio_releaser, item);
 }
 
 /**********************************************************************/
@@ -154,7 +153,6 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	if (use_bio_ack_queue(vdo) && VDO_USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
@@ -163,7 +161,7 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 						 NULL,
 						 BIO_ACK_Q_ACTION_ACK);
 	} else {
-		add_to_batch_processor(layer->data_vio_releaser,
+		add_to_batch_processor(vdo->data_vio_releaser,
 				       &completion->work_item);
 	}
 }
@@ -628,7 +626,7 @@ void compress_data_vio(struct data_vio *data_vio)
  * creates a wrapping data_vio structure that is used when we want to
  * physically read or write the data associated with the struct data_vio.
  *
- * @param [in]  layer            The physical layer
+ * @param [in]  vdo              The vdo
  * @param [in]  bio              The bio from the request the new data_vio
  *                               will service
  * @param [in]  arrival_jiffies  The arrival time of the bio
@@ -636,7 +634,7 @@ void compress_data_vio(struct data_vio *data_vio)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int vdo_create_vio_from_bio(struct kernel_layer *layer,
+static int vdo_create_vio_from_bio(struct vdo *vdo,
 				   struct bio *bio,
 				   uint64_t arrival_jiffies,
 				   struct data_vio **data_vio_ptr)
@@ -644,7 +642,7 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 	struct data_vio *data_vio = NULL;
 	struct vio *vio;
 	struct bio *vio_bio;
-	int result = alloc_buffer_from_pool(layer->data_vio_pool,
+	int result = alloc_buffer_from_pool(vdo->data_vio_pool,
 					    (void **) &data_vio);
 	if (result != VDO_SUCCESS) {
 		return uds_log_error_strerror(result,
@@ -669,14 +667,14 @@ static int vdo_create_vio_from_bio(struct kernel_layer *layer,
 		       VIO_TYPE_DATA,
 		       VIO_PRIORITY_DATA,
 		       NULL,
-		       &layer->vdo,
+		       vdo,
 		       NULL);
 	data_vio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
 	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
 			        (data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
-		vdo_count_bios(&layer->vdo.stats.bios_in_partial, bio);
+		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
 	} else {
 		/*
 		 * Note that we unconditionally fill in the data_block array
@@ -787,7 +785,6 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 				 bool has_discard_permit)
 {
 	struct data_vio *data_vio = NULL;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	int result;
 	vdo_action *callback = vdo_complete_data_vio;
 	enum vio_operation operation = VIO_WRITE;
@@ -798,7 +795,9 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 	struct vio *vio;
 
 
-	result = vdo_create_vio_from_bio(layer, bio, arrival_jiffies,
+	result = vdo_create_vio_from_bio(vdo,
+					 bio,
+					 arrival_jiffies,
 					 &data_vio);
 	if (unlikely(result != VDO_SUCCESS)) {
 		uds_log_info("%s: vio allocation failure", __func__);

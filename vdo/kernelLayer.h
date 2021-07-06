@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#91 $
  */
 
 #ifndef KERNELLAYER_H
@@ -68,14 +68,7 @@ struct kernel_layer {
 	PhysicalLayer common;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
-
 	struct vdo vdo;
-
-	// Memory allocation
-	struct buffer_pool *data_vio_pool;
-
-	/* For returning batches of data_vios to their pool */
-	struct batch_processor *data_vio_releaser;
 };
 
 enum bio_q_action {
