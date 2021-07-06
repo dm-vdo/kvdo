@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#31 $
  */
 
 #include "adminState.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "completion.h"
@@ -135,7 +136,9 @@ static bool end_operation(struct admin_state *state, int result)
 
 	if (!state->starting) {
 		WRITE_ONCE(state->current_state, state->next_state);
-		release_vdo_completion(&state->waiter);
+		if (state->waiter != NULL) {
+			complete_vdo_completion(UDS_FORGET(state->waiter));
+		}
 	}
 
 	return true;
