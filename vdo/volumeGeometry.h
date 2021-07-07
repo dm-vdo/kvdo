@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#27 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -124,15 +124,6 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 	return vdo_get_data_region_start(geometry) -
 		vdo_get_index_region_start(geometry);
 }
-
-/**
- * Decode and validate an encoded geometry block.
- *
- * @param block     The encoded geometry block
- * @param geometry  The structure to receive the decoded fields
- **/
-int __must_check
-vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry);
 
 /**
  * Synchronously read a geometry block from a block device.

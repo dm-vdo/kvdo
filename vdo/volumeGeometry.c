@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#49 $
  */
 
 #include "volumeGeometry.h"
@@ -277,6 +277,52 @@ static int decode_geometry_block(struct buffer *buffer,
 		      "should have decoded up to the geometry checksum");
 }
 
+/**
+ * Decode and validate an encoded geometry block.
+ *
+ * @param block     The encoded geometry block
+ * @param geometry  The structure to receive the decoded fields
+ **/
+static int __must_check
+vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
+{
+	crc32_checksum_t checksum, saved_checksum;
+	struct buffer *buffer;
+	int result;
+
+	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	result = decode_geometry_block(buffer, geometry);
+	if (result != VDO_SUCCESS) {
+		free_buffer(UDS_FORGET(buffer));
+		return result;
+	}
+
+	// Checksum everything decoded so far.
+	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM, block,
+				    uncompacted_amount(buffer));
+	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
+	if (result != VDO_SUCCESS) {
+		free_buffer(UDS_FORGET(buffer));
+		return result;
+	}
+
+	// Finished all decoding. Everything that follows is validation code.
+	free_buffer(UDS_FORGET(buffer));
+
+	if (!is_loadable_release_version(geometry->release_version)) {
+		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					      "release version %d cannot be loaded",
+					      geometry->release_version);
+	}
+
+	return ((checksum == saved_checksum) ? VDO_SUCCESS :
+					      VDO_CHECKSUM_MISMATCH);
+}
+
 /**********************************************************************/
 int vdo_read_geometry_block(struct block_device *bdev,
 			    struct volume_geometry *geometry)
@@ -320,46 +366,6 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	result = vdo_parse_geometry_block(block, geometry);
 	UDS_FREE(block);
 	return result;
-}
-
-/**********************************************************************/
-int vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
-{
-	crc32_checksum_t checksum, saved_checksum;
-	struct buffer *buffer;
-	int result;
-
-	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	result = decode_geometry_block(buffer, geometry);
-	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	// Checksum everything decoded so far.
-	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM, block,
-				    uncompacted_amount(buffer));
-	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
-	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	// Finished all decoding. Everything that follows is validation code.
-	free_buffer(UDS_FORGET(buffer));
-
-	if (!is_loadable_release_version(geometry->release_version)) {
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					      "release version %d cannot be loaded",
-					      geometry->release_version);
-	}
-
-	return ((checksum == saved_checksum) ? VDO_SUCCESS :
-					      VDO_CHECKSUM_MISMATCH);
 }
 
 
