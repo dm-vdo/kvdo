@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#113 $
  */
 
 #include "slabDepot.h"
@@ -339,7 +339,7 @@ void free_vdo_slab_depot(struct slab_depot **depot_ptr)
 	vdo_abandon_new_slabs(depot);
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		free_vdo_block_allocator(&depot->allocators[zone]);
+		free_vdo_block_allocator(UDS_FORGET(depot->allocators[zone]));
 	}
 
 	if (depot->slabs != NULL) {

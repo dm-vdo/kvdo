@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#36 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -118,11 +118,11 @@ void grow_vdo_block_map(struct block_map *map, struct vdo_completion *parent);
 void vdo_abandon_block_map_growth(struct block_map *map);
 
 /**
- * Free a block map and null out the reference to it.
+ * Free a block map.
  *
- * @param map_ptr  A pointer to the block map to free
+ * @param map  The block map to free
  **/
-void free_vdo_block_map(struct block_map **map_ptr);
+void free_vdo_block_map(struct block_map *map);
 
 /**
  * Record the state of a block map for encoding in a super block.

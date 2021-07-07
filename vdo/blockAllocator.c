@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#130 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#131 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -298,7 +298,7 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 
 	result = allocate_components(allocator, vdo, vio_pool_size);
 	if (result != VDO_SUCCESS) {
-		free_vdo_block_allocator(&allocator);
+		free_vdo_block_allocator(allocator);
 		return result;
 	}
 
@@ -307,9 +307,8 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 }
 
 /**********************************************************************/
-void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr)
+void free_vdo_block_allocator(struct block_allocator *allocator)
 {
-	struct block_allocator *allocator = *block_allocator_ptr;
 	if (allocator == NULL) {
 		return;
 	}
@@ -318,7 +317,6 @@ void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr)
 	free_vio_pool(UDS_FORGET(allocator->vio_pool));
 	free_priority_table(&allocator->prioritized_slabs);
 	UDS_FREE(allocator);
-	*block_allocator_ptr = NULL;
 }
 
 

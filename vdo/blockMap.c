@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#113 $
  */
 
 #include "blockMap.h"
@@ -239,10 +239,10 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 }
 
 /**********************************************************************/
-void free_vdo_block_map(struct block_map **map_ptr)
+void free_vdo_block_map(struct block_map *map)
 {
-	zone_count_t zone = 0;
-	struct block_map *map = *map_ptr;
+	zone_count_t zone;
+
 	if (map == NULL) {
 		return;
 	}
@@ -256,7 +256,6 @@ void free_vdo_block_map(struct block_map **map_ptr)
 	UDS_FREE(UDS_FORGET(map->action_manager));
 
 	UDS_FREE(map);
-	*map_ptr = NULL;
 }
 
 /**********************************************************************/
@@ -301,7 +300,7 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 
 	result = make_vdo_forest(map, map->entry_count);
 	if (result != VDO_SUCCESS) {
-		free_vdo_block_map(&map);
+		free_vdo_block_map(map);
 		return result;
 	}
 
@@ -317,7 +316,7 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 						   cache_size,
 						   maximum_age);
 		if (result != VDO_SUCCESS) {
-			free_vdo_block_map(&map);
+			free_vdo_block_map(map);
 			return result;
 		}
 	}
@@ -331,7 +330,7 @@ int decode_vdo_block_map(struct block_map_state_2_0 state,
 					 vdo,
 					 &map->action_manager);
 	if (result != VDO_SUCCESS) {
-		free_vdo_block_map(&map);
+		free_vdo_block_map(map);
 		return result;
 	}
 
