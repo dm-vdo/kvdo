@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#51 $
  */
 
 #include "forest.h"
@@ -277,15 +277,13 @@ int make_vdo_forest(struct block_map *map, block_count_t entries)
 }
 
 /**********************************************************************/
-void free_vdo_forest(struct forest **forest_ptr)
+void free_vdo_forest(struct forest *forest)
 {
-	struct forest *forest = *forest_ptr;
 	if (forest == NULL) {
 		return;
 	}
 
 	deforest(forest, 0);
-	*forest_ptr = NULL;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#53 $
  */
 
 #include "flush.h"
@@ -113,16 +113,14 @@ int make_vdo_flusher(struct vdo *vdo)
 }
 
 /**********************************************************************/
-void free_vdo_flusher(struct flusher **flusher_ptr)
+void free_vdo_flusher(struct flusher *flusher)
 {
-	struct flusher *flusher = *flusher_ptr;
 	if (flusher == NULL) {
 		return;
 	}
 
-	UDS_FREE(flusher->spare_flush);
+	UDS_FREE(UDS_FORGET(flusher->spare_flush));
 	UDS_FREE(flusher);
-	*flusher_ptr = NULL;
 }
 
 /**********************************************************************/
