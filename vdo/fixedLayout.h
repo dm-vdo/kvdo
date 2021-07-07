@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#14 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -56,13 +56,13 @@ int __must_check make_vdo_fixed_layout(block_count_t total_blocks,
 				       struct fixed_layout **layout_ptr);
 
 /**
- * Free the fixed layout and null out the reference to it.
+ * Free a fixed layout.
  *
- * @param layout_ptr  The reference to the layout to free
+ * @param layout  The layout to free
  *
  * @note all partitions created by this layout become invalid pointers
  **/
-void free_vdo_fixed_layout(struct fixed_layout **layout_ptr);
+void free_vdo_fixed_layout(struct fixed_layout *layout);
 
 /**
  * Get the total size of the layout in blocks.

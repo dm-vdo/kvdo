@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#32 $
  */
 
 #include "vdoLayout.h"
@@ -100,9 +100,9 @@ void free_vdo_layout(struct vdo_layout *vdo_layout)
 	}
 
 	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
-	free_vdo_fixed_layout(&vdo_layout->next_layout);
-	free_vdo_fixed_layout(&vdo_layout->layout);
-	free_vdo_fixed_layout(&vdo_layout->previous_layout);
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->layout));
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->previous_layout));
 	UDS_FREE(vdo_layout);
 }
 
@@ -191,7 +191,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	}
 
 	// Free any unused preparation.
-	free_vdo_fixed_layout(&vdo_layout->next_layout);
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 
 	// Make a new layout with the existing partition sizes for everything
 	// but the block allocator partition.
@@ -224,7 +224,7 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	if (min_new_size > new_physical_blocks) {
 		// Copying the journal and summary would destroy some old
 		// metadata.
-		free_vdo_fixed_layout(&vdo_layout->next_layout);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return VDO_INCREMENT_TOO_SMALL;
 	}
@@ -288,11 +288,11 @@ block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
 void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 {
 	if (vdo_layout->layout != vdo_layout->previous_layout) {
-		free_vdo_fixed_layout(&vdo_layout->previous_layout);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->previous_layout));
 	}
 
 	if (vdo_layout->layout != vdo_layout->next_layout) {
-		free_vdo_fixed_layout(&vdo_layout->next_layout);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 	}
 
 	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));

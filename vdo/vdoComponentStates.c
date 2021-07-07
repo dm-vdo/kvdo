@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#18 $
  */
 
 #include "vdoComponentStates.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "blockMapFormat.h"
@@ -46,7 +47,7 @@ void destroy_vdo_component_states(struct vdo_component_states *states)
 		return;
 	}
 
-	free_vdo_fixed_layout(&states->layout);
+	free_vdo_fixed_layout(UDS_FORGET(states->layout));
 }
 
 /**
@@ -126,7 +127,7 @@ int decode_vdo_component_states(struct buffer *buffer,
 
 	result = decode_components(buffer, states);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&states->layout);
+		free_vdo_fixed_layout(UDS_FORGET(states->layout));
 		return result;
 	}
 

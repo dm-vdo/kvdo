@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#27 $
  */
 
 #include "fixedLayout.h"
@@ -93,9 +93,8 @@ int make_vdo_fixed_layout(block_count_t total_blocks,
 }
 
 /**********************************************************************/
-void free_vdo_fixed_layout(struct fixed_layout **layout_ptr)
+void free_vdo_fixed_layout(struct fixed_layout *layout)
 {
-	struct fixed_layout *layout = *layout_ptr;
 	if (layout == NULL) {
 		return;
 	}
@@ -107,7 +106,6 @@ void free_vdo_fixed_layout(struct fixed_layout **layout_ptr)
 	}
 
 	UDS_FREE(layout);
-	*layout_ptr = NULL;
 }
 
 /**********************************************************************/
@@ -554,7 +552,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 
 	result = decode_partitions_3_0(buffer, layout);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&layout);
+		free_vdo_fixed_layout(layout);
 		return result;
 	}
 
@@ -593,14 +591,14 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 						 FROM_BEGINNING,
 						 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&layout);
+		free_vdo_fixed_layout(layout);
 		return result;
 	}
 
 	result = make_vdo_fixed_layout_partition(layout, SLAB_SUMMARY_PARTITION,
 						 summary_blocks, FROM_END, 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&layout);
+		free_vdo_fixed_layout(layout);
 		return result;
 	}
 
@@ -608,7 +606,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 						 RECOVERY_JOURNAL_PARTITION,
 						 journal_blocks, FROM_END, 0);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&layout);
+		free_vdo_fixed_layout(layout);
 		return result;
 	}
 
@@ -625,7 +623,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 						 FROM_BEGINNING,
 						 block_map_blocks);
 	if (result != VDO_SUCCESS) {
-		free_vdo_fixed_layout(&layout);
+		free_vdo_fixed_layout(layout);
 		return result;
 	}
 
