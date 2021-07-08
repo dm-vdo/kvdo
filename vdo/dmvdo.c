@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#141 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#142 $
  */
 
 #include "dmvdo.h"
@@ -76,8 +76,8 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  * through the "map" function, and has resulted from a bio being
  * submitted.
  *
- * @param ti   The dm_target.  We only need the "private" member to access
- *             the kernel_layer.
+ * @param ti   The dm_target. We only need the "private" member to access
+ *             the vdo
  * @param bio  The bio.
  *
  * @return One of these values:
@@ -106,10 +106,9 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 /**********************************************************************/
 static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 
-	limits->logical_block_size =
-		layer->vdo.device_config->logical_block_size;
+	limits->logical_block_size = vdo->device_config->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
 	// The minimum io size for random io
@@ -134,9 +133,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * determine whether to pass down discards. The block layer splits
 	 * large discards on this boundary when this is set.
 	 */
-	limits->max_discard_sectors =
-		layer->vdo.device_config->max_discard_blocks *
-		VDO_SECTORS_PER_BLOCK;
+	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
+				       * VDO_SECTORS_PER_BLOCK);
 
 	// Force discards to not begin or end with a partial block by stating
 	// the granularity is 4k.
@@ -148,11 +146,10 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       iterate_devices_callout_fn fn,
 			       void *data)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	sector_t len =
-		block_to_sector(layer->vdo.device_config->physical_blocks);
+	struct vdo *vdo = get_vdo_for_target(ti);
+	sector_t len = block_to_sector(vdo->device_config->physical_blocks);
 
-	return fn(ti, layer->vdo.device_config->owned_device, 0, len, data);
+	return fn(ti, vdo->device_config->owned_device, 0, len, data);
 }
 
 /*
@@ -277,7 +274,7 @@ process_vdo_message_locked(struct vdo *vdo,
  * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
  * check that no other message is being processed, and only proceed if so.
  *
- * @param vdo    The layer to which the message was sent
+ * @param vdo    The vdo to which the message was sent
  * @param argc   The argument count of the message
  * @param argv   The arguments to the message
  *
@@ -368,11 +365,9 @@ static int vdo_message(struct dm_target *ti,
 /**
  * Configure the dm_target with our capabilities.
  *
- * @param ti     The device mapper target representing our device
- * @param layer  The kernel layer to get the write policy from
+ * @param ti   The device mapper target representing our device
  **/
-static void configure_target_capabilities(struct dm_target *ti,
-					  struct kernel_layer *layer)
+static void configure_target_capabilities(struct dm_target *ti)
 {
 	ti->discards_supported = 1;
 	ti->flush_supported = true;
@@ -463,7 +458,7 @@ static int vdo_initialize(struct dm_target *ti,
 	set_device_config_vdo(config, &layer->vdo);
 	set_vdo_active_config(&layer->vdo, config);
 	ti->private = config;
-	configure_target_capabilities(ti, layer);
+	configure_target_capabilities(ti);
 	return VDO_SUCCESS;
 }
 
@@ -532,7 +527,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		} else {
 			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
-			configure_target_capabilities(ti, layer);
+			configure_target_capabilities(ti);
 		}
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
