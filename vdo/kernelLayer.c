@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#210 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#211 $
  */
 
 #include "kernelLayer.h"
@@ -323,7 +323,10 @@ int make_kernel_layer(unsigned int instance,
 	 * works correctly through the freeing of the kernel layer. After this
 	 * part you must use free_kernel_layer.
 	 */
-	result = UDS_ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
+	result = UDS_ALLOCATE(1,
+			      struct kernel_layer,
+			      "VDO configuration",
+			      &layer);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO configuration";
 		release_vdo_instance(instance);
@@ -367,7 +370,7 @@ int make_kernel_layer(unsigned int instance,
 
 	result = make_batch_processor(&layer->vdo,
 				      return_data_vio_batch_to_pool,
-				      layer,
+				      &layer->vdo,
 				      &layer->vdo.data_vio_releaser);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate vio-freeing batch processor";

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#156 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#157 $
  */
 
 #include "dataKVIO.h"
@@ -115,14 +115,14 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 {
 	struct free_buffer_pointers fbp;
 	struct vdo_work_item *item;
-	struct kernel_layer *layer = closure;
+	struct vdo *vdo = closure;
 	uint32_t count = 0;
 
 	ASSERT_LOG_ONLY(batch != NULL, "batch not null");
-	ASSERT_LOG_ONLY(layer != NULL, "layer not null");
+	ASSERT_LOG_ONLY(vdo != NULL, "vdo not null");
 
 
-	init_free_buffer_pointers(&fbp, layer->vdo.data_vio_pool);
+	init_free_buffer_pointers(&fbp, vdo->data_vio_pool);
 
 	while ((item = next_batch_item(batch)) != NULL) {
 		clean_data_vio(work_item_as_data_vio(item), &fbp);
@@ -134,7 +134,7 @@ void return_data_vio_batch_to_pool(struct batch_processor *batch,
 		free_buffer_pointers(&fbp);
 	}
 
-	complete_many_requests(&layer->vdo, count);
+	complete_many_requests(vdo, count);
 }
 
 /**********************************************************************/
@@ -728,7 +728,6 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 	enum vio_operation operation;
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	data_vio->remaining_discard -=
 		min_t(uint32_t, data_vio->remaining_discard,
@@ -736,7 +735,7 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_vio->remaining_discard == 0)) {
 		if (data_vio->has_discard_permit) {
-			limiter_release(&layer->vdo.discard_limiter);
+			limiter_release(&vdo->discard_limiter);
 			data_vio->has_discard_permit = false;
 		}
 		vdo_complete_data_vio(completion);
