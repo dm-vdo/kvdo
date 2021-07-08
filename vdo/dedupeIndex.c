@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#104 $
  */
 
 #include "dedupeIndex.h"
@@ -31,8 +31,6 @@
 #include "murmur/MurmurHash3.h"
 #include "stringUtils.h"
 #include "uds.h"
-
-#include "kernelLayer.h"
 
 struct uds_attribute {
 	struct attribute attr;
@@ -66,7 +64,6 @@ struct periodic_event_reporter {
 	atomic64_t value;
 	struct ratelimit_state ratelimiter;
 	struct work_struct work;
-	struct kernel_layer *layer;
 };
 
 struct dedupe_index {
@@ -393,11 +390,9 @@ static void report_events_work(struct work_struct *work)
 
 /**********************************************************************/
 static void
-init_periodic_event_reporter(struct periodic_event_reporter *reporter,
-			     struct kernel_layer *layer)
+init_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
 	INIT_WORK(&reporter->work, report_events_work);
-	reporter->layer = layer;
 	ratelimit_default_init(&reporter->ratelimiter);
 	// Since we will save up the timeouts that would have been reported
 	// but were ratelimited, we don't need to report ratelimiting.
@@ -952,7 +947,6 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	off_t uds_offset;
 	struct dedupe_index *index;
 	struct index_config *index_config;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	static const struct vdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
@@ -1044,7 +1038,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 	timer_setup(&index->pending_timer, timeout_index_operations, 0);
 
 	// UDS Timeout Reporter
-	init_periodic_event_reporter(&index->timeout_reporter, layer);
+	init_periodic_event_reporter(&index->timeout_reporter);
 
 	*index_ptr = index;
 	return VDO_SUCCESS;
