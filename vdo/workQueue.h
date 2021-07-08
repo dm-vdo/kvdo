@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#26 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -201,7 +201,7 @@ void enqueue_work_queue(struct vdo_work_queue *queue,
  * There should not be any new enqueueing of work items done once this
  * function is called.
  *
- * @param queue  The work queue to shut down
+ * @param queue  The work queue to shut down (may be NULL)
  **/
 void finish_work_queue(struct vdo_work_queue *queue);
 

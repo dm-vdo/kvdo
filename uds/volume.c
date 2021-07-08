@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#43 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#44 $
  */
 
 #include "volume.h"
@@ -1238,6 +1238,7 @@ int find_volume_chapter_boundaries(struct volume *volume,
 						   lowest_vcn,
 						   highest_vcn,
 						   probe_wrapper,
+						   volume->geometry,
 						   volume);
 }
 
@@ -1249,14 +1250,19 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 					int (*probe_func)(void *aux,
 							  unsigned int chapter,
 							  uint64_t *vcn),
+					struct geometry *geometry,
 					void *aux)
 {
 	uint64_t first_vcn = UINT64_MAX, lowest = UINT64_MAX;
 	uint64_t highest = UINT64_MAX;
-
+	uint64_t remapped_vcn;
+	uint64_t zero_vcn;
+	uint64_t remapped_physical = geometry->remapped_physical;
+	unsigned int *physical_map;
 	unsigned int left_chapter, right_chapter, bad_chapters = 0;
 	int result;
-
+	unsigned int i;
+	
 	if (chapter_limit == 0) {
 		*lowest_vcn = 0;
 		*highest_vcn = 0;
@@ -1271,11 +1277,53 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	 * cleanly saved and somewhere in the middle of it the highest VCN
 	 * immediately preceeds the lowest one.
 	 */
+	result = UDS_ALLOCATE(chapter_limit, unsigned int,
+			      "chapter mapping table", &physical_map);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	for (i = 0; i < chapter_limit;  i++) {
+		physical_map[i] = i;
+	}
+	result = (*probe_func)(aux, remapped_physical, &remapped_vcn);
+	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(physical_map));
+		return result;
+	}
+	if (remapped_physical == 0) {
+		zero_vcn = remapped_vcn;
+	} else {
+		result = (*probe_func)(aux, 0, &zero_vcn);
+		if (result != UDS_SUCCESS) {
+			UDS_FREE(UDS_FORGET(physical_map));
+			return result;
+		}
+	}
+	if (remapped_vcn == geometry->remapped_virtual) {
+		// If the index has wrapped around since conversion, the
+		// remapped chapter has been expired so ignore it.
+		if (zero_vcn >= remapped_vcn + geometry->chapters_per_volume) {
+			chapter_limit -= 1;
+			memmove(physical_map + remapped_physical,
+				physical_map + remapped_physical + 1,
+				(chapter_limit - remapped_physical) *
+				sizeof(physical_map[0]));
+		} else {
+			memmove(physical_map + 1, physical_map,
+				remapped_physical * sizeof(physical_map[0]));
+			physical_map[0] = geometry->remapped_physical;
+		}
+	}
 
 	// doesn't matter if this results in a bad spot (UINT64_MAX)
-	result = (*probe_func)(aux, 0, &first_vcn);
-	if (result != UDS_SUCCESS) {
-		return UDS_SUCCESS;
+	if (physical_map[0] == 0) {
+		first_vcn = zero_vcn;
+	} else {
+		result = (*probe_func)(aux, physical_map[0], &first_vcn);
+		if (result != UDS_SUCCESS) {
+			UDS_FREE(UDS_FORGET(physical_map));
+			return result;
+		}
 	}
 
 	/*
@@ -1293,8 +1341,9 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 		unsigned int chapter = (left_chapter + right_chapter) / 2;
 		uint64_t probe_vcn;
 
-		result = (*probe_func)(aux, chapter, &probe_vcn);
+		result = (*probe_func)(aux, physical_map[chapter], &probe_vcn);
 		if (result != UDS_SUCCESS) {
+			UDS_FREE(UDS_FORGET(physical_map));
 			return result;
 		}
 		if (first_vcn <= probe_vcn) {
@@ -1307,6 +1356,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	result = ASSERT(left_chapter == right_chapter,
 			"left_chapter == right_chapter");
 	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(physical_map));
 		return result;
 	}
 
@@ -1315,13 +1365,15 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	// At this point, left_chapter is the chapter with the lowest virtual
 	// chapter number.
 
-	result = (*probe_func)(aux, left_chapter, &lowest);
+	result = (*probe_func)(aux, physical_map[left_chapter], &lowest);
 	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(physical_map));
 		return result;
 	}
 
 	result = ASSERT((lowest != UINT64_MAX), "invalid lowest chapter");
 	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(physical_map));
 		return result;
 	}
 
@@ -1332,8 +1384,10 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	for (;;) {
 		right_chapter =
 			(right_chapter + chapter_limit - 1) % chapter_limit;
-		result = (*probe_func)(aux, right_chapter, &highest);
+		result = (*probe_func)(aux, physical_map[right_chapter],
+				       &highest);
 		if (result != UDS_SUCCESS) {
+			UDS_FREE(UDS_FORGET(physical_map));
 			return result;
 		}
 		if (highest != UINT64_MAX) {
@@ -1342,13 +1396,16 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 		if (++bad_chapters >= max_bad_chapters) {
 			uds_log_error("too many bad chapters in volume: %u",
 				      bad_chapters);
-			return UDS_CORRUPT_COMPONENT;
+			result = UDS_CORRUPT_COMPONENT;
+			UDS_FREE(UDS_FORGET(physical_map));
+			return result;
 		}
 	}
 
 	*lowest_vcn = lowest;
 	*highest_vcn = highest;
-	return UDS_SUCCESS;
+	UDS_FREE(UDS_FORGET(physical_map));
+	return result;
 }
 
 /**

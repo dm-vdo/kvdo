@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#15 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -50,7 +50,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 /**
  * Tear down the io_submitter fields as needed for a physical layer.
  *
- * @param [in]  io_submitter  The I/O submitter data to tear down
+ * @param [in]  io_submitter  The I/O submitter data to tear down (may be NULL)
  **/
 void cleanup_vdo_io_submitter(struct io_submitter *io_submitter);
 

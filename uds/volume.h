@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#20 $
  */
 
 #ifndef VOLUME_H
@@ -401,6 +401,7 @@ find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 				    int (*probe_func)(void *aux,
 						      unsigned int chapter,
 						      uint64_t *vcn),
+				    struct geometry *geometry,
 				    void *aux);
 
 /**

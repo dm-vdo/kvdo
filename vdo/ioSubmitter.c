@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#85 $
  */
 
 #include "ioSubmitter.h"
@@ -599,6 +599,10 @@ void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
+	if (io_submitter == NULL) {
+		return;
+	}
+
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		finish_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
@@ -608,6 +612,10 @@ void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
 void free_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
+
+	if (io_submitter == NULL) {
+		return;
+	}
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;

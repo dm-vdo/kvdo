@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#111 $
  */
 
 /*
@@ -179,16 +179,6 @@ int suspend_vdo(struct vdo *vdo)
 int resume_vdo(struct vdo *vdo)
 {
 	return perform_vdo_resume(vdo);
-}
-
-/**********************************************************************/
-void finish_vdo(struct vdo *vdo)
-{
-	int i;
-
-	for (i = 0; i < vdo->initialized_thread_count; i++) {
-		finish_work_queue(vdo->threads[i].request_queue);
-	}
 }
 
 

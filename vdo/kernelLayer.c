@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#209 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#210 $
  */
 
 #include "kernelLayer.h"
@@ -359,8 +359,6 @@ int make_kernel_layer(unsigned int instance,
 	 * pointer, which can be easily undone by freeing all of the non-NULL
 	 * pointers (using the proper free routine).
 	 */
-	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
-
 	snprintf(thread_name_prefix,
 		 sizeof(thread_name_prefix),
 		 "%s%u",
@@ -393,7 +391,6 @@ int make_kernel_layer(unsigned int instance,
 	 * initializations, but have no order dependencies at freeing time.
 	 * Order dependencies for initialization are identified using BUG_ON.
 	 */
-	set_kernel_layer_state(layer, LAYER_BUFFER_POOLS_INITIALIZED);
 
 
 	// Data vio pool
@@ -421,8 +418,6 @@ int make_kernel_layer(unsigned int instance,
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
-
 	// Bio queue
 	result = make_vdo_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
@@ -437,7 +432,6 @@ int make_kernel_layer(unsigned int instance,
 		*reason = "bio submission initialization failed";
 		return result;
 	}
-	set_kernel_layer_state(layer, LAYER_BIO_DATA_INITIALIZED);
 
 	// Bio ack queue
 	if (use_bio_ack_queue(&layer->vdo)) {
@@ -457,8 +451,6 @@ int make_kernel_layer(unsigned int instance,
 		}
 	}
 
-	set_kernel_layer_state(layer, LAYER_BIO_ACK_QUEUE_INITIALIZED);
-
 	// CPU Queues
 	result = make_work_queue(thread_name_prefix,
 				 "cpuQ",
@@ -475,8 +467,7 @@ int make_kernel_layer(unsigned int instance,
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_CPU_QUEUE_INITIALIZED);
-
+	set_kernel_layer_state(layer, LAYER_INITIALIZED);
 	*layer_ptr = layer;
 	return VDO_SUCCESS;
 }
@@ -611,9 +602,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 * need to store information to enable a late-in-process deallocation
 	 * of funnel-queue data structures in work queues.
 	 */
-	bool used_bio_ack_queue = false;
-	bool used_cpu_queue = false;
-
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	switch (state) {
@@ -632,48 +620,11 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_STOPPED:
-	case LAYER_CPU_QUEUE_INITIALIZED:
-		finish_work_queue(layer->vdo.cpu_queue);
-		used_cpu_queue = true;
-		// fall through
-
-	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
-		if (use_bio_ack_queue(&layer->vdo)) {
-			finish_work_queue(layer->vdo.bio_ack_queue);
-			used_bio_ack_queue = true;
-		}
-		// fall through
-
-	case LAYER_BIO_DATA_INITIALIZED:
-		cleanup_vdo_io_submitter(layer->vdo.io_submitter);
-		// fall through
-
-	case LAYER_REQUEST_QUEUE_INITIALIZED:
-		finish_vdo(&layer->vdo);
-		// fall through
-
-	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(UDS_FORGET(layer->vdo.data_vio_pool));
-		// fall through
-
-	case LAYER_SIMPLE_THINGS_INITIALIZED:
-		finish_vdo_dedupe_index(layer->vdo.dedupe_index);
-		free_batch_processor(UDS_FORGET(layer->vdo.data_vio_releaser));
+	case LAYER_INITIALIZED:
 		break;
 
 	default:
 		uds_log_error("Unknown Kernel Layer state: %d", state);
-	}
-
-	// Late deallocation of resources in work queues.
-	if (used_cpu_queue) {
-		free_work_queue(UDS_FORGET(layer->vdo.cpu_queue));
-	}
-	if (used_bio_ack_queue) {
-		free_work_queue(UDS_FORGET(layer->vdo.bio_ack_queue));
-	}
-	if (layer->vdo.io_submitter) {
-		free_vdo_io_submitter(layer->vdo.io_submitter);
 	}
 
 	destroy_vdo(&layer->vdo);
@@ -691,7 +642,7 @@ int preload_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	int result;
 
-	if (get_kernel_layer_state(layer) != LAYER_CPU_QUEUE_INITIALIZED) {
+	if (get_kernel_layer_state(layer) != LAYER_INITIALIZED) {
 		*reason = "preload_kernel_layer() may only be invoked after initialization";
 		return UDS_BAD_STATE;
 	}

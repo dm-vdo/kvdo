@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#153 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#154 $
  */
 
 /*
@@ -62,6 +62,22 @@
 #include "vdoCommon.h"
 #include "workQueue.h"
 
+/**********************************************************************/
+static void finish_vdo(struct vdo *vdo)
+{
+	int i;
+
+	finish_work_queue(vdo->cpu_queue);
+	finish_work_queue(vdo->bio_ack_queue);
+	cleanup_vdo_io_submitter(vdo->io_submitter);
+	for (i = 0; i < vdo->initialized_thread_count; i++) {
+		finish_work_queue(vdo->threads[i].request_queue);
+	}
+
+	free_buffer_pool(UDS_FORGET(vdo->data_vio_pool));
+	finish_vdo_dedupe_index(vdo->dedupe_index);
+	free_batch_processor(UDS_FORGET(vdo->data_vio_releaser));
+}
 
 /**********************************************************************/
 void destroy_vdo(struct vdo *vdo)
@@ -69,7 +85,11 @@ void destroy_vdo(struct vdo *vdo)
 	int i;
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 
+	finish_vdo(vdo);
 	unregister_vdo(vdo);
+	free_work_queue(UDS_FORGET(vdo->cpu_queue));
+	free_work_queue(UDS_FORGET(vdo->bio_ack_queue));
+	free_vdo_io_submitter(UDS_FORGET(vdo->io_submitter));
 	free_vdo_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	free_vdo_flusher(UDS_FORGET(vdo->flusher));
 	free_vdo_packer(&vdo->packer);

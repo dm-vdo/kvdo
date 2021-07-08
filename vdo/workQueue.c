@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#65 $
  */
 
 #include "workQueue.h"
@@ -769,6 +769,10 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 /**********************************************************************/
 void finish_work_queue(struct vdo_work_queue *queue)
 {
+	if (queue == NULL) {
+		return;
+	}
+
 	if (queue->round_robin_mode) {
 		finish_round_robin_work_queue(as_round_robin_work_queue(queue));
 	} else {

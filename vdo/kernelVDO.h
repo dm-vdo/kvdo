@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#44 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -80,13 +80,6 @@ int suspend_vdo(struct vdo *vdo);
  * @return VDO_SUCCESS or an error
  **/
 int resume_vdo(struct vdo *vdo);
-
-/**
- * Shut down the base code interface. The vdo object must first be stopped.
- *
- * @param vdo  The vdo to be shut down
- **/
-void finish_vdo(struct vdo *vdo);
 
 
 /**
