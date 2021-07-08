@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#211 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#212 $
  */
 
 #include "kernelLayer.h"
@@ -426,7 +426,7 @@ int make_kernel_layer(unsigned int instance,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
 				       layer->vdo.request_limiter.limit,
-				       layer,
+				       &layer->vdo,
 				       &layer->vdo.io_submitter);
 	if (result != VDO_SUCCESS) {
 		// If initialization of the bio-queues failed, they are cleaned

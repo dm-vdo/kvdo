@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#16 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -26,7 +26,7 @@
 #include "kvio.h"
 
 /**
- * Create a io_submitter structure for a new physical layer.
+ * Create an io_submitter structure.
  *
  * @param [in]  thread_name_prefix   The per-device prefix to use in process
  *                                   names
@@ -35,7 +35,7 @@
  *                                   bio-submission threads when enqueuing work
  *                                   items
  * @param [in]  max_requests_active  Number of bios for merge tracking
- * @param [in]  layer                The kernel layer
+ * @param [in]  vdo                  The vdo which will use this submitter
  * @param [out] io_submitter         Pointer to the new data structure
  *
  * @return VDO_SUCCESS or an error
@@ -44,7 +44,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			  unsigned int thread_count,
 			  unsigned int rotation_interval,
 			  unsigned int max_requests_active,
-			  struct kernel_layer *layer,
+			  struct vdo *vdo,
 			  struct io_submitter **io_submitter);
 
 /**

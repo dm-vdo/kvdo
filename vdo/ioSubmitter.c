@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#85 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#86 $
  */
 
 #include "ioSubmitter.h"
@@ -29,7 +29,6 @@
 #include "atomicStats.h"
 #include "bio.h"
 #include "dataKVIO.h"
-#include "kernelLayer.h"
 #include "logger.h"
 #include "vdoInternal.h"
 
@@ -502,14 +501,14 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 				const char *thread_name_prefix,
 				const char *queue_name,
 				unsigned int queue_number,
-				struct kernel_layer *layer)
+				struct vdo *vdo)
 {
 	bio_queue_data->queue_number = queue_number;
 
 	return make_work_queue(thread_name_prefix,
 			       queue_name,
-			       &layer->vdo.work_queue_directory,
-			       &layer->vdo,
+			       &vdo->work_queue_directory,
+			       vdo,
 			       bio_queue_data,
 			       &bio_queue_type,
 			       1,
@@ -522,7 +521,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			  unsigned int thread_count,
 			  unsigned int rotation_interval,
 			  unsigned int max_requests_active,
-			  struct kernel_layer *layer,
+			  struct vdo *vdo,
 			  struct io_submitter **io_submitter_ptr)
 {
 	char queue_name[MAX_QUEUE_NAME_LEN];
@@ -574,7 +573,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 					      thread_name_prefix,
 					      queue_name,
 					      i,
-					      layer);
+					      vdo);
 		if (result != VDO_SUCCESS) {
 			// Clean up the partially initialized bio-queue
 			// entirely and indicate that initialization failed.
