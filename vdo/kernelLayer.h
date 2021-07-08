@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#91 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#92 $
  */
 
 #ifndef KERNELLAYER_H
@@ -30,7 +30,6 @@
 #include "constants.h"
 #include "flush.h"
 #include "intMap.h"
-#include "physicalLayer.h"
 #include "types.h"
 #include "vdo.h"
 #include "vdoInternal.h"
@@ -65,7 +64,6 @@ enum kernel_layer_state {
  * The VDO representation of the target device
  **/
 struct kernel_layer {
-	PhysicalLayer common;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
 	struct vdo vdo;
@@ -215,18 +213,6 @@ get_kernel_layer_state(const struct kernel_layer *layer)
  *         details).
  **/
 int vdo_launch_bio(struct vdo *vdo, struct bio *bio);
-
-/**
- * Convert a generic PhysicalLayer to a kernel_layer.
- *
- * @param layer  The PhysicalLayer to convert
- *
- * @return The PhysicalLayer as a struct kernel_layer
- **/
-static inline struct kernel_layer *as_kernel_layer(PhysicalLayer *layer)
-{
-	return container_of(layer, struct kernel_layer, common);
-}
 
 /**
  * Convert a struct vdo pointer to the kernel_layer contining it.

@@ -16,10 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#33 $
  */
-
-#include "physicalLayer.h"
 
 #include "logger.h"
 #include "permassert.h"

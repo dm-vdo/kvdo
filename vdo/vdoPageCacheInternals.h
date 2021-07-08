@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#37 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -31,7 +31,6 @@
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
-#include "physicalLayer.h"
 
 enum {
 	MAX_PAGE_CONTEXT_SIZE = 8,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#20 $
  */
 
 #include "vdoInit.h"
@@ -38,7 +38,6 @@
 #include "types.h"
 #include "vdoInternal.h"
 #include "volumeGeometry.h"
-
 
 
 /**********************************************************************/
@@ -92,7 +91,6 @@ static int handle_initialization_failure(struct vdo *vdo, int result)
 {
 	release_vdo_instance(vdo->instance);
 	unregister_vdo(vdo);
-	UDS_FREE(vdo->layer);
 	return result;
 }
 
@@ -151,14 +149,12 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 
 /**********************************************************************/
 int initialize_vdo(struct vdo *vdo,
-		   PhysicalLayer *layer,
 		   struct device_config *config,
 		   unsigned int instance,
 		   char **reason)
 {
 	int result;
 
-	vdo->layer = layer;
 	vdo->device_config = config;
 	vdo->starting_sector_offset = config->owning_target->begin;
 	vdo->instance = instance;

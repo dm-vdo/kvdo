@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#32 $
  */
 
 #include "extent.h"
@@ -27,7 +27,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "logger.h"
-#include "physicalLayer.h"
 #include "types.h"
 #include "vdo.h"
 #include "vioRead.h"
