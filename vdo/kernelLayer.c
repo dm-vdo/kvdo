@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#212 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#213 $
  */
 
 #include "kernelLayer.h"
@@ -89,40 +89,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 		},
 	},
 };
-
-/**********************************************************************/
-int map_to_system_error(int error)
-{
-	char error_name[80], error_message[ERRBUF_SIZE];
-
-	// 0 is success, negative a system error code
-	if (likely(error <= 0)) {
-		return error;
-	}
-	if (error < 1024) {
-		// errno macro used without negating - may be a minor bug
-		return -error;
-	}
-
-	// VDO or UDS error
-	switch (sans_unrecoverable(error)) {
-	case VDO_NO_SPACE:
-		return -ENOSPC;
-	case VDO_READ_ONLY:
-		return -EIO;
-	default:
-		uds_log_info("%s: mapping internal status code %d (%s: %s) to EIO",
-			     __func__,
-			     error,
-			     string_error_name(error,
-					       error_name,
-					       sizeof(error_name)),
-			     uds_string_error(error,
-					      error_message,
-					      sizeof(error_message)));
-		return -EIO;
-	}
-}
 
 /**********************************************************************/
 static void set_kernel_layer_state(struct kernel_layer *layer,

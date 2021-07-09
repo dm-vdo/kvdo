@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#95 $
  */
 
 #ifndef KERNELLAYER_H
@@ -264,19 +264,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
 	return to_bytes(sector_number & sectors_per_block_mask);
 }
-
-/**
- * Given an error code, return a value we can return to the OS.  The
- * input error code may be a system-generated value (such as -EIO), an
- * errno macro used in our code (such as EIO), or a UDS or VDO status
- * code; the result must be something the rest of the OS can consume
- * (negative errno values such as -EIO, in the case of the kernel).
- *
- * @param error  the error code to convert
- *
- * @return a system error code value
- **/
-int map_to_system_error(int error);
 
 /**
  * Adjust parameters to prepare to use a larger physical space.

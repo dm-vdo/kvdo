@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#12 $
  */
 
 #include "statusCodes.h"
@@ -24,6 +24,7 @@
 #include "errors.h"
 #include "permassert.h"
 #include "threadOnce.h"
+#include "uds.h"
 
 const struct error_info vdo_status_list[] = {
 	{ "VDO_NOT_IMPLEMENTED", "Not implemented" },
@@ -103,4 +104,38 @@ int register_vdo_status_codes(void)
 {
 	perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
+}
+
+/**********************************************************************/
+int map_to_system_error(int error)
+{
+	char error_name[80], error_message[ERRBUF_SIZE];
+
+	// 0 is success, negative a system error code
+	if (likely(error <= 0)) {
+		return error;
+	}
+	if (error < 1024) {
+		// errno macro used without negating - may be a minor bug
+		return -error;
+	}
+
+	// VDO or UDS error
+	switch (sans_unrecoverable(error)) {
+	case VDO_NO_SPACE:
+		return -ENOSPC;
+	case VDO_READ_ONLY:
+		return -EIO;
+	default:
+		uds_log_info("%s: mapping internal status code %d (%s: %s) to EIO",
+			     __func__,
+			     error,
+			     string_error_name(error,
+					       error_name,
+					       sizeof(error_name)),
+			     uds_string_error(error,
+					      error_message,
+					      sizeof(error_message)));
+		return -EIO;
+	}
 }

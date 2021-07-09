@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#7 $
  */
 
 #ifndef STATUS_CODES_H
@@ -127,5 +127,18 @@ extern const struct error_info vdo_status_list[];
  * @return a success or error code
  **/
 int register_vdo_status_codes(void);
+
+/**
+ * Given an error code, return a value we can return to the OS.  The
+ * input error code may be a system-generated value (such as -EIO), an
+ * errno macro used in our code (such as EIO), or a UDS or VDO status
+ * code; the result must be something the rest of the OS can consume
+ * (negative errno values such as -EIO, in the case of the kernel).
+ *
+ * @param error  the error code to convert
+ *
+ * @return a system error code value
+ **/
+int map_to_system_error(int error);
 
 #endif // STATUS_CODES_H
