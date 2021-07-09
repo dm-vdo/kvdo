@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#44 $
  */
 
 #include "hashZone.h"
@@ -102,7 +102,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
 				  hash_key, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS) {
-		free_vdo_hash_zone(&zone);
+		free_vdo_hash_zone(zone);
 		return result;
 	}
 
@@ -114,7 +114,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	result = UDS_ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
 			      "hash_lock array", &zone->lock_array);
 	if (result != VDO_SUCCESS) {
-		free_vdo_hash_zone(&zone);
+		free_vdo_hash_zone(zone);
 		return result;
 	}
 
@@ -129,18 +129,15 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 }
 
 /**********************************************************************/
-void free_vdo_hash_zone(struct hash_zone **zone_ptr)
+void free_vdo_hash_zone(struct hash_zone *zone)
 {
-	struct hash_zone *zone;
-	if (*zone_ptr == NULL) {
+	if (zone == NULL) {
 		return;
 	}
 
-	zone = *zone_ptr;
 	free_pointer_map(UDS_FORGET(zone->hash_lock_map));
-	UDS_FREE(zone->lock_array);
+	UDS_FREE(UDS_FORGET(zone->lock_array));
 	UDS_FREE(zone);
-	*zone_ptr = NULL;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#12 $
  */
 
 #ifndef HASH_ZONE_H
@@ -41,11 +41,11 @@ int __must_check make_vdo_hash_zone(struct vdo *vdo,
 				    struct hash_zone **zone_ptr);
 
 /**
- * Free a hash zone and null out the reference to it.
+ * Free a hash zone.
  *
- * @param zone_ptr  A pointer to the zone to free
+ * @param zone  The zone to free
  **/
-void free_vdo_hash_zone(struct hash_zone **zone_ptr);
+void free_vdo_hash_zone(struct hash_zone *zone);
 
 /**
  * Get the zone number of a hash zone.
