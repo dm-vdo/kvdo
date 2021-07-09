@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#18 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -49,11 +49,11 @@ int __must_check
 make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
 
 /**
- * Free a set of logical zones and null out the reference to it.
+ * Free a set of logical zones.
  *
- * @param zone_ptr  A pointer to the zone to free
+ * @param zones The set of zones to free
  **/
-void free_logical_zones(struct logical_zones **zone_ptr);
+void free_vdo_logical_zones(struct logical_zones *zones);
 
 /**
  * Drain a set of logical zones.

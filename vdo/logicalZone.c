@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#69 $
  */
 
 #include "logicalZone.h"
@@ -167,7 +167,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		result = initialize_zone(zones, zone);
 		if (result != VDO_SUCCESS) {
-			free_logical_zones(&zones);
+			free_vdo_logical_zones(zones);
 			return result;
 		}
 	}
@@ -180,7 +180,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 					 vdo,
 					 &zones->manager);
 	if (result != VDO_SUCCESS) {
-		free_logical_zones(&zones);
+		free_vdo_logical_zones(zones);
 		return result;
 	}
 
@@ -189,10 +189,10 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 }
 
 /**********************************************************************/
-void free_logical_zones(struct logical_zones **zones_ptr)
+void free_vdo_logical_zones(struct logical_zones *zones)
 {
 	zone_count_t index;
-	struct logical_zones *zones = *zones_ptr;
+
 	if (zones == NULL) {
 		return;
 	}
@@ -206,7 +206,6 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 	}
 
 	UDS_FREE(zones);
-	*zones_ptr = NULL;
 }
 
 /**********************************************************************/
