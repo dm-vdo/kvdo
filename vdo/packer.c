@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#93 $
  */
 
 #include "packerInternals.h"
@@ -192,25 +192,21 @@ make_output_bin(struct packer *packer, struct vdo *vdo)
 }
 
 /**
- * Free an idle output bin and null out the reference to it.
+ * Free an idle output bin.
  *
- * @param bin_ptr  The reference to the output bin to free
+ * @param bin  The output bin to free
  **/
-static void free_output_bin(struct output_bin **bin_ptr)
+static void free_output_bin(struct output_bin *bin)
 {
-	struct output_bin *bin = *bin_ptr;
-	struct vio *vio;
 	if (bin == NULL) {
 		return;
 	}
 
 	list_del_init(&bin->list);
 
-	vio = allocating_vio_as_vio(bin->writer);
-	free_vio(UDS_FORGET(vio));
-	UDS_FREE(bin->block);
+	free_vio(allocating_vio_as_vio(UDS_FORGET(bin->writer)));
+	UDS_FREE(UDS_FORGET(bin->block));
 	UDS_FREE(bin);
-	*bin_ptr = NULL;
 }
 
 /**********************************************************************/
@@ -243,14 +239,14 @@ int make_vdo_packer(struct vdo *vdo,
 	result = make_vdo_allocation_selector(thread_config->physical_zone_count,
 					      packer->thread_id, &packer->selector);
 	if (result != VDO_SUCCESS) {
-		free_vdo_packer(&packer);
+		free_vdo_packer(packer);
 		return result;
 	}
 
 	for (i = 0; i < input_bin_count; i++) {
 		int result = make_input_bin(packer);
 		if (result != VDO_SUCCESS) {
-			free_vdo_packer(&packer);
+			free_vdo_packer(packer);
 			return result;
 		}
 	}
@@ -265,14 +261,14 @@ int make_vdo_packer(struct vdo *vdo,
 				       struct vio *, __func__,
 				       &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
-		free_vdo_packer(&packer);
+		free_vdo_packer(packer);
 		return result;
 	}
 
 	for (i = 0; i < output_bin_count; i++) {
 		int result = make_output_bin(packer, vdo);
 		if (result != VDO_SUCCESS) {
-			free_vdo_packer(&packer);
+			free_vdo_packer(packer);
 			return result;
 		}
 	}
@@ -282,9 +278,8 @@ int make_vdo_packer(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_packer(struct packer **packer_ptr)
+void free_vdo_packer(struct packer *packer)
 {
-	struct packer *packer = *packer_ptr;
 	struct input_bin *input;
 	struct output_bin *output;
 
@@ -297,15 +292,14 @@ void free_vdo_packer(struct packer **packer_ptr)
 		UDS_FREE(input);
 	}
 
-	UDS_FREE(packer->canceled_bin);
+	UDS_FREE(UDS_FORGET(packer->canceled_bin));
 
 	while ((output = pop_output_bin(packer)) != NULL) {
-		free_output_bin(&output);
+		free_output_bin(output);
 	}
 
 	UDS_FREE(UDS_FORGET(packer->selector));
 	UDS_FREE(packer);
-	*packer_ptr = NULL;
 }
 
 /**

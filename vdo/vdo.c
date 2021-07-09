@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#156 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#157 $
  */
 
 /*
@@ -92,7 +92,7 @@ void destroy_vdo(struct vdo *vdo)
 	free_vdo_io_submitter(UDS_FORGET(vdo->io_submitter));
 	free_vdo_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	free_vdo_flusher(UDS_FORGET(vdo->flusher));
-	free_vdo_packer(&vdo->packer);
+	free_vdo_packer(UDS_FORGET(vdo->packer));
 	free_vdo_recovery_journal(&vdo->recovery_journal);
 	free_vdo_slab_depot(&vdo->depot);
 	free_vdo_layout(UDS_FORGET(vdo->layout));

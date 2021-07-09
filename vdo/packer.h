@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#18 $
  */
 
 #ifndef PACKER_H
@@ -51,11 +51,11 @@ int __must_check make_vdo_packer(struct vdo *vdo,
 				 struct packer **packer_ptr);
 
 /**
- * Free a block packer and null out the reference to it.
+ * Free a block packer.
  *
- * @param packer_ptr  A pointer to the packer to free
+ * @param packer  The packer to free
  **/
-void free_vdo_packer(struct packer **packer_ptr);
+void free_vdo_packer(struct packer *packer);
 
 /**
  * Check whether the compressed data in a data_vio will fit in a packer bin.
