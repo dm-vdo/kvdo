@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#66 $
  */
 
 #ifndef DATA_KVIO_H
 #define DATA_KVIO_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "uds.h"
 
 #include "dataVIO.h"

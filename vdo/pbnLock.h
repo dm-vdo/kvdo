@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#13 $
  */
 
 #ifndef PBN_LOCK_H
 #define PBN_LOCK_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
 
 #include "types.h"
 

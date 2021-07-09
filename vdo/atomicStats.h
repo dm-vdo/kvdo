@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/atomicStats.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/atomicStats.h#3 $
  */
 
 #ifndef ATOMIC_STATS_H
 #define ATOMIC_STATS_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "statistics.h"
 
 /* Keep struct bio statistics atomically */

@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#66 $
  */
 
 #include "workQueue.h"
 
+#include <linux/atomic.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 
-#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"

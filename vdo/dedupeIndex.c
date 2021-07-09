@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#105 $
  */
 
 #include "dedupeIndex.h"
 
 #include <asm/unaligned.h>
+#include <linux/atomic.h>
 #include <linux/ratelimit.h>
 #include <linux/workqueue.h>
 
-#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
