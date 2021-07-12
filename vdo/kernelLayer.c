@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#213 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#214 $
  */
 
 #include "kernelLayer.h"
@@ -176,7 +176,6 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 
 	return DM_MAPIO_SUBMITTED;
 }
-
 
 /**********************************************************************/
 int vdo_launch_bio(struct vdo *vdo, struct bio *bio)
