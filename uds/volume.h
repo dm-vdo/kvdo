@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#14 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#15 $
  */
 
 #ifndef VOLUME_H
@@ -408,7 +408,8 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
                                     int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
                                                      uint64_t     *vcn),
-                                    void *aux)
+                                    Geometry     *geometry,
+                                    void         *aux)
   __attribute__((warn_unused_result));
 
 /**

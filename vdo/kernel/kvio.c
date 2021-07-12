@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#9 $
  */
 
 #include "kvio.h"
@@ -148,7 +148,7 @@ void kvdoSubmitMetadataVIO(VIO *vio)
     KernelLayerState state = getKernelLayerState(kvio->layer);
     ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
                      || (state == LAYER_RESUMING)
-                     || (state = LAYER_STARTING)),
+                     || (state == LAYER_STARTING)),
                     "write metadata in allowed state %d", state);
     if (vioRequiresFlushBefore(vio)) {
       setBioOperationWrite(bio);

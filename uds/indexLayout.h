@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#16 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#17 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -267,14 +267,14 @@ const struct index_version *getIndexVersion(IndexLayout *layout)
  *
  * @param layout     The index_layout to be reconfigured
  * @param config     The configuration to be written with the layout
- * @param lvmBlocks  The adjustment for lvm space
+ * @param lvmOffset  The adjustment for lvm space, in bytes
  * @param offset     The offset in bytes to move the index
  *
  * @return  UDS_SUCCESS or a error code
  */
 int updateLayout(IndexLayout      *layout,
                  UdsConfiguration  config,
-                 off_t             lvmBlocks,
+                 off_t             lvmOffset,
                  off_t             offset);
 
 #endif // INDEX_LAYOUT_H

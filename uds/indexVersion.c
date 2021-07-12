@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexVersion.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexVersion.c#3 $
  */
 
 #include "indexVersion.h"
@@ -50,13 +50,13 @@ void initializeIndexVersion(struct index_version *version,
    */
 
   /*
-   * Versions 4 and 5 are equivalent to versions 2 and 3
+   * Versions 6 and 7 are equivalent to versions 2 and 3
    * respectively, after the volume has been reduced in size by
    * one chapter in order to make room to prepend LVM metadata
    * to an existing VDO without losing all deduplication.
    */
   bool chapterIndexHeaderNativeEndian =
-    (superVersion < 3) || (superVersion == 4);
+    (superVersion < 3) || (superVersion == 6);
   *version = (struct index_version) {
     .chapterIndexHeaderNativeEndian = chapterIndexHeaderNativeEndian,
   };

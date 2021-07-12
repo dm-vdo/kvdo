@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#15 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#16 $
  */
 
 #include "index.h"
@@ -878,11 +878,8 @@ void getIndexStats(Index *index, UdsIndexStats *counters)
 void advanceActiveChapters(Index *index)
 {
   index->newestVirtualChapter++;
-  if (areSamePhysicalChapter(index->volume->geometry,
-                             index->newestVirtualChapter,
-                             index->oldestVirtualChapter)) {
-    index->oldestVirtualChapter++;
-  }
+  index->oldestVirtualChapter +=
+    chaptersToExpire(index->volume->geometry, index->newestVirtualChapter);
 }
 
 /**********************************************************************/

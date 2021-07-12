@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#14 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#15 $
  */
 
 #include "uds.h"
@@ -128,15 +128,20 @@ void udsConfigurationSetSparse(UdsConfiguration userConfig, bool sparse)
     return;
   }
 
-  unsigned int prevChaptersPerVolume = userConfig->chaptersPerVolume;
+  // Compute pre-conversion chapter count for sizing.
+  unsigned int reducedChapters = userConfig->chaptersPerVolume % 2;
+  unsigned int prevChaptersPerVolume
+    = userConfig->chaptersPerVolume + reducedChapters;
   if (sparse) {
     // Index 10TB with 4K blocks, 95% sparse, fit in dense (1TB) footprint
-    userConfig->chaptersPerVolume = 10 * prevChaptersPerVolume;
+    userConfig->chaptersPerVolume
+      = (10 * prevChaptersPerVolume) - reducedChapters;
     userConfig->sparseChaptersPerVolume = 9 * prevChaptersPerVolume
       + prevChaptersPerVolume / 2;
     userConfig->sparseSampleRate = 32;
   } else {
-    userConfig->chaptersPerVolume = prevChaptersPerVolume / 10;
+    userConfig->chaptersPerVolume
+      = (prevChaptersPerVolume / 10) - reducedChapters;
     userConfig->sparseChaptersPerVolume = 0;
     userConfig->sparseSampleRate = 0;
   }

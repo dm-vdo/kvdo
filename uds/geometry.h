@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#9 $
  */
 
 #ifndef GEOMETRY_H
@@ -219,7 +219,7 @@ unsigned int mapToPhysicalChapter(const Geometry *geometry,
 
 /**
  * Check whether this geometry is reduced by a chapter
- * 
+ *
  * @param geometry  The geometry to check
  *
  * @return true if this geometry is reduced by a chapter
@@ -276,19 +276,14 @@ bool isChapterSparse(const Geometry *geometry,
   __attribute__((warn_unused_result));
 
 /**
- * Check whether two virtual chapter numbers correspond to the same
- * physical chapter.
+ * Calculate how many chapters to expire after opening the newest chapter.
  *
- * @param geometry The geometry of the index
- * @param chapter1 The first chapter to compare
- * @param chapter2 The second chapter to compare
+ * @param geometry       The geometry of the index
+ * @param newestChapter  The newest virtual chapter number
  *
- * @return <code>true</code> if both chapters correspond to the same
- *         physical chapter
+ * @return The number of oldest chapters to expire
  **/
-bool areSamePhysicalChapter(const Geometry *geometry,
-                            uint64_t        chapter1,
-                            uint64_t        chapter2)
+unsigned int chaptersToExpire(const Geometry *geometry, uint64_t newestChapter)
   __attribute__((warn_unused_result));
 
 #endif /* GEOMETRY_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#24 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#25 $
  */
 
 #include "volume.h"
@@ -1079,7 +1079,7 @@ int findVolumeChapterBoundaries(Volume   *volume,
   *isEmpty = false;
   return findVolumeChapterBoundariesImpl(chapterLimit, MAX_BAD_CHAPTERS,
                                          lowestVCN, highestVCN, probeWrapper,
-                                         volume);
+                                         volume->geometry, volume);
 }
 
 /**********************************************************************/
@@ -1090,8 +1090,16 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
                                     int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
                                                      uint64_t     *vcn),
-                                    void *aux)
+                                    Geometry     *geometry,
+                                    void         *aux)
 {
+  uint64_t remappedVCN;
+  uint64_t zeroVCN;
+  uint64_t remappedPhysical = geometry->remappedPhysical;
+  unsigned int *physicalMap;
+  uint64_t firstVCN = UINT64_MAX;
+  unsigned int i;
+
   if (chapterLimit == 0) {
     *lowestVCN = 0;
     *highestVCN = 0;
@@ -1107,12 +1115,52 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
    * lowest one.
    */
 
-  uint64_t firstVCN = UINT64_MAX;
-
-  // doesn't matter if this results in a bad spot (UINT64_MAX)
-  int result = (*probeFunc)(aux, 0, &firstVCN);
+  int result = ALLOCATE(chapterLimit, unsigned int,
+                        "chapter mapping table", &physicalMap);
   if (result != UDS_SUCCESS) {
-    return UDS_SUCCESS;
+    return result;
+  }
+  for (i = 0; i < chapterLimit; i++) {
+    physicalMap[i] = i;
+  }
+
+  result = (*probeFunc)(aux, remappedPhysical, &remappedVCN);
+  if (result != UDS_SUCCESS) {
+    FREE(physicalMap);
+    return result;
+  }
+  if (remappedPhysical == 0) {
+    zeroVCN = remappedVCN;
+  } else {
+    result = (*probeFunc)(aux, 0, &zeroVCN);
+    if (result != UDS_SUCCESS) {
+      FREE(physicalMap);
+      return result;
+    }
+  }
+  if (remappedVCN == geometry->remappedVirtual) {
+    // If the index has wrapped around since conversion, the
+    // remapped chapter has been expired so ignore it.
+    if (zeroVCN >= remappedVCN + geometry->chaptersPerVolume) {
+      chapterLimit -= 1;
+      memmove(physicalMap + remappedPhysical,
+              physicalMap + remappedPhysical + 1,
+              (chapterLimit - remappedPhysical) * sizeof(physicalMap[0]));
+    } else {
+      memmove(physicalMap + 1, physicalMap,
+              remappedPhysical * sizeof(physicalMap[0]));
+      physicalMap[0] = geometry->remappedPhysical;
+    }
+  }
+  // doesn't matter if this results in a bad spot (UINT64_MAX)
+  if (physicalMap[0] == 0) {
+    firstVCN = zeroVCN;
+  } else {
+    result = (*probeFunc)(aux, physicalMap[0], &firstVCN);
+    if (result != UDS_SUCCESS) {
+      FREE(physicalMap);
+      return result;
+    }
   }
 
   /*
@@ -1122,7 +1170,7 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
    * smallest value less than firstVCN. In the case we go off the end it means
    * that chapter 0 has the lowest vcn.
    */
-
+  
   unsigned int leftChapter = 0;
   unsigned int rightChapter = chapterLimit;
 
@@ -1130,8 +1178,9 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
     unsigned int chapter = (leftChapter + rightChapter) / 2;
     uint64_t probeVCN;
 
-    result = (*probeFunc)(aux, chapter, &probeVCN);
+    result = (*probeFunc)(aux, physicalMap[chapter], &probeVCN);
     if (result != UDS_SUCCESS) {
+      FREE(physicalMap);
       return result;
     }
     if (firstVCN <= probeVCN) {
@@ -1146,6 +1195,7 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
 
   result = ASSERT(leftChapter == rightChapter, "leftChapter == rightChapter");
   if (result != UDS_SUCCESS) {
+    FREE(physicalMap);
     return result;
   }
 
@@ -1154,13 +1204,15 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
   // At this point, leftChapter is the chapter with the lowest virtual chapter
   // number.
 
-  result = (*probeFunc)(aux, leftChapter, &lowest);
+  result = (*probeFunc)(aux, physicalMap[leftChapter], &lowest);
   if (result != UDS_SUCCESS) {
+    FREE(physicalMap);
     return result;
   }
 
   result = ASSERT((lowest != UINT64_MAX), "invalid lowest chapter");
   if (result != UDS_SUCCESS) {
+    FREE(physicalMap);
     return result;
   }
 
@@ -1172,8 +1224,9 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
 
   for (;;) {
     rightChapter = (rightChapter + chapterLimit - 1) % chapterLimit;
-    result = (*probeFunc)(aux, rightChapter, &highest);
+    result = (*probeFunc)(aux, physicalMap[rightChapter], &highest);
     if (result != UDS_SUCCESS) {
+      FREE(physicalMap);
       return result;
     }
     if (highest != UINT64_MAX) {
@@ -1181,12 +1234,14 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
     }
     if (++badChapters >= maxBadChapters) {
       logError("too many bad chapters in volume: %u", badChapters);
+      FREE(physicalMap);
       return UDS_CORRUPT_COMPONENT;
     }
   }
 
   *lowestVCN = lowest;
   *highestVCN = highest;
+  FREE(physicalMap);
   return UDS_SUCCESS;
 }
 

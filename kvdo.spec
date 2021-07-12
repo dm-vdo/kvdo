@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.5.41
+%define kmod_driver_version	6.2.5.62
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,6 +96,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu May 27 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.41-1
-- Fixed bugs in reading the UDS index of a VDO volume which was converted
-  to LVM.
+* Mon Jul 12 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.62-1
+- Fixed chapter computation for a converted sparse index.
+- Fixed invalidation of converted chapters.
+- Removed extraneous fields from the super block of a converted index.
+- Fixed calculation of the number of expiring chapters in a converted
+  index.
+- Fixed bugs rebuilding a converted index.

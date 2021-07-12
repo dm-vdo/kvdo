@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#9 $
  */
 
 #include "geometry.h"
@@ -209,10 +209,31 @@ bool isChapterSparse(const Geometry *geometry,
 }
 
 /**********************************************************************/
-bool areSamePhysicalChapter(const Geometry *geometry,
-                            uint64_t        chapter1,
-                            uint64_t        chapter2)
+unsigned int chaptersToExpire(const Geometry *geometry, uint64_t newestChapter)
 {
-  return (mapToPhysicalChapter(geometry, chapter1)
-          == mapToPhysicalChapter(geometry, chapter2));
+  // If the index isn't full yet, don't expire anything.
+  if (newestChapter < geometry->chaptersPerVolume) {
+    return 0;
+  }
+
+  // If a chapter is out of order...
+  if (geometry->remappedPhysical > 0) {
+    uint64_t oldestChapter = newestChapter - geometry->chaptersPerVolume;
+
+    // ... expire an extra chapter when expiring the moved chapter
+    // to free physical space for the new chapter ...
+    if (oldestChapter == geometry->remappedVirtual) {
+      return 2;
+    }
+
+    // ... but don't expire anything when the new chapter will use
+    // the physical chapter freed by expiring the moved chapter.
+    if (oldestChapter
+          == (geometry->remappedVirtual + geometry->remappedPhysical)) {
+      return 0;
+    }
+  }
+
+  // Normally, just expire one.
+  return 1;
 }

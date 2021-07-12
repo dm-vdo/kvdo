@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#6 $
  */
 
 #include "indexZone.h"
@@ -281,15 +281,12 @@ int openNextChapter(IndexZone *zone, Request *request)
     }
   }
 
-  // If the chapter being opened won't overwrite the oldest chapter, we're
-  // done.
-  if (!areSamePhysicalChapter(zone->index->volume->geometry,
-                              zone->newestVirtualChapter,
-                              zone->oldestVirtualChapter)) {
-    return UDS_SUCCESS;
-  }
+  uint64_t victim = zone->oldestVirtualChapter;
+  unsigned int expiredChapters
+    = chaptersToExpire(zone->index->volume->geometry,
+                       zone->newestVirtualChapter);
+  zone->oldestVirtualChapter += expiredChapters;
 
-  uint64_t victim = zone->oldestVirtualChapter++;
   if (finishedZones < zone->index->zoneCount) {
     // We are not the last zone to close the chapter, so we're done
     return UDS_SUCCESS;
@@ -302,7 +299,10 @@ int openNextChapter(IndexZone *zone, Request *request)
    * chapter in the cache, until we write the new open chapter to disk, we'll
    * never look for it in the cache.
    */
-  return forgetChapter(zone->index->volume, victim, INVALIDATION_EXPIRE);
+  while ((expiredChapters-- > 0) && (result == UDS_SUCCESS)) {
+    result = forgetChapter(zone->index->volume, victim++, INVALIDATION_EXPIRE);
+  }
+  return result;
 }
 
 /**********************************************************************/
