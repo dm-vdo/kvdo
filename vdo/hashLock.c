@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#63 $
  */
 
 /**
@@ -107,6 +107,7 @@
 #include <linux/list.h>
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "compressionState.h"
@@ -595,7 +596,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 
 	release_vdo_physical_zone_pbn_lock(agent->duplicate.zone,
 					   agent->duplicate.pbn,
-					   &lock->duplicate_lock);
+					   UDS_FORGET(lock->duplicate_lock));
 
 	if (lock->state == HASH_LOCK_BYPASSING) {
 		launch_data_vio_hash_zone_callback(agent,
@@ -1151,7 +1152,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 			agent->is_duplicate = false;
 			release_vdo_physical_zone_pbn_lock(zone,
 							   agent->duplicate.pbn,
-							   &lock);
+							   UDS_FORGET(lock));
 			continue_data_vio(agent, result);
 			return;
 		}

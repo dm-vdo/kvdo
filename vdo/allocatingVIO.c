@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#42 $
  */
 
 #include "allocatingVIO.h"
@@ -254,7 +254,7 @@ void vio_release_allocation_lock(struct allocating_vio *allocating_vio)
 
 	release_vdo_physical_zone_pbn_lock(allocating_vio->zone,
 					   locked_pbn,
-					   &allocating_vio->allocation_lock);
+					   UDS_FORGET(allocating_vio->allocation_lock));
 }
 
 /**********************************************************************/

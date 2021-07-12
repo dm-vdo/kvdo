@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#14 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -108,18 +108,17 @@ int __must_check attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 						    struct pbn_lock **lock_ptr);
 
 /**
- * Release a physical block lock if it is held, return it to the lock pool,
- * and null out the caller's reference to it. It must be the last live
- * reference, as if the memory were being freed (the lock memory will
- * re-initialized or zeroed).
+ * Release a physical block lock if it is held and return it to the lock pool.
+ * It must be the last live reference, as if the memory were being freed (the
+ * lock memory will re-initialized or zeroed).
  *
- * @param [in]     zone        The physical zone in which the lock was obtained
- * @param [in]     locked_pbn  The physical block number to unlock
- * @param [in,out] lock_ptr    The last reference to the lock being released
+ * @param zone        The physical zone in which the lock was obtained
+ * @param locked_pbn  The physical block number to unlock
+ * @param lock        The lock being released
  **/
 void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 					physical_block_number_t locked_pbn,
-					struct pbn_lock **lock_ptr);
+					struct pbn_lock *lock);
 
 /**
  * Dump information about a physical zone to the log for debugging.

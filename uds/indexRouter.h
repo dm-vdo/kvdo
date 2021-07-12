@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#16 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -41,8 +41,8 @@ struct index_router {
 	unsigned int zone_count;
 	bool need_to_save;
 	struct index *index;
-	RequestQueue *triage_queue;
-	RequestQueue *zone_queues[];
+	struct uds_request_queue *triage_queue;
+	struct uds_request_queue *zone_queues[];
 };
 
 /**
@@ -110,9 +110,10 @@ void free_index_router(struct index_router *router);
  * @return the next index stage queue (the local triage queue, local zone
  *         queue, or remote RPC send queue)
  **/
-RequestQueue *select_index_router_queue(struct index_router *router,
-					Request *request,
-					enum request_stage next_stage);
+struct uds_request_queue *
+select_index_router_queue(struct index_router *router,
+			  Request *request,
+			  enum request_stage next_stage);
 
 /**
  * Wait for the index router to finish all operations that access a local

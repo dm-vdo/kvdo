@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#25 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#26 $
  */
 
 #include "indexRouter.h"
@@ -29,8 +29,8 @@
 #include "zone.h"
 
 /**
- * This is the request processing function invoked by the zone's RequestQueue
- * worker thread.
+ * This is the request processing function invoked by the zone's
+ * uds_request_queue worker thread.
  *
  * @param request  the request to be indexed or executed by the zone worker
  **/
@@ -126,8 +126,9 @@ static int initialize_local_index_queues(struct index_router *router,
 }
 
 /**********************************************************************/
-static INLINE RequestQueue *get_zone_queue(struct index_router *router,
-					   unsigned int zone_number)
+static INLINE
+struct uds_request_queue *get_zone_queue(struct index_router *router,
+					 unsigned int zone_number)
 {
 	return router->zone_queues[zone_number];
 }
@@ -145,7 +146,7 @@ int make_index_router(struct index_layout *layout,
 	struct index_router *router;
 	int result = UDS_ALLOCATE_EXTENDED(struct index_router,
 					   zone_count,
-					   RequestQueue *,
+					   struct uds_request_queue *,
 					   "index router",
 					   &router);
 	if (result != UDS_SUCCESS) {
@@ -207,9 +208,10 @@ void free_index_router(struct index_router *router)
 }
 
 /**********************************************************************/
-RequestQueue *select_index_router_queue(struct index_router *router,
-					Request *request,
-					enum request_stage next_stage)
+struct uds_request_queue *
+select_index_router_queue(struct index_router *router,
+			  Request *request,
+			  enum request_stage next_stage)
 {
 	struct index *index = router->index;
 	if (request->is_control_message) {

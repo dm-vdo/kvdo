@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#9 $
  */
 
 #ifndef PBN_LOCK_POOL_H
@@ -39,13 +39,12 @@ int __must_check
 make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
 
 /**
- * Free a PBN lock pool null out the reference to it. This also frees all all
- * the PBN locks it allocated, so the caller must ensure that all locks have
- * been returned to the pool.
+ * Free a PBN lock pool. This also frees all all the PBN locks it allocated,
+ * so the caller must ensure that all locks have been returned to the pool.
  *
- * @param [in,out] pool_ptr  The reference to the lock pool to free
+ * @param pool  The lock pool to free
  **/
-void free_vdo_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
+void free_vdo_pbn_lock_pool(struct pbn_lock_pool *pool);
 
 /**
  * Borrow a PBN lock from the pool and initialize it with the provided type.
@@ -65,14 +64,14 @@ borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 			      struct pbn_lock **lock_ptr);
 
 /**
- * Return to the pool a lock that was borrowed from it, and null out the
- * caller's reference to it. It must be the last live reference, as if the
- * memory were being freed (the lock memory will re-initialized or zeroed).
+ * Return to the pool a lock that was borrowed from it. It must be the last
+ * live reference, as if the memory were being freed (the lock memory will
+ * re-initialized or zeroed).
  *
- * @param [in]     pool      The pool from which the lock was borrowed
- * @param [in,out] lock_ptr  The last reference to the lock being returned
+ * @param pool  The pool from which the lock was borrowed
+ * @param lock  The last reference to the lock being returned
  **/
 void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
-				 struct pbn_lock **lock_ptr);
+				 struct pbn_lock *lock);
 
 #endif // PBN_LOCK_POOL_H

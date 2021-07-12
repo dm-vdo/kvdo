@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/requestQueue.h#7 $
  */
 
 #ifndef REQUEST_QUEUE_H
@@ -25,6 +25,8 @@
 #include "compiler.h"
 #include "opaqueTypes.h"
 #include "typeDefs.h"
+
+struct uds_request_queue;
 
 /* void return value because this function will process its own errors */
 typedef void uds_request_queue_processor_t(Request *);
@@ -42,7 +44,7 @@ typedef void uds_request_queue_processor_t(Request *);
 int __must_check
 make_uds_request_queue(const char *queue_name,
 		       uds_request_queue_processor_t *process_one,
-		       RequestQueue **queue_ptr);
+		       struct uds_request_queue **queue_ptr);
 
 /**
  * Add a request to the end of the queue for processing by the worker thread.
@@ -52,13 +54,14 @@ make_uds_request_queue(const char *queue_name,
  * @param queue    the request queue that should process the request
  * @param request  the request to be processed on the queue's worker thread
  **/
-void uds_request_queue_enqueue(RequestQueue *queue, Request *request);
+void uds_request_queue_enqueue(struct uds_request_queue *queue,
+			       Request *request);
 
 /**
  * Shut down the request queue worker thread, then destroy and free the queue.
  *
  * @param queue  the queue to shut down and free
  **/
-void uds_request_queue_finish(RequestQueue *queue);
+void uds_request_queue_finish(struct uds_request_queue *queue);
 
 #endif /* REQUEST_QUEUE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#35 $
  */
 
 #include "physicalZone.h"
@@ -99,7 +99,7 @@ void free_vdo_physical_zone(struct physical_zone **zone_ptr)
 		return;
 	}
 	zone = *zone_ptr;
-	free_vdo_pbn_lock_pool(&zone->lock_pool);
+	free_vdo_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
 	free_int_map(UDS_FORGET(zone->pbn_operations));
 	UDS_FREE(zone);
 	*zone_ptr = NULL;
@@ -151,14 +151,14 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
 			     (void **) &lock);
 	if (result != VDO_SUCCESS) {
-		return_vdo_pbn_lock_to_pool(zone->lock_pool, &new_lock);
+		return_vdo_pbn_lock_to_pool(zone->lock_pool, new_lock);
 		return result;
 	}
 
 	if (lock != NULL) {
-		// The lock is already held, so we don't need the borrowed lock.
-		return_vdo_pbn_lock_to_pool(zone->lock_pool, &new_lock);
-
+		// The lock is already held, so we don't need the borrowed one.
+		return_vdo_pbn_lock_to_pool(zone->lock_pool,
+					    UDS_FORGET(new_lock));
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
 				(unsigned long long) pbn);
@@ -175,13 +175,13 @@ int attempt_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 /**********************************************************************/
 void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 					physical_block_number_t locked_pbn,
-					struct pbn_lock **lock_ptr)
+					struct pbn_lock *lock)
 {
-	struct pbn_lock *holder, *lock = *lock_ptr;
+	struct pbn_lock *holder;
+
 	if (lock == NULL) {
 		return;
 	}
-	*lock_ptr = NULL;
 
 	ASSERT_LOG_ONLY(lock->holder_count > 0,
 			"should not be releasing a lock that is not held");
@@ -200,8 +200,7 @@ void release_vdo_physical_zone_pbn_lock(struct physical_zone *zone,
 
 	release_vdo_pbn_lock_provisional_reference(lock, locked_pbn,
 						   zone->allocator);
-
-	return_vdo_pbn_lock_to_pool(zone->lock_pool, &lock);
+	return_vdo_pbn_lock_to_pool(zone->lock_pool, lock);
 }
 
 /**********************************************************************/

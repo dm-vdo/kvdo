@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/opaqueTypes.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/opaqueTypes.h#6 $
  */
 
 #ifndef OPAQUE_TYPES_H
@@ -29,6 +29,5 @@
  */
 struct index_router;
 typedef struct internal_request Request;
-typedef struct uds_request_queue RequestQueue;
 
 #endif /* OPAQUE_TYPES_H */
