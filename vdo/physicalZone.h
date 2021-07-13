@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#15 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -39,11 +39,11 @@ int __must_check make_vdo_physical_zone(struct vdo *vdo,
 					struct physical_zone **zone_ptr);
 
 /**
- * Free a physical zone and null out the reference to it.
+ * Free a physical zone.
  *
- * @param zone_ptr  A pointer to the zone to free
+ * @param zone  The zone to free
  **/
-void free_vdo_physical_zone(struct physical_zone **zone_ptr);
+void free_vdo_physical_zone(struct physical_zone *zone);
 
 /**
  * Get the zone number of a physical zone.
