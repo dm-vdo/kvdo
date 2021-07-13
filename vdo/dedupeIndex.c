@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#106 $
  */
 
 #include "dedupeIndex.h"
@@ -489,7 +489,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 		struct uds_request *uds_request =
 			&data_vio->dedupe_context.uds_request;
 
-		uds_request->chunk_name = *dedupe_context->chunk_name;
+		uds_request->chunk_name = data_vio->chunk_name;
 		uds_request->callback = finish_index_operation;
 		uds_request->session = index->index_session;
 		uds_request->type = operation;

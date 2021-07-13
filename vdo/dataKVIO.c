@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#157 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#158 $
  */
 
 #include "dataKVIO.h"
@@ -855,7 +855,6 @@ static void vdo_hash_data_work(struct vdo_work_item *item)
 
 	MurmurHash3_x64_128(data_vio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
 			    &data_vio->chunk_name);
-	data_vio->dedupe_context.chunk_name = &data_vio->chunk_name;
 
 	enqueue_data_vio_callback(data_vio);
 }

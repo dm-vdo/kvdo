@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#31 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -107,7 +107,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
  * Look up the chunkname of the data_vio and identify duplicated chunks.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice to
+ *                  data_vio.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
  *                  vdo_get_dedupe_advice(). The advice found in the index (or
  *                  NULL if none) will be returned via vdo_set_dedupe_advice().
@@ -123,7 +123,7 @@ static inline void post_vdo_dedupe_advice(struct data_vio *data_vio)
  * Look up the chunk_name of the data_vio and identify duplicated chunks.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice
+ *                  data_vio.chunk_name is the chunk name. The advice
  *                  found in the index (or NULL if none) will be returned via
  *                  vdo_set_dedupe_advice(). dedupe_context.status is set to
  *                  the return status code of any asynchronous index
@@ -139,7 +139,7 @@ static inline void query_vdo_dedupe_advice(struct data_vio *data_vio)
  * name.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice to
+ *                  data_vio.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
  *                  vdo_get_dedupe_advice(). dedupe_context.status is set to
  *                  the return status code of any asynchronous index
