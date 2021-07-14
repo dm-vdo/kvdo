@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#32 $
  */
 
 #include "adminState.h"
@@ -40,6 +40,9 @@ const char *get_vdo_admin_state_code_name(enum admin_state_code code)
 
 	case VDO_ADMIN_STATE_FORMATTING:
 		return "VDO_ADMIN_STATE_FORMATTING";
+
+	case VDO_ADMIN_STATE_PRE_LOADING:
+		return "VDO_ADMIN_STATE_PRE_LOADING";
 
 	case VDO_ADMIN_STATE_LOADING:
 		return "VDO_ADMIN_STATE_LOADING";

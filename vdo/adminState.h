@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#33 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -35,6 +35,10 @@ enum admin_type {
 	 * Format: an operation for formatting a new VDO.
 	 **/
 	VDO_ADMIN_TYPE_FORMAT,
+	/**
+	 * Preload: an operation which must be performed before loading.
+	 **/
+	VDO_ADMIN_TYPE_PRE_LOAD,
 	/**
 	 * Recover: a recovery operation.
 	 **/
@@ -106,6 +110,9 @@ enum admin_state_code {
 	VDO_ADMIN_STATE_OPERATING = (VDO_ADMIN_TYPE_NORMAL
 				     | VDO_ADMIN_FLAG_OPERATING),
 	VDO_ADMIN_STATE_FORMATTING = (VDO_ADMIN_TYPE_FORMAT
+				      | VDO_ADMIN_FLAG_OPERATING
+				      | VDO_ADMIN_FLAG_LOADING),
+	VDO_ADMIN_STATE_PRE_LOADING = (VDO_ADMIN_TYPE_PRE_LOAD
 				      | VDO_ADMIN_FLAG_OPERATING
 				      | VDO_ADMIN_FLAG_LOADING),
 	VDO_ADMIN_STATE_LOADING = (VDO_ADMIN_TYPE_NORMAL

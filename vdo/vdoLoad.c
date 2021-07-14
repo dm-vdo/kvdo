@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#93 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#94 $
  */
 
 #include "vdoLoad.h"
@@ -59,16 +59,15 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 }
 
 /**
- * Finish aborting a load now that any entry to read-only mode is complete.
- * This callback is registered in abort_load().
+ * Callback to finish the load operation.
  *
- * @param completion  The sub-task completion
+ * @param completion  The admin_completion's sub-task completion
  **/
-static void finish_aborting(struct vdo_completion *completion)
+static void finish_operation_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	vdo->close_required = false;
-	finish_vdo_completion_parent_callback(completion);
+	finish_vdo_operation_with_result(&vdo->admin_state,
+					 completion->result);
 }
 
 /**
@@ -79,7 +78,9 @@ static void finish_aborting(struct vdo_completion *completion)
 static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
+	prepare_vdo_admin_sub_task(vdo,
+				   finish_operation_callback,
+				   finish_operation_callback);
 	drain_vdo_recovery_journal(vdo->recovery_journal,
 				   VDO_ADMIN_STATE_SAVING,
 				   completion);
@@ -97,19 +98,22 @@ static void abort_load(struct vdo_completion *completion)
 	uds_log_error_strerror(completion->result, "aborting load");
 	if (vdo->read_only_notifier == NULL) {
 		// There are no threads, so we're done
-		finish_vdo_completion_parent_callback(completion);
+		finish_operation_callback(completion);
 		return;
 	}
 
 	// Preserve the error.
-	set_vdo_completion_result(completion->parent, completion->result);
-	if (vdo->recovery_journal == NULL) {
-		prepare_vdo_admin_sub_task(vdo, finish_aborting, finish_aborting);
-	} else {
+	set_vdo_operation_result(&vdo->admin_state, completion->result);
+	if (vdo->close_required) {
+		vdo->close_required = false;
 		prepare_vdo_admin_sub_task_on_thread(vdo,
 						     close_recovery_journal_for_abort,
 						     close_recovery_journal_for_abort,
 						     vdo_get_journal_zone_thread(get_vdo_thread_config(vdo)));
+	} else {
+		prepare_vdo_admin_sub_task(vdo,
+					   finish_operation_callback,
+					   finish_operation_callback);
 	}
 
 	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
@@ -124,8 +128,10 @@ static void abort_load(struct vdo_completion *completion)
 static void wait_for_read_only_mode(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
-	set_vdo_completion_result(completion, VDO_READ_ONLY);
+	prepare_vdo_admin_sub_task(vdo,
+				   finish_operation_callback,
+				   finish_operation_callback);
+	set_vdo_operation_result(&vdo->admin_state, VDO_READ_ONLY);
 	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 						   completion);
 }
@@ -159,7 +165,8 @@ static void scrub_vdo_slabs(struct vdo_completion *completion)
 		enter_recovery_mode(vdo);
 	}
 
-	prepare_vdo_admin_sub_task(vdo, finish_vdo_completion_parent_callback,
+	prepare_vdo_admin_sub_task(vdo,
+				   finish_operation_callback,
 				   continue_load_read_only);
 	vdo_scrub_all_unrecovered_slabs(vdo->depot, completion);
 }
@@ -211,7 +218,8 @@ static void make_dirty(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
+		finish_vdo_operation_with_result(&vdo->admin_state,
+						 VDO_READ_ONLY);
 		return;
 	}
 
@@ -229,8 +237,17 @@ static void make_dirty(struct vdo_completion *completion)
  **/
 static void load_callback(struct vdo_completion *completion)
 {
+	struct admin_completion *admin_completion =
+		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	assert_on_admin_thread(vdo, __func__);
+
+	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
+					     VDO_ADMIN_STATE_LOADING,
+					     &admin_completion->completion,
+					     NULL)) {
+		return;
+	}
 
 	// Prepare the recovery journal for new entries.
 	open_vdo_recovery_journal(vdo->recovery_journal, vdo->depot,
@@ -239,7 +256,8 @@ static void load_callback(struct vdo_completion *completion)
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		// In read-only mode we don't use the allocator and it may not
 		// even be readable, so use the default structure.
-		finish_vdo_completion(completion->parent, VDO_READ_ONLY);
+		finish_vdo_operation_with_result(&vdo->admin_state,
+						 VDO_READ_ONLY);
 		return;
 	}
 
@@ -250,15 +268,18 @@ static void load_callback(struct vdo_completion *completion)
 	}
 
 	if (requires_rebuild(vdo)) {
-		prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
+		prepare_vdo_admin_sub_task(vdo,
+					   make_dirty,
+					   continue_load_read_only);
 		vdo_launch_recovery(vdo, completion);
 		return;
 	}
 
 	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 	load_vdo_slab_depot(vdo->depot,
-			    (vdo_was_new(vdo) ? VDO_ADMIN_STATE_FORMATTING :
-						VDO_ADMIN_STATE_LOADING),
+			    (vdo_was_new(vdo)
+			     ? VDO_ADMIN_STATE_FORMATTING
+			     : VDO_ADMIN_STATE_LOADING),
 			    completion,
 			    NULL);
 }
@@ -266,8 +287,11 @@ static void load_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_load(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo, VDO_ADMIN_OPERATION_LOAD, NULL,
-					   load_callback, load_callback);
+	return perform_vdo_admin_operation(vdo,
+					   VDO_ADMIN_OPERATION_LOAD,
+					   NULL,
+					   load_callback,
+					   load_callback);
 }
 
 /**
@@ -442,12 +466,9 @@ static int __must_check decode_vdo(struct vdo *vdo)
 static void load_vdo_components(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-
-	prepare_vdo_completion(completion,
-			       finish_vdo_completion_parent_callback,
-			       abort_load,
-			       completion->callback_thread_id,
-			       completion->parent);
+	prepare_vdo_admin_sub_task(vdo,
+				   finish_operation_callback,
+				   abort_load);
 	finish_vdo_completion(completion, decode_vdo(vdo));
 }
 
@@ -458,8 +479,21 @@ static void load_vdo_components(struct vdo_completion *completion)
  **/
 static void pre_load_callback(struct vdo_completion *completion)
 {
+	struct admin_completion *admin_completion =
+		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+
+	ASSERT_LOG_ONLY((admin_completion->type == VDO_ADMIN_OPERATION_LOAD),
+			"unexpected admin operation type %u when preloading",
+			admin_completion->type);
 	assert_on_admin_thread(vdo, __func__);
+	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
+					     VDO_ADMIN_STATE_PRE_LOADING,
+					     &admin_completion->completion,
+					     NULL)) {
+		return;
+	}
+
 	prepare_vdo_admin_sub_task(vdo, load_vdo_components, abort_load);
 	load_vdo_super_block(vdo, completion, get_vdo_first_block_offset(vdo),
 			     &vdo->super_block);
