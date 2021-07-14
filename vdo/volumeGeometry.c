@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#50 $
  */
 
 #include "volumeGeometry.h"
@@ -72,8 +72,8 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
 static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
-	MAGNESIUM_RELEASE_VERSION_NUMBER,
-	ALUMINUM_RELEASE_VERSION_NUMBER,
+	VDO_MAGNESIUM_RELEASE_VERSION_NUMBER,
+	VDO_ALUMINUM_RELEASE_VERSION_NUMBER,
 };
 
 /**
@@ -87,7 +87,7 @@ static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 static inline bool is_loadable_release_version(release_version_number_t version)
 {
 	unsigned int i;
-	if (version == CURRENT_RELEASE_VERSION_NUMBER) {
+	if (version == VDO_CURRENT_RELEASE_VERSION_NUMBER) {
 		return true;
 	}
 

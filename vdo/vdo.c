@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#158 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#159 $
  */
 
 /*
@@ -488,7 +488,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.
 	stats->version = STATISTICS_VERSION;
-	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
+	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
 	// XXX config.physical_blocks is actually mutated during resize and is
 	// in a packed structure, but resize runs on the admin thread so we're
@@ -516,7 +516,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 		 "%s",
 		 describe_vdo_state(state));
 	stats->version = STATISTICS_VERSION;
-	stats->release_version = CURRENT_RELEASE_VERSION_NUMBER;
+	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = vdo->instance;
 
 	stats->current_vios_in_progress =
