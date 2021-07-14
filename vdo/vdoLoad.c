@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#94 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#95 $
  */
 
 #include "vdoLoad.h"
@@ -66,8 +66,7 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 static void finish_operation_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	finish_vdo_operation_with_result(&vdo->admin_state,
-					 completion->result);
+	finish_vdo_operation(&vdo->admin_state, completion->result);
 }
 
 /**
@@ -218,8 +217,7 @@ static void make_dirty(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		finish_vdo_operation_with_result(&vdo->admin_state,
-						 VDO_READ_ONLY);
+		finish_vdo_operation(&vdo->admin_state, VDO_READ_ONLY);
 		return;
 	}
 
@@ -256,8 +254,7 @@ static void load_callback(struct vdo_completion *completion)
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		// In read-only mode we don't use the allocator and it may not
 		// even be readable, so use the default structure.
-		finish_vdo_operation_with_result(&vdo->admin_state,
-						 VDO_READ_ONLY);
+		finish_vdo_operation(&vdo->admin_state, VDO_READ_ONLY);
 		return;
 	}
 

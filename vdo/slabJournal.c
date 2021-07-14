@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#102 $
  */
 
 #include "slabJournalInternals.h"
@@ -693,9 +693,9 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 
 	operation = get_vdo_admin_state_code(&journal->slab->state);
 	if (operation == VDO_ADMIN_STATE_WAITING_FOR_RECOVERY) {
-		finish_vdo_operation_with_result(&journal->slab->state,
-						 (is_vdo_read_only(journal) ?
-						  VDO_READ_ONLY : VDO_SUCCESS));
+		finish_vdo_operation(&journal->slab->state,
+				     (is_vdo_read_only(journal) ?
+				      VDO_READ_ONLY : VDO_SUCCESS));
 		return;
 	}
 

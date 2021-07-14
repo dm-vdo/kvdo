@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#34 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -661,20 +661,12 @@ bool start_vdo_operation_with_waiter(struct admin_state *state,
  * start_vdo_operation(). For operations which were started with
  * start_vdo_draining(), use finish_vdo_draining() instead.
  *
- * @param state  The state whose operation is to be finished
+ * @param state   The state whose operation is to be finished
+ * @param result  The result of the operation
  *
  * @return <code>true</code> if there was an operation to finish
  **/
-bool finish_vdo_operation(struct admin_state *state);
-
-/**
- * Finish the current operation with a status code. Will notify the operation
- * waiter if there is one.
- *
- * @param state   The state whose operation is to be finished
- * @param result  The result of the operation
- **/
-bool finish_vdo_operation_with_result(struct admin_state *state, int result);
+bool finish_vdo_operation(struct admin_state *state, int result);
 
 /**
  * Set a result for the current operation.

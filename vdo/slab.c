@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#68 $
  */
 
 #include "slab.h"
@@ -300,7 +300,7 @@ static void initiate_slab_action(struct admin_state *state)
 		return;
 	}
 
-	finish_vdo_operation_with_result(state, VDO_INVALID_ADMIN_STATE);
+	finish_vdo_operation(state, VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#33 $
  */
 
 #include "adminState.h"
@@ -116,17 +116,8 @@ get_next_state(enum admin_state_code previous_state,
 	return VDO_ADMIN_STATE_NORMAL_OPERATION;
 }
 
-/**
- * Finish an operation if one is in progress. If there is a waiter, it will be
- * notified.
- *
- * @param state   The admin_state
- * @param result  The result of the operation
- *
- * @return <code>true</code> if an operation was in progress and has been
- *         finished.
- **/
-static bool end_operation(struct admin_state *state, int result)
+/**********************************************************************/
+bool finish_vdo_operation(struct admin_state *state, int result)
 {
 	if (!is_vdo_state_operating(state)) {
 		return false;
@@ -187,7 +178,7 @@ static int __must_check begin_operation(struct admin_state *state,
 			initiator(state);
 			state->starting = false;
 			if (state->complete) {
-				end_operation(state, VDO_SUCCESS);
+				finish_vdo_operation(state, VDO_SUCCESS);
 			}
 		}
 
@@ -264,7 +255,8 @@ bool finish_vdo_draining(struct admin_state *state)
 /**********************************************************************/
 bool finish_vdo_draining_with_result(struct admin_state *state, int result)
 {
-	return (is_vdo_state_draining(state) && end_operation(state, result));
+	return (is_vdo_state_draining(state)
+		&& finish_vdo_operation(state, result));
 }
 
 /**********************************************************************/
@@ -297,7 +289,8 @@ bool finish_vdo_loading(struct admin_state *state)
 /**********************************************************************/
 bool finish_vdo_loading_with_result(struct admin_state *state, int result)
 {
-	return (is_vdo_state_loading(state) && end_operation(state, result));
+	return (is_vdo_state_loading(state)
+		&& finish_vdo_operation(state, result));
 }
 
 /**********************************************************************/
@@ -330,7 +323,8 @@ bool finish_vdo_resuming(struct admin_state *state)
 /**********************************************************************/
 bool finish_vdo_resuming_with_result(struct admin_state *state, int result)
 {
-	return (is_vdo_state_resuming(state) && end_operation(state, result));
+	return (is_vdo_state_resuming(state)
+		&& finish_vdo_operation(state, result));
 }
 
 /**********************************************************************/
@@ -378,16 +372,4 @@ bool start_vdo_operation_with_waiter(struct admin_state *state,
 	return (assert_operation(operation, waiter) &&
 		(begin_operation(state, operation, waiter, initiator) ==
 		 VDO_SUCCESS));
-}
-
-/**********************************************************************/
-bool finish_vdo_operation(struct admin_state *state)
-{
-	return finish_vdo_operation_with_result(state, VDO_SUCCESS);
-}
-
-/**********************************************************************/
-bool finish_vdo_operation_with_result(struct admin_state *state, int result)
-{
-	return end_operation(state, result);
 }

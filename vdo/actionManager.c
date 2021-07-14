@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#44 $
  */
 
 #include "actionManager.h"
@@ -328,7 +328,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	has_next_action = (manager->current_action->in_use
 			   || schedule_vdo_default_action(manager));
 	result = action.conclusion(manager->context);
-	finish_vdo_operation(&manager->state);
+	finish_vdo_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL) {
 		finish_vdo_completion(action.parent, result);
 	}

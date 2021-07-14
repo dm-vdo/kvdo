@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#57 $
  */
 
 #include "vdoResize.h"
@@ -133,7 +133,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	}
 
 	finish_vdo_layout_growth(vdo->layout);
-	finish_vdo_operation_with_result(&vdo->admin_state, completion->result);
+	finish_vdo_operation(&vdo->admin_state, completion->result);
 }
 
 /**
