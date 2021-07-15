@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#40 $
  */
 
 #ifndef VDO_H
@@ -53,7 +53,7 @@ get_vdo_backing_device(const struct vdo *vdo);
 /**
  * Issue a flush request and wait for it to complete.
  *
- * @param layer The kernel layer
+ * @param vdo  The vdo
  *
  * @return VDO_SUCCESS or an error
  */
