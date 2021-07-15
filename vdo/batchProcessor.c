@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#23 $
  */
 
 #include "batchProcessor.h"
@@ -104,6 +104,8 @@ static void batch_processor_work(struct vdo_work_item *item)
 		batch->callback(batch, batch->closure);
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
+	// Pairs with the barrier in schedule_batch_processing(); see header
+	// comment on memory ordering.
 	smp_mb();
 	need_reschedule = !is_funnel_queue_empty(batch->queue);
 
@@ -152,7 +154,9 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	 * work going on, cache pressure, etc.
 	 */
 
-	smp_mb();
+	// Pairs with the barrier in batch_processor_work(); see header
+	// comment on memory ordering.
+	smp_mb__before_atomic();
 	old_state = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
 				   BATCH_PROCESSOR_ENQUEUED);
 	do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
@@ -229,6 +233,8 @@ void free_batch_processor(struct batch_processor *batch)
 		return;
 	}
 
+	// Pairs with the barrier in schedule_batch_processing(). Possibly not
+	// needed since it caters to an enqueue vs. free race.
 	smp_mb();
 	BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
 
