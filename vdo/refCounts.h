@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#23 $
  */
 
 #ifndef REF_COUNTS_H
@@ -52,11 +52,11 @@ make_vdo_ref_counts(block_count_t block_count,
 		    struct ref_counts **ref_counts_ptr);
 
 /**
- * Free a reference counting object and null out the reference to it.
+ * Free a reference counting object.
  *
- * @param ref_counts_ptr  The reference to the reference counting object to free
+ * @param ref_counts  The object to free
  **/
-void free_vdo_ref_counts(struct ref_counts **ref_counts_ptr);
+void free_vdo_ref_counts(struct ref_counts *ref_counts);
 
 /**
  * Check whether a ref_counts is active.
