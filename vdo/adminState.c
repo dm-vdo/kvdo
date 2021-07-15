@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#34 $
  */
 
 #include "adminState.h"
@@ -98,6 +98,46 @@ const char *get_vdo_admin_state_code_name(enum admin_state_code code)
 const char *get_vdo_admin_state_name(const struct admin_state *state)
 {
 	return get_vdo_admin_state_code_name(state->current_state);
+}
+
+/**
+ * Check whether an enum admin_state_code is an operation.
+ *
+ * @param code  The code to check
+ *
+ * @return <code>true</code> if the code is an operation
+ **/
+static inline bool __must_check
+is_vdo_operation_state_code(enum admin_state_code code)
+{
+	return ((code & VDO_ADMIN_FLAG_OPERATING) == VDO_ADMIN_FLAG_OPERATING);
+}
+
+/**
+ * Check whether an admin_state is operating.
+ *
+ * @param state  The admin_state to query
+ *
+ * @return <code>true</code> if the state is operating
+ **/
+static inline bool __must_check
+is_vdo_state_operating(const struct admin_state *state)
+{
+	return is_vdo_operation_state_code(get_vdo_admin_state_code(state));
+}
+
+/**
+ * Check whether an enum admin_state_code is a quiescent operation.
+ *
+ * @param code  The code to check
+ *
+ * @return <code>true</code> if the code is a quiescent operation
+ **/
+static inline bool __must_check
+is_vdo_quiescent_operation(enum admin_state_code code)
+{
+	return (is_vdo_quiescent_code(code)
+		&& is_vdo_operation_state_code(code));
 }
 
 /**********************************************************************/
@@ -193,6 +233,27 @@ static int __must_check begin_operation(struct admin_state *state,
 }
 
 /**
+ * Start an operation if it may be started given the current state.
+ *
+ * @param state      The admin_state
+ * @param operation  The operation to begin
+ * @param waiter     A completion to notify when the operation is complete
+ * @param initiator  The vdo_admin_initiator to call if the operation may
+ *                   begin; may be NULL
+ *
+ * @return true if the operation was started
+ **/
+static inline bool __must_check
+start_operation(struct admin_state *state,
+		enum admin_state_code operation,
+		struct vdo_completion *waiter,
+		vdo_admin_initiator *initiator)
+{
+	return (begin_operation(state, operation, waiter, initiator)
+		== VDO_SUCCESS);
+}
+
+/**
  * Check the result of a state validation. If the result failed, log an invalid
  * state error and, if there is a waiter, notify it.
  *
@@ -225,9 +286,18 @@ static bool check_code(bool valid,
 	return false;
 }
 
-/**********************************************************************/
-bool assert_vdo_drain_operation(enum admin_state_code operation,
-				struct vdo_completion *waiter)
+/**
+ * Check that an operation is a drain.
+ *
+ * @param operation  The operation to check
+ * @param waiter     The completion to finish with an error if the operation is
+ *                   not a drain
+ *
+ * @return <code>true</code> if the specified operation is a drain
+ **/
+static bool __must_check
+assert_vdo_drain_operation(enum admin_state_code operation,
+			   struct vdo_completion *waiter)
 {
 	return check_code(is_vdo_drain_operation(operation),
 			  operation,
@@ -241,9 +311,8 @@ bool start_vdo_draining(struct admin_state *state,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator *initiator)
 {
-	return (assert_vdo_drain_operation(operation, waiter) &&
-		(begin_operation(state, operation, waiter, initiator) ==
-		 VDO_SUCCESS));
+	return (assert_vdo_drain_operation(operation, waiter)
+		&& start_operation(state, operation, waiter, initiator));
 }
 
 /**********************************************************************/
@@ -276,8 +345,7 @@ bool start_vdo_loading(struct admin_state *state,
 		       vdo_admin_initiator *initiator)
 {
 	return (assert_vdo_load_operation(operation, waiter) &&
-		(begin_operation(state, operation, waiter, initiator) ==
-		 VDO_SUCCESS));
+		start_operation(state, operation, waiter, initiator));
 }
 
 /**********************************************************************/
@@ -293,9 +361,18 @@ bool finish_vdo_loading_with_result(struct admin_state *state, int result)
 		&& finish_vdo_operation(state, result));
 }
 
-/**********************************************************************/
-bool assert_vdo_resume_operation(enum admin_state_code operation,
-				 struct vdo_completion *waiter)
+/**
+ * Check whether an admin_state_code is a resume operation.
+ *
+ * @param operation  The operation to check
+ * @param waiter     The completion to notify if the operation is not a resume
+ *                   operation; may be NULL
+ *
+ * @return <code>true</code> if the code is a resume operation
+ **/
+static bool __must_check
+assert_vdo_resume_operation(enum admin_state_code operation,
+			    struct vdo_completion *waiter)
 {
 	return check_code(is_vdo_resume_operation(operation),
 			  operation,
@@ -310,8 +387,7 @@ bool start_vdo_resuming(struct admin_state *state,
 			vdo_admin_initiator *initiator)
 {
 	return (assert_vdo_resume_operation(operation, waiter) &&
-		(begin_operation(state, operation, waiter, initiator) ==
-		 VDO_SUCCESS));
+		start_operation(state, operation, waiter, initiator));
 }
 
 /**********************************************************************/
