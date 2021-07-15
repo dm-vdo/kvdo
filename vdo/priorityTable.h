@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#10 $
  */
 
 #ifndef PRIORITY_TABLE_H
@@ -60,12 +60,12 @@ int __must_check make_priority_table(unsigned int max_priority,
 				     struct priority_table **table_ptr);
 
 /**
- * Free a priority_table and null out the reference to it. NOTE: The table does
- * not own the entries stored in it and they are not freed by this call.
+ * Free a priority_table. NOTE: The table does not own the entries stored in
+ * it and they are not freed by this call.
  *
- * @param [in,out] table_ptr  The reference to the table to free
+ * @param table  The table to free
  **/
-void free_priority_table(struct priority_table **table_ptr);
+void free_priority_table(struct priority_table *table);
 
 /**
  * Add a new entry to the priority table, appending it to the queue for

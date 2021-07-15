@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#15 $
  */
 
 #include "priorityTable.h"
@@ -94,9 +94,8 @@ int make_priority_table(unsigned int max_priority,
 }
 
 /**********************************************************************/
-void free_priority_table(struct priority_table **table_ptr)
+void free_priority_table(struct priority_table *table)
 {
-	struct priority_table *table = *table_ptr;
 	if (table == NULL) {
 		return;
 	}
@@ -106,7 +105,6 @@ void free_priority_table(struct priority_table **table_ptr)
 	reset_priority_table(table);
 
 	UDS_FREE(table);
-	*table_ptr = NULL;
 }
 
 /**********************************************************************/
