@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#28 $
  */
 
 #include "fixedLayout.h"
@@ -63,7 +63,7 @@ struct partition_3_0 {
 } __packed;
 
 static const struct header LAYOUT_HEADER_3_0 = {
-	.id = FIXED_LAYOUT,
+	.id = VDO_FIXED_LAYOUT,
 	.version = {
 		.major_version = 3,
 		.minor_version = 0,
@@ -306,7 +306,7 @@ static inline size_t get_encoded_size(const struct fixed_layout *layout)
 /**********************************************************************/
 size_t get_vdo_fixed_layout_encoded_size(const struct fixed_layout *layout)
 {
-	return ENCODED_HEADER_SIZE + get_encoded_size(layout);
+	return VDO_ENCODED_HEADER_SIZE + get_encoded_size(layout);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#11 $
  */
 
 #include "blockMapFormat.h"
@@ -31,7 +31,7 @@
 #include "types.h"
 
 const struct header VDO_BLOCK_MAP_HEADER_2_0 = {
-	.id = BLOCK_MAP,
+	.id = VDO_BLOCK_MAP,
 	.version = {
 		.major_version = 2,
 		.minor_version = 0,
@@ -122,7 +122,7 @@ int decode_vdo_block_map_state_2_0(struct buffer *buffer,
 /**********************************************************************/
 size_t get_vdo_block_map_encoded_size(void)
 {
-	return ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
+	return VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
 }
 
 /**********************************************************************/

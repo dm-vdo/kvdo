@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#12 $
  */
 
 #include "header.h"
@@ -80,7 +80,7 @@ int encode_vdo_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
 
-	if (!ensure_available_space(buffer, ENCODED_HEADER_SIZE)) {
+	if (!ensure_available_space(buffer, VDO_ENCODED_HEADER_SIZE)) {
 		return UDS_BUFFER_ERROR;
 	}
 

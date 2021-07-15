@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#16 $
  */
 
 #include "superBlockCodec.h"
@@ -32,12 +32,12 @@
 #include "statusCodes.h"
 
 enum {
-	SUPER_BLOCK_FIXED_SIZE = ENCODED_HEADER_SIZE + VDO_CHECKSUM_SIZE,
+	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + VDO_CHECKSUM_SIZE,
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
-	.id = SUPER_BLOCK,
+	.id = VDO_SUPER_BLOCK,
 	.version =
 		{
 			.major_version = 12,
@@ -45,7 +45,7 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 		},
 
 	// This is the minimum size, if the super block contains no components.
-	.size = SUPER_BLOCK_FIXED_SIZE - ENCODED_HEADER_SIZE,
+	.size = SUPER_BLOCK_FIXED_SIZE - VDO_ENCODED_HEADER_SIZE,
 };
 
 /**********************************************************************/

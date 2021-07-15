@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#13 $
  */
 
 #ifndef HEADER_H
@@ -57,12 +57,12 @@ struct packed_version_number {
  * The registry of component ids for use in headers
  **/
 enum component_id {
-	SUPER_BLOCK = 0,
-	FIXED_LAYOUT = 1,
-	RECOVERY_JOURNAL = 2,
-	SLAB_DEPOT = 3,
-	BLOCK_MAP = 4,
-	GEOMETRY_BLOCK = 5,
+	VDO_SUPER_BLOCK = 0,
+	VDO_FIXED_LAYOUT = 1,
+	VDO_RECOVERY_JOURNAL = 2,
+	VDO_SLAB_DEPOT = 3,
+	VDO_BLOCK_MAP = 4,
+	VDO_GEOMETRY_BLOCK = 5,
 };
 
 /**
@@ -75,7 +75,7 @@ struct header {
 } __packed;
 
 enum {
-	ENCODED_HEADER_SIZE = sizeof(struct header),
+	VDO_ENCODED_HEADER_SIZE = sizeof(struct header),
 };
 
 /**

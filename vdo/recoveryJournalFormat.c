@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#9 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -30,7 +30,7 @@
 #include "types.h"
 
 const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
-	.id = RECOVERY_JOURNAL,
+	.id = VDO_RECOVERY_JOURNAL,
 	.version =
 		{
 			.major_version = 7,
@@ -42,7 +42,7 @@ const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
 /**********************************************************************/
 size_t get_vdo_recovery_journal_encoded_size(void)
 {
-	return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
+	return VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
 
 /**********************************************************************/
