@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#142 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#143 $
  */
 
 #include "dmvdo.h"
@@ -197,8 +197,6 @@ static void vdo_status(struct dm_target *ti,
 		DMEMIT("%s", device_config->original_string);
 		break;
 	}
-
-	//  spin_unlock_irqrestore(&layer->lock, flags);
 }
 
 
@@ -438,7 +436,7 @@ static int vdo_initialize(struct dm_target *ti,
 				   &failure_reason,
 				   &layer);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
+		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
@@ -447,7 +445,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	result = preload_kernel_layer(layer, &failure_reason);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
+		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
@@ -556,7 +554,7 @@ static void vdo_dtr(struct dm_target *ti)
 	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
-		// This was the last config referencing the layer. Free it.
+		// This was the last config referencing the VDO. Free it.
 		unsigned int instance = vdo->instance;
 		struct registered_thread allocating_thread, instance_thread;
 
@@ -577,7 +575,7 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
-		// The layer still references this config. Give it a reference
+		// The VDO still references this config. Give it a reference
 		// to a config that isn't being destroyed.
 		vdo->device_config =
 			as_vdo_device_config(vdo->device_config_list.next);
@@ -660,7 +658,7 @@ static int vdo_preresume(struct dm_target *ti)
 		result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
-			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
+			uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 				      result,
 				      failure_reason);
 			vdo_enter_read_only_mode(vdo->read_only_notifier,

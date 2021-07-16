@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#20 $
  */
 
 #include "poolSysfs.h"
@@ -228,12 +228,11 @@ static void work_queue_directory_release(struct kobject *kobj)
 {
 	/*
 	 * The work_queue_directory holds an implicit reference to its parent,
-	 * the kernel_layer object (->kobj), so even if there are some
-	 * external references held to the work_queue_directory when work
-	 * queue shutdown calls kobject_put on the kernel_layer object, the
-	 * kernel_layer object won't actually be released and won't free the
-	 * kernel_layer storage until the work_queue_directory object is
-	 * released first.
+	 * the VDO object (->kobj), so even if there are some external
+	 * references held to the work_queue_directory when work queue
+	 * shutdown calls kobject_put on the VDO object, the VDO object won't
+	 * actually be released and won't free the VDO storage until the
+	 * work_queue_directory object is released first.
 	 *
 	 * So, we don't need to do any additional explicit management here.
 	 *

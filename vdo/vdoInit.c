@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#21 $
  */
 
 #include "vdoInit.h"
@@ -181,18 +181,16 @@ int initialize_vdo(struct vdo *vdo,
 
 	result = register_vdo(vdo);
 	if (result != VDO_SUCCESS) {
-		*reason = "Cannot add layer to device registry";
+		*reason = "Cannot add VDO to device registry";
 		return handle_initialization_failure(vdo, result);
 	}
 
 	/*
 	 * After this point, calling kobject_put on vdo_directory will
 	 * decrement its reference count, and when the count goes to 0 the
-	 * struct kernel_layer (which contains this vdo) will be freed.
+	 * struct vdo itself will be freed.
 	 */
-	result = initialize_vdo_kobjects(vdo,
-					 config->owning_target,
-					 reason);
+	result = initialize_vdo_kobjects(vdo, config->owning_target, reason);
 	if (result != VDO_SUCCESS) {
 		return handle_initialization_failure(vdo, result);
 	}

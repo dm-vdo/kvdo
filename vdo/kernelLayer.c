@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#214 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#215 $
  */
 
 #include "kernelLayer.h"
@@ -293,7 +293,7 @@ int make_kernel_layer(unsigned int instance,
 			      "VDO configuration",
 			      &layer);
 	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate VDO configuration";
+		*reason = "Cannot allocate VDO";
 		release_vdo_instance(instance);
 		return result;
 	}
@@ -843,7 +843,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 
 	uds_log_info("Resizing logical to %llu", logical_count);
 	/*
-	 * We must not mark the layer as allowing allocations when it is
+	 * We must not mark the VDO as allowing allocations when it is
 	 * suspended lest an allocation attempt block on writing IO to the
 	 * suspended VDO.
 	 */
