@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#39 $
  */
 
 #include "readOnlyNotifier.h"
@@ -160,10 +160,10 @@ int make_vdo_read_only_notifier(bool is_read_only,
 }
 
 /**********************************************************************/
-void free_vdo_read_only_notifier(struct read_only_notifier **notifier_ptr)
+void free_vdo_read_only_notifier(struct read_only_notifier *notifier)
 {
 	thread_count_t id;
-	struct read_only_notifier *notifier = *notifier_ptr;
+
 	if (notifier == NULL) {
 		return;
 	}
@@ -179,7 +179,6 @@ void free_vdo_read_only_notifier(struct read_only_notifier **notifier_ptr)
 	}
 
 	UDS_FREE(notifier);
-	*notifier_ptr = NULL;
 }
 
 /**

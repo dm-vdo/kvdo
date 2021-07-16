@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#159 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#160 $
  */
 
 /*
@@ -119,7 +119,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	UDS_FREE(vdo->physical_zones);
 	vdo->physical_zones = NULL;
-	free_vdo_read_only_notifier(&vdo->read_only_notifier);
+	free_vdo_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {

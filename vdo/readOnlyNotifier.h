@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#12 $
  */
 
 /*
@@ -61,11 +61,11 @@ make_vdo_read_only_notifier(bool is_read_only,
 			    struct read_only_notifier **notifier_ptr);
 
 /**
- * Free a read_only_notifier and null out the reference to it.
+ * Free a read_only_notifier.
  *
- * @param notifier_ptr  The reference to the notifier to free
+ * @param notifier  The notifier to free
  **/
-void free_vdo_read_only_notifier(struct read_only_notifier **notifier_ptr);
+void free_vdo_read_only_notifier(struct read_only_notifier *notifier);
 
 /**
  * Wait until no read-only notifications are in progress and prevent any
