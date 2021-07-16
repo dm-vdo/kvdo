@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#65 $
  */
 
 #include "readOnlyRebuild.h"
@@ -77,7 +77,8 @@ struct read_only_rebuild_completion {
 static inline struct read_only_rebuild_completion * __must_check
 as_read_only_rebuild_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, READ_ONLY_REBUILD_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   VDO_READ_ONLY_REBUILD_COMPLETION);
 	return container_of(completion, struct read_only_rebuild_completion,
 			    completion);
 }
@@ -121,9 +122,9 @@ make_rebuild_completion(struct vdo *vdo,
 	}
 
 	initialize_vdo_completion(&rebuild->completion, vdo,
-				  READ_ONLY_REBUILD_COMPLETION);
+				  VDO_READ_ONLY_REBUILD_COMPLETION);
 	initialize_vdo_completion(&rebuild->sub_task_completion, vdo,
-				  SUB_TASK_COMPLETION);
+				  VDO_SUB_TASK_COMPLETION);
 
 	rebuild->vdo = vdo;
 	*rebuild_ptr = rebuild;

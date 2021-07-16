@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#54 $
  */
 
 #include "flush.h"
@@ -75,7 +75,7 @@ struct flusher {
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
 	assert_vdo_completion_type(completion->type,
-				   FLUSH_NOTIFICATION_COMPLETION);
+				   VDO_FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
 }
 
@@ -103,7 +103,7 @@ int make_vdo_flusher(struct vdo *vdo)
 	vdo->flusher->thread_id
 		= vdo_get_packer_zone_thread(get_vdo_thread_config(vdo));
 	initialize_vdo_completion(&vdo->flusher->completion, vdo,
-				  FLUSH_NOTIFICATION_COMPLETION);
+				  VDO_FLUSH_NOTIFICATION_COMPLETION);
 
 	spin_lock_init(&vdo->flusher->lock);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#42 $
  */
 
 #include "adminCompletion.h"
@@ -47,8 +47,8 @@ struct admin_completion *
 vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
-	assert_vdo_completion_type(completion->type, SUB_TASK_COMPLETION);
-	assert_vdo_completion_type(parent->type, ADMIN_COMPLETION);
+	assert_vdo_completion_type(completion->type, VDO_SUB_TASK_COMPLETION);
+	assert_vdo_completion_type(parent->type, VDO_ADMIN_COMPLETION);
 	return container_of(parent, struct admin_completion, completion);
 }
 
@@ -81,9 +81,9 @@ void initialize_vdo_admin_completion(struct vdo *vdo,
 {
 	admin_completion->vdo = vdo;
 	initialize_vdo_completion(&admin_completion->completion, vdo,
-				  ADMIN_COMPLETION);
+				  VDO_ADMIN_COMPLETION);
 	initialize_vdo_completion(&admin_completion->sub_task_completion, vdo,
-				  SUB_TASK_COMPLETION);
+				  VDO_SUB_TASK_COMPLETION);
 	init_completion(&admin_completion->callback_sync);
 	atomic_set(&admin_completion->busy, 0);
 }
@@ -133,7 +133,7 @@ void prepare_vdo_admin_sub_task(struct vdo *vdo,
 static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
 	struct admin_completion *completion;
-	assert_vdo_completion_type(vdo_completion->type, ADMIN_COMPLETION);
+	assert_vdo_completion_type(vdo_completion->type, VDO_ADMIN_COMPLETION);
 	completion = container_of(vdo_completion,
 				  struct admin_completion,
 				  completion);

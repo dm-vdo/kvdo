@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#51 $
  */
 
 #include "blockMapRecovery.h"
@@ -143,7 +143,8 @@ static void swap_mappings(void *item1, void *item2)
 static inline struct block_map_recovery_completion * __must_check
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	return container_of(completion,
 			    struct block_map_recovery_completion,
 			    completion);
@@ -199,9 +200,9 @@ make_vdo_recovery_completion(struct vdo *vdo,
 	}
 
 	initialize_vdo_completion(&recovery->completion, vdo,
-				  BLOCK_MAP_RECOVERY_COMPLETION);
+				  VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
-				  SUB_TASK_COMPLETION);
+				  VDO_SUB_TASK_COMPLETION);
 	recovery->block_map = block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;

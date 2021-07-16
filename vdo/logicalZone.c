@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#70 $
  */
 
 #include "logicalZone.h"
@@ -91,7 +91,7 @@ struct logical_zones {
 static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
 	assert_vdo_completion_type(completion->type,
-				   GENERATION_FLUSHED_COMPLETION);
+				   VDO_GENERATION_FLUSHED_COMPLETION);
 	return container_of(completion, struct logical_zone, completion);
 }
 
@@ -131,7 +131,7 @@ static int initialize_zone(struct logical_zones *zones,
 	}
 
 	initialize_vdo_completion(&zone->completion, vdo,
-				  GENERATION_FLUSHED_COMPLETION);
+				  VDO_GENERATION_FLUSHED_COMPLETION);
 	zone->zones = zones;
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),

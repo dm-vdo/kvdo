@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#33 $
  */
 
 #include "lockCounter.h"
@@ -134,7 +134,7 @@ int make_vdo_lock_counter(struct vdo *vdo,
 	}
 
 	initialize_vdo_completion(&lock_counter->completion, vdo,
-				  LOCK_COUNTER_COMPLETION);
+				  VDO_LOCK_COUNTER_COMPLETION);
 	set_vdo_completion_callback_with_parent(&lock_counter->completion,
 						callback,
 						thread_id,

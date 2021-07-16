@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/syncCompletion.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/syncCompletion.c#2 $
  */
 
 #include "syncCompletion.h"
@@ -41,7 +41,7 @@ struct sync_completion {
 static inline struct sync_completion * __must_check
 as_sync_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, SYNC_COMPLETION);
+	assert_vdo_completion_type(completion->type, VDO_SYNC_COMPLETION);
 	return container_of(completion,
 			    struct sync_completion,
 			    vdo_completion);
@@ -78,7 +78,7 @@ int perform_synchronous_vdo_action(struct vdo *vdo,
 {
 	struct sync_completion sync;
 
-	initialize_vdo_completion(&sync.vdo_completion, vdo, SYNC_COMPLETION);
+	initialize_vdo_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
 	init_completion(&sync.completion);
 	sync.action = action;
 	launch_vdo_completion_callback_with_parent(&sync.vdo_completion,
