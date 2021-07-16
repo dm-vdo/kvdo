@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#26 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -134,11 +134,11 @@ make_vdo_recovery_block(struct vdo *vdo,
 			struct recovery_journal_block **block_ptr);
 
 /**
- * Free a tail block and null out the reference to it.
+ * Free a tail block.
  *
- * @param block_ptr  The reference to the tail block to free
+ * @param block  The tail block to free
  **/
-void free_vdo_recovery_block(struct recovery_journal_block **block_ptr);
+void free_vdo_recovery_block(struct recovery_journal_block *block);
 
 /**
  * Initialize the next active recovery journal block.

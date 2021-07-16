@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#61 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -58,7 +58,7 @@ int make_vdo_recovery_block(struct vdo *vdo,
 	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
 			      &block->block);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_block(&block);
+		free_vdo_recovery_block(block);
 		return result;
 	}
 
@@ -69,7 +69,7 @@ int make_vdo_recovery_block(struct vdo *vdo,
 				     block->block,
 				     &block->vio);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_block(&block);
+		free_vdo_recovery_block(block);
 		return result;
 	}
 
@@ -82,17 +82,15 @@ int make_vdo_recovery_block(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_recovery_block(struct recovery_journal_block **block_ptr)
+void free_vdo_recovery_block(struct recovery_journal_block *block)
 {
-	struct recovery_journal_block *block = *block_ptr;
 	if (block == NULL) {
 		return;
 	}
 
-	UDS_FREE(block->block);
+	UDS_FREE(UDS_FORGET(block->block));
 	free_vio(UDS_FORGET(block->vio));
 	UDS_FREE(block);
-	*block_ptr = NULL;
 }
 
 /**
