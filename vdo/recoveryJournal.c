@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#121 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#122 $
  */
 
 #include "recoveryJournal.h"
@@ -458,7 +458,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 		struct recovery_journal_block *block;
 		result = make_vdo_recovery_block(vdo, journal, &block);
 		if (result != VDO_SUCCESS) {
-			free_vdo_recovery_journal(&journal);
+			free_vdo_recovery_journal(journal);
 			return result;
 		}
 
@@ -474,7 +474,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 				       journal->size,
 				       &journal->lock_counter);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_journal(&journal);
+		free_vdo_recovery_journal(journal);
 		return result;
 	}
 
@@ -485,7 +485,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 				     NULL,
 				     &journal->flush_vio);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_journal(&journal);
+		free_vdo_recovery_journal(journal);
 		return result;
 	}
 
@@ -494,7 +494,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 						notify_recovery_journal_of_read_only_mode,
 						journal->thread_id);
 	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_journal(&journal);
+		free_vdo_recovery_journal(journal);
 		return result;
 	}
 
@@ -505,10 +505,10 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 }
 
 /**********************************************************************/
-void free_vdo_recovery_journal(struct recovery_journal **journal_ptr)
+void free_vdo_recovery_journal(struct recovery_journal *journal)
 {
 	struct recovery_journal_block *block;
-	struct recovery_journal *journal = *journal_ptr;
+
 	if (journal == NULL) {
 		return;
 	}
@@ -536,7 +536,6 @@ void free_vdo_recovery_journal(struct recovery_journal **journal_ptr)
 	}
 
 	UDS_FREE(journal);
-	*journal_ptr = NULL;
 }
 
 /**********************************************************************/

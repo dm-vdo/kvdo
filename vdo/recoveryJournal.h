@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#38 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -151,11 +151,11 @@ decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 			    struct recovery_journal **journal_ptr);
 
 /**
- * Free a recovery journal and null out the reference to it.
+ * Free a recovery journal.
  *
- * @param [in,out] journal_ptr  The reference to the recovery journal to free
+ * @param journal  The recovery journal to free
  **/
-void free_vdo_recovery_journal(struct recovery_journal **journal_ptr);
+void free_vdo_recovery_journal(struct recovery_journal *journal);
 
 /**
  * Move the backing partition pointer of the recovery journal.
