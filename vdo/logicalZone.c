@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#71 $
  */
 
 #include "logicalZone.h"
@@ -138,6 +138,8 @@ static int initialize_zone(struct logical_zones *zones,
 					       	      zone_number);
 	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
+	set_vdo_admin_state_code(&zone->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	return make_vdo_allocation_selector(get_vdo_thread_config(vdo)->physical_zone_count,
 					    zone->thread_id, &zone->selector);
@@ -259,7 +261,7 @@ static void drain_logical_zone(void *context, zone_count_t zone_number,
 
 /**********************************************************************/
 void drain_vdo_logical_zones(struct logical_zones *zones,
-			     enum admin_state_code operation,
+			     const struct admin_state_code *operation,
 			     struct vdo_completion *parent)
 {
 	schedule_vdo_operation(zones->manager, operation, NULL,

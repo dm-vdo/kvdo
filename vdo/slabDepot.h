@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#47 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -243,7 +243,7 @@ get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *depot);
  * @param context      Additional context for the load operation; may be NULL
  **/
 void load_vdo_slab_depot(struct slab_depot *depot,
-			 enum admin_state_code operation,
+			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent,
 			 void *context);
 
@@ -304,7 +304,7 @@ void vdo_abandon_new_slabs(struct slab_depot *depot);
  * @param parent     The completion to finish when the drain is complete
  **/
 void drain_vdo_slab_depot(struct slab_depot *depot,
-			  enum admin_state_code operation,
+			  const struct admin_state_code *operation,
 			  struct vdo_completion *parent);
 
 /**

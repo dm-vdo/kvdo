@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#69 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#70 $
  */
 
 #include "slab.h"
@@ -77,12 +77,15 @@ int make_vdo_slab(physical_block_number_t slab_origin,
 	}
 
 	if (is_new) {
-		slab->state.current_state = VDO_ADMIN_STATE_NEW;
+		set_vdo_admin_state_code(&slab->state, VDO_ADMIN_STATE_NEW);
 		result = allocate_ref_counts_for_vdo_slab(slab);
 		if (result != VDO_SUCCESS) {
 			free_vdo_slab(&slab);
 			return result;
 		}
+	} else {
+		set_vdo_admin_state_code(&slab->state,
+					 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	}
 
 	*slab_ptr = slab;
@@ -273,7 +276,7 @@ static void initiate_slab_action(struct admin_state *state)
 	struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
 
 	if (is_vdo_state_draining(state)) {
-		enum admin_state_code operation =
+		const struct admin_state_code *operation =
 			get_vdo_admin_state_code(state);
 		if (operation == VDO_ADMIN_STATE_SCRUBBING) {
 			slab->status = SLAB_REBUILDING;
@@ -305,7 +308,7 @@ static void initiate_slab_action(struct admin_state *state)
 
 /**********************************************************************/
 void start_vdo_slab_action(struct vdo_slab *slab,
-			   enum admin_state_code operation,
+			   const struct admin_state_code *operation,
 			   struct vdo_completion *parent)
 {
 	start_vdo_operation_with_waiter(&slab->state, operation, parent,

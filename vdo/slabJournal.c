@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#103 $
  */
 
 #include "slabJournalInternals.h"
@@ -653,7 +653,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	struct slab_journal_block_header *header = &journal->tail_header;
 	int unused_entries = journal->entries_per_block - header->entry_count;
 	physical_block_number_t block_number;
-	enum admin_state_code operation;
+	const struct admin_state_code *operation;
 
 	header->head = journal->head;
 	list_move_tail(&entry->available_entry, &journal->uncommitted_blocks);
@@ -1184,10 +1184,13 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 /**********************************************************************/
 void drain_vdo_slab_journal(struct slab_journal *journal)
 {
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&journal->slab->state);
+
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"drain_vdo_slab_journal() called on correct thread");
-	if (is_vdo_state_quiescing(&journal->slab->state)) {
+	if (is_vdo_quiescing_code(code)) {
 		// XXX: we should revisit this assertion since it is no longer
 		// clear what it is for.
 		ASSERT_LOG_ONLY((!(is_vdo_slab_rebuilding(journal->slab) &&
@@ -1195,15 +1198,13 @@ void drain_vdo_slab_journal(struct slab_journal *journal)
 				"slab is recovered or has no waiters");
 	}
 
-	switch (get_vdo_admin_state_code(&journal->slab->state)) {
-	case VDO_ADMIN_STATE_REBUILDING:
-	case VDO_ADMIN_STATE_SUSPENDING:
-	case VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING:
-		break;
-
-	default:
-		commit_vdo_slab_journal_tail(journal);
+	if ((code == VDO_ADMIN_STATE_REBUILDING)
+	    || (code == VDO_ADMIN_STATE_SUSPENDING)
+	    || (code == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING)) {
+		return;
 	}
+
+	commit_vdo_slab_journal_tail(journal);
 }
 
 /**

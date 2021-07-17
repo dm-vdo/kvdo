@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#77 $
  */
 
 #include "slabScrubberInternals.h"
@@ -89,7 +89,8 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
 	INIT_LIST_HEAD(&scrubber->high_priority_slabs);
 	INIT_LIST_HEAD(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;
-	scrubber->admin_state.current_state = VDO_ADMIN_STATE_SUSPENDED;
+	set_vdo_admin_state_code(&scrubber->admin_state,
+				 VDO_ADMIN_STATE_SUSPENDED);
 	*scrubber_ptr = scrubber;
 	return VDO_SUCCESS;
 }

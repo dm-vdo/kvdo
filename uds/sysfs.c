@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#12 $
  */
 
 #include "sysfs.h"
@@ -206,7 +206,7 @@ int init_uds_sysfs(void)
 }
 
 /**********************************************************************/
-void put_uds_sysfs()
+void put_uds_sysfs(void)
 {
 	if (object_root.parameter_flag) {
 		kobject_put(&object_root.parameter_kobj);

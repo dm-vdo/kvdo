@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#73 $
  */
 
 #include "slabSummary.h"
@@ -167,6 +167,8 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	summary_zone->summary = summary;
 	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
+	set_vdo_admin_state_code(&summary_zone->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	// Initialize each block.
 	for (i = 0; i < summary->blocks_per_zone; i++) {
@@ -429,7 +431,7 @@ static void initiate_drain(struct admin_state *state)
 
 /**********************************************************************/
 void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
-				 enum admin_state_code operation,
+				 const struct admin_state_code *operation,
 				 struct vdo_completion *parent)
 {
 	start_vdo_draining(&summary_zone->state, operation, parent,
@@ -639,7 +641,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
 
 /**********************************************************************/
 void load_vdo_slab_summary(struct slab_summary *summary,
-			   enum admin_state_code operation,
+			   const struct admin_state_code *operation,
 			   zone_count_t zones_to_combine,
 			   struct vdo_completion *parent)
 {

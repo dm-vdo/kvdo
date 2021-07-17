@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#120 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#121 $
  */
 
 #include "recoveryJournal.h"
@@ -448,7 +448,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 
 	// XXX: this is a hack until we make initial resume of a VDO a real
 	// resume
-	journal->state.current_state = VDO_ADMIN_STATE_SUSPENDED;
+	set_vdo_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
 
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	journal_length = get_vdo_recovery_journal_length(journal_size);
@@ -1257,7 +1257,7 @@ static void initiate_drain(struct admin_state *state)
 
 /**********************************************************************/
 void drain_vdo_recovery_journal(struct recovery_journal *journal,
-				enum admin_state_code operation,
+				const struct admin_state_code *operation,
 				struct vdo_completion *parent)
 {
 	assert_on_journal_thread(journal, __func__);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#46 $
  */
 
 #include "actionManager.h"
@@ -35,7 +35,7 @@ struct action {
 	/** Whether this structure is in use */
 	bool in_use;
 	/** The admin operation associated with this action */
-	enum admin_state_code operation;
+	const struct admin_state_code *operation;
 	/**
 	 * The method to run on the initiator thread before the action is
 	 * applied to each zone.
@@ -154,7 +154,8 @@ int make_vdo_action_manager(zone_count_t zones,
 	manager->actions[0].next = &manager->actions[1];
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
-
+	set_vdo_admin_state_code(&manager->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	initialize_vdo_completion(&manager->completion, vdo,
 				  VDO_ACTION_COMPLETION);
 	*manager_ptr = manager;
@@ -162,7 +163,7 @@ int make_vdo_action_manager(zone_count_t zones,
 }
 
 /**********************************************************************/
-enum admin_state_code
+const struct admin_state_code *
 get_current_vdo_manager_operation(struct action_manager *manager)
 {
 	return get_vdo_admin_state_code(&manager->state);
@@ -301,7 +302,8 @@ bool schedule_vdo_default_action(struct action_manager *manager)
 {
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.
-	enum admin_state_code code = get_current_vdo_manager_operation(manager);
+	const struct admin_state_code *code
+		= get_current_vdo_manager_operation(manager);
 	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)
 		&& manager->scheduler(manager->context));
 }
@@ -356,7 +358,7 @@ bool schedule_vdo_action(struct action_manager *manager,
 
 /**********************************************************************/
 bool schedule_vdo_operation(struct action_manager *manager,
-			    enum admin_state_code operation,
+			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
@@ -372,13 +374,14 @@ bool schedule_vdo_operation(struct action_manager *manager,
 }
 
 /**********************************************************************/
-bool schedule_vdo_operation_with_context(struct action_manager *manager,
-					 enum admin_state_code operation,
-					 vdo_action_preamble *preamble,
-					 vdo_zone_action *action,
-					 vdo_action_conclusion *conclusion,
-					 void *context,
-					 struct vdo_completion *parent)
+bool
+schedule_vdo_operation_with_context(struct action_manager *manager,
+				    const struct admin_state_code *operation,
+				    vdo_action_preamble *preamble,
+				    vdo_zone_action *action,
+				    vdo_action_conclusion *conclusion,
+				    void *context,
+				    struct vdo_completion *parent)
 {
 	struct action *current_action;
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==

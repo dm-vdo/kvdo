@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#22 $
  */
 
 #include "vdoInit.h"
@@ -159,6 +159,8 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->starting_sector_offset = config->owning_target->begin;
 	vdo->instance = instance;
 	vdo->allocations_allowed = true;
+	set_vdo_admin_state_code(&vdo->admin_state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
 	mutex_init(&vdo->stats_mutex);

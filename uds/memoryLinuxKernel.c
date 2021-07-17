@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#20 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#21 $
  */
 
 #include <linux/delay.h>
@@ -430,7 +430,7 @@ void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 }
 
 /**********************************************************************/
-void report_uds_memory_usage()
+void report_uds_memory_usage(void)
 {
 	unsigned long flags;
 	uint64_t kmalloc_blocks, kmalloc_bytes, vmalloc_blocks, vmalloc_bytes;

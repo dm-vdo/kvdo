@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#133 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#134 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -295,6 +295,8 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 	allocator->nonce = nonce;
 	allocator->read_only_notifier = read_only_notifier;
 	INIT_LIST_HEAD(&allocator->dirty_slab_journals);
+	set_vdo_admin_state_code(&allocator->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	result = allocate_components(allocator, vdo, vio_pool_size);
 	if (result != VDO_SUCCESS) {
@@ -619,12 +621,13 @@ static void apply_to_slabs(struct block_allocator *allocator,
 
 	iterator = get_slab_iterator(allocator);
 	while (vdo_has_next_slab(&iterator)) {
+		const struct admin_state_code *operation =
+			get_vdo_admin_state_code(&allocator->state);
 		struct vdo_slab *slab = vdo_next_slab(&iterator);
+
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
-		start_vdo_slab_action(slab,
-				      get_vdo_admin_state_code(&allocator->state),
-				      &allocator->completion);
+		start_vdo_slab_action(slab, operation, &allocator->completion);
 	}
 
 	slab_action_callback(&allocator->completion);
@@ -638,7 +641,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
-	enum admin_state_code operation =
+	const struct admin_state_code *operation =
 		get_vdo_admin_state_code(&allocator->state);
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
@@ -660,7 +663,7 @@ static void initiate_load(struct admin_state *state)
 {
 	struct block_allocator *allocator =
 		container_of(state, struct block_allocator, state);
-	enum admin_state_code operation = get_vdo_admin_state_code(state);
+	const struct admin_state_code *operation = get_vdo_admin_state_code(state);
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD) {
 		prepare_vdo_completion(&allocator->completion,

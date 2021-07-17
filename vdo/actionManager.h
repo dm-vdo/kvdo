@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#21 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -130,7 +130,7 @@ make_vdo_action_manager(zone_count_t zones,
  *
  * @return The manager's current operation
  **/
-enum admin_state_code __must_check
+const struct admin_state_code *__must_check
 get_current_vdo_manager_operation(struct action_manager *manager);
 
 /**
@@ -201,7 +201,7 @@ bool schedule_vdo_action(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_vdo_operation(struct action_manager *manager,
-			    enum admin_state_code operation,
+			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
@@ -231,7 +231,7 @@ bool schedule_vdo_operation(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_vdo_operation_with_context(struct action_manager *manager,
-					 enum admin_state_code operation,
+					 const struct admin_state_code *operation,
 					 vdo_action_preamble *preamble,
 					 vdo_zone_action *action,
 					 vdo_action_conclusion *conclusion,

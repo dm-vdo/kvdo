@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#84 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#85 $
  */
 
 #include "refCounts.h"
@@ -248,7 +248,7 @@ static bool __must_check has_active_io(struct ref_counts *ref_counts)
 /**********************************************************************/
 bool are_vdo_ref_counts_active(struct ref_counts *ref_counts)
 {
-	enum admin_state_code code;
+	const struct admin_state_code *code;
 
 	if (has_active_io(ref_counts)) {
 		return true;
@@ -1495,43 +1495,37 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 {
 	struct vdo_slab *slab = ref_counts->slab;
 	bool save = false;
+	const struct admin_state_code *state
+		= get_vdo_admin_state_code(&slab->state);
 
-	switch (get_vdo_admin_state_code(&slab->state)) {
-	case VDO_ADMIN_STATE_SCRUBBING:
+	if ((state == VDO_ADMIN_STATE_RECOVERING)
+	    || (state == VDO_ADMIN_STATE_SUSPENDING)) {
+		return;
+	}
+
+	if (state == VDO_ADMIN_STATE_SCRUBBING) {
 		if (vdo_must_load_ref_counts(slab->allocator->summary,
 					     slab->slab_number)) {
 			load_reference_blocks(ref_counts);
 			return;
 		}
-
-		break;
-
-	case VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING:
+	} else if (state == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING) {
 		if (!vdo_must_load_ref_counts(slab->allocator->summary,
 					      slab->slab_number)) {
 			// These reference counts were never written, so mark
 			// them all dirty.
 			vdo_dirty_all_reference_blocks(ref_counts);
 		}
-		save = true;
-		break;
 
-	case VDO_ADMIN_STATE_REBUILDING:
+		save = true;
+	} else if (state == VDO_ADMIN_STATE_REBUILDING) {
 		if (should_save_fully_built_vdo_slab(slab)) {
 			vdo_dirty_all_reference_blocks(ref_counts);
 			save = true;
 		}
-		break;
-
-	case VDO_ADMIN_STATE_SAVING:
+	} else if (state == VDO_ADMIN_STATE_SAVING) {
 		save = !is_unrecovered_vdo_slab(slab);
-		break;
-
-	case VDO_ADMIN_STATE_RECOVERING:
-	case VDO_ADMIN_STATE_SUSPENDING:
-		break;
-
-	default:
+	} else {
 		notify_vdo_slab_ref_counts_are_drained(slab, VDO_SUCCESS);
 		return;
 	}

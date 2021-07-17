@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#37 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -68,7 +68,7 @@ decode_vdo_block_map(struct block_map_state_2_0 state,
  * @param parent     The completion to notify when the drain is complete
  **/
 void drain_vdo_block_map(struct block_map *map,
-			 enum admin_state_code operation,
+			 const struct admin_state_code *operation,
 			 struct vdo_completion *parent);
 
 /**

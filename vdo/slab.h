@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#41 $
  */
 
 #ifndef VDO_SLAB_H
@@ -273,7 +273,7 @@ bool __must_check should_save_fully_built_vdo_slab(const struct vdo_slab *slab);
  * @param parent     The object to notify when the operation is complete
  **/
 void start_vdo_slab_action(struct vdo_slab *slab,
-			   enum admin_state_code operation,
+			   const struct admin_state_code *operation,
 			   struct vdo_completion *parent);
 
 /**
