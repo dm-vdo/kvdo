@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#216 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#217 $
  */
 
 #include "kernelLayer.h"
@@ -41,6 +41,7 @@
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "vdoSuspend.h"
 #include "volumeGeometry.h"
 
 #include "bio.h"
@@ -741,7 +742,6 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * don't have cause to write while suspended [VDO-4402].
 	 */
 	suspend_result = suspend_vdo(vdo);
-
 	if (result == VDO_SUCCESS) {
 		result = suspend_result;
 	}

@@ -16,13 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/stringUtils.h#7 $
  */
 
 #ifndef STRING_UTILS_H
 #define STRING_UTILS_H
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,14,0)
 #include <stdarg.h>
+#else
+#include <linux/stdarg.h>
+#endif
 #include <linux/kernel.h>
 #include <linux/string.h>
 

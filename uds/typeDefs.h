@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/typeDefs.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/typeDefs.h#3 $
  */
 
 #ifndef TYPE_DEFS_H
@@ -26,8 +26,7 @@
  * General system type definitions.
  */
 
-#include <stddef.h>
-
+#include <linux/stddef.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
 

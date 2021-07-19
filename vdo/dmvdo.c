@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#143 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#144 $
  */
 
 #include "dmvdo.h"
@@ -612,7 +612,9 @@ static void vdo_postsuspend(struct dm_target *ti)
 	uds_log_info("suspending device '%s'", device_name);
 	result = suspend_kernel_layer(layer);
 
-	if (result == VDO_SUCCESS) {
+	// Treat VDO_READ_ONLY as a success since a read-only suspension still
+	// leaves the VDO suspended.
+	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
 		uds_log_info("device '%s' suspended", device_name);
 	} else {
 		uds_log_error("suspend of device '%s' failed with error: %d",
