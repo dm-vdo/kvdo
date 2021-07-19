@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#80 $
  */
 
 /*
@@ -222,7 +222,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 								release_allocated_lock);
 			return;
 		}
-		// fall through
+		fallthrough;
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
@@ -230,7 +230,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
-		// fall through
+		fallthrough;
 
 	case VIO_RELEASE_HASH_LOCK:
 		if (data_vio->hash_lock != NULL) {
@@ -238,7 +238,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 							   clean_hash_lock);
 			return;
 		}
-		// fall through
+		fallthrough;
 
 	case VIO_RELEASE_LOGICAL:
 		if (!is_compressed_write_data_vio(data_vio)) {
@@ -246,7 +246,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 							 release_logical_lock);
 			return;
 		}
-		// fall through
+		fallthrough;
 
 	default:
 		finish_cleanup(data_vio);

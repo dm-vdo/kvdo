@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#215 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#216 $
  */
 
 #include "kernelLayer.h"
@@ -579,13 +579,13 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_STARTING:
 	case LAYER_RESUMING:
 	case LAYER_SUSPENDED:
 		stop_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_STOPPED:
 	case LAYER_INITIALIZED:
@@ -689,12 +689,12 @@ void stop_kernel_layer(struct kernel_layer *layer)
 	switch (get_kernel_layer_state(layer)) {
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_SUSPENDED:
 		set_kernel_layer_state(layer, LAYER_STOPPING);
 		stop_vdo_dedupe_index(layer->vdo.dedupe_index);
-		// fall through
+		fallthrough;
 
 	case LAYER_STOPPING:
 	case LAYER_STOPPED:
