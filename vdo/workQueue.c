@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#67 $
  */
 
 #include "workQueue.h"
@@ -125,20 +125,13 @@ poll_for_work_item(struct simple_work_queue *queue)
 }
 
 /**
- * Add a work item into the queue, and inform the caller of any additional
- * processing necessary.
- *
- * If the worker thread may not be awake, true is returned, and the caller
- * should attempt a wakeup.
+ * Add a work item into the queue and wake the worker thread if it is waiting.
  *
  * @param queue  The work queue
  * @param item   The work item to add
- *
- * @return true iff the caller should wake the worker thread
  **/
-static bool __must_check
-enqueue_work_queue_item(struct simple_work_queue *queue,
-			struct vdo_work_item *item)
+static void enqueue_work_queue_item(struct simple_work_queue *queue,
+				    struct vdo_work_item *item)
 {
 	unsigned int priority;
 
@@ -182,8 +175,15 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 	 * platforms, even other x86 configurations.
 	 */
 	smp_mb();
-	return ((atomic_read(&queue->idle) == 1) &&
-		(atomic_cmpxchg(&queue->idle, 1, 0) == 1));
+	if ((atomic_read(&queue->idle) != 1) ||
+	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1)) {
+		return;
+	}
+
+	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
+
+	// Despite the name, there's a maximum of one thread in this list.
+	wake_up(&queue->waiting_worker_threads);
 }
 
 /**
@@ -467,17 +467,6 @@ void setup_work_item(struct vdo_work_item *item,
 	item->stat_table_index = 0;
 	item->action = action;
 	item->my_queue = NULL;
-}
-
-// Thread management
-
-/**********************************************************************/
-static inline void wake_worker_thread(struct simple_work_queue *queue)
-{
-	smp_mb();
-	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
-	// Despite the name, there's a maximum of one thread in this list.
-	wake_up(&queue->waiting_worker_threads);
 }
 
 // Creation & teardown
@@ -903,11 +892,7 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item)
 {
-	struct simple_work_queue *simple_queue = pick_simple_queue(queue);
-
-	if (enqueue_work_queue_item(simple_queue, item)) {
-		wake_worker_thread(simple_queue);
-	}
+	enqueue_work_queue_item(pick_simple_queue(queue), item);
 }
 
 // Misc
