@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#104 $
  */
 
 #include "slabJournalInternals.h"
@@ -1190,7 +1190,7 @@ void drain_vdo_slab_journal(struct slab_journal *journal)
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"drain_vdo_slab_journal() called on correct thread");
-	if (is_vdo_quiescing_code(code)) {
+	if (code->quiescing) {
 		// XXX: we should revisit this assertion since it is no longer
 		// clear what it is for.
 		ASSERT_LOG_ONLY((!(is_vdo_slab_rebuilding(journal->slab) &&

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#37 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -24,6 +24,25 @@
 
 #include "completion.h"
 #include "types.h"
+
+struct admin_state_code {
+	const char *name;
+	/** Normal operation, data_vios may be active */
+	bool normal;
+	/** I/O is draining, new requests should not start */
+	bool draining;
+	/** This is a startup time operation */
+	bool loading;
+	/** The next state will be quiescent */
+	bool quiescing;
+	/** The VDO is quiescent, there should be no I/O */
+	bool quiescent;
+	/**
+         * Whether an operation is in progress and so no other operation may be
+         * started
+	 */
+	bool operating;
+};
 
 /**
  * The state codes.
@@ -123,7 +142,11 @@ set_vdo_admin_state_code(struct admin_state *state,
  *
  * @return <code>true</code> if the state is normal
  **/
-bool __must_check is_vdo_state_normal(const struct admin_state *state);
+static inline bool __must_check
+is_vdo_state_normal(const struct admin_state *state)
+{
+	return get_vdo_admin_state_code(state)->normal;
+}
 
 /**
  * Check whether an admin_state is suspending.
@@ -165,15 +188,6 @@ is_vdo_state_saved(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state_code is a drain operation.
- *
- * @param code  The admin_state_code to check
- *
- * @return <code>true</code> if the code is for a drain operation
- **/
-bool __must_check is_vdo_drain_operation(const struct admin_state_code *code);
-
-/**
  * Check whether an admin_state is draining.
  *
  * @param state  The admin_state to query
@@ -183,17 +197,8 @@ bool __must_check is_vdo_drain_operation(const struct admin_state_code *code);
 static inline bool __must_check
 is_vdo_state_draining(const struct admin_state *state)
 {
-	return is_vdo_drain_operation(get_vdo_admin_state_code(state));
+	return get_vdo_admin_state_code(state)->draining;
 }
-
-/**
- * Check whether an admin_state_code is a load operation.
- *
- * @param code  The admin_state_code to check
- *
- * @return <code>true</code> if the code is for a load operation
- **/
-bool __must_check is_vdo_load_operation(const struct admin_state_code *code);
 
 /**
  * Check whether an admin_state is loading.
@@ -205,17 +210,8 @@ bool __must_check is_vdo_load_operation(const struct admin_state_code *code);
 static inline bool __must_check
 is_vdo_state_loading(const struct admin_state *state)
 {
-	return is_vdo_load_operation(get_vdo_admin_state_code(state));
+	return get_vdo_admin_state_code(state)->loading;
 }
-
-/**
- * Check whether an admin_state_code is a resume operation.
- *
- * @param code  The admin_state_code to check
- *
- * @return <code>true</code> if the code is for a resume operation
- **/
-bool __must_check is_vdo_resume_operation(const struct admin_state_code *code);
 
 /**
  * Check whether an admin_state is resumeing.
@@ -227,7 +223,7 @@ bool __must_check is_vdo_resume_operation(const struct admin_state_code *code);
 static inline bool __must_check
 is_vdo_state_resuming(const struct admin_state *state)
 {
-	return is_vdo_resume_operation(get_vdo_admin_state_code(state));
+	return (get_vdo_admin_state_code(state) == VDO_ADMIN_STATE_RESUMING);
 }
 
 /**
@@ -246,15 +242,6 @@ is_vdo_state_clean_load(const struct admin_state *state)
 }
 
 /**
- * Check whether an admin_state_code is quiescing.
- *
- * @param code  The admin_state_code to check
- *
- * @return <code>true</code> is the state is quiescing
- **/
-bool __must_check is_vdo_quiescing_code(const struct admin_state_code *code);
-
-/**
  * Check whether an admin_state is quiescing.
  *
  * @param state  The admin_state to check
@@ -264,17 +251,8 @@ bool __must_check is_vdo_quiescing_code(const struct admin_state_code *code);
 static inline bool __must_check
 is_vdo_state_quiescing(const struct admin_state *state)
 {
-	return is_vdo_quiescing_code(get_vdo_admin_state_code(state));
+	return get_vdo_admin_state_code(state)->quiescing;
 }
-
-/**
- * Check where an admin_state_code is quiescent.
- *
- * @param code  The admin_state_code to check
- *
- * @return <code>true</code> is the state is quiescent
- **/
-bool __must_check is_vdo_quiescent_code(const struct admin_state_code *code);
 
 /**
  * Check whether an admin_state is quiescent.
@@ -286,7 +264,7 @@ bool __must_check is_vdo_quiescent_code(const struct admin_state_code *code);
 static inline bool __must_check
 is_vdo_state_quiescent(const struct admin_state *state)
 {
-	return is_vdo_quiescent_code(get_vdo_admin_state_code(state));
+	return get_vdo_admin_state_code(state)->quiescent;
 }
 
 /**
@@ -337,8 +315,9 @@ bool finish_vdo_draining_with_result(struct admin_state *state, int result);
  *
  * @return <code>true</code> if the specified operation is a load
  **/
-bool __must_check assert_vdo_load_operation(const struct admin_state_code *operation,
-					    struct vdo_completion *waiter);
+bool __must_check
+assert_vdo_load_operation(const struct admin_state_code *operation,
+			  struct vdo_completion *waiter);
 
 /**
  * Initiate a load operation if the current state permits it.
