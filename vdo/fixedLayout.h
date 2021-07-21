@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#15 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -27,8 +27,8 @@
 #include "types.h"
 
 enum partition_direction {
-	FROM_BEGINNING,
-	FROM_END,
+	VDO_PARTITION_FROM_BEGINNING,
+	VDO_PARTITION_FROM_END,
 };
 
 extern const block_count_t VDO_ALL_FREE_BLOCKS;

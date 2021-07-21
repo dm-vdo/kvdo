@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#29 $
  */
 
 #include "fixedLayout.h"
@@ -258,15 +258,15 @@ int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
 		return VDO_PARTITION_EXISTS;
 	}
 
-	offset = ((direction == FROM_END) ? (layout->last_free - block_count) :
-					   layout->first_free);
+	offset = ((direction == VDO_PARTITION_FROM_END) ?
+		  (layout->last_free - block_count) : layout->first_free);
 	result = allocate_partition(layout, id, offset, base, block_count);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	layout->num_partitions++;
-	if (direction == FROM_END) {
+	if (direction == VDO_PARTITION_FROM_END) {
 		layout->last_free = layout->last_free - block_count;
 	} else {
 		layout->first_free += block_count;
@@ -588,7 +588,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	result = make_vdo_fixed_layout_partition(layout,
 						 BLOCK_MAP_PARTITION,
 						 block_map_blocks,
-						 FROM_BEGINNING,
+						 VDO_PARTITION_FROM_BEGINNING,
 						 0);
 	if (result != VDO_SUCCESS) {
 		free_vdo_fixed_layout(layout);
@@ -596,7 +596,8 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	}
 
 	result = make_vdo_fixed_layout_partition(layout, SLAB_SUMMARY_PARTITION,
-						 summary_blocks, FROM_END, 0);
+						 summary_blocks,
+						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
 		free_vdo_fixed_layout(layout);
 		return result;
@@ -604,7 +605,8 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 
 	result = make_vdo_fixed_layout_partition(layout,
 						 RECOVERY_JOURNAL_PARTITION,
-						 journal_blocks, FROM_END, 0);
+						 journal_blocks,
+						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
 		free_vdo_fixed_layout(layout);
 		return result;
@@ -620,7 +622,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	result = make_vdo_fixed_layout_partition(layout,
 						 BLOCK_ALLOCATOR_PARTITION,
 						 VDO_ALL_FREE_BLOCKS,
-						 FROM_BEGINNING,
+						 VDO_PARTITION_FROM_BEGINNING,
 						 block_map_blocks);
 	if (result != VDO_SUCCESS) {
 		free_vdo_fixed_layout(layout);
