@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#26 $
  */
 
 #include "vioRead.h"
@@ -79,7 +79,7 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	vio->physical = data_vio->mapped.pbn;
-	data_vio->last_async_operation = ASYNC_OP_READ_DATA_VIO;
+	data_vio->last_async_operation = VIO_ASYNC_OP_READ_DATA_VIO;
 	read_data_vio(data_vio);
 }
 
@@ -100,7 +100,7 @@ static void read_block_mapping(struct vdo_completion *completion)
 
 	assert_data_vio_in_logical_zone(data_vio);
 	set_data_vio_logical_callback(data_vio, read_block);
-	data_vio->last_async_operation = ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ;
+	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ;
 	vdo_get_mapped_block(data_vio);
 }
 
@@ -108,7 +108,7 @@ static void read_block_mapping(struct vdo_completion *completion)
 void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_data_vio_in_logical_zone(data_vio);
-	data_vio->last_async_operation = ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
 	// Go find the block map slot for the LBN mapping.
 	vdo_find_block_map_slot(data_vio,
 				read_block_mapping,

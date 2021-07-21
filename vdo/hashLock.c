@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#64 $
  */
 
 /**
@@ -690,7 +690,7 @@ static void start_updating(struct hash_lock *lock, struct data_vio *agent)
 	ASSERT_LOG_ONLY(lock->update_advice,
 			"should only update advice if needed");
 
-	agent->last_async_operation = ASYNC_OP_UPDATE_DEDUPE_INDEX;
+	agent->last_async_operation = VIO_ASYNC_OP_UPDATE_DEDUPE_INDEX;
 	set_data_vio_hash_zone_callback(agent, finish_updating);
 	vdo_update_dedupe_index(agent);
 }
@@ -965,7 +965,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	 * cases (assuming we're willing to delay visibility of the the hash
 	 * lock state change).
 	 */
-	agent->last_async_operation = ASYNC_OP_VERIFY_DUPLICATION;
+	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
 	set_data_vio_hash_zone_callback(agent, finish_verifying);
 	verify_data_vio_duplication(agent);
 }
@@ -1200,7 +1200,7 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
 	 * explicitly change lock states (or use an agent-local state, or an
 	 * atomic), we can avoid a thread transition here.
 	 */
-	agent->last_async_operation = ASYNC_OP_LOCK_DUPLICATE_PBN;
+	agent->last_async_operation = VIO_ASYNC_OP_LOCK_DUPLICATE_PBN;
 	launch_data_vio_duplicate_zone_callback(agent, lock_duplicate_pbn);
 }
 
@@ -1439,7 +1439,7 @@ static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 	set_agent(lock, data_vio);
 	set_hash_lock_state(lock, HASH_LOCK_QUERYING);
 
-	data_vio->last_async_operation = ASYNC_OP_CHECK_FOR_DUPLICATION;
+	data_vio->last_async_operation = VIO_ASYNC_OP_CHECK_FOR_DUPLICATION;
 	set_data_vio_hash_zone_callback(data_vio, finish_querying);
 	check_data_vio_for_duplication(data_vio);
 }

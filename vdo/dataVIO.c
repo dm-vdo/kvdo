@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#60 $
  */
 
 #include "dataVIO.h"
@@ -156,11 +156,12 @@ void finish_data_vio(struct data_vio *data_vio, int result)
 /**********************************************************************/
 const char *get_data_vio_operation_name(struct data_vio *data_vio)
 {
-	STATIC_ASSERT(
-		(MAX_ASYNC_OPERATION_NUMBER - MIN_ASYNC_OPERATION_NUMBER) ==
-		COUNT_OF(ASYNC_OPERATION_NAMES));
+	STATIC_ASSERT((MAX_VIO_ASYNC_OPERATION_NUMBER -
+		       MIN_VIO_ASYNC_OPERATION_NUMBER) ==
+		      COUNT_OF(ASYNC_OPERATION_NAMES));
 
-	return ((data_vio->last_async_operation < MAX_ASYNC_OPERATION_NUMBER) ?
+	return ((data_vio->last_async_operation <
+		 MAX_VIO_ASYNC_OPERATION_NUMBER) ?
 			ASYNC_OPERATION_NAMES[data_vio->last_async_operation] :
 			"unknown async operation");
 }
@@ -287,7 +288,7 @@ void vdo_attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	data_vio->last_async_operation = ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
+	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
 				data_vio);
 	if (result != VDO_SUCCESS) {
