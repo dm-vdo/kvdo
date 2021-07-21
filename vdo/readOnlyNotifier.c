@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#41 $
  */
 
 #include "readOnlyNotifier.h"
@@ -160,6 +160,23 @@ int make_vdo_read_only_notifier(bool is_read_only,
 	return VDO_SUCCESS;
 }
 
+/**
+ * Free the list of read-only listeners associated with a thread.
+ *
+ * @param thread_data  The thread holding the list to free
+ **/
+static void free_listeners(struct thread_data *thread_data)
+{
+	struct read_only_listener *listener, *next;
+
+	for (listener = UDS_FORGET(thread_data->listeners);
+	     listener != NULL;
+	     listener = next) {
+		next = UDS_FORGET(listener->next);
+		UDS_FREE(listener);
+	}
+}
+
 /**********************************************************************/
 void free_vdo_read_only_notifier(struct read_only_notifier *notifier)
 {
@@ -170,13 +187,7 @@ void free_vdo_read_only_notifier(struct read_only_notifier *notifier)
 	}
 
 	for (id = 0; id < notifier->thread_config->base_thread_count; id++) {
-		struct thread_data *thread_data = &notifier->thread_data[id];
-		struct read_only_listener *listener = thread_data->listeners;
-		while (listener != NULL) {
-			struct read_only_listener *to_free = listener;
-			listener = listener->next;
-			UDS_FREE(to_free);
-		}
+		free_listeners(&notifier->thread_data[id]);
 	}
 
 	UDS_FREE(notifier);
