@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#45 $
  */
 
 #include "hashZone.h"
@@ -120,7 +120,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		struct hash_lock *lock = &zone->lock_array[i];
-		initialize_hash_lock(lock);
+		initialize_vdo_hash_lock(lock);
 		list_add_tail(&lock->pool_node, &zone->lock_pool);
 	}
 
@@ -182,7 +182,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 	*lock_ptr = NULL;
 
 	memset(lock, 0, sizeof(*lock));
-	initialize_hash_lock(lock);
+	initialize_vdo_hash_lock(lock);
 	list_add_tail(&lock->pool_node, &zone->lock_pool);
 }
 
@@ -262,9 +262,9 @@ void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
 			"hash lock returned to zone must have no waiters");
 	ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
 			"hash lock returned to zone must not reference a PBN lock");
-	ASSERT_LOG_ONLY((lock->state == HASH_LOCK_DESTROYING),
+	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
 			"returned hash lock must not be in use with state %s",
-			get_hash_lock_state_name(lock->state));
+			get_vdo_hash_lock_state_name(lock->state));
 	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
 			"hash lock returned to zone must not be in a pool ring");
 	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
@@ -291,7 +291,7 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	// Necessarily cryptic since we can log a lot of these. First three
 	// chars of state is unambiguous. 'U' indicates a lock not registered in
 	// the map.
-	state = get_hash_lock_state_name(lock->state);
+	state = get_vdo_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		     (unsigned long long) lock->duplicate.pbn,
