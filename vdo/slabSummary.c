@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#74 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#75 $
  */
 
 #include "slabSummary.h"
@@ -266,6 +266,27 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
+/**
+ * Free a slab summary zone.
+ *
+ * @param zone  The zone to free
+ **/
+static void free_summary_zone(struct slab_summary_zone *zone)
+{
+	block_count_t i;
+
+	if (zone == NULL) {
+		return;
+	}
+
+	for (i = 0; i < zone->summary->blocks_per_zone; i++) {
+		free_vio(UDS_FORGET(zone->summary_blocks[i].vio));
+		UDS_FREE(UDS_FORGET(zone->summary_blocks[i].outgoing_entries));
+	}
+
+	UDS_FREE(zone);
+}
+
 /**********************************************************************/
 void free_vdo_slab_summary(struct slab_summary *summary)
 {
@@ -276,16 +297,7 @@ void free_vdo_slab_summary(struct slab_summary *summary)
 	}
 
 	for (zone = 0; zone < summary->zone_count; zone++) {
-		struct slab_summary_zone *summary_zone = summary->zones[zone];
-		if (summary_zone != NULL) {
-			block_count_t i;
-			for (i = 0; i < summary->blocks_per_zone; i++) {
-				free_vio(UDS_FORGET(summary_zone->summary_blocks[i].vio));
-				UDS_FREE(summary_zone->summary_blocks[i]
-					     .outgoing_entries);
-			}
-			UDS_FREE(summary_zone);
-		}
+		free_summary_zone(UDS_FORGET(summary->zones[zone]));
 	}
 
 	UDS_FREE(UDS_FORGET(summary->entries));
@@ -293,8 +305,8 @@ void free_vdo_slab_summary(struct slab_summary *summary)
 }
 
 /**********************************************************************/
-struct slab_summary_zone *vdo_get_slab_summary_for_zone(struct slab_summary *summary,
-							zone_count_t zone)
+struct slab_summary_zone *
+vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone)
 {
 	return summary->zones[zone];
 }
@@ -306,7 +318,8 @@ struct slab_summary_zone *vdo_get_slab_summary_for_zone(struct slab_summary *sum
  *
  * @param summary_zone  The zone to check
  **/
-static void vdo_check_for_drain_complete(struct slab_summary_zone *summary_zone)
+static void
+vdo_check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
 	if (!is_vdo_state_draining(&summary_zone->state)
 	    || (summary_zone->write_count > 0)) {
@@ -327,7 +340,7 @@ static void vdo_check_for_drain_complete(struct slab_summary_zone *summary_zone)
  * @param queue         The queue to notify
  **/
 static void notify_waiters(struct slab_summary_zone *summary_zone,
-			  struct wait_queue *queue)
+			   struct wait_queue *queue)
 {
 	int result = (vdo_is_read_only(summary_zone->summary->read_only_notifier)
 		      ? VDO_READ_ONLY
@@ -341,7 +354,8 @@ static void notify_waiters(struct slab_summary_zone *summary_zone,
  *
  * @param block  The block
  **/
-static void finish_updating_slab_summary_block(struct slab_summary_block *block)
+static void
+finish_updating_slab_summary_block(struct slab_summary_block *block)
 {
 	notify_waiters(block->zone, &block->current_update_waiters);
 	block->writing = false;
