@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#66 $
  */
 
 #include "readOnlyRebuild.h"
@@ -86,20 +86,18 @@ as_read_only_rebuild_completion(struct vdo_completion *completion)
 /**
  * Free a rebuild completion and all underlying structures.
  *
- * @param rebuild_ptr  A pointer to the rebuild completion to free
+ * @param rebuild  The rebuild completion to free
  */
 static void
-free_rebuild_completion(struct read_only_rebuild_completion **rebuild_ptr)
+free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
 {
-	struct read_only_rebuild_completion *rebuild = *rebuild_ptr;
 	if (rebuild == NULL) {
 		return;
 	}
 
-	UDS_FREE(rebuild->journal_data);
-	UDS_FREE(rebuild->entries);
+	UDS_FREE(UDS_FORGET(rebuild->journal_data));
+	UDS_FREE(UDS_FORGET(rebuild->entries));
 	UDS_FREE(rebuild);
-	*rebuild_ptr = NULL;
 }
 
 /**
@@ -142,11 +140,11 @@ static void complete_rebuild(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 	int result = completion->result;
 	struct read_only_rebuild_completion *rebuild =
-		as_read_only_rebuild_completion(completion);
-	struct vdo *vdo = rebuild->vdo;
-	set_vdo_page_cache_rebuild_mode(get_block_map(vdo)->zones[0].page_cache,
-					false);
-	free_rebuild_completion(&rebuild);
+		as_read_only_rebuild_completion(UDS_FORGET(completion));
+	struct block_map *block_map = rebuild->vdo->block_map;
+
+	set_vdo_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
+	free_rebuild_completion(UDS_FORGET(rebuild));
 	finish_vdo_completion(parent, result);
 }
 
