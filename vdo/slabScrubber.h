@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#17 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -43,11 +43,11 @@ make_vdo_slab_scrubber(struct vdo *vdo,
 		       struct slab_scrubber **scrubber_ptr);
 
 /**
- * Free a slab scrubber and null out the reference to it.
+ * Free a slab scrubber.
  *
- * @param scrubber_ptr  A pointer to the scrubber to destroy
+ * @param scrubber  The scrubber to destroy
  **/
-void free_vdo_slab_scrubber(struct slab_scrubber **scrubber_ptr);
+void free_vdo_slab_scrubber(struct slab_scrubber *scrubber);
 
 /**
  * Check whether a scrubber has slabs to scrub.

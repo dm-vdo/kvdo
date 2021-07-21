@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#74 $
  */
 
 #include "slabSummary.h"
@@ -231,7 +231,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 	result = UDS_ALLOCATE(total_entries, struct slab_summary_entry,
 			      "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
-		free_vdo_slab_summary(&summary);
+		free_vdo_slab_summary(summary);
 		return result;
 	}
 
@@ -257,7 +257,7 @@ int make_vdo_slab_summary(struct vdo *vdo,
 					       summary->entries +
 					       (MAX_VDO_SLABS * zone));
 		if (result != VDO_SUCCESS) {
-			free_vdo_slab_summary(&summary);
+			free_vdo_slab_summary(summary);
 			return result;
 		}
 	}
@@ -267,16 +267,14 @@ int make_vdo_slab_summary(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr)
+void free_vdo_slab_summary(struct slab_summary *summary)
 {
-	struct slab_summary *summary;
 	zone_count_t zone;
 
-	if (*slab_summary_ptr == NULL) {
+	if (summary == NULL) {
 		return;
 	}
 
-	summary = *slab_summary_ptr;
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		struct slab_summary_zone *summary_zone = summary->zones[zone];
 		if (summary_zone != NULL) {
@@ -289,9 +287,9 @@ void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr)
 			UDS_FREE(summary_zone);
 		}
 	}
-	UDS_FREE(summary->entries);
+
+	UDS_FREE(UDS_FORGET(summary->entries));
 	UDS_FREE(summary);
-	*slab_summary_ptr = NULL;
 }
 
 /**********************************************************************/

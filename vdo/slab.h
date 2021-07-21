@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#42 $
  */
 
 #ifndef VDO_SLAB_H
@@ -130,11 +130,11 @@ int __must_check make_vdo_slab(physical_block_number_t slab_origin,
 int __must_check allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab);
 
 /**
- * Destroy a slab and null out the reference to it.
+ * Destroy a slab.
  *
- * @param slab_ptr  The reference to the slab to destroy
+ * @param slab  The slab to destroy
  **/
-void free_vdo_slab(struct vdo_slab **slab_ptr);
+void free_vdo_slab(struct vdo_slab *slab);
 
 /**
  * Get the physical zone number of a slab.

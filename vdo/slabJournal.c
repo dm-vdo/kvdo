@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#105 $
  */
 
 #include "slabJournalInternals.h"
@@ -220,7 +220,7 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 			      "struct packed_slab_journal_block",
 			      (char **)&journal->block);
 	if (result != VDO_SUCCESS) {
-		free_vdo_slab_journal(&journal);
+		free_vdo_slab_journal(journal);
 		return result;
 	}
 
@@ -236,16 +236,14 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 }
 
 /**********************************************************************/
-void free_vdo_slab_journal(struct slab_journal **journal_ptr)
+void free_vdo_slab_journal(struct slab_journal *journal)
 {
-	struct slab_journal *journal = *journal_ptr;
 	if (journal == NULL) {
 		return;
 	}
 
-	UDS_FREE(journal->block);
+	UDS_FREE(UDS_FORGET(journal->block));
 	UDS_FREE(journal);
-	*journal_ptr = NULL;
 }
 
 /**********************************************************************/

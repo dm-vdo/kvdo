@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#30 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -88,11 +88,11 @@ make_vdo_slab_summary(struct vdo *vdo,
 		      struct slab_summary **slab_summary_ptr);
 
 /**
- * Destroy a slab_summary and NULL out the reference to it.
+ * Destroy a slab summary.
  *
- * @param [in,out] slab_summary_ptr A pointer to the slab_summary to free
+ * @param summary  The slab summary to free
  **/
-void free_vdo_slab_summary(struct slab_summary **slab_summary_ptr);
+void free_vdo_slab_summary(struct slab_summary *summary);
 
 /**
  * Get the portion of the slab summary for a specified zone.

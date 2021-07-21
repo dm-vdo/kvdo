@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#71 $
  */
 
 #include "slab.h"
@@ -72,7 +72,7 @@ int make_vdo_slab(physical_block_number_t slab_origin,
 	result = make_vdo_slab_journal(allocator, slab, recovery_journal,
 				       &slab->journal);
 	if (result != VDO_SUCCESS) {
-		free_vdo_slab(&slab);
+		free_vdo_slab(slab);
 		return result;
 	}
 
@@ -80,7 +80,7 @@ int make_vdo_slab(physical_block_number_t slab_origin,
 		set_vdo_admin_state_code(&slab->state, VDO_ADMIN_STATE_NEW);
 		result = allocate_ref_counts_for_vdo_slab(slab);
 		if (result != VDO_SUCCESS) {
-			free_vdo_slab(&slab);
+			free_vdo_slab(slab);
 			return result;
 		}
 	} else {
@@ -114,18 +114,16 @@ int allocate_ref_counts_for_vdo_slab(struct vdo_slab *slab)
 }
 
 /**********************************************************************/
-void free_vdo_slab(struct vdo_slab **slab_ptr)
+void free_vdo_slab(struct vdo_slab *slab)
 {
-	struct vdo_slab *slab = *slab_ptr;
 	if (slab == NULL) {
 		return;
 	}
 
 	list_del(&slab->allocq_entry);
-	free_vdo_slab_journal(&slab->journal);
+	free_vdo_slab_journal(UDS_FORGET(slab->journal));
 	free_vdo_ref_counts(UDS_FORGET(slab->reference_counts));
 	UDS_FREE(slab);
-	*slab_ptr = NULL;
 }
 
 /**********************************************************************/

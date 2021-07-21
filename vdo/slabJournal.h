@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#26 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -55,11 +55,11 @@ int __must_check make_vdo_slab_journal(struct block_allocator *allocator,
 				       struct slab_journal **journal_ptr);
 
 /**
- * Free a slab journal and null out the reference to it.
+ * Free a slab journal.
  *
- * @param journal_ptr  The reference to the slab journal to free
+ * @param journal  The slab journal to free
  **/
-void free_vdo_slab_journal(struct slab_journal **journal_ptr);
+void free_vdo_slab_journal(struct slab_journal *journal);
 
 /**
  * Check whether a slab journal is blank, meaning it has never had any entries

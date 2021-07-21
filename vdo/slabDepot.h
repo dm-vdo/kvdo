@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#48 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -74,11 +74,11 @@ decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 		      struct slab_depot **depot_ptr);
 
 /**
- * Destroy a slab depot and null out the reference to it.
+ * Destroy a slab depot.
  *
- * @param depot_ptr  The reference to the depot to destroy
+ * @param depot  The depot to destroy
  **/
-void free_vdo_slab_depot(struct slab_depot **depot_ptr);
+void free_vdo_slab_depot(struct slab_depot *depot);
 
 /**
  * Record the state of a slab depot for encoding into the super block.

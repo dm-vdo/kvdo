@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#116 $
  */
 
 #include "slabDepot.h"
@@ -138,16 +138,17 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 void vdo_abandon_new_slabs(struct slab_depot *depot)
 {
 	slab_count_t i;
+
 	if (depot->new_slabs == NULL) {
 		return;
 	}
+
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
-		free_vdo_slab(&depot->new_slabs[i]);
+		free_vdo_slab(UDS_FORGET(depot->new_slabs[i]));
 	}
 	depot->new_slab_count = 0;
-	UDS_FREE(depot->new_slabs);
-	depot->new_slabs = NULL;
 	depot->new_size = 0;
+	UDS_FREE(UDS_FORGET(depot->new_slabs));
 }
 
 /**
@@ -320,7 +321,7 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 
 	result = allocate_components(depot, summary_partition);
 	if (result != VDO_SUCCESS) {
-		free_vdo_slab_depot(&depot);
+		free_vdo_slab_depot(depot);
 		return result;
 	}
 
@@ -329,10 +330,10 @@ int decode_vdo_slab_depot(struct slab_depot_state_2_0 state,
 }
 
 /**********************************************************************/
-void free_vdo_slab_depot(struct slab_depot **depot_ptr)
+void free_vdo_slab_depot(struct slab_depot *depot)
 {
 	zone_count_t zone = 0;
-	struct slab_depot *depot = *depot_ptr;
+
 	if (depot == NULL) {
 		return;
 	}
@@ -346,15 +347,14 @@ void free_vdo_slab_depot(struct slab_depot **depot_ptr)
 	if (depot->slabs != NULL) {
 		slab_count_t i;
 		for (i = 0; i < depot->slab_count; i++) {
-			free_vdo_slab(&depot->slabs[i]);
+			free_vdo_slab(UDS_FORGET(depot->slabs[i]));
 		}
 	}
 
-	UDS_FREE(depot->slabs);
+	UDS_FREE(UDS_FORGET(depot->slabs));
 	UDS_FREE(UDS_FORGET(depot->action_manager));
-	free_vdo_slab_summary(&depot->slab_summary);
+	free_vdo_slab_summary(UDS_FORGET(depot->slab_summary));
 	UDS_FREE(depot);
-	*depot_ptr = NULL;
 }
 
 /**********************************************************************/
