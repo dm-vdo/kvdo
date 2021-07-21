@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#55 $
  */
 
 #include "flush.h"
@@ -155,7 +155,7 @@ static void finish_notification(struct vdo_completion *completion)
 		struct vdo_flush *flush = waiter_as_flush(waiter);
 		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
 					 result);
-		vdo_complete_flush(&flush);
+		vdo_complete_flush(flush);
 		return;
 	}
 
@@ -251,7 +251,7 @@ void flush_vdo(struct vdo_work_item *item)
 	if (result != VDO_SUCCESS) {
 		vdo_enter_read_only_mode(flush->vdo->read_only_notifier,
 					 result);
-		vdo_complete_flush(&flush);
+		vdo_complete_flush(flush);
 		return;
 	}
 
@@ -290,7 +290,7 @@ void complete_vdo_flushes(struct flusher *flusher)
 				(unsigned long long) flusher->first_unacknowledged_generation,
 				(unsigned long long) flush->flush_generation);
 		dequeue_next_waiter(&flusher->pending_flushes);
-		vdo_complete_flush(&flush);
+		vdo_complete_flush(flush);
 		flusher->first_unacknowledged_generation++;
 	}
 }
@@ -457,9 +457,8 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 }
 
 /**********************************************************************/
-void vdo_complete_flush(struct vdo_flush **flush_ptr)
+void vdo_complete_flush(struct vdo_flush *flush)
 {
-	struct vdo_flush *flush = *flush_ptr;
 	setup_work_item(&flush->work_item,
 			vdo_complete_flush_work,
 			NULL,

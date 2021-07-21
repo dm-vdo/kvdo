@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#14 $
  */
 
 #ifndef FLUSH_H
@@ -95,9 +95,9 @@ void dump_vdo_flusher(const struct flusher *flusher);
 /**
  * Complete and free a vdo flush request.
  *
- * @param flush_ptr  The pointer to the flush reference, which will be nulled
+ * @param flush  The flush request
  **/
-void vdo_complete_flush(struct vdo_flush **flush_ptr);
+void vdo_complete_flush(struct vdo_flush *flush);
 
 /**
  * Function called to start processing a flush request. It is called when we
