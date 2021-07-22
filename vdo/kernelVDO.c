@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#112 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#113 $
  */
 
 /*
@@ -142,19 +142,6 @@ int make_vdo_threads(struct vdo *vdo,
 			vdo->threads = NULL;
 			return result;
 		}
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int start_vdo(struct vdo *vdo, char **reason)
-{
-	int result = perform_vdo_load(vdo);
-
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		*reason = "Cannot load metadata from device";
-		return result;
 	}
 
 	return VDO_SUCCESS;

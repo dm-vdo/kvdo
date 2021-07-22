@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#11 $
  */
 
 #ifndef VDO_LOAD_H
@@ -28,11 +28,11 @@
  * Load a vdo for normal operation. This method must not be called from a base
  * thread.
  *
- * @param vdo         The vdo to load
+ * @param vdo  The vdo to load
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check perform_vdo_load(struct vdo *vdo);
+int __must_check load_vdo(struct vdo *vdo);
 
 /**
  * Perpare a vdo for loading by reading structures off disk. This method does

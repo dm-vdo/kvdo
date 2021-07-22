@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#46 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -51,17 +51,6 @@ enum {
 int make_vdo_threads(struct vdo *vdo,
 		     const char *thread_name_prefix,
 		     char **reason);
-
-/**
- * Starts the base VDO instance associated with the kernel layer. This method
- * is ultimately called from preresume the first time an instance is resumed.
- *
- * @param [in]  vdo     The vdo to be started
- * @param [out] reason  The reason for failure
- *
- * @return VDO_SUCCESS if started, otherwise error
- **/
-int start_vdo(struct vdo *vdo, char **reason);
 
 /**
  * Resume the base VDO instance associated with the kernel layer.

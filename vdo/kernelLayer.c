@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#218 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#219 $
  */
 
 #include "kernelLayer.h"
@@ -642,8 +642,9 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		return UDS_BAD_STATE;
 	}
 
-	result = start_vdo(&layer->vdo, reason);
-	if (result != VDO_SUCCESS) {
+	result = load_vdo(&layer->vdo);
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		*reason = "Cannot load metadata from device";
 		stop_kernel_layer(layer);
 		return result;
 	}
