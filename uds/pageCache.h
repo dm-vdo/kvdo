@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#14 $
  */
 
 #ifndef PAGE_CACHE_H
 #define PAGE_CACHE_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "common.h"

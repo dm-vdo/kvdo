@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.h#11 $
  */
 
 #ifndef INDEX_SESSION_H
 #define INDEX_SESSION_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "config.h"
 #include "cpu.h"
 #include "opaqueTypes.h"

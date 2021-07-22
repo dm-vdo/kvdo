@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#11 $
  */
 
 /**
@@ -90,7 +90,8 @@
 
 #include "eventCount.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "common.h"
 #include "compiler.h"
 #include "cpu.h"

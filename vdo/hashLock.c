@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#66 $
  */
 
 /**
@@ -1644,7 +1644,7 @@ void release_vdo_hash_lock(struct data_vio *data_vio)
 	}
 
 	set_hash_lock_state(lock, VDO_HASH_LOCK_DESTROYING);
-	return_lock_to_vdo_hash_zone(data_vio->hash_zone, &lock);
+	return_lock_to_vdo_hash_zone(data_vio->hash_zone, lock);
 }
 
 /**

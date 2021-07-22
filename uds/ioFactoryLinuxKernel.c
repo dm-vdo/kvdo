@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#12 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#13 $
  */
 
+#include <linux/atomic.h>
 #include <linux/blkdev.h>
 #include <linux/mount.h>
 
-#include "atomicDefs.h"
 #include "ioFactory.h"
 #include "logger.h"
 #include "memoryAlloc.h"

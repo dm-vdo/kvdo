@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#18 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#19 $
  */
 
 #include "requestQueue.h"
 
+#include <linux/atomic.h>
 #include <linux/wait.h>
 
-#include "atomicDefs.h"
 #include "compiler.h"
 #include "logger.h"
 #include "request.h"

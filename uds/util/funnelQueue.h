@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.h#7 $
  */
 
 #ifndef FUNNEL_QUEUE_H
 #define FUNNEL_QUEUE_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "compiler.h"
 #include "cpu.h"
 #include "typeDefs.h"
