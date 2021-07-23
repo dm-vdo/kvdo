@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#41 $
  */
 
 #ifndef VDO_H
@@ -58,6 +58,16 @@ get_vdo_backing_device(const struct vdo *vdo);
  * @return VDO_SUCCESS or an error
  */
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
+
+/**
+ * Get the admin state of the vdo.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The code for the vdo's current admin state
+ **/
+const struct admin_state_code * __must_check
+get_vdo_admin_state(const struct vdo *vdo);
 
 /**
  * Turn compression on or off.

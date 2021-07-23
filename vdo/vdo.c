@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#163 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#164 $
  */
 
 /*
@@ -220,6 +220,12 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state)
 {
 	smp_wmb();
 	atomic_set(&vdo->state, state);
+}
+
+/**********************************************************************/
+const struct admin_state_code *get_vdo_admin_state(const struct vdo *vdo)
+{
+	return get_vdo_admin_state_code(&vdo->admin_state);
 }
 
 /**

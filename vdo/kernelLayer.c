@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#219 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#220 $
  */
 
 #include "kernelLayer.h"
@@ -712,41 +712,14 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
-	struct vdo *vdo = &layer->vdo;
-	int result, suspend_result;
+	int result = suspend_vdo(&layer->vdo);
 
-	if (state == LAYER_SUSPENDED) {
-		return VDO_SUCCESS;
-	}
-	if (state != LAYER_RUNNING) {
+	if (result == VDO_INVALID_ADMIN_STATE) {
 		uds_log_error("Suspend invoked while in unexpected kernel layer state %d",
-			      state);
+			      get_kernel_layer_state(layer));
 		return -EINVAL;
 	}
 
-	/*
-	 * Attempt to flush all I/O before completing post suspend work. We
-	 * believe a suspended device is expected to have persisted all data
-	 * written before the suspend, even if it hasn't been flushed yet.
-	 */
-	vdo_wait_for_no_requests_active(vdo);
-	result = vdo_synchronous_flush(vdo);
-	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
-	}
-
-	/*
-	 * Suspend the VDO, writing out all dirty metadata if the no-flush flag
-	 * was not set on the dmsetup suspend call. This will ensure that we
-	 * don't have cause to write while suspended [VDO-4402].
-	 */
-	suspend_result = suspend_vdo(vdo);
-	if (result == VDO_SUCCESS) {
-		result = suspend_result;
-	}
-
-	suspend_vdo_dedupe_index(vdo->dedupe_index, !vdo->no_flush_suspend);
 	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
 }

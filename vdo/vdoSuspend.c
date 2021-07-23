@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#46 $
  */
 
 #include "vdoSuspend.h"
@@ -27,6 +27,7 @@
 #include "adminCompletion.h"
 #include "blockMap.h"
 #include "completion.h"
+#include "dedupeIndex.h"
 #include "logicalZone.h"
 #include "recoveryJournal.h"
 #include "slabDepot.h"
@@ -118,6 +119,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 	struct admin_state *admin_state = &vdo->admin_state;
+	int result;
 
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_SUSPEND);
@@ -140,6 +142,18 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
+		/*
+		 * Attempt to flush all I/O before completing post suspend
+		 * work. We believe a suspended device is expected to have
+		 * persisted all data ritten before the suspend, even if it
+		 * hasn't been flushed yet.
+		 */
+		vdo_wait_for_no_requests_active(vdo);
+		result = vdo_synchronous_flush(vdo);
+		if (result != VDO_SUCCESS) {
+			vdo_enter_read_only_mode(vdo->read_only_notifier,
+						 result);
+		}
 		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 							   reset_vdo_admin_sub_task(completion));
 		return;
@@ -197,6 +211,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_END:
+		suspend_vdo_dedupe_index(vdo->dedupe_index,
+					 !vdo->no_flush_suspend);
 		break;
 
 	default:
@@ -209,12 +225,21 @@ static void suspend_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int suspend_vdo(struct vdo *vdo)
 {
-	int result
-		= perform_vdo_admin_operation(vdo,
-					      VDO_ADMIN_OPERATION_SUSPEND,
-					      get_thread_id_for_phase,
-					      suspend_callback,
-					      preserve_vdo_completion_error_and_continue);
+	int result;
+	/*
+	 * It's important to note any error here does not actually stop
+	 * device-mapper from suspending the device. All this work is done
+	 * post suspend.
+	 */
+	if (get_vdo_admin_state(vdo)->quiescent) {
+		return VDO_SUCCESS;
+	}
+
+	result = perform_vdo_admin_operation(vdo,
+					     VDO_ADMIN_OPERATION_SUSPEND,
+					     get_thread_id_for_phase,
+					     suspend_callback,
+					     preserve_vdo_completion_error_and_continue);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		uds_log_error_strerror(result, "%s: Suspend device failed",
