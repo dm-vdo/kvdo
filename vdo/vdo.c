@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#162 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#163 $
  */
 
 /*
@@ -128,11 +128,16 @@ void destroy_vdo(struct vdo *vdo)
 	UDS_FREE(vdo->threads);
 	vdo->threads = NULL;
 
-	for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++) {
-		UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
+	if (vdo->compression_context != NULL) {
+		for (i = 0;
+		     i < vdo->device_config->thread_counts.cpu_threads;
+		     i++) {
+			UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
+		}
+
+		UDS_FREE(UDS_FORGET(vdo->compression_context));
 	}
 
-	UDS_FREE(UDS_FORGET(vdo->compression_context));
 	release_vdo_instance(vdo->instance);
 
 	/*
@@ -140,8 +145,13 @@ void destroy_vdo(struct vdo *vdo)
 	 * reference count; when the count goes to zero the VDO object will be
 	 * freed as a side effect.
 	 */
-	kobject_put(&vdo->work_queue_directory);
-	kobject_put(&vdo->vdo_directory);
+	if (get_vdo_admin_state_code(&vdo->admin_state)
+	    == VDO_ADMIN_STATE_NEW) {
+		UDS_FREE(vdo);
+	} else {
+		kobject_put(&vdo->work_queue_directory);
+		kobject_put(&vdo->vdo_directory);
+	}
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#23 $
  */
 
 #include "vdoInit.h"
@@ -66,11 +66,16 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 			     &disk_to_dev(dm_disk(md))->kobj,
 			     "vdo");
 	if (result != 0) {
-		*reason = "Cannot add sysfs node";
+		destroy_vdo(vdo);
 		kobject_put(&vdo->vdo_directory);
+		*reason = "Cannot add sysfs node";
 		return result;
 	}
 
+	// Indicate that kobject_put() should now be called on the vdo
+	// directory in order to free the vdo rather than doing so directly.
+	set_vdo_admin_state_code(&vdo->admin_state,
+				 VDO_ADMIN_STATE_INITIALIZED);
 	kobject_init(&vdo->work_queue_directory,
 		     &vdo_work_queue_directory_type);
 	result = kobject_add(&vdo->work_queue_directory,
@@ -78,20 +83,11 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 			     "work_queues");
 	if (result != 0) {
 		*reason = "Cannot add sysfs node";
-		kobject_put(&vdo->work_queue_directory);
-		kobject_put(&vdo->vdo_directory);
+		destroy_vdo(vdo);
 		return result;
 	}
 
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-static int handle_initialization_failure(struct vdo *vdo, int result)
-{
-	release_vdo_instance(vdo->instance);
-	unregister_vdo(vdo);
-	return result;
 }
 
 /**
@@ -159,8 +155,7 @@ int initialize_vdo(struct vdo *vdo,
 	vdo->starting_sector_offset = config->owning_target->begin;
 	vdo->instance = instance;
 	vdo->allocations_allowed = true;
-	set_vdo_admin_state_code(&vdo->admin_state,
-				 VDO_ADMIN_STATE_NORMAL_OPERATION);
+	set_vdo_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	initialize_vdo_admin_completion(vdo, &vdo->admin_completion);
 	mutex_init(&vdo->stats_mutex);
@@ -173,29 +168,22 @@ int initialize_vdo(struct vdo *vdo,
 					 &vdo->geometry);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
-		return handle_initialization_failure(vdo, result);
+		destroy_vdo(vdo);
+		return result;
 	}
 
 	result = allocate_vdo_threads(vdo, reason);
 	if (result != VDO_SUCCESS) {
-		return handle_initialization_failure(vdo, result);
+		destroy_vdo(vdo);
+		return result;
 	}
 
 	result = register_vdo(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot add VDO to device registry";
-		return handle_initialization_failure(vdo, result);
+		destroy_vdo(vdo);
+		return result;
 	}
 
-	/*
-	 * After this point, calling kobject_put on vdo_directory will
-	 * decrement its reference count, and when the count goes to 0 the
-	 * struct vdo itself will be freed.
-	 */
-	result = initialize_vdo_kobjects(vdo, config->owning_target, reason);
-	if (result != VDO_SUCCESS) {
-		return handle_initialization_failure(vdo, result);
-	}
-
-	return VDO_SUCCESS;
+	return initialize_vdo_kobjects(vdo, config->owning_target, reason);
 }

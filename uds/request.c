@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#16 $
  */
 
 #include "request.h"
@@ -29,15 +29,15 @@
 #include "requestQueue.h"
 
 /**********************************************************************/
-int uds_start_chunk_operation(struct uds_request *uds_request)
+int uds_start_chunk_operation(struct uds_request *request)
 {
-	Request *request = (Request *) uds_request;
+        size_t internal_size;
 	int result;
 
-	if (uds_request->callback == NULL) {
+	if (request->callback == NULL) {
 		return UDS_CALLBACK_REQUIRED;
 	}
-	switch (uds_request->type) {
+	switch (request->type) {
 	case UDS_DELETE:
 	case UDS_POST:
 	case UDS_QUERY:
@@ -46,7 +46,11 @@ int uds_start_chunk_operation(struct uds_request *uds_request)
 	default:
 		return UDS_INVALID_OPERATION_TYPE;
 	}
-	memset(uds_request->private, 0, sizeof(uds_request->private));
+
+	// Reset all internal fields before processing.
+        internal_size = sizeof(struct uds_request)
+		- offsetof(struct uds_request, zone_number);
+	memset(&request->zone_number, 0, internal_size);
 
 	result = get_index_session(request->session);
 	if (result != UDS_SUCCESS) {

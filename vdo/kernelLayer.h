@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#96 $
  */
 
 #ifndef KERNELLAYER_H
@@ -58,9 +58,9 @@ enum kernel_layer_state {
  * The VDO representation of the target device
  **/
 struct kernel_layer {
+	struct vdo vdo;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
-	struct vdo vdo;
 };
 
 enum bio_q_action {

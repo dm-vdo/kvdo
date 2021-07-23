@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#15 $
  */
 
 /**
@@ -33,6 +33,7 @@
 
 #include "compiler.h"
 #include "uds-platform.h"
+#include "util/funnelQueue.h"
 
 /**
  * Valid request types as described in callbacks.
@@ -256,6 +257,87 @@ struct uds_context_stats {
 	uint64_t requests;
 };
 
+/**
+ * Internal index structures.
+ **/
+struct index_router;
+struct index;
+
+/**
+ * The block's rough location in the index, if any.
+ **/
+enum index_region {
+	/* the block doesn't exist or the location isn't available */
+	LOC_UNAVAILABLE,
+	/* if the block was found in the open chapter */
+	LOC_IN_OPEN_CHAPTER,
+	/* if the block was found in the dense part of the index */
+	LOC_IN_DENSE,
+	/* if the block was found in the sparse part of the index */
+	LOC_IN_SPARSE
+} __packed;
+
+/**
+ * enum request_action values indicate what action, command, or query is to be
+ * performed when processing a Request instance.
+ **/
+enum request_action {
+	// Map the API's uds_callback_type values directly to a corresponding
+	// action.
+	REQUEST_INDEX = UDS_POST,
+	REQUEST_UPDATE = UDS_UPDATE,
+	REQUEST_DELETE = UDS_DELETE,
+	REQUEST_QUERY = UDS_QUERY,
+
+	REQUEST_CONTROL,
+
+	// REQUEST_SPARSE_CACHE_BARRIER is the action for the control request
+	// used by localIndexRouter.
+	REQUEST_SPARSE_CACHE_BARRIER,
+
+	// REQUEST_ANNOUNCE_CHAPTER_CLOSED is the action for the control
+	// request used by an indexZone to signal the other zones that it
+	// has closed the current open chapter.
+	REQUEST_ANNOUNCE_CHAPTER_CLOSED,
+} __packed;
+
+/**
+ * Control message fields for the barrier messages used to coordinate the
+ * addition of a chapter to the sparse chapter index cache.
+ **/
+struct barrier_message_data {
+	/** virtual chapter number of the chapter index to add to the sparse
+	 * cache */
+	uint64_t virtual_chapter;
+};
+
+/**
+ * Control message fields for the chapter closed messages used to inform
+ * lagging zones of the first zone to close a given open chapter.
+ **/
+struct chapter_closed_message_data {
+	/** virtual chapter number of the chapter which was closed */
+	uint64_t virtual_chapter;
+};
+
+/**
+ * Union of the all the zone control message fields. The  request_action field
+ * (or launch function argument) selects which of the members is valid.
+ **/
+union zone_message_data {
+	/** for REQUEST_SPARSE_CACHE_BARRIER */
+	struct barrier_message_data barrier;
+	/** for REQUEST_ANNOUNCE_CHAPTER_CLOSED */
+	struct chapter_closed_message_data chapter_closed;
+};
+
+struct zone_message {
+	/** the index to which the message is directed */
+	struct index *index;
+	/** the message specific data */
+	union zone_message_data data;
+};
+
 struct uds_request;
 
 /**
@@ -326,14 +408,44 @@ struct uds_request {
 	 * Unchanged at time of callback.
 	 */
 	bool update;
-	long private[25];
+
+	/*
+	 * The remainder of this structure consists of fields used within the
+	 * index to manage its operations. Clients should not set or alter
+	 * the values of these fields. We rely on zone_number being the first
+	 * field in this section.
+	 */
+
+	/** The number of the zone which will handle this */
+	unsigned int zone_number;
+	/** A link for adding a request to a lock-free queue */
+	struct funnel_queue_entry request_queue_link;
+	/** A link for adding a request to a standard linked list */
+	struct uds_request *next_request;
+	/** A pointer to the index_router handling this request */
+	struct index_router *router;
+	/** Fields for passing messages between zone worker threads */
+	struct zone_message zone_message;
+	bool is_control_message;
+	/** If true, handle request immediately by waking the worker thread */
+	bool unbatched;
+	/** If true, attempt to handle this request before newer requests */
+	bool requeued;
+	/** The type of operation for the index to perform on this request */
+	enum request_action action;
+	/** The location of this chunk name in the index, once found */
+	enum index_region location;
+	/** If true, a "slow lane" search has determined the location */
+	bool sl_location_known;
+	/** The location determined by a "slow lane" search */
+	enum index_region sl_location;
 };
 
 /**
  * Initializes an index configuration.
  *
- * @param [out] conf          The new configuration
- * @param [in] mem_gb          The maximum memory allocation, in GB
+ * @param [out] conf   The new configuration
+ * @param [in] mem_gb  The maximum memory allocation, in GB
  *
  * @return                    Either #UDS_SUCCESS or an error code
  **/
@@ -343,10 +455,10 @@ int __must_check uds_initialize_configuration(struct uds_configuration **conf,
 /**
  * Sets or clears an index configuration's sparse indexing settings.
  *
- * @param [in,out] conf       The configuration to change
- * @param [in] sparse         If <code>true</code>, request a sparse
- *                            index; if <code>false</code>, request
- *                            a default index.
+ * @param [in,out] conf  The configuration to change
+ * @param [in] sparse    If <code>true</code>, request a sparse
+ *                       index; if <code>false</code>, request
+ *                       a default index.
  *
  **/
 void uds_configuration_set_sparse(struct uds_configuration *conf, bool sparse);
@@ -364,8 +476,8 @@ bool __must_check uds_configuration_get_sparse(struct uds_configuration *conf);
 /**
  * Sets an index configuration's nonce.
  *
- * @param [in,out] conf  The configuration to change
- * @param [in] nonce    The 64 bit nonce.
+ * @param [in,out] conf   The configuration to change
+ * @param [in]     nonce  The 64 bit nonce.
  *
  **/
 void uds_configuration_set_nonce(struct uds_configuration *conf,
@@ -386,7 +498,7 @@ uds_configuration_get_nonce(struct uds_configuration *conf);
  *
  * @param [in] conf  The configuration to check
  *
- * @return      The amount of memory allocated, in GB
+ * @return The amount of memory allocated, in GB
  **/
 uds_memory_config_size_t __must_check
 uds_configuration_get_memory(struct uds_configuration *conf);
@@ -396,7 +508,7 @@ uds_configuration_get_memory(struct uds_configuration *conf);
  *
  * @param [in] conf  The configuration to check
  *
- * @return      The number of chapters per volume
+ * @return The number of chapters per volume
  **/
 unsigned int __must_check
 uds_configuration_get_chapters_per_volume(struct uds_configuration *conf);
@@ -404,7 +516,7 @@ uds_configuration_get_chapters_per_volume(struct uds_configuration *conf);
 /**
  * Frees memory used by a configuration.
  *
- * @param [in,out] conf The configuration for which memory is being freed
+ * @param [in,out] conf  The configuration for which memory is being freed
  **/
 void uds_free_configuration(struct uds_configuration *conf);
 
@@ -414,10 +526,10 @@ void uds_free_configuration(struct uds_configuration *conf);
  * device.  This size should be used when configuring a block device on which
  * to store an index.
  *
- * @param [in]  config          A uds_configuration for an index.
+ * @param [in]  config           A uds_configuration for an index.
  * @param [in]  num_checkpoints  The maximum number of checkpoints.
  * @param [out] index_size       The number of bytes required to store
- *                              the index.
+ *                               the index.
  *
  * @return UDS_SUCCESS or an error code.
  **/
@@ -442,7 +554,7 @@ int __must_check uds_create_index_session(struct uds_index_session **session);
 /**
  * Fetches the UDS library version.
  *
- * @return       The library version
+ * @return The library version
  **/
 const char * __must_check uds_get_version(void);
 
@@ -463,12 +575,12 @@ const char * __must_check uds_get_version(void);
  * The index should be closed with #uds_close_index.
  *
  * @param open_type  The type of open, which is one of #UDS_LOAD, #UDS_CREATE,
- *                  or #UDS_NO_REBUILD.
- * @param name      The name of the index
- * @param params    The index session parameters.  If NULL, the default
- *                       session parameters will be used.
- * @param conf      The index configuration
- * @param session   The index session
+ *                   or #UDS_NO_REBUILD.
+ * @param name       The name of the index
+ * @param params     The index session parameters.  If NULL, the default
+ *                   session parameters will be used.
+ * @param conf       The index configuration
+ * @param session    The index session
  *
  * @return          Either #UDS_SUCCESS or an error code
  **/
@@ -506,7 +618,7 @@ int __must_check uds_resume_index_session(struct uds_index_session *session);
  *
  * @param [in] session  The session to flush
  *
- * @return              Either #UDS_SUCCESS or an error code
+ * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_flush_index_session(struct uds_index_session *session);
 
@@ -538,10 +650,10 @@ int uds_destroy_index_session(struct uds_index_session *session);
 /**
  * Returns the configuration for the given index session.
  *
- * @param [in]  session The session
- * @param [out] conf    The index configuration
+ * @param [in]  session  The session
+ * @param [out] conf     The index configuration
  *
- * @return              Either #UDS_SUCCESS or an error code
+ * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_get_index_configuration(struct uds_index_session *session,
 					     struct uds_configuration **conf);
@@ -549,10 +661,10 @@ int __must_check uds_get_index_configuration(struct uds_index_session *session,
 /**
  * Fetches index statistics for the given index session.
  *
- * @param [in]  session The session
- * @param [out] stats   The index statistics structure to fill
+ * @param [in]  session  The session
+ * @param [out] stats    The index statistics structure to fill
  *
- * @return              Either #UDS_SUCCESS or an error code
+ * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_get_index_stats(struct uds_index_session *session,
 				     struct uds_index_stats *stats);
@@ -563,7 +675,7 @@ int __must_check uds_get_index_stats(struct uds_index_session *session,
  * @param [in]  session  The session
  * @param [out] stats    The context statistics structure to fill
  *
- * @return              Either #UDS_SUCCESS or an error code
+ * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_get_index_session_stats(struct uds_index_session *session,
 					     struct uds_context_stats *stats);
@@ -571,9 +683,9 @@ int __must_check uds_get_index_session_stats(struct uds_index_session *session,
 /**
  * Convert an error code to a string.
  *
- * @param errnum       The error code
- * @param buf          The buffer to hold the error string
- * @param buflen       The length of the buffer
+ * @param errnum  The error code
+ * @param buf     The buffer to hold the error string
+ * @param buflen  The length of the buffer
  *
  * @return A pointer to buf
  **/
@@ -629,7 +741,7 @@ enum { UDS_STRING_ERROR_BUFSIZE = 128 };
  *                      <code>status</code>, and <code>found</code> fields will
  *                      be set.
  *
- * @return              Either #UDS_SUCCESS or an error code
+ * @return Either #UDS_SUCCESS or an error code
  **/
 int __must_check uds_start_chunk_operation(struct uds_request *request);
 /** @} */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#217 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#218 $
  */
 
 #include "kernelLayer.h"
@@ -304,7 +304,6 @@ int make_kernel_layer(unsigned int instance,
 				instance,
 				reason);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(layer);
 		return result;
 	}
 

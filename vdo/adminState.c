@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#37 $
  */
 
 #include "adminState.h"
@@ -55,6 +55,7 @@ static const struct admin_state_code VDO_CODE_PRE_LOADING = {
 	.name = "VDO_ADMIN_STATE_PRE_LOADING",
 	.operating = true,
 	.loading = true,
+	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADING =
 	&VDO_CODE_PRE_LOADING;
@@ -93,6 +94,12 @@ static const struct admin_state_code VDO_CODE_NEW = {
 };
 const struct admin_state_code *VDO_ADMIN_STATE_NEW =
 	&VDO_CODE_NEW;
+static const struct admin_state_code VDO_CODE_INITIALIZED = {
+	.name = "VDO_ADMIN_STATE_INITIALIZED",
+	.quiescent = true,
+};
+const struct admin_state_code *VDO_ADMIN_STATE_INITIALIZED =
+	&VDO_CODE_INITIALIZED;
 static const struct admin_state_code VDO_CODE_RECOVERING = {
 	.name = "VDO_ADMIN_STATE_RECOVERING",
 	.draining = true,
