@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#42 $
  */
 
 #include "readOnlyNotifier.h"
@@ -146,7 +146,7 @@ int make_vdo_read_only_notifier(bool is_read_only,
 		atomic_set(&notifier->read_only_error, VDO_READ_ONLY);
 		atomic_set(&notifier->state, NOTIFIED);
 	} else {
-		atomic_set(&notifier->state, MAY_NOTIFY);
+		atomic_set(&notifier->state, MAY_NOT_NOTIFY);
 	}
 
 	initialize_vdo_completion(&notifier->completion, vdo,
