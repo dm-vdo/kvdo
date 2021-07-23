@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#41 $
  */
 
 #include "superBlock.h"
@@ -56,7 +56,7 @@ allocate_super_block(struct vdo *vdo,
 		     struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
-
+	char *buffer;
 	int result = UDS_ALLOCATE(1, struct vdo_super_block, __func__,
 				  super_block_ptr);
 	if (result != UDS_SUCCESS) {
@@ -69,9 +69,12 @@ allocate_super_block(struct vdo *vdo,
 		return result;
 	}
 
-	return create_metadata_vio(vdo, VIO_TYPE_SUPER_BLOCK,
-				   VIO_PRIORITY_METADATA, super_block,
-				   (char *) super_block->codec.encoded_super_block,
+	buffer = (char *) super_block->codec.encoded_super_block;
+	return create_metadata_vio(vdo,
+				   VIO_TYPE_SUPER_BLOCK,
+				   VIO_PRIORITY_METADATA,
+				   super_block,
+				   buffer,
 				   &super_block->vio);
 }
 
@@ -183,7 +186,8 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
 	super_block->parent = NULL;
-	finish_vdo_completion(parent, decode_vdo_super_block(&super_block->codec));
+	finish_vdo_completion(parent,
+			      decode_vdo_super_block(&super_block->codec));
 }
 
 /**********************************************************************/
