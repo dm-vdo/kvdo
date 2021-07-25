@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalFormat.h#12 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -96,31 +96,31 @@ struct packed_slab_journal_block_header {
 } __packed;
 
 enum {
-	SLAB_JOURNAL_PAYLOAD_SIZE =
+	VDO_SLAB_JOURNAL_PAYLOAD_SIZE =
 		VDO_BLOCK_SIZE - sizeof(struct packed_slab_journal_block_header),
-	SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
-		(SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
-	SLAB_JOURNAL_ENTRY_TYPES_SIZE =
-		((SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
-	SLAB_JOURNAL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE
-					  / sizeof(packed_slab_journal_entry)),
+	VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
+		(VDO_SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
+	VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE =
+		((VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
+	VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK =
+		(VDO_SLAB_JOURNAL_PAYLOAD_SIZE / sizeof(packed_slab_journal_entry)),
 };
 
 /** The payload of a slab journal block which has block map increments */
 struct full_slab_journal_entries {
 	/* The entries themselves */
-	packed_slab_journal_entry entries[SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
+	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
 	/* The bit map indicating which entries are block map increments */
-	byte entry_types[SLAB_JOURNAL_ENTRY_TYPES_SIZE];
+	byte entry_types[VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE];
 } __packed;
 
 typedef union {
 	/* Entries which include block map increments */
 	struct full_slab_journal_entries full_entries;
 	/* Entries which are only data updates */
-	packed_slab_journal_entry entries[SLAB_JOURNAL_ENTRIES_PER_BLOCK];
+	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK];
 	/* Ensure the payload fills to the end of the block */
-	byte space[SLAB_JOURNAL_PAYLOAD_SIZE];
+	byte space[VDO_SLAB_JOURNAL_PAYLOAD_SIZE];
 } __packed slab_journal_payload;
 
 struct packed_slab_journal_block {

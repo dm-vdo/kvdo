@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#17 $
  */
 
 #include "slabDepotFormat.h"
@@ -374,7 +374,7 @@ int configure_vdo_slab(block_count_t slab_size,
 	 * end of the journal.
 	 */
 	minimal_extra_space =
-		1 + (MAXIMUM_VDO_USER_VIOS / SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
+		1 + (MAXIMUM_VDO_USER_VIOS / VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
 	scrubbing_threshold = blocking_threshold;
 	if (slab_journal_blocks > minimal_extra_space) {
 		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;

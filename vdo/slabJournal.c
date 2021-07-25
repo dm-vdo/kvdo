@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#106 $
  */
 
 #include "slabJournalInternals.h"
@@ -198,8 +198,8 @@ int make_vdo_slab_journal(struct block_allocator *allocator,
 		slab_config->slab_journal_blocking_threshold;
 	journal->scrubbing_threshold =
 		slab_config->slab_journal_scrubbing_threshold;
-	journal->entries_per_block = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
-	journal->full_entries_per_block = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
+	journal->entries_per_block = VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK;
+	journal->full_entries_per_block = VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;
 	journal->recovery_journal = recovery_journal;
 	journal->summary = get_vdo_slab_summary_zone(allocator);
@@ -750,7 +750,7 @@ void encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header
 		if (!tail_header->has_block_map_increments) {
 			memset(payload->full_entries.entry_types,
 			       0,
-			       SLAB_JOURNAL_ENTRY_TYPES_SIZE);
+			       VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE);
 			tail_header->has_block_map_increments = true;
 		}
 
