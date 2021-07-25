@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#49 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -43,9 +43,9 @@
  **/
 
 enum slab_depot_load_type {
-	NORMAL_LOAD,
-	RECOVERY_LOAD,
-	REBUILD_LOAD
+	VDO_SLAB_DEPOT_NORMAL_LOAD,
+	VDO_SLAB_DEPOT_RECOVERY_LOAD,
+	VDO_SLAB_DEPOT_REBUILD_LOAD
 };
 
 /**

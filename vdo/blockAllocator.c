@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#135 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#136 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -747,7 +747,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 			continue;
 		}
 
-		if ((depot->load_type == REBUILD_LOAD) ||
+		if ((depot->load_type == VDO_SLAB_DEPOT_REBUILD_LOAD) ||
 		    (!vdo_must_load_ref_counts(allocator->summary,
 					       slab->slab_number) &&
 		     current_slab_status.is_clean)) {
@@ -757,7 +757,7 @@ prepare_vdo_slabs_for_allocation(struct block_allocator *allocator)
 
 		mark_vdo_slab_unrecovered(slab);
 		high_priority = ((current_slab_status.is_clean &&
-				 (depot->load_type == NORMAL_LOAD)) ||
+				 (depot->load_type == VDO_SLAB_DEPOT_NORMAL_LOAD)) ||
 				 vdo_slab_journal_requires_scrubbing(slab->journal));
 		vdo_register_slab_for_scrubbing(allocator->slab_scrubber,
 						slab,

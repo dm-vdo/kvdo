@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#98 $
  */
 
 #include "vdoLoad.h"
@@ -188,11 +188,11 @@ static void handle_scrubbing_error(struct vdo_completion *completion)
 static void prepare_to_come_online(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	enum slab_depot_load_type load_type = NORMAL_LOAD;
+	enum slab_depot_load_type load_type = VDO_SLAB_DEPOT_NORMAL_LOAD;
 	if (requires_read_only_rebuild(vdo)) {
-		load_type = REBUILD_LOAD;
+		load_type = VDO_SLAB_DEPOT_REBUILD_LOAD;
 	} else if (requires_recovery(vdo)) {
-		load_type = RECOVERY_LOAD;
+		load_type = VDO_SLAB_DEPOT_RECOVERY_LOAD;
 	}
 
 	initialize_vdo_block_map_from_journal(vdo->block_map,
