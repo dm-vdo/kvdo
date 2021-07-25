@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#72 $
  */
 
 #include "slab.h"
@@ -135,15 +135,15 @@ zone_count_t get_vdo_slab_zone_number(struct vdo_slab *slab)
 /**********************************************************************/
 void mark_vdo_slab_replaying(struct vdo_slab *slab)
 {
-	if (slab->status == SLAB_REBUILT) {
-		slab->status = SLAB_REPLAYING;
+	if (slab->status == VDO_SLAB_REBUILT) {
+		slab->status = VDO_SLAB_REPLAYING;
 	}
 }
 
 /**********************************************************************/
 void mark_vdo_slab_unrecovered(struct vdo_slab *slab)
 {
-	slab->status = SLAB_REQUIRES_SCRUBBING;
+	slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
 }
 
 /**********************************************************************/
@@ -277,7 +277,7 @@ static void initiate_slab_action(struct admin_state *state)
 		const struct admin_state_code *operation =
 			get_vdo_admin_state_code(state);
 		if (operation == VDO_ADMIN_STATE_SCRUBBING) {
-			slab->status = SLAB_REBUILDING;
+			slab->status = VDO_SLAB_REBUILDING;
 		}
 
 		drain_vdo_slab_journal(slab->journal);
@@ -368,7 +368,7 @@ bool is_vdo_slab_resuming(struct vdo_slab *slab)
 /**********************************************************************/
 void finish_scrubbing_vdo_slab(struct vdo_slab *slab)
 {
-	slab->status = SLAB_REBUILT;
+	slab->status = VDO_SLAB_REBUILT;
 	queue_vdo_slab(slab);
 	reopen_vdo_slab_journal(slab->journal);
 }
@@ -377,15 +377,15 @@ void finish_scrubbing_vdo_slab(struct vdo_slab *slab)
 static const char *status_to_string(enum slab_rebuild_status status)
 {
 	switch (status) {
-	case SLAB_REBUILT:
+	case VDO_SLAB_REBUILT:
 		return "REBUILT";
-	case SLAB_REQUIRES_SCRUBBING:
+	case VDO_SLAB_REQUIRES_SCRUBBING:
 		return "SCRUBBING";
-	case SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING:
+	case VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING:
 		return "PRIORITY_SCRUBBING";
-	case SLAB_REBUILDING:
+	case VDO_SLAB_REBUILDING:
 		return "REBUILDING";
-	case SLAB_REPLAYING:
+	case VDO_SLAB_REPLAYING:
 		return "REPLAYING";
 	default:
 		return "UNKNOWN";

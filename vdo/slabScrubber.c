@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#79 $
  */
 
 #include "slabScrubberInternals.h"
@@ -154,10 +154,10 @@ void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 				     struct vdo_slab *slab,
 				     bool high_priority)
 {
-	ASSERT_LOG_ONLY((slab->status != SLAB_REBUILT),
+	ASSERT_LOG_ONLY((slab->status != VDO_SLAB_REBUILT),
 			"slab to be scrubbed is unrecovered");
 
-	if (slab->status != SLAB_REQUIRES_SCRUBBING) {
+	if (slab->status != VDO_SLAB_REQUIRES_SCRUBBING) {
 		return;
 	}
 
@@ -168,7 +168,7 @@ void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 	}
 
 	if (high_priority) {
-		slab->status = SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
+		slab->status = VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
 		list_add_tail(&slab->allocq_entry,
 			      &scrubber->high_priority_slabs);
 		return;

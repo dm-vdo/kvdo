@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#43 $
  */
 
 #ifndef VDO_SLAB_H
@@ -33,11 +33,11 @@
 #include "types.h"
 
 enum slab_rebuild_status {
-	SLAB_REBUILT = 0,
-	SLAB_REPLAYING,
-	SLAB_REQUIRES_SCRUBBING,
-	SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING,
-	SLAB_REBUILDING,
+	VDO_SLAB_REBUILT = 0,
+	VDO_SLAB_REPLAYING,
+	VDO_SLAB_REQUIRES_SCRUBBING,
+	VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING,
+	VDO_SLAB_REBUILDING,
 };
 
 /**
@@ -154,7 +154,7 @@ zone_count_t __must_check get_vdo_slab_zone_number(struct vdo_slab *slab);
  **/
 static inline bool is_unrecovered_vdo_slab(const struct vdo_slab *slab)
 {
-	return (slab->status != SLAB_REBUILT);
+	return (slab->status != VDO_SLAB_REBUILT);
 }
 
 /**
@@ -166,7 +166,7 @@ static inline bool is_unrecovered_vdo_slab(const struct vdo_slab *slab)
  **/
 static inline bool is_replaying_vdo_slab(const struct vdo_slab *slab)
 {
-	return (slab->status == SLAB_REPLAYING);
+	return (slab->status == VDO_SLAB_REPLAYING);
 }
 
 /**
@@ -178,7 +178,7 @@ static inline bool is_replaying_vdo_slab(const struct vdo_slab *slab)
  **/
 static inline bool is_vdo_slab_rebuilding(const struct vdo_slab *slab)
 {
-	return (slab->status == SLAB_REBUILDING);
+	return (slab->status == VDO_SLAB_REBUILDING);
 }
 
 /**
