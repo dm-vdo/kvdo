@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#17 $
  */
 
 #ifndef INDEX_H
@@ -116,37 +116,36 @@ int __must_check save_index(struct index *index);
 void free_index(struct index *index);
 
 /**
- * Perform the index operation specified by the action field of a UDS request.
+ * Perform the index operation specified by the type field of a UDS request.
  *
  * For UDS API requests, this searches the index for the chunk name in the
  * request. If the chunk name is already present in the index, the location
  * field of the request will be set to the IndexRegion where it was found. If
- * the action is not DELETE, the oldMetadata field of the request will also be
- * filled in with the prior metadata for the name.
+ * the action is not DELETE, the old_metadata field of the request will also
+ * be filled in with the prior metadata for the name.
  *
- * If the API request action is:
+ * If the API request type is:
  *
- *   REQUEST_INDEX, a record will be added to the open chapter with the
- *     metadata in the request for new records, and the existing metadata for
- *     existing records
+ *   UDS_INDEX, a record will be added to the open chapter with the metadata
+ *     in the request for new records, and the existing metadata for existing
+ *     records.
  *
- *   REQUEST_UPDATE, a record will be added to the open chapter with the
- *     metadata in the request
+ *   UDS_UPDATE, a record will be added to the open chapter with the metadata
+ *     in the request.
  *
- *   REQUEST_QUERY, if the update flag is set in the request, any record
- *     found will be moved to the open chapter. In all other cases the contents
- *     of the index will remain unchanged.
+ *   UDS_QUERY, if the update flag is set in the request, any record found
+ *     will be moved to the open chapter. In all other cases the contents of
+ *     the index will remain unchanged.
  *
- *   REQUEST_REMOVE, the any entry with the name will removed from the index
- *
- * For non-API requests, no chunk name search is involved.
+ *   UDS_DELETE, any entry with the name will removed from the index.
  *
  * @param index	      The index
  * @param request     The originating request
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int __must_check dispatch_index_request(struct index *index, Request *request);
+int __must_check dispatch_index_request(struct index *index,
+					struct uds_request *request);
 
 /**
  * Internal helper to prepare the index for saving.
@@ -212,6 +211,6 @@ void advance_active_chapters(struct index *index);
  *	   <code>UINT64_MAX</code> if the request does not require a barrier
  **/
 uint64_t __must_check triage_index_request(struct index *index,
-					   Request *request);
+					   struct uds_request *request);
 
 #endif /* INDEX_H */

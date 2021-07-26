@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#32 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -101,7 +101,7 @@ int message_vdo_dedupe_index(struct dedupe_index *index, const char *name);
  * @param operation  The index operation to perform
  **/
 void enqueue_vdo_index_operation(struct data_vio *data_vio,
-				 enum uds_callback_type operation);
+				 enum uds_request_type operation);
 
 /**
  * Look up the chunkname of the data_vio and identify duplicated chunks.

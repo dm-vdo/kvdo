@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#25 $
  */
 
 #include "pageCache.h"
@@ -529,7 +529,7 @@ int get_page_from_cache(struct page_cache *cache,
 
 /**********************************************************************/
 int enqueue_read(struct page_cache *cache,
-		 Request *request,
+		 struct uds_request *request,
 		 unsigned int physical_page)
 {
 	int result;
@@ -584,7 +584,7 @@ int enqueue_read(struct page_cache *cache,
 /**********************************************************************/
 bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *queue_pos,
-			      Request **first_request,
+			      struct uds_request **first_request,
 			      unsigned int *physical_page,
 			      bool *invalid)
 {

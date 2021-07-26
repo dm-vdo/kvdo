@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#13 $
  */
 
 #include "statusCodes.h"
@@ -121,7 +121,7 @@ int map_to_system_error(int error)
 	}
 
 	// VDO or UDS error
-	switch (sans_unrecoverable(error)) {
+	switch (error) {
 	case VDO_NO_SPACE:
 		return -ENOSPC;
 	case VDO_READ_ONLY:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#17 $
  */
 
 /**
@@ -36,11 +36,11 @@
 #include "util/funnelQueue.h"
 
 /**
- * Valid request types as described in callbacks.
+ * Valid request types.
  **/
-enum uds_callback_type {
+enum uds_request_type {
 	/**
-	 * Callback type for operations that post mappings to the UDS
+	 * Request type for operations that post mappings to the UDS
 	 * index.  When the chunk-hash being added already exists, the
 	 * existing metadata is not overwritten. Regardless, the
 	 * recency of the chunk is updated.
@@ -48,7 +48,7 @@ enum uds_callback_type {
 	UDS_POST,
 
 	/**
-	 * Callback type for operations that update mappings in the UDS
+	 * Request type for operations that update mappings in the UDS
 	 * index. If the indicated entry does not have any mapping in the
 	 * index, one is created. In either case, the recency of
 	 * the chunk is updated.
@@ -56,16 +56,16 @@ enum uds_callback_type {
 	UDS_UPDATE,
 
 	/**
-	 * Callback type for operations that delete mappings from the
+	 * Request type for operations that delete mappings from the
 	 * UDS index. */
 	UDS_DELETE,
 
 	/**
-	 * Callback type for operations that query mappings in the UDS
+	 * Request type for operations that query mappings in the UDS
 	 * index. When a mapping is found, the recency of the mapping
 	 * is updated unless it's the no-update call.
 	 **/
-	UDS_QUERY
+	UDS_QUERY,
 };
 
 /**
@@ -278,64 +278,25 @@ enum index_region {
 } __packed;
 
 /**
- * enum request_action values indicate what action, command, or query is to be
- * performed when processing a Request instance.
+ * enum uds_zone_message_type indicates what kind of zone message (if any)
+ * is contained in this request.
  **/
-enum request_action {
-	// Map the API's uds_callback_type values directly to a corresponding
-	// action.
-	REQUEST_INDEX = UDS_POST,
-	REQUEST_UPDATE = UDS_UPDATE,
-	REQUEST_DELETE = UDS_DELETE,
-	REQUEST_QUERY = UDS_QUERY,
-
-	REQUEST_CONTROL,
-
-	// REQUEST_SPARSE_CACHE_BARRIER is the action for the control request
-	// used by localIndexRouter.
-	REQUEST_SPARSE_CACHE_BARRIER,
-
-	// REQUEST_ANNOUNCE_CHAPTER_CLOSED is the action for the control
-	// request used by an indexZone to signal the other zones that it
-	// has closed the current open chapter.
-	REQUEST_ANNOUNCE_CHAPTER_CLOSED,
+enum uds_zone_message_type {
+	/** A standard request with no message */
+	UDS_MESSAGE_NONE = 0,
+	/** Add a chapter to the sparse chapter index cache */
+	UDS_MESSAGE_SPARSE_CACHE_BARRIER,
+	/** Close a chapter to keep the zone from falling behind */
+	UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED,
 } __packed;
 
-/**
- * Control message fields for the barrier messages used to coordinate the
- * addition of a chapter to the sparse chapter index cache.
- **/
-struct barrier_message_data {
-	/** virtual chapter number of the chapter index to add to the sparse
-	 * cache */
-	uint64_t virtual_chapter;
-};
-
-/**
- * Control message fields for the chapter closed messages used to inform
- * lagging zones of the first zone to close a given open chapter.
- **/
-struct chapter_closed_message_data {
-	/** virtual chapter number of the chapter which was closed */
-	uint64_t virtual_chapter;
-};
-
-/**
- * Union of the all the zone control message fields. The  request_action field
- * (or launch function argument) selects which of the members is valid.
- **/
-union zone_message_data {
-	/** for REQUEST_SPARSE_CACHE_BARRIER */
-	struct barrier_message_data barrier;
-	/** for REQUEST_ANNOUNCE_CHAPTER_CLOSED */
-	struct chapter_closed_message_data chapter_closed;
-};
-
-struct zone_message {
-	/** the index to which the message is directed */
+struct uds_zone_message {
+	/** The type of message, determining how it will be processed */
+	enum uds_zone_message_type type;
+	/** The index to which the message is directed */
 	struct index *index;
-	/** the message specific data */
-	union zone_message_data data;
+	/** The virtual chapter number to which the message applies */
+	uint64_t virtual_chapter;
 };
 
 struct uds_request;
@@ -391,7 +352,7 @@ struct uds_request {
 	 * #UDS_QUERY or #UDS_UPDATE. Set before starting an operation.
 	 * Unchanged at time of callback.
 	 */
-	enum uds_callback_type type;
+	enum uds_request_type type;
 	/*
 	 * The operation status, which is either #UDS_SUCCESS or an error code.
 	 * Set before the callback.
@@ -424,15 +385,12 @@ struct uds_request {
 	struct uds_request *next_request;
 	/** A pointer to the index_router handling this request */
 	struct index_router *router;
-	/** Fields for passing messages between zone worker threads */
-	struct zone_message zone_message;
-	bool is_control_message;
+	/** Zone control message for coordinating between zones */
+	struct uds_zone_message zone_message;
 	/** If true, handle request immediately by waking the worker thread */
 	bool unbatched;
 	/** If true, attempt to handle this request before newer requests */
 	bool requeued;
-	/** The type of operation for the index to perform on this request */
-	enum request_action action;
 	/** The location of this chunk name in the index, once found */
 	enum index_region location;
 	/** If true, a "slow lane" search has determined the location */

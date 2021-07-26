@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#45 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#46 $
  */
 
 #include "volume.h"
@@ -82,7 +82,7 @@ static INLINE bool is_record_page(struct geometry *geometry,
 }
 
 /**********************************************************************/
-static INLINE unsigned int get_zone_number(Request *request)
+static INLINE unsigned int get_zone_number(struct uds_request *request)
 {
 	return (request == NULL) ? 0 : request->zone_number;
 }
@@ -99,7 +99,7 @@ int map_to_physical_page(const struct geometry *geometry,
 
 /**********************************************************************/
 static void wait_for_read_queue_not_full(struct volume *volume,
-					 Request *request)
+					 struct uds_request *request)
 {
 	unsigned int zone_number = get_zone_number(request);
 	invalidate_counter_t invalidate_counter =
@@ -130,7 +130,7 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 
 /**********************************************************************/
 int enqueue_page_read(struct volume *volume,
-		      Request *request,
+		      struct uds_request *request,
 		      int physical_page)
 {
 	int result;
@@ -163,7 +163,7 @@ int enqueue_page_read(struct volume *volume,
 static INLINE void
 wait_to_reserve_read_queue_entry(struct volume *volume,
 				 unsigned int *queue_pos,
-				 Request **request_list,
+				 struct uds_request **request_list,
 				 unsigned int *physical_page,
 				 bool *invalid)
 {
@@ -255,7 +255,7 @@ static void read_thread_function(void *arg)
 {
 	struct volume *volume = arg;
 	unsigned int queue_pos;
-	Request *request_list;
+	struct uds_request *request_list;
 	unsigned int physical_page;
 	bool invalid = false;
 
@@ -347,7 +347,7 @@ static void read_thread_function(void *arg)
 		}
 
 		while (request_list != NULL) {
-			Request *request = request_list;
+			struct uds_request *request = request_list;
 			request_list = request->next_request;
 
 			/*
@@ -392,7 +392,7 @@ static void read_thread_function(void *arg)
 
 /**********************************************************************/
 static int read_page_locked(struct volume *volume,
-			    Request *request,
+			    struct uds_request *request,
 			    unsigned int physical_page,
 			    bool sync_read,
 			    struct cached_page **page_ptr)
@@ -459,7 +459,7 @@ static int read_page_locked(struct volume *volume,
 
 /**********************************************************************/
 int get_volume_page_locked(struct volume *volume,
-			   Request *request,
+			   struct uds_request *request,
 			   unsigned int physical_page,
 			   enum cache_probe_type probe_type,
 			   struct cached_page **page_ptr)
@@ -487,7 +487,7 @@ int get_volume_page_locked(struct volume *volume,
 
 /**********************************************************************/
 int get_volume_page_protected(struct volume *volume,
-			      Request *request,
+			      struct uds_request *request,
 			      unsigned int physical_page,
 			      enum cache_probe_type probe_type,
 			      struct cached_page **page_ptr)
@@ -643,7 +643,7 @@ int get_volume_page(struct volume *volume,
  * @return UDS_SUCCESS or an error code
  **/
 static int search_cached_index_page(struct volume *volume,
-				    Request *request,
+				    struct uds_request *request,
 				    const struct uds_chunk_name *name,
 				    unsigned int chapter,
 				    unsigned int index_page_number,
@@ -692,7 +692,7 @@ static int search_cached_index_page(struct volume *volume,
 
 /**********************************************************************/
 int search_cached_record_page(struct volume *volume,
-			      Request *request,
+			      struct uds_request *request,
 			      const struct uds_chunk_name *name,
 			      unsigned int chapter,
 			      int record_page_number,
@@ -799,7 +799,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 
 /**********************************************************************/
 int search_volume_page_cache(struct volume *volume,
-			     Request *request,
+			     struct uds_request *request,
 			     const struct uds_chunk_name *name,
 			     uint64_t virtual_chapter,
 			     struct uds_chunk_data *metadata,

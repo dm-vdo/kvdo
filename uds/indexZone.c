@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#31 $
  */
 
 #include "indexZone.h"
@@ -147,33 +147,20 @@ static int reap_oldest_chapter(struct index_zone *zone)
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int execute_sparse_cache_barrier_message(struct index_zone *zone,
-					 struct barrier_message_data *barrier)
-{
-	/*
-	 * Check if the chapter index for the virtual chapter is already in the
-	 * cache, and if it's not, rendezvous with the other zone threads to
-	 * add the chapter index to the sparse index cache.
-	 */
-	return update_sparse_cache(zone, barrier->virtual_chapter);
-}
-
 /**
  * Handle notification that some other zone has closed its open chapter. If
  * the chapter that was closed is still the open chapter for this zone,
  * close it now in order to minimize skew.
  *
- * @param zone          The zone receiving the notification
- * @param chapter_closed The notification
+ * @param zone             The zone receiving the notification
+ * @param virtual_chapter  The closed virtual chapter
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int
-handle_chapter_closed(struct index_zone *zone,
-		      struct chapter_closed_message_data *chapter_closed)
+static int handle_chapter_closed(struct index_zone *zone,
+				 uint64_t virtual_chapter)
 {
-	if (zone->newest_virtual_chapter == chapter_closed->virtual_chapter) {
+	if (zone->newest_virtual_chapter == virtual_chapter) {
 		return open_next_chapter(zone, NULL);
 	}
 
@@ -181,22 +168,21 @@ handle_chapter_closed(struct index_zone *zone,
 }
 
 /**********************************************************************/
-int dispatch_index_zone_control_request(Request *request)
+int dispatch_index_zone_control_request(struct uds_request *request)
 {
-	struct zone_message *message = &request->zone_message;
+	struct uds_zone_message *message = &request->zone_message;
 	struct index_zone *zone = message->index->zones[request->zone_number];
 
-	switch (request->action) {
-	case REQUEST_SPARSE_CACHE_BARRIER:
-		return execute_sparse_cache_barrier_message(zone, &message->data.barrier);
+	switch (message->type) {
+	case UDS_MESSAGE_SPARSE_CACHE_BARRIER:
+		return update_sparse_cache(zone, message->virtual_chapter);
 
-	case REQUEST_ANNOUNCE_CHAPTER_CLOSED:
-		return handle_chapter_closed(zone,
-					     &message->data.chapter_closed);
+	case UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED:
+		return handle_chapter_closed(zone, message->virtual_chapter);
 
 	default:
-		return ASSERT_FALSE("valid control message type: %d",
-				    request->action);
+		uds_log_error("invalid message type: %d", message->type);
+		return UDS_INVALID_ARGUMENT;
 	}
 }
 
@@ -210,17 +196,17 @@ int dispatch_index_zone_control_request(Request *request)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int announce_chapter_closed(Request *request,
+static int announce_chapter_closed(struct uds_request *request,
 				   struct index_zone *zone,
 				   uint64_t closed_chapter)
 {
 	struct index_router *router =
 		((request != NULL) ? request->router : NULL);
 
-	struct zone_message zone_message = {
+	struct uds_zone_message zone_message = {
+		.type = UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED,
 		.index = zone->index,
-		.data = { .chapter_closed = { .virtual_chapter =
-						     closed_chapter } }
+		.virtual_chapter = closed_chapter,
 	};
 
 	unsigned int i;
@@ -230,15 +216,12 @@ static int announce_chapter_closed(Request *request,
 			continue;
 		}
 		if (router != NULL) {
-			result = launch_zone_control_message(REQUEST_ANNOUNCE_CHAPTER_CLOSED,
-							     zone_message,
-							     i,
-							     router);
+			result = launch_zone_message(zone_message, i, router);
 		} else {
 			// We're in a test which doesn't have zone queues, so
 			// we can just call the message function directly.
 			result = handle_chapter_closed(zone->index->zones[i],
-						       &zone_message.data.chapter_closed);
+						       closed_chapter);
 		}
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -249,7 +232,7 @@ static int announce_chapter_closed(Request *request,
 }
 
 /**********************************************************************/
-int open_next_chapter(struct index_zone *zone, Request *request)
+int open_next_chapter(struct index_zone *zone, struct uds_request *request)
 {
 	uint64_t closed_chapter, victim;
 	int result;
@@ -336,7 +319,7 @@ enum index_region compute_index_region(const struct index_zone *zone,
 
 /**********************************************************************/
 int get_record_from_zone(struct index_zone *zone,
-			 Request *request,
+			 struct uds_request *request,
 			 bool *found,
 			 uint64_t virtual_chapter)
 {
@@ -388,7 +371,7 @@ int get_record_from_zone(struct index_zone *zone,
 
 /**********************************************************************/
 int put_record_in_zone(struct index_zone *zone,
-		       Request *request,
+		       struct uds_request *request,
 		       const struct uds_chunk_data *metadata)
 {
 	unsigned int remaining;
@@ -407,7 +390,7 @@ int put_record_in_zone(struct index_zone *zone,
 
 /**********************************************************************/
 int search_sparse_cache_in_zone(struct index_zone *zone,
-				Request *request,
+				struct uds_request *request,
 				uint64_t virtual_chapter,
 				bool *found)
 {

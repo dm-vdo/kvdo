@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.h#15 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -29,14 +29,13 @@
 #include "common.h"
 #include "compiler.h"
 #include "indexConfig.h"
-#include "opaqueTypes.h"
 #include "permassert.h"
 #include "request.h"
 #include "volumeStore.h"
 
 struct request_list {
-	Request *first;
-	Request *last;
+	struct uds_request *first;
+	struct uds_request *last;
 };
 
 struct cached_page {
@@ -262,7 +261,7 @@ int __must_check get_page_from_cache(struct page_cache *cache,
  *         an error code if there was an error
  **/
 int __must_check enqueue_read(struct page_cache *cache,
-			      Request *request,
+			      struct uds_request *request,
 			      unsigned int physical_page);
 
 /**
@@ -279,7 +278,7 @@ int __must_check enqueue_read(struct page_cache *cache,
  **/
 bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *queue_pos,
-			      Request **first_requests,
+			      struct uds_request **first_requests,
 			      unsigned int *physical_page,
 			      bool *invalid);
 

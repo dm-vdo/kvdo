@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#47 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#50 $
  */
 
 
@@ -340,7 +340,7 @@ int save_index(struct index *index)
  * @return The zone for the request
  **/
 static struct index_zone *get_request_zone(struct index *index,
-					   Request *request)
+					   struct uds_request *request)
 {
 	return index->zones[request->zone_number];
 }
@@ -353,7 +353,8 @@ static struct index_zone *get_request_zone(struct index *index,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int search_index_zone(struct index_zone *zone, Request *request)
+static int search_index_zone(struct index_zone *zone,
+			     struct uds_request *request)
 {
 	struct volume_index_record record;
 	bool overflow_record, found = false;
@@ -387,7 +388,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	overflow_record = (record.is_found && record.is_collision && !found);
 	chapter = zone->newest_virtual_chapter;
 	if (found || overflow_record) {
-		if ((request->action == REQUEST_QUERY) &&
+		if ((request->type == UDS_QUERY) &&
 		    (!request->update || overflow_record)) {
 			/* This is a query without update, or with nothing to
 			 * update */
@@ -402,7 +403,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			 */
 			result = set_volume_index_record_chapter(&record,
 								 chapter);
-		} else if (request->action != REQUEST_UPDATE) {
+		} else if (request->type != UDS_UPDATE) {
 			/* The record is already in the open chapter, so we're
 			 * done */
 			return UDS_SUCCESS;
@@ -427,7 +428,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			}
 		}
 
-		if (request->action == REQUEST_QUERY) {
+		if (request->type == UDS_QUERY) {
 			if (!found || !request->update) {
 				// This is a query without update or for a new
 				// record, so we're done.
@@ -456,7 +457,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		return result;
 	}
 
-	if (!found || (request->action == REQUEST_UPDATE)) {
+	if (!found || (request->type == UDS_UPDATE)) {
 		// This is a new record or we're updating an existing record.
 		metadata = &request->new_metadata;
 	} else {
@@ -468,7 +469,8 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 }
 
 /**********************************************************************/
-static int remove_from_index_zone(struct index_zone *zone, Request *request)
+static int remove_from_index_zone(struct index_zone *zone,
+				  struct uds_request *request)
 {
 	struct volume_index_record record;
 	int result = get_volume_index_record(zone->index->volume_index,
@@ -544,9 +546,8 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
  * @return UDS_SUCCESS always
  **/
 static int simulate_index_zone_barrier_message(struct index_zone *zone,
-					       Request *request)
+					       struct uds_request *request)
 {
-	struct barrier_message_data barrier;
 	uint64_t sparse_virtual_chapter;
 	// Do nothing unless this is a single-zone sparse index.
 	if ((zone->index->zone_count > 1) ||
@@ -567,17 +568,14 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	/*
 	 * The triage queue would have generated and enqueued a barrier message
 	 * preceding this request, which we simulate by directly invoking the
-	 * execution hook for an equivalent message.
+	 * message function.
 	 */
-	barrier = (struct barrier_message_data) {
-		.virtual_chapter = sparse_virtual_chapter
-	};
-	return execute_sparse_cache_barrier_message(zone, &barrier);
+	return update_sparse_cache(zone, sparse_virtual_chapter);
 }
 
 /**********************************************************************/
 static int dispatch_index_zone_request(struct index_zone *zone,
-				       Request *request)
+				       struct uds_request *request)
 {
 	int result;
 	if (!request->requeued) {
@@ -595,14 +593,14 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 	// chunk.
 	request->location = LOC_UNAVAILABLE;
 
-	switch (request->action) {
-	case REQUEST_INDEX:
-	case REQUEST_UPDATE:
-	case REQUEST_QUERY:
+	switch (request->type) {
+	case UDS_POST:
+	case UDS_UPDATE:
+	case UDS_QUERY:
 		result = make_unrecoverable(search_index_zone(zone, request));
 		break;
 
-	case REQUEST_DELETE:
+	case UDS_DELETE:
 		result =
 			make_unrecoverable(remove_from_index_zone(zone,
 								  request));
@@ -610,8 +608,8 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 
 	default:
 		result = uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						  "attempted to execute invalid action: %d",
-						  request->action);
+						  "invalid request type: %d",
+						  request->type);
 		break;
 	}
 
@@ -619,7 +617,7 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 }
 
 /**********************************************************************/
-int dispatch_index_request(struct index *index, Request *request)
+int dispatch_index_request(struct index *index, struct uds_request *request)
 {
 	return dispatch_index_zone_request(get_request_zone(index, request),
 					   request);
@@ -975,7 +973,7 @@ void advance_active_chapters(struct index *index)
 }
 
 /**********************************************************************/
-uint64_t triage_index_request(struct index *index, Request *request)
+uint64_t triage_index_request(struct index *index, struct uds_request *request)
 {
 	struct volume_index_triage triage;
 	struct index_zone *zone;

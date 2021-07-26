@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.h#17 $
  */
 
 #ifndef REQUEST_H
@@ -25,7 +25,6 @@
 #include "cacheCounters.h"
 #include "common.h"
 #include "compiler.h"
-#include "opaqueTypes.h"
 #include "threads.h"
 #include "timeUtils.h"
 #include "uds.h"
@@ -38,25 +37,24 @@ enum request_stage {
 	STAGE_TRIAGE,
 	STAGE_INDEX,
 	STAGE_CALLBACK,
+	STAGE_MESSAGE,
 };
 
-typedef void (*request_restarter_t)(Request *);
+typedef void (*request_restarter_t)(struct uds_request *);
 
 /**
  * Make an asynchronous control message for an index zone and enqueue it for
  * processing.
  *
- * @param action   The control action to perform
  * @param message  The message to send
  * @param zone     The zone number of the zone to receive the message
  * @param router   The index router responsible for handling the message
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check launch_zone_control_message(enum request_action action,
-					     struct zone_message message,
-					     unsigned int zone,
-					     struct index_router *router);
+int __must_check launch_zone_message(struct uds_zone_message message,
+				     unsigned int zone,
+				     struct index_router *router);
 
 /**
  * Enqueue a request for the next stage of the pipeline. If there is more than
@@ -66,14 +64,15 @@ int __must_check launch_zone_control_message(enum request_action action,
  * @param request       The request to enqueue
  * @param next_stage    The next stage of the pipeline to process the request
  **/
-void enqueue_request(Request *request, enum request_stage next_stage);
+void enqueue_request(struct uds_request *request,
+		     enum request_stage next_stage);
 
 /**
  * A method to restart delayed requests.
  *
  * @param request    The request to restart
  **/
-void restart_request(Request *request);
+void restart_request(struct uds_request *request);
 
 /**
  * Set the function pointer which is used to restart requests.
@@ -92,7 +91,7 @@ void set_request_restarter(request_restarter_t restarter);
  *
  * @param request  the request which has completed execution
  **/
-void enter_callback_stage(Request *request);
+void enter_callback_stage(struct uds_request *request);
 
 /**
  * Update the context statistics to reflect the successful completion of a
@@ -100,7 +99,7 @@ void enter_callback_stage(Request *request);
  *
  * @param request  a client request that has successfully completed execution
  **/
-void update_request_context_stats(Request *request);
+void update_request_context_stats(struct uds_request *request);
 
 /**
  * Compute the cache_probe_type value reflecting the request and page type.
@@ -110,8 +109,8 @@ void update_request_context_stats(Request *request);
  *
  * @return the cache probe type enumeration
  **/
-static INLINE enum cache_probe_type cache_probe_type(Request *request,
-						     bool is_index_page)
+static INLINE enum cache_probe_type
+cache_probe_type(struct uds_request *request, bool is_index_page)
 {
 	if ((request != NULL) && request->requeued) {
 		return is_index_page ? CACHE_PROBE_INDEX_RETRY :

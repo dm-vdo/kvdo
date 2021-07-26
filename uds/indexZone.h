@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#11 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -81,22 +81,8 @@ void set_active_chapters(struct index_zone *zone);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check dispatch_index_zone_control_request(Request *request);
-
-/**
- * Execute a sparse chapter index cache barrier control request on the zone
- * worker thread. This call into the sparse cache to coordinate the cache
- * update with the other zones.
- *
- * @param zone     The index zone receiving the barrier message
- * @param barrier  The barrier control message data
- *
- * @return UDS_SUCCESS or an error code if the chapter index could not be
- *         read or decoded
- **/
 int __must_check
-execute_sparse_cache_barrier_message(struct index_zone *zone,
-				     struct barrier_message_data *barrier);
+dispatch_index_zone_control_request(struct uds_request *request);
 
 /**
  * Open the next chapter.
@@ -107,7 +93,8 @@ execute_sparse_cache_barrier_message(struct index_zone *zone,
  *
  * @return UDS_SUCCESS if successful.
  **/
-int __must_check open_next_chapter(struct index_zone *zone, Request *request);
+int __must_check open_next_chapter(struct index_zone *zone,
+				   struct uds_request *request);
 
 /**
  * Determine the index region in which a block was found.
@@ -132,7 +119,7 @@ enum index_region compute_index_region(const struct index_zone *zone,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check get_record_from_zone(struct index_zone *zone,
-				      Request *request,
+				      struct uds_request *request,
 				      bool *found,
 				      uint64_t virtual_chapter);
 
@@ -147,7 +134,7 @@ int __must_check get_record_from_zone(struct index_zone *zone,
  * @return UDS_SUCCESS or an error
  **/
 int __must_check put_record_in_zone(struct index_zone *zone,
-				    Request *request,
+				    struct uds_request *request,
 				    const struct uds_chunk_data *metadata);
 
 /**
@@ -164,7 +151,7 @@ int __must_check put_record_in_zone(struct index_zone *zone,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check search_sparse_cache_in_zone(struct index_zone *zone,
-					     Request *request,
+					     struct uds_request *request,
 					     uint64_t virtual_chapter,
 					     bool *found);
 

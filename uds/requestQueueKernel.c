@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat
+ * %Copyright%
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#19 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/requestQueueKernel.c#20 $
  */
 
 #include "requestQueue.h"
@@ -108,19 +108,19 @@ struct uds_request_queue {
  *
  * @return a dequeued request, or NULL if no request was available
  **/
-static INLINE Request *poll_queues(struct uds_request_queue *queue)
+static INLINE struct uds_request *poll_queues(struct uds_request_queue *queue)
 {
 	// The retry queue has higher priority.
 	struct funnel_queue_entry *entry =
 		funnel_queue_poll(queue->retry_queue);
 	if (entry != NULL) {
-		return container_of(entry, Request, request_queue_link);
+		return container_of(entry, struct uds_request, request_queue_link);
 	}
 
 	// The main queue has lower priority.
 	entry = funnel_queue_poll(queue->main_queue);
 	if (entry != NULL) {
-		return container_of(entry, Request, request_queue_link);
+		return container_of(entry, struct uds_request, request_queue_link);
 	}
 
 	// No entry found.
@@ -133,7 +133,7 @@ static INLINE Request *poll_queues(struct uds_request_queue *queue)
  * requests available right now, but also not to be in the intermediate state
  * of getting requests added. Must only be called by the worker thread.
  *
- * @param queue  the RequestQueue being serviced
+ * @param queue  the uds_request_queue being serviced
  *
  * @return true iff both funnel queues are idle
  **/
@@ -157,11 +157,11 @@ static INLINE bool are_queues_idle(struct uds_request_queue *queue)
  *         never be another request.  False when we must wait for a request.
  **/
 static INLINE bool dequeue_request(struct uds_request_queue *queue,
-				   Request **request_ptr,
+				   struct uds_request **request_ptr,
 				   bool *waited_ptr)
 {
 	// Because of batching, we expect this to be the most common code path.
-	Request *request = poll_queues(queue);
+	struct uds_request *request = poll_queues(queue);
 	if (request != NULL) {
 		// Return because we found a request
 		*request_ptr = request;
@@ -189,7 +189,7 @@ static void request_queue_worker(void *arg)
 	long current_batch = 0;
 
 	for (;;) {
-		Request *request;
+		struct uds_request *request;
 		bool waited = false;
 		if (dormant) {
 			/*
@@ -290,7 +290,7 @@ static void request_queue_worker(void *arg)
 	// Process every request that is still in the queue, and never wait for
 	// any new requests to show up.
 	for (;;) {
-		Request *request = poll_queues(queue);
+		struct uds_request *request = poll_queues(queue);
 		if (request == NULL) {
 			break;
 		}
@@ -351,7 +351,7 @@ static INLINE void wake_up_worker(struct uds_request_queue *queue)
 
 /**********************************************************************/
 void uds_request_queue_enqueue(struct uds_request_queue *queue,
-			       Request *request)
+			       struct uds_request *request)
 {
 	bool unbatched = request->unbatched;
 	funnel_queue_put(request->requeued ? queue->retry_queue :
