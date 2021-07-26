@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.h#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.h#23 $
  */
 
 #ifndef LOGGER_H
@@ -220,19 +220,6 @@ int uds_vlog_strerror(int priority,
 /**********************************************************************/
 #define uds_log_fatal_strerror(errnum, ...) \
 	uds_log_strerror(UDS_LOG_CRIT, errnum, __VA_ARGS__);
-
-/**
- * IF the result is an error, log a FATAL level message and return the result
- * after marking it unrecoverable.  The UDS_SUCCESS and UDS_QUEUED results are
- * not considered errors and are returned unmodified.
- *
- * @param errnum  int value of errno or a UDS_* value.
- * @param format  The format of the message (a printf style format)
- *
- * @return make_unrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
- **/
-int uds_log_unrecoverable(int errnum, const char *format, ...)
-	__printf(2, 3);
 
 /**
  * Log a message.

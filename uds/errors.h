@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#8 $
  */
 
 #ifndef ERRORS_H
@@ -89,11 +89,6 @@ enum {
 	ERRBUF_SIZE = 128 // default size for buffer passed to string_error
 };
 
-// Error attributes - or into top half of error code
-enum {
-	UDS_UNRECOVERABLE = (1 << 17)
-};
-
 const char *string_error(int errnum, char *buf, size_t buflen);
 const char *string_error_name(int errnum, char *buf, size_t buflen);
 
@@ -107,42 +102,6 @@ const char *string_error_name(int errnum, char *buf, size_t buflen);
 static INLINE bool __must_check is_successful(int result)
 {
 	return (result == UDS_SUCCESS) || (result == UDS_QUEUED);
-}
-
-/*
- * Identify that an result code has been marked unrecoverable.
- *
- * @param result  A result code
- *
- * @return true if the result has been marked unrecoverable.
- */
-static INLINE bool __must_check is_unrecoverable(int result)
-{
-	return (result & UDS_UNRECOVERABLE) != 0;
-}
-
-/*
- * Mark a result code as unrecoverable.
- *
- * @param result  A result code
- *
- * @return the result code with the unrecoverable marker added
- */
-static INLINE int __must_check make_unrecoverable(int result)
-{
-	return is_successful(result) ? result : (result | UDS_UNRECOVERABLE);
-}
-
-/*
- * Remove the unrecoverable marker from a result code.
- *
- * @param result  A result code
- *
- * @return the result code with the unrecoverable marker removed
- */
-static INLINE int __must_check sans_unrecoverable(int result)
-{
-	return result & ~UDS_UNRECOVERABLE;
 }
 
 struct error_info {

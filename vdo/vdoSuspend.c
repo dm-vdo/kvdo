@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#47 $
  */
 
 #include "vdoSuspend.h"
@@ -225,21 +225,16 @@ static void suspend_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int suspend_vdo(struct vdo *vdo)
 {
-	int result;
 	/*
 	 * It's important to note any error here does not actually stop
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	if (get_vdo_admin_state(vdo)->quiescent) {
-		return VDO_SUCCESS;
-	}
-
-	result = perform_vdo_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_SUSPEND,
-					     get_thread_id_for_phase,
-					     suspend_callback,
-					     preserve_vdo_completion_error_and_continue);
+	int result = perform_vdo_admin_operation(vdo,
+						 VDO_ADMIN_OPERATION_SUSPEND,
+						 get_thread_id_for_phase,
+						 suspend_callback,
+						 preserve_vdo_completion_error_and_continue);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		uds_log_error_strerror(result, "%s: Suspend device failed",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#27 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#28 $
  */
 
 #include "chapterWriter.h"
@@ -166,7 +166,7 @@ int make_chapter_writer(struct index *index,
 					    &writer->collated_records);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 	result = make_open_chapter_index(
 		&writer->open_chapter_index,
@@ -175,7 +175,7 @@ int make_chapter_writer(struct index *index,
 		index->volume->nonce);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 
 	open_chapter_index_memory_allocated =
@@ -191,7 +191,7 @@ int make_chapter_writer(struct index *index,
 				   &writer->thread);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 
 	*writer_ptr = writer;
@@ -243,8 +243,8 @@ int finish_previous_chapter(struct chapter_writer *writer,
 	uds_unlock_mutex(&writer->mutex);
 
 	if (result != UDS_SUCCESS) {
-		return uds_log_unrecoverable(
-			result, "Writing of previous open chapter failed");
+		return uds_log_error_strerror(result,
+					      "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;
 }
@@ -282,8 +282,8 @@ int stop_chapter_writer(struct chapter_writer *writer)
 	}
 
 	if (result != UDS_SUCCESS) {
-		return uds_log_unrecoverable(
-			result, "Writing of previous open chapter failed");
+		return uds_log_error_strerror(result,
+					      "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;
 }

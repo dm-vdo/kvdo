@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#38 $
  */
 
 #include "adminState.h"
@@ -55,7 +55,6 @@ static const struct admin_state_code VDO_CODE_PRE_LOADING = {
 	.name = "VDO_ADMIN_STATE_PRE_LOADING",
 	.operating = true,
 	.loading = true,
-	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADING =
 	&VDO_CODE_PRE_LOADING;
@@ -96,7 +95,6 @@ const struct admin_state_code *VDO_ADMIN_STATE_NEW =
 	&VDO_CODE_NEW;
 static const struct admin_state_code VDO_CODE_INITIALIZED = {
 	.name = "VDO_ADMIN_STATE_INITIALIZED",
-	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_INITIALIZED =
 	&VDO_CODE_INITIALIZED;
@@ -160,14 +158,12 @@ const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDED =
 static const struct admin_state_code VDO_CODE_SUSPENDED_OPERATION = {
 	.name = "VDO_ADMIN_STATE_SUSPENDED_OPERATION",
 	.operating = true,
-	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDED_OPERATION =
 	&VDO_CODE_SUSPENDED_OPERATION;
 static const struct admin_state_code VDO_CODE_RESUMING = {
 	.name = "VDO_ADMIN_STATE_RESUMING",
 	.operating = true,
-	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_RESUMING =
 	&VDO_CODE_RESUMING;
@@ -210,21 +206,44 @@ is_vdo_quiescent_operation(const struct admin_state_code *code)
 	return (code->quiescent && code->operating);
 }
 
-/**********************************************************************/
+/**
+ * Determine the state which should be set after a given operation completes
+ * based on the operation and the current state.
+ *
+ * @param state      The admin_state
+ * @param operation  The operation to be started
+ *
+ * @return The state to set when the operation completes or NULL if the
+ *         operation can not be started in the current state
+ **/
 static const struct admin_state_code *
-get_next_state(const struct admin_state_code *previous_state,
+get_next_state(const struct admin_state *state,
 	       const struct admin_state_code *operation)
 {
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(state);
+
+	if (code->operating) {
+		return NULL;
+	}
+
 	if (operation == VDO_ADMIN_STATE_SAVING) {
-		return VDO_ADMIN_STATE_SAVED;
+		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
+			? VDO_ADMIN_STATE_SAVED
+			: NULL);
 	}
 
 	if (operation == VDO_ADMIN_STATE_SUSPENDING) {
-		return VDO_ADMIN_STATE_SUSPENDED;
+		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
+			? VDO_ADMIN_STATE_SUSPENDED
+			: NULL);
 	}
 
 	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION) {
-		return previous_state;
+		return (((code == VDO_ADMIN_STATE_SUSPENDED)
+			 || (code == VDO_ADMIN_STATE_SAVED))
+			? code
+			: NULL);
 	}
 
 	return VDO_ADMIN_STATE_NORMAL_OPERATION;
@@ -271,8 +290,10 @@ begin_operation(struct admin_state *state,
 		vdo_admin_initiator *initiator)
 {
 	int result;
-	if (is_vdo_state_operating(state) ||
-	    (is_vdo_state_quiescent(state) != is_vdo_quiescent_operation(operation))) {
+	const struct admin_state_code *next_state = get_next_state(state,
+								   operation);
+
+	if (next_state == NULL) {
 		result =
 		  uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 					 "Can't start %s from %s",
@@ -285,8 +306,7 @@ begin_operation(struct admin_state *state,
 					 get_vdo_admin_state_code_name(operation));
 	} else {
 		state->waiter = waiter;
-		state->next_state = get_next_state(state->current_state,
-						   operation);
+		state->next_state = next_state;
 		set_vdo_admin_state_code(state, operation);
 		if (initiator != NULL) {
 			state->starting = true;
@@ -386,8 +406,26 @@ bool start_vdo_draining(struct admin_state *state,
 			struct vdo_completion *waiter,
 			vdo_admin_initiator *initiator)
 {
-	return (assert_vdo_drain_operation(operation, waiter)
-		&& start_operation(state, operation, waiter, initiator));
+	const struct admin_state_code *code = get_vdo_admin_state_code(state);
+	if (!assert_vdo_drain_operation(operation, waiter)) {
+		return false;
+	}
+
+	if (code->quiescent) {
+		complete_vdo_completion(waiter);
+		return false;
+	}
+
+	if (!code->normal) {
+		uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
+				       "can't start %s from %s",
+				       operation->name,
+				       code->name);
+		finish_vdo_completion(waiter, VDO_INVALID_ADMIN_STATE);
+		return false;
+	}
+
+	return start_operation(state, operation, waiter, initiator);
 }
 
 /**********************************************************************/
@@ -523,3 +561,4 @@ bool start_vdo_operation_with_waiter(struct admin_state *state,
 		(begin_operation(state, operation, waiter, initiator) ==
 		 VDO_SUCCESS));
 }
+

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.c#29 $
  */
 
 #include "indexRouter.h"
@@ -259,7 +259,6 @@ void execute_index_router_request(struct index_router *router,
 
 	router->need_to_save = true;
 	if (request->requeued && !is_successful(request->status)) {
-		request->status = make_unrecoverable(request->status);
 		router->callback(request);
 		return;
 	}

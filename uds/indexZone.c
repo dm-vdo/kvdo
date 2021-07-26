@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#31 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#32 $
  */
 
 #include "indexZone.h"
@@ -252,8 +252,8 @@ int open_next_chapter(struct index_zone *zone, struct uds_request *request)
 	closed_chapter = zone->newest_virtual_chapter++;
 	result = reap_oldest_chapter(zone);
 	if (result != UDS_SUCCESS) {
-		return uds_log_unrecoverable(result,
-					     "reap_oldest_chapter failed");
+		return uds_log_error_strerror(result,
+					      "reap_oldest_chapter failed");
 	}
 
 	reset_open_chapter(zone->open_chapter);

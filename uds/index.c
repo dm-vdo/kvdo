@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#50 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#51 $
  */
 
 
@@ -276,7 +276,8 @@ int make_index(struct index_layout *layout,
 
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return uds_log_unrecoverable(result, "fatal error in make_index");
+		return uds_log_error_strerror(result,
+					      "fatal error in make_index");
 	}
 
 	if (index->load_context != NULL) {
@@ -597,13 +598,11 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 	case UDS_POST:
 	case UDS_UPDATE:
 	case UDS_QUERY:
-		result = make_unrecoverable(search_index_zone(zone, request));
+		result = search_index_zone(zone, request);
 		break;
 
 	case UDS_DELETE:
-		result =
-			make_unrecoverable(remove_from_index_zone(zone,
-								  request));
+		result = remove_from_index_zone(zone, request);
 		break;
 
 	default:
@@ -891,9 +890,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 						 &record_page, NULL);
 			if (result != UDS_SUCCESS) {
 				index->volume->lookup_mode = old_lookup_mode;
-				return uds_log_unrecoverable(result,
-							     "could not get page %d",
-							     record_page_number);
+				return uds_log_error_strerror(result,
+							      "could not get page %d",
+							      record_page_number);
 			}
 			for (k = 0; k < geometry->records_per_page; k++) {
 				const byte *name_bytes =
@@ -916,9 +915,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 					}
 					index->volume->lookup_mode =
 						old_lookup_mode;
-					return uds_log_unrecoverable(result,
-								     "could not find block %s during rebuild",
-								     hex_name);
+					return uds_log_error_strerror(result,
+								      "could not find block %s during rebuild",
+								      hex_name);
 				}
 			}
 		}
