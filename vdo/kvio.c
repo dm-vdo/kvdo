@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#88 $
  */
 
 #include "kvio.h"
@@ -114,22 +114,14 @@ void submit_metadata_vio(struct vio *vio)
 	char *data = vio->data;
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
 		bi_opf = REQ_OP_READ;
+	} else if (vio_requires_flush_before(vio)) {
+		bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	} else {
-		enum kernel_layer_state state = get_kernel_layer_state(layer);
-		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
-				 || (state == LAYER_RESUMING)
-				 || (state == LAYER_STARTING)),
-				"write metadata in allowed state %d", state);
-		if (vio_requires_flush_before(vio)) {
-			bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-		} else {
-			bi_opf = REQ_OP_WRITE;
-		}
+		bi_opf = REQ_OP_WRITE;
 	}
 
 	if (vio_requires_flush_after(vio)) {

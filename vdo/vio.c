@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#50 $
  */
 
 #include "vio.h"
@@ -226,7 +226,11 @@ void launch_metadata_vio(struct vio *vio,
 			 enum vio_operation operation)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
+	const struct admin_state_code *code = get_vdo_admin_state(vio->vdo);
 
+	ASSERT_LOG_ONLY(!code->quiescent,
+			"I/O not allowed in state %s",
+			code->name);
 	vio->operation = operation;
 	vio->physical = physical;
 	vio->callback = callback;
