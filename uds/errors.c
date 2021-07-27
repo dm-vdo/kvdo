@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#15 $
  */
 
 #include "errors.h"
@@ -70,7 +70,7 @@ static const struct error_info error_list[] = {
 	{ "UDS_UNUSED_CODE_0", "Unused error code 0" },
 	{ "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
 	{ "UDS_EMODULE_LOAD", "Could not load modules" },
-	{ "UDS_ENOTHREADS", "Could not create a new thread" },
+	{ "UDS_UNUSED_CODE_3", "Unused error code 3" },
 	{ "UDS_UNUSED_CODE_4", "Unused error code 4" },
 	{ "UDS_DISABLED", "UDS library context is disabled" },
 	{ "UDS_CORRUPT_COMPONENT", "Corrupt saved component" },

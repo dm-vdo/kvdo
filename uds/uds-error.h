@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#7 $
  */
 
 /**
@@ -42,8 +42,8 @@ enum uds_status_codes {
 	UDS_SHUTTINGDOWN = UDS_ERROR_CODE_BASE + 1,
 	/** Could not load scanner modules */
 	UDS_EMODULE_LOAD = UDS_ERROR_CODE_BASE + 2,
-	/** Could not create a new thread */
-	UDS_ENOTHREADS = UDS_ERROR_CODE_BASE + 3,
+	/** Unused */
+	UDS_UNUSED_CODE_3 = UDS_ERROR_CODE_BASE + 3,
 	/** Unused */
 	UDS_UNUSED_CODE_4 = UDS_ERROR_CODE_BASE + 4,
 	/** The specified library context is disabled */

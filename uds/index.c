@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#52 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#53 $
  */
 
 
@@ -252,7 +252,7 @@ int make_index(struct index_layout *layout,
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
-		case ENOMEM:
+		case -ENOMEM:
 			// We should not try a rebuild for this error.
 			uds_log_error_strerror(result,
 					       "index could not be loaded");

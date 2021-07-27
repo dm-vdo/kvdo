@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#13 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#14 $
  */
 
 #include <linux/completion.h>
@@ -111,7 +111,7 @@ int uds_create_thread(void (*thread_func)(void *),
 	}
 	if (IS_ERR(thread)) {
 		UDS_FREE(kt);
-		return UDS_ENOTHREADS;
+		return PTR_ERR(thread);
 	}
 	*new_thread = kt;
 	return UDS_SUCCESS;
