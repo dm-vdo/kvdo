@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#8 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
@@ -67,8 +67,7 @@ struct layout_parameter {
  *                        parser can handle string and uint64_t values.
  *                        Must be terminated by a LP_NULL_PARAMETER.
  *
- * @return UDS_SUCCESS or an error code, particularly
- *      UDS_INDEX_NAME_REQUIRED for all parsing errors.
+ * @return UDS_SUCCESS or -EINVAL for parsing errors
  **/
 int __must_check
 parse_layout_string(char *info, struct layout_parameter *params);

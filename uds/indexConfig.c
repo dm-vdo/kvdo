@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexConfig.c#23 $
  */
 
 #include "indexConfig.h"
@@ -420,16 +420,8 @@ int make_configuration(const struct uds_configuration *conf,
 		       struct configuration **config_ptr)
 {
 	struct configuration *config;
-	int result;
-
-	*config_ptr = NULL;
-	if (conf == NULL) {
-		return uds_log_error_strerror(UDS_CONF_REQUIRED,
-					      "received an invalid config");
-	}
-
-	result = UDS_ALLOCATE(1, struct configuration, "configuration",
-			      &config);
+	int result = UDS_ALLOCATE(1, struct configuration, "configuration",
+				  &config);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

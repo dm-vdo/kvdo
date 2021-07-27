@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#21 $
  */
 
 #include "indexInternals.h"
@@ -51,7 +51,8 @@ int allocate_index(struct index_layout *layout,
 	unsigned int checkpoint_frequency =
 		user_params == NULL ? 0 : user_params->checkpoint_frequency;
 	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
-		return UDS_BAD_CHECKPOINT_FREQUENCY;
+		uds_log_error("checkpoint frequency too large");
+		return -EINVAL;
 	}
 
 	result = UDS_ALLOCATE(1, struct index, "index", &index);

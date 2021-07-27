@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#31 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#33 $
  */
 
 #include "indexSession.h"
@@ -92,7 +92,7 @@ int check_index_session(struct uds_index_session *index_session)
 		return UDS_SUSPENDED;
 	}
 
-	return UDS_NO_INDEXSESSION;
+	return UDS_NO_INDEX;
 }
 
 /**********************************************************************/
@@ -424,7 +424,7 @@ int uds_close_index(struct uds_index_session *index_session)
 		   !(index_session->state & IS_FLAG_LOADED)) {
 		// The index doesn't exist, hasn't finished loading, or is
 		// being destroyed.
-		result = UDS_NO_INDEXSESSION;
+		result = UDS_NO_INDEX;
 	} else {
 		index_session->state |= IS_FLAG_CLOSING;
 	}
@@ -534,8 +534,8 @@ int uds_get_index_configuration(struct uds_index_session *index_session,
 {
 	int result;
 	if (conf == NULL) {
-		return uds_log_error_strerror(UDS_CONF_PTR_REQUIRED,
-					      "received a NULL config pointer");
+		uds_log_error("received a NULL config pointer");
+		return -EINVAL;
 	}
 	result = UDS_ALLOCATE(1, struct uds_configuration, __func__, conf);
 	if (result == UDS_SUCCESS) {
@@ -549,8 +549,8 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 			struct uds_index_stats *stats)
 {
 	if (stats == NULL) {
-		return uds_log_error_strerror(UDS_INDEX_STATS_PTR_REQUIRED,
-					      "received a NULL index stats pointer");
+		uds_log_error("received a NULL index stats pointer");
+		return -EINVAL;
 	}
 	get_index_stats(index_session->router->index, stats);
 	return UDS_SUCCESS;
@@ -561,8 +561,8 @@ int uds_get_index_session_stats(struct uds_index_session *index_session,
 				struct uds_context_stats *stats)
 {
 	if (stats == NULL) {
-		return uds_log_warning_strerror(UDS_CONTEXT_STATS_PTR_REQUIRED,
-						"received a NULL context stats pointer");
+		uds_log_error("received a NULL context stats pointer");
+		return -EINVAL;
 	}
 	collect_stats(index_session, stats);
 	return UDS_SUCCESS;

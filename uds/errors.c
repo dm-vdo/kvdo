@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#14 $
  */
 
 #include "errors.h"
@@ -67,18 +67,18 @@ static const char *const message_table[] = {
 };
 
 static const struct error_info error_list[] = {
-	{ "UDS_UNINITIALIZED", "UDS library is not initialized" },
+	{ "UDS_UNUSED_CODE_0", "Unused error code 0" },
 	{ "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
 	{ "UDS_EMODULE_LOAD", "Could not load modules" },
 	{ "UDS_ENOTHREADS", "Could not create a new thread" },
-	{ "UDS_NOCONTEXT", "Could not find the requested library context" },
+	{ "UDS_UNUSED_CODE_4", "Unused error code 4" },
 	{ "UDS_DISABLED", "UDS library context is disabled" },
 	{ "UDS_CORRUPT_COMPONENT", "Corrupt saved component" },
 	{ "UDS_UNKNOWN_ERROR", "Unknown error" },
 	{ "UDS_UNUSED_CODE_8", "Unused error code 8" },
 	{ "UDS_UNUSED_CODE_9", "Unused error code 9" },
 	{ "UDS_UNSUPPORTED_VERSION", "Unsupported version" },
-	{ "UDS_NO_INDEXSESSION", "Index session not known" },
+	{ "UDS_UNUSED_CODE_11", "Unused error code 11" },
 	{ "UDS_CORRUPT_DATA", "Index data in memory is corrupt" },
 	{ "UDS_SHORT_READ", "Could not read requested number of bytes" },
 	{ "UDS_UNUSED_CODE_14", "Unused error code 14" },
@@ -87,29 +87,25 @@ static const struct error_info error_list[] = {
 	{ "UDS_UNUSED_CODE_17", "Unused error code 17" },
 	{ "UDS_UNUSED_CODE_18", "Unused error code 18" },
 	{ "UDS_UNUSED_CODE_19", "Unused error code 19" },
-	{ "UDS_CONF_PTR_REQUIRED", "A configuration pointer is required" },
-	{ "UDS_INDEX_STATS_PTR_REQUIRED",
-	  "An index stats pointer is required" },
-	{ "UDS_CONTEXT_STATS_PTR_REQUIRED",
-	  "A context stats pointer is required" },
+	{ "UDS_UNUSED_CODE_20", "Unused error code 20" },
+	{ "UDS_UNUSED_CODE_21", "Unused error code 21" },
+	{ "UDS_UNUSED_CODE_22", "Unused error code 22" },
 	{ "UDS_UNUSED_CODE_23", "Unused error code 23" },
 	{ "UDS_UNUSED_CODE_24", "Unused error code 24" },
 	{ "UDS_UNUSED_CODE_25", "Unused error code 25" },
 	{ "UDS_UNUSED_CODE_26", "Unused error code 26" },
 	{ "UDS_UNUSED_CODE_27", "Unused error code 27" },
-	{ "UDS_INVALID_MEMORY_SIZE",
-	  "Configured memory too small or unsupported size" },
+	{ "UDS_UNUSED_CODE_28", "Unused error code 28" },
 	{ "UDS_UNUSED_CODE_29", "Unused error code 29" },
-	{ "UDS_INDEX_NAME_REQUIRED", "An index name is required" },
-	{ "UDS_CONF_REQUIRED", "A configuration is required" },
+	{ "UDS_UNUSED_CODE_30", "Unused error code 30" },
+	{ "UDS_UNUSED_CODE_31", "Unused error code 31" },
 	{ "UDS_UNUSED_CODE_32", "Unused error code 32" },
 	{ "UDS_UNUSED_CODE_33", "Unused error code 33" },
 	{ "UDS_UNUSED_CODE_34", "Unused error code 34" },
 	{ "UDS_UNUSED_CODE_35", "Unused error code 35" },
 	{ "UDS_UNUSED_CODE_36", "Unused error code 36" },
 	{ "UDS_NO_INDEX", "No index found" },
-	{ "UDS_BAD_CHECKPOINT_FREQUENCY",
-	  "Checkpoint frequency out of range" },
+	{ "UDS_UNUSED_CODE_38", "Unused error code 38" },
 	{ "UDS_WRONG_INDEX_CONFIG", "Wrong type of index configuration" },
 	{ "UDS_UNUSED_CODE_40", "Unused error code 40" },
 	{ "UDS_UNUSED_CODE_41", "Unused error code 41" },
@@ -118,14 +114,12 @@ static const struct error_info error_list[] = {
 	{ "UDS_END_OF_FILE", "Unexpected end of file" },
 	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },
 	{ "UDS_UNUSED_CODE_46", "Unused error code 46" },
-	{ "UDS_INSUFFICIENT_INDEX_SPACE", "Insufficient index space" },
+	{ "UDS_UNUSED_CODE_47", "Unused error code 47" },
 	{ "UDS_UNUSED_CODE_48", "Unused error code 48" },
 	{ "UDS_UNUSED_CODE_49", "Unused error code 49" },
 	{ "UDS_SUSPENDED", "Index suspended" },
 	{ "UDS_UNUSED_CODE_51", "Unused error code 51" },
 	{ "UDS_INDEXSESSION_IN_USE", "Index session in use" },
-	{ "UDS_CALLBACK_REQUIRED", "A callback function is required" },
-	{ "UDS_INVALID_OPERATION_TYPE", "Invalid type of request operation" },
 };
 
 static const struct error_info internal_error_list[] = {
@@ -276,6 +270,10 @@ const char *string_error(int errnum, char *buf, size_t buflen)
 		return NULL;
 	}
 
+	if (errnum < 0) {
+		errnum = -errnum;
+	}
+
 	block_name = get_error_info(errnum, &info);
 
 	if (block_name != NULL) {
@@ -317,6 +315,9 @@ const char *string_error_name(int errnum, char *buf, size_t buflen)
 	const struct error_info *info = NULL;
 	const char *block_name;
 
+	if (errnum < 0) {
+		errnum = -errnum;
+	}
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL) {

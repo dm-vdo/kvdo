@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#30 $
  */
 
 #include "uds.h"
@@ -59,8 +59,8 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 	unsigned int chapters_per_volume, record_pages_per_chapter;
 	int result;
 	if (user_config == NULL) {
-		return uds_log_error_strerror(UDS_CONF_PTR_REQUIRED,
-					      "received a NULL config pointer");
+		uds_log_error("missing configuration pointer");
+		return -EINVAL;
 	}
 
 	/* Set the configuration parameters that change with memory size.  If
@@ -101,7 +101,8 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 			DEFAULT_CHAPTERS_PER_VOLUME - 1;
 		record_pages_per_chapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
 	} else {
-		return UDS_INVALID_MEMORY_SIZE;
+		uds_log_error("received invalid memory size");
+		return -EINVAL;
 	}
 
 	result = UDS_ALLOCATE(1, struct uds_configuration, "uds_configuration",
@@ -237,7 +238,8 @@ int uds_create_index_session(struct uds_index_session **session)
 	struct uds_index_session *index_session = NULL;
 	int result;
 	if (session == NULL) {
-		return UDS_NO_INDEXSESSION;
+		uds_log_error("missing session pointer");
+		return -EINVAL;
 	}
 
 	result = make_empty_index_session(&index_session);
@@ -325,13 +327,16 @@ int uds_open_index(enum uds_open_index_type open_type,
 	enum load_type load_type;
 
 	if (name == NULL) {
-		return UDS_INDEX_NAME_REQUIRED;
+		uds_log_error("missing required index name");
+		return -EINVAL;
 	}
 	if (user_config == NULL) {
-		return UDS_CONF_REQUIRED;
+		uds_log_error("missing required configuration");
+		return -EINVAL;
 	}
 	if (session == NULL) {
-		return UDS_NO_INDEXSESSION;
+		uds_log_error("missing required session pointer");
+		return -EINVAL;
 	}
 
 	result = start_loading_index_session(session);

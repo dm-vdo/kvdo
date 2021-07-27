@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#57 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#60 $
  */
 
 #include "indexLayout.h"
@@ -1372,12 +1372,7 @@ static int __must_check setup_sub_index(struct index_layout *layout,
  * @param size    the size in bytes of the backing storage
  * @param sls     a populated struct save_layout_sizes object
  *
- * @return UDS_SUCCESS or an error code, potentially
- *         UDS_INSUFFICIENT_INDEX_SPACE if the size of the backing store
- *              is not sufficient for the index configuration,
- *         UDS_BAD_INDEX_ALIGNMENT if the offset specified does not
- *              align properly with the index block and page sizes]
- *         various other errors
+ * @return UDS_SUCCESS or an error code
  **/
 static int __must_check
 init_single_file_layout(struct index_layout *layout,
@@ -1391,8 +1386,8 @@ init_single_file_layout(struct index_layout *layout,
 	layout->total_blocks = sls->total_blocks;
 
 	if (size < sls->total_blocks * sls->block_size) {
-		return uds_log_error_strerror(UDS_INSUFFICIENT_INDEX_SPACE,
-					      "not enough space for index as configured");
+		uds_log_error("not enough space for index as configured");
+		return -ENOSPC;
 	}
 
 	generate_super_block_data(sls->block_size,
@@ -2492,9 +2487,12 @@ static int create_index_layout(struct index_layout *layout,
 			       const struct uds_configuration *config)
 {
 	struct save_layout_sizes sizes;
+	uint64_t index_size;
 	int result;
+
 	if (config == NULL) {
-		return UDS_CONF_PTR_REQUIRED;
+		uds_log_error("missing index configuration");
+		return -EINVAL;
 	}
 
 	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE, 0);
@@ -2504,10 +2502,11 @@ static int create_index_layout(struct index_layout *layout,
 	// XXX This should include offset in the calculation (size +
 	// offset is checked later so insufficient space will be
 	// caught eventually, but better to catch it early)
-	if (size < sizes.total_blocks * sizes.block_size) {
-		return uds_log_error_strerror(UDS_INSUFFICIENT_INDEX_SPACE,
-					      "layout requires at least %llu bytes",
-					      (unsigned long long) sizes.total_blocks * sizes.block_size);
+	index_size = sizes.total_blocks * sizes.block_size;
+	if (size < index_size) {
+		uds_log_error("layout requires at least %llu bytes",
+			      (unsigned long long) index_size);
+		return -ENOSPC;
 	}
 
 	result = init_single_file_layout(layout, layout->offset, size, &sizes);
@@ -2634,10 +2633,10 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 	// UDS_BLOCK_SIZE.
 	size_t size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
 	if (named_size > size) {
-		return uds_log_error_strerror(UDS_INSUFFICIENT_INDEX_SPACE,
-					      "index storage (%zu) is smaller than the requested size %llu",
-					      size,
-					      (unsigned long long) named_size);
+		uds_log_error("index storage (%zu) is smaller than the requested size %llu",
+			      size,
+			      (unsigned long long) named_size);
+		return -ENOSPC;
 	}
 	if ((named_size > 0) && (named_size < size)) {
 		size = named_size;
@@ -2649,10 +2648,10 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 		return result;
 	}
 	if (size < config_size) {
-		return uds_log_error_strerror(UDS_INSUFFICIENT_INDEX_SPACE,
-					      "index storage (%zu) is smaller than the required size %llu",
-					      size,
-					      (unsigned long long) config_size);
+		uds_log_error("index storage (%zu) is smaller than the required size %llu",
+			      size,
+			      (unsigned long long) config_size);
+		return -ENOSPC;
 	}
 	size = config_size;
 

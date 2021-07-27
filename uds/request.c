@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#21 $
  */
 
 #include "request.h"
@@ -31,11 +31,12 @@
 /**********************************************************************/
 int uds_start_chunk_operation(struct uds_request *request)
 {
-        size_t internal_size;
+	size_t internal_size;
 	int result;
 
 	if (request->callback == NULL) {
-		return UDS_CALLBACK_REQUIRED;
+		uds_log_error("missing required callback");
+		return -EINVAL;
 	}
 	switch (request->type) {
 	case UDS_DELETE:
@@ -44,11 +45,12 @@ int uds_start_chunk_operation(struct uds_request *request)
 	case UDS_UPDATE:
 		break;
 	default:
-		return UDS_INVALID_OPERATION_TYPE;
+		uds_log_error("received invalid callback type");
+		return -EINVAL;
 	}
 
 	// Reset all internal fields before processing.
-        internal_size = sizeof(struct uds_request)
+	internal_size = sizeof(struct uds_request)
 		- offsetof(struct uds_request, zone_number);
 	memset(&request->zone_number, 0, internal_size);
 
