@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#221 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#222 $
  */
 
 #include "kernelLayer.h"
@@ -436,7 +436,6 @@ int make_kernel_layer(unsigned int instance,
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_INITIALIZED);
 	*layer_ptr = layer;
 	return VDO_SUCCESS;
 }
@@ -572,6 +571,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 * of funnel-queue data structures in work queues.
 	 */
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
+	const struct admin_state_code *code;
 
 	switch (state) {
 	case LAYER_STOPPING:
@@ -589,7 +589,18 @@ void free_kernel_layer(struct kernel_layer *layer)
 		fallthrough;
 
 	case LAYER_STOPPED:
-	case LAYER_INITIALIZED:
+		break;
+
+	case LAYER_NEW:
+		code = get_vdo_admin_state_code(&layer->vdo.admin_state);
+		if ((code == VDO_ADMIN_STATE_NEW)
+		    || (code == VDO_ADMIN_STATE_INITIALIZED)
+		    || (code == VDO_ADMIN_STATE_PRE_LOADED)) {
+			break;
+		}
+
+		uds_log_error("New kernel layer in unexpected state %s",
+			      code->name);
 		break;
 
 	default:
@@ -607,27 +618,6 @@ static void pool_stats_release(struct kobject *directory)
 }
 
 /**********************************************************************/
-int preload_kernel_layer(struct kernel_layer *layer, char **reason)
-{
-	int result;
-
-	if (get_kernel_layer_state(layer) != LAYER_INITIALIZED) {
-		*reason = "preload_kernel_layer() may only be invoked after initialization";
-		return UDS_BAD_STATE;
-	}
-
-	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = prepare_to_load_vdo(&layer->vdo);
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		*reason = "Cannot load metadata from device";
-		stop_kernel_layer(layer);
-		return result;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	static struct kobj_type stats_directory_type = {
@@ -636,13 +626,16 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		.default_attrs = vdo_pool_stats_attrs,
 	};
 	int result;
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&layer->vdo.admin_state);
 
-	if (get_kernel_layer_state(layer) != LAYER_STARTING) {
+	if (code != VDO_ADMIN_STATE_PRE_LOADED) {
 		*reason = "Cannot start kernel from non-starting state";
 		stop_kernel_layer(layer);
 		return UDS_BAD_STATE;
 	}
 
+	set_kernel_layer_state(layer, LAYER_STARTING);
 	result = load_vdo(&layer->vdo);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";

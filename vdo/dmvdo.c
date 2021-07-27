@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#144 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#145 $
  */
 
 #include "dmvdo.h"
@@ -42,6 +42,7 @@
 #include "stringUtils.h"
 #include "vdo.h"
 #include "vdoInit.h"
+#include "vdoLoad.h"
 
 enum vdo_module_status vdo_module_status;
 
@@ -443,12 +444,14 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	result = preload_kernel_layer(layer, &failure_reason);
+	result = prepare_to_load_vdo(&layer->vdo);
 	if (result != VDO_SUCCESS) {
+		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
+			     ? "Pre-load is only valid immediately after initialization"
+			     : "Cannot load metadata from device");
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
-			      failure_reason);
-		ti->error = failure_reason;
+			      ti->error);
 		free_kernel_layer(layer);
 		return result;
 	}
@@ -650,7 +653,7 @@ static int vdo_preresume(struct dm_target *ti)
 		return -EINVAL;
 	}
 
-	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
+	if (get_vdo_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		char *failure_reason;
 		int result;
 

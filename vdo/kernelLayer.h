@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#97 $
  */
 
 #ifndef KERNELLAYER_H
@@ -45,7 +45,7 @@
 #include "workQueue.h"
 
 enum kernel_layer_state {
-	LAYER_INITIALIZED,
+	LAYER_NEW,
 	LAYER_STARTING,
 	LAYER_RUNNING,
 	LAYER_SUSPENDED,
@@ -131,19 +131,6 @@ modify_kernel_layer(struct kernel_layer *layer, struct device_config *config);
  *               make_kernel_layer
  **/
 void free_kernel_layer(struct kernel_layer *layer);
-
-/**
- * Make and configure a kernel layer. This method does not alter the VDO state
- * on disk. It should be run from the VDO constructor for devices which have
- * not been started. Redundant starts are silently ignored
- *
- * @param layer   The kernel layer
- * @param reason  The reason for any failure during this call
- *
- * @return VDO_SUCCESS or an error
- **/
-
-int preload_kernel_layer(struct kernel_layer *layer, char **reason);
 
 /**
  * Start the kernel layer. This method finishes bringing a VDO online now that
