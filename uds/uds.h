@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#18 $
  */
 
 /**
@@ -264,17 +264,19 @@ struct index_router;
 struct index;
 
 /**
- * The block's rough location in the index, if any.
+ * The block's general location in the index.
  **/
-enum index_region {
-	/* the block doesn't exist or the location isn't available */
-	LOC_UNAVAILABLE,
+enum uds_index_region {
+	/* the location isn't known yet */
+	UDS_LOCATION_UNKNOWN = 0,
+	/* the block is not in the index */
+	UDS_LOCATION_UNAVAILABLE,
 	/* if the block was found in the open chapter */
-	LOC_IN_OPEN_CHAPTER,
+	UDS_LOCATION_IN_OPEN_CHAPTER,
 	/* if the block was found in the dense part of the index */
-	LOC_IN_DENSE,
+	UDS_LOCATION_IN_DENSE,
 	/* if the block was found in the sparse part of the index */
-	LOC_IN_SPARSE
+	UDS_LOCATION_IN_SPARSE
 } __packed;
 
 /**
@@ -391,12 +393,8 @@ struct uds_request {
 	bool unbatched;
 	/** If true, attempt to handle this request before newer requests */
 	bool requeued;
-	/** The location of this chunk name in the index, once found */
-	enum index_region location;
-	/** If true, a "slow lane" search has determined the location */
-	bool sl_location_known;
-	/** The location determined by a "slow lane" search */
-	enum index_region sl_location;
+	/** The location of this chunk name in the index */
+	enum uds_index_region location;
 };
 
 /**

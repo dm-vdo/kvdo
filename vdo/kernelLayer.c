@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#220 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#221 $
  */
 
 #include "kernelLayer.h"
@@ -34,6 +34,7 @@
 #include "permassert.h"
 
 #include "adminCompletion.h"
+#include "adminState.h"
 #include "flush.h"
 #include "releaseVersions.h"
 #include "statistics.h"
@@ -183,14 +184,14 @@ int vdo_launch_bio(struct vdo *vdo, struct bio *bio)
 {
 	int result;
 	uint64_t arrival_jiffies = jiffies;
-	enum kernel_layer_state state =
-		get_kernel_layer_state(vdo_as_kernel_layer(vdo));
 	struct vdo_work_queue *current_work_queue;
 	bool has_discard_permit = false;
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&vdo->admin_state);
 
-	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
-			"vdo_launch_bio should not be called while in state %d",
-			state);
+	ASSERT_LOG_ONLY(code->normal,
+			"vdo_launch_bio should not be called while in state %s",
+			code->name);
 
 	// Count all incoming bios.
 	vdo_count_bios(&vdo->stats.bios_in, bio);

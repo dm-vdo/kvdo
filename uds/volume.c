@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#46 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#47 $
  */
 
 #include "volume.h"
@@ -369,11 +369,10 @@ static void read_thread_function(void *arg)
 						       &request->chunk_name,
 						       volume->geometry,
 						       &request->old_metadata)) {
-					request->sl_location = LOC_IN_DENSE;
+					request->location = UDS_LOCATION_IN_DENSE;
 				} else {
-					request->sl_location = LOC_UNAVAILABLE;
+					request->location = UDS_LOCATION_UNAVAILABLE;
 				}
-				request->sl_location_known = true;
 			}
 
 			// reflect any read failures in the request status
