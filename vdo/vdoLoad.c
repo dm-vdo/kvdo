@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#101 $
  */
 
 #include "vdoLoad.h"
@@ -146,7 +146,6 @@ static void load_callback(struct vdo_completion *completion)
 		open_vdo_recovery_journal(vdo->recovery_journal,
 					  vdo->depot,
 					  vdo->block_map);
-		vdo->close_required = true;
 		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
 					       reset_vdo_admin_sub_task(completion));
 		return;
@@ -250,17 +249,13 @@ static void handle_load_error(struct vdo_completion *completion)
 		// Preserve the error.
 		set_vdo_operation_result(&vdo->admin_state,
 					 completion->result);
-		if (vdo->close_required) {
-			vdo->close_required = false;
-			admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
-			load_callback(UDS_FORGET(completion));
-			return;
-		}
-	} else {
-		uds_log_error_strerror(completion->result,
-				       "Entering read-only mode due to load error");
+		admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
+		load_callback(UDS_FORGET(completion));
+		return;
 	}
 
+	uds_log_error_strerror(completion->result,
+			       "Entering read-only mode due to load error");
 	admin_completion->phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
 	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	set_vdo_operation_result(&vdo->admin_state, VDO_READ_ONLY);

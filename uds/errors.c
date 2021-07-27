@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#16 $
  */
 
 #include "errors.h"
@@ -106,7 +106,7 @@ static const struct error_info error_list[] = {
 	{ "UDS_UNUSED_CODE_36", "Unused error code 36" },
 	{ "UDS_NO_INDEX", "No index found" },
 	{ "UDS_UNUSED_CODE_38", "Unused error code 38" },
-	{ "UDS_WRONG_INDEX_CONFIG", "Wrong type of index configuration" },
+	{ "UDS_UNUSED_CODE_39", "Unused error code 39" },
 	{ "UDS_UNUSED_CODE_40", "Unused error code 40" },
 	{ "UDS_UNUSED_CODE_41", "Unused error code 41" },
 	{ "UDS_UNUSED_CODE_42", "Unused error code 42" },

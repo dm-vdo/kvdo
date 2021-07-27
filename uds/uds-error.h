@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#8 $
  */
 
 /**
@@ -115,8 +115,8 @@ enum uds_status_codes {
 	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 37,
 	/** Unused */
 	UDS_UNUSED_CODE_38 = UDS_ERROR_CODE_BASE + 38,
-	/** Wrong type of index configuration */
-	UDS_WRONG_INDEX_CONFIG = UDS_ERROR_CODE_BASE + 39,
+	/** Unused */
+	UDS_UNUSED_CODE_39 = UDS_ERROR_CODE_BASE + 39,
 	/** Unused */
 	UDS_UNUSED_CODE_40 = UDS_ERROR_CODE_BASE + 40,
 	/** Unused */

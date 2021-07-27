@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#48 $
  */
 
 #include "vdoSuspend.h"
@@ -135,11 +135,6 @@ static void suspend_callback(struct vdo_completion *completion)
 					&admin_completion->completion,
 					NULL)) {
 			return;
-		}
-
-		if (!vdo->close_required) {
-			// There's nothing to do.
-			break;
 		}
 
 		/*
