@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/ioSubmitter.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/ioSubmitter.h#4 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -26,7 +26,7 @@
 #include "kvio.h"
 
 /**
- * Create a io_submitter structure for a new physical layer.
+ * Create an io_submitter structure.
  *
  * @param [in]  thread_name_prefix   The per-device prefix to use in process
  *                                   names
@@ -35,35 +35,35 @@
  *                                   bio-submission threads when enqueuing work
  *                                   items
  * @param [in]  max_requests_active  Number of bios for merge tracking
- * @param [in]  layer                The kernel layer
+ * @param [in]  vdo                  The vdo which will use this submitter
  * @param [out] io_submitter         Pointer to the new data structure
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_io_submitter(const char *thread_name_prefix,
-		      unsigned int thread_count,
-		      unsigned int rotation_interval,
-		      unsigned int max_requests_active,
-		      struct kernel_layer *layer,
-		      struct io_submitter **io_submitter);
+int make_vdo_io_submitter(const char *thread_name_prefix,
+			  unsigned int thread_count,
+			  unsigned int rotation_interval,
+			  unsigned int max_requests_active,
+			  struct vdo *vdo,
+			  struct io_submitter **io_submitter);
 
 /**
  * Tear down the io_submitter fields as needed for a physical layer.
  *
- * @param [in]  io_submitter  The I/O submitter data to tear down
+ * @param [in]  io_submitter  The I/O submitter data to tear down (may be NULL)
  **/
-void cleanup_io_submitter(struct io_submitter *io_submitter);
+void cleanup_vdo_io_submitter(struct io_submitter *io_submitter);
 
 /**
  * Free the io_submitter fields and structure as needed for a
  * physical layer. This must be called after
- * cleanup_io_submitter(). It is used to release resources late in
+ * cleanup_vdo_io_submitter(). It is used to release resources late in
  * the shutdown process to avoid or reduce the chance of race
  * conditions.
  *
  * @param [in]  io_submitter  The I/O submitter data to destroy
  **/
-void free_io_submitter(struct io_submitter *io_submitter);
+void free_vdo_io_submitter(struct io_submitter *io_submitter);
 
 /**
  * Dump info to the kernel log about the work queue used by the
@@ -71,7 +71,7 @@ void free_io_submitter(struct io_submitter *io_submitter);
  *
  * @param [in]  io_submitter  The I/O submitter data
  **/
-void dump_bio_work_queue(struct io_submitter *io_submitter);
+void vdo_dump_bio_work_queue(struct io_submitter *io_submitter);
 
 
 /**
@@ -84,8 +84,8 @@ void dump_bio_work_queue(struct io_submitter *io_submitter);
  * @param io_submitter  The I/O submitter data to update
  * @param work_item     The new work item to run
  **/
-void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   struct vdo_work_item *work_item);
+void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,
+			       struct vdo_work_item *work_item);
 
 /**
  * Submit bio but don't block.

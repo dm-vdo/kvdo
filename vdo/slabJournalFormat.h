@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalFormat.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalFormat.h#3 $
  */
 
 #ifndef SLAB_JOURNAL_FORMAT_H
@@ -96,31 +96,31 @@ struct packed_slab_journal_block_header {
 } __packed;
 
 enum {
-	SLAB_JOURNAL_PAYLOAD_SIZE =
+	VDO_SLAB_JOURNAL_PAYLOAD_SIZE =
 		VDO_BLOCK_SIZE - sizeof(struct packed_slab_journal_block_header),
-	SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
-		(SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
-	SLAB_JOURNAL_ENTRY_TYPES_SIZE =
-		((SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
-	SLAB_JOURNAL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE
-					  / sizeof(packed_slab_journal_entry)),
+	VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
+		(VDO_SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
+	VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE =
+		((VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
+	VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK =
+		(VDO_SLAB_JOURNAL_PAYLOAD_SIZE / sizeof(packed_slab_journal_entry)),
 };
 
 /** The payload of a slab journal block which has block map increments */
 struct full_slab_journal_entries {
 	/* The entries themselves */
-	packed_slab_journal_entry entries[SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
+	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
 	/* The bit map indicating which entries are block map increments */
-	byte entry_types[SLAB_JOURNAL_ENTRY_TYPES_SIZE];
+	byte entry_types[VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE];
 } __packed;
 
 typedef union {
 	/* Entries which include block map increments */
 	struct full_slab_journal_entries full_entries;
 	/* Entries which are only data updates */
-	packed_slab_journal_entry entries[SLAB_JOURNAL_ENTRIES_PER_BLOCK];
+	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK];
 	/* Ensure the payload fills to the end of the block */
-	byte space[SLAB_JOURNAL_PAYLOAD_SIZE];
+	byte space[VDO_SLAB_JOURNAL_PAYLOAD_SIZE];
 } __packed slab_journal_payload;
 
 struct packed_slab_journal_block {
@@ -136,8 +136,8 @@ struct packed_slab_journal_block {
  * @param origin       The first block of the slab
  **/
 static inline physical_block_number_t __must_check
-get_slab_journal_start_block(const struct slab_config *slab_config,
-			     physical_block_number_t origin)
+get_vdo_slab_journal_start_block(const struct slab_config *slab_config,
+				 physical_block_number_t origin)
 {
 	return origin + slab_config->data_blocks
 	       + slab_config->reference_count_blocks;
@@ -150,8 +150,8 @@ get_slab_journal_start_block(const struct slab_config *slab_config,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-pack_slab_journal_block_header(const struct slab_journal_block_header *header,
-			       struct packed_slab_journal_block_header *packed)
+pack_vdo_slab_journal_block_header(const struct slab_journal_block_header *header,
+				   struct packed_slab_journal_block_header *packed)
 {
 	packed->head = __cpu_to_le64(header->head);
 	packed->sequence_number = __cpu_to_le64(header->sequence_number);
@@ -172,7 +172,7 @@ pack_slab_journal_block_header(const struct slab_journal_block_header *header,
  * @return The decoded slab journal entry
  **/
 static inline struct slab_journal_entry __must_check
-unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
+unpack_vdo_slab_journal_entry(const packed_slab_journal_entry *packed)
 {
 	struct slab_journal_entry entry;
 	entry.sbn = packed->offset_high7;
@@ -194,8 +194,8 @@ unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
  * @return The decoded entry
  **/
 struct slab_journal_entry __must_check
-decode_slab_journal_entry(struct packed_slab_journal_block *block,
-			  journal_entry_count_t entry_count);
+decode_vdo_slab_journal_entry(struct packed_slab_journal_block *block,
+			      journal_entry_count_t entry_count);
 
 
 #endif // SLAB_JOURNAL_FORMAT_H

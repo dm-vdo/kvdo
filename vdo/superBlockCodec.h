@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/superBlockCodec.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/superBlockCodec.h#2 $
  */
 
 #ifndef SUPER_BLOCK_CODEC_H
@@ -50,14 +50,14 @@ struct super_block_codec {
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check initialize_super_block_codec(struct super_block_codec *codec);
+int __must_check initialize_vdo_super_block_codec(struct super_block_codec *codec);
 
 /**
  * Free resources in a super block codec.
  *
  * @param codec  The codec to clean up
  **/
-void destroy_super_block_codec(struct super_block_codec *codec);
+void destroy_vdo_super_block_codec(struct super_block_codec *codec);
 
 /**
  * Encode a super block into its on-disk representation.
@@ -66,7 +66,7 @@ void destroy_super_block_codec(struct super_block_codec *codec);
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check encode_super_block(struct super_block_codec *codec);
+int __must_check encode_vdo_super_block(struct super_block_codec *codec);
 
 /**
  * Decode a super block from its on-disk representation.
@@ -75,7 +75,7 @@ int __must_check encode_super_block(struct super_block_codec *codec);
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check decode_super_block(struct super_block_codec *codec);
+int __must_check decode_vdo_super_block(struct super_block_codec *codec);
 
 /**
  * Get the encoded size of the fixed (non-component data) portion of a super
@@ -83,6 +83,6 @@ int __must_check decode_super_block(struct super_block_codec *codec);
  *
  * @return The encoded size of the fixed portion of the super block
  **/
-size_t __must_check get_fixed_super_block_size(void);
+size_t __must_check get_vdo_super_block_fixed_size(void);
 
 #endif // SUPER_BLOCK_CODEC_H

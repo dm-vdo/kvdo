@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueueStats.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueueStats.c#5 $
  */
 
 #include "workQueueStats.h"
+
+#include "memoryAlloc.h"
 
 #include "logger.h"
 #include "workItemStats.h"
@@ -29,7 +31,7 @@
 int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 				struct kobject *queue_kobject)
 {
-	initialize_work_item_stats(&stats->work_item_stats);
+	initialize_vdo_work_item_stats(&stats->work_item_stats);
 
 	stats->queue_time_histogram =
 		make_logarithmic_histogram(queue_kobject, "queue_time",
@@ -99,13 +101,13 @@ int initialize_work_queue_stats(struct vdo_work_queue_stats *stats,
 /**********************************************************************/
 void cleanup_work_queue_stats(struct vdo_work_queue_stats *stats)
 {
-	free_histogram(&stats->queue_time_histogram);
-	free_histogram(&stats->reschedule_queue_length_histogram);
-	free_histogram(&stats->reschedule_time_histogram);
-	free_histogram(&stats->run_time_before_reschedule_histogram);
-	free_histogram(&stats->schedule_time_histogram);
-	free_histogram(&stats->wakeup_latency_histogram);
-	free_histogram(&stats->wakeup_queue_length_histogram);
+	free_histogram(UDS_FORGET(stats->queue_time_histogram));
+	free_histogram(UDS_FORGET(stats->reschedule_queue_length_histogram));
+	free_histogram(UDS_FORGET(stats->reschedule_time_histogram));
+	free_histogram(UDS_FORGET(stats->run_time_before_reschedule_histogram));
+	free_histogram(UDS_FORGET(stats->schedule_time_histogram));
+	free_histogram(UDS_FORGET(stats->wakeup_latency_histogram));
+	free_histogram(UDS_FORGET(stats->wakeup_queue_length_histogram));
 }
 
 /**********************************************************************/
@@ -120,19 +122,19 @@ void log_work_queue_stats(const struct simple_work_queue *queue)
 	runtime_ms = runtime_ns / 1000;
 
 	total_processed =
-		count_work_items_processed(&queue->stats.work_item_stats);
+		count_vdo_work_items_processed(&queue->stats.work_item_stats);
 	if (total_processed > 0) {
 		ns_per_work_item = runtime_ns / total_processed;
 	}
 
-	log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
-		 queue,
-		 queue->common.name,
-		 runtime_ms / 1000000,
-		 runtime_ms % 1000000,
-		 total_processed,
-		 ns_per_work_item / 1000,
-		 ns_per_work_item % 1000);
+	uds_log_info("workQ %px (%s) thread cpu usage %lu.%06lus, %llu tasks, %lu.%03luus/task",
+		     queue,
+		     queue->common.name,
+		     runtime_ms / 1000000,
+		     runtime_ms % 1000000,
+		     total_processed,
+		     ns_per_work_item / 1000,
+		     ns_per_work_item % 1000);
 }
 
 /**********************************************************************/

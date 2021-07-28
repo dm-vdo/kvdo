@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/sysfs.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/sysfs.c#3 $
  */
 
 #include "sysfs.h"
@@ -45,7 +45,7 @@ static int vdo_status_show(char *buf,
 static int vdo_log_level_show(char *buf,
 			      const struct kernel_param *kp)
 {
-	return sprintf(buf, "%s\n", priority_to_string(get_log_level()));
+	return sprintf(buf, "%s\n", uds_log_priority_to_string(get_uds_log_level()));
 }
 
 /**********************************************************************/
@@ -64,7 +64,7 @@ static int vdo_log_level_store(const char *buf,
 	if (internal_buf[n - 1] == '\n') {
 		internal_buf[n - 1] = '\000';
 	}
-	set_log_level(string_to_priority(internal_buf));
+	set_uds_log_level(uds_log_string_to_priority(internal_buf));
 	return 0;
 }
 
@@ -77,7 +77,7 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_dedupe_index_timeout_interval(*(uint *)kp->arg);
+	set_vdo_dedupe_index_timeout_interval(*(uint *)kp->arg);
 	return 0;
 }
 
@@ -89,7 +89,7 @@ static int vdo_min_dedupe_timer_interval_store(const char *buf,
 	if (result != 0) {
 		return result;
 	}
-	set_min_dedupe_index_timer_interval(*(uint *)kp->arg);
+	set_vdo_dedupe_index_min_timer_interval(*(uint *)kp->arg);
 	return 0;
 }
 
@@ -119,7 +119,7 @@ module_param_cb(log_level, &log_level_ops, NULL, 0644);
 
 
 module_param_cb(deduplication_timeout_interval, &dedupe_timeout_ops,
-		&dedupe_index_timeout_interval, 0644);
+		&vdo_dedupe_index_timeout_interval, 0644);
 
 module_param_cb(min_deduplication_timer_interval, &dedupe_timer_ops,
-		&min_dedupe_index_timer_interval, 0644);
+		&vdo_dedupe_index_min_timer_interval, 0644);

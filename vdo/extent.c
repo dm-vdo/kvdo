@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/extent.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/extent.c#6 $
  */
 
 #include "extent.h"
@@ -27,7 +27,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "logger.h"
-#include "physicalLayer.h"
 #include "types.h"
 #include "vdo.h"
 #include "vioRead.h"
@@ -42,14 +41,14 @@ int create_vdo_extent(struct vdo *vdo,
 		      struct vdo_extent **extent_ptr)
 {
 	struct vdo_extent *extent;
-	int result = ASSERT(is_metadata_vio_type(vio_type),
+	int result = ASSERT(is_vdo_metadata_vio_type(vio_type),
 			    "create_vdo_extent() called for metadata");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE_EXTENDED(struct vdo_extent, block_count, struct vio *,
-				   __func__, &extent);
+	result = UDS_ALLOCATE_EXTENDED(struct vdo_extent, block_count,
+				       struct vio *, __func__, &extent);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -65,7 +64,7 @@ int create_vdo_extent(struct vdo *vdo,
 					     data,
 					     &extent->vios[extent->count]);
 		if (result != VDO_SUCCESS) {
-			free_vdo_extent(&extent);
+			free_vdo_extent(UDS_FORGET(extent));
 			return result;
 		}
 
@@ -77,20 +76,18 @@ int create_vdo_extent(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_extent(struct vdo_extent **extent_ptr)
+void free_vdo_extent(struct vdo_extent *extent)
 {
 	block_count_t i;
-	struct vdo_extent *extent = *extent_ptr;
 	if (extent == NULL) {
 		return;
 	}
 
 	for (i = 0; i < extent->count; i++) {
-		free_vio(&extent->vios[i]);
+		free_vio(UDS_FORGET(extent->vios[i]));
 	}
 
-	FREE(extent);
-	*extent_ptr = NULL;
+	UDS_FREE(UDS_FORGET(extent));
 }
 
 /**

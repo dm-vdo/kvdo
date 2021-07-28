@@ -16,21 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.h#19 $
  */
 
 #ifndef KERNELLAYER_H
 #define KERNELLAYER_H
 
+#include <linux/atomic.h>
 #include <linux/device-mapper.h>
 #include <linux/list.h>
-
-#include "atomicDefs.h"
 
 #include "constants.h"
 #include "flush.h"
 #include "intMap.h"
-#include "physicalLayer.h"
 #include "types.h"
 #include "vdo.h"
 #include "vdoInternal.h"
@@ -40,8 +38,6 @@
 #include "bufferPool.h"
 #include "deadlockQueue.h"
 #include "deviceConfig.h"
-#include "histogram.h"
-#include "kernelStatistics.h"
 #include "kernelTypes.h"
 #include "kernelVDO.h"
 #include "limiter.h"
@@ -49,12 +45,7 @@
 #include "workQueue.h"
 
 enum kernel_layer_state {
-	LAYER_SIMPLE_THINGS_INITIALIZED,
-	LAYER_BUFFER_POOLS_INITIALIZED,
-	LAYER_REQUEST_QUEUE_INITIALIZED,
-	LAYER_CPU_QUEUE_INITIALIZED,
-	LAYER_BIO_ACK_QUEUE_INITIALIZED,
-	LAYER_BIO_DATA_INITIALIZED,
+	LAYER_INITIALIZED,
 	LAYER_STARTING,
 	LAYER_RUNNING,
 	LAYER_SUSPENDED,
@@ -63,76 +54,13 @@ enum kernel_layer_state {
 	LAYER_RESUMING,
 };
 
-/* Keep struct bio statistics atomically */
-struct atomic_bio_stats {
-	atomic64_t read; // Number of not REQ_WRITE bios
-	atomic64_t write; // Number of REQ_WRITE bios
-	atomic64_t discard; // Number of REQ_DISCARD bios
-	atomic64_t flush; // Number of REQ_FLUSH bios
-	atomic64_t fua; // Number of REQ_FUA bios
-};
-
 /**
  * The VDO representation of the target device
  **/
 struct kernel_layer {
-	PhysicalLayer common;
-	// Layer specific info
-	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
+	struct vdo vdo;
 	/** Accessed from multiple threads */
 	enum kernel_layer_state state;
-	atomic_t processing_message;
-
-	struct vdo vdo;
-
-	/**
-	 * Work queue (possibly with multiple threads) for miscellaneous
-	 * CPU-intensive, non-blocking work.
-	 **/
-	struct vdo_work_queue *cpu_queue;
-	/** N blobs of context data for LZ4 code, one per CPU thread. */
-	char **compression_context;
-	/** Optional work queue for calling bio_endio. */
-	struct vdo_work_queue *bio_ack_queue;
-	// Memory allocation
-	struct buffer_pool *data_vio_pool;
-	// UDS index info
-	struct dedupe_index *dedupe_index;
-	// Statistics
-	atomic64_t bios_submitted;
-	atomic64_t bios_completed;
-	atomic64_t dedupe_context_busy;
-	atomic64_t flush_out;
-	struct atomic_bio_stats bios_in;
-	struct atomic_bio_stats bios_in_partial;
-	struct atomic_bio_stats bios_out;
-	struct atomic_bio_stats bios_out_completed;
-	struct atomic_bio_stats bios_acknowledged;
-	struct atomic_bio_stats bios_acknowledged_partial;
-	struct atomic_bio_stats bios_meta;
-	struct atomic_bio_stats bios_meta_completed;
-	struct atomic_bio_stats bios_journal;
-	struct atomic_bio_stats bios_journal_completed;
-	struct atomic_bio_stats bios_page_cache;
-	struct atomic_bio_stats bios_page_cache_completed;
-	// Debugging
-	/* Whether to dump VDO state on shutdown */
-	bool dump_on_shutdown;
-
-	/* For returning batches of data_vios to their pool */
-	struct batch_processor *data_vio_releaser;
-
-	// Statistics reporting
-	/* Protects the *_stats_storage structs */
-	struct mutex stats_mutex;
-	/* Used when shutting down the sysfs statistics */
-	struct completion stats_shutdown;
-
-	/* true if sysfs statistics directory is set up */
-	bool stats_added;
-	/* Used to gather statistics without allocating memory */
-	struct vdo_statistics vdo_stats_storage;
-	struct kernel_statistics kernel_stats_storage;
 };
 
 enum bio_q_action {
@@ -271,26 +199,14 @@ get_kernel_layer_state(const struct kernel_layer *layer)
 /**
  * Function call to begin processing a bio passed in from the block layer
  *
- * @param layer  The physical layer
- * @param bio    The bio from the block layer
+ * @param vdo  The VDO instance
+ * @param bio  The bio from the block layer
  *
  * @return value to return from the VDO map function.  Either an error code
- *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see kvdo_map_bio for
+ *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdo_map_bio for
  *         details).
  **/
-int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);
-
-/**
- * Convert a generic PhysicalLayer to a kernel_layer.
- *
- * @param layer  The PhysicalLayer to convert
- *
- * @return The PhysicalLayer as a struct kernel_layer
- **/
-static inline struct kernel_layer *as_kernel_layer(PhysicalLayer *layer)
-{
-	return container_of(layer, struct kernel_layer, common);
-}
+int vdo_launch_bio(struct vdo *vdo, struct bio *bio);
 
 /**
  * Convert a struct vdo pointer to the kernel_layer contining it.
@@ -347,32 +263,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 {
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
 	return to_bytes(sector_number & sectors_per_block_mask);
-}
-
-/**
- * Given an error code, return a value we can return to the OS.  The
- * input error code may be a system-generated value (such as -EIO), an
- * errno macro used in our code (such as EIO), or a UDS or VDO status
- * code; the result must be something the rest of the OS can consume
- * (negative errno values such as -EIO, in the case of the kernel).
- *
- * @param error  the error code to convert
- *
- * @return a system error code value
- **/
-int map_to_system_error(int error);
-
-/**
- * Enqueues an item on our internal "cpu queues". Since there is more than
- * one, we rotate through them in hopes of creating some general balance.
- *
- * @param layer The kernel layer
- * @param item  The work item to enqueue
- */
-static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
-					  struct vdo_work_item *item)
-{
-	enqueue_work_queue(layer->cpu_queue, item);
 }
 
 /**

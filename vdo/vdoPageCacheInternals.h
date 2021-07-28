@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCacheInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCacheInternals.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -31,7 +31,6 @@
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
-#include "physicalLayer.h"
 
 enum {
 	MAX_PAGE_CONTEXT_SIZE = 8,
@@ -160,7 +159,7 @@ struct page_info {
 };
 
 /**********************************************************************/
-static inline bool is_dirty(const struct page_info *info)
+static inline bool is_vdo_page_dirty(const struct page_info *info)
 {
 	return info->state == PS_DIRTY;
 }
@@ -182,6 +181,6 @@ as_vdo_page_completion(struct vdo_completion *completion)
  * @return the page info for the page if available, or NULL if not
  **/
 struct page_info * __must_check
-vpc_find_page(struct vdo_page_cache *cache, physical_block_number_t pbn);
+vdo_page_cache_find_page(struct vdo_page_cache *cache, physical_block_number_t pbn);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

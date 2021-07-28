@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalEraser.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalEraser.c#7 $
  */
 
 #include "slabJournalEraser.h"
@@ -46,9 +46,9 @@ struct slab_journal_eraser {
 static void finish_erasing(struct slab_journal_eraser *eraser, int result)
 {
 	struct vdo_completion *parent = eraser->parent;
-	free_vdo_extent(&eraser->extent);
-	FREE(eraser->zero_buffer);
-	FREE(eraser);
+	free_vdo_extent(UDS_FORGET(eraser->extent));
+	UDS_FREE(eraser->zero_buffer);
+	UDS_FREE(eraser);
 	finish_vdo_completion(parent, result);
 }
 
@@ -73,25 +73,25 @@ static void erase_next_slab_journal(struct vdo_completion *extent_completion)
 	struct vdo_slab *slab;
 	struct slab_journal_eraser *eraser = extent_completion->parent;
 
-	if (!has_next_slab(&eraser->slabs)) {
+	if (!vdo_has_next_slab(&eraser->slabs)) {
 		finish_erasing(eraser, VDO_SUCCESS);
 		return;
 	}
 
-	slab = next_slab(&eraser->slabs);
+	slab = vdo_next_slab(&eraser->slabs);
 	write_vdo_metadata_extent(eraser->extent, slab->journal_origin);
 }
 
 /**********************************************************************/
-void erase_slab_journals(struct slab_depot *depot,
-			 struct slab_iterator slabs,
-			 struct vdo_completion *parent)
+void erase_vdo_slab_journals(struct slab_depot *depot,
+			     struct slab_iterator slabs,
+			     struct vdo_completion *parent)
 {
 	struct slab_journal_eraser *eraser;
 	block_count_t journal_size;
 	struct vdo_completion *extent_completion;
 
-	int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
+	int result = UDS_ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;
@@ -100,11 +100,11 @@ void erase_slab_journals(struct slab_depot *depot,
 	eraser->parent = parent;
 	eraser->slabs = slabs;
 
-	journal_size = get_slab_config(depot)->slab_journal_blocks;
-	result = ALLOCATE(journal_size * VDO_BLOCK_SIZE,
-			  char,
-			  __func__,
-			  &eraser->zero_buffer);
+	journal_size = get_vdo_slab_config(depot)->slab_journal_blocks;
+	result = UDS_ALLOCATE(journal_size * VDO_BLOCK_SIZE,
+			      char,
+			      __func__,
+			      &eraser->zero_buffer);
 	if (result != VDO_SUCCESS) {
 		finish_erasing(eraser, result);
 		return;
@@ -125,7 +125,7 @@ void erase_slab_journals(struct slab_depot *depot,
 	prepare_vdo_completion(extent_completion,
 			       erase_next_slab_journal,
 			       handle_erasing_error,
-			       get_callback_thread_id(),
+			       vdo_get_callback_thread_id(),
 			       eraser);
 	erase_next_slab_journal(extent_completion);
 }

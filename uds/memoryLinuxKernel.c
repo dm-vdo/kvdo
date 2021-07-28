@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#22 $
  */
 
 #include <linux/delay.h>
 #include <linux/mm.h>
-#include <linux/module.h>
 #include <linux/sched/mm.h>
 #include <linux/slab.h>
 #include <linux/version.h>
@@ -46,25 +45,25 @@ static struct thread_registry allocating_threads;
 /**********************************************************************/
 static bool allocations_allowed(void)
 {
-	const bool *pointer = lookup_thread(&allocating_threads);
+	const bool *pointer = uds_lookup_thread(&allocating_threads);
 	return pointer != NULL ? *pointer : false;
 }
 
 /**********************************************************************/
-void register_allocating_thread(struct registered_thread *new_thread,
-				const bool *flag_ptr)
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
 		flag_ptr = &allocation_always_allowed;
 	}
-	register_thread(&allocating_threads, new_thread, flag_ptr);
+	uds_register_thread(&allocating_threads, new_thread, flag_ptr);
 }
 
 /**********************************************************************/
-void unregister_allocating_thread(void)
+void uds_unregister_allocating_thread(void)
 {
-	unregister_thread(&allocating_threads);
+	uds_unregister_thread(&allocating_threads);
 }
 
 /*
@@ -161,10 +160,10 @@ static void remove_vmalloc_block(void *ptr)
 	}
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	if (block != NULL) {
-		FREE(block);
+		UDS_FREE(block);
 	} else {
-		log_info("attempting to remove ptr %" PRIptr " not found in vmalloc list",
-			 ptr);
+		uds_log_info("attempting to remove ptr %pK not found in vmalloc list",
+			     ptr);
 	}
 }
 
@@ -209,7 +208,7 @@ static INLINE bool use_kmalloc(size_t size)
 }
 
 /**********************************************************************/
-int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
+int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
 	/*
 	 * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry
@@ -268,7 +267,7 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		}
 	} else {
 		struct vmalloc_block_info *block;
-		if (ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
+		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
 		    UDS_SUCCESS) {
 			/*
 			 * If we just do __vmalloc(size, gfp_flags,
@@ -317,7 +316,7 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #endif
 			}
 			if (p == NULL) {
-				FREE(block);
+				UDS_FREE(block);
 			} else {
 				block->ptr = p;
 				block->size = PAGE_ALIGN(size);
@@ -336,15 +335,15 @@ int allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			      size,
 			      what,
 			      duration);
-		return ENOMEM;
+		return -ENOMEM;
 	}
 	*((void **) ptr) = p;
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void *allocate_memory_nowait(size_t size,
-			     const char *what __attribute__((unused)))
+void *uds_allocate_memory_nowait(size_t size,
+				 const char *what __attribute__((unused)))
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
 	if (p != NULL) {
@@ -354,7 +353,7 @@ void *allocate_memory_nowait(size_t size,
 }
 
 /**********************************************************************/
-void free_memory(void *ptr)
+void uds_free_memory(void *ptr)
 {
 	if (ptr != NULL) {
 		if (is_vmalloc_addr(ptr)) {
@@ -368,21 +367,21 @@ void free_memory(void *ptr)
 }
 
 /**********************************************************************/
-int reallocate_memory(void *ptr,
-		      size_t old_size,
-		      size_t size,
-		      const char *what,
-		      void *new_ptr)
+int uds_reallocate_memory(void *ptr,
+			  size_t old_size,
+			  size_t size,
+			  const char *what,
+			  void *new_ptr)
 {
 	int result;
 	// Handle special case of zero sized result
 	if (size == 0) {
-		FREE(ptr);
+		UDS_FREE(ptr);
 		*(void **) new_ptr = NULL;
 		return UDS_SUCCESS;
 	}
 
-	result = ALLOCATE(size, char, what, new_ptr);
+	result = UDS_ALLOCATE(size, char, what, new_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -392,21 +391,21 @@ int reallocate_memory(void *ptr,
 			size = old_size;
 		}
 		memcpy(*((void **) new_ptr), ptr, size);
-		FREE(ptr);
+		UDS_FREE(ptr);
 	}
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void memory_init(void)
+void uds_memory_init(void)
 {
 
 	spin_lock_init(&memory_stats.lock);
-	initialize_thread_registry(&allocating_threads);
+	uds_initialize_thread_registry(&allocating_threads);
 }
 
 /**********************************************************************/
-void memory_exit(void)
+void uds_memory_exit(void)
 {
 
 	ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
@@ -417,13 +416,11 @@ void memory_exit(void)
 			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
 			memory_stats.vmalloc_bytes,
 			memory_stats.vmalloc_blocks);
-	log_debug("%s peak usage %zd bytes",
-		  THIS_MODULE->name,
-		  memory_stats.peak_bytes);
+	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
 /**********************************************************************/
-void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
+void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&memory_stats.lock, flags);
@@ -433,7 +430,7 @@ void get_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 }
 
 /**********************************************************************/
-void report_memory_usage()
+void report_uds_memory_usage(void)
 {
 	unsigned long flags;
 	uint64_t kmalloc_blocks, kmalloc_bytes, vmalloc_blocks, vmalloc_bytes;
@@ -446,14 +443,14 @@ void report_memory_usage()
 	peak_usage = memory_stats.peak_bytes;
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	total_bytes = kmalloc_bytes + vmalloc_bytes;
-	log_info("current module memory tracking (actual allocation sizes, not requested):");
-	log_info("  %llu bytes in %llu kmalloc blocks",
-		 kmalloc_bytes,
-		 kmalloc_blocks);
-	log_info("  %llu bytes in %llu vmalloc blocks",
-		 vmalloc_bytes,
-		 vmalloc_blocks);
-	log_info("  total %llu bytes, peak usage %llu bytes",
-		 total_bytes,
-		 peak_usage);
+	uds_log_info("current module memory tracking (actual allocation sizes, not requested):");
+	uds_log_info("  %llu bytes in %llu kmalloc blocks",
+		     (unsigned long long) kmalloc_bytes,
+		     (unsigned long long) kmalloc_blocks);
+	uds_log_info("  %llu bytes in %llu vmalloc blocks",
+		     (unsigned long long) vmalloc_bytes,
+		     (unsigned long long) vmalloc_blocks);
+	uds_log_info("  total %llu bytes, peak usage %llu bytes",
+		     (unsigned long long) total_bytes,
+		     (unsigned long long) peak_usage);
 }

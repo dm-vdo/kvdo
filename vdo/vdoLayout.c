@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoLayout.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoLayout.c#10 $
  */
 
 #include "vdoLayout.h"
@@ -54,8 +54,8 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
 static block_count_t __must_check
 get_partition_offset(struct vdo_layout *layout, enum partition_id id)
 {
-	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
-								   id));
+	return get_vdo_fixed_layout_partition_offset(get_vdo_partition(layout,
+								       id));
 }
 
 /**********************************************************************/
@@ -68,16 +68,16 @@ int decode_vdo_layout(struct fixed_layout *layout,
 	uint8_t i;
 	int result;
 	for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
-		result = get_partition(layout, REQUIRED_PARTITIONS[i],
-				       &partition);
+		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i],
+					   &partition);
 		if (result != VDO_SUCCESS) {
-			return log_error_strerror(result,
-						  "VDO layout is missing required partition %u",
-						  REQUIRED_PARTITIONS[i]);
+			return uds_log_error_strerror(result,
+						      "VDO layout is missing required partition %u",
+						      REQUIRED_PARTITIONS[i]);
 		}
 	}
 
-	result = ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
+	result = UDS_ALLOCATE(1, struct vdo_layout, __func__, &vdo_layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -93,19 +93,17 @@ int decode_vdo_layout(struct fixed_layout *layout,
 }
 
 /**********************************************************************/
-void free_vdo_layout(struct vdo_layout **vdo_layout_ptr)
+void free_vdo_layout(struct vdo_layout *vdo_layout)
 {
-	struct vdo_layout *vdo_layout = *vdo_layout_ptr;
 	if (vdo_layout == NULL) {
 		return;
 	}
 
-	free_copy_completion(&vdo_layout->copy_completion);
-	free_fixed_layout(&vdo_layout->next_layout);
-	free_fixed_layout(&vdo_layout->layout);
-	free_fixed_layout(&vdo_layout->previous_layout);
-	FREE(vdo_layout);
-	*vdo_layout_ptr = NULL;
+	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->layout));
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->previous_layout));
+	UDS_FREE(vdo_layout);
 }
 
 /**
@@ -121,7 +119,7 @@ static struct partition * __must_check
 retrieve_partition(struct fixed_layout *layout, enum partition_id id)
 {
 	struct partition *partition;
-	int result = get_partition(layout, id, &partition);
+	int result = vdo_get_partition(layout, id, &partition);
 	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
 			"vdo_layout has expected partition");
 	return partition;
@@ -163,7 +161,7 @@ get_partition_from_next_layout(struct vdo_layout *vdo_layout,
 static block_count_t __must_check
 get_partition_size(struct vdo_layout *layout, enum partition_id id)
 {
-	return get_fixed_layout_partition_size(get_vdo_partition(layout, id));
+	return get_vdo_fixed_layout_partition_size(get_vdo_partition(layout, id));
 }
 
 /**********************************************************************/
@@ -185,25 +183,29 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	// Make a copy completion if there isn't one
 	if (vdo_layout->copy_completion == NULL) {
 		int result =
-			make_copy_completion(vdo, &vdo_layout->copy_completion);
+			make_vdo_copy_completion(vdo,
+						 &vdo_layout->copy_completion);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
 	}
 
 	// Free any unused preparation.
-	free_fixed_layout(&vdo_layout->next_layout);
+	free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 
 	// Make a new layout with the existing partition sizes for everything
 	// but the block allocator partition.
-	result = make_vdo_fixed_layout(new_physical_blocks,
-				       vdo_layout->starting_offset,
-				       get_partition_size(vdo_layout, BLOCK_MAP_PARTITION),
-				       get_partition_size(vdo_layout, RECOVERY_JOURNAL_PARTITION),
-				       get_partition_size(vdo_layout, SLAB_SUMMARY_PARTITION),
-				       &vdo_layout->next_layout);
+	result = make_partitioned_vdo_fixed_layout(new_physical_blocks,
+						   vdo_layout->starting_offset,
+						   get_partition_size(vdo_layout,
+								      BLOCK_MAP_PARTITION),
+						   get_partition_size(vdo_layout,
+								      RECOVERY_JOURNAL_PARTITION),
+						   get_partition_size(vdo_layout,
+								      SLAB_SUMMARY_PARTITION),
+						   &vdo_layout->next_layout);
 	if (result != VDO_SUCCESS) {
-		free_copy_completion(&vdo_layout->copy_completion);
+		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return result;
 	}
 
@@ -217,13 +219,13 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 					       RECOVERY_JOURNAL_PARTITION);
 	min_new_size =
 		(old_physical_blocks +
-		 get_fixed_layout_partition_size(slab_summary_partition) +
-		 get_fixed_layout_partition_size(recovery_journal_partition));
+		 get_vdo_fixed_layout_partition_size(slab_summary_partition) +
+		 get_vdo_fixed_layout_partition_size(recovery_journal_partition));
 	if (min_new_size > new_physical_blocks) {
 		// Copying the journal and summary would destroy some old
 		// metadata.
-		free_fixed_layout(&vdo_layout->next_layout);
-		free_copy_completion(&vdo_layout->copy_completion);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
+		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
@@ -244,7 +246,7 @@ get_vdo_size(struct fixed_layout *layout, block_count_t starting_offset)
 {
 	// The fixed_layout does not include the super block or any earlier
 	// metadata; all that is captured in the vdo_layout's starting offset
-	return get_total_fixed_layout_size(layout) + starting_offset;
+	return get_total_vdo_fixed_layout_size(layout) + starting_offset;
 }
 
 /**********************************************************************/
@@ -258,7 +260,7 @@ block_count_t get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
 
 /**********************************************************************/
 block_count_t
-get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
+vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 {
 	struct partition *partition;
 	if (vdo_layout->next_layout == NULL) {
@@ -267,7 +269,7 @@ get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 
 	partition = get_partition_from_next_layout(vdo_layout,
 					           BLOCK_ALLOCATOR_PARTITION);
-	return get_fixed_layout_partition_size(partition);
+	return get_vdo_fixed_layout_partition_size(partition);
 }
 
 /**********************************************************************/
@@ -286,14 +288,14 @@ block_count_t grow_vdo_layout(struct vdo_layout *vdo_layout)
 void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 {
 	if (vdo_layout->layout != vdo_layout->previous_layout) {
-		free_fixed_layout(&vdo_layout->previous_layout);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->previous_layout));
 	}
 
 	if (vdo_layout->layout != vdo_layout->next_layout) {
-		free_fixed_layout(&vdo_layout->next_layout);
+		free_vdo_fixed_layout(UDS_FORGET(vdo_layout->next_layout));
 	}
 
-	free_copy_completion(&vdo_layout->copy_completion);
+	free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
 }
 
 /**********************************************************************/
@@ -301,14 +303,14 @@ void copy_vdo_layout_partition(struct vdo_layout *layout,
 			       enum partition_id id,
 			       struct vdo_completion *parent)
 {
-	copy_partition(layout->copy_completion,
-		       get_vdo_partition(layout, id),
-		       get_partition_from_next_layout(layout, id),
-		       parent);
+	copy_vdo_partition(layout->copy_completion,
+			   get_vdo_partition(layout, id),
+			   get_partition_from_next_layout(layout, id),
+			   parent);
 }
 
 /**********************************************************************/
-struct fixed_layout *get_layout(const struct vdo_layout *vdo_layout)
+struct fixed_layout *get_vdo_fixed_layout(const struct vdo_layout *vdo_layout)
 {
 	return vdo_layout->layout;
 }

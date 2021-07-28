@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioWrite.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioWrite.h#2 $
  */
 
 #ifndef VIO_WRITE_H
@@ -46,6 +46,6 @@ void cleanup_write_data_vio(struct data_vio *data_vio);
  *
  * @param data_vio   The data_vio to be compressed
  **/
-void compress_data(struct data_vio *data_vio);
+void vio_compress_data(struct data_vio *data_vio);
 
 #endif /* VIO_WRITE_H */

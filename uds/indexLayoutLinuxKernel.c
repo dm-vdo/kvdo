@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#11 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#14 $
  */
 
 #include "indexLayout.h"
@@ -24,10 +24,10 @@
 #include "memoryAlloc.h"
 
 /**********************************************************************/
-int make_index_layout(const char *name,
-		      bool new_layout,
-		      const struct uds_configuration *config,
-		      struct index_layout **layout_ptr)
+int make_uds_index_layout(const char *name,
+			  bool new_layout,
+			  const struct uds_configuration *config,
+			  struct index_layout **layout_ptr)
 {
 	char *dev = NULL;
 	uint64_t offset = 0;
@@ -44,7 +44,7 @@ int make_index_layout(const char *name,
 		LP_NULL_PARAMETER,
 	};
 
-	result = duplicate_string(name, "make_index_layout parameters",
+	result = uds_duplicate_string(name, "make_uds_index_layout parameters",
 				      &params);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -53,18 +53,18 @@ int make_index_layout(const char *name,
 	// note dev will be set to memory owned by params
 	result = parse_layout_string(params, parameter_table);
 	if (result != UDS_SUCCESS) {
-		FREE(params);
+		UDS_FREE(params);
 		return result;
 	}
 
-	result = make_io_factory(dev, &factory);
-	FREE(params);
+	result = make_uds_io_factory(dev, &factory);
+	UDS_FREE(params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = make_index_layout_from_factory(
+	result = make_uds_index_layout_from_factory(
 		factory, offset, size, new_layout, config, &layout);
-	put_io_factory(factory);
+	put_uds_io_factory(factory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

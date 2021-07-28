@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/compressedBlock.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/compressedBlock.c#3 $
  */
 
 #include "compressedBlock.h"
@@ -33,7 +33,7 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 };
 
 enum {
-	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * MAX_COMPRESSION_SLOTS),
+	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS),
 };
 
 /**********************************************************************/
@@ -70,7 +70,7 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 	struct compressed_block_header *header =
 		(struct compressed_block_header *) buffer;
 
-	if (!is_compressed(mapping_state)) {
+	if (!vdo_is_state_compressed(mapping_state)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 
@@ -79,8 +79,8 @@ int get_vdo_compressed_block_fragment(enum block_mapping_state mapping_state,
 		return VDO_INVALID_FRAGMENT;
 	}
 
-	slot = get_slot_from_state(mapping_state);
-	if (slot >= MAX_COMPRESSION_SLOTS) {
+	slot = vdo_get_slot_from_state(mapping_state);
+	if (slot >= VDO_MAX_COMPRESSION_SLOTS) {
 		return VDO_INVALID_FRAGMENT;
 	}
 

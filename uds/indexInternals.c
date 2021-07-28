@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#21 $
  */
 
 #include "indexInternals.h"
@@ -45,14 +45,17 @@ int allocate_index(struct index_layout *layout,
 		   enum load_type load_type,
 		   struct index **new_index)
 {
+	struct index *index;
+	int result;
+	unsigned int i;
 	unsigned int checkpoint_frequency =
 		user_params == NULL ? 0 : user_params->checkpoint_frequency;
 	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
-		return UDS_BAD_CHECKPOINT_FREQUENCY;
+		uds_log_error("checkpoint frequency too large");
+		return -EINVAL;
 	}
 
-	struct index *index;
-	int result = ALLOCATE(1, struct index, "index", &index);
+	result = UDS_ALLOCATE(1, struct index, "index", &index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -69,11 +72,11 @@ int allocate_index(struct index_layout *layout,
 	set_index_checkpoint_frequency(index->checkpoint,
 				       checkpoint_frequency);
 
-	get_index_layout(layout, &index->layout);
+	get_uds_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;
 
-	result = ALLOCATE(index->zone_count, struct index_zone *, "zones",
-			  &index->zones);
+	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones",
+			      &index->zones);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -103,13 +106,12 @@ int allocate_index(struct index_layout *layout,
 	}
 	index->volume->lookup_mode = LOOKUP_NORMAL;
 
-	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
 		result = make_index_zone(index, i);
 		if (result != UDS_SUCCESS) {
 			free_index(index);
-			return log_error_strerror(result,
-						  "Could not create index zone");
+			return uds_log_error_strerror(result,
+						      "Could not create index zone");
 		}
 	}
 
@@ -117,8 +119,8 @@ int allocate_index(struct index_layout *layout,
 					   index, NULL);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return log_error_strerror(result,
-					  "Could not create open chapter");
+		return uds_log_error_strerror(result,
+					      "Could not create open chapter");
 	}
 
 	*new_index = index;
@@ -137,13 +139,13 @@ void release_index(struct index *index)
 		for (i = 0; i < index->zone_count; i++) {
 			free_index_zone(index->zones[i]);
 		}
-		FREE(index->zones);
+		UDS_FREE(index->zones);
 	}
 
 	free_volume(index->volume);
 
-	free_index_state(&index->state);
+	free_index_state(index->state);
 	free_index_checkpoint(index->checkpoint);
-	put_index_layout(&index->layout);
-	FREE(index);
+	put_uds_index_layout(UDS_FORGET(index->layout));
+	UDS_FREE(index);
 }

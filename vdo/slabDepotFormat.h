@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabDepotFormat.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabDepotFormat.h#2 $
  */
 
 #ifndef SLAB_DEPOT_FORMAT_H
@@ -34,7 +34,7 @@ struct slab_depot_state_2_0 {
 	zone_count_t zone_count;
 } __packed;
 
-extern const struct header SLAB_DEPOT_HEADER_2_0;
+extern const struct header VDO_SLAB_DEPOT_HEADER_2_0;
 
 /**
  * Compute the number of slabs a depot with given parameters would have.
@@ -46,16 +46,16 @@ extern const struct header SLAB_DEPOT_HEADER_2_0;
  * @return The number of slabs
  **/
 slab_count_t __must_check
-compute_slab_count(physical_block_number_t first_block,
-		   physical_block_number_t last_block,
-		   unsigned int slab_size_shift);
+compute_vdo_slab_count(physical_block_number_t first_block,
+		       physical_block_number_t last_block,
+		       unsigned int slab_size_shift);
 
 /**
  * Get the size of the encoded state of a slab depot.
  *
  * @return The encoded size of the depot's state
  **/
-size_t __must_check get_slab_depot_encoded_size(void);
+size_t __must_check get_vdo_slab_depot_encoded_size(void);
 
 /**
  * Encode the state of a slab depot into a buffer.
@@ -66,8 +66,8 @@ size_t __must_check get_slab_depot_encoded_size(void);
  * @return UDS_SUCCESS or an error
  **/
 int __must_check
-encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
-			    struct buffer *buffer);
+encode_vdo_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
+				struct buffer *buffer);
 
 /**
  * Decode slab depot component state version 2.0 from a buffer.
@@ -78,8 +78,8 @@ encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check
-decode_slab_depot_state_2_0(struct buffer *buffer,
-			    struct slab_depot_state_2_0 *state);
+decode_vdo_slab_depot_state_2_0(struct buffer *buffer,
+				struct slab_depot_state_2_0 *state);
 
 /**
  * Configure the slab_depot for the specified storage capacity, finding the
@@ -94,11 +94,11 @@ decode_slab_depot_state_2_0(struct buffer *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check configure_slab_depot(block_count_t block_count,
-				      physical_block_number_t first_block,
-				      struct slab_config slab_config,
-				      zone_count_t zone_count,
-				      struct slab_depot_state_2_0 *state);
+int __must_check configure_vdo_slab_depot(block_count_t block_count,
+					  physical_block_number_t first_block,
+					  struct slab_config slab_config,
+					  zone_count_t zone_count,
+					  struct slab_depot_state_2_0 *state);
 
 /**
  * Measure and initialize the configuration to use for each slab.
@@ -109,9 +109,9 @@ int __must_check configure_slab_depot(block_count_t block_count,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check configure_slab(block_count_t slab_size,
-				block_count_t slab_journal_blocks,
-				struct slab_config *slab_config);
+int __must_check configure_vdo_slab(block_count_t slab_size,
+				    block_count_t slab_journal_blocks,
+				    struct slab_config *slab_config);
 
 /**
  * Get the number of blocks required to save a reference counts state covering
@@ -123,6 +123,6 @@ int __must_check configure_slab(block_count_t slab_size,
  *         given block count
  **/
 block_count_t __must_check
-get_saved_reference_count_size(block_count_t block_count);
+vdo_get_saved_reference_count_size(block_count_t block_count);
 
 #endif // SLAB_DEPOT_FORMAT_H

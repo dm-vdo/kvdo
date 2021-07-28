@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapRecovery.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapRecovery.c#11 $
  */
 
 #include "blockMapRecovery.h"
@@ -143,33 +143,17 @@ static void swap_mappings(void *item1, void *item2)
 static inline struct block_map_recovery_completion * __must_check
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	return container_of(completion,
 			    struct block_map_recovery_completion,
 			    completion);
 }
 
 /**
- * Free a block_map_recovery_completion and null out the reference to it.
- *
- * @param recovery_ptr  a pointer to the completion to free
- **/
-static void
-free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
-{
-	struct block_map_recovery_completion *recovery = *recovery_ptr;
-	if (recovery == NULL) {
-		return;
-	}
-
-	FREE(recovery);
-	*recovery_ptr = NULL;
-}
-
-/**
  * Free the block_map_recovery_completion and notify the parent that the
  * block map recovery is done. This callback is registered in
- * make_recovery_completion().
+ * make_vdo_recovery_completion().
  *
  * @param completion  The block_map_recovery_completion
  **/
@@ -177,9 +161,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
-	struct block_map_recovery_completion *recovery =
-		as_block_map_recovery_completion(completion);
-	free_recovery_completion(&recovery);
+	UDS_FREE(as_block_map_recovery_completion(UDS_FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
 
@@ -195,39 +177,40 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
  * @return a success or error code
  **/
 static int
-make_recovery_completion(struct vdo *vdo,
-			 block_count_t entry_count,
-			 struct numbered_block_mapping *journal_entries,
-			 struct vdo_completion *parent,
-			 struct block_map_recovery_completion **recovery_ptr)
+make_vdo_recovery_completion(struct vdo *vdo,
+			     block_count_t entry_count,
+			     struct numbered_block_mapping *journal_entries,
+			     struct vdo_completion *parent,
+			     struct block_map_recovery_completion **recovery_ptr)
 {
-	const struct thread_config *thread_config = get_thread_config(vdo);
+	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	struct block_map *block_map = get_block_map(vdo);
 	page_count_t page_count =
-		min(get_configured_cache_size(vdo) >> 1,
+		min(get_vdo_configured_cache_size(vdo) >> 1,
 		    (page_count_t) MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS);
 
 	struct block_map_recovery_completion *recovery;
-	int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
-				       page_count,
-				       struct vdo_page_completion,
-				       __func__,
-				       &recovery);
+	int result = UDS_ALLOCATE_EXTENDED(struct block_map_recovery_completion,
+					   page_count,
+					   struct vdo_page_completion,
+					   __func__,
+					   &recovery);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	initialize_vdo_completion(&recovery->completion, vdo,
-				  BLOCK_MAP_RECOVERY_COMPLETION);
+				  VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	initialize_vdo_completion(&recovery->sub_task_completion, vdo,
-				  SUB_TASK_COMPLETION);
+				  VDO_SUB_TASK_COMPLETION);
 	recovery->block_map = block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-	recovery->admin_thread = get_admin_thread(thread_config);
-	recovery->logical_thread_id = get_logical_zone_thread(thread_config, 0);
+	recovery->admin_thread = vdo_get_admin_thread(thread_config);
+	recovery->logical_thread_id =
+		vdo_get_logical_zone_thread(thread_config, 0);
 
 	// Organize the journal entries into a binary heap so we can iterate
 	// over them in sorted order incrementally, avoiding an expensive sort
@@ -240,12 +223,12 @@ make_recovery_completion(struct vdo *vdo,
 			sizeof(struct numbered_block_mapping));
 	build_heap(&recovery->replay_heap, entry_count);
 
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 recovery->logical_thread_id),
 			"%s must be called on logical thread %u (not %u)",
 			__func__,
 			recovery->logical_thread_id,
-			get_callback_thread_id());
+			vdo_get_callback_thread_id());
 	prepare_vdo_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
@@ -253,8 +236,8 @@ make_recovery_completion(struct vdo *vdo,
 			       parent);
 
 	// This message must be recognizable by VDOTest::RebuildBase.
-	log_info("Replaying %zu recovery entries into block map",
-		 recovery->replay_heap.count);
+	uds_log_info("Replaying %zu recovery entries into block map",
+		     recovery->replay_heap.count);
 
 	*recovery_ptr = recovery;
 	return VDO_SUCCESS;
@@ -265,15 +248,15 @@ static void flush_block_map(struct vdo_completion *completion)
 {
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion->parent);
-	log_info("Flushing block map changes");
+	uds_log_info("Flushing block map changes");
 	ASSERT_LOG_ONLY((completion->callback_thread_id ==
 			 recovery->admin_thread),
 			"flush_block_map() called on admin thread");
 
 	prepare_vdo_completion_to_finish_parent(completion, completion->parent);
-	drain_block_map(recovery->block_map,
-			ADMIN_STATE_RECOVERING,
-			completion);
+	drain_vdo_block_map(recovery->block_map,
+			    VDO_ADMIN_STATE_RECOVERING,
+			    completion);
 }
 
 /**
@@ -532,18 +515,18 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 }
 
 /**********************************************************************/
-void recover_block_map(struct vdo *vdo,
-		       block_count_t entry_count,
-		       struct numbered_block_mapping *journal_entries,
-		       struct vdo_completion *parent)
+void recover_vdo_block_map(struct vdo *vdo,
+			   block_count_t entry_count,
+			   struct numbered_block_mapping *journal_entries,
+			   struct vdo_completion *parent)
 {
 	struct numbered_block_mapping *first_sorted_entry;
 	page_count_t i;
 	struct block_map_recovery_completion *recovery;
 
-	int result = make_recovery_completion(vdo, entry_count,
-					      journal_entries, parent,
-					      &recovery);
+	int result = make_vdo_recovery_completion(vdo, entry_count,
+						  journal_entries, parent,
+						  &recovery);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;

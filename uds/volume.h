@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#21 $
  */
 
 #ifndef VOLUME_H
@@ -135,7 +135,7 @@ void free_volume(struct volume *volume);
  * @return UDS_QUEUED if successful, or an error code
  **/
 int __must_check enqueue_page_read(struct volume *volume,
-				   Request *request,
+				   struct uds_request *request,
 				   int physical_page);
 
 /**
@@ -182,7 +182,7 @@ int __must_check find_volume_chapter_boundaries(struct volume *volume,
  * @return UDS_SUCCESS or an error
  **/
 int __must_check search_volume_page_cache(struct volume *volume,
-					  Request *request,
+					  struct uds_request *request,
 					  const struct uds_chunk_name *name,
 					  uint64_t virtual_chapter,
 					  struct uds_chunk_data *metadata,
@@ -212,7 +212,7 @@ int __must_check search_volume_page_cache(struct volume *volume,
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
 int __must_check search_cached_record_page(struct volume *volume,
-					   Request *request,
+					   struct uds_request *request,
 					   const struct uds_chunk_name *name,
 					   unsigned int chapter,
 					   int record_page_number,
@@ -319,7 +319,7 @@ read_chapter_index_from_volume(const struct volume *volume,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check get_volume_page_locked(struct volume *volume,
-					Request *request,
+					struct uds_request *request,
 					unsigned int physical_page,
 					enum cache_probe_type probe_type,
 					struct cached_page **entry_ptr);
@@ -350,7 +350,7 @@ int __must_check get_volume_page_locked(struct volume *volume,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check get_volume_page_protected(struct volume *volume,
-					   Request *request,
+					   struct uds_request *request,
 					   unsigned int physical_page,
 					   enum cache_probe_type probe_type,
 					   struct cached_page **entry_ptr);
@@ -401,6 +401,7 @@ find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 				    int (*probe_func)(void *aux,
 						      unsigned int chapter,
 						      uint64_t *vcn),
+				    struct geometry *geometry,
 				    void *aux);
 
 /**

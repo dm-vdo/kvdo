@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bufferPool.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bufferPool.h#2 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -63,12 +63,11 @@ int __must_check make_buffer_pool(const char *pool_name,
 				  struct buffer_pool **pool_ptr);
 
 /**
- * Free a buffer pool and null out the reference to it. This will free
- * all the elements of the pool as well.
+ * Free a buffer pool. This will free all the elements of the pool as well.
  *
- * @param [in]  pool_ptr   The reference to the pool to free
+ * @param [in]  pool   The pool to free
  **/
-void free_buffer_pool(struct buffer_pool **pool_ptr);
+void free_buffer_pool(struct buffer_pool *pool);
 
 /**
  * Dump a buffer pool to the log.
@@ -83,7 +82,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements);
  * Acquires a free buffer from the free list of the pool and
  * returns it's associated data.
  *
- * @param [in]  pool      The buffer pool to allocate from
+ * @param [in]  pool       The buffer pool to allocate from
  * @param [out] data_ptr   A pointer to hold the buffer data
  *
  * @return a success or error code

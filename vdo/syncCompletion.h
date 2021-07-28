@@ -16,22 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/commonStats.h#1 $
- *
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/syncCompletion.h#1 $
  */
 
-#ifndef STATUS_PROC_H
-#define STATUS_PROC_H
+#ifndef SYNC_COMPLETION_H
+#define SYNC_COMPLETION_H
 
-#include "kernelLayer.h"
+#include "completion.h"
+#include "types.h"
 
 /**
- * Retrieves the current kernel statistics.
+ * Launch an action on a VDO thread and wait for it to complete.
  *
- * @param layer  the kernel layer
- * @param stats  pointer to the structure to fill in
- */
-void get_kernel_statistics(struct kernel_layer *layer,
-			   struct kernel_statistics *stats);
+ * @param vdo        The vdo
+ * @param action     The callback to launch
+ * @param thread_id  The thread on which to run the action
+ * @param parent     The parent of the sync completion (may be NULL)
+ **/
+int perform_synchronous_vdo_action(struct vdo *vdo,
+				   vdo_action *action,
+				   thread_id_t thread_id,
+				   void *parent);
 
-#endif  /* STATUS_PROC_H */
+#endif // SYNC_COMPLETION_H

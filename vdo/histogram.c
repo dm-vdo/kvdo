@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/histogram.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/histogram.c#4 $
  */
 
 #include <linux/kobject.h>
@@ -264,8 +264,8 @@ static void histogram_kobj_release(struct kobject *kobj)
 {
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
-	FREE(h->counters);
-	FREE(h);
+	UDS_FREE(h->counters);
+	UDS_FREE(h);
 }
 
 /***********************************************************************/
@@ -655,7 +655,7 @@ static struct histogram *make_histogram(struct kobject *parent,
 {
 	struct histogram *h;
 
-	if (ALLOCATE(1, struct histogram, "histogram", &h) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(1, struct histogram, "histogram", &h) != UDS_SUCCESS) {
 		return NULL;
 	}
 
@@ -681,10 +681,10 @@ static struct histogram *make_histogram(struct kobject *parent,
 	h->conversion_factor = conversion_factor;
 	atomic64_set(&h->minimum, -1UL);
 
-	if (ALLOCATE(h->num_buckets + 1,
-		     atomic64_t,
-		     "histogram counters",
-		     &h->counters) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(h->num_buckets + 1,
+			 atomic64_t,
+			 "histogram counters",
+			 &h->counters) != UDS_SUCCESS) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;
 	}
@@ -816,6 +816,10 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	uint64_t old_minimum, old_maximum;
 	int bucket;
 
+	if (h == NULL) {
+		return;
+	}
+
 	if (h->log_flag) {
 		int lo = 0;
 		int hi = h->num_buckets;
@@ -869,12 +873,9 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 }
 
 /***********************************************************************/
-void free_histogram(struct histogram **hp)
+void free_histogram(struct histogram *histogram)
 {
-	if (*hp != NULL) {
-		struct histogram *h = *hp;
-
-		kobject_put(&h->kobj);
-		*hp = NULL;
+	if (histogram != NULL) {
+		kobject_put(&histogram->kobj);
 	}
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelVDO.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelVDO.h#7 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -41,32 +41,16 @@ enum {
 /**
  * Make base threads.
  *
- * @param [in]  vdo     The vdo to be initialized
- * @param [out] reason  The reason for failure
+ * @param [in]  vdo                 The vdo to be initialized
+ * @param [in]  thread_name_prefix  The per-device prefix to use in thread
+ *                                  names
+ * @param [out] reason              The reason for failure
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_vdo_threads(struct vdo *vdo, char **reason);
-
-/**
- * Starts the base VDO instance associated with the kernel layer. This method
- * is ultimately called from preresume the first time an instance is resumed.
- *
- * @param [in]  vdo     The vdo to be started
- * @param [out] reason  The reason for failure
- *
- * @return VDO_SUCCESS if started, otherwise error
- **/
-int start_vdo(struct vdo *vdo, char **reason);
-
-/**
- * Suspend the base VDO instance associated with the kernel layer.
- *
- * @param vdo  The vdo to be suspended
- *
- * @return VDO_SUCCESS if stopped, otherwise error
- **/
-int suspend_vdo(struct vdo *vdo);
+int make_vdo_threads(struct vdo *vdo,
+		     const char *thread_name_prefix,
+		     char **reason);
 
 /**
  * Resume the base VDO instance associated with the kernel layer.
@@ -77,13 +61,6 @@ int suspend_vdo(struct vdo *vdo);
  **/
 int resume_vdo(struct vdo *vdo);
 
-/**
- * Shut down the base code interface. The vdo object must first be stopped.
- *
- * @param vdo  The vdo to be shut down
- **/
-void finish_vdo(struct vdo *vdo);
-
 
 /**
  * Dump to the kernel log any work-queue info associated with the base code.
@@ -91,16 +68,6 @@ void finish_vdo(struct vdo *vdo);
  * @param vdo  The vdo object to be examined
  **/
 void dump_vdo_work_queue(struct vdo *vdo);
-
-/**
- * Set whether compression is enabled.
- *
- * @param vdo                 The vdo object
- * @param enable_compression  The new compression mode
- *
- * @return state of compression before new value is set
- **/
-bool set_kvdo_compressing(struct vdo *vdo, bool enable_compression);
 
 /**
  * Gets the latest statistics gathered by the base code.
@@ -130,14 +97,6 @@ int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
  * @return VDO_SUCCESS or error
  **/
 int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
-
-/**
- * Request the base code go read-only.
- *
- * @param vdo     The vdo to be updated
- * @param result  The error code causing the read only
- **/
-void set_vdo_read_only(struct vdo *vdo, int result);
 
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kvio.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kvio.c#7 $
  */
 
 #include "kvio.h"
@@ -67,22 +67,7 @@ void continue_vio(struct vio *vio, int error)
 }
 
 /**********************************************************************/
-void destroy_vio(struct vio **vio_ptr)
-{
-	struct vio *vio = *vio_ptr;
-
-	if (vio == NULL) {
-		return;
-	}
-
-	BUG_ON(is_data_vio(vio));
-	free_bio(vio->bio);
-	FREE(vio);
-	*vio_ptr = NULL;
-}
-
-/**********************************************************************/
-void write_compressed_block(struct vio *vio)
+void write_compressed_block_vio(struct vio *vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
@@ -95,12 +80,12 @@ void write_compressed_block(struct vio *vio)
 	}
 
 	// Write the compressed block, using the compressed vio's own bio.
-	result = reset_bio_with_buffer(bio,
-				       vio->data,
-				       vio,
-				       complete_async_bio,
-				       REQ_OP_WRITE,
-				       vio->physical);
+	result = vdo_reset_bio_with_buffer(bio,
+					   vio->data,
+					   vio,
+					   vdo_complete_async_bio,
+					   REQ_OP_WRITE,
+					   vio->physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
@@ -129,22 +114,14 @@ void submit_metadata_vio(struct vio *vio)
 	char *data = vio->data;
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
 		bi_opf = REQ_OP_READ;
+	} else if (vio_requires_flush_before(vio)) {
+		bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
 	} else {
-		enum kernel_layer_state state = get_kernel_layer_state(layer);
-		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
-				 || (state == LAYER_RESUMING)
-				 || (state = LAYER_STARTING)),
-				"write metadata in allowed state %d", state);
-		if (vio_requires_flush_before(vio)) {
-			bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-		} else {
-			bi_opf = REQ_OP_WRITE;
-		}
+		bi_opf = REQ_OP_WRITE;
 	}
 
 	if (vio_requires_flush_after(vio)) {
@@ -177,9 +154,9 @@ void submit_metadata_vio(struct vio *vio)
 		data = NULL;
 	}
 
-	result = reset_bio_with_buffer(bio, data, vio,
-				       complete_async_bio, bi_opf,
-				       vio->physical);
+	result = vdo_reset_bio_with_buffer(bio, data, vio,
+					   vdo_complete_async_bio, bi_opf,
+					   vio->physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;

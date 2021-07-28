@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapPage.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapPage.c#3 $
  */
 
 #include "blockMapPage.h"
@@ -37,17 +37,17 @@ static const struct version_number BLOCK_MAP_4_1 = {
 };
 
 /**********************************************************************/
-bool is_current_block_map_page(const struct block_map_page *page)
+bool is_current_vdo_block_map_page(const struct block_map_page *page)
 {
 	return are_same_vdo_version(BLOCK_MAP_4_1,
 				    unpack_vdo_version_number(page->version));
 }
 
 /**********************************************************************/
-struct block_map_page *format_block_map_page(void *buffer,
-					     nonce_t nonce,
-					     physical_block_number_t pbn,
-					     bool initialized)
+struct block_map_page *format_vdo_block_map_page(void *buffer,
+						 nonce_t nonce,
+						 physical_block_number_t pbn,
+						 bool initialized)
 {
 	struct block_map_page *page = (struct block_map_page *) buffer;
 	memset(buffer, 0, VDO_BLOCK_SIZE);
@@ -60,9 +60,9 @@ struct block_map_page *format_block_map_page(void *buffer,
 
 /**********************************************************************/
 enum block_map_page_validity
-validate_block_map_page(struct block_map_page *page,
-			nonce_t nonce,
-			physical_block_number_t pbn)
+validate_vdo_block_map_page(struct block_map_page *page,
+			    nonce_t nonce,
+			    physical_block_number_t pbn)
 {
 	// Make sure the page layout isn't accidentally changed by changing the
 	// length of the page header.
@@ -71,14 +71,14 @@ validate_block_map_page(struct block_map_page *page,
 
 	if (!are_same_vdo_version(BLOCK_MAP_4_1,
 				  unpack_vdo_version_number(page->version)) ||
-	    !is_block_map_page_initialized(page) ||
+	    !is_vdo_block_map_page_initialized(page) ||
 	    (nonce != __le64_to_cpu(page->header.nonce))) {
-		return BLOCK_MAP_PAGE_INVALID;
+		return VDO_BLOCK_MAP_PAGE_INVALID;
 	}
 
-	if (pbn != get_block_map_page_pbn(page)) {
-		return BLOCK_MAP_PAGE_BAD;
+	if (pbn != get_vdo_block_map_page_pbn(page)) {
+		return VDO_BLOCK_MAP_PAGE_BAD;
 	}
 
-	return BLOCK_MAP_PAGE_VALID;
+	return VDO_BLOCK_MAP_PAGE_VALID;
 }

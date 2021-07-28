@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/types.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/types.h#5 $
  */
 
 #ifndef TYPES_H
@@ -142,7 +142,7 @@ typedef uint8_t thread_id_t;
  * The thread ID returned when the current base code thread ID cannot be found
  * or is otherwise undefined.
  **/
-static const thread_id_t INVALID_THREAD_ID = (thread_id_t) -1;
+static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
 
 /**
  * A zone counter
@@ -206,7 +206,7 @@ enum partition_id {
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_data_vio_type(enum vio_type type)
+static inline bool is_vdo_data_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_DATA);
 }
@@ -216,7 +216,7 @@ static inline bool is_data_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_compressed_write_vio_type(enum vio_type type)
+static inline bool is_vdo_compressed_write_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_COMPRESSED_BLOCK);
 }
@@ -226,11 +226,11 @@ static inline bool is_compressed_write_vio_type(enum vio_type type)
  *
  * @param type  The vio_type to check
  **/
-static inline bool is_metadata_vio_type(enum vio_type type)
+static inline bool is_vdo_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!is_data_vio_type(type) &&
-		!is_compressed_write_vio_type(type));
+		!is_vdo_data_vio_type(type) &&
+		!is_vdo_compressed_write_vio_type(type));
 }
 
 /**
@@ -298,17 +298,6 @@ struct slab_config {
 } __packed;
 
 /**
- * The configuration of the VDO service.
- **/
-struct vdo_config {
-	block_count_t logical_blocks; ///< number of logical blocks
-	block_count_t physical_blocks; ///< number of physical blocks
-	block_count_t slab_size; ///< number of blocks in a slab
-	block_count_t recovery_journal_size; ///< number of recovery journal blocks
-	block_count_t slab_journal_blocks; ///< number of slab journal blocks
-} __packed;
-
-/**
  * Forward declarations of abstract types
  **/
 struct action_manager;
@@ -345,6 +334,7 @@ struct slab_summary;
 struct slab_summary_zone;
 struct vdo;
 struct vdo_completion;
+struct vdo_config;
 struct vdo_extent;
 struct vdo_flush;
 struct vdo_layout;
@@ -363,19 +353,5 @@ struct zoned_pbn {
 	enum block_mapping_state state;
 	struct physical_zone *zone;
 };
-
-/**
- * An asynchronous operation.
- *
- * @param vio The vio on which to operate
- **/
-typedef void async_operation(struct vio *vio);
-
-/**
- * An asynchronous data operation.
- *
- * @param data_vio  The data_vio on which to operate
- **/
-typedef void async_data_operation(struct data_vio *data_vio);
 
 #endif // TYPES_H

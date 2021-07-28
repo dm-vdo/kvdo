@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#10 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#14 $
  */
 
 #include <linux/completion.h>
@@ -56,18 +56,18 @@ static int thread_starter(void *arg)
 	mutex_lock(&kernel_thread_mutex);
 	hlist_add_head(&kt->thread_links, &kernel_thread_list);
 	mutex_unlock(&kernel_thread_mutex);
-	register_allocating_thread(&allocating_thread, NULL);
+	uds_register_allocating_thread(&allocating_thread, NULL);
 	kt->thread_func(kt->thread_data);
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	complete(&kt->thread_done);
 	return 0;
 }
 
 /**********************************************************************/
-int create_thread(void (*thread_func)(void *),
-		  void *thread_data,
-		  const char *name,
-		  struct thread **new_thread)
+int uds_create_thread(void (*thread_func)(void *),
+		      void *thread_data,
+		      const char *name,
+		      struct thread **new_thread)
 {
 	char *name_colon = strchr(name, ':');
 	char *my_name_colon = strchr(current->comm, ':');
@@ -75,9 +75,9 @@ int create_thread(void (*thread_func)(void *),
 	struct thread *kt;
 	int result;
 
-	result = ALLOCATE(1, struct thread, __func__, &kt);
+	result = UDS_ALLOCATE(1, struct thread, __func__, &kt);
 	if (result != UDS_SUCCESS) {
-		log_warning("Error allocating memory for %s", name);
+		uds_log_warning("Error allocating memory for %s", name);
 		return result;
 	}
 	kt->thread_func = thread_func;
@@ -110,27 +110,27 @@ int create_thread(void (*thread_func)(void *),
 		thread = kthread_run(thread_starter, kt, "%s", name);
 	}
 	if (IS_ERR(thread)) {
-		FREE(kt);
-		return UDS_ENOTHREADS;
+		UDS_FREE(kt);
+		return PTR_ERR(thread);
 	}
 	*new_thread = kt;
 	return UDS_SUCCESS;
 }
 /**********************************************************************/
-int join_threads(struct thread *kt)
+int uds_join_threads(struct thread *kt)
 {
 	while (wait_for_completion_interruptible(&kt->thread_done) != 0) {
 	}
 	mutex_lock(&kernel_thread_mutex);
 	hlist_del(&kt->thread_links);
 	mutex_unlock(&kernel_thread_mutex);
-	FREE(kt);
+	UDS_FREE(kt);
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void apply_to_threads(void apply_func(void *, struct task_struct *),
-		      void *argument)
+void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
+			  void *argument)
 {
 	struct thread *kt;
 	perform_once(&kernel_thread_once, kernel_thread_init);
@@ -142,7 +142,7 @@ void apply_to_threads(void apply_func(void *, struct task_struct *),
 }
 
 /**********************************************************************/
-void thread_exit(void)
+void uds_thread_exit(void)
 {
 	struct thread *kt;
 	struct completion *completion = NULL;
@@ -155,63 +155,63 @@ void thread_exit(void)
 		}
 	}
 	mutex_unlock(&kernel_thread_mutex);
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	complete_and_exit(completion, 1);
 }
 
 /**********************************************************************/
-pid_t get_thread_id(void)
+pid_t uds_get_thread_id(void)
 {
 	return current->pid;
 }
 
 /**********************************************************************/
-unsigned int get_num_cores(void)
+unsigned int uds_get_num_cores(void)
 {
 	return num_online_cpus();
 }
 
 /**********************************************************************/
-int initialize_barrier(struct barrier *barrier, unsigned int thread_count)
+int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
-	int result = initialize_semaphore(&barrier->mutex, 1);
+	int result = uds_initialize_semaphore(&barrier->mutex, 1);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	barrier->arrived = 0;
 	barrier->thread_count = thread_count;
-	return initialize_semaphore(&barrier->wait, 0);
+	return uds_initialize_semaphore(&barrier->wait, 0);
 }
 
 /**********************************************************************/
-int destroy_barrier(struct barrier *barrier)
+int uds_destroy_barrier(struct barrier *barrier)
 {
-	int result = destroy_semaphore(&barrier->mutex);
+	int result = uds_destroy_semaphore(&barrier->mutex);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	return destroy_semaphore(&barrier->wait);
+	return uds_destroy_semaphore(&barrier->wait);
 }
 
 /**********************************************************************/
-int enter_barrier(struct barrier *barrier, bool *winner)
+int uds_enter_barrier(struct barrier *barrier, bool *winner)
 {
 	bool last_thread;
-	acquire_semaphore(&barrier->mutex);
+	uds_acquire_semaphore(&barrier->mutex);
 	last_thread = ++barrier->arrived == barrier->thread_count;
 	if (last_thread) {
 		// This is the last thread to arrive, so wake up the others
 		int i;
 		for (i = 1; i < barrier->thread_count; i++) {
-			release_semaphore(&barrier->wait);
+			uds_release_semaphore(&barrier->wait);
 		}
 		// Then reinitialize for the next cycle
 		barrier->arrived = 0;
-		release_semaphore(&barrier->mutex);
+		uds_release_semaphore(&barrier->mutex);
 	} else {
 		// This is NOT the last thread to arrive, so just wait
-		release_semaphore(&barrier->mutex);
-		acquire_semaphore(&barrier->wait);
+		uds_release_semaphore(&barrier->mutex);
+		uds_acquire_semaphore(&barrier->wait);
 	}
 	if (winner != NULL) {
 		*winner = last_thread;
@@ -220,7 +220,7 @@ int enter_barrier(struct barrier *barrier, bool *winner)
 }
 
 /**********************************************************************/
-int yield_scheduler(void)
+int uds_yield_scheduler(void)
 {
 	yield();
 	return UDS_SUCCESS;

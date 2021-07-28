@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioPool.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioPool.c#6 $
  */
 
 #include "vioPool.h"
@@ -66,8 +66,9 @@ int make_vio_pool(struct vdo *vdo,
 	char *ptr;
 	size_t i;
 
-	int result = ALLOCATE_EXTENDED(struct vio_pool, pool_size,
-				       struct vio_pool_entry, __func__, &pool);
+	int result = UDS_ALLOCATE_EXTENDED(struct vio_pool, pool_size,
+					   struct vio_pool_entry, __func__,
+					   &pool);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -76,10 +77,10 @@ int make_vio_pool(struct vdo *vdo,
 	INIT_LIST_HEAD(&pool->available);
 	INIT_LIST_HEAD(&pool->busy);
 
-	result = ALLOCATE(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
-			  &pool->buffer);
+	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE, char,
+			      "VIO pool buffer", &pool->buffer);
 	if (result != VDO_SUCCESS) {
-		free_vio_pool(&pool);
+		free_vio_pool(pool);
 		return result;
 	}
 
@@ -90,7 +91,7 @@ int make_vio_pool(struct vdo *vdo,
 		entry->context = context;
 		result = constructor(vdo, entry, ptr, &entry->vio);
 		if (result != VDO_SUCCESS) {
-			free_vio_pool(&pool);
+			free_vio_pool(pool);
 			return result;
 		}
 
@@ -105,17 +106,16 @@ int make_vio_pool(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vio_pool(struct vio_pool **pool_ptr)
+void free_vio_pool(struct vio_pool *pool)
 {
-	struct vio_pool *pool;
 	struct vio_pool_entry *entry;
 	size_t i;
-	if (*pool_ptr == NULL) {
+
+	if (pool == NULL) {
 		return;
 	}
 
 	// Remove all available entries from the object pool.
-	pool = *pool_ptr;
 	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
 			"VIO pool must not have any waiters when being freed");
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
@@ -127,20 +127,20 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	while (!list_empty(&pool->available)) {
 		entry = as_vio_pool_entry(pool->available.next);
 		list_del_init(pool->available.next);
-		free_vio(&entry->vio);
+		free_vio(UDS_FORGET(entry->vio));
 	}
 
 	// Make sure every vio_pool_entry has been removed.
 	for (i = 0; i < pool->size; i++) {
-		struct vio_pool_entry *entry = &pool->entries[i];
+		entry = &pool->entries[i];
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
 				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
-				entry->vio->physical, entry->vio->operation);
+				(unsigned long long) entry->vio->physical,
+				entry->vio->operation);
 	}
 
-	FREE(pool->buffer);
-	FREE(pool);
-	*pool_ptr = NULL;
+	UDS_FREE(UDS_FORGET(pool->buffer));
+	UDS_FREE(pool);
 }
 
 /**********************************************************************/
@@ -154,7 +154,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 {
 	struct list_head *entry;
 
-	ASSERT_LOG_ONLY((pool->thread_id == get_callback_thread_id()),
+	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"acquire from active vio_pool called from correct thread");
 
 	if (list_empty(&pool->available)) {
@@ -172,7 +172,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 /**********************************************************************/
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
-	ASSERT_LOG_ONLY((pool->thread_id == get_callback_thread_id()),
+	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"vio pool entry returned on same thread as it was acquired");
 	entry->vio->completion.error_handler = NULL;
 	if (has_waiters(&pool->waiting)) {

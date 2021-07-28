@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#15 $
  */
 
 #include "chapterIndex.h"
@@ -36,19 +36,19 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 			    bool chapter_index_header_native_endian,
 			    uint64_t volume_nonce)
 {
+	size_t memory_size;
 
-	int result = ALLOCATE(1,
-			      struct open_chapter_index,
-			      "open chapter index",
-			      open_chapter_index);
+	int result = UDS_ALLOCATE(1,
+				  struct open_chapter_index,
+				  "open chapter index",
+				  open_chapter_index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// The delta index will rebalance delta lists when memory gets tight,
 	// so give the chapter index one extra page.
-	size_t memory_size =
-		(geometry->index_pages_per_chapter + 1) *
+	memory_size = (geometry->index_pages_per_chapter + 1) *
 			geometry->bytes_per_page;
 	(*open_chapter_index)->geometry = geometry;
 	(*open_chapter_index)->volume_nonce = volume_nonce;
@@ -61,7 +61,7 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 				        geometry->chapter_payload_bits,
 				        memory_size);
 	if (result != UDS_SUCCESS) {
-		FREE(*open_chapter_index);
+		UDS_FREE(*open_chapter_index);
 		*open_chapter_index = NULL;
 	}
 	return result;
@@ -76,7 +76,7 @@ void free_open_chapter_index(struct open_chapter_index *open_chapter_index)
 
 
 	uninitialize_delta_index(&open_chapter_index->delta_index);
-	FREE(open_chapter_index);
+	UDS_FREE(open_chapter_index);
 }
 
 /**********************************************************************/
@@ -107,6 +107,9 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 				  const struct uds_chunk_name *name,
 				  unsigned int page_number)
 {
+	struct delta_index_entry entry;
+	unsigned int address;
+	bool found;
 	const struct geometry *geometry = open_chapter_index->geometry;
 	int result =
 		ASSERT_WITH_ERROR_CODE(page_number <
@@ -119,8 +122,7 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 		return result;
 	}
 
-	struct delta_index_entry entry;
-	unsigned int address = hash_to_chapter_delta_address(name, geometry);
+	address = hash_to_chapter_delta_address(name, geometry);
 	result = get_delta_index_entry(&open_chapter_index->delta_index,
 				       hash_to_chapter_delta_list(name,
 				       				  geometry),
@@ -131,11 +133,11 @@ int put_open_chapter_index_record(struct open_chapter_index *open_chapter_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	bool found = was_entry_found(&entry, address);
+	found = was_entry_found(&entry, address);
 	result = ASSERT_WITH_ERROR_CODE(!(found && entry.is_collision),
 					UDS_BAD_STATE,
 					"Chunk appears more than once in chapter %llu",
-					open_chapter_index->virtual_chapter_number);
+					(unsigned long long) open_chapter_index->virtual_chapter_number);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -153,6 +155,8 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 	struct delta_index *delta_index = &open_chapter_index->delta_index;
 	const struct geometry *geometry = open_chapter_index->geometry;
 	unsigned int removals = 0;
+	struct delta_index_entry entry;
+	int list_number;
 	for (;;) {
 		int result =
 			pack_delta_index_page(delta_index,
@@ -189,14 +193,13 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		if (removals == 0) {
 			struct delta_index_stats stats;
 			get_delta_index_stats(delta_index, &stats);
-			log_warning("The chapter index for chapter %" PRIu64
-				    " contains %ld entries with %ld collisions",
-				    open_chapter_index->virtual_chapter_number,
-				    stats.record_count,
-				    stats.collision_count);
+			uds_log_warning("The chapter index for chapter %llu contains %ld entries with %ld collisions",
+					(unsigned long long) open_chapter_index->virtual_chapter_number,
+					stats.record_count,
+					stats.collision_count);
 		}
-		struct delta_index_entry entry;
-		int list_number = *num_lists;
+
+		list_number = *num_lists;
 		do {
 			if (list_number < 0) {
 				return UDS_OVERFLOW;
@@ -224,9 +227,9 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		} while (!entry.at_end);
 	}
 	if (removals > 0) {
-		log_warning("To avoid chapter index page overflow in chapter %llu, %u entries were removed from the chapter index",
-			    open_chapter_index->virtual_chapter_number,
-			    removals);
+		uds_log_warning("To avoid chapter index page overflow in chapter %llu, %u entries were removed from the chapter index",
+				(unsigned long long) open_chapter_index->virtual_chapter_number,
+				removals);
 	}
 	return UDS_SUCCESS;
 }

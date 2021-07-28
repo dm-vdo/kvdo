@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/ioFactoryLinuxKernel.c#13 $
  */
 
+#include <linux/atomic.h>
 #include <linux/blkdev.h>
 #include <linux/mount.h>
 
-#include "atomicDefs.h"
 #include "ioFactory.h"
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -39,13 +39,13 @@ struct io_factory {
 };
 
 /**********************************************************************/
-void get_io_factory(struct io_factory *factory)
+void get_uds_io_factory(struct io_factory *factory)
 {
 	atomic_inc(&factory->ref_count);
 }
 
 /**********************************************************************/
-int make_io_factory(const char *path, struct io_factory **factory_ptr)
+int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 {
 	int result;
 	struct block_device *bdev;
@@ -57,12 +57,12 @@ int make_io_factory(const char *path, struct io_factory **factory_ptr)
 		bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
 	}
 	if (IS_ERR(bdev)) {
-		log_error_strerror(-PTR_ERR(bdev),
-				   "%s is not a block device", path);
+		uds_log_error_strerror(-PTR_ERR(bdev),
+				       "%s is not a block device", path);
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	result = ALLOCATE(1, struct io_factory, __func__, &factory);
+	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS) {
 		blkdev_put(bdev, BLK_FMODE);
 		return result;
@@ -76,36 +76,36 @@ int make_io_factory(const char *path, struct io_factory **factory_ptr)
 }
 
 /**********************************************************************/
-void put_io_factory(struct io_factory *factory)
+void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
 		blkdev_put(factory->bdev, BLK_FMODE);
-		FREE(factory);
+		UDS_FREE(factory);
 	}
 }
 
 /**********************************************************************/
-size_t get_writable_size(struct io_factory *factory)
+size_t get_uds_writable_size(struct io_factory *factory)
 {
 	return i_size_read(factory->bdev->bd_inode);
 }
 
 /**********************************************************************/
-int make_bufio(struct io_factory *factory,
-	       off_t offset,
-	       size_t block_size,
-	       unsigned int reserved_buffers,
-	       struct dm_bufio_client **client_ptr)
+int make_uds_bufio(struct io_factory *factory,
+		   off_t offset,
+		   size_t block_size,
+		   unsigned int reserved_buffers,
+		   struct dm_bufio_client **client_ptr)
 {
 	struct dm_bufio_client *client;
 	if (offset % SECTOR_SIZE != 0) {
-		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					  "offset %zd not multiple of %d",
-					  offset,
-					  SECTOR_SIZE);
+		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					      "offset %zd not multiple of %d",
+					      offset,
+					      SECTOR_SIZE);
 	}
 	if (block_size % UDS_BLOCK_SIZE != 0) {
-		return log_error_strerror(
+		return uds_log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
 			"block_size %zd not multiple of %d",
 			block_size,
@@ -124,22 +124,22 @@ int make_bufio(struct io_factory *factory,
 }
 
 /**********************************************************************/
-int open_buffered_reader(struct io_factory *factory,
-			 off_t offset,
-			 size_t size,
-			 struct buffered_reader **reader_ptr)
+int open_uds_buffered_reader(struct io_factory *factory,
+			     off_t offset,
+			     size_t size,
+			     struct buffered_reader **reader_ptr)
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
 	if (size % UDS_BLOCK_SIZE != 0) {
-		return log_error_strerror(
+		return uds_log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
 			"region size %zd is not multiple of %d",
 			size,
 			UDS_BLOCK_SIZE);
 	}
 
-	result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
+	result = make_uds_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -153,21 +153,21 @@ int open_buffered_reader(struct io_factory *factory,
 }
 
 /**********************************************************************/
-int open_buffered_writer(struct io_factory *factory,
-			 off_t offset,
-			 size_t size,
-			 struct buffered_writer **writer_ptr)
+int open_uds_buffered_writer(struct io_factory *factory,
+			     off_t offset,
+			     size_t size,
+			     struct buffered_writer **writer_ptr)
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
 	if (size % UDS_BLOCK_SIZE != 0) {
-		return log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					  "region size %zd is not multiple of %d",
-					  size,
-					  UDS_BLOCK_SIZE);
+		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					      "region size %zd is not multiple of %d",
+					      size,
+					      UDS_BLOCK_SIZE);
 	}
 
-	result = make_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
+	result = make_uds_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/allocatingVIO.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/allocatingVIO.h#5 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -176,14 +176,14 @@ get_vdo_from_allocating_vio(struct allocating_vio *allocating_vio)
  * @param allocating_vio  The allocating_vio in question
  **/
 static inline void
-assert_in_physical_zone(struct allocating_vio *allocating_vio)
+assert_vio_in_physical_zone(struct allocating_vio *allocating_vio)
 {
 	thread_id_t expected =
-		get_physical_zone_thread_id(allocating_vio->zone);
-	thread_id_t thread_id = get_callback_thread_id();
+		get_vdo_physical_zone_thread_id(allocating_vio->zone);
+	thread_id_t thread_id = vdo_get_callback_thread_id();
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"struct allocating_vio for allocated physical block %llu on thread %u, should be on thread %u",
-			allocating_vio->allocation,
+			(unsigned long long) allocating_vio->allocation,
 			thread_id,
 			expected);
 }
@@ -196,12 +196,12 @@ assert_in_physical_zone(struct allocating_vio *allocating_vio)
  * @param callback        The callback to set
  **/
 static inline void
-set_physical_zone_callback(struct allocating_vio *allocating_vio,
-			   vdo_action *callback)
+vio_set_physical_zone_callback(struct allocating_vio *allocating_vio,
+			       vdo_action *callback)
 {
 	set_vdo_completion_callback(allocating_vio_as_completion(allocating_vio),
 				    callback,
-				    get_physical_zone_thread_id(allocating_vio->zone));
+				    get_vdo_physical_zone_thread_id(allocating_vio->zone));
 }
 
 /**
@@ -212,10 +212,10 @@ set_physical_zone_callback(struct allocating_vio *allocating_vio,
  * @param callback       The callback to invoke
  **/
 static inline void
-launch_physical_zone_callback(struct allocating_vio *allocating_vio,
-			      vdo_action *callback)
+vio_launch_physical_zone_callback(struct allocating_vio *allocating_vio,
+				  vdo_action *callback)
 {
-	set_physical_zone_callback(allocating_vio, callback);
+	vio_set_physical_zone_callback(allocating_vio, callback);
 	invoke_vdo_completion_callback(allocating_vio_as_completion(allocating_vio));
 }
 
@@ -228,10 +228,10 @@ launch_physical_zone_callback(struct allocating_vio *allocating_vio,
  * @param write_lock_type  The type of write lock to obtain on the block
  * @param callback         The function to call once the allocation is complete
  **/
-void allocate_data_block(struct allocating_vio *allocating_vio,
-			 struct allocation_selector *selector,
-			 enum pbn_lock_type write_lock_type,
-			 allocation_callback *callback);
+void vio_allocate_data_block(struct allocating_vio *allocating_vio,
+			     struct allocation_selector *selector,
+			     enum pbn_lock_type write_lock_type,
+			     allocation_callback *callback);
 
 /**
  * Release the PBN lock on the allocated block. If the reference to the locked
@@ -239,14 +239,14 @@ void allocate_data_block(struct allocating_vio *allocating_vio,
  *
  * @param allocating_vio  The lock holder
  **/
-void release_allocation_lock(struct allocating_vio *allocating_vio);
+void vio_release_allocation_lock(struct allocating_vio *allocating_vio);
 
 /**
  * Reset an allocating_vio after it has done an allocation.
  *
  * @param allocating_vio  The allocating_vio
  **/
-void reset_allocation(struct allocating_vio *allocating_vio);
+void vio_reset_allocation(struct allocating_vio *allocating_vio);
 
 /**
  * Create a new allocating_vio for compressed writes.

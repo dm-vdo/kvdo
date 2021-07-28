@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalBlock.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalBlock.c#13 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -34,9 +34,9 @@
 #include "waitQueue.h"
 
 /**********************************************************************/
-int make_recovery_block(struct vdo *vdo,
-			struct recovery_journal *journal,
-			struct recovery_journal_block **block_ptr)
+int make_vdo_recovery_block(struct vdo *vdo,
+			    struct recovery_journal *journal,
+			    struct recovery_journal_block **block_ptr)
 {
 	struct recovery_journal_block *block;
 	int result;
@@ -48,17 +48,17 @@ int make_recovery_block(struct vdo *vdo,
 		      	    - sizeof(struct packed_journal_header))
 			  / sizeof(struct packed_recovery_journal_entry)));
 
-	result = ALLOCATE(1, struct recovery_journal_block, __func__, &block);
+	result = UDS_ALLOCATE(1, struct recovery_journal_block, __func__, &block);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	// Allocate a full block for the journal block even though not all of
 	// the space is used since the VIO needs to write a full disk block.
-	result = ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
-			  &block->block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
+			      &block->block);
 	if (result != VDO_SUCCESS) {
-		free_recovery_block(&block);
+		free_vdo_recovery_block(block);
 		return result;
 	}
 
@@ -69,7 +69,7 @@ int make_recovery_block(struct vdo *vdo,
 				     block->block,
 				     &block->vio);
 	if (result != VDO_SUCCESS) {
-		free_recovery_block(&block);
+		free_vdo_recovery_block(block);
 		return result;
 	}
 
@@ -82,17 +82,15 @@ int make_recovery_block(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_recovery_block(struct recovery_journal_block **block_ptr)
+void free_vdo_recovery_block(struct recovery_journal_block *block)
 {
-	struct recovery_journal_block *block = *block_ptr;
 	if (block == NULL) {
 		return;
 	}
 
-	FREE(block->block);
-	free_vio(&block->vio);
-	FREE(block);
-	*block_ptr = NULL;
+	UDS_FREE(UDS_FORGET(block->block));
+	free_vio(UDS_FORGET(block->vio));
+	UDS_FREE(block);
 }
 
 /**
@@ -124,7 +122,7 @@ static void set_active_sector(struct recovery_journal_block *block,
 }
 
 /**********************************************************************/
-void initialize_recovery_block(struct recovery_journal_block *block)
+void initialize_vdo_recovery_block(struct recovery_journal_block *block)
 {
 	struct recovery_journal *journal = block->journal;
 	struct recovery_block_header unpacked = {
@@ -134,8 +132,8 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 		.nonce = journal->nonce,
 		.recovery_count = journal->recovery_count,
 		.sequence_number = journal->tail,
-		.check_byte = compute_recovery_check_byte(journal,
-							  journal->tail),
+		.check_byte = compute_vdo_recovery_journal_check_byte(journal,
+								      journal->tail),
 	};
 	struct packed_journal_header *header = get_block_header(block);
 
@@ -145,16 +143,16 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 	block->uncommitted_entry_count = 0;
 
 	block->block_number =
-		get_recovery_journal_block_number(journal, journal->tail);
+		get_vdo_recovery_journal_block_number(journal, journal->tail);
 
-	pack_recovery_block_header(&unpacked, header);
+	pack_vdo_recovery_block_header(&unpacked, header);
 
-	set_active_sector(block, get_journal_block_sector(header, 1));
+	set_active_sector(block, get_vdo_journal_block_sector(header, 1));
 }
 
 /**********************************************************************/
-int enqueue_recovery_block_entry(struct recovery_journal_block *block,
-				 struct data_vio *data_vio)
+int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
+				     struct data_vio *data_vio)
 {
 	// First queued entry indicates this is a journal block we've just
 	// opened or a committing block we're extending and will have to write
@@ -214,9 +212,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		if (data_vio->operation.type == DATA_INCREMENT) {
 			/*
 			 * In order to not lose an acknowledged write with the
-                         * FUA flag, we must also set the FUA flag on the
-                         * journal entry write.
-                         */
+			 * FUA flag, we must also set the FUA flag on the
+			 * journal entry write.
+			 */
 			block->has_fua_entry =
 				(block->has_fua_entry ||
 				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
@@ -234,9 +232,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			.operation = data_vio->operation.type,
 			.slot = lock->tree_slots[lock->height].block_map_slot,
 		};
-		*packed_entry = pack_recovery_journal_entry(&new_entry);
+		*packed_entry = pack_vdo_recovery_journal_entry(&new_entry);
 
-		if (is_increment_operation(data_vio->operation.type)) {
+		if (is_vdo_journal_increment_operation(data_vio->operation.type)) {
 			data_vio->recovery_sequence_number =
 				block->sequence_number;
 		}
@@ -263,37 +261,38 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 		       physical_block_number_t *pbn_ptr)
 {
 	struct recovery_journal *journal = block->journal;
-	int result = translate_to_pbn(journal->partition, block->block_number,
-				      pbn_ptr);
+	int result = vdo_translate_to_pbn(journal->partition,
+					  block->block_number,
+					  pbn_ptr);
 	if (result != VDO_SUCCESS) {
-		log_error_strerror(result,
-				   "Error translating recovery journal block number %llu",
-				   block->block_number);
+		uds_log_error_strerror(result,
+				       "Error translating recovery journal block number %llu",
+				       (unsigned long long) block->block_number);
 	}
 	return result;
 }
 
 /**********************************************************************/
-bool can_commit_recovery_block(struct recovery_journal_block *block)
+bool can_commit_vdo_recovery_block(struct recovery_journal_block *block)
 {
 	// Cannot commit in read-only mode, if already committing the block,
 	// or if there are no entries to commit.
 	return ((block != NULL)
 		&& !block->committing
 		&& has_waiters(&block->entry_waiters)
-		&& !is_read_only(block->journal->read_only_notifier));
+		&& !vdo_is_read_only(block->journal->read_only_notifier));
 }
 
 /**********************************************************************/
-int commit_recovery_block(struct recovery_journal_block *block,
-			  vdo_action *callback,
-			  vdo_action *error_handler)
+int commit_vdo_recovery_block(struct recovery_journal_block *block,
+			      vdo_action *callback,
+			      vdo_action *error_handler)
 {
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t block_pbn;
 	bool fua;
-	int result = ASSERT(can_commit_recovery_block(block),
+	int result = ASSERT(can_commit_vdo_recovery_block(block),
 			    "should never call %s when the block can't be committed",
 			    __func__);
 	if (result != VDO_SUCCESS) {
@@ -323,13 +322,13 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	block->committing = true;
 
 	/*
-         * We must issue a flush for every commit. For increments, it is
-         * necessary to ensure that the data being referenced is stable. For
-         * decrements, it is necessary to ensure that the preceding increment
-         * entry is stable before allowing overwrites of the lbn's previous
-         * data. For writes which had the FUA flag set, we must also set the
-         * FUA flag on the journal write.
-         */
+	 * We must issue a flush for every commit. For increments, it is
+	 * necessary to ensure that the data being referenced is stable. For
+	 * decrements, it is necessary to ensure that the preceding increment
+	 * entry is stable before allowing overwrites of the lbn's previous
+	 * data. For writes which had the FUA flag set, we must also set the
+	 * FUA flag on the journal write.
+	 */
 	fua = block->has_fua_entry;
 	block->has_fua_entry = false;
 	launch_write_metadata_vio_with_flush(block->vio,
@@ -342,11 +341,12 @@ int commit_recovery_block(struct recovery_journal_block *block,
 }
 
 /**********************************************************************/
-void dump_recovery_block(const struct recovery_journal_block *block)
+void dump_vdo_recovery_block(const struct recovery_journal_block *block)
 {
-	log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
-		 block->sequence_number, block->entry_count,
-		 (block->committing ? "committing" : "waiting"),
-		 count_waiters(&block->entry_waiters),
-		 count_waiters(&block->commit_waiters));
+	uds_log_info("    sequence number %llu; entries %u; %s; %zu entry waiters; %zu commit waiters",
+		     (unsigned long long) block->sequence_number,
+		     block->entry_count,
+		     (block->committing ? "committing" : "waiting"),
+		     count_waiters(&block->entry_waiters),
+		     count_waiters(&block->commit_waiters));
 }

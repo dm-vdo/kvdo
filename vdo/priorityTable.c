@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/priorityTable.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/priorityTable.c#3 $
  */
 
 #include "priorityTable.h"
@@ -74,8 +74,8 @@ int make_priority_table(unsigned int max_priority,
 		return UDS_INVALID_ARGUMENT;
 	}
 
-	result = ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
-				   struct bucket, __func__, &table);
+	result = UDS_ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
+				       struct bucket, __func__, &table);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -94,9 +94,8 @@ int make_priority_table(unsigned int max_priority,
 }
 
 /**********************************************************************/
-void free_priority_table(struct priority_table **table_ptr)
+void free_priority_table(struct priority_table *table)
 {
-	struct priority_table *table = *table_ptr;
 	if (table == NULL) {
 		return;
 	}
@@ -105,8 +104,7 @@ void free_priority_table(struct priority_table **table_ptr)
 	// won't be left with dangling pointers to freed memory.
 	reset_priority_table(table);
 
-	FREE(table);
-	*table_ptr = NULL;
+	UDS_FREE(table);
 }
 
 /**********************************************************************/

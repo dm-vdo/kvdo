@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/threads.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/threads.h#2 $
  */
 
 #ifndef THREADS_H
@@ -30,6 +30,6 @@
  *
  * @return the thread id
  **/
-pid_t __must_check get_thread_id(void);
+pid_t __must_check vdo_get_thread_id(void);
 
 #endif /* THREADS_H */

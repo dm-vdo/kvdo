@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.h#6 $
  */
 
 #ifndef VIO_H
@@ -145,11 +145,11 @@ int __must_check create_metadata_vio(struct vdo *vdo,
 				     struct vio **vio_ptr);
 
 /**
- * Destroy a vio. The pointer to the vio will be nulled out.
+ * Destroy a vio.
  *
- * @param vio_ptr  A pointer to the vio to destroy
+ * @param vio  The vio to destroy
  **/
-void free_vio(struct vio **vio_ptr);
+void free_vio(struct vio *vio);
 
 /**
  * Initialize a vio.
@@ -206,7 +206,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
  **/
 static inline bool is_data_vio(struct vio *vio)
 {
-	return is_data_vio_type(vio->type);
+	return is_vdo_data_vio_type(vio->type);
 }
 
 /**
@@ -216,7 +216,7 @@ static inline bool is_data_vio(struct vio *vio)
  **/
 static inline bool is_compressed_write_vio(struct vio *vio)
 {
-	return is_compressed_write_vio_type(vio->type);
+	return is_vdo_compressed_write_vio_type(vio->type);
 }
 
 /**
@@ -226,7 +226,7 @@ static inline bool is_compressed_write_vio(struct vio *vio)
  **/
 static inline bool is_metadata_vio(struct vio *vio)
 {
-	return is_metadata_vio_type(vio->type);
+	return is_vdo_metadata_vio_type(vio->type);
 }
 
 /**
@@ -384,20 +384,13 @@ launch_write_metadata_vio_with_flush(struct vio *vio,
  * @param callback       The function to call when the flush is complete
  * @param error_handler  The handler for flush errors
  **/
-static inline void launch_flush(struct vio *vio,
-				vdo_action *callback,
-				vdo_action *error_handler)
+static inline void launch_flush_vio(struct vio *vio,
+				    vdo_action *callback,
+				    vdo_action *error_handler)
 {
 	launch_metadata_vio(vio, 0, callback, error_handler,
 			    VIO_FLUSH_BEFORE);
 }
-
-/**
- * Destroy a vio. The pointer to the vio will be nulled out.
- *
- * @param vio_ptr  A pointer to the vio to destroy
- **/
-void destroy_vio(struct vio **vio_ptr);
 
 /**
  * Read or write a single metadata vio.
@@ -411,6 +404,6 @@ void submit_metadata_vio(struct vio *vio);
  *
  * @param vio  The compressed write vio to write
  **/
-void write_compressed_block(struct vio *vio);
+void write_compressed_block_vio(struct vio *vio);
 
 #endif // VIO_H

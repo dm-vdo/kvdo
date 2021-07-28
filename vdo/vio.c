@@ -16,10 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.c#11 $
  */
 
 #include "vio.h"
+
+#include <linux/kernel.h>
+#include <linux/ratelimit.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -27,8 +30,6 @@
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
-
-#include <linux/ratelimit.h>
 
 /**********************************************************************/
 int create_metadata_vio(struct vdo *vdo,
@@ -46,7 +47,7 @@ int create_metadata_vio(struct vdo *vdo,
 	// VDOSTORY-176.
 	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
-	result = ASSERT(is_metadata_vio_type(vio_type),
+	result = ASSERT(is_vdo_metadata_vio_type(vio_type),
 			"%d is a metadata type",
 			vio_type);
 	if (result != VDO_SUCCESS) {
@@ -55,15 +56,15 @@ int create_metadata_vio(struct vdo *vdo,
 
 	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.
-	result = ALLOCATE(1, struct vio, __func__, &vio);
+	result = UDS_ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("metadata vio allocation failure %d", result);
 		return result;
 	}
 
-	result = create_bio(&bio);
+	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
-		FREE(vio);
+		UDS_FREE(vio);
 		return result;
 	}
 
@@ -80,14 +81,15 @@ int create_metadata_vio(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vio(struct vio **vio_ptr)
+void free_vio(struct vio *vio)
 {
-	struct vio *vio = *vio_ptr;
 	if (vio == NULL) {
 		return;
 	}
 
-	destroy_vio(vio_ptr);
+	BUG_ON(is_data_vio(vio));
+	vdo_free_bio(UDS_FORGET(vio->bio));
+	UDS_FREE(vio);
 }
 
 /**********************************************************************/
@@ -176,16 +178,16 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	int result = vio_as_completion(vio)->result;
 	switch (result) {
 	case VDO_READ_ONLY:
-		atomic64_inc(&vio->vdo->error_stats.read_only_error_count);
+		atomic64_inc(&vio->vdo->stats.read_only_error_count);
 		return;
 
 	case VDO_NO_SPACE:
-		atomic64_inc(&vio->vdo->error_stats.no_space_error_count);
-		priority = LOG_DEBUG;
+		atomic64_inc(&vio->vdo->stats.no_space_error_count);
+		priority = UDS_LOG_DEBUG;
 		break;
 
 	default:
-		priority = LOG_ERR;
+		priority = UDS_LOG_ERR;
 	}
 
 	if (!__ratelimit(&error_limiter)) {
@@ -193,7 +195,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	}
 
 	va_start(args, format);
-	vlog_strerror(priority, result, format, args);
+	uds_vlog_strerror(priority, result, UDS_LOGGING_MODULE_NAME,
+			  format, args);
 	va_end(args);
 }
 
@@ -211,7 +214,7 @@ static void handle_metadata_io_error(struct vdo_completion *completion)
 			       "Completing %s vio of type %u for physical block %llu with error",
 			       vio_operation,
 			       vio->type,
-			       vio->physical);
+			       (unsigned long long) vio->physical);
 	vio_done_callback(completion);
 }
 
@@ -223,7 +226,11 @@ void launch_metadata_vio(struct vio *vio,
 			 enum vio_operation operation)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
+	const struct admin_state_code *code = get_vdo_admin_state(vio->vdo);
 
+	ASSERT_LOG_ONLY(!code->quiescent,
+			"I/O not allowed in state %s",
+			code->name);
 	vio->operation = operation;
 	vio->physical = physical;
 	vio->callback = callback;

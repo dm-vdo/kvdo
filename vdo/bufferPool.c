@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bufferPool.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bufferPool.c#4 $
  */
 
 #include "bufferPool.h"
@@ -72,27 +72,27 @@ int make_buffer_pool(const char *pool_name,
 	struct buffer_element *bh;
 	int i;
 
-	int result = ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
+	int result = UDS_ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
 
 	if (result != VDO_SUCCESS) {
 		uds_log_error("buffer pool allocation failure %d", result);
 		return result;
 	}
 
-	result = ALLOCATE(size, struct buffer_element, "buffer pool elements",
-			  &pool->bhead);
+	result = UDS_ALLOCATE(size, struct buffer_element,
+			      "buffer pool elements", &pool->bhead);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("buffer element array allocation failure %d",
 			      result);
-		free_buffer_pool(&pool);
+		free_buffer_pool(pool);
 		return result;
 	}
 
-	result = ALLOCATE(size, void *, "object pointers", &pool->objects);
+	result = UDS_ALLOCATE(size, void *, "object pointers", &pool->objects);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("buffer object array allocation failure %d",
 			      result);
-		free_buffer_pool(&pool);
+		free_buffer_pool(pool);
 		return result;
 	}
 
@@ -111,7 +111,7 @@ int make_buffer_pool(const char *pool_name,
 		if (result != VDO_SUCCESS) {
 			uds_log_error("verify buffer data allocation failure %d",
 				      result);
-			free_buffer_pool(&pool);
+			free_buffer_pool(pool);
 			return result;
 		}
 		pool->objects[i] = bh->data;
@@ -125,10 +125,8 @@ int make_buffer_pool(const char *pool_name,
 }
 
 /*************************************************************************/
-void free_buffer_pool(struct buffer_pool **pool_ptr)
+void free_buffer_pool(struct buffer_pool *pool)
 {
-	struct buffer_pool *pool = *pool_ptr;
-
 	if (pool == NULL) {
 		return;
 	}
@@ -141,14 +139,14 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 
 		for (i = 0; i < pool->size; i++) {
 			if (pool->objects[i] != NULL) {
-				pool->free(pool->objects[i]);
+				pool->free(UDS_FORGET(pool->objects[i]));
 			}
 		}
-		FREE(pool->objects);
+		UDS_FREE(UDS_FORGET(pool->objects));
 	}
-	FREE(pool->bhead);
-	FREE(pool);
-	*pool_ptr = NULL;
+
+	UDS_FREE(UDS_FORGET(pool->bhead));
+	UDS_FREE(pool);
 }
 
 /*************************************************************************/
@@ -179,8 +177,8 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 		return;
 	}
 	spin_lock(&pool->lock);
-	log_info("%s: %u of %u busy (max %u)", pool->name, pool->num_busy,
-		 pool->size, pool->max_busy);
+	uds_log_info("%s: %u of %u busy (max %u)",
+		     pool->name, pool->num_busy, pool->size, pool->max_busy);
 	if (dump_elements && (pool->dump != NULL)) {
 		int dumped = 0;
 		int i;

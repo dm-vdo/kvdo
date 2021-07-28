@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/partitionCopy.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/partitionCopy.h#3 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -33,15 +33,16 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_copy_completion(struct vdo *vdo,
-				      struct vdo_completion **completion_ptr);
+int __must_check
+make_vdo_copy_completion(struct vdo *vdo,
+			 struct vdo_completion **completion_ptr);
 
 /**
- * Free a copy completion and NULL out the reference to it.
+ * Free a copy completion.
  *
- * @param completion_ptr  A pointer to the complete to be freed
+ * @param completion  The completion to free
  **/
-void free_copy_completion(struct vdo_completion **completion_ptr);
+void free_vdo_copy_completion(struct vdo_completion *completion);
 
 /**
  * Copy a partition.
@@ -51,9 +52,9 @@ void free_copy_completion(struct vdo_completion **completion_ptr);
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copy_partition(struct vdo_completion *completion,
-		    struct partition *source,
-		    struct partition *target,
-		    struct vdo_completion *parent);
+void copy_vdo_partition(struct vdo_completion *completion,
+			struct partition *source,
+			struct partition *target,
+			struct vdo_completion *parent);
 
 #endif /* PARTITION_COPY_H */

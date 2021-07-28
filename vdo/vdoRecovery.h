@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoRecovery.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoRecovery.h#2 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -34,9 +34,9 @@
  * @param context     The slab depot load context supplied by a recovery when
  *                    it loads the depot
  **/
-void replay_into_slab_journals(struct block_allocator *allocator,
-			       struct vdo_completion *completion,
-			       void *context);
+void vdo_replay_into_slab_journals(struct block_allocator *allocator,
+				   struct vdo_completion *completion,
+				   void *context);
 
 /**
  * Construct a recovery completion and launch it. Apply all valid journal block
@@ -47,6 +47,6 @@ void replay_into_slab_journals(struct block_allocator *allocator,
  * @param parent  The completion to notify when the offline portion of the
  *                recovery is complete
  **/
-void launch_recovery(struct vdo *vdo, struct vdo_completion *parent);
+void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif // VDO_RECOVERY_H

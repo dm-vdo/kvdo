@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCache.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCache.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -105,11 +105,11 @@ int __must_check make_vdo_page_cache(struct vdo *vdo,
 				     struct vdo_page_cache **cache_ptr);
 
 /**
- * Free the page cache structure and null out the reference to it.
+ * Free the page cache structure.
  *
- * @param cache_ptr a pointer to the cache to free
+ * @param cache  The cache to free
  **/
-void free_vdo_page_cache(struct vdo_page_cache **cache_ptr);
+void free_vdo_page_cache(struct vdo_page_cache *cache);
 
 /**
  * Set the initial dirty period for a page cache.
@@ -138,7 +138,7 @@ void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
  *
  * @return <code>true</code> if the cache is active
  **/
-bool __must_check is_page_cache_active(struct vdo_page_cache *cache);
+bool __must_check is_vdo_page_cache_active(struct vdo_page_cache *cache);
 
 /**
  * Advance the dirty period for a page cache.

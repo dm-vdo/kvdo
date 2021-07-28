@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/readOnlyNotifier.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/readOnlyNotifier.c#13 $
  */
 
 #include "readOnlyNotifier.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -32,13 +33,13 @@
 
 /**
  * A read_only_notifier has a single completion which is used to perform
- * read-only notifications, however, enter_read_only_mode() may be called from
- * any base thread. A pair of atomic fields are used to control the read-only
+ * read-only notifications, however, vdo_enter_read_only_mode() may be called
+ * from any thread. A pair of atomic fields are used to control the read-only
  * mode entry process. The first field holds the read-only error. The second is
  * the state field, which may hold any of the four special values enumerated
  * here.
  *
- * When enter_read_only_mode() is called from some base thread, a
+ * When vdo_enter_read_only_mode() is called on some base thread, a
  * compare-and-swap is done on read_only_error, setting it to the supplied
  * error if the value was VDO_SUCCESS. If this fails, some other thread has
  * already initiated read-only entry or scheduled a pending entry, so the call
@@ -46,8 +47,8 @@
  * NOTIFYING if the value was MAY_NOTIFY. If this succeeds, the caller
  * initiates the notification. If this failed due to notifications being
  * disallowed, the notifier will be in the MAY_NOT_NOTIFY state but
- * read_only_error will not be VDO_SUCCESS. This configuration will indicate
- * to allow_read_only_mode_entry() that there is a pending notification to
+ * read_only_error will not be VDO_SUCCESS. This configuration will indicate to
+ * vdo_allow_read_only_mode_entry() that there is a pending notification to
  * perform.
  **/
 enum {
@@ -68,7 +69,7 @@ struct read_only_listener {
 	/** The listener */
 	void *listener;
 	/** The method to call to notify the listener */
-	read_only_notification *notify;
+	vdo_read_only_notification *notify;
 	/** A pointer to the next listener */
 	struct read_only_listener *next;
 };
@@ -118,23 +119,24 @@ struct read_only_notifier {
 static inline struct read_only_notifier *
 as_notifier(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, READ_ONLY_MODE_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   VDO_READ_ONLY_MODE_COMPLETION);
 	return container_of(completion, struct read_only_notifier, completion);
 }
 
 /**********************************************************************/
-int make_read_only_notifier(bool is_read_only,
-			    const struct thread_config *thread_config,
-			    struct vdo *vdo,
-			    struct read_only_notifier **notifier_ptr)
+int make_vdo_read_only_notifier(bool is_read_only,
+				const struct thread_config *thread_config,
+				struct vdo *vdo,
+				struct read_only_notifier **notifier_ptr)
 {
 	struct read_only_notifier *notifier;
 	thread_count_t id;
-	int result = ALLOCATE_EXTENDED(struct read_only_notifier,
-				       thread_config->base_thread_count,
-				       struct thread_data,
-				       __func__,
-				       &notifier);
+	int result = UDS_ALLOCATE_EXTENDED(struct read_only_notifier,
+					   thread_config->base_thread_count,
+					   struct thread_data,
+					   __func__,
+					   &notifier);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -144,11 +146,11 @@ int make_read_only_notifier(bool is_read_only,
 		atomic_set(&notifier->read_only_error, VDO_READ_ONLY);
 		atomic_set(&notifier->state, NOTIFIED);
 	} else {
-		atomic_set(&notifier->state, MAY_NOTIFY);
+		atomic_set(&notifier->state, MAY_NOT_NOTIFY);
 	}
 
 	initialize_vdo_completion(&notifier->completion, vdo,
-				  READ_ONLY_MODE_COMPLETION);
+				  VDO_READ_ONLY_MODE_COMPLETION);
 
 	for (id = 0; id < thread_config->base_thread_count; id++) {
 		notifier->thread_data[id].is_read_only = is_read_only;
@@ -158,27 +160,37 @@ int make_read_only_notifier(bool is_read_only,
 	return VDO_SUCCESS;
 }
 
+/**
+ * Free the list of read-only listeners associated with a thread.
+ *
+ * @param thread_data  The thread holding the list to free
+ **/
+static void free_listeners(struct thread_data *thread_data)
+{
+	struct read_only_listener *listener, *next;
+
+	for (listener = UDS_FORGET(thread_data->listeners);
+	     listener != NULL;
+	     listener = next) {
+		next = UDS_FORGET(listener->next);
+		UDS_FREE(listener);
+	}
+}
+
 /**********************************************************************/
-void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
+void free_vdo_read_only_notifier(struct read_only_notifier *notifier)
 {
 	thread_count_t id;
-	struct read_only_notifier *notifier = *notifier_ptr;
+
 	if (notifier == NULL) {
 		return;
 	}
 
 	for (id = 0; id < notifier->thread_config->base_thread_count; id++) {
-		struct thread_data *thread_data = &notifier->thread_data[id];
-		struct read_only_listener *listener = thread_data->listeners;
-		while (listener != NULL) {
-			struct read_only_listener *to_free = listener;
-			listener = listener->next;
-			FREE(to_free);
-		}
+		free_listeners(&notifier->thread_data[id]);
 	}
 
-	FREE(notifier);
-	*notifier_ptr = NULL;
+	UDS_FREE(notifier);
 }
 
 /**
@@ -190,16 +202,16 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 static void assert_on_admin_thread(struct read_only_notifier *notifier,
 				   const char *caller)
 {
-	thread_id_t thread_id = get_callback_thread_id();
-	ASSERT_LOG_ONLY((get_admin_thread(notifier->thread_config) ==
+	thread_id_t thread_id = vdo_get_callback_thread_id();
+	ASSERT_LOG_ONLY((vdo_get_admin_thread(notifier->thread_config) ==
 			 thread_id),
 			"%s called on admin thread",
 			caller);
 }
 
 /**********************************************************************/
-void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
-					    struct vdo_completion *parent)
+void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
+						struct vdo_completion *parent)
 {
 	int state;
 	if (notifier == NULL) {
@@ -280,8 +292,8 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		if (thread_id == 0) {
 			// Note: This message must be recognizable by
 			// Permabit::UserMachine.
-			log_error_strerror(atomic_read(&notifier->read_only_error),
-					   "Unrecoverable error, entering read-only mode");
+			uds_log_error_strerror(atomic_read(&notifier->read_only_error),
+					       "Unrecoverable error, entering read-only mode");
 		}
 	} else {
 		// We've just finished notifying a listener
@@ -305,7 +317,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		prepare_vdo_completion(completion,
 				       finish_entering_read_only_mode,
 				       finish_entering_read_only_mode,
-				       get_admin_thread(notifier->thread_config),
+				       vdo_get_admin_thread(notifier->thread_config),
 				       NULL);
 	} else {
 		prepare_vdo_completion(completion,
@@ -319,8 +331,8 @@ static void make_thread_read_only(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void allow_read_only_mode_entry(struct read_only_notifier *notifier,
-				struct vdo_completion *parent)
+void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
+				    struct vdo_completion *parent)
 {
 	int state;
 
@@ -361,8 +373,8 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	if (state != MAY_NOTIFY) {
 		/*
 		 * There wasn't a pending notification; the error check raced
-		 * with a thread calling enter_read_only_mode() after we set
-		 * the state to MAY_NOTIFY. It has already started the
+		 * with a thread calling vdo_enter_read_only_mode() after we
+		 * set the state to MAY_NOTIFY. It has already started the
 		 * notification.
 		 */
 		complete_vdo_completion(parent);
@@ -375,31 +387,30 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 }
 
 /**********************************************************************/
-void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
+void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
+			      int error_code)
 {
 	int state;
-	thread_id_t thread_id = get_callback_thread_id();
+	thread_id_t thread_id = vdo_get_callback_thread_id();
 	struct thread_data *thread_data;
-	int result = ASSERT(thread_id != INVALID_THREAD_ID,
-			    "Must enter read-only mode only from a VDO thread");
-	if (result != UDS_SUCCESS) {
-		return;
+
+	if (thread_id != VDO_INVALID_THREAD_ID) {
+		thread_data = &notifier->thread_data[thread_id];
+		if (thread_data->is_read_only) {
+			// This thread has already gone read-only.
+			return;
+		}
+
+		// Record for this thread that the VDO is read-only.
+		thread_data->is_read_only = true;
 	}
 
-	thread_data = &notifier->thread_data[thread_id];
-	if (thread_data->is_read_only) {
-		// This thread has already gone read-only.
-		return;
-	}
-
-	// Record for this thread that the VDO is read-only.
-	thread_data->is_read_only = true;
-
-	// Extra barriers because this was original developed using
-	// a CAS operation that implicitly had them.
+	// Extra barriers because this was original developed using a CAS
+	// operation that implicitly had them.
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->read_only_error,
-			       VDO_SUCCESS, error_code);
+			       VDO_SUCCESS,
+			       error_code);
 	smp_mb__after_atomic();
 
 	if (state != VDO_SUCCESS) {
@@ -408,8 +419,8 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 	}
 
 	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
-	// Extra barrier because this was original developed using
-	// a CAS operation that implicitly had them.
+	// Extra barrier because this was original developed using a CAS
+	// operation that implicitly had them.
 	smp_mb__after_atomic();
 
 	if (state != MAY_NOTIFY) {
@@ -422,29 +433,29 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int error_code)
 }
 
 /**********************************************************************/
-bool is_read_only(struct read_only_notifier *notifier)
+bool vdo_is_read_only(struct read_only_notifier *notifier)
 {
-	return notifier->thread_data[get_callback_thread_id()].is_read_only;
+	return notifier->thread_data[vdo_get_callback_thread_id()].is_read_only;
 }
 
 /**********************************************************************/
-bool is_or_will_be_read_only(struct read_only_notifier *notifier)
+bool vdo_is_or_will_be_read_only(struct read_only_notifier *notifier)
 {
 	return (atomic_read(&notifier->read_only_error) != VDO_SUCCESS);
 }
 
 /**********************************************************************/
-int register_read_only_listener(struct read_only_notifier *notifier,
-				void *listener,
-				read_only_notification *notification,
-				thread_id_t thread_id)
+int register_vdo_read_only_listener(struct read_only_notifier *notifier,
+				    void *listener,
+				    vdo_read_only_notification *notification,
+				    thread_id_t thread_id)
 {
 	struct thread_data *thread_data = &notifier->thread_data[thread_id];
 	struct read_only_listener *read_only_listener;
-	int result = ALLOCATE(1,
-			      struct read_only_listener,
-			      __func__,
-			      &read_only_listener);
+	int result = UDS_ALLOCATE(1,
+				  struct read_only_listener,
+				  __func__,
+				  &read_only_listener);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

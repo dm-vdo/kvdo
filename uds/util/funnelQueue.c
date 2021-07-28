@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/funnelQueue.c#7 $
  */
 
 #include "funnelQueue.h"
@@ -31,7 +31,8 @@ int make_funnel_queue(struct funnel_queue **queue_ptr)
 	// Allocate the queue on a cache line boundary so the producer and
 	// consumer fields in the structure will land on separate cache lines.
 	struct funnel_queue *queue;
-	int result = ALLOCATE(1, struct funnel_queue, "funnel queue", &queue);
+	int result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue",
+				  &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -49,7 +50,7 @@ int make_funnel_queue(struct funnel_queue **queue_ptr)
 /**********************************************************************/
 void free_funnel_queue(struct funnel_queue *queue)
 {
-	FREE(queue);
+	UDS_FREE(queue);
 }
 
 /**********************************************************************/

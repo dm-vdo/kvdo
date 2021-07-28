@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/packerInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/packerInternals.h#3 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -87,7 +87,7 @@ struct output_bin {
  **/
 struct output_batch {
 	size_t slots_used;
-	struct data_vio *slots[MAX_COMPRESSION_SLOTS];
+	struct data_vio *slots[VDO_MAX_COMPRESSION_SLOTS];
 };
 
 struct packer {

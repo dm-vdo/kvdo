@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/compressedBlock.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/compressedBlock.h#2 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -39,7 +39,7 @@ struct compressed_block_header {
 	 * List of unsigned 16-bit compressed block sizes,
 	 * in little-endian order
 	 */
-	__le16 sizes[MAX_COMPRESSION_SLOTS];
+	__le16 sizes[VDO_MAX_COMPRESSION_SLOTS];
 } __packed;
 
 /**

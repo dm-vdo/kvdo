@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#8 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#12 $
  */
 
 #include "sysfs.h"
@@ -42,7 +42,7 @@ static struct {
 static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
-	if (ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
 		return NULL;
 	}
 	memcpy(string, buf, length);
@@ -139,7 +139,7 @@ static ssize_t parameter_store(struct kobject *kobj,
 		return -ENOMEM;
 	}
 	pa->store_string(string);
-	FREE(string);
+	UDS_FREE(string);
 	return length;
 }
 
@@ -147,14 +147,14 @@ static ssize_t parameter_store(struct kobject *kobj,
 
 static const char *parameter_show_log_level(void)
 {
-	return priority_to_string(get_log_level());
+	return uds_log_priority_to_string(get_uds_log_level());
 }
 
 /**********************************************************************/
 
 static void parameter_store_log_level(const char *string)
 {
-	set_log_level(string_to_priority(string));
+	set_uds_log_level(uds_log_string_to_priority(string));
 }
 
 /**********************************************************************/
@@ -182,7 +182,7 @@ static struct kobj_type parameter_object_type = {
 };
 
 /**********************************************************************/
-int init_sysfs(void)
+int init_uds_sysfs(void)
 {
 	int result;
 	memset(&object_root, 0, sizeof(object_root));
@@ -200,13 +200,13 @@ int init_sysfs(void)
 		}
 	}
 	if (result != 0) {
-		put_sysfs();
+		put_uds_sysfs();
 	}
 	return result;
 }
 
 /**********************************************************************/
-void put_sysfs()
+void put_uds_sysfs(void)
 {
 	if (object_root.parameter_flag) {
 		kobject_put(&object_root.parameter_kobj);

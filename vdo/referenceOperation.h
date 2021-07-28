@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/referenceOperation.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/referenceOperation.h#2 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -64,7 +64,7 @@ struct reference_operation {
  *         isn't one
  **/
 static inline struct pbn_lock * __must_check
-get_reference_operation_pbn_lock(struct reference_operation operation)
+get_vdo_reference_operation_pbn_lock(struct reference_operation operation)
 {
 	return ((operation.lock_getter == NULL)
 			? NULL
@@ -80,11 +80,12 @@ get_reference_operation_pbn_lock(struct reference_operation operation)
  * @param lock       The pbn_lock to associate with the operation
  * @param operation  The reference_operation to set up
  **/
-void set_up_reference_operation_with_lock(enum journal_operation type,
-					  physical_block_number_t pbn,
-					  enum block_mapping_state state,
-					  struct pbn_lock *lock,
-					  struct reference_operation *operation);
+void
+set_up_vdo_reference_operation_with_lock(enum journal_operation type,
+					 physical_block_number_t pbn,
+					 enum block_mapping_state state,
+					 struct pbn_lock *lock,
+					 struct reference_operation *operation);
 
 /**
  * Set up a reference_operation for which we will need to look up the lock
@@ -97,10 +98,11 @@ void set_up_reference_operation_with_lock(enum journal_operation type,
  *                   when needed
  * @param operation  The reference_operation to set up
  **/
-void set_up_reference_operation_with_zone(enum journal_operation type,
-					  physical_block_number_t pbn,
-					  enum block_mapping_state state,
-					  struct physical_zone *zone,
-					  struct reference_operation *operation);
+void
+set_up_vdo_reference_operation_with_zone(enum journal_operation type,
+					 physical_block_number_t pbn,
+					 enum block_mapping_state state,
+					 struct physical_zone *zone,
+					 struct reference_operation *operation);
 
 #endif // REFERENCE_OPERATION_H

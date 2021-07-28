@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#5 $
  */
 
 #ifndef CHAPTER_WRITER_H
 #define CHAPTER_WRITER_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "indexVersion.h"
 #include "openChapterZone.h"
 

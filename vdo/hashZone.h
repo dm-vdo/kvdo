@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/hashZone.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/hashZone.h#3 $
  */
 
 #ifndef HASH_ZONE_H
@@ -41,11 +41,11 @@ int __must_check make_vdo_hash_zone(struct vdo *vdo,
 				    struct hash_zone **zone_ptr);
 
 /**
- * Free a hash zone and null out the reference to it.
+ * Free a hash zone.
  *
- * @param zone_ptr  A pointer to the zone to free
+ * @param zone  The zone to free
  **/
-void free_vdo_hash_zone(struct hash_zone **zone_ptr);
+void free_vdo_hash_zone(struct hash_zone *zone);
 
 /**
  * Get the zone number of a hash zone.
@@ -99,15 +99,15 @@ acquire_lock_from_vdo_hash_zone(struct hash_zone *zone,
 
 /**
  * Return a hash lock to the zone it was borrowed from, remove it from the
- * zone's lock map, returning it to the pool, and nulling out the reference to
- * it. This must only be called when the lock has been completely released,
- * and only in the correct thread for the zone.
+ * zone's lock map, and return it to the pool. This must only be called when
+ * the lock has been completely released, and only in the correct thread for
+ * the zone.
  *
- * @param [in]     zone      The zone from which the lock was borrowed
- * @param [in,out] lock_ptr  The lock that is no longer in use
+ * @param zone  The zone from which the lock was borrowed
+ * @param lock  The lock that is no longer in use
  **/
 void return_lock_to_vdo_hash_zone(struct hash_zone *zone,
-				  struct hash_lock **lock_ptr);
+				  struct hash_lock *lock);
 
 /**
  * Increment the valid advice count in the hash zone statistics.

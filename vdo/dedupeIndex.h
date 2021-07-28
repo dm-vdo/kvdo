@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.h#7 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -30,13 +30,16 @@
 /**
  * Make a dedupe index
  *
- * @param index_ptr  dedupe index returned here
- * @param vdo        the vdo to which the index will belong
+ * @param index_ptr           dedupe index returned here
+ * @param vdo                 the vdo to which the index will belong
+ * @param thread_name_prefix  The per-device prefix to use in thread names
  *
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo);
+make_vdo_dedupe_index(struct dedupe_index **index_ptr,
+		      struct vdo *vdo,
+		      const char *thread_name_prefix);
 
 
 /**
@@ -45,14 +48,14 @@ make_dedupe_index(struct dedupe_index **index_ptr, struct vdo *vdo);
  * @param index       The dedupe index
  * @param show_queue  true to dump a dedupe work queue
  **/
-void dump_dedupe_index(struct dedupe_index *index, bool show_queue);
+void dump_vdo_dedupe_index(struct dedupe_index *index, bool show_queue);
 
 /**
  * Free the dedupe index
  *
- * @param index_ptr  The dedupe index
+ * @param index  The dedupe index
  **/
-void free_dedupe_index(struct dedupe_index **index_ptr);
+void free_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Get the name of the deduplication state
@@ -61,7 +64,7 @@ void free_dedupe_index(struct dedupe_index **index_ptr);
  *
  * @return the dedupe state name
  **/
-const char *get_dedupe_state_name(struct dedupe_index *index);
+const char *get_vdo_dedupe_index_state_name(struct dedupe_index *index);
 
 /**
  * Get the dedupe timeout count.
@@ -70,7 +73,7 @@ const char *get_dedupe_state_name(struct dedupe_index *index);
  *
  * @return The number of dedupe timeouts noted
  **/
-uint64_t get_dedupe_timeout_count(struct dedupe_index *index);
+uint64_t get_vdo_dedupe_index_timeout_count(struct dedupe_index *index);
 
 /**
  * Get the index statistics
@@ -78,8 +81,8 @@ uint64_t get_dedupe_timeout_count(struct dedupe_index *index);
  * @param index  The dedupe index
  * @param stats  The index statistics
  **/
-void get_index_statistics(struct dedupe_index *index,
-			  struct index_statistics *stats);
+void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
+				     struct index_statistics *stats);
 
 /**
  * Process a dmsetup message directed to the index.
@@ -89,7 +92,7 @@ void get_index_statistics(struct dedupe_index *index,
  *
  * @return 0 or an error code
  **/
-int message_dedupe_index(struct dedupe_index *index, const char *name);
+int message_vdo_dedupe_index(struct dedupe_index *index, const char *name);
 
 /**
  * Enqueue operation for submission to the index.
@@ -97,37 +100,38 @@ int message_dedupe_index(struct dedupe_index *index, const char *name);
  * @param data_vio   The data_vio requesting the operation
  * @param operation  The index operation to perform
  **/
-void enqueue_index_operation(struct data_vio *data_vio,
-			     enum uds_callback_type operation);
+void enqueue_vdo_index_operation(struct data_vio *data_vio,
+				 enum uds_request_type operation);
 
 /**
  * Look up the chunkname of the data_vio and identify duplicated chunks.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice to
+ *                  data_vio.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
- *                  get_dedupe_advice(). The advice found in the index (or NULL
- *                  if none) will be returned via set_dedupe_advice().
+ *                  vdo_get_dedupe_advice(). The advice found in the index (or
+ *                  NULL if none) will be returned via vdo_set_dedupe_advice().
  *                  dedupe_context.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-static inline void post_dedupe_advice(struct data_vio *data_vio)
+static inline void post_vdo_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_index_operation(data_vio, UDS_POST);
+	enqueue_vdo_index_operation(data_vio, UDS_POST);
 }
 
 /**
  * Look up the chunk_name of the data_vio and identify duplicated chunks.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice
+ *                  data_vio.chunk_name is the chunk name. The advice
  *                  found in the index (or NULL if none) will be returned via
- *                  set_dedupe_advice(). dedupe_context.status is set to the
- *                  return status code of any asynchronous index processing.
+ *                  vdo_set_dedupe_advice(). dedupe_context.status is set to
+ *                  the return status code of any asynchronous index
+ *                  processing.
  **/
-static inline void query_dedupe_advice(struct data_vio *data_vio)
+static inline void query_vdo_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_index_operation(data_vio, UDS_QUERY);
+	enqueue_vdo_index_operation(data_vio, UDS_QUERY);
 }
 
 /**
@@ -135,14 +139,15 @@ static inline void query_dedupe_advice(struct data_vio *data_vio)
  * name.
  *
  * @param data_vio  The data_vio. These fields are used:
- *                  dedupe_context.chunk_name is the chunk name. The advice to
+ *                  data_vio.chunk_name is the chunk name. The advice to
  *                  offer to the index will be obtained via
- *                  get_dedupe_advice(). dedupe_context.status is set to the
- *                  return status code of any asynchronous index processing.
+ *                  vdo_get_dedupe_advice(). dedupe_context.status is set to
+ *                  the return status code of any asynchronous index
+ *                  processing.
  **/
-static inline void update_dedupe_advice(struct data_vio *data_vio)
+static inline void update_vdo_dedupe_advice(struct data_vio *data_vio)
 {
-	enqueue_index_operation(data_vio, UDS_UPDATE);
+	enqueue_vdo_index_operation(data_vio, UDS_UPDATE);
 }
 
 /**
@@ -152,7 +157,7 @@ static inline void update_dedupe_advice(struct data_vio *data_vio)
  * @param create_flag  If true, create a new index without first attempting
  *                     to load an existing index
  **/
-void start_dedupe_index(struct dedupe_index *index, bool create_flag);
+void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag);
 
 /**
  * Stop the dedupe index.  May be called by any thread, but will wait for
@@ -160,7 +165,7 @@ void start_dedupe_index(struct dedupe_index *index, bool create_flag);
  *
  * @param index  The dedupe index
  **/
-void stop_dedupe_index(struct dedupe_index *index);
+void stop_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Wait until the dedupe index has completed all its outstanding I/O.
@@ -169,29 +174,29 @@ void stop_dedupe_index(struct dedupe_index *index);
  * @param index      The dedupe index
  * @param save_flag  True if we should save the index
  **/
-void suspend_dedupe_index(struct dedupe_index *index, bool save_flag);
+void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag);
 
 /**
  * Resume a suspended dedupe index. May be called from any thread.
  *
  * @param index  The dedupe index
  **/
-void resume_dedupe_index(struct dedupe_index *index);
+void resume_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Finish the dedupe index.
  *
  * @param index  The dedupe index
  **/
-void finish_dedupe_index(struct dedupe_index *index);
+void finish_vdo_dedupe_index(struct dedupe_index *index);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping UDS.
-extern unsigned int dedupe_index_timeout_interval;
+extern unsigned int vdo_dedupe_index_timeout_interval;
 
 // Minimum time interval (in milliseconds) between timer invocations to
 // check for requests waiting for UDS that should now time out.
-extern unsigned int min_dedupe_index_timer_interval;
+extern unsigned int vdo_dedupe_index_min_timer_interval;
 
 /**
  * Set the interval from submission until switching to fast path and
@@ -199,7 +204,7 @@ extern unsigned int min_dedupe_index_timer_interval;
  *
  * @param value  The number of milliseconds
  **/
-void set_dedupe_index_timeout_interval(unsigned int value);
+void set_vdo_dedupe_index_timeout_interval(unsigned int value);
 
 /**
  * Set the minimum time interval between timer invocations to check for
@@ -207,6 +212,6 @@ void set_dedupe_index_timeout_interval(unsigned int value);
  *
  * @param value  The number of milliseconds
  **/
-void set_min_dedupe_index_timer_interval(unsigned int value);
+void set_vdo_dedupe_index_min_timer_interval(unsigned int value);
 
 #endif /* DEDUPE_INDEX_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/instanceNumber.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/instanceNumber.c#2 $
  */
 
 #include "instanceNumber.h"
@@ -82,11 +82,11 @@ static int grow_bit_array(void)
 	unsigned int new_count = max(bit_count + BIT_COUNT_INCREMENT,
 				     (unsigned int) BIT_COUNT_MINIMUM);
 	unsigned long *new_words;
-	int result = reallocate_memory(words,
-				       get_bit_array_size(bit_count),
-				       get_bit_array_size(new_count),
-				       "instance number bit array",
-				       &new_words);
+	int result = uds_reallocate_memory(words,
+					   get_bit_array_size(bit_count),
+					   get_bit_array_size(new_count),
+					   "instance number bit array",
+					   &new_words);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -174,7 +174,7 @@ void clean_up_vdo_instance_number_tracking(void)
 	ASSERT_LOG_ONLY(instance_count == 0,
 			"should have no instance numbers still in use, but have %u",
 			instance_count);
-	FREE(words);
+	UDS_FREE(words);
 	words = NULL;
 	bit_count = 0;
 	instance_count = 0;

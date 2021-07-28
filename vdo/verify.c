@@ -16,10 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/verify.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/verify.c#4 $
  */
-
-#include "physicalLayer.h"
 
 #include "logger.h"
 #include "permassert.h"
@@ -128,11 +126,11 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void verify_duplication(struct data_vio *data_vio)
+void verify_data_vio_duplication(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"advice to verify must be valid");
-	ASSERT_LOG_ONLY(data_vio->duplicate.state != MAPPING_STATE_UNMAPPED,
+	ASSERT_LOG_ONLY(data_vio->duplicate.state != VDO_MAPPING_STATE_UNMAPPED,
 			"advice to verify must not be a discard");
 	ASSERT_LOG_ONLY(data_vio->duplicate.pbn != VDO_ZERO_BLOCK,
 			"advice to verify must not point to the zero block");

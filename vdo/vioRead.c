@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioRead.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioRead.c#6 $
  */
 
 #include "vioRead.h"
@@ -39,14 +39,14 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	assert_in_logical_zone(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
 
 	if (completion->result != VDO_SUCCESS) {
 		complete_data_vio(completion);
 		return;
 	}
 
-	apply_partial_write(data_vio);
+	vdo_apply_partial_write(data_vio);
 	vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
 	data_vio->is_partial_write = true;
 	launch_write_data_vio(data_vio);
@@ -79,7 +79,7 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	vio->physical = data_vio->mapped.pbn;
-	data_vio->last_async_operation = READ_DATA;
+	data_vio->last_async_operation = VIO_ASYNC_OP_READ_DATA_VIO;
 	read_data_vio(data_vio);
 }
 
@@ -98,21 +98,21 @@ static void read_block_mapping(struct vdo_completion *completion)
 		return;
 	}
 
-	assert_in_logical_zone(data_vio);
-	set_logical_callback(data_vio, read_block);
-	data_vio->last_async_operation = GET_MAPPED_BLOCK;
-	get_mapped_block(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
+	set_data_vio_logical_callback(data_vio, read_block);
+	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ;
+	vdo_get_mapped_block(data_vio);
 }
 
 /**********************************************************************/
 void launch_read_data_vio(struct data_vio *data_vio)
 {
-	assert_in_logical_zone(data_vio);
-	data_vio->last_async_operation = FIND_BLOCK_MAP_SLOT;
+	assert_data_vio_in_logical_zone(data_vio);
+	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
 	// Go find the block map slot for the LBN mapping.
-	find_block_map_slot(data_vio,
-			    read_block_mapping,
-			    get_logical_zone_thread_id(data_vio->logical.zone));
+	vdo_find_block_map_slot(data_vio,
+				read_block_mapping,
+				get_vdo_logical_zone_thread_id(data_vio->logical.zone));
 }
 
 /**
@@ -124,8 +124,8 @@ void launch_read_data_vio(struct data_vio *data_vio)
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	assert_in_logical_zone(data_vio);
-	release_logical_block_lock(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
+	vdo_release_logical_block_lock(data_vio);
 	vio_done_callback(completion);
 }
 
@@ -136,5 +136,5 @@ static void release_logical_lock(struct vdo_completion *completion)
  **/
 void cleanup_read_data_vio(struct data_vio *data_vio)
 {
-	launch_logical_callback(data_vio, release_logical_lock);
+	launch_data_vio_logical_callback(data_vio, release_logical_lock);
 }

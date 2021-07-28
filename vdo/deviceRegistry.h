@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceRegistry.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/deviceRegistry.h#2 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -34,7 +34,7 @@ typedef bool vdo_filter_t(struct vdo *vdo, void *context);
 /**
  * Initialize the necessary structures for the device registry.
  **/
-void initialize_device_registry_once(void);
+void initialize_vdo_device_registry_once(void);
 
 /**
  * Register a VDO; it must not already be registered.

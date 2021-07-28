@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dataKVIO.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dataKVIO.h#5 $
  */
 
 #ifndef DATA_KVIO_H
 #define DATA_KVIO_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "uds.h"
 
 #include "dataVIO.h"
@@ -70,8 +71,7 @@ static inline void launch_data_vio_on_cpu_queue(struct data_vio *data_vio,
 						unsigned int action)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	launch_vio(vio, work, stats_function, action,
-		   vdo_as_kernel_layer(vio->vdo)->cpu_queue);
+	launch_vio(vio, work, stats_function, action, vio->vdo->cpu_queue);
 }
 
 /**
@@ -89,8 +89,7 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 				 unsigned int action)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-	launch_vio(vio, work, stats_function, action, layer->bio_ack_queue);
+	launch_vio(vio, work, stats_function, action, vio->vdo->bio_ack_queue);
 }
 
 /**
@@ -175,7 +174,7 @@ make_data_vio_buffer_pool(uint32_t pool_size,
  * @return the advice to store in the UDS index
  **/
 struct data_location __must_check
-get_dedupe_advice(const struct dedupe_context *context);
+vdo_get_dedupe_advice(const struct dedupe_context *context);
 
 /**
  * Set the result of a dedupe query for the data_vio associated with a
@@ -185,7 +184,7 @@ get_dedupe_advice(const struct dedupe_context *context);
  * @param advice   A data location at which the chunk named in the context
  *                 might be stored (will be NULL if no advice was found)
  **/
-void set_dedupe_advice(struct dedupe_context *context,
-		       const struct data_location *advice);
+void vdo_set_dedupe_advice(struct dedupe_context *context,
+			   const struct data_location *advice);
 
 #endif /* DATA_KVIO_H */

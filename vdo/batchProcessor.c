@@ -16,15 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.c#6 $
  */
 
 #include "batchProcessor.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "memoryAlloc.h"
 
 #include "constants.h"
+#include "vdoInternal.h"
 
 #include "kernelLayer.h"
 
@@ -78,7 +80,7 @@ struct batch_processor {
 	atomic_t state;
 	batch_processor_callback callback;
 	void *closure;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 };
 
 static void schedule_batch_processing(struct batch_processor *batch);
@@ -102,6 +104,8 @@ static void batch_processor_work(struct vdo_work_item *item)
 		batch->callback(batch, batch->closure);
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
+	// Pairs with the barrier in schedule_batch_processing(); see header
+	// comment on memory ordering.
 	smp_mb();
 	need_reschedule = !is_funnel_queue_empty(batch->queue);
 
@@ -150,18 +154,20 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	 * work going on, cache pressure, etc.
 	 */
 
-	smp_mb();
+	// Pairs with the barrier in batch_processor_work(); see header
+	// comment on memory ordering.
+	smp_mb__before_atomic();
 	old_state = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
 				   BATCH_PROCESSOR_ENQUEUED);
 	do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
 
 	if (do_schedule) {
-		enqueue_cpu_work_queue(batch->layer, &batch->work_item);
+		enqueue_work_queue(batch->vdo->cpu_queue, &batch->work_item);
 	}
 }
 
 /**********************************************************************/
-int make_batch_processor(struct kernel_layer *layer,
+int make_batch_processor(struct vdo *vdo,
 			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr)
@@ -169,13 +175,13 @@ int make_batch_processor(struct kernel_layer *layer,
 	struct batch_processor *batch;
 
 	int result =
-		ALLOCATE(1, struct batch_processor, "batch_processor", &batch);
+		UDS_ALLOCATE(1, struct batch_processor, "batch_processor", &batch);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	result = make_funnel_queue(&batch->queue);
 	if (result != UDS_SUCCESS) {
-		FREE(batch);
+		UDS_FREE(batch);
 		return result;
 	}
 
@@ -187,7 +193,7 @@ int make_batch_processor(struct kernel_layer *layer,
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	batch->callback = callback;
 	batch->closure = closure;
-	batch->layer = layer;
+	batch->vdo = vdo;
 
 	*batch_ptr = batch;
 	return UDS_SUCCESS;
@@ -221,15 +227,17 @@ void cond_resched_batch_processor(struct batch_processor *batch)
 }
 
 /**********************************************************************/
-void free_batch_processor(struct batch_processor **batch_ptr)
+void free_batch_processor(struct batch_processor *batch)
 {
-	struct batch_processor *batch = *batch_ptr;
-
-	if (batch) {
-		smp_mb();
-		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
-		free_funnel_queue(batch->queue);
-		FREE(batch);
-		*batch_ptr = NULL;
+	if (batch == NULL) {
+		return;
 	}
+
+	// Pairs with the barrier in schedule_batch_processing(). Possibly not
+	// needed since it caters to an enqueue vs. free race.
+	smp_mb();
+	BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
+
+	free_funnel_queue(UDS_FORGET(batch->queue));
+	UDS_FREE(batch);
 }

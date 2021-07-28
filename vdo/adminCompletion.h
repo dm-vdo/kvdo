@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/adminCompletion.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/adminCompletion.h#5 $
  */
 
 #ifndef ADMIN_COMPLETION_H
 #define ADMIN_COMPLETION_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+#include <linux/delay.h>
 
 #include "threads.h"
 
@@ -30,14 +31,13 @@
 #include "types.h"
 
 enum admin_operation_type {
-	ADMIN_OPERATION_UNKNOWN = 0,
-	ADMIN_OPERATION_GROW_LOGICAL,
-	ADMIN_OPERATION_GROW_PHYSICAL,
-	ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-	ADMIN_OPERATION_LOAD,
-	ADMIN_OPERATION_RESUME,
-	ADMIN_OPERATION_SAVE,
-	ADMIN_OPERATION_SUSPEND,
+	VDO_ADMIN_OPERATION_UNKNOWN = 0,
+	VDO_ADMIN_OPERATION_GROW_LOGICAL,
+	VDO_ADMIN_OPERATION_GROW_PHYSICAL,
+	VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+	VDO_ADMIN_OPERATION_LOAD,
+	VDO_ADMIN_OPERATION_RESUME,
+	VDO_ADMIN_OPERATION_SUSPEND,
 };
 
 struct admin_completion;
@@ -69,7 +69,7 @@ struct admin_completion {
 	vdo_thread_id_getter_for_phase *get_thread_id;
 	/** The current phase of the operation */
 	uint32_t phase;
-	/** A kernel mechanism for inter-thread signalling */
+	/** The struct completion for waiting on the operation */
 	struct completion callback_sync;
 };
 

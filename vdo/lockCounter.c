@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/lockCounter.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/lockCounter.c#6 $
  */
 
 #include "lockCounter.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "memoryAlloc.h"
 #include "permassert.h"
 
@@ -85,55 +86,55 @@ int make_vdo_lock_counter(struct vdo *vdo,
 {
 	struct lock_counter *lock_counter;
 
-	int result = ALLOCATE(1, struct lock_counter, __func__, &lock_counter);
+	int result = UDS_ALLOCATE(1, struct lock_counter, __func__, &lock_counter);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(locks, uint16_t, __func__,
-			  &lock_counter->journal_counters);
+	result = UDS_ALLOCATE(locks, uint16_t, __func__,
+			      &lock_counter->journal_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->journal_decrement_counts);
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks * logical_zones, uint16_t, __func__,
-			  &lock_counter->logical_counters);
+	result = UDS_ALLOCATE(locks * logical_zones, uint16_t, __func__,
+			      &lock_counter->logical_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->logical_zone_counts);
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->logical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks * physical_zones, uint16_t, __func__,
-			  &lock_counter->physical_counters);
+	result = UDS_ALLOCATE(locks * physical_zones, uint16_t, __func__,
+			      &lock_counter->physical_counters);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
-	result = ALLOCATE(locks, atomic_t, __func__,
-			  &lock_counter->physical_zone_counts);
+	result = UDS_ALLOCATE(locks, atomic_t, __func__,
+			      &lock_counter->physical_zone_counts);
 	if (result != VDO_SUCCESS) {
-		free_vdo_lock_counter(&lock_counter);
+		free_vdo_lock_counter(lock_counter);
 		return result;
 	}
 
 	initialize_vdo_completion(&lock_counter->completion, vdo,
-				  LOCK_COUNTER_COMPLETION);
+				  VDO_LOCK_COUNTER_COMPLETION);
 	set_vdo_completion_callback_with_parent(&lock_counter->completion,
 						callback,
 						thread_id,
@@ -146,22 +147,19 @@ int make_vdo_lock_counter(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_lock_counter(struct lock_counter **lock_counter_ptr)
+void free_vdo_lock_counter(struct lock_counter *counter)
 {
-	struct lock_counter *lock_counter;
-	if (*lock_counter_ptr == NULL) {
+	if (counter == NULL) {
 		return;
 	}
 
-	lock_counter = *lock_counter_ptr;
-	FREE(lock_counter->physical_zone_counts);
-	FREE(lock_counter->logical_zone_counts);
-	FREE(lock_counter->journal_decrement_counts);
-	FREE(lock_counter->journal_counters);
-	FREE(lock_counter->logical_counters);
-	FREE(lock_counter->physical_counters);
-	FREE(lock_counter);
-	*lock_counter_ptr = NULL;
+	UDS_FREE(UDS_FORGET(counter->physical_zone_counts));
+	UDS_FREE(UDS_FORGET(counter->logical_zone_counts));
+	UDS_FREE(UDS_FORGET(counter->journal_decrement_counts));
+	UDS_FREE(UDS_FORGET(counter->journal_counters));
+	UDS_FREE(UDS_FORGET(counter->logical_counters));
+	UDS_FREE(UDS_FORGET(counter->physical_counters));
+	UDS_FREE(counter);
 }
 
 /**
@@ -260,7 +258,7 @@ bool is_vdo_lock_locked(struct lock_counter *lock_counter,
 static void assert_on_journal_thread(struct lock_counter *counter,
 				     const char *caller)
 {
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 counter->completion.callback_thread_id),
 			"%s() called from journal zone", caller);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/batchProcessor.h#3 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -49,14 +49,14 @@ typedef void (*batch_processor_callback)(struct batch_processor *batch,
 /**
  * Creates a batch-processor control structure.
  *
- * @param [in]  layer      The kernel layer data, used to enqueue work items
+ * @param [in]  vdo        The vdo, used to enqueue work items
  * @param [in]  callback   A function to process the accumulated objects
  * @param [in]  closure    A private data pointer for use by the callback
  * @param [out] batch_ptr  Where to store the pointer to the new object
  *
  * @return UDS_SUCCESS or an error code
  **/
-int make_batch_processor(struct kernel_layer *layer,
+int make_batch_processor(struct vdo *vdo,
 			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr);
@@ -71,7 +71,7 @@ int make_batch_processor(struct kernel_layer *layer,
  * @param [in] item   The handle on the new object to add
  **/
 void add_to_batch_processor(struct batch_processor *batch,
-                            struct vdo_work_item *item);
+			    struct vdo_work_item *item);
 
 /**
  * Fetches the next object in the processing queue.
@@ -84,11 +84,11 @@ struct vdo_work_item * __must_check
 next_batch_item(struct batch_processor *batch);
 
 /**
- * Free the batch-processor data and null out the pointer.
+ * Free the batch-processor data.
  *
- * @param [in,out] batch_ptr  Where the batch_processor pointer is stored
+ * @param [in]  batch  The batch-processor data
  **/
-void free_batch_processor(struct batch_processor **batch_ptr);
+void free_batch_processor(struct batch_processor *batch);
 
 /**
  * Yield control to the scheduler if the kernel has indicated that

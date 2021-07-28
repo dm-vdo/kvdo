@@ -16,8 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#40 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#53 $
  */
+
 
 #include "index.h"
 
@@ -42,17 +43,19 @@ static int replay_index_from_checkpoint(struct index *index,
 					uint64_t last_checkpoint_chapter)
 {
 	// Find the volume chapter boundaries
-	uint64_t lowest_vcn, highest_vcn;
+	unsigned int chapters_per_volume;
+	int result;
+	uint64_t lowest_vcn, highest_vcn, first_replay_chapter;
 	bool is_empty = false;
 	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
-	int result = find_volume_chapter_boundaries(index->volume,
+	result = find_volume_chapter_boundaries(index->volume,
 						    &lowest_vcn, &highest_vcn,
 						    &is_empty);
 	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
-		return log_fatal_strerror(result,
-					  "cannot replay index: unknown volume chapter boundaries");
+		return uds_log_fatal_strerror(result,
+					      "cannot replay index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
 		uds_log_fatal("cannot replay index: no valid chapters exist");
@@ -68,8 +71,7 @@ static int replay_index_from_checkpoint(struct index *index,
 		return UDS_SUCCESS;
 	}
 
-	unsigned int chapters_per_volume =
-		index->volume->geometry->chapters_per_volume;
+	chapters_per_volume = index->volume->geometry->chapters_per_volume;
 	index->oldest_virtual_chapter = lowest_vcn;
 	index->newest_virtual_chapter = highest_vcn + 1;
 	if (index->newest_virtual_chapter ==
@@ -78,7 +80,7 @@ static int replay_index_from_checkpoint(struct index *index,
 		index->oldest_virtual_chapter++;
 	}
 
-	uint64_t first_replay_chapter = last_checkpoint_chapter;
+	first_replay_chapter = last_checkpoint_chapter;
 	if (first_replay_chapter < index->oldest_virtual_chapter) {
 		first_replay_chapter = index->oldest_virtual_chapter;
 	}
@@ -88,6 +90,8 @@ static int replay_index_from_checkpoint(struct index *index,
 /**********************************************************************/
 static int load_index(struct index *index, bool allow_replay)
 {
+	uint64_t last_checkpoint_chapter;
+	unsigned int i;
 	bool replay_required = false;
 
 	int result = load_index_state(index->state, &replay_required);
@@ -96,18 +100,18 @@ static int load_index(struct index *index, bool allow_replay)
 	}
 
 	if (replay_required && !allow_replay) {
-		return log_error_strerror(UDS_INDEX_NOT_SAVED_CLEANLY,
-					  "index not saved cleanly: open chapter missing");
+		return uds_log_error_strerror(UDS_INDEX_NOT_SAVED_CLEANLY,
+					      "index not saved cleanly: open chapter missing");
 	}
 
-	uint64_t last_checkpoint_chapter =
+	last_checkpoint_chapter =
 		((index->last_checkpoint != NO_LAST_CHECKPOINT) ?
 			 index->last_checkpoint :
 			 0);
 
-	log_info("loaded index from chapter %llu through chapter %llu",
-		 index->oldest_virtual_chapter,
-		 last_checkpoint_chapter);
+	uds_log_info("loaded index from chapter %llu through chapter %llu",
+		     (unsigned long long) index->oldest_virtual_chapter,
+		     (unsigned long long) last_checkpoint_chapter);
 
 	if (replay_required) {
 		result = replay_index_from_checkpoint(index,
@@ -117,7 +121,6 @@ static int load_index(struct index *index, bool allow_replay)
 		}
 	}
 
-	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
 		set_active_chapters(index->zones[i]);
 	}
@@ -130,16 +133,18 @@ static int load_index(struct index *index, bool allow_replay)
 static int rebuild_index(struct index *index)
 {
 	// Find the volume chapter boundaries
+	int result;
+	unsigned int i;
 	uint64_t lowest_vcn, highest_vcn;
 	bool is_empty = false;
 	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
-	int result = find_volume_chapter_boundaries(index->volume, &lowest_vcn,
+	result = find_volume_chapter_boundaries(index->volume, &lowest_vcn,
 						    &highest_vcn, &is_empty);
 	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
-		return log_fatal_strerror(result,
-					  "cannot rebuild index: unknown volume chapter boundaries");
+		return uds_log_fatal_strerror(result,
+					      "cannot rebuild index: unknown volume chapter boundaries");
 	}
 	if (lowest_vcn > highest_vcn) {
 		uds_log_fatal("cannot rebuild index: no valid chapters exist");
@@ -163,8 +168,8 @@ static int rebuild_index(struct index *index)
 
 	if ((index->newest_virtual_chapter - index->oldest_virtual_chapter) >
 	    index->volume->geometry->chapters_per_volume) {
-		return log_fatal_strerror(UDS_CORRUPT_COMPONENT,
-					  "cannot rebuild index: volume chapter boundaries too large");
+		return uds_log_fatal_strerror(UDS_CORRUPT_COMPONENT,
+					      "cannot rebuild index: volume chapter boundaries too large");
 	}
 
 	set_volume_index_open_chapter(index->volume_index, 0);
@@ -178,7 +183,6 @@ static int rebuild_index(struct index *index)
 		return result;
 	}
 
-	unsigned int i;
 	for (i = 0; i < index->zone_count; i++) {
 		set_active_chapters(index->zones[i]);
 	}
@@ -197,22 +201,23 @@ int make_index(struct index_layout *layout,
 	       struct index **new_index)
 {
 	struct index *index;
+	uint64_t nonce;
 	int result = allocate_index(layout, config, user_params, zone_count,
 				    load_type, &index);
 	if (result != UDS_SUCCESS) {
-		return log_error_strerror(result,
-					  "could not allocate index");
+		return uds_log_error_strerror(result,
+					      "could not allocate index");
 	}
 
 	index->load_context = load_context;
 
-	uint64_t nonce = get_volume_nonce(layout);
+	nonce = get_uds_volume_nonce(layout);
 	result = make_volume_index(config, zone_count, nonce,
 				   &index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return log_error_strerror(result,
-					  "could not make volume index");
+		return uds_log_error_strerror(result,
+					      "could not make volume index");
 	}
 
 	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,
@@ -231,7 +236,7 @@ int make_index(struct index_layout *layout,
 		return result;
 	}
 
-	result = make_chapter_writer(index, get_index_version(layout),
+	result = make_chapter_writer(index, get_uds_index_version(layout),
 				     &index->chapter_writer);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
@@ -247,19 +252,19 @@ int make_index(struct index_layout *layout,
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
-		case ENOMEM:
+		case -ENOMEM:
 			// We should not try a rebuild for this error.
-			log_error_strerror(result,
-					   "index could not be loaded");
+			uds_log_error_strerror(result,
+					       "index could not be loaded");
 			break;
 		default:
-			log_error_strerror(result,
+			uds_log_error_strerror(result,
 					   "index could not be loaded");
 			if (load_type == LOAD_REBUILD) {
 				result = rebuild_index(index);
 				if (result != UDS_SUCCESS) {
-					log_error_strerror(result,
-							   "index could not be rebuilt");
+					uds_log_error_strerror(result,
+							       "index could not be rebuilt");
 				}
 			}
 			break;
@@ -271,16 +276,17 @@ int make_index(struct index_layout *layout,
 
 	if (result != UDS_SUCCESS) {
 		free_index(index);
-		return log_unrecoverable(result, "fatal error in make_index");
+		return uds_log_error_strerror(result,
+					      "fatal error in make_index");
 	}
 
 	if (index->load_context != NULL) {
-		lock_mutex(&index->load_context->mutex);
+		uds_lock_mutex(&index->load_context->mutex);
 		index->load_context->status = INDEX_READY;
 		// If we get here, suspend is meaningless, but notify any
 		// thread trying to suspend us so it doesn't hang.
-		broadcast_cond(&index->load_context->cond);
-		unlock_mutex(&index->load_context->mutex);
+		uds_broadcast_cond(&index->load_context->cond);
+		uds_unlock_mutex(&index->load_context->mutex);
 	}
 
 	index->has_saved_open_chapter = index->loaded_type == LOAD_LOAD;
@@ -305,22 +311,23 @@ void free_index(struct index *index)
 /**********************************************************************/
 int save_index(struct index *index)
 {
+	int result;
 	wait_for_idle_chapter_writer(index->chapter_writer);
-	int result = finish_checkpointing(index);
+	result = finish_checkpointing(index);
 	if (result != UDS_SUCCESS) {
-		log_info("save index failed");
+		uds_log_info("save index failed");
 		return result;
 	}
 	begin_save(index, false, index->newest_virtual_chapter);
 
 	result = save_index_state(index->state);
 	if (result != UDS_SUCCESS) {
-		log_info("save index failed");
+		uds_log_info("save index failed");
 		index->last_checkpoint = index->prev_checkpoint;
 	} else {
 		index->has_saved_open_chapter = true;
-		log_info("finished save (vcn %llu)",
-			 index->last_checkpoint);
+		uds_log_info("finished save (vcn %llu)",
+			     (unsigned long long) index->last_checkpoint);
 	}
 	return result;
 }
@@ -334,7 +341,7 @@ int save_index(struct index *index)
  * @return The zone for the request
  **/
 static struct index_zone *get_request_zone(struct index *index,
-					   Request *request)
+					   struct uds_request *request)
 {
 	return index->zones[request->zone_number];
 }
@@ -347,16 +354,19 @@ static struct index_zone *get_request_zone(struct index *index,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int search_index_zone(struct index_zone *zone, Request *request)
+static int search_index_zone(struct index_zone *zone,
+			     struct uds_request *request)
 {
 	struct volume_index_record record;
+	bool overflow_record, found = false;
+	struct uds_chunk_data *metadata;
+	uint64_t chapter;
 	int result = get_volume_index_record(zone->index->volume_index,
 					     &request->chunk_name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	bool found = false;
 	if (record.is_found) {
 		result = get_record_from_zone(zone, request, &found,
 					      record.virtual_chapter);
@@ -374,13 +384,12 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 	 * If a record has overflowed a chapter index in more than one chapter
 	 * (or overflowed in one chapter and collided with an existing record),
 	 * it will exist as a collision record in the volume index, but
-	 * we won't *find it in the volume. This case needs special handling.
+	 * we won't find it in the volume. This case needs special handling.
 	 */
-	bool overflow_record =
-		(record.is_found && record.is_collision && !found);
-	uint64_t chapter = zone->newest_virtual_chapter;
+	overflow_record = (record.is_found && record.is_collision && !found);
+	chapter = zone->newest_virtual_chapter;
 	if (found || overflow_record) {
-		if ((request->action == REQUEST_QUERY) &&
+		if ((request->type == UDS_QUERY) &&
 		    (!request->update || overflow_record)) {
 			/* This is a query without update, or with nothing to
 			 * update */
@@ -395,7 +404,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			 */
 			result = set_volume_index_record_chapter(&record,
 								 chapter);
-		} else if (request->action != REQUEST_UPDATE) {
+		} else if (request->type != UDS_UPDATE) {
 			/* The record is already in the open chapter, so we're
 			 * done */
 			return UDS_SUCCESS;
@@ -416,11 +425,11 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 			}
 
 			if (found) {
-				request->location = LOC_IN_SPARSE;
+				request->location = UDS_LOCATION_IN_SPARSE;
 			}
 		}
 
-		if (request->action == REQUEST_QUERY) {
+		if (request->type == UDS_QUERY) {
 			if (!found || !request->update) {
 				// This is a query without update or for a new
 				// record, so we're done.
@@ -449,8 +458,7 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 		return result;
 	}
 
-	struct uds_chunk_data *metadata;
-	if (!found || (request->action == REQUEST_UPDATE)) {
+	if (!found || (request->type == UDS_UPDATE)) {
 		// This is a new record or we're updating an existing record.
 		metadata = &request->new_metadata;
 	} else {
@@ -462,7 +470,8 @@ static int search_index_zone(struct index_zone *zone, Request *request)
 }
 
 /**********************************************************************/
-static int remove_from_index_zone(struct index_zone *zone, Request *request)
+static int remove_from_index_zone(struct index_zone *zone,
+				  struct uds_request *request)
 {
 	struct volume_index_record record;
 	int result = get_volume_index_record(zone->index->volume_index,
@@ -508,7 +517,7 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
 
 	// If the record is in the open chapter, we must remove it or mark it
 	// deleted to avoid trouble if the record is added again later.
-	if (request->location == LOC_IN_OPEN_CHAPTER) {
+	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
 		remove_from_open_chapter(zone->open_chapter,
 					 &request->chunk_name,
@@ -538,8 +547,9 @@ static int remove_from_index_zone(struct index_zone *zone, Request *request)
  * @return UDS_SUCCESS always
  **/
 static int simulate_index_zone_barrier_message(struct index_zone *zone,
-					       Request *request)
+					       struct uds_request *request)
 {
+	uint64_t sparse_virtual_chapter;
 	// Do nothing unless this is a single-zone sparse index.
 	if ((zone->index->zone_count > 1) ||
 	    !is_sparse(zone->index->volume->geometry)) {
@@ -548,8 +558,7 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 
 	// Check if the index request is for a sampled name in a sparse
 	// chapter.
-	uint64_t sparse_virtual_chapter =
-		triage_index_request(zone->index, request);
+	sparse_virtual_chapter = triage_index_request(zone->index, request);
 	if (sparse_virtual_chapter == UINT64_MAX) {
 		// Not indexed, not a hook, or in a chapter that is still
 		// dense, which means there should be no change to the sparse
@@ -560,17 +569,16 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	/*
 	 * The triage queue would have generated and enqueued a barrier message
 	 * preceding this request, which we simulate by directly invoking the
-	 * execution hook for an equivalent message.
+	 * message function.
 	 */
-	struct barrier_message_data barrier =
-		{ .virtual_chapter = sparse_virtual_chapter };
-	return execute_sparse_cache_barrier_message(zone, &barrier);
+	return update_sparse_cache(zone, sparse_virtual_chapter);
 }
 
 /**********************************************************************/
 static int dispatch_index_zone_request(struct index_zone *zone,
-				       Request *request)
+				       struct uds_request *request)
 {
+	int result;
 	if (!request->requeued) {
 		// Single-zone sparse indexes don't have a triage queue to
 		// generate cache barrier requests, so see if we need to
@@ -582,36 +590,34 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 		}
 	}
 
-	// Set the default location. It will be overwritten if we find the
-	// chunk.
-	request->location = LOC_UNAVAILABLE;
+	request->location = UDS_LOCATION_UNKNOWN;
 
-	int result;
-	switch (request->action) {
-	case REQUEST_INDEX:
-	case REQUEST_UPDATE:
-	case REQUEST_QUERY:
-		result = make_unrecoverable(search_index_zone(zone, request));
+	switch (request->type) {
+	case UDS_POST:
+	case UDS_UPDATE:
+	case UDS_QUERY:
+		result = search_index_zone(zone, request);
 		break;
 
-	case REQUEST_DELETE:
-		result =
-			make_unrecoverable(remove_from_index_zone(zone,
-								  request));
+	case UDS_DELETE:
+		result = remove_from_index_zone(zone, request);
 		break;
 
 	default:
-		result = log_warning_strerror(UDS_INVALID_ARGUMENT,
-					      "attempted to execute invalid action: %d",
-					      request->action);
+		result = uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+						  "invalid request type: %d",
+						  request->type);
 		break;
 	}
 
+	if (request->location == UDS_LOCATION_UNKNOWN) {
+		request->location = UDS_LOCATION_UNAVAILABLE;
+	}
 	return result;
 }
 
 /**********************************************************************/
-int dispatch_index_request(struct index *index, Request *request)
+int dispatch_index_request(struct index *index, struct uds_request *request)
 {
 	return dispatch_index_zone_request(get_request_zone(index, request),
 					   request);
@@ -627,26 +633,25 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
+		unsigned int lowest_delta_list, highest_delta_list;
 		struct delta_index_page *chapter_index_page;
 		int result = get_volume_page(index->volume,
 					     chapter, index_page_number,
 					     CACHE_PROBE_INDEX_FIRST, NULL,
 					     &chapter_index_page);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(result,
-						  "failed to read index page %u in chapter %u",
-						  index_page_number,
-						  chapter);
+			return uds_log_error_strerror(result,
+						      "failed to read index page %u in chapter %u",
+						      index_page_number,
+						      chapter);
 		}
-		unsigned int lowest_delta_list =
-			chapter_index_page->lowest_list_number;
-		unsigned int highest_delta_list =
-			chapter_index_page->highest_list_number;
+		lowest_delta_list = chapter_index_page->lowest_list_number;
+		highest_delta_list = chapter_index_page->highest_list_number;
 		if (lowest_delta_list != expected_list_number) {
-			return log_error_strerror(UDS_CORRUPT_DATA,
-						  "chapter %u index page %u is corrupt",
-						  chapter,
-						  index_page_number);
+			return uds_log_error_strerror(UDS_CORRUPT_DATA,
+						      "chapter %u index page %u is corrupt",
+						      chapter,
+						      index_page_number);
 		}
 		result = update_index_page_map(index->volume->index_page_map,
 					       vcn,
@@ -654,10 +659,10 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
 					       index_page_number,
 					       highest_delta_list);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(result,
-						  "failed to update chapter %u index page %u",
-						  chapter,
-						  index_page_number);
+			return uds_log_error_strerror(result,
+						      "failed to update chapter %u index page %u",
+						      chapter,
+						      index_page_number);
 		}
 		expected_list_number = highest_delta_list + 1;
 	}
@@ -682,6 +687,9 @@ static int replay_record(struct index *index,
 			 uint64_t virtual_chapter,
 			 bool will_be_sparse_chapter)
 {
+	struct volume_index_record record;
+	bool update_record;
+	int result;
 	if (will_be_sparse_chapter &&
 	    !is_volume_index_sample(index->volume_index, name)) {
 		// This entry will be in a sparse chapter after the rebuild
@@ -689,14 +697,11 @@ static int replay_record(struct index *index,
 		return UDS_SUCCESS;
 	}
 
-	struct volume_index_record record;
-	int result =
-		get_volume_index_record(index->volume_index, name, &record);
+	result = get_volume_index_record(index->volume_index, name, &record);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	bool update_record;
 	if (record.is_found) {
 		if (record.is_collision) {
 			if (record.virtual_chapter == virtual_chapter) {
@@ -775,10 +780,9 @@ void begin_save(struct index *index,
 	index->last_checkpoint =
 		((open_chapter_number == 0) ? NO_LAST_CHECKPOINT :
 					      open_chapter_number - 1);
-
-	const char *what = (checkpoint ? "checkpoint" : "save");
-	log_info("beginning %s (vcn %llu)", what,
-		 index->last_checkpoint);
+	uds_log_info("beginning %s (vcn %llu)",
+		     (checkpoint ? "checkpoint" : "save"),
+		     (unsigned long long) index->last_checkpoint);
 }
 
 /**
@@ -790,28 +794,29 @@ void begin_save(struct index *index,
  **/
 static bool check_for_suspend(struct index *index)
 {
+	bool ret_val;
 	if (index->load_context == NULL) {
 		return false;
 	}
 
-	lock_mutex(&index->load_context->mutex);
+	uds_lock_mutex(&index->load_context->mutex);
 	if (index->load_context->status != INDEX_SUSPENDING) {
-		unlock_mutex(&index->load_context->mutex);
+		uds_unlock_mutex(&index->load_context->mutex);
 		return false;
 	}
 
 	// Notify that we are suspended and wait for the resume.
 	index->load_context->status = INDEX_SUSPENDED;
-	broadcast_cond(&index->load_context->cond);
+	uds_broadcast_cond(&index->load_context->cond);
 
 	while ((index->load_context->status != INDEX_OPENING) &&
 	       (index->load_context->status != INDEX_FREEING)) {
-		wait_cond(&index->load_context->cond,
-			 &index->load_context->mutex);
+		uds_wait_cond(&index->load_context->cond,
+			      &index->load_context->mutex);
 	}
 
-	bool ret_val = (index->load_context->status == INDEX_FREEING);
-	unlock_mutex(&index->load_context->mutex);
+	ret_val = (index->load_context->status == INDEX_FREEING);
+	uds_unlock_mutex(&index->load_context->mutex);
 	return ret_val;
 }
 
@@ -819,10 +824,14 @@ static bool check_for_suspend(struct index *index)
 int replay_volume(struct index *index, uint64_t from_vcn)
 {
 	int result;
+	unsigned int j, k;
+	enum index_lookup_mode old_lookup_mode;
+	const struct geometry *geometry;
+	uint64_t old_ipm_update, new_ipm_update, vcn;
 	uint64_t upto_vcn = index->newest_virtual_chapter;
-	log_info("Replaying volume from chapter %llu through chapter %llu",
-		 from_vcn,
-		 upto_vcn);
+	uds_log_info("Replaying volume from chapter %llu through chapter %llu",
+		     (unsigned long long) from_vcn,
+		     (unsigned long long) upto_vcn);
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 	set_volume_index_open_chapter(index->volume_index, from_vcn);
 
@@ -834,7 +843,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 *   Starts empty, then dense-only, then dense-plus-sparse.
 	 *   Need to sparsify while processing individual chapters.
 	 */
-	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
+	old_lookup_mode = index->volume->lookup_mode;
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
 	/*
 	 * Go through each record page of each chapter and add the records back
@@ -846,20 +855,20 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	 * Also, go through each index page for each chapter and rebuild the
 	 * index page map.
 	 */
-	const struct geometry *geometry = index->volume->geometry;
-	uint64_t old_ipm_update =
-		get_last_update(index->volume->index_page_map);
-	uint64_t vcn;
+	geometry = index->volume->geometry;
+	old_ipm_update = get_last_update(index->volume->index_page_map);
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {
+		bool will_be_sparse_chapter;
+		unsigned int chapter;
 		if (check_for_suspend(index)) {
-			log_info("Replay interrupted by index shutdown at chapter %llu",
-				 vcn);
+			uds_log_info("Replay interrupted by index shutdown at chapter %llu",
+				     (unsigned long long) vcn);
 			return UDS_SHUTTINGDOWN;
 		}
 
-		bool will_be_sparse_chapter =
+		will_be_sparse_chapter =
 			is_chapter_sparse(geometry, from_vcn, upto_vcn, vcn);
-		unsigned int chapter = map_to_physical_chapter(geometry, vcn);
+		chapter = map_to_physical_chapter(geometry, vcn);
 		prefetch_volume_pages(&index->volume->volume_store,
 				      map_to_physical_page(geometry, chapter, 0),
 				      geometry->pages_per_chapter);
@@ -867,27 +876,25 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		result = rebuild_index_page_map(index, vcn);
 		if (result != UDS_SUCCESS) {
 			index->volume->lookup_mode = old_lookup_mode;
-			return log_error_strerror(result,
-						  "could not rebuild index page map for chapter %u",
-						  chapter);
+			return uds_log_error_strerror(result,
+						      "could not rebuild index page map for chapter %u",
+						      chapter);
 		}
 
-		unsigned int j;
 		for (j = 0; j < geometry->record_pages_per_chapter; j++) {
+			byte *record_page;
 			unsigned int record_page_number =
 				geometry->index_pages_per_chapter + j;
-			byte *record_page;
 			result = get_volume_page(index->volume, chapter,
 						 record_page_number,
 						 CACHE_PROBE_RECORD_FIRST,
 						 &record_page, NULL);
 			if (result != UDS_SUCCESS) {
 				index->volume->lookup_mode = old_lookup_mode;
-				return log_unrecoverable(result,
-							 "could not get page %d",
-							 record_page_number);
+				return uds_log_error_strerror(result,
+							      "could not get page %d",
+							      record_page_number);
 			}
-			unsigned int k;
 			for (k = 0; k < geometry->records_per_page; k++) {
 				const byte *name_bytes =
 					record_page + (k * BYTES_PER_RECORD);
@@ -909,9 +916,9 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 					}
 					index->volume->lookup_mode =
 						old_lookup_mode;
-					return log_unrecoverable(result,
-								 "could not find block %s during rebuild",
-								 hex_name);
+					return uds_log_error_strerror(result,
+								      "could not find block %s during rebuild",
+								      hex_name);
 				}
 			}
 		}
@@ -921,13 +928,12 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 	// We also need to reap the chapter being replaced by the open chapter
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 
-	uint64_t new_ipm_update =
-		get_last_update(index->volume->index_page_map);
+	new_ipm_update = get_last_update(index->volume->index_page_map);
 
 	if (new_ipm_update != old_ipm_update) {
-		log_info("replay changed index page map update from %llu to %llu",
-			 old_ipm_update,
-			 new_ipm_update);
+		uds_log_info("replay changed index page map update from %llu to %llu",
+			     (unsigned long long) old_ipm_update,
+			     (unsigned long long) new_ipm_update);
 	}
 
 	return UDS_SUCCESS;
@@ -961,17 +967,16 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 void advance_active_chapters(struct index *index)
 {
 	index->newest_virtual_chapter++;
-	if (are_same_physical_chapter(index->volume->geometry,
-				      index->newest_virtual_chapter,
-				      index->oldest_virtual_chapter)) {
-		index->oldest_virtual_chapter++;
-	}
+	index->oldest_virtual_chapter +=
+		chapters_to_expire(index->volume->geometry,
+				   index->newest_virtual_chapter);
 }
 
 /**********************************************************************/
-uint64_t triage_index_request(struct index *index, Request *request)
+uint64_t triage_index_request(struct index *index, struct uds_request *request)
 {
 	struct volume_index_triage triage;
+	struct index_zone *zone;
 	lookup_volume_index_name(index->volume_index, &request->chunk_name,
 				 &triage);
 	if (!triage.in_sampled_chapter) {
@@ -979,7 +984,7 @@ uint64_t triage_index_request(struct index *index, Request *request)
 		return UINT64_MAX;
 	}
 
-	struct index_zone *zone = get_request_zone(index, request);
+	zone = get_request_zone(index, request);
 	if (!is_zone_chapter_sparse(zone, triage.virtual_chapter)) {
 		return UINT64_MAX;
 	}

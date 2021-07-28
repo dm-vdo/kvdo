@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdo.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdo.h#12 $
  */
 
 #ifndef VDO_H
@@ -51,14 +51,33 @@ struct block_device * __must_check
 get_vdo_backing_device(const struct vdo *vdo);
 
 /**
- * Set whether compression is enabled in a vdo.
+ * Issue a flush request and wait for it to complete.
  *
- * @param vdo                 The vdo
- * @param enable_compression  Whether to enable compression in vdo
+ * @param vdo  The vdo
  *
- * @return State of compression before new value is set
+ * @return VDO_SUCCESS or an error
+ */
+int __must_check vdo_synchronous_flush(struct vdo *vdo);
+
+/**
+ * Get the admin state of the vdo.
+ *
+ * @param vdo  The vdo
+ *
+ * @return The code for the vdo's current admin state
  **/
-bool set_vdo_compressing(struct vdo *vdo, bool enable_compression);
+const struct admin_state_code * __must_check
+get_vdo_admin_state(const struct vdo *vdo);
+
+/**
+ * Turn compression on or off.
+ *
+ * @param vdo     The vdo
+ * @param enable  Whether to enable or disable compression
+ *
+ * @return Whether compression was previously on or off
+ **/
+bool set_vdo_compressing(struct vdo *vdo, bool enable);
 
 /**
  * Get whether compression is enabled in a vdo.
@@ -70,13 +89,12 @@ bool set_vdo_compressing(struct vdo *vdo, bool enable_compression);
 bool get_vdo_compressing(struct vdo *vdo);
 
 /**
- * Get the vdo statistics.
+ * Fetch statistics on the correct thread.
  *
  * @param [in]  vdo    The vdo
  * @param [out] stats  The vdo statistics are returned here
  **/
-void get_vdo_statistics(const struct vdo *vdo,
-			struct vdo_statistics *stats);
+void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats);
 
 /**
  * Get the number of physical blocks in use by user data.
@@ -85,7 +103,8 @@ void get_vdo_statistics(const struct vdo *vdo,
  *
  * @return The number of blocks allocated for user data
  **/
-block_count_t __must_check get_physical_blocks_allocated(const struct vdo *vdo);
+block_count_t __must_check
+get_vdo_physical_blocks_allocated(const struct vdo *vdo);
 
 /**
  * Get the number of unallocated physical blocks.
@@ -94,7 +113,7 @@ block_count_t __must_check get_physical_blocks_allocated(const struct vdo *vdo);
  *
  * @return The number of free blocks
  **/
-block_count_t __must_check get_physical_blocks_free(const struct vdo *vdo);
+block_count_t __must_check get_vdo_physical_blocks_free(const struct vdo *vdo);
 
 /**
  * Get the number of physical blocks used by vdo metadata.
@@ -103,26 +122,7 @@ block_count_t __must_check get_physical_blocks_free(const struct vdo *vdo);
  *
  * @return The number of overhead blocks
  **/
-block_count_t __must_check get_physical_blocks_overhead(const struct vdo *vdo);
-
-/**
- * Get the number of physical blocks in a vdo volume.
- *
- * @param vdo  The vdo
- *
- * @return The physical block count of the vdo
- **/
-block_count_t get_vdo_physical_block_count(const struct vdo *vdo);
-
-/**
- * Get a copy of the load-time configuration of the vdo.
- *
- * @param vdo  The vdo
- *
- * @return The configuration of the vdo
- **/
-const struct device_config * __must_check
-get_vdo_device_config(const struct vdo *vdo);
+block_count_t __must_check get_vdo_physical_blocks_overhead(const struct vdo *vdo);
 
 /**
  * Get the thread config of the vdo.
@@ -132,7 +132,7 @@ get_vdo_device_config(const struct vdo *vdo);
  * @return The thread config
  **/
 const struct thread_config * __must_check
-get_thread_config(const struct vdo *vdo);
+get_vdo_thread_config(const struct vdo *vdo);
 
 /**
  * Get the id of the callback thread on which a completion is currently
@@ -140,7 +140,7 @@ get_thread_config(const struct vdo *vdo);
  *
  * @return the current thread ID
  **/
-thread_id_t get_callback_thread_id(void);
+thread_id_t vdo_get_callback_thread_id(void);
 
 /**
  * Get the configured maximum age of a dirty block map page.
@@ -150,7 +150,7 @@ thread_id_t get_callback_thread_id(void);
  * @return The block map era length
  **/
 block_count_t __must_check
-get_configured_block_map_maximum_age(const struct vdo *vdo);
+get_vdo_configured_block_map_maximum_age(const struct vdo *vdo);
 
 /**
  * Get the configured page cache size of the vdo.
@@ -159,7 +159,7 @@ get_configured_block_map_maximum_age(const struct vdo *vdo);
  *
  * @return The number of pages for the page cache
  **/
-page_count_t __must_check get_configured_cache_size(const struct vdo *vdo);
+page_count_t __must_check get_vdo_configured_cache_size(const struct vdo *vdo);
 
 /**
  * Get the location of the first block of the vdo.
@@ -169,7 +169,7 @@ page_count_t __must_check get_configured_cache_size(const struct vdo *vdo);
  * @return The location of the first block managed by the vdo
  **/
 physical_block_number_t __must_check
-get_first_block_offset(const struct vdo *vdo);
+get_vdo_first_block_offset(const struct vdo *vdo);
 
 /**
  * Check whether the vdo was new when it was loaded.
@@ -178,7 +178,7 @@ get_first_block_offset(const struct vdo *vdo);
  *
  * @return <code>true</code> if the vdo was new
  **/
-bool __must_check was_new(const struct vdo *vdo);
+bool __must_check vdo_was_new(const struct vdo *vdo);
 
 /**
  * Check whether a data_location containing potential dedupe advice is
@@ -196,9 +196,9 @@ bool __must_check was_new(const struct vdo *vdo);
  *         unmapped zoned_pbn if the advice was invalid or NULL
  **/
 struct zoned_pbn __must_check
-validate_dedupe_advice(struct vdo *vdo,
-		       const struct data_location *advice,
-		       logical_block_number_t lbn);
+vdo_validate_dedupe_advice(struct vdo *vdo,
+			   const struct data_location *advice,
+			   logical_block_number_t lbn);
 
 // TEST SUPPORT ONLY BEYOND THIS POINT
 

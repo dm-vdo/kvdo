@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/threadConfig.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/threadConfig.h#3 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -52,10 +52,10 @@ struct thread_config {
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_thread_config(zone_count_t logical_zone_count,
-				    zone_count_t physical_zone_count,
-				    zone_count_t hash_zone_count,
-				    struct thread_config **config_ptr);
+int __must_check make_vdo_thread_config(zone_count_t logical_zone_count,
+					zone_count_t physical_zone_count,
+					zone_count_t hash_zone_count,
+					struct thread_config **config_ptr);
 
 /**
  * Make a thread configuration that uses only one thread.
@@ -64,7 +64,7 @@ int __must_check make_thread_config(zone_count_t logical_zone_count,
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check make_one_thread_config(struct thread_config **config_ptr);
+int __must_check vdo_make_one_thread_config(struct thread_config **config_ptr);
 
 /**
  * Make a new thread config which is a copy of an existing one.
@@ -74,15 +74,15 @@ int __must_check make_one_thread_config(struct thread_config **config_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check copy_thread_config(const struct thread_config *old_config,
-				    struct thread_config **config_ptr);
+int __must_check copy_vdo_thread_config(const struct thread_config *old_config,
+					struct thread_config **config_ptr);
 
 /**
- * Destroy a thread configuration and null out the reference to it.
+ * Destroy a thread configuration.
  *
- * @param config_ptr  The reference to the thread configuration to destroy
+ * @param config  The thread configuration to destroy
  **/
-void free_thread_config(struct thread_config **config_ptr);
+void free_vdo_thread_config(struct thread_config *config);
 
 /**
  * Get the thread id for a given logical zone.
@@ -93,8 +93,8 @@ void free_thread_config(struct thread_config **config_ptr);
  * @return the thread id for the given zone
  **/
 static inline thread_id_t __must_check
-get_logical_zone_thread(const struct thread_config *thread_config,
-			zone_count_t logical_zone)
+vdo_get_logical_zone_thread(const struct thread_config *thread_config,
+			    zone_count_t logical_zone)
 {
 	ASSERT_LOG_ONLY((logical_zone <= thread_config->logical_zone_count),
 			"logical zone valid");
@@ -110,8 +110,8 @@ get_logical_zone_thread(const struct thread_config *thread_config,
  * @return the thread id for the given zone
  **/
 static inline thread_id_t __must_check
-get_physical_zone_thread(const struct thread_config *thread_config,
-			 zone_count_t physical_zone)
+vdo_get_physical_zone_thread(const struct thread_config *thread_config,
+			     zone_count_t physical_zone)
 {
 	ASSERT_LOG_ONLY((physical_zone <= thread_config->physical_zone_count),
 			"physical zone valid");
@@ -127,8 +127,8 @@ get_physical_zone_thread(const struct thread_config *thread_config,
  * @return the thread id for the given zone
  **/
 static inline thread_id_t __must_check
-get_hash_zone_thread(const struct thread_config *thread_config,
-		     zone_count_t hash_zone)
+vdo_get_hash_zone_thread(const struct thread_config *thread_config,
+			 zone_count_t hash_zone)
 {
 	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count),
 			"hash zone valid");
@@ -144,7 +144,7 @@ get_hash_zone_thread(const struct thread_config *thread_config,
  **/
 static inline
 thread_id_t __must_check
-get_journal_zone_thread(const struct thread_config *thread_config)
+vdo_get_journal_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->journal_thread;
 }
@@ -158,7 +158,7 @@ get_journal_zone_thread(const struct thread_config *thread_config)
  **/
 static inline
 thread_id_t __must_check
-get_packer_zone_thread(const struct thread_config *thread_config)
+vdo_get_packer_zone_thread(const struct thread_config *thread_config)
 {
 	return thread_config->packer_thread;
 }
@@ -172,7 +172,7 @@ get_packer_zone_thread(const struct thread_config *thread_config)
  **/
 static inline
 thread_id_t __must_check
-get_admin_thread(const struct thread_config *thread_config)
+vdo_get_admin_thread(const struct thread_config *thread_config)
 {
 	return thread_config->admin_thread;
 }
@@ -188,7 +188,7 @@ get_admin_thread(const struct thread_config *thread_config)
  * @param buffer         Where to put the formatted name
  * @param buffer_length  Size of the output buffer
  **/
-void get_vdo_thread_name(const struct thread_config *thread_config,
+void vdo_get_thread_name(const struct thread_config *thread_config,
 			 thread_id_t thread_id,
 			 char *buffer,
 			 size_t buffer_length);

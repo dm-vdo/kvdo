@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#11 $
  */
 
 /**
@@ -32,9 +32,9 @@
  * call to event_count_prepare() issues a wait token by atomically incrementing
  * the waiter count. The key invariant is a strict accounting of the number of
  * tokens issued. Every token returned by event_count_prepare() is a contract
- * that the caller will call acquire_semaphore() and a signaller will call
- * release_semaphore(), each exactly once. Atomic updates to the state field
- * ensure that each token is counted once and that tokens are not lost.
+ * that the caller will call uds_acquire_semaphore() and a signaller will call
+ * uds_release_semaphore(), each exactly once. Atomic updates to the state
+ * field ensure that each token is counted once and that tokens are not lost.
  * Cancelling a token attempts to take a fast-path by simply decrementing the
  * waiters field, but if the token has already been claimed by a signaller,
  * the canceller must still wait on the semaphore to consume the transferred
@@ -90,7 +90,8 @@
 
 #include "eventCount.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "common.h"
 #include "compiler.h"
 #include "cpu.h"
@@ -132,14 +133,14 @@ static INLINE bool same_event(event_token_t token1, event_token_t token2)
 /**********************************************************************/
 void event_count_broadcast(struct event_count *ec)
 {
+	uint64_t waiters, state, old_state;
 
 	// Even if there are no waiters (yet), we will need a memory barrier.
 	smp_mb();
 
-	uint64_t waiters;
-	uint64_t state = atomic64_read(&ec->state);
-	uint64_t old_state = state;
+	state = old_state = atomic64_read(&ec->state);
 	do {
+		event_token_t new_state;
 		// Check if there are any tokens that have not yet been been
 		// transferred to the semaphore. This is the fast no-waiters
 		// path.
@@ -155,7 +156,7 @@ void event_count_broadcast(struct event_count *ec)
 		 * event count using an atomic compare-and-swap.  This
 		 * operation contains a memory barrier.
 		 */
-		event_token_t new_state = ((state & ~WAITERS_MASK) + ONE_EVENT);
+		new_state = ((state & ~WAITERS_MASK) + ONE_EVENT);
 		old_state = state;
 		state = atomic64_cmpxchg(&ec->state, old_state, new_state);
 		// The cmpxchg fails when we lose a race with a new waiter or
@@ -169,7 +170,7 @@ void event_count_broadcast(struct event_count *ec)
 	 * post for posix semaphores, so we've got to loop to do them all.
 	 */
 	while (waiters-- > 0) {
-		release_semaphore(&ec->semaphore);
+		uds_release_semaphore(&ec->semaphore);
 	}
 }
 
@@ -191,9 +192,9 @@ static INLINE bool fast_cancel(struct event_count *ec, event_token_t token)
 		// Try to decrement the waiter count via compare-and-swap as if
 		// we had never prepared to wait.
 		event_token_t et = atomic64_cmpxchg(&ec->state,
-                                                    current_token,
-                                                    current_token - 1);
-                if (et == current_token) {
+						    current_token,
+						    current_token - 1);
+		if (et == current_token) {
 			return true;
 		}
 		current_token = et;
@@ -208,7 +209,7 @@ static INLINE bool fast_cancel(struct event_count *ec, event_token_t token)
  * in the semaphore, and the number of times the wait times out.
  *
  * @param ec       the event count instance
- * @param timeout  an optional timeout value to pass to attempt_semaphore()
+ * @param timeout  an optional timeout value to pass to uds_attempt_semaphore()
  *
  * @return true if a token was consumed, otherwise false only if a timeout
  *         was specified and we timed out
@@ -217,14 +218,14 @@ static bool consume_wait_token(struct event_count *ec,
 			       const ktime_t *timeout)
 {
 	// Try to grab a token without waiting.
-	if (attempt_semaphore(&ec->semaphore, 0)) {
+	if (uds_attempt_semaphore(&ec->semaphore, 0)) {
 		return true;
 	}
 
 
 	if (timeout == NULL) {
-		acquire_semaphore(&ec->semaphore);
-	} else if (!attempt_semaphore(&ec->semaphore, *timeout)) {
+		uds_acquire_semaphore(&ec->semaphore);
+	} else if (!uds_attempt_semaphore(&ec->semaphore, *timeout)) {
 		return false;
 	}
 	return true;
@@ -236,15 +237,15 @@ int make_event_count(struct event_count **ec_ptr)
 	// The event count will be allocated on a cache line boundary so there
 	// will not be false sharing of the line with any other data structure.
 	struct event_count *ec = NULL;
-	int result = ALLOCATE(1, struct event_count, "event count", &ec);
+	int result = UDS_ALLOCATE(1, struct event_count, "event count", &ec);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	atomic64_set(&ec->state, 0);
-	result = initialize_semaphore(&ec->semaphore, 0);
+	result = uds_initialize_semaphore(&ec->semaphore, 0);
 	if (result != UDS_SUCCESS) {
-		FREE(ec);
+		UDS_FREE(ec);
 		return result;
 	}
 
@@ -258,8 +259,8 @@ void free_event_count(struct event_count *ec)
 	if (ec == NULL) {
 		return;
 	}
-	destroy_semaphore(&ec->semaphore);
-	FREE(ec);
+	uds_destroy_semaphore(&ec->semaphore);
+	UDS_FREE(ec);
 }
 
 /**********************************************************************/
@@ -321,9 +322,9 @@ bool event_count_wait(struct event_count *ec,
 		// We consumed someone else's wait token. Put it back in the
 		// semaphore, which will wake another waiter, hopefully one who
 		// can stop waiting.
-		release_semaphore(&ec->semaphore);
+		uds_release_semaphore(&ec->semaphore);
 
 		// Attempt to give an earlier waiter a shot at the semaphore.
-		yield_scheduler();
+		uds_yield_scheduler();
 	}
 }

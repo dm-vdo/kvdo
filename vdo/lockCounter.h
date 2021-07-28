@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/lockCounter.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/lockCounter.h#2 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -67,11 +67,11 @@ int __must_check make_vdo_lock_counter(struct vdo *vdo,
 				       struct lock_counter **lock_counter_ptr);
 
 /**
- * Destroy a lock counter and NULL out the reference to it.
+ * Free a lock counter.
  *
- * @param lock_counter_ptr  A pointer to the lock counter reference to free
+ * @param counter  The lock counter to free
  **/
-void free_vdo_lock_counter(struct lock_counter **lock_counter_ptr);
+void free_vdo_lock_counter(struct lock_counter *counter);
 
 /**
  * Check whether a lock is locked for a zone type. If the recovery journal has

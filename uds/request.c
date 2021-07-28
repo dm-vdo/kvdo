@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#22 $
  */
 
 #include "request.h"
@@ -29,31 +29,37 @@
 #include "requestQueue.h"
 
 /**********************************************************************/
-int uds_start_chunk_operation(struct uds_request *uds_request)
+int uds_start_chunk_operation(struct uds_request *request)
 {
-	if (uds_request->callback == NULL) {
-		return UDS_CALLBACK_REQUIRED;
+	size_t internal_size;
+	int result;
+
+	if (request->callback == NULL) {
+		uds_log_error("missing required callback");
+		return -EINVAL;
 	}
-	switch (uds_request->type) {
+	switch (request->type) {
 	case UDS_DELETE:
 	case UDS_POST:
 	case UDS_QUERY:
 	case UDS_UPDATE:
 		break;
 	default:
-		return UDS_INVALID_OPERATION_TYPE;
+		uds_log_error("received invalid callback type");
+		return -EINVAL;
 	}
-	memset(uds_request->private, 0, sizeof(uds_request->private));
-	Request *request = (Request *) uds_request;
 
-	int result = get_index_session(request->session);
+	// Reset all internal fields before processing.
+	internal_size = sizeof(struct uds_request)
+		- offsetof(struct uds_request, zone_number);
+	memset(&request->zone_number, 0, internal_size);
+
+	result = get_index_session(request->session);
 	if (result != UDS_SUCCESS) {
-		return sans_unrecoverable(result);
+		return result;
 	}
 
 	request->found = false;
-	request->action = (enum request_action) request->type;
-	request->is_control_message = false;
 	request->unbatched = false;
 	request->router = request->session->router;
 
@@ -62,31 +68,29 @@ int uds_start_chunk_operation(struct uds_request *uds_request)
 }
 
 /**********************************************************************/
-int launch_zone_control_message(enum request_action action,
-				struct zone_message message,
-				unsigned int zone,
-				struct index_router *router)
+int launch_zone_message(struct uds_zone_message message,
+			unsigned int zone,
+			struct index_router *router)
 {
-	Request *request;
-	int result = ALLOCATE(1, Request, __func__, &request);
+	struct uds_request *request;
+	int result = UDS_ALLOCATE(1, struct uds_request, __func__, &request);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	request->router = router;
-	request->is_control_message = true;
 	request->unbatched = true;
-	request->action = action;
 	request->zone_number = zone;
 	request->zone_message = message;
 
-	enqueue_request(request, STAGE_INDEX);
+	enqueue_request(request, STAGE_MESSAGE);
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static RequestQueue *get_next_stage_queue(Request *request,
-					  enum request_stage next_stage)
+static struct uds_request_queue *
+get_next_stage_queue(struct uds_request *request,
+		     enum request_stage next_stage)
 {
 	if (next_stage == STAGE_CALLBACK) {
 		return request->session->callback_queue;
@@ -98,14 +102,16 @@ static RequestQueue *get_next_stage_queue(Request *request,
 }
 
 /**********************************************************************/
-void enqueue_request(Request *request, enum request_stage next_stage)
+void enqueue_request(struct uds_request *request,
+		     enum request_stage next_stage)
 {
-	RequestQueue *next_queue = get_next_stage_queue(request, next_stage);
+	struct uds_request_queue *next_queue =
+		get_next_stage_queue(request, next_stage);
 	if (next_queue == NULL) {
 		return;
 	}
 
-	request_queue_enqueue(next_queue, request);
+	uds_request_queue_enqueue(next_queue, request);
 }
 
 /*
@@ -115,7 +121,7 @@ void enqueue_request(Request *request, enum request_stage next_stage)
 static request_restarter_t request_restarter = NULL;
 
 /**********************************************************************/
-void restart_request(Request *request)
+void restart_request(struct uds_request *request)
 {
 	request->requeued = true;
 	if (request_restarter == NULL) {
@@ -138,7 +144,7 @@ static INLINE void increment_once(uint64_t *count_ptr)
 }
 
 /**********************************************************************/
-void update_request_context_stats(Request *request)
+void update_request_context_stats(struct uds_request *request)
 {
 	/*
 	 * We don't need any synchronization since the context stats are only
@@ -164,19 +170,19 @@ void update_request_context_stats(Request *request)
 
 	struct session_stats *session_stats = &request->session->stats;
 
+	bool found = (request->location != UDS_LOCATION_UNAVAILABLE);
 	increment_once(&session_stats->requests);
-	bool found = (request->location != LOC_UNAVAILABLE);
 
-	switch (request->action) {
-	case REQUEST_INDEX:
+	switch (request->type) {
+	case UDS_POST:
 		if (found) {
 			increment_once(&session_stats->posts_found);
 
-			if (request->location == LOC_IN_OPEN_CHAPTER) {
+			if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
 				increment_once(&session_stats->posts_found_open_chapter);
-			} else if (request->location == LOC_IN_DENSE) {
+			} else if (request->location == UDS_LOCATION_IN_DENSE) {
 				increment_once(&session_stats->posts_found_dense);
-			} else if (request->location == LOC_IN_SPARSE) {
+			} else if (request->location == UDS_LOCATION_IN_SPARSE) {
 				increment_once(&session_stats->posts_found_sparse);
 			}
 		} else {
@@ -184,7 +190,7 @@ void update_request_context_stats(Request *request)
 		}
 		break;
 
-	case REQUEST_UPDATE:
+	case UDS_UPDATE:
 		if (found) {
 			increment_once(&session_stats->updates_found);
 		} else {
@@ -192,7 +198,7 @@ void update_request_context_stats(Request *request)
 		}
 		break;
 
-	case REQUEST_DELETE:
+	case UDS_DELETE:
 		if (found) {
 			increment_once(&session_stats->deletions_found);
 		} else {
@@ -200,7 +206,7 @@ void update_request_context_stats(Request *request)
 		}
 		break;
 
-	case REQUEST_QUERY:
+	case UDS_QUERY:
 		if (found) {
 			increment_once(&session_stats->queries_found);
 		} else {
@@ -210,33 +216,19 @@ void update_request_context_stats(Request *request)
 
 	default:
 		request->status = ASSERT(false,
-					 "unknown next action in request: %d",
-					 request->action);
+					 "unknown request type: %d",
+					 request->type);
 	}
 }
 
 /**********************************************************************/
-void enter_callback_stage(Request *request)
+void enter_callback_stage(struct uds_request *request)
 {
-	if (!request->is_control_message) {
-		if (is_unrecoverable(request->status)) {
-			// Unrecoverable errors must disable the index session
-			disable_index_session(request->session);
-			// The unrecoverable state is internal and must not
-			// be sent to the client.
-			request->status = sans_unrecoverable(request->status);
-		}
-
-		// Handle asynchronous client callbacks in the designated
-		// thread.
-		enqueue_request(request, STAGE_CALLBACK);
-	} else {
-		/*
-		 * Asynchronous control messages are complete when they are
-		 * executed. There should be nothing they need to do on the
-		 * callback thread. The message has been completely processed,
-		 * so just free it.
-		 */
-		FREE(request);
+	if (request->status != UDS_SUCCESS) {
+		// All request errors are considered unrecoverable
+		disable_index_session(request->session);
 	}
+
+	// Handle asynchronous client callbacks in the designated thread.
+	enqueue_request(request, STAGE_CALLBACK);
 }

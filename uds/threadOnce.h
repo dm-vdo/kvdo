@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.h#5 $
  */
 
 #ifndef THREAD_ONCE_H
 #define THREAD_ONCE_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
 
 #define ONCE_STATE_INITIALIZER ATOMIC_INIT(0)
 

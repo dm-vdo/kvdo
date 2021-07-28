@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.c#13 $
  */
 
 #include "indexLayoutParser.h"
@@ -33,18 +33,17 @@ static int __must_check set_parameter_value(struct layout_parameter *lp,
 					    char *data)
 {
 	if ((lp->type & LP_TYPE_MASK) == LP_UINT64) {
-		int result = parse_uint64(data, lp->value.num);
+		int result = uds_parse_uint64(data, lp->value.num);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-						  "bad numeric value %s",
-						  data);
+			uds_log_error("bad numeric value %s", data);
+			return -EINVAL;
 		}
 	} else if ((lp->type & LP_TYPE_MASK) == LP_STRING) {
 		*lp->value.str = data;
 	} else {
-		return log_error_strerror(UDS_INVALID_ARGUMENT,
-					  "unkown layout parameter type code %x",
-					  (lp->type & LP_TYPE_MASK));
+		uds_log_error("unknown layout parameter type code %x",
+			      (lp->type & LP_TYPE_MASK));
+		return -EINVAL;
 	}
 	return UDS_SUCCESS;
 }
@@ -66,8 +65,9 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 	} else {
 		char *data = NULL;
 		char *token;
-		for (token = next_token(info, " ", &data); token;
-		     token = next_token(NULL, " ", &data)) {
+		for (token = uds_next_token(info, " ", &data); token;
+		     token = uds_next_token(NULL, " ", &data)) {
+			int result;
 			char *equal = strchr(token, '=');
 			struct layout_parameter *lp;
 			for (lp = params; lp->type != LP_NULL; ++lp) {
@@ -82,17 +82,17 @@ int parse_layout_string(char *info, struct layout_parameter *params)
 				}
 			}
 			if (lp->type == LP_NULL) {
-				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-							  "unkown index parameter %s",
-							  token);
+				uds_log_error("unknown index parameter %s",
+					      token);
+				return -EINVAL;
 			}
 			if (lp->seen) {
-				return log_error_strerror(UDS_INDEX_NAME_REQUIRED,
-							  "duplicate index parameter %s",
-							  token);
+				uds_log_error("duplicate index parameter %s",
+					      token);
+				return -EINVAL;
 			}
 			lp->seen = true;
-			int result = set_parameter_value(
+			result = set_parameter_value(
 				lp, equal ? equal + 1 : token);
 			if (result != UDS_SUCCESS) {
 				return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/actionManager.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/actionManager.h#3 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -114,20 +114,14 @@ typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_numb
  *
  * @return VDO_SUCCESS or an error code
  **/
-int __must_check make_vdo_action_manager(zone_count_t zones,
-					 vdo_zone_thread_getter *get_zone_thread_id,
-					 thread_id_t initiator_thread_id,
-					 void *context,
-					 vdo_action_scheduler *scheduler,
-					 struct vdo *vdo,
-					 struct action_manager **manager_ptr);
-
-/**
- * Destroy an action manager and null out the reference to it.
- *
- * @param manager_ptr  The reference to the manager to destroy
- **/
-void free_vdo_action_manager(struct action_manager **manager_ptr);
+int __must_check
+make_vdo_action_manager(zone_count_t zones,
+			vdo_zone_thread_getter *get_zone_thread_id,
+			thread_id_t initiator_thread_id,
+			void *context,
+			vdo_action_scheduler *scheduler,
+			struct vdo *vdo,
+			struct action_manager **manager_ptr);
 
 /**
  * Get the current operation an action manager is performing.
@@ -136,7 +130,7 @@ void free_vdo_action_manager(struct action_manager **manager_ptr);
  *
  * @return The manager's current operation
  **/
-enum admin_state_code __must_check
+const struct admin_state_code *__must_check
 get_current_vdo_manager_operation(struct action_manager *manager);
 
 /**
@@ -207,7 +201,7 @@ bool schedule_vdo_action(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_vdo_operation(struct action_manager *manager,
-			    enum admin_state_code operation,
+			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
@@ -237,7 +231,7 @@ bool schedule_vdo_operation(struct action_manager *manager,
  * @return <code>true</code> if the action was scheduled
  **/
 bool schedule_vdo_operation_with_context(struct action_manager *manager,
-					 enum admin_state_code operation,
+					 const struct admin_state_code *operation,
 					 vdo_action_preamble *preamble,
 					 vdo_zone_action *action,
 					 vdo_action_conclusion *conclusion,

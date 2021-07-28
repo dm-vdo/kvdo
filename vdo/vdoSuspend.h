@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoSuspend.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoSuspend.h#2 $
  */
 
 #ifndef VDO_SUSPEND_H
@@ -29,11 +29,9 @@
  * resumed.
  *
  * @param vdo   The vdo to suspend
- * @param save  If <code>true</code>, all dirty metadata will be flushed as
- *              well
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_suspend(struct vdo *vdo, bool save);
+int suspend_vdo(struct vdo *vdo);
 
 #endif /* VDO_SUSPEND_H */

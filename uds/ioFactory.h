@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/ioFactory.h#9 $
  */
 
 #ifndef IO_FACTORY_H
@@ -58,15 +58,15 @@ enum { UDS_BLOCK_SIZE = 4096 };
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check make_io_factory(const char *path,
-				 struct io_factory **factory_ptr);
+int __must_check make_uds_io_factory(const char *path,
+				     struct io_factory **factory_ptr);
 
 /**
  * Get another reference to an IO factory, incrementing its reference count.
  *
  * @param factory  The IO factory
  **/
-void get_io_factory(struct io_factory *factory);
+void get_uds_io_factory(struct io_factory *factory);
 
 /**
  * Free a reference to an IO factory.  If the reference count drops to zero,
@@ -74,7 +74,7 @@ void get_io_factory(struct io_factory *factory);
  *
  * @param factory  The IO factory
  **/
-void put_io_factory(struct io_factory *factory);
+void put_uds_io_factory(struct io_factory *factory);
 
 /**
  * Get the maximum potential size of the device or file.  For a device, this is
@@ -85,7 +85,7 @@ void put_io_factory(struct io_factory *factory);
  *
  * @return the writable size (in bytes)
  **/
-size_t __must_check get_writable_size(struct io_factory *factory);
+size_t __must_check get_uds_writable_size(struct io_factory *factory);
 
 /**
  * Create a struct dm_bufio_client for a region of the index.
@@ -98,11 +98,11 @@ size_t __must_check get_writable_size(struct io_factory *factory);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check make_bufio(struct io_factory *factory,
-			    off_t offset,
-			    size_t block_size,
-			    unsigned int reserved_buffers,
-			    struct dm_bufio_client **client_ptr);
+int __must_check make_uds_bufio(struct io_factory *factory,
+				off_t offset,
+				size_t block_size,
+				unsigned int reserved_buffers,
+				struct dm_bufio_client **client_ptr);
 
 /**
  * Create a buffered reader for a region of the index.
@@ -114,10 +114,10 @@ int __must_check make_bufio(struct io_factory *factory,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check open_buffered_reader(struct io_factory *factory,
-				      off_t offset,
-				      size_t size,
-				      struct buffered_reader **reader_ptr);
+int __must_check open_uds_buffered_reader(struct io_factory *factory,
+					  off_t offset,
+					  size_t size,
+					  struct buffered_reader **reader_ptr);
 
 /**
  * Create a buffered writer for a region of the index.
@@ -129,9 +129,9 @@ int __must_check open_buffered_reader(struct io_factory *factory,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check open_buffered_writer(struct io_factory *factory,
-				      off_t offset,
-				      size_t size,
-				      struct buffered_writer **writer_ptr);
+int __must_check open_uds_buffered_writer(struct io_factory *factory,
+					  off_t offset,
+					  size_t size,
+					  struct buffered_writer **writer_ptr);
 
 #endif // IO_FACTORY_H

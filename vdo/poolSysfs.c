@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/poolSysfs.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/poolSysfs.c#4 $
  */
 
 #include "poolSysfs.h"
@@ -137,7 +137,7 @@ static void vdo_pool_release(struct kobject *directory)
 {
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-	FREE(layer);
+	UDS_FREE(layer);
 }
 
 static struct pool_attribute vdo_pool_compressing_attr = {
@@ -228,12 +228,11 @@ static void work_queue_directory_release(struct kobject *kobj)
 {
 	/*
 	 * The work_queue_directory holds an implicit reference to its parent,
-	 * the kernel_layer object (->kobj), so even if there are some
-	 * external references held to the work_queue_directory when work
-	 * queue shutdown calls kobject_put on the kernel_layer object, the
-	 * kernel_layer object won't actually be released and won't free the
-	 * kernel_layer storage until the work_queue_directory object is
-	 * released first.
+	 * the VDO object (->kobj), so even if there are some external
+	 * references held to the work_queue_directory when work queue
+	 * shutdown calls kobject_put on the VDO object, the VDO object won't
+	 * actually be released and won't free the VDO storage until the
+	 * work_queue_directory object is released first.
 	 *
 	 * So, we don't need to do any additional explicit management here.
 	 *
@@ -253,7 +252,7 @@ static struct sysfs_ops no_sysfs_ops = {
 	.store = NULL,
 };
 
-struct kobj_type work_queue_directory_type = {
+struct kobj_type vdo_work_queue_directory_type = {
 	.release = work_queue_directory_release,
 	.sysfs_ops = &no_sysfs_ops,
 	.default_attrs = no_attrs,

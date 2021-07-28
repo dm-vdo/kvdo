@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoComponentStates.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoComponentStates.c#10 $
  */
 
 #include "vdoComponentStates.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "blockMapFormat.h"
@@ -40,13 +41,13 @@ const struct version_number VDO_VOLUME_VERSION_67_0 = {
 };
 
 /**********************************************************************/
-void destroy_component_states(struct vdo_component_states *states)
+void destroy_vdo_component_states(struct vdo_component_states *states)
 {
 	if (states == NULL) {
 		return;
 	}
 
-	free_fixed_layout(&states->layout);
+	free_vdo_fixed_layout(UDS_FORGET(states->layout));
 }
 
 /**
@@ -66,23 +67,23 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 		return result;
 	}
 
-	result = decode_fixed_layout(buffer, &states->layout);
+	result = decode_vdo_fixed_layout(buffer, &states->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_recovery_journal_state_7_0(buffer,
-						   &states->recovery_journal);
+	result = decode_vdo_recovery_journal_state_7_0(buffer,
+						       &states->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_slab_depot_state_2_0(buffer, &states->slab_depot);
+	result = decode_vdo_slab_depot_state_2_0(buffer, &states->slab_depot);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_block_map_state_2_0(buffer, &states->block_map);
+	result = decode_vdo_block_map_state_2_0(buffer, &states->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -93,9 +94,9 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 }
 
 /**********************************************************************/
-int decode_component_states(struct buffer *buffer,
-			    release_version_number_t expected_release_version,
-			    struct vdo_component_states *states)
+int decode_vdo_component_states(struct buffer *buffer,
+				release_version_number_t expected_release_version,
+				struct vdo_component_states *states)
 {
 	// Check the release version against the one from the geometry.
 	int result = get_uint32_le_from_buffer(buffer,
@@ -105,10 +106,10 @@ int decode_component_states(struct buffer *buffer,
 	}
 
 	if (states->release_version != expected_release_version) {
-		return log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					  "Geometry release version %u does not match super block release version %u",
-					  expected_release_version,
-					  states->release_version);
+		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+					      "Geometry release version %u does not match super block release version %u",
+					      expected_release_version,
+					      states->release_version);
 	}
 
 	// Check the VDO volume version
@@ -126,7 +127,7 @@ int decode_component_states(struct buffer *buffer,
 
 	result = decode_components(buffer, states);
 	if (result != VDO_SUCCESS) {
-		free_fixed_layout(&states->layout);
+		free_vdo_fixed_layout(UDS_FORGET(states->layout));
 		return result;
 	}
 
@@ -134,15 +135,15 @@ int decode_component_states(struct buffer *buffer,
 }
 
 /**********************************************************************/
-int validate_component_states(struct vdo_component_states *states,
-			      nonce_t geometry_nonce,
-			      block_count_t size)
+int validate_vdo_component_states(struct vdo_component_states *states,
+				  nonce_t geometry_nonce,
+				  block_count_t size)
 {
 	if (geometry_nonce != states->vdo.nonce) {
-		return log_error_strerror(VDO_BAD_NONCE,
-					  "Geometry nonce %llu does not match superblock nonce %llu",
-					  geometry_nonce,
-					  states->vdo.nonce);
+		return uds_log_error_strerror(VDO_BAD_NONCE,
+					      "Geometry nonce %llu does not match superblock nonce %llu",
+					      (unsigned long long) geometry_nonce,
+					      (unsigned long long) states->vdo.nonce);
 	}
 
 	return validate_vdo_config(&states->vdo.config, size, true);
@@ -158,17 +159,17 @@ int validate_component_states(struct vdo_component_states *states,
 static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 {
 	return (sizeof(release_version_number_t) +
-		sizeof(struct version_number) +
+		sizeof(struct packed_version_number) +
 		get_vdo_component_encoded_size() +
-		get_fixed_layout_encoded_size(layout) +
-		get_recovery_journal_encoded_size() +
-		get_slab_depot_encoded_size() +
-		get_block_map_encoded_size());
+		get_vdo_fixed_layout_encoded_size(layout) +
+		get_vdo_recovery_journal_encoded_size() +
+		get_vdo_slab_depot_encoded_size() +
+		get_vdo_block_map_encoded_size());
 }
 
 /**********************************************************************/
-int encode_component_states(struct buffer *buffer,
-			    const struct vdo_component_states *states)
+int encode_vdo_component_states(struct buffer *buffer,
+				const struct vdo_component_states *states)
 {
 	size_t expected_size;
 	int result = reset_buffer_end(buffer, 0);
@@ -191,23 +192,23 @@ int encode_component_states(struct buffer *buffer,
 		return result;
 	}
 
-	result = encode_fixed_layout(states->layout, buffer);
+	result = encode_vdo_fixed_layout(states->layout, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_recovery_journal_state_7_0(states->recovery_journal,
-						   buffer);
+	result = encode_vdo_recovery_journal_state_7_0(states->recovery_journal,
+						       buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_slab_depot_state_2_0(states->slab_depot, buffer);
+	result = encode_vdo_slab_depot_state_2_0(states->slab_depot, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encode_block_map_state_2_0(states->block_map, buffer);
+	result = encode_vdo_block_map_state_2_0(states->block_map, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

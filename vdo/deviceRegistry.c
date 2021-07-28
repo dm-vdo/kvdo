@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceRegistry.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/deviceRegistry.c#2 $
  */
 
 #include "deviceRegistry.h"
@@ -38,13 +38,15 @@
  */
 struct device_registry {
 	struct list_head links;
+	// XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of
+	// RCU, please don't add more. Should we switch?
 	rwlock_t lock;
 };
 
 static struct device_registry registry;
 
 /**********************************************************************/
-void initialize_device_registry_once(void)
+void initialize_vdo_device_registry_once(void)
 {
 	INIT_LIST_HEAD(&registry.links);
 	rwlock_init(&registry.lock);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioPool.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioPool.h#2 $
  */
 
 #ifndef VIO_POOL_H
@@ -81,9 +81,9 @@ int __must_check make_vio_pool(struct vdo *vdo,
 /**
  * Destroy a vio pool
  *
- * @param pool_ptr  the pointer holding the pool, which will be nulled out
+ * @param pool  the pool to free
  **/
-void free_vio_pool(struct vio_pool **pool_ptr);
+void free_vio_pool(struct vio_pool *pool);
 
 /**
  * Check whether an vio pool has outstanding entries.

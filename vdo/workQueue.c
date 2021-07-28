@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueue.c#9 $
  */
 
 #include "workQueue.h"
 
+#include <linux/atomic.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 
-#include "atomicDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
@@ -125,20 +125,13 @@ poll_for_work_item(struct simple_work_queue *queue)
 }
 
 /**
- * Add a work item into the queue, and inform the caller of any additional
- * processing necessary.
- *
- * If the worker thread may not be awake, true is returned, and the caller
- * should attempt a wakeup.
+ * Add a work item into the queue and wake the worker thread if it is waiting.
  *
  * @param queue  The work queue
  * @param item   The work item to add
- *
- * @return true iff the caller should wake the worker thread
  **/
-static bool __must_check
-enqueue_work_queue_item(struct simple_work_queue *queue,
-			struct vdo_work_item *item)
+static void enqueue_work_queue_item(struct simple_work_queue *queue,
+				    struct vdo_work_item *item)
 {
 	unsigned int priority;
 
@@ -182,8 +175,15 @@ enqueue_work_queue_item(struct simple_work_queue *queue,
 	 * platforms, even other x86 configurations.
 	 */
 	smp_mb();
-	return ((atomic_read(&queue->idle) == 1) &&
-		(atomic_cmpxchg(&queue->idle, 1, 0) == 1));
+	if ((atomic_read(&queue->idle) != 1) ||
+	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1)) {
+		return;
+	}
+
+	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
+
+	// Despite the name, there's a maximum of one thread in this list.
+	wake_up(&queue->waiting_worker_threads);
 }
 
 /**
@@ -307,7 +307,7 @@ wait_for_next_work_item(struct simple_work_queue *queue)
 				(ktime_get_ns() - first_wakeup) / 1000);
 			enter_histogram_sample(
 				queue->stats.wakeup_queue_length_histogram,
-				count_work_items_pending(
+				count_vdo_work_items_pending(
 					&queue->stats.work_item_stats));
 		}
 	}
@@ -340,9 +340,9 @@ static void process_work_item(struct simple_work_queue *queue,
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
 
-	update_work_item_stats_for_work_time(&queue->stats.work_item_stats,
-					     index,
-					     dequeue_time);
+	update_vdo_work_item_stats_for_work_time(&queue->stats.work_item_stats,
+						 index,
+						 dequeue_time);
 }
 
 /**
@@ -363,7 +363,7 @@ static void yield_to_scheduler(struct simple_work_queue *queue)
 	 * synchronization, but it's for stats reporting only, so being
 	 * imprecise isn't too big a deal.
 	 */
-	queue_length = count_work_items_pending(&stats->work_item_stats);
+	queue_length = count_vdo_work_items_pending(&stats->work_item_stats);
 
 	time_before_reschedule = ktime_get_ns();
 	cond_resched();
@@ -469,17 +469,6 @@ void setup_work_item(struct vdo_work_item *item,
 	item->my_queue = NULL;
 }
 
-// Thread management
-
-/**********************************************************************/
-static inline void wake_worker_thread(struct simple_work_queue *queue)
-{
-	smp_mb();
-	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
-	// Despite the name, there's a maximum of one thread in this list.
-	wake_up(&queue->waiting_worker_threads);
-}
-
 // Creation & teardown
 
 /**********************************************************************/
@@ -502,7 +491,7 @@ static bool queue_started(struct simple_work_queue *queue)
  *                                 thread names
  * @param [in]  name               The queue name
  * @param [in]  parent_kobject     The parent sysfs node
- * @param [in]  owner              The kernel layer owning the work queue
+ * @param [in]  owner              The VDO owning the work queue
  * @param [in]  private            Private data of the queue for use by work
  *                                 items or other queue-specific functions
  * @param [in]  type               The work queue type defining the lifecycle
@@ -515,7 +504,7 @@ static bool queue_started(struct simple_work_queue *queue)
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
 				  struct kobject *parent_kobject,
-				  struct kernel_layer *owner,
+				  struct vdo *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
@@ -525,10 +514,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	int i;
 	struct task_struct *thread = NULL;
 
-	int result = ALLOCATE(1,
-			      struct simple_work_queue,
-			      "simple work queue",
-			      &queue);
+	int result = UDS_ALLOCATE(1,
+				  struct simple_work_queue,
+				  "simple work queue",
+				  &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -552,7 +541,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			"invalid action code %u in work queue initialization",
 			code);
 		if (result != VDO_SUCCESS) {
-			FREE(queue);
+			UDS_FREE(queue);
 			return result;
 		}
 		result = ASSERT(
@@ -560,7 +549,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			"invalid action priority %u in work queue initialization",
 			priority);
 		if (result != VDO_SUCCESS) {
-			FREE(queue);
+			UDS_FREE(queue);
 			return result;
 		}
 		queue->priority_map[code] = priority;
@@ -569,9 +558,9 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	result = duplicate_string(name, "queue name", &queue->common.name);
+	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		FREE(queue);
+		UDS_FREE(queue);
 		return -ENOMEM;
 	}
 
@@ -638,7 +627,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    struct kernel_layer *owner,
+		    struct vdo *owner,
 		    void *private,
 		    const struct vdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -667,18 +656,18 @@ int make_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct round_robin_work_queue,
-			  "round-robin work queue", &queue);
+	result = UDS_ALLOCATE(1, struct round_robin_work_queue,
+			      "round-robin work queue", &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ALLOCATE(thread_count,
-			  struct simple_work_queue *,
-			  "subordinate work queues",
-			  &queue->service_queues);
+	result = UDS_ALLOCATE(thread_count,
+			      struct simple_work_queue *,
+			      "subordinate work queues",
+			      &queue->service_queues);
 	if (result != UDS_SUCCESS) {
-		FREE(queue);
+		UDS_FREE(queue);
 		return result;
 	}
 
@@ -686,10 +675,10 @@ int make_work_queue(const char *thread_name_prefix,
 	queue->common.round_robin_mode = true;
 	queue->common.owner = owner;
 
-	result = duplicate_string(name, "queue name", &queue->common.name);
+	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		FREE(queue->service_queues);
-		FREE(queue);
+		UDS_FREE(queue->service_queues);
+		UDS_FREE(queue);
 		return -ENOMEM;
 	}
 
@@ -720,8 +709,7 @@ int make_work_queue(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			// Destroy previously created subordinates.
-			finish_work_queue(*queue_ptr);
-			free_work_queue(queue_ptr);
+			free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
 		queue->service_queues[i]->parent_queue = *queue_ptr;
@@ -770,6 +758,10 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 /**********************************************************************/
 void finish_work_queue(struct vdo_work_queue *queue)
 {
+	if (queue == NULL) {
+		return;
+	}
+
 	if (queue->round_robin_mode) {
 		finish_round_robin_work_queue(as_round_robin_work_queue(queue));
 	} else {
@@ -811,19 +803,16 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 	for (i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
 	}
-	FREE(queue_table);
+	UDS_FREE(queue_table);
 	kobject_put(&queue->common.kobj);
 }
 
 /**********************************************************************/
-void free_work_queue(struct vdo_work_queue **queue_ptr)
+void free_work_queue(struct vdo_work_queue *queue)
 {
-	struct vdo_work_queue *queue = *queue_ptr;
-
 	if (queue == NULL) {
 		return;
 	}
-	*queue_ptr = NULL;
 
 	finish_work_queue(queue);
 
@@ -847,15 +836,15 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
-		 &queue->common,
-		 queue->common.name,
-		 count_work_items_pending(&queue->stats.work_item_stats),
-		 READ_ONCE(queue->stats.waits),
-		 thread_status,
-		 task_state_report);
+	uds_log_info("workQ %px (%s) %u entries %llu waits, %s (%c)",
+		     &queue->common,
+		     queue->common.name,
+		     count_vdo_work_items_pending(&queue->stats.work_item_stats),
+		     READ_ONCE(queue->stats.waits),
+		     thread_status,
+		     task_state_report);
 
-	log_work_item_stats(&queue->stats.work_item_stats);
+	log_vdo_work_item_stats(&queue->stats.work_item_stats);
 	log_work_queue_stats(queue);
 
 	// ->lock spin lock status?
@@ -891,9 +880,9 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 			  TASK_COMM_LEN,
 			  item->my_queue == NULL ? "-" : item->my_queue->name);
 	if (current_length < length) {
-		get_function_name(item->stats_function,
-				  buffer + current_length,
-				  length - current_length);
+		vdo_get_function_name(item->stats_function,
+				      buffer + current_length,
+				      length - current_length);
 	}
 }
 
@@ -903,11 +892,7 @@ void dump_work_item_to_buffer(struct vdo_work_item *item,
 void enqueue_work_queue(struct vdo_work_queue *queue,
 			struct vdo_work_item *item)
 {
-	struct simple_work_queue *simple_queue = pick_simple_queue(queue);
-
-	if (enqueue_work_queue_item(simple_queue, item)) {
-		wake_worker_thread(simple_queue);
-	}
+	enqueue_work_queue_item(pick_simple_queue(queue), item);
 }
 
 // Misc
@@ -963,7 +948,7 @@ struct vdo_work_queue *get_current_work_queue(void)
 }
 
 /**********************************************************************/
-struct kernel_layer *get_work_queue_owner(struct vdo_work_queue *queue)
+struct vdo *get_work_queue_owner(struct vdo_work_queue *queue)
 {
 	return queue->owner;
 }

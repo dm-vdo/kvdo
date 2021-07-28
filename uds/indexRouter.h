@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#17 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -34,15 +34,15 @@
  *
  * @param request     request object.
  **/
-typedef void (*index_router_callback_t)(Request *request);
+typedef void (*index_router_callback_t)(struct uds_request *request);
 
 struct index_router {
 	index_router_callback_t callback;
 	unsigned int zone_count;
 	bool need_to_save;
 	struct index *index;
-	RequestQueue *triage_queue;
-	RequestQueue *zone_queues[];
+	struct uds_request_queue *triage_queue;
+	struct uds_request_queue *zone_queues[];
 };
 
 /**
@@ -72,10 +72,10 @@ int __must_check make_index_router(struct index_layout *layout,
  * completion.
  *
  * @param router      The index router.
- * @param request     A pointer to the Request to process.
+ * @param request     A pointer to the request to process.
  **/
 void execute_index_router_request(struct index_router *router,
-				  Request *request);
+				  struct uds_request *request);
 
 /**
  * Save the index router state to persistent storage.
@@ -104,15 +104,16 @@ void free_index_router(struct index_router *router);
  * (such as the zone number for UDS requests on a local index).
  *
  * @param router      The index router.
- * @param request     The Request destined for the queue.
+ * @param request     The request destined for the queue.
  * @param next_stage  The next request stage (STAGE_TRIAGE or STAGE_INDEX).
  *
  * @return the next index stage queue (the local triage queue, local zone
  *         queue, or remote RPC send queue)
  **/
-RequestQueue *select_index_router_queue(struct index_router *router,
-					Request *request,
-					enum request_stage next_stage);
+struct uds_request_queue *
+select_index_router_queue(struct index_router *router,
+			  struct uds_request *request,
+			  enum request_stage next_stage);
 
 /**
  * Wait for the index router to finish all operations that access a local

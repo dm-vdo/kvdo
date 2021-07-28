@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCache.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoPageCache.c#15 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -133,16 +133,16 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
 	uint64_t size = cache->page_count * (uint64_t) VDO_BLOCK_SIZE;
 
-	int result = ALLOCATE(cache->page_count,
-			      struct page_info,
-			      "page infos",
-			      &cache->infos);
+	int result = UDS_ALLOCATE(cache->page_count,
+				  struct page_info,
+				  "page infos",
+				  &cache->infos);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = allocate_memory(size, VDO_BLOCK_SIZE, "cache pages",
-				 &cache->pages);
+	result = uds_allocate_memory(size, VDO_BLOCK_SIZE, "cache pages",
+				     &cache->pages);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -211,7 +211,7 @@ int make_vdo_page_cache(struct vdo *vdo,
 		return result;
 	}
 
-	result = ALLOCATE(1, struct vdo_page_cache, "page cache", &cache);
+	result = UDS_ALLOCATE(1, struct vdo_page_cache, "page cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -225,20 +225,20 @@ int make_vdo_page_cache(struct vdo *vdo,
 
 	result = allocate_cache_components(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
 	result = initialize_info(cache);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
-	result = make_dirty_lists(maximum_age, write_dirty_pages_callback,
-				  cache, &cache->dirty_lists);
+	result = make_vdo_dirty_lists(maximum_age, write_dirty_pages_callback,
+				      cache, &cache->dirty_lists);
 	if (result != VDO_SUCCESS) {
-		free_vdo_page_cache(&cache);
+		free_vdo_page_cache(cache);
 		return result;
 	}
 
@@ -251,9 +251,8 @@ int make_vdo_page_cache(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
+void free_vdo_page_cache(struct vdo_page_cache *cache)
 {
-	struct vdo_page_cache *cache = *cache_ptr;
 	if (cache == NULL) {
 		return;
 	}
@@ -263,23 +262,22 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 		for (info = cache->infos;
 		     info < cache->infos + cache->page_count;
 		     ++info) {
-			free_vio(&info->vio);
+			free_vio(UDS_FORGET(info->vio));
 		}
 	}
 
-	free_dirty_lists(&cache->dirty_lists);
-	free_int_map(&cache->page_map);
-	FREE(cache->infos);
-	FREE(cache->pages);
-	FREE(cache);
-	*cache_ptr = NULL;
+	UDS_FREE(UDS_FORGET(cache->dirty_lists));
+	free_int_map(UDS_FORGET(cache->page_map));
+	UDS_FREE(UDS_FORGET(cache->infos));
+	UDS_FREE(UDS_FORGET(cache->pages));
+	UDS_FREE(cache);
 }
 
 /**********************************************************************/
 void set_vdo_page_cache_initial_period(struct vdo_page_cache *cache,
 				       sequence_number_t period)
 {
-	set_current_period(cache->dirty_lists, period);
+	set_vdo_dirty_lists_current_period(cache->dirty_lists, period);
 }
 
 /**********************************************************************/
@@ -298,7 +296,7 @@ void set_vdo_page_cache_rebuild_mode(struct vdo_page_cache *cache,
 static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
 					  const char *function_name)
 {
-	thread_id_t thread_id = get_callback_thread_id();
+	thread_id_t thread_id = vdo_get_callback_thread_id();
 	ASSERT_LOG_ONLY((thread_id == cache->zone->thread_id),
 			"%s() must only be called on cache thread %d, not thread %d",
 			function_name,
@@ -327,8 +325,8 @@ static void report_cache_pressure(struct vdo_page_cache *cache)
 	ADD_ONCE(cache->stats.cache_pressure, 1);
 	if (cache->waiter_count > cache->page_count) {
 		if ((cache->pressure_report % LOG_INTERVAL) == 0) {
-			log_info("page cache pressure %u",
-				 cache->stats.cache_pressure);
+			uds_log_info("page cache pressure %u",
+				     cache->stats.cache_pressure);
 		}
 
 		if (++cache->pressure_report >= DISPLAY_INTERVAL) {
@@ -352,7 +350,7 @@ get_page_state_name(enum vdo_page_buffer_state state)
 {
 	int result;
 	static const char *state_names[] = {
-		"FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
+		"UDS_FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
 	};
 	STATIC_ASSERT(COUNT_OF(state_names) == PAGE_STATE_COUNT);
 
@@ -528,7 +526,7 @@ find_free_page(struct vdo_page_cache *cache)
 }
 
 /**********************************************************************/
-struct page_info *vpc_find_page(struct vdo_page_cache *cache,
+struct page_info *vdo_page_cache_find_page(struct vdo_page_cache *cache,
 				physical_block_number_t pbn)
 {
 	if ((cache->last_found != NULL) && (cache->last_found->pbn == pbn)) {
@@ -611,12 +609,12 @@ static void complete_with_page(struct page_info *info,
 	bool available =
 		vdo_page_comp->writable ? is_present(info) : is_valid(info);
 	if (!available) {
-		log_error_strerror(VDO_BAD_PAGE,
-				   "Requested cache page %llu in state %s is not %s",
-				   info->pbn,
-				   get_page_state_name(info->state),
-				   vdo_page_comp->writable ? "present" :
-				   "valid");
+		uds_log_error_strerror(VDO_BAD_PAGE,
+				       "Requested cache page %llu in state %s is not %s",
+				       (unsigned long long) info->pbn,
+				       get_page_state_name(info->state),
+				       vdo_page_comp->writable ? "present" :
+				       "valid");
 		finish_vdo_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
 		return;
 	}
@@ -714,11 +712,11 @@ static void set_persistent_error(struct vdo_page_cache *cache,
 	struct page_info *info;
 	// If we're already read-only, there's no need to log.
 	struct read_only_notifier *notifier = cache->zone->read_only_notifier;
-	if ((result != VDO_READ_ONLY) && !is_read_only(notifier)) {
-		log_error_strerror(result,
-				   "VDO Page Cache persistent error: %s",
-				   context);
-		enter_read_only_mode(notifier, result);
+	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(notifier)) {
+		uds_log_error_strerror(result,
+				       "VDO Page Cache persistent error: %s",
+				       context);
+		vdo_enter_read_only_mode(notifier, result);
 	}
 
 	assert_on_cache_thread(cache, __func__);
@@ -808,7 +806,7 @@ validate_completed_page(struct vdo_completion *completion, bool writable)
 }
 
 /**********************************************************************/
-bool is_page_cache_active(struct vdo_page_cache *cache)
+bool is_vdo_page_cache_active(struct vdo_page_cache *cache)
 {
 	return ((cache->outstanding_reads != 0) ||
 		(cache->outstanding_writes != 0));
@@ -830,12 +828,12 @@ static void page_is_loaded(struct vdo_completion *completion)
 	distribute_page_over_queue(info, &info->waiting);
 
 	/*
-	 * Don't decrement until right before calling check_for_drain_complete()
-	 * to ensure that the above work can't cause the page cache to be freed
-	 * out from under us.
+	 * Don't decrement until right before calling
+	 * vdo_check_for_drain_complete() to ensure that the above work can't
+	 * cause the page cache to be freed out from under us.
 	 */
 	cache->outstanding_reads--;
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -850,19 +848,20 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct vdo_page_cache *cache = info->cache;
 	assert_on_cache_thread(cache, __func__);
 
-	enter_read_only_mode(cache->zone->read_only_notifier, result);
+	vdo_enter_read_only_mode(cache->zone->read_only_notifier, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
 	distribute_error_over_queue(result, &info->waiting);
 	reset_page_info(info);
 
 	/*
-	 * Don't decrement until right before calling check_for_drain_complete()
+	 * Don't decrement until right before
+	 * calling vdo_check_for_drain_complete()
 	 * to ensure that the above work can't cause the page cache to be freed
 	 * out from under us.
 	 */
 	cache->outstanding_reads--;
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -989,7 +988,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	 * these pages were successfully persisted, and thus must issue a flush
 	 * before each batch of pages is written to ensure this.
 	 */
-	launch_flush(vio, write_pages, handle_flush_error);
+	launch_flush_vio(vio, write_pages, handle_flush_error);
 }
 
 /**
@@ -1064,7 +1063,7 @@ static void allocate_free_page(struct page_info *info)
 
 	if (!has_waiters(&cache->free_waiters)) {
 		if (cache->stats.cache_pressure > 0) {
-			log_info("page cache pressure relieved");
+			uds_log_info("page cache pressure relieved");
 			WRITE_ONCE(cache->stats.cache_pressure, 0);
 		}
 		return;
@@ -1112,7 +1111,7 @@ static void discard_a_page(struct vdo_page_cache *cache)
 		return;
 	}
 
-	if (!is_dirty(info)) {
+	if (!is_vdo_page_dirty(info)) {
 		allocate_free_page(info);
 		return;
 	}
@@ -1164,7 +1163,7 @@ void advance_vdo_page_cache_period(struct vdo_page_cache *cache,
 				   sequence_number_t period)
 {
 	assert_on_cache_thread(cache, __func__);
-	advance_period(cache->dirty_lists, period);
+	advance_vdo_dirty_lists_period(cache->dirty_lists, period);
 }
 
 /**
@@ -1203,7 +1202,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 
 		if (__ratelimit(&error_limiter)) {
 			uds_log_error("failed to write block map page %llu",
-				      info->pbn);
+				      (unsigned long long) info->pbn);
 		}
 	}
 
@@ -1215,7 +1214,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 		discard_page_if_needed(cache);
 	}
 
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1265,7 +1264,7 @@ static void page_is_written_out(struct vdo_completion *completion)
 		allocate_free_page(info);
 	}
 
-	check_for_drain_complete(cache->zone);
+	vdo_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1292,7 +1291,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 		struct list_head *entry = cache->outgoing_list.next;
 		struct page_info *info = page_info_from_state_entry(entry);
 		list_del_init(entry);
-		if (is_read_only(info->cache->zone->read_only_notifier)) {
+		if (vdo_is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
 			reset_vdo_completion(completion);
@@ -1385,7 +1384,7 @@ void get_vdo_page(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	if (vdo_page_comp->writable &&
-	    is_read_only(cache->zone->read_only_notifier)) {
+	    vdo_is_read_only(cache->zone->read_only_notifier)) {
 		finish_vdo_completion(completion, VDO_READ_ONLY);
 		return;
 	}
@@ -1396,7 +1395,7 @@ void get_vdo_page(struct vdo_completion *completion)
 		ADD_ONCE(cache->stats.read_count, 1);
 	}
 
-	info = vpc_find_page(cache, vdo_page_comp->pbn);
+	info = vdo_page_cache_find_page(cache, vdo_page_comp->pbn);
 	if (info != NULL) {
 		// The page is in the cache already.
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
@@ -1458,10 +1457,10 @@ void mark_completed_vdo_page_dirty(struct vdo_completion *completion,
 
 	info = vdo_page_comp->info;
 	set_info_state(info, PS_DIRTY);
-	add_to_dirty_lists(info->cache->dirty_lists,
-			   &info->state_entry,
-			   old_dirty_period,
-			   new_dirty_period);
+	add_to_vdo_dirty_lists(info->cache->dirty_lists,
+			       &info->state_entry,
+			       old_dirty_period,
+			       new_dirty_period);
 }
 
 /**********************************************************************/
@@ -1518,7 +1517,7 @@ void drain_vdo_page_cache(struct vdo_page_cache *cache)
 			"drain_vdo_page_cache() called during block map drain");
 
 	if (!is_vdo_state_suspending(&cache->zone->state)) {
-		flush_dirty_lists(cache->dirty_lists);
+		flush_vdo_dirty_lists(cache->dirty_lists);
 		save_pages(cache);
 	}
 }
@@ -1532,7 +1531,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	// Make sure we don't throw away any dirty pages.
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     info++) {
-		int result = ASSERT(!is_dirty(info),
+		int result = ASSERT(!is_vdo_page_dirty(info),
 				    "cache must have no dirty pages");
 		if (result != VDO_SUCCESS) {
 			return result;
@@ -1540,6 +1539,6 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	}
 
 	// Reset the page map by re-allocating it.
-	free_int_map(&cache->page_map);
+	free_int_map(UDS_FORGET(cache->page_map));
 	return make_int_map(cache->page_count, 0, &cache->page_map);
 }

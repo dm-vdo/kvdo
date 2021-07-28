@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueueSysfs.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueueSysfs.c#3 $
  */
 
 #include "workQueueSysfs.h"
@@ -70,9 +70,9 @@ static ssize_t work_functions_show(const struct vdo_work_queue *queue,
 {
 	const struct simple_work_queue *simple_queue =
 		as_const_simple_work_queue(queue);
-	return format_work_item_stats(&simple_queue->stats.work_item_stats,
-				      buf,
-				      PAGE_SIZE);
+	return format_vdo_work_item_stats(&simple_queue->stats.work_item_stats,
+					  buf,
+					  PAGE_SIZE);
 }
 
 /**********************************************************************/
@@ -178,11 +178,11 @@ static void work_queue_release(struct kobject *kobj)
 {
 	struct vdo_work_queue *queue =
 		container_of(kobj, struct vdo_work_queue, kobj);
-	FREE(queue->name);
+	UDS_FREE(queue->name);
 	if (queue->round_robin_mode) {
-		FREE(as_round_robin_work_queue(queue));
+		UDS_FREE(as_round_robin_work_queue(queue));
 	} else {
-		FREE(as_simple_work_queue(queue));
+		UDS_FREE(as_simple_work_queue(queue));
 	}
 }
 

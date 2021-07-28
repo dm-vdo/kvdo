@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockAllocatorInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockAllocatorInternals.h#2 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -38,11 +38,11 @@ enum {
 };
 
 enum block_allocator_drain_step {
-	DRAIN_ALLOCATOR_START = 0,
-	DRAIN_ALLOCATOR_STEP_SCRUBBER,
-	DRAIN_ALLOCATOR_STEP_SLABS,
-	DRAIN_ALLOCATOR_STEP_SUMMARY,
-	DRAIN_ALLOCATOR_STEP_FINISHED,
+	VDO_DRAIN_ALLOCATOR_START = 0,
+	VDO_DRAIN_ALLOCATOR_STEP_SCRUBBER,
+	VDO_DRAIN_ALLOCATOR_STEP_SLABS,
+	VDO_DRAIN_ALLOCATOR_STEP_SUMMARY,
+	VDO_DRAIN_ALLOCATOR_STEP_FINISHED,
 };
 
 /**

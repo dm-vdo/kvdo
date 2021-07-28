@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.c#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.c#3 $
  */
 
 #include "memoryAlloc.h"
@@ -24,16 +24,18 @@
 #include "stringUtils.h"
 
 /**********************************************************************/
-int duplicate_string(const char *string, const char *what, char **new_string)
+int uds_duplicate_string(const char *string, const char *what,
+			 char **new_string)
 {
-	return memdup(string, strlen(string) + 1, what, new_string);
+	return uds_memdup(string, strlen(string) + 1, what, new_string);
 }
 
 /**********************************************************************/
-int memdup(const void *buffer, size_t size, const char *what, void *dup_ptr)
+int uds_memdup(const void *buffer, size_t size, const char *what,
+	       void *dup_ptr)
 {
 	byte *dup;
-	int result = ALLOCATE(size, byte, what, &dup);
+	int result = UDS_ALLOCATE(size, byte, what, &dup);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

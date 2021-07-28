@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResizeLogical.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResizeLogical.h#2 $
  */
 
 #ifndef VDO_RESIZE_LOGICAL_H
@@ -33,7 +33,7 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
+int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
 /**
  * Prepare to grow the logical size of vdo. This method may only be called
@@ -44,6 +44,6 @@ int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepare_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
+int prepare_vdo_to_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks);
 
 #endif /* VDO_RESIZE_LOGICAL_H */

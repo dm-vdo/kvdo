@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/volumeGeometry.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/volumeGeometry.h#5 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -63,6 +63,22 @@ struct volume_geometry {
 	nonce_t nonce;
 	/** The uuid of this volume */
 	uuid_t uuid;
+	/** The block offset to be applied to bios */
+	block_count_t bio_offset;
+	/** The regions in ID order */
+	struct volume_region regions[VOLUME_REGION_COUNT];
+	/** The index config */
+	struct index_config index_config;
+} __packed;
+
+/** This volume geometry struct is used for sizing only */
+struct volume_geometry_4_0 {
+	/** The release version number of this volume */
+	release_version_number_t release_version;
+	/** The nonce of this volume */
+	nonce_t nonce;
+	/** The uuid of this volume */
+	uuid_t uuid;
 	/** The regions in ID order */
 	struct volume_region regions[VOLUME_REGION_COUNT];
 	/** The index config */
@@ -77,7 +93,7 @@ struct volume_geometry {
  * @return The start of the index region
  **/
 static inline physical_block_number_t __must_check
-get_index_region_offset(struct volume_geometry geometry)
+vdo_get_index_region_start(struct volume_geometry geometry)
 {
 	return geometry.regions[INDEX_REGION].start_block;
 }
@@ -90,7 +106,7 @@ get_index_region_offset(struct volume_geometry geometry)
  * @return The start of the data region
  **/
 static inline physical_block_number_t __must_check
-get_data_region_offset(struct volume_geometry geometry)
+vdo_get_data_region_start(struct volume_geometry geometry)
 {
 	return geometry.regions[DATA_REGION].start_block;
 }
@@ -103,20 +119,11 @@ get_data_region_offset(struct volume_geometry geometry)
  * @return the size of the index region
  **/
 static inline physical_block_number_t __must_check
-get_index_region_size(struct volume_geometry geometry)
+vdo_get_index_region_size(struct volume_geometry geometry)
 {
-	return get_data_region_offset(geometry) -
-		get_index_region_offset(geometry);
+	return vdo_get_data_region_start(geometry) -
+		vdo_get_index_region_start(geometry);
 }
-
-/**
- * Decode and validate an encoded geometry block.
- *
- * @param block     The encoded geometry block
- * @param geometry  The structure to receive the decoded fields
- **/
-int __must_check
-parse_geometry_block(byte *block, struct volume_geometry *geometry);
 
 /**
  * Synchronously read a geometry block from a block device.
@@ -127,8 +134,8 @@ parse_geometry_block(byte *block, struct volume_geometry *geometry);
  * @return VDO_SUCCESS or an error code
  **/
 int __must_check
-read_geometry_block(struct block_device *bdev,
-		    struct volume_geometry *geometry);
+vdo_read_geometry_block(struct block_device *bdev,
+			struct volume_geometry *geometry);
 
 /**
  * Convert an index config to a UDS configuration, which can be used by UDS.
@@ -139,8 +146,8 @@ read_geometry_block(struct block_device *bdev,
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-index_config_to_uds_configuration(const struct index_config *index_config,
-				  struct uds_configuration **uds_config_ptr);
+vdo_index_config_to_uds_configuration(const struct index_config *index_config,
+				      struct uds_configuration **uds_config_ptr);
 
 /**
  * Modify the uds_parameters to match the requested index config.
@@ -148,7 +155,7 @@ index_config_to_uds_configuration(const struct index_config *index_config,
  * @param index_config  The index config to convert
  * @param user_params   The uds_parameters to modify
  **/
-void index_config_to_uds_parameters(const struct index_config *index_config,
-				    struct uds_parameters *user_params);
+void vdo_index_config_to_uds_parameters(const struct index_config *index_config,
+					struct uds_parameters *user_params);
 
 #endif // VOLUME_GEOMETRY_H

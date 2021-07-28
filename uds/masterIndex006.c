@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#31 $
  */
 #include "masterIndex006.h"
 
@@ -114,9 +114,9 @@ static void free_volume_index_006(struct volume_index *volume_index)
 		if (vi6->zones != NULL) {
 			unsigned int zone;
 			for (zone = 0; zone < vi6->num_zones; zone++) {
-				destroy_mutex(&vi6->zones[zone].hook_mutex);
+				uds_destroy_mutex(&vi6->zones[zone].hook_mutex);
 			}
-			FREE(vi6->zones);
+			UDS_FREE(vi6->zones);
 			vi6->zones = NULL;
 		}
 		if (vi6->vi_non_hook != NULL) {
@@ -127,7 +127,7 @@ static void free_volume_index_006(struct volume_index *volume_index)
 			free_volume_index(vi6->vi_hook);
 			vi6->vi_hook = NULL;
 		}
-		FREE(volume_index);
+		UDS_FREE(volume_index);
 	}
 }
 
@@ -194,6 +194,7 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 			      unsigned int zone_number,
 			      struct buffered_writer *buffered_writer)
 {
+	struct vi006_data header;
 	const struct volume_index6 *vi6 =
 		const_container_of(volume_index, struct volume_index6, common);
 	struct buffer *buffer;
@@ -201,22 +202,22 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	struct vi006_data header;
 	memset(&header, 0, sizeof(header));
 	memcpy(header.magic, MAGIC_START, MAGIC_SIZE);
 	header.sparse_sample_rate = vi6->sparse_sample_rate;
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(&buffer);
+		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
+
 	result = write_to_buffered_writer(buffered_writer,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
-	free_buffer(&buffer);
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
-		log_warning_strerror(result,
-				     "failed to write volume index header");
+		uds_log_warning_strerror(result,
+					 "failed to write volume index header");
 		return result;
 	}
 
@@ -344,6 +345,7 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 {
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
+	int i;
 	int result =
 		ASSERT_WITH_ERROR_CODE(volume_index != NULL,
 				       UDS_BAD_STATE,
@@ -352,44 +354,48 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 		return result;
 	}
 
-	int i;
 	for (i = 0; i < num_readers; i++) {
+		struct vi006_data header;
 		struct buffer *buffer;
 		result = make_buffer(sizeof(struct vi006_data), &buffer);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		result = read_from_buffered_reader(buffered_readers[i],
 						   get_buffer_contents(buffer),
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
-			return log_warning_strerror(result,
-						    "failed to read volume index header");
+			free_buffer(UDS_FORGET(buffer));
+			return uds_log_warning_strerror(result,
+							"failed to read volume index header");
 		}
+
 		result = reset_buffer_end(buffer, buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(&buffer);
+			free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
-		struct vi006_data header;
+
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(&buffer);
+		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
+
 		if (memcmp(header.magic, MAGIC_START, MAGIC_SIZE) != 0) {
-			return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-						    "volume index file had bad magic number");
+			return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+							"volume index file had bad magic number");
 		}
+
 		if (i == 0) {
 			vi6->sparse_sample_rate = header.sparse_sample_rate;
 		} else if (vi6->sparse_sample_rate !=
 			   header.sparse_sample_rate) {
-			log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					     "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
-					     vi6->sparse_sample_rate,
-					     header.sparse_sample_rate);
+			uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						 "Inconsistent sparse sample rate in delta index zone files: %u vs. %u",
+						 vi6->sparse_sample_rate,
+						 header.sparse_sample_rate);
 			return UDS_CORRUPT_COMPONENT;
 		}
 	}
@@ -481,16 +487,16 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 {
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
+	struct mutex *mutex = &vi6->zones[zone_number].hook_mutex;
 	set_volume_index_zone_open_chapter(vi6->vi_non_hook, zone_number,
 					   virtual_chapter);
 
 	// We need to prevent a lookup_volume_index_name() happening while we
 	// are changing the open chapter number
-	struct mutex *mutex = &vi6->zones[zone_number].hook_mutex;
-	lock_mutex(mutex);
+	uds_lock_mutex(mutex);
 	set_volume_index_zone_open_chapter(vi6->vi_hook, zone_number,
 					   virtual_chapter);
-	unlock_mutex(mutex);
+	uds_unlock_mutex(mutex);
 }
 
 /**********************************************************************/
@@ -546,19 +552,19 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
 			     const struct uds_chunk_name *name,
 			     struct volume_index_triage *triage)
 {
+	int result = UDS_SUCCESS;
 	const struct volume_index6 *vi6 =
 		const_container_of(volume_index, struct volume_index6, common);
 	triage->is_sample = is_volume_index_sample_006(volume_index, name);
 	triage->in_sampled_chapter = false;
 	triage->zone = get_volume_index_zone_006(volume_index, name);
-	int result = UDS_SUCCESS;
 	if (triage->is_sample) {
 		struct mutex *mutex =
 			&vi6->zones[triage->zone].hook_mutex;
-		lock_mutex(mutex);
+		uds_lock_mutex(mutex);
 		result = lookup_volume_index_sampled_name(vi6->vi_hook, name,
 							  triage);
-		unlock_mutex(mutex);
+		uds_unlock_mutex(mutex);
 	}
 	return result;
 }
@@ -632,9 +638,9 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 		 */
 		unsigned int zone = get_volume_index_zone(vi6->vi_hook, name);
 		struct mutex *mutex = &vi6->zones[zone].hook_mutex;
-		lock_mutex(mutex);
+		uds_lock_mutex(mutex);
 		result = get_volume_index_record(vi6->vi_hook, name, record);
-		unlock_mutex(mutex);
+		uds_unlock_mutex(mutex);
 		// Remember the mutex so that other operations on the
 		// volume_index_record can use it
 		record->mutex = mutex;
@@ -696,6 +702,8 @@ struct split_config {
 static int split_configuration006(const struct configuration *config,
 				  struct split_config *split)
 {
+	uint64_t sample_rate, num_chapters, num_sparse_chapters;
+	uint64_t num_dense_chapters, sample_records;
 	int result = ASSERT_WITH_ERROR_CODE(config->geometry->sparse_chapters_per_volume != 0,
 					    UDS_INVALID_ARGUMENT,
 					    "cannot initialize sparse+dense volume index with no sparse chapters");
@@ -718,13 +726,11 @@ static int split_configuration006(const struct configuration *config,
 	split->non_hook_geometry = *config->geometry;
 	split->non_hook_config.geometry = &split->non_hook_geometry;
 
-	uint64_t sample_rate = config->sparse_sample_rate;
-	uint64_t num_chapters = config->geometry->chapters_per_volume;
-	uint64_t num_sparse_chapters =
-		config->geometry->sparse_chapters_per_volume;
-	uint64_t num_dense_chapters = num_chapters - num_sparse_chapters;
-	uint64_t sample_records =
-		config->geometry->records_per_chapter / sample_rate;
+	sample_rate = config->sparse_sample_rate;
+	num_chapters = config->geometry->chapters_per_volume;
+	num_sparse_chapters = config->geometry->sparse_chapters_per_volume;
+	num_dense_chapters = num_chapters - num_sparse_chapters;
+	sample_records = config->geometry->records_per_chapter / sample_rate;
 
 	// Adjust the number of records indexed for each chapter
 	split->hook_geometry.records_per_chapter = sample_records;
@@ -741,12 +747,12 @@ static int split_configuration006(const struct configuration *config,
 int compute_volume_index_save_bytes006(const struct configuration *config,
 				       size_t *num_bytes)
 {
+	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
 	int result = split_configuration006(config, &split);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	size_t hook_bytes, non_hook_bytes;
 	result = compute_volume_index_save_bytes005(&split.hook_config,
 						    &hook_bytes);
 	if (result != UDS_SUCCESS) {
@@ -770,13 +776,14 @@ int make_volume_index006(const struct configuration *config,
 			 struct volume_index **volume_index)
 {
 	struct split_config split;
+	unsigned int zone;
+	struct volume_index6 *vi6;
 	int result = split_configuration006(config, &split);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	struct volume_index6 *vi6;
-	result = ALLOCATE(1, struct volume_index6, "volume index", &vi6);
+	result = UDS_ALLOCATE(1, struct volume_index6, "volume index", &vi6);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -814,14 +821,13 @@ int make_volume_index006(const struct configuration *config,
 	vi6->num_zones = num_zones;
 	vi6->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = ALLOCATE(num_zones,
-			  struct volume_index_zone,
-			  "volume index zones",
-			  &vi6->zones);
-	unsigned int zone;
+	result = UDS_ALLOCATE(num_zones,
+			      struct volume_index_zone,
+			      "volume index zones",
+			      &vi6->zones);
 	for (zone = 0; zone < num_zones; zone++) {
 		if (result == UDS_SUCCESS) {
-			result = init_mutex(&vi6->zones[zone].hook_mutex);
+			result = uds_init_mutex(&vi6->zones[zone].hook_mutex);
 		}
 	}
 	if (result != UDS_SUCCESS) {
@@ -835,8 +841,8 @@ int make_volume_index006(const struct configuration *config,
 				      &vi6->vi_non_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index_006(&vi6->common);
-		return log_error_strerror(result,
-					  "Error creating non hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating non hook volume index");
 	}
 	set_volume_index_tag(vi6->vi_non_hook, 'd');
 
@@ -844,8 +850,8 @@ int make_volume_index006(const struct configuration *config,
 				      volume_nonce, &vi6->vi_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index_006(&vi6->common);
-		return log_error_strerror(result,
-					  "Error creating hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating hook volume index");
 	}
 	set_volume_index_tag(vi6->vi_hook, 's');
 

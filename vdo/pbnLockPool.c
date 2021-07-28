@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/pbnLockPool.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/pbnLockPool.c#5 $
  */
 
 #include "pbnLockPool.h"
@@ -58,12 +58,12 @@ struct pbn_lock_pool {
 };
 
 /**********************************************************************/
-int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
+int make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
 	struct pbn_lock_pool *pool;
-	int result = ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
-				       idle_pbn_lock, __func__, &pool);
+	int result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
+					   idle_pbn_lock, __func__, &pool);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -73,8 +73,7 @@ int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	INIT_LIST_HEAD(&pool->idle_list);
 
 	for (i = 0; i < capacity; i++) {
-		struct pbn_lock *lock = &pool->locks[i].lock;
-		return_pbn_lock_to_pool(pool, &lock);
+		return_vdo_pbn_lock_to_pool(pool, &pool->locks[i].lock);
 	}
 
 	*pool_ptr = pool;
@@ -82,34 +81,30 @@ int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 }
 
 /**********************************************************************/
-void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr)
+void free_vdo_pbn_lock_pool(struct pbn_lock_pool *pool)
 {
-	struct pbn_lock_pool *pool;
-
-	if (*pool_ptr == NULL) {
+	if (pool == NULL) {
 		return;
 	}
 
-	pool = *pool_ptr;
 	ASSERT_LOG_ONLY(pool->borrowed == 0,
 			"All PBN locks must be returned to the pool before it is freed, but %zu locks are still on loan",
 			pool->borrowed);
-	FREE(pool);
-	*pool_ptr = NULL;
+	UDS_FREE(pool);
 }
 
 /**********************************************************************/
-int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			      enum pbn_lock_type type,
-			      struct pbn_lock **lock_ptr)
+int borrow_vdo_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+				  enum pbn_lock_type type,
+				  struct pbn_lock **lock_ptr)
 {
 	int result;
 	struct list_head *idle_entry;
 	idle_pbn_lock *idle;
 
 	if (pool->borrowed >= pool->capacity) {
-		return log_error_strerror(VDO_LOCK_ERROR,
-					  "no free PBN locks left to borrow");
+		return uds_log_error_strerror(VDO_LOCK_ERROR,
+					      "no free PBN locks left to borrow");
 	}
 	pool->borrowed += 1;
 
@@ -124,21 +119,17 @@ int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	memset(idle_entry, 0, sizeof(*idle_entry));
 
 	idle = list_entry(idle_entry, idle_pbn_lock, entry);
-	initialize_pbn_lock(&idle->lock, type);
+	initialize_vdo_pbn_lock(&idle->lock, type);
 
 	*lock_ptr = &idle->lock;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
-			     struct pbn_lock **lock_ptr)
+void return_vdo_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+				 struct pbn_lock *lock)
 {
 	idle_pbn_lock *idle;
-
-	// Take what should be the last lock reference from the caller
-	struct pbn_lock *lock = *lock_ptr;
-	*lock_ptr = NULL;
 
 	// A bit expensive, but will promptly catch some use-after-free errors.
 	memset(lock, 0, sizeof(*lock));

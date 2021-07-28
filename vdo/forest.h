@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/forest.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/forest.h#2 $
  */
 
 #ifndef FOREST_H
@@ -64,12 +64,11 @@ get_vdo_tree_page_by_index(struct forest *forest,
 int __must_check make_vdo_forest(struct block_map *map, block_count_t entries);
 
 /**
- * Free a forest and all of the segments it contains and NULL out the reference
- * to it.
+ * Free a forest and all of the segments it contains.
  *
- * @param forest_ptr  A pointer to the forest to free
+ * @param forest  The forest to free
  **/
-void free_vdo_forest(struct forest **forest_ptr);
+void free_vdo_forest(struct forest *forest);
 
 /**
  * Abandon the unused next forest from a block_map.

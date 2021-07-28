@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournalInternals.h#2 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -145,8 +145,8 @@ struct slab_journal {
  * @return the offset corresponding to the sequence number
  **/
 static inline tail_block_offset_t __must_check
-get_slab_journal_block_offset(struct slab_journal *journal,
-			      sequence_number_t sequence)
+get_vdo_slab_journal_block_offset(struct slab_journal *journal,
+				  sequence_number_t sequence)
 {
 	return (sequence % journal->size);
 }
@@ -159,10 +159,10 @@ get_slab_journal_block_offset(struct slab_journal *journal,
  * @param sbn          The slab block number of the entry to encode
  * @param operation    The type of the entry
  **/
-void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
-			       slab_journal_payload *payload,
-			       slab_block_number sbn,
-			       enum journal_operation operation);
+void encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header,
+				   slab_journal_payload *payload,
+				   slab_block_number sbn,
+				   enum journal_operation operation);
 
 /**
  * Generate the packed encoding of a slab journal entry.
@@ -171,9 +171,9 @@ void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
  * @param sbn           The slab block number of the entry to encode
  * @param is_increment  The increment flag
  **/
-static inline void pack_slab_journal_entry(packed_slab_journal_entry *packed,
-					   slab_block_number sbn,
-					   bool is_increment)
+static inline void pack_vdo_slab_journal_entry(packed_slab_journal_entry *packed,
+					       slab_block_number sbn,
+					       bool is_increment)
 {
 	packed->offset_low8 = (sbn & 0x0000FF);
 	packed->offset_mid8 = (sbn & 0x00FF00) >> 8;
@@ -188,7 +188,7 @@ static inline void pack_slab_journal_entry(packed_slab_journal_entry *packed,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpack_slab_journal_block_header(
+unpack_vdo_slab_journal_block_header(
 	const struct packed_slab_journal_block_header *packed,
 	struct slab_journal_block_header *header)
 {

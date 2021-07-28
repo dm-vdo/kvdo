@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/cacheCounters.c#7 $
  */
 
 #include "cacheCounters.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "compiler.h"
 #include "errors.h"
 #include "permassert.h"
@@ -33,6 +34,8 @@ void increment_cache_counter(struct cache_counters *counters,
 			     int probe_type,
 			     enum cache_result_kind kind)
 {
+	struct cache_counts_by_kind *kind_counts;
+	uint64_t *my_counter;
 	enum cache_probe_type basic_probe_type =
 		probe_type & ~CACHE_PROBE_IGNORE_FAILURE;
 	int result = ASSERT(basic_probe_type <= CACHE_PROBE_RECORD_RETRY,
@@ -53,7 +56,6 @@ void increment_cache_counter(struct cache_counters *counters,
 		return;
 	}
 
-	struct cache_counts_by_kind *kind_counts;
 	switch (basic_probe_type) {
 	case CACHE_PROBE_INDEX_FIRST:
 		kind_counts = &counters->first_time.index_page;
@@ -72,7 +74,6 @@ void increment_cache_counter(struct cache_counters *counters,
 		return;
 	}
 
-	uint64_t *my_counter;
 	switch (kind) {
 	case CACHE_RESULT_MISS:
 		my_counter = &kind_counts->misses;

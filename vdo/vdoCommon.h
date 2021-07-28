@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/vdoCommon.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/vdoCommon.h#2 $
  */
 
 #ifndef VDO_COMMON_H
@@ -24,7 +24,7 @@
 
 enum {
 	// Whether the bio acknowledgement queue is used for acks of reads.
-	USE_BIO_ACK_QUEUE_FOR_READ = 0,
+	VDO_USE_BIO_ACK_QUEUE_FOR_READ = 0,
 };
 
 #endif /* VDO_COMMON_H */

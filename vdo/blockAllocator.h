@@ -16,14 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockAllocator.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockAllocator.h#2 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
 #define BLOCK_ALLOCATOR_H
 
-#include "completion.h"
-#include "fixedLayout.h"
 #include "statistics.h"
 #include "types.h"
 #include "vioPool.h"
@@ -54,11 +52,11 @@ make_vdo_block_allocator(struct slab_depot *depot,
 			 struct block_allocator **allocator_ptr);
 
 /**
- * Destroy a block allocator and null out the reference to it.
+ * Destroy a block allocator.
  *
- * @param block_allocator_ptr  The reference to the allocator to destroy
+ * @param allocator  The allocator to destroy
  **/
-void free_vdo_block_allocator(struct block_allocator **block_allocator_ptr);
+void free_vdo_block_allocator(struct block_allocator *allocator);
 
 /**
  * Queue a slab for allocation or scrubbing.

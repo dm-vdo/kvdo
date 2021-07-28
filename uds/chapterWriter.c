@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#28 $
  */
 
 #include "chapterWriter.h"
@@ -62,20 +62,21 @@ struct chapter_writer {
  **/
 static void close_chapters(void *arg)
 {
+	int result;
 	struct chapter_writer *writer = arg;
-	log_debug("chapter writer starting");
-	lock_mutex(&writer->mutex);
+	uds_log_debug("chapter writer starting");
+	uds_lock_mutex(&writer->mutex);
 	for (;;) {
 		while (writer->zones_to_write < writer->index->zone_count) {
 			if (writer->stop && (writer->zones_to_write == 0)) {
 				// We've been told to stop, and all of the
 				// zones are in the same open chapter, so we
 				// can exit now.
-				unlock_mutex(&writer->mutex);
-				log_debug("chapter writer stopping");
+				uds_unlock_mutex(&writer->mutex);
+				uds_log_debug("chapter writer stopping");
 				return;
 			}
-			wait_cond(&writer->cond, &writer->mutex);
+			uds_wait_cond(&writer->cond, &writer->mutex);
 		}
 
 		/*
@@ -84,9 +85,10 @@ static void close_chapters(void *arg)
 		 * access the chapter and chapterNumber fields without the lock
 		 * since those aren't allowed to change until we're done.
 		 */
-		unlock_mutex(&writer->mutex);
+		uds_unlock_mutex(&writer->mutex);
 
 		if (writer->index->has_saved_open_chapter) {
+			struct index_component *oc;
 			writer->index->has_saved_open_chapter = false;
 			/*
 			 * Remove the saved open chapter as that chapter is
@@ -94,16 +96,15 @@ static void close_chapters(void *arg)
 			 * first time we close the open chapter after loading
 			 * from a clean shutdown, or after doing a clean save.
 			 */
-			struct index_component *oc =
-				find_index_component(writer->index->state,
-			                             &OPEN_CHAPTER_INFO);
-			int result = discard_index_component(oc);
+			oc = find_index_component(writer->index->state,
+			                          &OPEN_CHAPTER_INFO);
+			result = discard_index_component(oc);
 			if (result == UDS_SUCCESS) {
-				log_debug("Discarding saved open chapter");
+				uds_log_debug("Discarding saved open chapter");
 			}
 		}
 
-		int result =
+		result =
 			close_open_chapter(writer->chapters,
 					   writer->index->zone_count,
 					   writer->index->volume,
@@ -116,13 +117,13 @@ static void close_chapters(void *arg)
 		}
 
 
-		lock_mutex(&writer->mutex);
+		uds_lock_mutex(&writer->mutex);
 		// Note that the index is totally finished with the writing
 		// chapter
 		advance_active_chapters(writer->index);
 		writer->result = result;
 		writer->zones_to_write = 0;
-		broadcast_cond(&writer->cond);
+		uds_broadcast_cond(&writer->cond);
 	}
 }
 
@@ -131,40 +132,41 @@ int make_chapter_writer(struct index *index,
 			const struct index_version *index_version,
 			struct chapter_writer **writer_ptr)
 {
+	size_t open_chapter_index_memory_allocated;
+	struct chapter_writer *writer;
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
 		 (1 + index->volume->geometry->records_per_chapter));
-	struct chapter_writer *writer;
-	int result = ALLOCATE_EXTENDED(struct chapter_writer,
-				       index->zone_count,
-				       struct open_chapter_zone *,
-				       "Chapter Writer",
-				       &writer);
+	int result = UDS_ALLOCATE_EXTENDED(struct chapter_writer,
+					   index->zone_count,
+					   struct open_chapter_zone *,
+					   "Chapter Writer",
+					   &writer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	writer->index = index;
 
-	result = init_mutex(&writer->mutex);
+	result = uds_init_mutex(&writer->mutex);
 	if (result != UDS_SUCCESS) {
-		FREE(writer);
+		UDS_FREE(writer);
 		return result;
 	}
-	result = init_cond(&writer->cond);
+	result = uds_init_cond(&writer->cond);
 	if (result != UDS_SUCCESS) {
-		destroy_mutex(&writer->mutex);
-		FREE(writer);
+		uds_destroy_mutex(&writer->mutex);
+		UDS_FREE(writer);
 		return result;
 	}
 
 	// Now that we have the mutex+cond, it is safe to call
 	// free_chapter_writer.
-	result = allocate_cache_aligned(collated_records_size,
-					"collated records",
-					&writer->collated_records);
+	result = uds_allocate_cache_aligned(collated_records_size,
+					    "collated records",
+					    &writer->collated_records);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 	result = make_open_chapter_index(
 		&writer->open_chapter_index,
@@ -173,10 +175,10 @@ int make_chapter_writer(struct index *index,
 		index->volume->nonce);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 
-	size_t open_chapter_index_memory_allocated =
+	open_chapter_index_memory_allocated =
 		get_open_chapter_index_memory_allocated(
 			writer->open_chapter_index);
 	writer->memory_allocated =
@@ -185,11 +187,11 @@ int make_chapter_writer(struct index *index,
 		 collated_records_size + open_chapter_index_memory_allocated);
 
 	// We're initialized, so now it's safe to start the writer thread.
-	result = create_thread(close_chapters, writer, "writer",
-			       &writer->thread);
+	result = uds_create_thread(close_chapters, writer, "writer",
+				   &writer->thread);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
-		return make_unrecoverable(result);
+		return result;
 	}
 
 	*writer_ptr = writer;
@@ -199,16 +201,17 @@ int make_chapter_writer(struct index *index,
 /**********************************************************************/
 void free_chapter_writer(struct chapter_writer *writer)
 {
+	int result __always_unused;
 	if (writer == NULL) {
 		return;
 	}
 
-	int result __always_unused = stop_chapter_writer(writer);
-	destroy_mutex(&writer->mutex);
-	destroy_cond(&writer->cond);
+	result = stop_chapter_writer(writer);
+	uds_destroy_mutex(&writer->mutex);
+	uds_destroy_cond(&writer->cond);
 	free_open_chapter_index(writer->open_chapter_index);
-	FREE(writer->collated_records);
-	FREE(writer);
+	UDS_FREE(writer->collated_records);
+	UDS_FREE(writer);
 }
 
 /**********************************************************************/
@@ -216,11 +219,12 @@ unsigned int start_closing_chapter(struct chapter_writer *writer,
 				   unsigned int zone_number,
 				   struct open_chapter_zone *chapter)
 {
-	lock_mutex(&writer->mutex);
-	unsigned int finished_zones = ++writer->zones_to_write;
+	unsigned int finished_zones;
+	uds_lock_mutex(&writer->mutex);
+	finished_zones = ++writer->zones_to_write;
 	writer->chapters[zone_number] = chapter;
-	broadcast_cond(&writer->cond);
-	unlock_mutex(&writer->mutex);
+	uds_broadcast_cond(&writer->cond);
+	uds_unlock_mutex(&writer->mutex);
 
 	return finished_zones;
 }
@@ -230,17 +234,17 @@ int finish_previous_chapter(struct chapter_writer *writer,
 			    uint64_t current_chapter_number)
 {
 	int result;
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	while (writer->index->newest_virtual_chapter <
 	       current_chapter_number) {
-		wait_cond(&writer->cond, &writer->mutex);
+		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
 	result = writer->result;
-	unlock_mutex(&writer->mutex);
+	uds_unlock_mutex(&writer->mutex);
 
 	if (result != UDS_SUCCESS) {
-		return log_unrecoverable(
-			result, "Writing of previous open chapter failed");
+		return uds_log_error_strerror(result,
+					      "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;
 }
@@ -248,37 +252,38 @@ int finish_previous_chapter(struct chapter_writer *writer,
 /**********************************************************************/
 void wait_for_idle_chapter_writer(struct chapter_writer *writer)
 {
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	while (writer->zones_to_write > 0) {
 		// The chapter writer is probably writing a chapter.  If it is
 		// not, it will soon wake up and write a chapter.
-		wait_cond(&writer->cond, &writer->mutex);
+		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
-	unlock_mutex(&writer->mutex);
+	uds_unlock_mutex(&writer->mutex);
 }
 
 /**********************************************************************/
 int stop_chapter_writer(struct chapter_writer *writer)
 {
+	int result;
 	struct thread *writer_thread = 0;
 
-	lock_mutex(&writer->mutex);
+	uds_lock_mutex(&writer->mutex);
 	if (writer->thread != 0) {
 		writer_thread = writer->thread;
 		writer->thread = 0;
 		writer->stop = true;
-		broadcast_cond(&writer->cond);
+		uds_broadcast_cond(&writer->cond);
 	}
-	int result = writer->result;
-	unlock_mutex(&writer->mutex);
+	result = writer->result;
+	uds_unlock_mutex(&writer->mutex);
 
 	if (writer_thread != 0) {
-		join_threads(writer_thread);
+		uds_join_threads(writer_thread);
 	}
 
 	if (result != UDS_SUCCESS) {
-		return log_unrecoverable(
-			result, "Writing of previous open chapter failed");
+		return uds_log_error_strerror(result,
+					      "Writing of previous open chapter failed");
 	}
 	return UDS_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/actionManager.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/actionManager.c#8 $
  */
 
 #include "actionManager.h"
@@ -35,7 +35,7 @@ struct action {
 	/** Whether this structure is in use */
 	bool in_use;
 	/** The admin operation associated with this action */
-	enum admin_state_code operation;
+	const struct admin_state_code *operation;
 	/**
 	 * The method to run on the initiator thread before the action is
 	 * applied to each zone.
@@ -92,7 +92,7 @@ struct action_manager {
 static inline struct action_manager *
 as_action_manager(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, ACTION_COMPLETION);
+	assert_vdo_completion_type(completion->type, VDO_ACTION_COMPLETION);
 	return container_of(completion, struct action_manager, completion);
 }
 
@@ -137,7 +137,7 @@ int make_vdo_action_manager(zone_count_t zones,
 			    struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
-	int result = ALLOCATE(1, struct action_manager, __func__, &manager);
+	int result = UDS_ALLOCATE(1, struct action_manager, __func__, &manager);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -154,26 +154,16 @@ int make_vdo_action_manager(zone_count_t zones,
 	manager->actions[0].next = &manager->actions[1];
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
-
-	initialize_vdo_completion(&manager->completion, vdo, ACTION_COMPLETION);
+	set_vdo_admin_state_code(&manager->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
+	initialize_vdo_completion(&manager->completion, vdo,
+				  VDO_ACTION_COMPLETION);
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void free_vdo_action_manager(struct action_manager **manager_ptr)
-{
-	struct action_manager *manager = *manager_ptr;
-	if (manager == NULL) {
-		return;
-	}
-
-	FREE(manager);
-	*manager_ptr = NULL;
-}
-
-/**********************************************************************/
-enum admin_state_code
+const struct admin_state_code *
 get_current_vdo_manager_operation(struct action_manager *manager)
 {
 	return get_vdo_admin_state_code(&manager->state);
@@ -242,7 +232,7 @@ static void apply_to_zone(struct vdo_completion *completion)
 {
 	zone_count_t zone;
 	struct action_manager *manager = as_action_manager(completion);
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 get_acting_zone_thread_id(manager)),
 			"apply_to_zone() called on acting zones's thread");
 
@@ -312,8 +302,9 @@ bool schedule_vdo_default_action(struct action_manager *manager)
 {
 	// Don't schedule a default action if we are operating or not in normal
 	// operation.
-	enum admin_state_code code = get_current_vdo_manager_operation(manager);
-	return ((code == ADMIN_STATE_NORMAL_OPERATION)
+	const struct admin_state_code *code
+		= get_current_vdo_manager_operation(manager);
+	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)
 		&& manager->scheduler(manager->context));
 }
 
@@ -340,7 +331,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	has_next_action = (manager->current_action->in_use
 			   || schedule_vdo_default_action(manager));
 	result = action.conclusion(manager->context);
-	finish_vdo_operation(&manager->state);
+	finish_vdo_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL) {
 		finish_vdo_completion(action.parent, result);
 	}
@@ -358,7 +349,7 @@ bool schedule_vdo_action(struct action_manager *manager,
 			 struct vdo_completion *parent)
 {
 	return schedule_vdo_operation(manager,
-				      ADMIN_STATE_OPERATING,
+				      VDO_ADMIN_STATE_OPERATING,
 				      preamble,
 				      action,
 				      conclusion,
@@ -367,7 +358,7 @@ bool schedule_vdo_action(struct action_manager *manager,
 
 /**********************************************************************/
 bool schedule_vdo_operation(struct action_manager *manager,
-			    enum admin_state_code operation,
+			    const struct admin_state_code *operation,
 			    vdo_action_preamble *preamble,
 			    vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
@@ -383,16 +374,17 @@ bool schedule_vdo_operation(struct action_manager *manager,
 }
 
 /**********************************************************************/
-bool schedule_vdo_operation_with_context(struct action_manager *manager,
-					 enum admin_state_code operation,
-					 vdo_action_preamble *preamble,
-					 vdo_zone_action *action,
-					 vdo_action_conclusion *conclusion,
-					 void *context,
-					 struct vdo_completion *parent)
+bool
+schedule_vdo_operation_with_context(struct action_manager *manager,
+				    const struct admin_state_code *operation,
+				    vdo_action_preamble *preamble,
+				    vdo_zone_action *action,
+				    vdo_action_conclusion *conclusion,
+				    void *context,
+				    struct vdo_completion *parent)
 {
 	struct action *current_action;
-	ASSERT_LOG_ONLY((get_callback_thread_id() ==
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 manager->initiator_thread_id),
 			"action initiated from correct thread");
 	if (!manager->current_action->in_use) {

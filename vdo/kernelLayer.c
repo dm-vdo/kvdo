@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#39 $
  */
 
 #include "kernelLayer.h"
@@ -41,6 +41,7 @@
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "vdoSuspend.h"
 #include "volumeGeometry.h"
 
 #include "bio.h"
@@ -91,40 +92,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 };
 
 /**********************************************************************/
-int map_to_system_error(int error)
-{
-	char error_name[80], error_message[ERRBUF_SIZE];
-
-	// 0 is success, negative a system error code
-	if (likely(error <= 0)) {
-		return error;
-	}
-	if (error < 1024) {
-		// errno macro used without negating - may be a minor bug
-		return -error;
-	}
-
-	// VDO or UDS error
-	switch (sans_unrecoverable(error)) {
-	case VDO_NO_SPACE:
-		return -ENOSPC;
-	case VDO_READ_ONLY:
-		return -EIO;
-	default:
-		log_info("%s: mapping internal status code %d (%s: %s) to EIO",
-			 __func__,
-			 error,
-			 string_error_name(error,
-					   error_name,
-					   sizeof(error_name)),
-			 uds_string_error(error,
-					  error_message,
-					  sizeof(error_message)));
-		return -EIO;
-	}
-}
-
-/**********************************************************************/
 static void set_kernel_layer_state(struct kernel_layer *layer,
 				   enum kernel_layer_state new_state)
 {
@@ -161,13 +128,13 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	bool has_discard_permit;
 	int result;
 
-	uds_log_warning("kvdo_map_bio called from within a VDO thread!");
+	uds_log_warning("vdo_launch_bio called from within a VDO thread!");
 	/*
 	 * We're not yet entirely sure what circumstances are causing this
 	 * situation in [ESC-638], but it does appear to be happening and
 	 * causing VDO to deadlock.
 	 *
-	 * Somehow kvdo_map_bio is being called from generic_make_request
+	 * Somehow vdo_launch_bio is being called from generic_make_request
 	 * which is being called from the VDO code to pass a flush on down to
 	 * the underlying storage system; we've got 2000 requests in progress,
 	 * so we have to wait for one to complete, but none can complete while
@@ -187,9 +154,9 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	 * through the kernel page cache or roll their own.
 	 */
 	if (!limiter_poll(&vdo->request_limiter)) {
-		add_to_deadlock_queue(&vdo->deadlock_queue,
-				      bio,
-				      arrival_jiffies);
+		add_to_vdo_deadlock_queue(&vdo->deadlock_queue,
+					  bio,
+					  arrival_jiffies);
 		uds_log_warning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
@@ -211,51 +178,51 @@ static int launch_data_vio_from_vdo_thread(struct vdo *vdo,
 	return DM_MAPIO_SUBMITTED;
 }
 
-
 /**********************************************************************/
-int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
+int vdo_launch_bio(struct vdo *vdo, struct bio *bio)
 {
 	int result;
 	uint64_t arrival_jiffies = jiffies;
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
+	enum kernel_layer_state state =
+		get_kernel_layer_state(vdo_as_kernel_layer(vdo));
 	struct vdo_work_queue *current_work_queue;
 	bool has_discard_permit = false;
 
 	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
-			"kvdo_map_bio should not be called while in state %d",
+			"vdo_launch_bio should not be called while in state %d",
 			state);
 
 	// Count all incoming bios.
-	count_bios(&layer->bios_in, bio);
+	vdo_count_bios(&vdo->stats.bios_in, bio);
 
 
 	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		launch_vdo_flush(&layer->vdo, bio);
+		launch_vdo_flush(vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
 
 	current_work_queue = get_current_work_queue();
 
 	if ((current_work_queue != NULL) &&
-	    (layer == get_work_queue_owner(current_work_queue))) {
+	    (vdo == get_work_queue_owner(current_work_queue))) {
 		/*
 		 * This prohibits sleeping during I/O submission to VDO from
 		 * its own thread.
 		 */
-		return launch_data_vio_from_vdo_thread(&layer->vdo,
+		return launch_data_vio_from_vdo_thread(vdo,
 						       bio,
 						       arrival_jiffies);
 	}
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		limiter_wait_for_one_free(&layer->vdo.discard_limiter);
+		limiter_wait_for_one_free(&vdo->discard_limiter);
 		has_discard_permit = true;
 	}
-	limiter_wait_for_one_free(&layer->vdo.request_limiter);
+	limiter_wait_for_one_free(&vdo->request_limiter);
 
-	result = vdo_launch_data_vio_from_bio(&layer->vdo,
+	result = vdo_launch_data_vio_from_bio(vdo,
 					      bio,
 					      arrival_jiffies,
 					      has_discard_permit);
@@ -277,8 +244,8 @@ void complete_many_requests(struct vdo *vdo, uint32_t count)
 		bool has_discard_permit;
 		int result;
 		uint64_t arrival_jiffies = 0;
-		struct bio *bio = poll_deadlock_queue(&vdo->deadlock_queue,
-						      &arrival_jiffies);
+		struct bio *bio = poll_vdo_deadlock_queue(&vdo->deadlock_queue,
+							  &arrival_jiffies);
 		if (likely(bio == NULL)) {
 			break;
 		}
@@ -291,7 +258,7 @@ void complete_many_requests(struct vdo *vdo, uint32_t count)
 						      arrival_jiffies,
 						      has_discard_permit);
 		if (result != VDO_SUCCESS) {
-			complete_bio(bio, result);
+			vdo_complete_bio(bio, result);
 		}
 		// Succeed or fail, vdo_launch_data_vio_from_bio owns the
 		// permit(s) now.
@@ -309,8 +276,9 @@ int make_kernel_layer(unsigned int instance,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
 {
-	int result, i;
+	int result;
 	struct kernel_layer *layer;
+	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
@@ -321,15 +289,17 @@ int make_kernel_layer(unsigned int instance,
 	 * works correctly through the freeing of the kernel layer. After this
 	 * part you must use free_kernel_layer.
 	 */
-	result = ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
+	result = UDS_ALLOCATE(1,
+			      struct kernel_layer,
+			      "VDO configuration",
+			      &layer);
 	if (result != UDS_SUCCESS) {
-		*reason = "Cannot allocate VDO configuration";
+		*reason = "Cannot allocate VDO";
 		release_vdo_instance(instance);
 		return result;
 	}
 
 	result = initialize_vdo(&layer->vdo,
-				&layer->common,
 				config,
 				instance,
 				reason);
@@ -357,74 +327,38 @@ int make_kernel_layer(unsigned int instance,
 	 * pointer, which can be easily undone by freeing all of the non-NULL
 	 * pointers (using the proper free routine).
 	 */
-	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
-
-	mutex_init(&layer->stats_mutex);
-
-	result = register_vdo(&layer->vdo);
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot add layer to device registry";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	snprintf(layer->thread_name_prefix,
-		 sizeof(layer->thread_name_prefix),
+	snprintf(thread_name_prefix,
+		 sizeof(thread_name_prefix),
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
 
-	result = make_batch_processor(layer,
+	result = make_batch_processor(&layer->vdo,
 				      return_data_vio_batch_to_pool,
-				      layer,
-				      &layer->data_vio_releaser);
+				      &layer->vdo,
+				      &layer->vdo.data_vio_releaser);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate vio-freeing batch processor";
 		free_kernel_layer(layer);
 		return result;
 	}
 
-	// Spare kvdo_flush, so that we will always have at least one available
-
 	// Dedupe Index
-	BUG_ON(layer->thread_name_prefix[0] == '\0');
-	result = make_dedupe_index(&layer->dedupe_index, &layer->vdo);
+	BUG_ON(thread_name_prefix[0] == '\0');
+	result = make_vdo_dedupe_index(&layer->vdo.dedupe_index,
+				       &layer->vdo,
+				       thread_name_prefix);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);
 		return result;
 	}
 
-	// Compression context storage
-	result = ALLOCATE(config->thread_counts.cpu_threads,
-			  char *,
-			  "LZ4 context",
-			  &layer->compression_context);
-	if (result != VDO_SUCCESS) {
-		*reason = "cannot allocate LZ4 context";
-		free_kernel_layer(layer);
-		return result;
-	}
-
-	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = ALLOCATE(LZ4_MEM_COMPRESS,
-				  char,
-				  "LZ4 context",
-				  &layer->compression_context[i]);
-		if (result != VDO_SUCCESS) {
-			*reason = "cannot allocate LZ4 context";
-			free_kernel_layer(layer);
-			return result;
-		}
-	}
-
-
 	/*
 	 * Part 3 - Do initializations that depend upon other previous
 	 * initializations, but have no order dependencies at freeing time.
 	 * Order dependencies for initialization are identified using BUG_ON.
 	 */
-	set_kernel_layer_state(layer, LAYER_BUFFER_POOLS_INITIALIZED);
 
 
 	// Data vio pool
@@ -432,7 +366,7 @@ int make_kernel_layer(unsigned int instance,
 	BUG_ON(layer->vdo.request_limiter.limit <= 0);
 	BUG_ON(layer->vdo.device_config->owned_device == NULL);
 	result = make_data_vio_buffer_pool(layer->vdo.request_limiter.limit,
-					   &layer->data_vio_pool);
+					   &layer->vdo.data_vio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
 		free_kernel_layer(layer);
@@ -446,21 +380,19 @@ int make_kernel_layer(unsigned int instance,
 	 */
 
 	// Base-code thread, etc
-	result = make_vdo_threads(&layer->vdo, reason);
+	result = make_vdo_threads(&layer->vdo, thread_name_prefix, reason);
 	if (result != VDO_SUCCESS) {
 		free_kernel_layer(layer);
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
-
 	// Bio queue
-	result = make_io_submitter(layer->thread_name_prefix,
-				   config->thread_counts.bio_threads,
-				   config->thread_counts.bio_rotation_interval,
-				   layer->vdo.request_limiter.limit,
-				   layer,
-				   &layer->vdo.io_submitter);
+	result = make_vdo_io_submitter(thread_name_prefix,
+				       config->thread_counts.bio_threads,
+				       config->thread_counts.bio_rotation_interval,
+				       layer->vdo.request_limiter.limit,
+				       &layer->vdo,
+				       &layer->vdo.io_submitter);
 	if (result != VDO_SUCCESS) {
 		// If initialization of the bio-queues failed, they are cleaned
 		// up already, so just free the rest of the kernel layer.
@@ -468,19 +400,18 @@ int make_kernel_layer(unsigned int instance,
 		*reason = "bio submission initialization failed";
 		return result;
 	}
-	set_kernel_layer_state(layer, LAYER_BIO_DATA_INITIALIZED);
 
 	// Bio ack queue
 	if (use_bio_ack_queue(&layer->vdo)) {
-		result = make_work_queue(layer->thread_name_prefix,
+		result = make_work_queue(thread_name_prefix,
 					 "ackQ",
 					 &layer->vdo.work_queue_directory,
-					 layer,
+					 &layer->vdo,
 					 layer,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
 					 NULL,
-					 &layer->bio_ack_queue);
+					 &layer->vdo.bio_ack_queue);
 		if (result != VDO_SUCCESS) {
 			*reason = "bio ack queue initialization failed";
 			free_kernel_layer(layer);
@@ -488,26 +419,23 @@ int make_kernel_layer(unsigned int instance,
 		}
 	}
 
-	set_kernel_layer_state(layer, LAYER_BIO_ACK_QUEUE_INITIALIZED);
-
 	// CPU Queues
-	result = make_work_queue(layer->thread_name_prefix,
+	result = make_work_queue(thread_name_prefix,
 				 "cpuQ",
 				 &layer->vdo.work_queue_directory,
-				 layer,
+				 &layer->vdo,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) layer->compression_context,
-				 &layer->cpu_queue);
+				 (void **) layer->vdo.compression_context,
+				 &layer->vdo.cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
 		free_kernel_layer(layer);
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_CPU_QUEUE_INITIALIZED);
-
+	set_kernel_layer_state(layer, LAYER_INITIALIZED);
 	*layer_ptr = layer;
 	return VDO_SUCCESS;
 }
@@ -562,7 +490,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		result = prepare_to_resize_logical(
 			layer, logical_bytes / VDO_BLOCK_SIZE);
 		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device prepare_to_grow_logical failed";
+			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
 			return result;
 		}
 	}
@@ -572,9 +500,9 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 			layer, config->physical_blocks);
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_TOO_MANY_SLABS) {
-				*error_ptr = "Device prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
 			} else {
-				*error_ptr = "Device prepare_to_grow_physical failed";
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed";
 			}
 			return result;
 		}
@@ -583,10 +511,10 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		   extant_config->parent_device_name) != 0) {
 		const char *device_name
 			= get_vdo_device_name(config->owning_target);
-	        log_info("Updating backing device of %s from %s to %s",
-			 device_name,
-	                 extant_config->parent_device_name,
-	                 config->parent_device_name);
+	        uds_log_info("Updating backing device of %s from %s to %s",
+			     device_name,
+	                     extant_config->parent_device_name,
+	                     config->parent_device_name);
 	}
 
 	return VDO_SUCCESS;
@@ -634,18 +562,6 @@ int modify_kernel_layer(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
-static void free_compression_context(struct kernel_layer *layer)
-{
-	int i;
-	for (i = 0;
-	     i < layer->vdo.device_config->thread_counts.cpu_threads;
-	     i++) {
-		FREE(layer->compression_context[i]);
-	}
-	FREE(layer->compression_context);
-}
-
-/**********************************************************************/
 void free_kernel_layer(struct kernel_layer *layer)
 {
 	/*
@@ -654,9 +570,6 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 * need to store information to enable a late-in-process deallocation
 	 * of funnel-queue data structures in work queues.
 	 */
-	bool used_bio_ack_queue = false;
-	bool used_cpu_queue = false;
-
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
 
 	switch (state) {
@@ -666,66 +579,22 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_STARTING:
 	case LAYER_RESUMING:
 	case LAYER_SUSPENDED:
 		stop_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_STOPPED:
-	case LAYER_CPU_QUEUE_INITIALIZED:
-		finish_work_queue(layer->cpu_queue);
-		used_cpu_queue = true;
-		// fall through
-
-	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
-		if (use_bio_ack_queue(&layer->vdo)) {
-			finish_work_queue(layer->bio_ack_queue);
-			used_bio_ack_queue = true;
-		}
-		// fall through
-
-	case LAYER_BIO_DATA_INITIALIZED:
-		cleanup_io_submitter(layer->vdo.io_submitter);
-		// fall through
-
-	case LAYER_REQUEST_QUEUE_INITIALIZED:
-		finish_vdo(&layer->vdo);
-		// fall through
-
-	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(&layer->data_vio_pool);
-		// fall through
-
-	case LAYER_SIMPLE_THINGS_INITIALIZED:
-		if (layer->compression_context != NULL) {
-			free_compression_context(layer);
-		}
-		if (layer->dedupe_index != NULL) {
-			finish_dedupe_index(layer->dedupe_index);
-		}
-		free_batch_processor(&layer->data_vio_releaser);
-		unregister_vdo(&layer->vdo);
+	case LAYER_INITIALIZED:
 		break;
 
 	default:
 		uds_log_error("Unknown Kernel Layer state: %d", state);
 	}
 
-	// Late deallocation of resources in work queues.
-	if (used_cpu_queue) {
-		free_work_queue(&layer->cpu_queue);
-	}
-	if (used_bio_ack_queue) {
-		free_work_queue(&layer->bio_ack_queue);
-	}
-	if (layer->vdo.io_submitter) {
-		free_io_submitter(layer->vdo.io_submitter);
-	}
-
-	free_dedupe_index(&layer->dedupe_index);
 	destroy_vdo(&layer->vdo);
 }
 
@@ -733,7 +602,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 static void pool_stats_release(struct kobject *directory)
 {
 	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
-	complete(&(vdo_as_kernel_layer(vdo)->stats_shutdown));
+	complete(&vdo->stats_shutdown);
 }
 
 /**********************************************************************/
@@ -741,7 +610,7 @@ int preload_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	int result;
 
-	if (get_kernel_layer_state(layer) != LAYER_CPU_QUEUE_INITIALIZED) {
+	if (get_kernel_layer_state(layer) != LAYER_INITIALIZED) {
 		*reason = "preload_kernel_layer() may only be invoked after initialization";
 		return UDS_BAD_STATE;
 	}
@@ -762,8 +631,8 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	static struct kobj_type stats_directory_type = {
 		.release = pool_stats_release,
-		.sysfs_ops = &pool_stats_sysfs_ops,
-		.default_attrs = pool_stats_attrs,
+		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
+		.default_attrs = vdo_pool_stats_attrs,
 	};
 	int result;
 
@@ -773,8 +642,9 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		return UDS_BAD_STATE;
 	}
 
-	result = start_vdo(&layer->vdo, reason);
-	if (result != VDO_SUCCESS) {
+	result = load_vdo(&layer->vdo);
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		*reason = "Cannot load metadata from device";
 		stop_kernel_layer(layer);
 		return result;
 	}
@@ -789,13 +659,14 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		stop_kernel_layer(layer);
 		return result;
 	}
-	layer->stats_added = true;
+	layer->vdo.stats_added = true;
 
 	if (layer->vdo.device_config->deduplication) {
 		// Don't try to load or rebuild the index first (and log
 		// scary error messages) if this is known to be a
 		// newly-formatted volume.
-		start_dedupe_index(layer->dedupe_index, was_new(&layer->vdo));
+		start_vdo_dedupe_index(layer->vdo.dedupe_index,
+				       vdo_was_new(&layer->vdo));
 	}
 
 	layer->vdo.allocations_allowed = false;
@@ -809,55 +680,28 @@ void stop_kernel_layer(struct kernel_layer *layer)
 
 	// Stop services that need to gather VDO statistics from the worker
 	// threads.
-	if (layer->stats_added) {
-		layer->stats_added = false;
-		init_completion(&layer->stats_shutdown);
+	if (layer->vdo.stats_added) {
+		layer->vdo.stats_added = false;
+		init_completion(&layer->vdo.stats_shutdown);
 		kobject_put(&layer->vdo.stats_directory);
-		wait_for_completion(&layer->stats_shutdown);
+		wait_for_completion(&layer->vdo.stats_shutdown);
 	}
 
 	switch (get_kernel_layer_state(layer)) {
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
-		// fall through
+		fallthrough;
 
 	case LAYER_SUSPENDED:
 		set_kernel_layer_state(layer, LAYER_STOPPING);
-		stop_dedupe_index(layer->dedupe_index);
-		// fall through
+		stop_vdo_dedupe_index(layer->vdo.dedupe_index);
+		fallthrough;
 
 	case LAYER_STOPPING:
 	case LAYER_STOPPED:
 	default:
 		set_kernel_layer_state(layer, LAYER_STOPPED);
 	}
-}
-
-/**
- * Issue a flush request and wait for it to complete.
- *
- * @param layer The kernel layer
- *
- * @return VDO_SUCCESS or an error
- */
-static int synchronous_flush(struct kernel_layer *layer)
-{
-	int result;
-	struct bio bio;
-	bio_init(&bio, 0, 0);
-	bio_set_dev(&bio, get_vdo_backing_device(&layer->vdo));
-	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-	submit_bio_wait(&bio);
-	result = blk_status_to_errno(bio.bi_status);
-
-	atomic64_inc(&layer->flush_out);
-	if (result != 0) {
-		log_error_strerror(result, "synchronous flush failed");
-		result = -EIO;
-	}
-
-	bio_uninit(&bio);
-	return result;
 }
 
 /**********************************************************************/
@@ -868,42 +712,14 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
-	int result, suspend_result;
+	int result = suspend_vdo(&layer->vdo);
 
-	if (state == LAYER_SUSPENDED) {
-		return VDO_SUCCESS;
-	}
-	if (state != LAYER_RUNNING) {
+	if (result == VDO_INVALID_ADMIN_STATE) {
 		uds_log_error("Suspend invoked while in unexpected kernel layer state %d",
-			      state);
+			      get_kernel_layer_state(layer));
 		return -EINVAL;
 	}
 
-	/*
-	 * Attempt to flush all I/O before completing post suspend work. We
-	 * believe a suspended device is expected to have persisted all data
-	 * written before the suspend, even if it hasn't been flushed yet.
-	 */
-	vdo_wait_for_no_requests_active(&layer->vdo);
-	result = synchronous_flush(layer);
-	if (result != VDO_SUCCESS) {
-		set_vdo_read_only(&layer->vdo, result);
-	}
-
-	/*
-	 * Suspend the VDO, writing out all dirty metadata if the no-flush flag
-	 * was not set on the dmsetup suspend call. This will ensure that we
-	 * don't have cause to write while suspended [VDO-4402].
-	 */
-	suspend_result = suspend_vdo(&layer->vdo);
-
-	if (result == VDO_SUCCESS) {
-		result = suspend_result;
-	}
-
-	suspend_dedupe_index(layer->dedupe_index,
-			     !layer->vdo.no_flush_suspend);
 	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
 }
@@ -917,7 +733,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 
-	resume_dedupe_index(layer->dedupe_index);
+	resume_vdo_dedupe_index(layer->vdo.dedupe_index);
 	result = resume_vdo(&layer->vdo);
 
 	if (result != VDO_SUCCESS) {
@@ -934,12 +750,12 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 {
 	int result;
 
-	log_info("Preparing to resize physical to %llu", physical_count);
+	uds_log_info("Preparing to resize physical to %llu", physical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_to_grow_physical(&layer->vdo, physical_count);
+	result = prepare_vdo_to_grow_physical(&layer->vdo, physical_count);
 	if (result != VDO_SUCCESS) {
-		// prepare_to_grow_physical logs errors.
+		// prepare_vdo_to_grow_physical logs errors.
 		if (result == VDO_PARAMETER_MISMATCH) {
 			/*
 			 * If we don't trap this case, map_to_system_error()
@@ -952,7 +768,7 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
 		}
 	}
 
-	log_info("Done preparing to resize physical");
+	uds_log_info("Done preparing to resize physical");
 	return VDO_SUCCESS;
 }
 
@@ -979,17 +795,17 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 {
 	int result;
 
-	log_info("Preparing to resize logical to %llu", logical_count);
+	uds_log_info("Preparing to resize logical to %llu", logical_count);
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_to_grow_logical(&layer->vdo, logical_count);
+	result = prepare_vdo_to_grow_logical(&layer->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
-		// prepare_to_grow_logical logs errors
+		// prepare_vdo_to_grow_logical logs errors
 		return result;
 	}
 
-	log_info("Done preparing to resize logical");
+	uds_log_info("Done preparing to resize logical");
 	return VDO_SUCCESS;
 }
 
@@ -998,9 +814,9 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 {
 	int result;
 
-	log_info("Resizing logical to %llu", logical_count);
+	uds_log_info("Resizing logical to %llu", logical_count);
 	/*
-	 * We must not mark the layer as allowing allocations when it is
+	 * We must not mark the VDO as allowing allocations when it is
 	 * suspended lest an allocation attempt block on writing IO to the
 	 * suspended VDO.
 	 */
@@ -1011,7 +827,7 @@ int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
 		return result;
 	}
 
-	log_info("Logical blocks now %llu", logical_count);
+	uds_log_info("Logical blocks now %llu", logical_count);
 	return VDO_SUCCESS;
 }
 

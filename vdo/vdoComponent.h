@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoComponent.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoComponent.h#3 $
  */
 
 #ifndef VDO_COMPONENT_H
@@ -28,16 +28,27 @@
 #include "vdoState.h"
 
 /**
+ * The configuration of the VDO service.
+ **/
+struct vdo_config {
+	block_count_t logical_blocks; ///< number of logical blocks
+	block_count_t physical_blocks; ///< number of physical blocks
+	block_count_t slab_size; ///< number of blocks in a slab
+	block_count_t recovery_journal_size; ///< number of recovery journal blocks
+	block_count_t slab_journal_blocks; ///< number of slab journal blocks
+};
+
+/**
  * This is the structure that captures the vdo fields saved as a super block
  * component.
  **/
-struct vdo_component_41_0 {
+struct vdo_component {
 	enum vdo_state state;
 	uint64_t complete_recoveries;
 	uint64_t read_only_recoveries;
 	struct vdo_config config;
 	nonce_t nonce;
-} __packed;
+};
 
 /**
  * Get the size of the encoded state of the vdo itself.
@@ -49,27 +60,26 @@ size_t __must_check get_vdo_component_encoded_size(void);
 /**
  * Encode the component data for the vdo itself.
  *
- * @param state   The vdo component state
- * @param buffer  The buffer in which to encode the vdo
+ * @param component  The component structure
+ * @param buffer     The buffer in which to encode the vdo
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-encode_vdo_component(struct vdo_component_41_0 state, struct buffer *buffer);
+encode_vdo_component(struct vdo_component component, struct buffer *buffer);
 
 /**
  * Decode the component data for the vdo itself from the component data buffer
  * in the super block.
  *
- * @param buffer         The buffer being decoded
- * @param component_ptr  A pointer to the component structure in which to store
- *                       the result of a successful decode
+ * @param buffer     The buffer being decoded
+ * @param component  The component structure in which to store
+ *                   the result of a successful decode
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-decode_vdo_component(struct buffer *buffer,
-		     struct vdo_component_41_0 *component_ptr);
+decode_vdo_component(struct buffer *buffer, struct vdo_component *component);
 
 /**
  * Validate constraints on a VDO config.

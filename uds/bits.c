@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/bits.c#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/bits.c#7 $
  */
 
 #include "bits.h"
@@ -100,6 +100,9 @@ void move_bits(const byte *s_memory,
 	enum { UINT32_BIT = sizeof(uint32_t) * CHAR_BIT };
 	if (size > MAX_BIG_FIELD_BITS) {
 		if (source > destination) {
+			const byte *src;
+			byte *dest;
+			int offset;
 			// This is a large move from a higher to a lower
 			// address.  We move the lower addressed bits first.
 			// Start by moving one field that ends on a destination
@@ -115,10 +118,9 @@ void move_bits(const byte *s_memory,
 			size -= count;
 			// Now do the main loop to copy 32 bit chunks that are
 			// int-aligned at the destination.
-			int offset = source % UINT32_BIT;
-			const byte *src =
-				s_memory + (source - offset) / CHAR_BIT;
-			byte *dest = d_memory + destination / CHAR_BIT;
+			offset = source % UINT32_BIT;
+			src = s_memory + (source - offset) / CHAR_BIT;
+			dest = d_memory + destination / CHAR_BIT;
 			while (size > MAX_BIG_FIELD_BITS) {
 				put_unaligned_le32(get_unaligned_le64(src) >>
 							   offset,
@@ -130,16 +132,18 @@ void move_bits(const byte *s_memory,
 				size -= UINT32_BIT;
 			}
 		} else {
+			const byte *src;
+			byte *dest;
 			// This is a large move from a lower to a higher
 			// address.  We move the higher addressed bits first.
 			// Start by moving one field that begins on a
 			// destination int boundary
-			int count = (destination + size) % UINT32_BIT;
+			int offset, count = (destination + size) % UINT32_BIT;
 			if (count > 0) {
+				uint64_t field;
 				size -= count;
-				uint64_t field = get_big_field(s_memory,
-							       source + size,
-							       count);
+				field = get_big_field(s_memory, source + size,
+						      count);
 				set_big_field(field,
 					      d_memory,
 					      destination + size,
@@ -147,11 +151,9 @@ void move_bits(const byte *s_memory,
 			}
 			// Now do the main loop to copy 32 bit chunks that are
 			// int-aligned at the destination.
-			int offset = (source + size) % UINT32_BIT;
-			const byte *src =
-				s_memory + (source + size - offset) / CHAR_BIT;
-			byte *dest =
-				d_memory + (destination + size) / CHAR_BIT;
+			offset = (source + size) % UINT32_BIT;
+			src = s_memory + (source + size - offset) / CHAR_BIT;
+			dest = d_memory + (destination + size) / CHAR_BIT;
 			while (size > MAX_BIG_FIELD_BITS) {
 				src -= sizeof(uint32_t);
 				dest -= sizeof(uint32_t);

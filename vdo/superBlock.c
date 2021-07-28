@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/superBlock.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/superBlock.c#8 $
  */
 
 #include "superBlock.h"
@@ -56,33 +56,36 @@ allocate_super_block(struct vdo *vdo,
 		     struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
-
-	int result =
-		ALLOCATE(1, struct vdo_super_block, __func__, super_block_ptr);
+	char *buffer;
+	int result = UDS_ALLOCATE(1, struct vdo_super_block, __func__,
+				  super_block_ptr);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	super_block = *super_block_ptr;
-	result = initialize_super_block_codec(&super_block->codec);
+	result = initialize_vdo_super_block_codec(&super_block->codec);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	return create_metadata_vio(vdo, VIO_TYPE_SUPER_BLOCK,
-				   VIO_PRIORITY_METADATA, super_block,
-				   (char *) super_block->codec.encoded_super_block,
+	buffer = (char *) super_block->codec.encoded_super_block;
+	return create_metadata_vio(vdo,
+				   VIO_TYPE_SUPER_BLOCK,
+				   VIO_PRIORITY_METADATA,
+				   super_block,
+				   buffer,
 				   &super_block->vio);
 }
 
 /**********************************************************************/
-int make_super_block(struct vdo *vdo,
-		     struct vdo_super_block **super_block_ptr)
+int make_vdo_super_block(struct vdo *vdo,
+			 struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
 	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
+		free_vdo_super_block(super_block);
 		return result;
 	}
 
@@ -91,24 +94,21 @@ int make_super_block(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_super_block(struct vdo_super_block **super_block_ptr)
+void free_vdo_super_block(struct vdo_super_block *super_block)
 {
-	struct vdo_super_block *super_block;
-	if (*super_block_ptr == NULL) {
+	if (super_block == NULL) {
 		return;
 	}
 
-	super_block = *super_block_ptr;
-	free_vio(&super_block->vio);
-	destroy_super_block_codec(&super_block->codec);
-	FREE(super_block);
-	*super_block_ptr = NULL;
+	free_vio(UDS_FORGET(super_block->vio));
+	destroy_vdo_super_block_codec(&super_block->codec);
+	UDS_FREE(super_block);
 }
 
 /**
  * Finish the parent of a super block load or save operation. This
- * callback is registered in save_super_block() and
- * load_super_block().
+ * callback is registered in save_vdo_super_block() and
+ * load_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -122,13 +122,13 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 
 /**
  * Log a super block save error. This error handler is registered in
- * save_super_block().
+ * save_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
 static void handle_save_error(struct vdo_completion *completion)
 {
-	log_error_strerror(completion->result, "super block save failed");
+	uds_log_error_strerror(completion->result, "super block save failed");
 	/*
 	 * Mark the super block as unwritable so that we won't attempt to write
 	 * it again. This avoids the case where a growth attempt fails writing
@@ -143,9 +143,9 @@ static void handle_save_error(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void save_super_block(struct vdo_super_block *super_block,
-		      physical_block_number_t super_block_offset,
-		      struct vdo_completion *parent)
+void save_vdo_super_block(struct vdo_super_block *super_block,
+			  physical_block_number_t super_block_offset,
+			  struct vdo_completion *parent)
 {
 	int result;
 
@@ -159,7 +159,7 @@ void save_super_block(struct vdo_super_block *super_block,
 		return;
 	}
 
-	result = encode_super_block(&super_block->codec);
+	result = encode_vdo_super_block(&super_block->codec);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;
@@ -177,7 +177,7 @@ void save_super_block(struct vdo_super_block *super_block,
 
 /**
  * Continue after loading the super block. This callback is registered
- * in load_super_block().
+ * in load_vdo_super_block().
  *
  * @param completion  The super block vio
  **/
@@ -186,19 +186,20 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
 	super_block->parent = NULL;
-	finish_vdo_completion(parent, decode_super_block(&super_block->codec));
+	finish_vdo_completion(parent,
+			      decode_vdo_super_block(&super_block->codec));
 }
 
 /**********************************************************************/
-void load_super_block(struct vdo *vdo,
-		      struct vdo_completion *parent,
-		      physical_block_number_t super_block_offset,
-		      struct vdo_super_block **super_block_ptr)
+void load_vdo_super_block(struct vdo *vdo,
+			  struct vdo_completion *parent,
+			  physical_block_number_t super_block_offset,
+			  struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block = NULL;
 	int result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
-		free_super_block(&super_block);
+		free_vdo_super_block(super_block);
 		finish_vdo_completion(parent, result);
 		return;
 	}
@@ -216,7 +217,7 @@ void load_super_block(struct vdo *vdo,
 
 /**********************************************************************/
 struct super_block_codec *
-get_super_block_codec(struct vdo_super_block *super_block)
+get_vdo_super_block_codec(struct vdo_super_block *super_block)
 {
 	return &super_block->codec;
 }

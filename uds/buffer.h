@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/buffer.h#7 $
  */
 
 #ifndef BUFFER_H
@@ -54,9 +54,9 @@ int __must_check make_buffer(size_t length, struct buffer **buffer_ptr);
 /**
  * Release a buffer and, if not wrapped, free its memory.
  *
- * @param p_buffer Pointer to the buffer to release
+ * @param buffer  The buffer to release
  **/
-void free_buffer(struct buffer **p_buffer);
+void free_buffer(struct buffer *buffer);
 
 /**
  * Ensure that a buffer has a given amount of space available, compacting the

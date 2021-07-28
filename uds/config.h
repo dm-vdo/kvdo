@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/config.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/config.h#12 $
  */
 
 #ifndef CONFIG_H
@@ -27,14 +27,46 @@
 #include "geometry.h"
 #include "uds.h"
 
-enum { DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
-       DEFAULT_CACHE_CHAPTERS = 7,
-       DEFAULT_SPARSE_SAMPLE_RATE = 0 };
+enum {
+	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
+	DEFAULT_CACHE_CHAPTERS = 7,
+	DEFAULT_SPARSE_SAMPLE_RATE = 0
+};
 
 /**
  * Data that are used for configuring a new index.
  **/
 struct uds_configuration {
+	/** Smaller (16), Small (64) or large (256) indices */
+	unsigned int record_pages_per_chapter;
+	/** Total number of chapters per volume */
+	unsigned int chapters_per_volume;
+	/** Number of sparse chapters per volume */
+	unsigned int sparse_chapters_per_volume;
+	/** Size of the page cache, in chapters */
+	unsigned int cache_chapters;
+	/** Frequency with which to checkpoint */
+	// XXX the checkpoint_frequency is not used - it is now a runtime
+	// parameter
+	unsigned int checkpoint_frequency;
+	/** The volume index mean delta to use */
+	unsigned int volume_index_mean_delta;
+	/** Size of a page, used for both record pages and index pages */
+	unsigned int bytes_per_page;
+	/** Sampling rate for sparse indexing */
+	unsigned int sparse_sample_rate;
+	/** Index Owner's nonce */
+	uds_nonce_t nonce;
+	/** Virtual chapter remapped from physical chapter 0 */
+	uint64_t remapped_virtual;
+	/** New physical chapter which remapped chapter was moved to */
+	uint64_t remapped_physical;
+};
+
+/**
+ * Data that are used for configuring a 6.02 index.
+ **/
+struct uds_configuration_6_02 {
 	/** Smaller (16), Small (64) or large (256) indices */
 	unsigned int record_pages_per_chapter;
 	/** Total number of chapters per volume */
@@ -96,15 +128,20 @@ int __must_check read_config_contents(struct buffered_reader *reader,
 				      struct uds_configuration *config);
 
 /**
- * Write the index configuration information to stable storage.
- *
+ * Write the index configuration information to stable storage.  If
+ * the superblock version is < 4 write the 6.02 version; otherwise
+ * write the 8.02 version, indicating the configuration is for an
+ * index that has been reduced by one chapter.
+ * 
  * @param writer        A buffered writer.
  * @param config        The index configuration.
+ * @param version       The index superblock version
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check write_config_contents(struct buffered_writer *writer,
-				       struct uds_configuration *config);
+				       struct uds_configuration *config,
+				       uint32_t version);
 
 /**
  * Free the memory used by an index_location.

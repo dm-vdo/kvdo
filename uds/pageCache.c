@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#25 $
  */
 
 #include "pageCache.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
@@ -40,6 +41,7 @@
 /**********************************************************************/
 int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)
 {
+	uint16_t page_index;
 	int result = ASSERT((page->cp_physical_page < cache->num_index_entries),
 			    "physical page %u is valid (< %u)",
 			    page->cp_physical_page,
@@ -48,7 +50,7 @@ int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)
 		return result;
 	}
 
-	uint16_t page_index = cache->index[page->cp_physical_page];
+	page_index = cache->index[page->cp_physical_page];
 	return ASSERT((page_index < cache->num_cache_entries) &&
 			      (&cache->cache[page_index] == page),
 		      "page is at expected location in cache");
@@ -90,6 +92,9 @@ static int __must_check get_page_no_stats(struct page_cache *cache,
 					  int *queue_index,
 					  struct cached_page **page_ptr)
 {
+	uint16_t index_value, index;
+	bool queued;
+
 	/*
 	 * ASSERTION: We are either a zone thread holding a
 	 * search_pending_counter, or we are any thread holding the
@@ -111,9 +116,9 @@ static int __must_check get_page_no_stats(struct page_cache *cache,
 	 * possible and very bad if those reads did not return the
 	 * same bits.
 	 */
-	uint16_t index_value = READ_ONCE(cache->index[physical_page]);
-	bool queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
-	uint16_t index = index_value & ~VOLUME_CACHE_QUEUED_FLAG;
+	index_value = READ_ONCE(cache->index[physical_page]);
+	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
+	index = index_value & ~VOLUME_CACHE_QUEUED_FLAG;
 
 	if (!queued && (index < cache->num_cache_entries)) {
 		*page_ptr = &cache->cache[index];
@@ -142,6 +147,8 @@ static int __must_check get_page_no_stats(struct page_cache *cache,
 static void wait_for_pending_searches(struct page_cache *cache,
 				      unsigned int physical_page)
 {
+	invalidate_counter_t initial_counters[MAX_ZONES];
+	unsigned int i;
 	/*
 	 * We hold the readThreadsMutex.  We are waiting for threads
 	 * that do not hold the readThreadsMutex.  Those threads have
@@ -151,8 +158,6 @@ static void wait_for_pending_searches(struct page_cache *cache,
 	 */
 	smp_mb();
 
-	invalidate_counter_t initial_counters[MAX_ZONES];
-	unsigned int i;
 	for (i = 0; i < cache->zone_count; i++) {
 		initial_counters[i] = get_invalidate_counter(cache, i);
 	}
@@ -164,7 +169,7 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			// We need to wait for the search to finish.
 			while (initial_counters[i] ==
 			       get_invalidate_counter(cache, i)) {
-				yield_scheduler();
+				uds_yield_scheduler();
 			}
 		}
 	}
@@ -225,18 +230,19 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 					  enum invalidation_reason reason,
 					  bool must_find)
 {
+	struct cached_page *page;
+	int queued_index = -1;
+	int result;
+
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
 		return UDS_SUCCESS;
 	}
 
-	struct cached_page *page;
-	int queued_index = -1;
-	int result =
-		get_page_no_stats(cache,
-				  physical_page,
-				  ((read_queue != NULL) ? &queued_index : NULL),
-				  &page);
+	result = get_page_no_stats(cache,
+				   physical_page,
+				   ((read_queue != NULL) ? &queued_index : NULL),
+				   &page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -248,7 +254,7 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 		}
 
 		if (queued_index > -1) {
-			log_debug("setting pending read to invalid");
+			uds_log_debug("setting pending read to invalid");
 			read_queue[queued_index].invalid = true;
 		}
 		return UDS_SUCCESS;
@@ -274,6 +280,8 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 					      unsigned int read_queue_max_size,
 					      unsigned int zone_count)
 {
+	int result;
+	unsigned int i;
 	cache->geometry = geometry;
 	cache->num_index_entries = geometry->pages_per_volume + 1;
 	cache->num_cache_entries =
@@ -282,7 +290,7 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	cache->zone_count = zone_count;
 	atomic64_set(&cache->clock, 1);
 
-	int result = ALLOCATE(read_queue_max_size,
+	result = UDS_ALLOCATE(read_queue_max_size,
 			      struct queued_read,
 			      "volume read queue",
 			      &cache->read_queue);
@@ -290,10 +298,10 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 		return result;
 	}
 
-	result = ALLOCATE(cache->zone_count,
-			  struct search_pending_counter,
-			  "Volume Cache Zones",
-			  &cache->search_pending_counters);
+	result = UDS_ALLOCATE(cache->zone_count,
+			      struct search_pending_counter,
+			      "Volume Cache Zones",
+			      &cache->search_pending_counters);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -306,24 +314,23 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 		return result;
 	}
 
-	result = ALLOCATE(cache->num_index_entries,
-			  uint16_t,
-			  "page cache index",
-			  &cache->index);
+	result = UDS_ALLOCATE(cache->num_index_entries,
+			      uint16_t,
+			      "page cache index",
+			      &cache->index);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// Initialize index values to invalid values.
-	unsigned int i;
 	for (i = 0; i < cache->num_index_entries; i++) {
 		cache->index[i] = cache->num_cache_entries;
 	}
 
-	result = ALLOCATE(cache->num_cache_entries,
-			  struct cached_page,
-			  "page cache cache",
-			  &cache->cache);
+	result = UDS_ALLOCATE(cache->num_cache_entries,
+			      struct cached_page,
+			      "page cache cache",
+			      &cache->cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -347,23 +354,23 @@ int make_page_cache(const struct geometry  *geometry,
 		    unsigned int zone_count,
 		    struct page_cache **cache_ptr)
 {
+	struct page_cache *cache;
+	int result;
+
 	if (chapters_in_cache < 1) {
-		return log_warning_strerror(UDS_BAD_STATE,
-					    "cache size must be"
-					    " at least one chapter");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"cache size must be at least one chapter");
 	}
 	if (read_queue_max_size <= 0) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "read queue max size must be"
-					    " greater than 0");
+		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+						"read queue max size must be greater than 0");
 	}
 	if (zone_count < 1) {
-		return log_warning_strerror(UDS_INVALID_ARGUMENT,
-					    "cache must have at least one zone");
+		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+						"cache must have at least one zone");
 	}
 
-	struct page_cache *cache;
-	int result = ALLOCATE(1, struct page_cache, "volume cache", &cache);
+	result = UDS_ALLOCATE(1, struct page_cache, "volume cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -394,11 +401,11 @@ void free_page_cache(struct page_cache *cache)
 			destroy_volume_page(&cache->cache[i].cp_page_data);
 		}
 	}
-	FREE(cache->index);
-	FREE(cache->cache);
-	FREE(cache->search_pending_counters);
-	FREE(cache->read_queue);
-	FREE(cache);
+	UDS_FREE(cache->index);
+	UDS_FREE(cache->cache);
+	UDS_FREE(cache->search_pending_counters);
+	UDS_FREE(cache->read_queue);
+	UDS_FREE(cache);
 }
 
 /**********************************************************************/
@@ -407,13 +414,13 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 				      unsigned int pages_per_chapter,
 				      enum invalidation_reason reason)
 {
+	int result;
+	unsigned int i;
 	// We hold the readThreadsMutex.
 	if ((cache == NULL) || (cache->cache == NULL)) {
 		return UDS_SUCCESS;
 	}
 
-	int result;
-	unsigned int i;
 	for (i = 0; i < pages_per_chapter; i++) {
 		unsigned int physical_page =
 			1 + (pages_per_chapter * chapter) + i;
@@ -493,25 +500,25 @@ int get_page_from_cache(struct page_cache *cache,
 	// ASSERTION: We are in a zone thread.
 	// ASSERTION: We holding a search_pending_counter or the
 	// readThreadsMutex.
+	enum cache_result_kind cache_result;
+	struct cached_page *page;
+	int result, queue_index = -1;
+
 	if (cache == NULL) {
-		return log_warning_strerror(UDS_BAD_STATE,
-					    "cannot get page with NULL cache");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"cannot get page with NULL cache");
 	}
 
 	// Get the cache page from the index
-	struct cached_page *page;
-	int queue_index = -1;
-	int result =
-		get_page_no_stats(cache, physical_page, &queue_index, &page);
+	result = get_page_no_stats(cache, physical_page, &queue_index, &page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	enum cache_result_kind cache_result = ((page != NULL) ?
-					       CACHE_RESULT_HIT :
-						((queue_index != -1) ?
-						 CACHE_RESULT_QUEUED :
-						 CACHE_RESULT_MISS));
+	cache_result = ((page != NULL) ?  CACHE_RESULT_HIT :
+			 ((queue_index != -1) ?
+			  CACHE_RESULT_QUEUED :
+			  CACHE_RESULT_MISS));
 	increment_cache_counter(&cache->counters, probe_type, cache_result);
 
 	if (page_ptr != NULL) {
@@ -522,9 +529,11 @@ int get_page_from_cache(struct page_cache *cache,
 
 /**********************************************************************/
 int enqueue_read(struct page_cache *cache,
-		 Request *request,
+		 struct uds_request *request,
 		 unsigned int physical_page)
 {
+	int result;
+
 	// We hold the readThreadsMutex.
 	uint16_t first = cache->read_queue_first;
 	uint16_t last = cache->read_queue_last;
@@ -556,7 +565,7 @@ int enqueue_read(struct page_cache *cache,
 			cache->index[physical_page] & ~VOLUME_CACHE_QUEUED_FLAG;
 	}
 
-	int result = ASSERT((read_queue_pos < cache->read_queue_max_size),
+	result = ASSERT((read_queue_pos < cache->read_queue_max_size),
 			    "queue is not overfull");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -575,23 +584,26 @@ int enqueue_read(struct page_cache *cache,
 /**********************************************************************/
 bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *queue_pos,
-			      Request **first_request,
+			      struct uds_request **first_request,
 			      unsigned int *physical_page,
 			      bool *invalid)
 {
 	// We hold the readThreadsMutex.
 	uint16_t last_read = cache->read_queue_last_read;
+	unsigned int page_no;
+	uint16_t index_value;
+	bool is_invalid, queued;
 
 	// No items to dequeue
 	if (last_read == cache->read_queue_last) {
 		return false;
 	}
 
-	unsigned int page_no = cache->read_queue[last_read].physical_page;
-	bool is_invalid = cache->read_queue[last_read].invalid;
+	page_no = cache->read_queue[last_read].physical_page;
+	is_invalid = cache->read_queue[last_read].invalid;
 
-	uint16_t index_value = cache->index[page_no];
-	bool queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
+	index_value = cache->index[page_no];
+	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 
 	// ALB-1429 ... need to check to see if its still queued before
 	// resetting
@@ -622,9 +634,9 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 {
 	// We hold the readThreadsMutex.
-	cache->read_queue[queue_pos].reserved = false;
-
 	uint16_t last_read = cache->read_queue_last_read;
+
+	cache->read_queue[queue_pos].reserved = false;
 
 	// Move the read_queue_first pointer along when we can
 	while ((cache->read_queue_first != last_read) &&
@@ -638,14 +650,15 @@ void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 int select_victim_in_cache(struct page_cache *cache,
 			   struct cached_page **page_ptr)
 {
+	struct cached_page *page = NULL;
+	int result;
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		return log_warning_strerror(UDS_BAD_STATE,
-					    "cannot put page in NULL cache");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"cannot put page in NULL cache");
 	}
 
-	struct cached_page *page = NULL;
-	int result = get_least_recent_page(cache, &page);
+	result = get_least_recent_page(cache, &page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -676,13 +689,16 @@ int put_page_in_cache(struct page_cache *cache,
 		      unsigned int physical_page,
 		      struct cached_page *page)
 {
+	uint16_t value;
+	int result;
+
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		return log_warning_strerror(UDS_BAD_STATE,
-					    "cannot complete page in NULL cache");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"cannot complete page in NULL cache");
 	}
 
-	int result = ASSERT((page != NULL), "page to install exists");
+	result = ASSERT((page != NULL), "page to install exists");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -698,7 +714,7 @@ int put_page_in_cache(struct page_cache *cache,
 	page->cp_physical_page = physical_page;
 
 	// Figure out the index into the cache array using pointer arithmetic
-	uint16_t value = page - cache->cache;
+	value = page - cache->cache;
 	result = ASSERT((value < cache->num_cache_entries),
 			"cache index is valid");
 	if (result != UDS_SUCCESS) {
@@ -728,13 +744,14 @@ void cancel_page_in_cache(struct page_cache *cache,
 			  unsigned int physical_page,
 			  struct cached_page *page)
 {
+	int result;
 	// We hold the readThreadsMutex.
 	if (cache == NULL) {
-		log_warning("cannot cancel page in NULL cache");
+		uds_log_warning("cannot cancel page in NULL cache");
 		return;
 	}
 
-	int result = ASSERT((page != NULL), "page to install exists");
+	result = ASSERT((page != NULL), "page to install exists");
 	if (result != UDS_SUCCESS) {
 		return;
 	}

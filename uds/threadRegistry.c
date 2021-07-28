@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#5 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.c#6 $
  */
 
 #include "threadRegistry.h"
@@ -32,16 +32,16 @@
  */
 
 /**********************************************************************/
-void initialize_thread_registry(struct thread_registry *registry)
+void uds_initialize_thread_registry(struct thread_registry *registry)
 {
 	INIT_LIST_HEAD(&registry->links);
 	spin_lock_init(&registry->lock);
 }
 
 /**********************************************************************/
-void register_thread(struct thread_registry *registry,
-		     struct registered_thread *new_thread,
-		     const void *pointer)
+void uds_register_thread(struct thread_registry *registry,
+			 struct registered_thread *new_thread,
+			 const void *pointer)
 {
 	struct registered_thread *thread;
 	bool found_it = false;
@@ -72,7 +72,7 @@ void register_thread(struct thread_registry *registry,
 }
 
 /**********************************************************************/
-void unregister_thread(struct thread_registry *registry)
+void uds_unregister_thread(struct thread_registry *registry)
 {
 	struct registered_thread *thread;
 	bool found_it = false;
@@ -96,7 +96,7 @@ void unregister_thread(struct thread_registry *registry)
 }
 
 /**********************************************************************/
-const void *lookup_thread(struct thread_registry *registry)
+const void *uds_lookup_thread(struct thread_registry *registry)
 {
 	struct registered_thread *thread;
 	const void *result = NULL;

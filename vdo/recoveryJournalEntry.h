@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalEntry.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalEntry.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -85,7 +85,7 @@ struct packed_recovery_journal_entry {
  * @return  The packed representation of the journal entry
  **/
 static inline struct packed_recovery_journal_entry
-pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
+pack_vdo_recovery_journal_entry(const struct recovery_journal_entry *entry)
 {
 	return (struct packed_recovery_journal_entry) {
 		.operation = entry->operation,
@@ -93,8 +93,8 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
 		.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
 		.pbn_low_word = __cpu_to_le32(entry->slot.pbn & UINT_MAX),
-		.block_map_entry = pack_pbn(entry->mapping.pbn,
-					    entry->mapping.state),
+		.block_map_entry = pack_vdo_pbn(entry->mapping.pbn,
+						entry->mapping.state),
 	};
 }
 
@@ -106,7 +106,7 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
  * @return  The unpacked entry
  **/
 static inline struct recovery_journal_entry
-unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
+unpack_vdo_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
@@ -118,7 +118,7 @@ unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
 				.slot = (entry->slot_low
 					 | (entry->slot_high << 6)),
 			},
-		.mapping = unpack_block_map_entry(&entry->block_map_entry),
+		.mapping = unpack_vdo_block_map_entry(&entry->block_map_entry),
 	};
 }
 

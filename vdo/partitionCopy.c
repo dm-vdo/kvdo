@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/partitionCopy.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/partitionCopy.c#7 $
  */
 
 #include "partitionCopy.h"
@@ -63,29 +63,42 @@ struct copy_completion {
 static inline struct copy_completion * __must_check
 as_copy_completion(struct vdo_completion *completion)
 {
-	assert_vdo_completion_type(completion->type, PARTITION_COPY_COMPLETION);
+	assert_vdo_completion_type(completion->type,
+				   VDO_PARTITION_COPY_COMPLETION);
 	return container_of(completion, struct copy_completion, completion);
 }
 
+/**
+ * Free a copy completion.
+ *
+ * @param copy  The copy completion to free
+ **/
+static void free_copy_completion(struct copy_completion *copy)
+{
+	free_vdo_extent(UDS_FORGET(copy->extent));
+	UDS_FREE(copy->data);
+	UDS_FREE(copy);
+}
+
 /**********************************************************************/
-int make_copy_completion(struct vdo *vdo,
-			 struct vdo_completion **completion_ptr)
+int make_vdo_copy_completion(struct vdo *vdo,
+			     struct vdo_completion **completion_ptr)
 {
 	struct copy_completion *copy;
-	int result = ALLOCATE(1, struct copy_completion, __func__, &copy);
+	int result = UDS_ALLOCATE(1, struct copy_completion, __func__, &copy);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	initialize_vdo_completion(&copy->completion, vdo,
-				  PARTITION_COPY_COMPLETION);
 
-	result = ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
-			  char,
-			  "partition copy extent",
-			  &copy->data);
+	initialize_vdo_completion(&copy->completion, vdo,
+				  VDO_PARTITION_COPY_COMPLETION);
+
+	result = UDS_ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
+			      char,
+			      "partition copy extent",
+			      &copy->data);
 	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &copy->completion;
-		free_copy_completion(&completion);
+		free_copy_completion(UDS_FORGET(copy));
 		return result;
 	}
 
@@ -96,8 +109,7 @@ int make_copy_completion(struct vdo *vdo,
 				   copy->data,
 				   &copy->extent);
 	if (result != VDO_SUCCESS) {
-		struct vdo_completion *completion = &copy->completion;
-		free_copy_completion(&completion);
+		free_copy_completion(copy);
 		return result;
 	}
 
@@ -106,19 +118,13 @@ int make_copy_completion(struct vdo *vdo,
 }
 
 /**********************************************************************/
-void free_copy_completion(struct vdo_completion **completion_ptr)
+void free_vdo_copy_completion(struct vdo_completion *completion)
 {
-	struct copy_completion *copy;
-
-	if (*completion_ptr == NULL) {
+	if (completion == NULL) {
 		return;
 	}
 
-	copy = as_copy_completion(*completion_ptr);
-	free_vdo_extent(&copy->extent);
-	FREE(copy->data);
-	FREE(copy);
-	*completion_ptr = NULL;
+	free_copy_completion(as_copy_completion(UDS_FORGET(completion)));
 }
 
 /**********************************************************************/
@@ -164,8 +170,8 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 {
 	struct copy_completion *copy = as_copy_completion(completion->parent);
 	physical_block_number_t layer_start_block;
-	int result = translate_to_pbn(copy->target, copy->current_index,
-				      &layer_start_block);
+	int result = vdo_translate_to_pbn(copy->target, copy->current_index,
+					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(completion->parent, result);
 		return;
@@ -185,8 +191,8 @@ static void complete_read_for_copy(struct vdo_completion *completion)
 static void copy_partition_stride(struct copy_completion *copy)
 {
 	physical_block_number_t layer_start_block;
-	int result = translate_to_pbn(copy->source, copy->current_index,
-				      &layer_start_block);
+	int result = vdo_translate_to_pbn(copy->source, copy->current_index,
+					  &layer_start_block);
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(&copy->completion, result);
 		return;
@@ -212,14 +218,14 @@ static void copy_partition_stride(struct copy_completion *copy)
 static int validate_partition_copy(struct partition *source,
 				   struct partition *target)
 {
-	block_count_t source_size = get_fixed_layout_partition_size(source);
-	block_count_t target_size = get_fixed_layout_partition_size(target);
+	block_count_t source_size = get_vdo_fixed_layout_partition_size(source);
+	block_count_t target_size = get_vdo_fixed_layout_partition_size(target);
 
 	physical_block_number_t source_start =
-		get_fixed_layout_partition_offset(source);
+		get_vdo_fixed_layout_partition_offset(source);
 	physical_block_number_t source_end = source_start + source_size;
 	physical_block_number_t target_start =
-		get_fixed_layout_partition_offset(target);
+		get_vdo_fixed_layout_partition_offset(target);
 	physical_block_number_t target_end = target_start + target_size;
 
 	int result = ASSERT(source_size <= target_size,
@@ -234,10 +240,10 @@ static int validate_partition_copy(struct partition *source,
 }
 
 /**********************************************************************/
-void copy_partition(struct vdo_completion *completion,
-		    struct partition *source,
-		    struct partition *target,
-		    struct vdo_completion *parent)
+void copy_vdo_partition(struct vdo_completion *completion,
+			struct partition *source,
+			struct partition *target,
+			struct vdo_completion *parent)
 {
 	struct copy_completion *copy = as_copy_completion(completion);
 
@@ -251,6 +257,6 @@ void copy_partition(struct vdo_completion *completion,
 	copy->source = source;
 	copy->target = target;
 	copy->current_index = 0;
-	copy->ending_index = get_fixed_layout_partition_size(source);
+	copy->ending_index = get_vdo_fixed_layout_partition_size(source);
 	copy_partition_stride(copy);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapInternals.h#2 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -120,6 +120,6 @@ struct block_map {
  *
  * @param zone  The zone to check
  **/
-void check_for_drain_complete(struct block_map_zone *zone);
+void vdo_check_for_drain_complete(struct block_map_zone *zone);
 
 #endif // BLOCK_MAP_INTERNALS_H

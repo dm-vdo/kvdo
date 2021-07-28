@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResize.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResize.h#3 $
  */
 
 #ifndef VDO_RESIZE_H
@@ -39,14 +39,6 @@ make_resize_vdo_completion(struct vdo *vdo,
 			   struct vdo_completion **completion_ptr);
 
 /**
- * Free the completion for an asynchronous resize, and NULL out the
- * reference to it.
- *
- * @param completion_ptr  A reference to the completion to free
- **/
-void free_resize_vdo_completion(struct vdo_completion **completion_ptr);
-
-/**
  * Grow the physical size of the vdo. This method may only be called when the
  * vdo has been suspended and must not be called from a base thread.
  *
@@ -55,7 +47,8 @@ void free_resize_vdo_completion(struct vdo_completion **completion_ptr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks);
+int perform_vdo_grow_physical(struct vdo *vdo,
+			      block_count_t new_physical_blocks);
 
 /**
  * Prepare to resize the vdo, allocating memory as needed.
@@ -64,6 +57,7 @@ int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks);
  * @param new_physical_blocks	The new physical size in blocks
  **/
 int __must_check
-prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks);
+prepare_vdo_to_grow_physical(struct vdo *vdo,
+			     block_count_t new_physical_blocks);
 
 #endif /* VDO_RESIZE_H */

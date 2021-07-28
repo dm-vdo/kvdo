@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/hashLockInternals.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/hashLockInternals.h#2 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -31,31 +31,31 @@
 
 enum hash_lock_state {
 	/** State for locks that are not in use or are being initialized. */
-	HASH_LOCK_INITIALIZING = 0,
+	VDO_HASH_LOCK_INITIALIZING = 0,
 
 	// This is the sequence of states typically used on the non-dedupe path.
-	HASH_LOCK_QUERYING,
-	HASH_LOCK_WRITING,
-	HASH_LOCK_UPDATING,
+	VDO_HASH_LOCK_QUERYING,
+	VDO_HASH_LOCK_WRITING,
+	VDO_HASH_LOCK_UPDATING,
 
 	// The remaining states are typically used on the dedupe path in this
 	// order.
-	HASH_LOCK_LOCKING,
-	HASH_LOCK_VERIFYING,
-	HASH_LOCK_DEDUPING,
-	HASH_LOCK_UNLOCKING,
+	VDO_HASH_LOCK_LOCKING,
+	VDO_HASH_LOCK_VERIFYING,
+	VDO_HASH_LOCK_DEDUPING,
+	VDO_HASH_LOCK_UNLOCKING,
 
 	// XXX This is a temporary state denoting a lock which is sending VIOs
 	// back to the old dedupe and vioWrite pathways. It won't be in the
 	// final version of VDOSTORY-190.
-	HASH_LOCK_BYPASSING,
+	VDO_HASH_LOCK_BYPASSING,
 
 	/**
 	 * Terminal state for locks returning to the pool. Must be last both
 	 * because it's the final state, and also because it's used to count
 	 * the states.
 	 **/
-	HASH_LOCK_DESTROYING,
+	VDO_HASH_LOCK_DESTROYING,
 };
 
 struct hash_lock {
@@ -126,7 +126,7 @@ struct hash_lock {
  *
  * @param lock  The lock to initialize
  **/
-static inline void initialize_hash_lock(struct hash_lock *lock)
+static inline void initialize_vdo_hash_lock(struct hash_lock *lock)
 {
 	INIT_LIST_HEAD(&lock->pool_node);
 	INIT_LIST_HEAD(&lock->duplicate_ring);
@@ -140,6 +140,6 @@ static inline void initialize_hash_lock(struct hash_lock *lock)
  *
  * @return The short string representing the state
  **/
-const char * __must_check get_hash_lock_state_name(enum hash_lock_state state);
+const char * __must_check get_vdo_hash_lock_state_name(enum hash_lock_state state);
 
 #endif // HASH_LOCK_INTERNALS_H

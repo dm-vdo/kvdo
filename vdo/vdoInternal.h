@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoInternal.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoInternal.h#16 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,19 +24,19 @@
 
 #include "vdo.h"
 
+#include <linux/atomic.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
 
-#include "atomicDefs.h"
-
 #include "deadlockQueue.h"
-#include "limiter.h"
 #include "threadRegistry.h"
 
 #include "adminCompletion.h"
 #include "adminState.h"
+#include "atomicStats.h"
 #include "deviceConfig.h"
 #include "header.h"
+#include "limiter.h"
 #include "packer.h"
 #include "statistics.h"
 #include "superBlock.h"
@@ -49,16 +49,6 @@
 #include "vdoState.h"
 #include "volumeGeometry.h"
 
-/**
- * Error counters are atomic since updates can arrive concurrently from
- * arbitrary threads.
- **/
-struct atomic_error_statistics {
-	// Dedupe path error stats
-	atomic64_t invalid_advice_pbn_count;
-	atomic64_t no_space_error_count;
-	atomic64_t read_only_error_count;
-};
 
 struct vdo_thread {
 	struct vdo *vdo;
@@ -74,10 +64,6 @@ struct vdo {
 	vdo_action *action;
 	struct vdo_completion *completion;
 
-	/** Limit the number of requests that are being processed. */
-	struct limiter request_limiter;
-	struct limiter discard_limiter;
-
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
 
@@ -86,11 +72,19 @@ struct vdo {
 	 * device.
 	 **/
 	struct io_submitter *io_submitter;
-
-	// For sysfs
-	struct kobject vdo_directory;
-	struct kobject work_queue_directory;
-	struct kobject stats_directory;
+	/**
+	 * Work queue (possibly with multiple threads) for miscellaneous
+	 * CPU-intensive, non-blocking work.
+	 **/
+	struct vdo_work_queue *cpu_queue;
+	/** Optional work queue for calling bio_endio. */
+	struct vdo_work_queue *bio_ack_queue;
+	/** The connection to the UDS index */
+	struct dedupe_index *dedupe_index;
+	/** The pool of data_vios for handling incoming bios */
+	struct buffer_pool *data_vio_pool;
+	/* For returning batches of data_vios to their pool */
+	struct batch_processor *data_vio_releaser;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
@@ -110,9 +104,6 @@ struct vdo {
 
 	/* The super block */
 	struct vdo_super_block *super_block;
-
-	/* The physical storage below us */
-	PhysicalLayer *layer;
 
 	/* Our partitioning of the physical layer's storage */
 	struct vdo_layout *layout;
@@ -156,9 +147,21 @@ struct vdo {
 	bool close_required;
 	bool no_flush_suspend;
 	bool allocations_allowed;
+	bool dump_on_shutdown;
+	atomic_t processing_message;
 
-	/* Atomic global counts of error events */
-	struct atomic_error_statistics error_stats;
+	// Statistics
+	/* Atomic stats counters */
+	struct atomic_statistics stats;
+	/* Used to gather statistics without allocating memory */
+	struct vdo_statistics stats_buffer;
+	/* Protects the stats_buffer */
+	struct mutex stats_mutex;
+	/* true if sysfs statistics directory is set up */
+	bool stats_added;
+	/* Used when shutting down the sysfs statistics */
+	struct completion stats_shutdown;
+
 
 	/** A list of all device_configs referencing this vdo */
 	struct list_head device_config_list;
@@ -169,6 +172,18 @@ struct vdo {
 	/** Underlying block device info. */
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;
+
+	// For sysfs
+	struct kobject vdo_directory;
+	struct kobject work_queue_directory;
+	struct kobject stats_directory;
+
+	/** Limit the number of requests that are being processed. */
+	struct limiter request_limiter;
+	struct limiter discard_limiter;
+
+	/** N blobs of context data for LZ4 code, one per CPU thread. */
+	char **compression_context;
 };
 
 /**
@@ -188,7 +203,7 @@ set_vdo_active_config(struct vdo *vdo, struct device_config *config)
  * acknowledging received and processed bios.
  *
  * Note that this directly controls the handling of write operations, but the
- * compile-time flag USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
+ * compile-time flag VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
  * operations.
  *
  * @param vdo  The vdo
@@ -199,6 +214,7 @@ static inline bool use_bio_ack_queue(struct vdo *vdo)
 {
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
+
 
 /**
  * Get the current state of the vdo. This method may be called from any thread.
@@ -220,7 +236,7 @@ void set_vdo_state(struct vdo *vdo, enum vdo_state state);
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode
  * super block savers should use this bottle neck instead of calling
- * save_super_block() directly.
+ * save_vdo_super_block() directly.
  *
  * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete
@@ -333,7 +349,7 @@ void enter_recovery_mode(struct vdo *vdo);
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assert_on_admin_thread(struct vdo *vdo, const char *name);
+void assert_on_admin_thread(const struct vdo *vdo, const char *name);
 
 /**
  * Assert that this function was called on the specified logical zone thread.

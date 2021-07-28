@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMappingState.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMappingState.h#3 $
  */
 
 #ifndef BLOCK_MAPPING_STATE_H
@@ -31,36 +31,38 @@
  * physical block, including the zero block.
  **/
 enum block_mapping_state {
-	MAPPING_STATE_UNMAPPED = 0, // Must be zero to be the default value
-	MAPPING_STATE_UNCOMPRESSED = 1, // A normal (uncompressed) block
-	MAPPING_STATE_COMPRESSED_BASE = 2, // Compressed in slot 0
-	MAPPING_STATE_COMPRESSED_MAX = 15, // Compressed in slot 13
+	VDO_MAPPING_STATE_UNMAPPED = 0, // Must be zero to be the default value
+	VDO_MAPPING_STATE_UNCOMPRESSED = 1, // A normal (uncompressed) block
+	VDO_MAPPING_STATE_COMPRESSED_BASE = 2, // Compressed in slot 0
+	VDO_MAPPING_STATE_COMPRESSED_MAX = 15, // Compressed in slot 13
 };
 
 /**
  * The total number of compressed blocks that can live in a physical block.
  **/
 enum {
-	MAX_COMPRESSION_SLOTS = (MAPPING_STATE_COMPRESSED_MAX
-				 - MAPPING_STATE_COMPRESSED_BASE + 1),
+	VDO_MAX_COMPRESSION_SLOTS = (VDO_MAPPING_STATE_COMPRESSED_MAX
+				     - VDO_MAPPING_STATE_COMPRESSED_BASE + 1),
 };
 
 /**********************************************************************/
-static inline enum block_mapping_state get_state_for_slot(byte slot_number)
+static inline enum block_mapping_state vdo_get_state_for_slot(byte slot_number)
 {
-	return (slot_number + MAPPING_STATE_COMPRESSED_BASE);
+	return (slot_number + VDO_MAPPING_STATE_COMPRESSED_BASE);
 }
 
 /**********************************************************************/
-static inline byte get_slot_from_state(enum block_mapping_state mapping_state)
+static inline byte
+vdo_get_slot_from_state(enum block_mapping_state mapping_state)
 {
-	return (mapping_state - MAPPING_STATE_COMPRESSED_BASE);
+	return (mapping_state - VDO_MAPPING_STATE_COMPRESSED_BASE);
 }
 
 /**********************************************************************/
-static inline bool is_compressed(const enum block_mapping_state mapping_state)
+static inline bool
+vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {
-	return (mapping_state > MAPPING_STATE_UNCOMPRESSED);
+	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
 }
 
 #endif // BLOCK_MAPPING_STATE_H

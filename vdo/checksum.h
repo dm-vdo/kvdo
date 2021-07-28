@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/checksum.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/checksum.h#4 $
  */
 
 #ifndef CHECKSUM_H
@@ -29,11 +29,11 @@
  **/
 typedef uint32_t crc32_checksum_t;
 
-static const crc32_checksum_t INITIAL_CHECKSUM = 0xffffffff;
+static const crc32_checksum_t VDO_INITIAL_CHECKSUM = 0xffffffff;
 
 enum {
 	/* The size of a CRC-32 checksum */
-	CHECKSUM_SIZE = sizeof(crc32_checksum_t),
+	VDO_CHECKSUM_SIZE = sizeof(crc32_checksum_t),
 };
 
 /**
@@ -45,9 +45,9 @@ enum {
  *
  * @return The updated value of the checksum
  **/
-static inline crc32_checksum_t update_crc32(crc32_checksum_t crc,
-					    const byte *buffer,
-			                    size_t length)
+static inline crc32_checksum_t vdo_update_crc32(crc32_checksum_t crc,
+						const byte *buffer,
+			                	size_t length)
 {
 	/*
 	 * The kernel's CRC 32 implementation does not do pre- and post-

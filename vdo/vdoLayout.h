@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoLayout.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoLayout.h#4 $
  */
 
 /**
@@ -49,11 +49,11 @@ int __must_check decode_vdo_layout(struct fixed_layout *layout,
 				   struct vdo_layout **vdo_layout_ptr);
 
 /**
- * Free a vdo_layout and NULL out the reference to it.
+ * Free a vdo_layout.
  *
- * @param vdo_layout_ptr  The pointer to a vdo_layout to free
+ * @param vdo_layout  The vdo_layout to free
  **/
-void free_vdo_layout(struct vdo_layout **vdo_layout_ptr);
+void free_vdo_layout(struct vdo_layout *vdo_layout);
 
 /**
  * Get a partition from a vdo_layout. Because the layout's fixed_layout has
@@ -103,7 +103,7 @@ get_next_vdo_layout_size(struct vdo_layout *vdo_layout);
  *         if the layout is not prepared to grow
  **/
 block_count_t __must_check
-get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
+vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout);
 
 /**
  * Grow the layout by swapping in the prepared layout.
@@ -141,6 +141,6 @@ void copy_vdo_layout_partition(struct vdo_layout *layout,
  * @return The layout's current fixed layout
  **/
 struct fixed_layout * __must_check
-get_layout(const struct vdo_layout *vdo_layout);
+get_vdo_fixed_layout(const struct vdo_layout *vdo_layout);
 
 #endif // VDO_LAYOUT_H

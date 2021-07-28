@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/ioSubmitter.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/ioSubmitter.c#11 $
  */
 
 #include "ioSubmitter.h"
@@ -26,10 +26,11 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "atomicStats.h"
 #include "bio.h"
 #include "dataKVIO.h"
-#include "kernelLayer.h"
 #include "logger.h"
+#include "vdoInternal.h"
 
 /*
  * Submission of bio operations to the underlying storage device will
@@ -197,18 +198,17 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-
+	struct atomic_statistics *stats = &vio->vdo->stats;
 	if (is_data_vio(vio)) {
-		count_bios(&layer->bios_out, bio);
+		vdo_count_bios(&stats->bios_out, bio);
 		return;
 	}
 
-	count_bios(&layer->bios_meta, bio);
+	vdo_count_bios(&stats->bios_meta, bio);
 	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-		count_bios(&layer->bios_journal, bio);
+		vdo_count_bios(&stats->bios_journal, bio);
 	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
-		count_bios(&layer->bios_page_cache, bio);
+		vdo_count_bios(&stats->bios_page_cache, bio);
 	}
 }
 
@@ -222,10 +222,8 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 static void send_bio_to_device(struct vio *vio,
 			       struct bio *bio)
 {
-	struct kernel_layer *layer = vdo_as_kernel_layer(vio->vdo);
-
 	assert_running_in_bio_queue_for_pbn(vio->physical);
-	atomic64_inc(&layer->bios_submitted);
+	atomic64_inc(&vio->vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 
 	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));
@@ -503,14 +501,14 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 				const char *thread_name_prefix,
 				const char *queue_name,
 				unsigned int queue_number,
-				struct kernel_layer *layer)
+				struct vdo *vdo)
 {
 	bio_queue_data->queue_number = queue_number;
 
 	return make_work_queue(thread_name_prefix,
 			       queue_name,
-			       &layer->vdo.work_queue_directory,
-			       layer,
+			       &vdo->work_queue_directory,
+			       vdo,
 			       bio_queue_data,
 			       &bio_queue_type,
 			       1,
@@ -519,21 +517,21 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 }
 
 /**********************************************************************/
-int make_io_submitter(const char *thread_name_prefix,
-		      unsigned int thread_count,
-		      unsigned int rotation_interval,
-		      unsigned int max_requests_active,
-		      struct kernel_layer *layer,
-		      struct io_submitter **io_submitter_ptr)
+int make_vdo_io_submitter(const char *thread_name_prefix,
+			  unsigned int thread_count,
+			  unsigned int rotation_interval,
+			  unsigned int max_requests_active,
+			  struct vdo *vdo,
+			  struct io_submitter **io_submitter_ptr)
 {
 	char queue_name[MAX_QUEUE_NAME_LEN];
 	unsigned int i;
 	struct io_submitter *io_submitter;
-	int result = ALLOCATE_EXTENDED(struct io_submitter,
-				       thread_count,
-				       struct bio_queue_data,
-				       "bio submission data",
-				       &io_submitter);
+	int result = UDS_ALLOCATE_EXTENDED(struct io_submitter,
+					   thread_count,
+					   struct bio_queue_data,
+					   "bio submission data",
+					   &io_submitter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -566,8 +564,8 @@ int make_io_submitter(const char *thread_name_prefix,
 			// entirely and indicate that initialization failed.
 			uds_log_error("bio map initialization failed %d",
 				      result);
-			cleanup_io_submitter(io_submitter);
-			free_io_submitter(io_submitter);
+			cleanup_vdo_io_submitter(io_submitter);
+			free_vdo_io_submitter(io_submitter);
 			return result;
 		}
 
@@ -575,15 +573,15 @@ int make_io_submitter(const char *thread_name_prefix,
 					      thread_name_prefix,
 					      queue_name,
 					      i,
-					      layer);
+					      vdo);
 		if (result != VDO_SUCCESS) {
 			// Clean up the partially initialized bio-queue
 			// entirely and indicate that initialization failed.
-			free_int_map(&bio_queue_data->map);
+			free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d",
 				      result);
-			cleanup_io_submitter(io_submitter);
-			free_io_submitter(io_submitter);
+			cleanup_vdo_io_submitter(io_submitter);
+			free_vdo_io_submitter(io_submitter);
 			return result;
 		}
 
@@ -596,9 +594,13 @@ int make_io_submitter(const char *thread_name_prefix,
 }
 
 /**********************************************************************/
-void cleanup_io_submitter(struct io_submitter *io_submitter)
+void cleanup_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
+
+	if (io_submitter == NULL) {
+		return;
+	}
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		finish_work_queue(io_submitter->bio_queue_data[i].queue);
@@ -606,20 +608,24 @@ void cleanup_io_submitter(struct io_submitter *io_submitter)
 }
 
 /**********************************************************************/
-void free_io_submitter(struct io_submitter *io_submitter)
+void free_vdo_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
+	if (io_submitter == NULL) {
+		return;
+	}
+
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
-		free_work_queue(&io_submitter->bio_queue_data[i].queue);
-		free_int_map(&io_submitter->bio_queue_data[i].map);
+		free_work_queue(UDS_FORGET(io_submitter->bio_queue_data[i].queue));
+		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}
-	FREE(io_submitter);
+	UDS_FREE(io_submitter);
 }
 
 /**********************************************************************/
-void dump_bio_work_queue(struct io_submitter *io_submitter)
+void vdo_dump_bio_work_queue(struct io_submitter *io_submitter)
 {
 	int i;
 
@@ -630,8 +636,8 @@ void dump_bio_work_queue(struct io_submitter *io_submitter)
 
 
 /**********************************************************************/
-void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   struct vdo_work_item *work_item)
+void vdo_enqueue_bio_work_item(struct io_submitter *io_submitter,
+			       struct vdo_work_item *work_item)
 {
 	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
 

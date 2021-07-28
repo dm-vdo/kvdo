@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/completion.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/completion.h#4 $
  */
 
 #ifndef COMPLETION_H
@@ -30,33 +30,33 @@
 #include "workQueue.h"
 
 enum vdo_completion_type {
-	// Keep UNSET_COMPLETION_TYPE at the top.
-	UNSET_COMPLETION_TYPE = 0,
+	// Keep VDO_UNSET_COMPLETION_TYPE at the top.
+	VDO_UNSET_COMPLETION_TYPE = 0,
 
 	// Keep this block in sorted order. If you add or remove an entry, be
 	// sure to update the corresponding list in completion.c.
-	ACTION_COMPLETION,
-	ADMIN_COMPLETION,
-	BLOCK_ALLOCATOR_COMPLETION,
-	BLOCK_MAP_RECOVERY_COMPLETION,
-	FLUSH_NOTIFICATION_COMPLETION,
-	GENERATION_FLUSHED_COMPLETION,
-	LOCK_COUNTER_COMPLETION,
-	PARTITION_COPY_COMPLETION,
-	READ_ONLY_MODE_COMPLETION,
-	READ_ONLY_REBUILD_COMPLETION,
-	RECOVERY_COMPLETION,
-	REFERENCE_COUNT_REBUILD_COMPLETION,
-	SLAB_SCRUBBER_COMPLETION,
-	SUB_TASK_COMPLETION,
-	SYNC_COMPLETION,
+	VDO_ACTION_COMPLETION,
+	VDO_ADMIN_COMPLETION,
+	VDO_BLOCK_ALLOCATOR_COMPLETION,
+	VDO_BLOCK_MAP_RECOVERY_COMPLETION,
 	VDO_EXTENT_COMPLETION,
+	VDO_FLUSH_NOTIFICATION_COMPLETION,
+	VDO_GENERATION_FLUSHED_COMPLETION,
+	VDO_LOCK_COUNTER_COMPLETION,
 	VDO_PAGE_COMPLETION,
+	VDO_PARTITION_COPY_COMPLETION,
+	VDO_READ_ONLY_MODE_COMPLETION,
+	VDO_READ_ONLY_REBUILD_COMPLETION,
+	VDO_RECOVERY_COMPLETION,
+	VDO_REFERENCE_COUNT_REBUILD_COMPLETION,
+	VDO_SLAB_SCRUBBER_COMPLETION,
+	VDO_SUB_TASK_COMPLETION,
+	VDO_SYNC_COMPLETION,
 	VIO_COMPLETION,
 
 
-	// Keep MAX_COMPLETION_TYPE at the bottom.
-	MAX_COMPLETION_TYPE
+	// Keep VDO_MAX_COMPLETION_TYPE at the bottom.
+	VDO_MAX_COMPLETION_TYPE
 } __packed;
 
 /**
@@ -184,22 +184,6 @@ static inline void finish_vdo_completion(struct vdo_completion *completion,
 	set_vdo_completion_result(completion, result);
 	complete_vdo_completion(completion);
 }
-
-/**
- * Complete a completion and NULL out the reference to it.
- *
- * @param completion_ptr  A pointer to the completion to release
- **/
-void release_vdo_completion(struct vdo_completion **completion_ptr);
-
-/**
- * Finish a completion and NULL out the reference to it.
- *
- * @param completion_ptr  A pointer to the completion to release
- * @param result          The result of the completion
- **/
-void release_vdo_completion_with_result(struct vdo_completion **completion_ptr,
-					int result);
 
 /**
  * A callback to finish the parent of a completion.

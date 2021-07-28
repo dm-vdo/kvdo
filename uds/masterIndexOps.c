@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#16 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.c#19 $
  */
 #include "masterIndexOps.h"
 
@@ -98,21 +98,21 @@ static int read_volume_index(struct read_portal *portal)
 	struct volume_index *volume_index =
 		index_component_context(portal->component);
 	unsigned int num_zones = portal->zones;
-	if (num_zones > MAX_ZONES) {
-		return log_error_strerror(UDS_BAD_STATE,
-					  "zone count %u must not exceed MAX_ZONES",
-					  num_zones);
-	}
-
 	struct buffered_reader *readers[MAX_ZONES];
 	unsigned int z;
+	if (num_zones > MAX_ZONES) {
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "zone count %u must not exceed MAX_ZONES",
+					      num_zones);
+	}
+
 	for (z = 0; z < num_zones; ++z) {
 		int result =
 			get_buffered_reader_for_portal(portal, z, &readers[z]);
 		if (result != UDS_SUCCESS) {
-			return log_error_strerror(result,
-						  "cannot read component for zone %u",
-						  z);
+			return uds_log_error_strerror(result,
+						      "cannot read component for zone %u",
+						      z);
 		}
 	}
 	return restore_volume_index(readers, num_zones, volume_index);
@@ -150,8 +150,8 @@ static int write_volume_index(struct index_component *component,
 		is_complete = true;
 		break;
 	default:
-		result = log_warning_strerror(UDS_INVALID_ARGUMENT,
-					      "Invalid writer command");
+		result = uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+						  "Invalid writer command");
 		break;
 	}
 	if (completed != NULL) {
@@ -182,6 +182,7 @@ static int restore_volume_index_body(struct buffered_reader **buffered_readers,
 				     struct volume_index *volume_index,
 				     byte dl_data[DELTA_LIST_MAX_BYTE_COUNT])
 {
+	unsigned int z;
 	// Start by reading the "header" section of the stream
 	int result = start_restoring_volume_index(volume_index,
 						  buffered_readers,
@@ -191,7 +192,6 @@ static int restore_volume_index_body(struct buffered_reader **buffered_readers,
 	}
 	// Loop to read the delta lists, stopping when they have all been
 	// processed.
-	unsigned int z;
 	for (z = 0; z < num_readers; z++) {
 		for (;;) {
 			struct delta_list_save_info dlsi;
@@ -214,8 +214,8 @@ static int restore_volume_index_body(struct buffered_reader **buffered_readers,
 	}
 	if (!is_restoring_volume_index_done(volume_index)) {
 		abort_restoring_volume_index(volume_index);
-		return log_warning_strerror(UDS_CORRUPT_COMPONENT,
-					    "incomplete delta list data");
+		return uds_log_warning_strerror(UDS_CORRUPT_COMPONENT,
+						"incomplete delta list data");
 	}
 	return UDS_SUCCESS;
 }
@@ -227,12 +227,12 @@ int restore_volume_index(struct buffered_reader **buffered_readers,
 {
 	byte *dl_data;
 	int result =
-		ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
+		UDS_ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, byte, __func__, &dl_data);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	result = restore_volume_index_body(buffered_readers, num_readers,
 					   volume_index, dl_data);
-	FREE(dl_data);
+	UDS_FREE(dl_data);
 	return result;
 }

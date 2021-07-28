@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deviceConfig.c#6 $
  */
 
 #include "deviceConfig.h"
@@ -217,7 +217,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 
 	// Don't fail, just log. This will handle version mismatches between
 	// user mode tools and kernel.
-	log_info("unknown thread parameter type \"%s\"", thread_param_type);
+	uds_log_info("unknown thread parameter type \"%s\"",
+		     thread_param_type);
 	return VDO_SUCCESS;
 }
 
@@ -233,7 +234,7 @@ static int parse_one_thread_config_spec(const char *spec,
 {
 	unsigned int count;
 	char **fields;
-	int result = split_string(spec, '=', &fields);
+	int result = vdo_split_string(spec, '=', &fields);
 
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -241,20 +242,20 @@ static int parse_one_thread_config_spec(const char *spec,
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
 		uds_log_error("thread config string error: expected thread parameter assignment, saw \"%s\"",
 			      spec);
-		free_string_array(fields);
+		vdo_free_string_array(fields);
 		return -EINVAL;
 	}
 
-	result = string_to_uint(fields[1], &count);
+	result = vdo_string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("thread config string error: integer value needed, found \"%s\"",
 			      fields[1]);
-		free_string_array(fields);
+		vdo_free_string_array(fields);
 		return result;
 	}
 
 	result = process_one_thread_config_spec(fields[0], count, config);
-	free_string_array(fields);
+	vdo_free_string_array(fields);
 	return result;
 }
 
@@ -288,7 +289,7 @@ static int parse_thread_config_string(const char *string,
 
 	if (strcmp(".", string) != 0) {
 		unsigned int i;
-		result = split_string(string, ',', &specs);
+		result = vdo_split_string(string, ',', &specs);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -299,7 +300,7 @@ static int parse_thread_config_string(const char *string,
 				break;
 			}
 		}
-		free_string_array(specs);
+		vdo_free_string_array(specs);
 	}
 	return result;
 }
@@ -364,7 +365,7 @@ static int parse_one_key_value_pair(const char *key,
 	}
 
 	// The remaining arguments must have integral values.
-	result = string_to_uint(value, &count);
+	result = vdo_string_to_uint(value, &count);
 	if (result != UDS_SUCCESS) {
 		uds_log_error("optional config string error: integer value needed, found \"%s\"",
 			      value);
@@ -460,23 +461,23 @@ int parse_optional_arguments(struct dm_arg_set *arg_set,
 /**
  * Handle a parsing error.
  *
- * @param config_ptr  A pointer to the config to free
- * @param error_ptr   A place to store a constant string about the error
- * @param error_str   A constant string to store in error_ptr
+ * @param config     The config to free
+ * @param error_ptr  A place to store a constant string about the error
+ * @param error_str  A constant string to store in error_ptr
  **/
-static void handle_parse_error(struct device_config **config_ptr,
+static void handle_parse_error(struct device_config *config,
 			       char **error_ptr,
 			       char *error_str)
 {
-	free_device_config(config_ptr);
+	free_vdo_device_config(config);
 	*error_ptr = error_str;
 }
 
 /**********************************************************************/
-int parse_device_config(int argc,
-			char **argv,
-			struct dm_target *ti,
-			struct device_config **config_ptr)
+int parse_vdo_device_config(int argc,
+			    char **argv,
+			    struct dm_target *ti,
+			    struct device_config **config_ptr)
 {
 	bool enable_512e;
 	struct dm_arg_set arg_set;
@@ -484,9 +485,9 @@ int parse_device_config(int argc,
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
 	int result =
-		ALLOCATE(1, struct device_config, "device_config", &config);
+		UDS_ALLOCATE(1, struct device_config, "device_config", &config);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not allocate config structure");
 		return VDO_BAD_CONFIGURATION;
@@ -496,9 +497,9 @@ int parse_device_config(int argc,
 	INIT_LIST_HEAD(&config->config_list);
 
 	// Save the original string.
-	result = join_strings(argv, argc, ' ', &config->original_string);
+	result = vdo_join_strings(argv, argc, ' ', &config->original_string);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not populate string");
 		return VDO_BAD_CONFIGURATION;
@@ -532,7 +533,7 @@ int parse_device_config(int argc,
 	result = get_version_number(argc, argv, error_ptr, &config->version);
 	if (result != VDO_SUCCESS) {
 		// get_version_number sets error_ptr itself.
-		handle_parse_error(&config, error_ptr, *error_ptr);
+		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
 	// Move the arg pointer forward only if the argument was there.
@@ -540,11 +541,11 @@ int parse_device_config(int argc,
 		dm_shift_arg(&arg_set);
 	}
 
-	result = duplicate_string(dm_shift_arg(&arg_set),
-				  "parent device name",
-				  &config->parent_device_name);
+	result = uds_duplicate_string(dm_shift_arg(&arg_set),
+				      "parent device name",
+				      &config->parent_device_name);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Could not copy parent device name");
 		return VDO_BAD_CONFIGURATION;
@@ -556,7 +557,7 @@ int parse_device_config(int argc,
 				   10,
 				   &config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			handle_parse_error(&config,
+			handle_parse_error(config,
 					   error_ptr,
 					   "Invalid physical block count");
 			return VDO_BAD_CONFIGURATION;
@@ -569,7 +570,7 @@ int parse_device_config(int argc,
 			    "4096",
 			    &enable_512e);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid logical block size");
 		return VDO_BAD_CONFIGURATION;
@@ -582,19 +583,19 @@ int parse_device_config(int argc,
 	}
 
 	// Get the page cache size.
-	result = string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
+	result = vdo_string_to_uint(dm_shift_arg(&arg_set), &config->cache_size);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid block map page cache size");
 		return VDO_BAD_CONFIGURATION;
 	}
 
 	// Get the block map era length.
-	result = string_to_uint(dm_shift_arg(&arg_set),
-				&config->block_map_maximum_age);
+	result = vdo_string_to_uint(dm_shift_arg(&arg_set),
+				    &config->block_map_maximum_age);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Invalid block map maximum age");
 		return VDO_BAD_CONFIGURATION;
@@ -616,7 +617,7 @@ int parse_device_config(int argc,
 		// is still in sync with the parsing of the table line.
 		if (&arg_set.argv[0] !=
 		    &argv[POOL_NAME_ARG_INDEX[config->version]]) {
-			handle_parse_error(&config,
+			handle_parse_error(config,
 					   error_ptr,
 					   "Pool name not in expected location");
 			return VDO_BAD_CONFIGURATION;
@@ -628,7 +629,7 @@ int parse_device_config(int argc,
 	result = parse_optional_arguments(&arg_set, error_ptr, config);
 	if (result != VDO_SUCCESS) {
 		// parse_optional_arguments sets error_ptr itself.
-		handle_parse_error(&config, error_ptr, *error_ptr);
+		handle_parse_error(config, error_ptr, *error_ptr);
 		return result;
 	}
 
@@ -641,7 +642,7 @@ int parse_device_config(int argc,
 	     (config->thread_counts.physical_zones == 0)) ||
 	    ((config->thread_counts.physical_zones == 0) !=
 	     (config->thread_counts.hash_zones == 0))) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Logical, physical, and hash zones counts must all be zero or all non-zero");
 		return VDO_BAD_CONFIGURATION;
@@ -649,7 +650,7 @@ int parse_device_config(int argc,
 
 	if (config->cache_size <
 	    (2 * MAXIMUM_VDO_USER_VIOS * config->thread_counts.logical_zones)) {
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Insufficient block map cache for logical zones");
 		return VDO_BAD_CONFIGURATION;
@@ -663,7 +664,7 @@ int parse_device_config(int argc,
 		uds_log_error("couldn't open device \"%s\": error %d",
 			      config->parent_device_name,
 			      result);
-		handle_parse_error(&config,
+		handle_parse_error(config,
 				   error_ptr,
 				   "Unable to open storage device");
 		return VDO_BAD_CONFIGURATION;
@@ -681,17 +682,9 @@ int parse_device_config(int argc,
 }
 
 /**********************************************************************/
-void free_device_config(struct device_config **config_ptr)
+void free_vdo_device_config(struct device_config *config)
 {
-	struct device_config *config;
-	if (config_ptr == NULL) {
-		return;
-	}
-
-	config = *config_ptr;
-
 	if (config == NULL) {
-		*config_ptr = NULL;
 		return;
 	}
 
@@ -699,14 +692,13 @@ void free_device_config(struct device_config **config_ptr)
 		dm_put_device(config->owning_target, config->owned_device);
 	}
 
-	FREE(config->parent_device_name);
-	FREE(config->original_string);
+	UDS_FREE(config->parent_device_name);
+	UDS_FREE(config->original_string);
 
 	// Reduce the chance a use-after-free (as in BZ 1669960) happens to work.
 	memset(config, 0, sizeof(*config));
 
-	FREE(config);
-	*config_ptr = NULL;
+	UDS_FREE(config);
 }
 
 /**********************************************************************/

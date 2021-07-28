@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bio.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bio.h#5 $
  */
 
 #ifndef BIO_H
@@ -33,7 +33,7 @@
  * @param bio       The bio to copy the data from
  * @param data_ptr  The local array to copy the data to
  **/
-void bio_copy_data_in(struct bio *bio, char *data_ptr);
+void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr);
 
 /**
  * Copy a char array to the bio data.
@@ -41,7 +41,7 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr);
  * @param bio       The bio to copy the data to
  * @param data_ptr  The local array to copy the data from
  **/
-void bio_copy_data_out(struct bio *bio, char *data_ptr);
+void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr);
 
 /**
  * Get the error from the bio.
@@ -50,7 +50,7 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr);
  *
  * @return the bio's error if any
  **/
-static inline int get_bio_result(struct bio *bio)
+static inline int vdo_get_bio_result(struct bio *bio)
 {
 	return blk_status_to_errno(bio->bi_status);
 }
@@ -61,7 +61,7 @@ static inline int get_bio_result(struct bio *bio)
  * @param bio    The bio to complete
  * @param error  A system error code, or 0 for success
  **/
-static inline void complete_bio(struct bio *bio, int error)
+static inline void vdo_complete_bio(struct bio *bio, int error)
 {
 	bio->bi_status = errno_to_blk_status(error);
 	bio_endio(bio);
@@ -72,7 +72,7 @@ static inline void complete_bio(struct bio *bio, int error)
  *
  * @param bio    The bio to free
  **/
-void free_bio(struct bio *bio);
+void vdo_free_bio(struct bio *bio);
 
 /**
  * Count the statistics for the bios.  This is used for calls into VDO and
@@ -81,14 +81,14 @@ void free_bio(struct bio *bio);
  * @param bio_stats  Statistics structure to update
  * @param bio        The bio
  **/
-void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
+void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
 
 /**
  * Does all the appropriate accounting for bio completions
  *
  * @param bio  the bio to count
  **/
-void count_completed_bios(struct bio *bio);
+void vdo_count_completed_bios(struct bio *bio);
 
 /**
  * Completes a bio relating to a vio, causing the completion callback to be
@@ -101,7 +101,7 @@ void count_completed_bios(struct bio *bio);
  *
  * @param bio   The bio to complete
  **/
-void complete_async_bio(struct bio *bio);
+void vdo_complete_async_bio(struct bio *bio);
 
 /**
  * Reset a bio wholly, preparing it to perform an IO. May only be used on a
@@ -117,12 +117,29 @@ void complete_async_bio(struct bio *bio);
  *
  * @return VDO_SUCCESS or an error
  **/
-int reset_bio_with_buffer(struct bio *bio,
-			  char *data,
-			  struct vio *vio,
-			  bio_end_io_t callback,
-			  unsigned int bi_opf,
-			  physical_block_number_t pbn);
+int vdo_reset_bio_with_buffer(struct bio *bio,
+			      char *data,
+			      struct vio *vio,
+			      bio_end_io_t callback,
+			      unsigned int bi_opf,
+			      physical_block_number_t pbn);
+
+/**
+ * Clone a user bio, then edit our copy to fit our needs.
+ *
+ * @param bio       The bio to reset
+ * @param user_bio  The user bio to clone
+ * @param vio       The vio to which our bio belongs (may be NULL)
+ * @param callback  The callback our bio should call when IO finishes
+ * @param bi_opf    The operation and flags for our bio
+ * @param pbn       The physical block number to write to
+ **/
+void vdo_reset_bio_with_user_bio(struct bio *bio,
+				 struct bio *user_bio,
+				 struct vio *vio,
+				 bio_end_io_t callback,
+				 unsigned int bi_opf,
+				 physical_block_number_t pbn);
 
 /**
  * Create a new bio structure, which is guaranteed to be able to wrap any
@@ -132,6 +149,6 @@ int reset_bio_with_buffer(struct bio *bio,
  *
  * @return VDO_SUCCESS or an error
  **/
-int create_bio(struct bio **bio_ptr);
+int vdo_create_bio(struct bio **bio_ptr);
 
 #endif /* BIO_H */

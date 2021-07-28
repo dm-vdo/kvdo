@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/flush.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/flush.h#3 $
  */
 
 #ifndef FLUSH_H
@@ -56,11 +56,11 @@ struct vdo_flush {
 int __must_check make_vdo_flusher(struct vdo *vdo);
 
 /**
- * Free a flusher and null out the reference to it.
+ * Free a flusher.
  *
- * @param flusher_ptr  A pointer to the flusher to free
+ * @param flusher  The flusher to free
  **/
-void free_vdo_flusher(struct flusher **flusher_ptr);
+void free_vdo_flusher(struct flusher *flusher);
 
 /**
  * Get the ID of the thread on which flusher functions should be called.
@@ -95,9 +95,9 @@ void dump_vdo_flusher(const struct flusher *flusher);
 /**
  * Complete and free a vdo flush request.
  *
- * @param flush_ptr  The pointer to the flush reference, which will be nulled
+ * @param flush  The flush request
  **/
-void vdo_complete_flush(struct vdo_flush **flush_ptr);
+void vdo_complete_flush(struct vdo_flush *flush);
 
 /**
  * Function called to start processing a flush request. It is called when we

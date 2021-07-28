@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/stringLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/stringLinuxKernel.c#5 $
  */
 
 #include <linux/mm.h>
@@ -26,7 +26,7 @@
 #include "stringUtils.h"
 
 /**********************************************************************/
-int string_to_signed_long(const char *nptr, long *num)
+int uds_string_to_signed_long(const char *nptr, long *num)
 {
 	while (*nptr == ' ') {
 		nptr++;
@@ -35,7 +35,7 @@ int string_to_signed_long(const char *nptr, long *num)
 }
 
 /**********************************************************************/
-int string_to_unsigned_long(const char *nptr, unsigned long *num)
+int uds_string_to_unsigned_long(const char *nptr, unsigned long *num)
 {
 	while (*nptr == ' ') {
 		nptr++;
@@ -47,7 +47,7 @@ int string_to_unsigned_long(const char *nptr, unsigned long *num)
 }
 
 /**********************************************************************/
-char *next_token(char *str, const char *delims, char **state)
+char *uds_next_token(char *str, const char *delims, char **state)
 {
 	char *ep, *sp = str ? str : *state;
 	while (*sp && strchr(delims, *sp)) {
@@ -68,10 +68,10 @@ char *next_token(char *str, const char *delims, char **state)
 }
 
 /**********************************************************************/
-int parse_uint64(const char *str, uint64_t *num)
+int uds_parse_uint64(const char *str, uint64_t *num)
 {
 	unsigned long value = *num;
-	int result = string_to_unsigned_long(str, &value);
+	int result = uds_string_to_unsigned_long(str, &value);
 	*num = value;
 	return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dmvdo.c#26 $
  */
 
 #include "dmvdo.h"
@@ -38,7 +38,6 @@
 #include "instanceNumber.h"
 #include "ioSubmitter.h"
 #include "kernelLayer.h"
-#include "memoryUsage.h"
 #include "messageStats.h"
 #include "stringUtils.h"
 #include "vdo.h"
@@ -77,8 +76,8 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  * through the "map" function, and has resulted from a bio being
  * submitted.
  *
- * @param ti   The dm_target.  We only need the "private" member to access
- *             the kernel_layer.
+ * @param ti   The dm_target. We only need the "private" member to access
+ *             the vdo
  * @param bio  The bio.
  *
  * @return One of these values:
@@ -101,18 +100,15 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
  **/
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-
-	return kvdo_map_bio(layer, bio);
+	return vdo_launch_bio(get_vdo_for_target(ti), bio);
 }
 
 /**********************************************************************/
 static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 
-	limits->logical_block_size =
-		layer->vdo.device_config->logical_block_size;
+	limits->logical_block_size = vdo->device_config->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
 	// The minimum io size for random io
@@ -137,9 +133,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * determine whether to pass down discards. The block layer splits
 	 * large discards on this boundary when this is set.
 	 */
-	limits->max_discard_sectors =
-		layer->vdo.device_config->max_discard_blocks *
-		VDO_SECTORS_PER_BLOCK;
+	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
+				       * VDO_SECTORS_PER_BLOCK);
 
 	// Force discards to not begin or end with a partial block by stating
 	// the granularity is 4k.
@@ -151,11 +146,10 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       iterate_devices_callout_fn fn,
 			       void *data)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	sector_t len =
-		block_to_sector(layer->vdo.device_config->physical_blocks);
+	struct vdo *vdo = get_vdo_for_target(ti);
+	sector_t len = block_to_sector(vdo->device_config->physical_blocks);
 
-	return fn(ti, layer->vdo.device_config->owned_device, 0, len, data);
+	return fn(ti, vdo->device_config->owned_device, 0, len, data);
 }
 
 /*
@@ -171,7 +165,7 @@ static void vdo_status(struct dm_target *ti,
 		       char *result,
 		       unsigned int maxlen)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
 	struct device_config *device_config;
 	char name_buffer[BDEVNAME_SIZE];
@@ -182,20 +176,19 @@ static void vdo_status(struct dm_target *ti,
 	switch (status_type) {
 	case STATUSTYPE_INFO:
 		// Report info for dmsetup status
-		mutex_lock(&layer->stats_mutex);
-		get_kvdo_statistics(&layer->vdo, &layer->vdo_stats_storage);
-		stats = &layer->vdo_stats_storage;
+		mutex_lock(&vdo->stats_mutex);
+		fetch_vdo_statistics(vdo, &vdo->stats_buffer);
+		stats = &vdo->stats_buffer;
 
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(get_vdo_backing_device(&layer->vdo),
-				name_buffer),
+		       bdevname(get_vdo_backing_device(vdo), name_buffer),
 		       stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
-		       get_dedupe_state_name(layer->dedupe_index),
-		       get_vdo_compressing(&layer->vdo) ? "online" : "offline",
+		       get_vdo_dedupe_index_state_name(vdo->dedupe_index),
+		       get_vdo_compressing(vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
-		mutex_unlock(&layer->stats_mutex);
+		mutex_unlock(&vdo->stats_mutex);
 		break;
 
 	case STATUSTYPE_TABLE:
@@ -204,8 +197,6 @@ static void vdo_status(struct dm_target *ti,
 		DMEMIT("%s", device_config->original_string);
 		break;
 	}
-
-	//  spin_unlock_irqrestore(&layer->lock, flags);
 }
 
 
@@ -223,53 +214,11 @@ get_underlying_device_block_count(const struct vdo *vdo)
 		/ VDO_BLOCK_SIZE);
 }
 
-/**********************************************************************/
-static int
-vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
-{
-	block_count_t logical_count;
-
-	if (sscanf(size_string, "%llu", &logical_count) != 1) {
-		uds_log_warning("Logical block count \"%s\" is not a number",
-				size_string);
-		return -EINVAL;
-	}
-
-	if (logical_count > MAXIMUM_VDO_LOGICAL_BLOCKS) {
-		uds_log_warning("Logical block count \"%llu\" exceeds the maximum (%llu)",
-				logical_count, MAXIMUM_VDO_LOGICAL_BLOCKS);
-		return -EINVAL;
-	}
-
-	return prepare_to_resize_logical(layer, logical_count);
-}
-
-/**********************************************************************/
-static int vdo_grow_physical(struct vdo *vdo)
-{
-	// The actual growPhysical will happen when the device is resumed.
-	if (vdo->device_config->version != 0) {
-		/*
-		 * XXX Uncomment this branch when new VDO manager is updated to
-		 * not send this message. Old style message on new style table
-		 * is unexpected; it means the user started the VDO with new
-		 * manager and is growing with old.
-		 */
-		// log_info("Mismatch between growPhysical method and table version.");
-		// return -EINVAL;
-	} else {
-		vdo->device_config->physical_blocks =
-			get_underlying_device_block_count(vdo);
-
-	}
-	return 0;
-}
-
 /**
  * Process a dmsetup message now that we know no other message is being
  * processed.
  *
- * @param layer  The layer to which the message was sent
+ * @param vdo    The vdo to which the message was sent
  * @param argc   The argument count of the message
  * @param argv   The arguments to the message
  *
@@ -277,7 +226,7 @@ static int vdo_grow_physical(struct vdo *vdo)
  *                 the message
  **/
 static int __must_check
-process_vdo_message_locked(struct kernel_layer *layer,
+process_vdo_message_locked(struct vdo *vdo,
 			   unsigned int argc,
 			   char **argv)
 {
@@ -285,20 +234,8 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	switch (argc) {
 	case 1:
 		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			vdo_wait_for_no_requests_active(&layer->vdo);
+			vdo_wait_for_no_requests_active(vdo);
 			return 0;
-		}
-
-
-		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-			block_count_t backing_blocks =
-				get_underlying_device_block_count(&layer->vdo);
-			return prepare_to_resize_physical(layer,
-							  backing_blocks);
-		}
-
-		if (strcasecmp(argv[0], "growPhysical") == 0) {
-			return vdo_grow_physical(&layer->vdo);
 		}
 
 		break;
@@ -306,22 +243,18 @@ process_vdo_message_locked(struct kernel_layer *layer,
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
 			if (strcasecmp(argv[1], "on") == 0) {
-				set_kvdo_compressing(&layer->vdo, true);
+				set_vdo_compressing(vdo, true);
 				return 0;
 			}
 
 			if (strcasecmp(argv[1], "off") == 0) {
-				set_kvdo_compressing(&layer->vdo, false);
+				set_vdo_compressing(vdo, false);
 				return 0;
 			}
 
 			uds_log_warning("invalid argument '%s' to dmsetup compression message",
 					argv[1]);
 			return -EINVAL;
-		}
-
-		if (strcasecmp(argv[0], "prepareToGrowLogical") == 0) {
-			return vdo_prepare_to_grow_logical(layer, argv[1]);
 		}
 
 		break;
@@ -339,7 +272,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
  * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
  * check that no other message is being processed, and only proceed if so.
  *
- * @param layer  The layer to which the message was sent
+ * @param vdo    The vdo to which the message was sent
  * @param argc   The argument count of the message
  * @param argv   The arguments to the message
  *
@@ -347,7 +280,7 @@ process_vdo_message_locked(struct kernel_layer *layer,
  *                processsing the message
  **/
 static int __must_check
-process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
+process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 {
 	int result;
 
@@ -360,12 +293,12 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 
 	// Dump messages should always be processed
 	if (strcasecmp(argv[0], "dump") == 0) {
-		return vdo_dump(layer, argc, argv, "dmsetup message");
+		return vdo_dump(vdo, argc, argv, "dmsetup message");
 	}
 
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
-			layer->dump_on_shutdown = true;
+			vdo->dump_on_shutdown = true;
 			return 0;
 		}
 
@@ -374,39 +307,19 @@ process_vdo_message(struct kernel_layer *layer, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return message_dedupe_index(layer->dedupe_index,
-						    argv[0]);
-		}
-
-		/*
-		 * XXX - the "connect" messages are misnamed for the kernel
-		 * index. These messages should go away when all callers have
-		 * been fixed to use "index-enable" or "index-disable".
-		 */
-		if (strcasecmp(argv[0], "reconnect") == 0) {
-			return message_dedupe_index(layer->dedupe_index,
-						    "index-enable");
-		}
-
-		if (strcasecmp(argv[0], "connect") == 0) {
-			return message_dedupe_index(layer->dedupe_index,
-						    "index-enable");
-		}
-
-		if (strcasecmp(argv[0], "disconnect") == 0) {
-			return message_dedupe_index(layer->dedupe_index,
-						    "index-disable");
+			return message_vdo_dedupe_index(vdo->dedupe_index,
+							argv[0]);
 		}
 	}
 
-	if (atomic_cmpxchg(&layer->processing_message, 0, 1) != 0) {
+	if (atomic_cmpxchg(&vdo->processing_message, 0, 1) != 0) {
 		return -EBUSY;
 	}
 
-	result = process_vdo_message_locked(layer, argc, argv);
+	result = process_vdo_message_locked(vdo, argc, argv);
 
 	smp_wmb();
-	atomic_set(&layer->processing_message, 0);
+	atomic_set(&vdo->processing_message, 0);
 	return result;
 }
 
@@ -418,52 +331,41 @@ static int vdo_message(struct dm_target *ti,
 		       unsigned int maxlen)
 {
 	struct registered_thread allocating_thread, instance_thread;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 	int result;
+
 	if (argc == 0) {
 		uds_log_warning("unspecified dmsetup message");
 		return -EINVAL;
 	}
 
-	layer = get_kernel_layer_for_target(ti);
-
-	register_allocating_thread(&allocating_thread, NULL);
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	vdo = get_vdo_for_target(ti);
+	uds_register_allocating_thread(&allocating_thread, NULL);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
 	// Must be done here so we don't map return codes. The code in
 	// dm-ioctl expects a 1 for a return code to look at the buffer
 	// and see if it is full or not.
-	if (argc == 1) {
-		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
-			write_vdo_stats(layer, result_buffer, maxlen);
-			uds_unregister_thread_device_id();
-			unregister_allocating_thread();
-			return 1;
-		}
-
-		if (strcasecmp(argv[0], "kernel_stats") == 0) {
-			write_kernel_stats(layer, result_buffer, maxlen);
-			uds_unregister_thread_device_id();
-			unregister_allocating_thread();
-			return 1;
-		}
+	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
+		write_vdo_stats(vdo, result_buffer, maxlen);
+		result = 1;
+	} else {
+		result = map_to_system_error(process_vdo_message(vdo,
+								 argc,
+								 argv));
 	}
 
-	result = process_vdo_message(layer, argc, argv);
-
 	uds_unregister_thread_device_id();
-	unregister_allocating_thread();
-	return map_to_system_error(result);
+	uds_unregister_allocating_thread();
+	return result;
 }
 
 /**
  * Configure the dm_target with our capabilities.
  *
- * @param ti     The device mapper target representing our device
- * @param layer  The kernel layer to get the write policy from
+ * @param ti   The device mapper target representing our device
  **/
-static void configure_target_capabilities(struct dm_target *ti,
-					  struct kernel_layer *layer)
+static void configure_target_capabilities(struct dm_target *ti)
 {
 	ti->discards_supported = 1;
 	ti->flush_supported = true;
@@ -508,7 +410,7 @@ static int vdo_initialize(struct dm_target *ti,
 	uint64_t logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
-	log_info("loading device '%s'", get_vdo_device_name(ti));
+	uds_log_info("loading device '%s'", get_vdo_device_name(ti));
 	uds_log_debug("Logical block size     = %llu",
 		      (uint64_t) config->logical_block_size);
 	uds_log_debug("Logical blocks         = %llu", logical_blocks);
@@ -534,7 +436,7 @@ static int vdo_initialize(struct dm_target *ti,
 				   &failure_reason,
 				   &layer);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("Could not create kernel physical layer. (VDO error %d, message %s)",
+		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
@@ -543,7 +445,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	result = preload_kernel_layer(layer, &failure_reason);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("Could not start kernel physical layer. (VDO error %d, message %s)",
+		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
@@ -554,7 +456,7 @@ static int vdo_initialize(struct dm_target *ti,
 	set_device_config_vdo(config, &layer->vdo);
 	set_vdo_active_config(&layer->vdo, config);
 	ti->private = config;
-	configure_target_capabilities(ti, layer);
+	configure_target_capabilities(ti);
 	return VDO_SUCCESS;
 }
 
@@ -578,14 +480,14 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	unsigned int instance;
 	struct device_config *config = NULL;
 
-	register_allocating_thread(&allocating_thread, NULL);
+	uds_register_allocating_thread(&allocating_thread, NULL);
 
 	device_name = get_vdo_device_name(ti);
 	old_vdo = find_vdo_matching(vdo_is_named, (void *) device_name);
 	if (old_vdo == NULL) {
 		result = allocate_vdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
-			unregister_allocating_thread();
+			uds_unregister_allocating_thread();
 			return -ENOMEM;
 		}
 	} else {
@@ -593,10 +495,10 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	uds_register_thread_device_id(&instance_thread, &instance);
-	result = parse_device_config(argc, argv, ti, &config);
+	result = parse_vdo_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 		if (old_vdo == NULL) {
 			release_vdo_instance(instance);
 		}
@@ -613,20 +515,20 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * suspended, and if not, we are not, but we can't do that
 		 * until new VDO Manager does the right order.
 		 */
-		log_info("preparing to modify device '%s'", device_name);
+		uds_log_info("preparing to modify device '%s'", device_name);
 		result = prepare_to_modify_kernel_layer(layer,
 							config,
 							&ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
-			free_device_config(&config);
+			free_vdo_device_config(UDS_FORGET(config));
 		} else {
 			set_device_config_vdo(config, old_vdo);
 			ti->private = config;
-			configure_target_capabilities(ti, layer);
+			configure_target_capabilities(ti);
 		}
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 		return result;
 	}
 
@@ -634,11 +536,11 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		// vdo_initialize calls into various VDO routines, so map error
 		result = map_to_system_error(result);
-		free_device_config(&config);
+		free_vdo_device_config(config);
 	}
 
 	uds_unregister_thread_device_id();
-	unregister_allocating_thread();
+	uds_unregister_allocating_thread();
 	return result;
 }
 
@@ -647,40 +549,39 @@ static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
 	struct vdo *vdo = config->vdo;
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 
 	set_device_config_vdo(config, NULL);
 	if (list_empty(&vdo->device_config_list)) {
 		const char *device_name;
 
-		// This was the last config referencing the layer. Free it.
-		unsigned int instance = layer->vdo.instance;
+		// This was the last config referencing the VDO. Free it.
+		unsigned int instance = vdo->instance;
 		struct registered_thread allocating_thread, instance_thread;
 
 		uds_register_thread_device_id(&instance_thread, &instance);
-		register_allocating_thread(&allocating_thread, NULL);
+		uds_register_allocating_thread(&allocating_thread, NULL);
 
 		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
 
-		log_info("stopping device '%s'", device_name);
+		uds_log_info("stopping device '%s'", device_name);
 
-		if (layer->dump_on_shutdown) {
-			vdo_dump_all(layer, "device shutdown");
+		if (vdo->dump_on_shutdown) {
+			vdo_dump_all(vdo, "device shutdown");
 		}
 
-		free_kernel_layer(layer);
-		log_info("device '%s' stopped", device_name);
+		free_kernel_layer(vdo_as_kernel_layer(vdo));
+		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
-		unregister_allocating_thread();
+		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
-		// The layer still references this config. Give it a reference
+		// The VDO still references this config. Give it a reference
 		// to a config that isn't being destroyed.
 		vdo->device_config =
-			as_device_config(vdo->device_config_list.next);
+			as_vdo_device_config(vdo->device_config_list.next);
 	}
 
-	free_device_config(&config);
+	free_vdo_device_config(config);
 	ti->private = NULL;
 }
 
@@ -708,11 +609,13 @@ static void vdo_postsuspend(struct dm_target *ti)
 	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
 	device_name = get_vdo_device_name(ti);
 
-	log_info("suspending device '%s'", device_name);
+	uds_log_info("suspending device '%s'", device_name);
 	result = suspend_kernel_layer(layer);
 
-	if (result == VDO_SUCCESS) {
-		log_info("device '%s' suspended", device_name);
+	// Treat VDO_READ_ONLY as a success since a read-only suspension still
+	// leaves the VDO suspended.
+	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
+		uds_log_info("device '%s' suspended", device_name);
 	} else {
 		uds_log_error("suspend of device '%s' failed with error: %d",
 			      device_name,
@@ -726,21 +629,23 @@ static void vdo_postsuspend(struct dm_target *ti)
 /**********************************************************************/
 static int vdo_preresume(struct dm_target *ti)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
+	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
 	const char *device_name;
 	block_count_t backing_blocks;
 	int result;
 
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 	device_name = get_vdo_device_name(ti);
 
-	backing_blocks = get_underlying_device_block_count(&layer->vdo);
+	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
-			      device_name, backing_blocks,
-			      config->physical_blocks);
+			      device_name,
+			      (unsigned long long) backing_blocks,
+			      (unsigned long long) config->physical_blocks);
 		uds_unregister_thread_device_id();
 		return -EINVAL;
 	}
@@ -751,41 +656,43 @@ static int vdo_preresume(struct dm_target *ti)
 
 		// This is the first time this device has been resumed, so run
 		// it.
-		log_info("starting device '%s'", device_name);
+		uds_log_info("starting device '%s'", device_name);
 		result = start_kernel_layer(layer, &failure_reason);
 
 		if (result != VDO_SUCCESS) {
-			uds_log_error("Could not run kernel physical layer. (VDO error %d, message %s)",
+			uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 				      result,
 				      failure_reason);
-			set_vdo_read_only(&layer->vdo, result);
+			vdo_enter_read_only_mode(vdo->read_only_notifier,
+						 result);
 			uds_unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
 
-		log_info("device '%s' started", device_name);
+		uds_log_info("device '%s' started", device_name);
 	}
 
-	log_info("resuming device '%s'", device_name);
+	uds_log_info("resuming device '%s'", device_name);
 
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
 	result = modify_kernel_layer(layer, config);
 
 	if (result != VDO_SUCCESS) {
-		log_error_strerror(result,
-				   "Commit of modifications to device '%s' failed",
-				   device_name);
-		set_vdo_active_config(&layer->vdo, config);
-		set_vdo_read_only(&layer->vdo, result);
+		uds_log_error_strerror(result,
+				       "Commit of modifications to device '%s' failed",
+				       device_name);
+		set_vdo_active_config(vdo, config);
+		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 	} else {
-		set_vdo_active_config(&layer->vdo, config);
+		set_vdo_active_config(vdo, config);
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			uds_log_error("resume of device '%s' failed with error: %d",
 				      device_name, result);
 		}
 	}
+
 	uds_unregister_thread_device_id();
 	return map_to_system_error(result);
 }
@@ -797,7 +704,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct registered_thread instance_thread;
 
 	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
-	log_info("device '%s' resumed", get_vdo_device_name(ti));
+	uds_log_info("device '%s' resumed", get_vdo_device_name(ti));
 	uds_unregister_thread_device_id();
 }
 
@@ -842,7 +749,7 @@ static void vdo_destroy(void)
 
 	clean_up_vdo_instance_number_tracking();
 
-	log_info("unloaded version %s", CURRENT_VERSION);
+	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
 
 /**********************************************************************/
@@ -850,13 +757,13 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
-	initialize_device_registry_once();
-	log_info("loaded version %s", CURRENT_VERSION);
+	initialize_vdo_device_registry_once();
+	uds_log_info("loaded version %s", CURRENT_VERSION);
 
 	// Add VDO errors to the already existing set of errors in UDS.
-	result = register_status_codes();
+	result = register_vdo_status_codes();
 	if (result != UDS_SUCCESS) {
-		uds_log_error("register_status_codes failed %d", result);
+		uds_log_error("register_vdo_status_codes failed %d", result);
 		vdo_destroy();
 		return result;
 	}

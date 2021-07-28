@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/readOnlyRebuild.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/readOnlyRebuild.h#2 $
  */
 
 #ifndef READ_ONLY_REBUILD_H
@@ -33,6 +33,6 @@
  * @param vdo           The vdo to rebuild
  * @param parent        The completion to notify when the rebuild is complete
  **/
-void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent);
+void launch_vdo_rebuild(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif // READ_ONLY_REBUILD_H

@@ -16,14 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/dataVIO.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/dataVIO.c#16 $
  */
 
 #include "dataVIO.h"
 
 #include "logger.h"
+#include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "bio.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "extent.h"
@@ -37,34 +39,32 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 	"launch",
 	"acknowledge_write",
 	"acquire_vdo_hash_lock",
-	"acquire_logical_block_lock",
-	"acquirePBNReadLock",
-	"checkForDedupeForRollover",
-	"checkForDeduplication",
-	"compress_data",
-	"continueVIOAsync",
-	"findBlockMapSlot",
-	"getMappedBlock",
-	"getMappedBlockForDedupe",
-	"getMappedBlockForWrite",
-	"hashData",
-	"journalDecrementForDedupe",
-	"journalDecrementForWrite",
-	"journalIncrementForCompression",
-	"journalIncrementForDedupe",
-	"journalIncrementForWrite",
-	"journalMappingForCompression",
-	"journalMappingForDedupe",
-	"journalMappingForWrite",
-	"journalUnmappingForDedupe",
-	"journalUnmappingForWrite",
-	"attempt_packing",
-	"putMappedBlock",
-	"putMappedBlockForDedupe",
-	"readData",
-	"updateIndex",
-	"verifyDeduplication",
-	"writeData",
+	"attempt_logical_block_lock",
+	"lock_duplicate_pbn",
+	"check_for_duplication",
+	"compress_data_vio",
+	"find_block_map_slot",
+	"get_mapped_block/for_read",
+	"get_mapped_block/for_dedupe",
+	"get_mapped_block/for_write",
+	"hash_data_vio",
+	"journal_decrement_for_dedupe",
+	"journal_decrement_for_write",
+	"journal_increment_for_compression",
+	"journal_increment_for_dedupe",
+	"journal_increment_for_write",
+	"journal_mapping_for_compression",
+	"journal_mapping_for_dedupe",
+	"journal_mapping_for_write",
+	"journal_unmapping_for_dedupe",
+	"journal_unmapping_for_write",
+	"vdo_attempt_packing",
+	"put_mapped_block/for_write",
+	"put_mapped_block/for_dedupe",
+	"read_data_vio",
+	"update_dedupe_index",
+	"verify_duplication",
+	"write_data_vio",
 };
 
 /**
@@ -85,8 +85,8 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 	lock->locked = false;
 	initialize_wait_queue(&lock->waiters);
 
-	lock->zone = get_logical_zone(vdo->logical_zones,
-				      compute_logical_zone(data_vio));
+	lock->zone = get_vdo_logical_zone(vdo->logical_zones,
+					  vdo_compute_logical_zone(data_vio));
 }
 
 /**********************************************************************/
@@ -105,7 +105,7 @@ void prepare_data_vio(struct data_vio *data_vio,
 	INIT_LIST_HEAD(&data_vio->hash_lock_entry);
 	INIT_LIST_HEAD(&data_vio->write_entry);
 
-	reset_allocation(data_vio_as_allocating_vio(data_vio));
+	vio_reset_allocation(data_vio_as_allocating_vio(data_vio));
 
 	data_vio->is_duplicate = false;
 
@@ -115,12 +115,12 @@ void prepare_data_vio(struct data_vio *data_vio,
 	vio->operation = operation;
 	vio->callback = callback;
 
-	data_vio->mapped.state = MAPPING_STATE_UNCOMPRESSED;
-	data_vio->new_mapped.state =
-		(is_trim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
+	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+	data_vio->new_mapped.state = (is_trim ? VDO_MAPPING_STATE_UNMAPPED :
+						VDO_MAPPING_STATE_UNCOMPRESSED);
 	reset_vdo_completion(vio_as_completion(vio));
-	set_logical_callback(data_vio,
-			     attempt_logical_block_lock);
+	set_data_vio_logical_callback(data_vio,
+				      vdo_attempt_logical_block_lock);
 }
 
 /**********************************************************************/
@@ -134,8 +134,8 @@ void complete_data_vio(struct vdo_completion *completion)
 		update_vio_error_stats(vio,
 				       "Completing %s vio for LBN %llu with error after %s",
 				       vio_operation,
-				       data_vio->logical.lbn,
-				       get_operation_name(data_vio));
+				       (unsigned long long) data_vio->logical.lbn,
+				       get_data_vio_operation_name(data_vio));
 	}
 
 	if (is_read_data_vio(data_vio)) {
@@ -154,20 +154,21 @@ void finish_data_vio(struct data_vio *data_vio, int result)
 }
 
 /**********************************************************************/
-const char *get_operation_name(struct data_vio *data_vio)
+const char *get_data_vio_operation_name(struct data_vio *data_vio)
 {
-	STATIC_ASSERT(
-		(MAX_ASYNC_OPERATION_NUMBER - MIN_ASYNC_OPERATION_NUMBER) ==
-		COUNT_OF(ASYNC_OPERATION_NAMES));
+	STATIC_ASSERT((MAX_VIO_ASYNC_OPERATION_NUMBER -
+		       MIN_VIO_ASYNC_OPERATION_NUMBER) ==
+		      COUNT_OF(ASYNC_OPERATION_NAMES));
 
-	return ((data_vio->last_async_operation < MAX_ASYNC_OPERATION_NUMBER) ?
+	return ((data_vio->last_async_operation <
+		 MAX_VIO_ASYNC_OPERATION_NUMBER) ?
 			ASYNC_OPERATION_NAMES[data_vio->last_async_operation] :
 			"unknown async operation");
 }
 
 /**********************************************************************/
-void receive_dedupe_advice(struct data_vio *data_vio,
-			   const struct data_location *advice)
+void receive_data_vio_dedupe_advice(struct data_vio *data_vio,
+				    const struct data_location *advice)
 {
 	/*
 	 * NOTE: this is called on non-base-code threads. Be very careful to
@@ -178,30 +179,30 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct zoned_pbn duplicate =
-		validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
-	set_duplicate_location(data_vio, duplicate);
+		vdo_validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
+	set_data_vio_duplicate_location(data_vio, duplicate);
 }
 
 /**********************************************************************/
-void set_duplicate_location(struct data_vio *data_vio,
-			    const struct zoned_pbn source)
+void set_data_vio_duplicate_location(struct data_vio *data_vio,
+				     const struct zoned_pbn source)
 {
 	data_vio->is_duplicate = (source.pbn != VDO_ZERO_BLOCK);
 	data_vio->duplicate = source;
 }
 
 /**********************************************************************/
-void clear_mapped_location(struct data_vio *data_vio)
+void clear_data_vio_mapped_location(struct data_vio *data_vio)
 {
 	data_vio->mapped = (struct zoned_pbn){
-		.state = MAPPING_STATE_UNMAPPED,
+		.state = VDO_MAPPING_STATE_UNMAPPED,
 	};
 }
 
 /**********************************************************************/
-int set_mapped_location(struct data_vio *data_vio,
-			physical_block_number_t pbn,
-			enum block_mapping_state state)
+int set_data_vio_mapped_location(struct data_vio *data_vio,
+				 physical_block_number_t pbn,
+				 enum block_mapping_state state)
 {
 	struct physical_zone *zone;
 	int result = get_physical_zone(get_vdo_from_data_vio(data_vio), pbn,
@@ -235,7 +236,7 @@ static void launch_locked_request(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-void attempt_logical_block_lock(struct vdo_completion *completion)
+void vdo_attempt_logical_block_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct lbn_lock *lock = &data_vio->logical;
@@ -243,15 +244,16 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	struct data_vio *lock_holder;
 	int result;
 
-	assert_in_logical_zone(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
 
 	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
 		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
 		return;
 	}
 
-	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
-			     data_vio, false, (void **) &lock_holder);
+	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
+			     lock->lbn, data_vio, false,
+			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
@@ -281,12 +283,12 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	 */
 	if (is_read_data_vio(data_vio) &&
 	    READ_ONCE(lock_holder->allocation_succeeded)) {
-		copy_data(lock_holder, data_vio);
+		vdo_copy_data(lock_holder, data_vio);
 		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
 
-	data_vio->last_async_operation = ACQUIRE_LOGICAL_BLOCK_LOCK;
+	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
 				data_vio);
 	if (result != VDO_SUCCESS) {
@@ -297,11 +299,10 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 	// Prevent writes and read-modify-writes from blocking indefinitely on
 	// lock holders in the packer.
 	if (!is_read_data_vio(lock_holder) &&
-	    cancel_compression(lock_holder)) {
+	    cancel_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
-		launch_packer_callback(
-			data_vio,
-			remove_lock_holder_from_packer);
+		launch_data_vio_packer_callback(data_vio,
+						remove_lock_holder_from_vdo_packer);
 	}
 }
 
@@ -313,7 +314,8 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 static void release_lock(struct data_vio *data_vio)
 {
 	struct lbn_lock *lock = &data_vio->logical;
-	struct int_map *lock_map = get_lbn_lock_map(lock->zone);
+	struct int_map *lock_map =
+		get_vdo_logical_zone_lbn_lock_map(lock->zone);
 	struct data_vio *lock_holder;
 
 	if (!lock->locked) {
@@ -322,7 +324,7 @@ static void release_lock(struct data_vio *data_vio)
 		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
 		ASSERT_LOG_ONLY((data_vio != lock_holder),
 				"no logical block lock held for block %llu",
-				lock->lbn);
+				(unsigned long long) lock->lbn);
 		return;
 	}
 
@@ -330,19 +332,19 @@ static void release_lock(struct data_vio *data_vio)
 	lock_holder = int_map_remove(lock_map, lock->lbn);
 	ASSERT_LOG_ONLY((data_vio == lock_holder),
 			"logical block lock mismatch for block %llu",
-			lock->lbn);
+			(unsigned long long) lock->lbn);
 	lock->locked = false;
 	return;
 }
 
 /**********************************************************************/
-void release_logical_block_lock(struct data_vio *data_vio)
+void vdo_release_logical_block_lock(struct data_vio *data_vio)
 {
 	struct data_vio *lock_holder, *next_lock_holder;
 	struct lbn_lock *lock = &data_vio->logical;
 	int result;
 
-	assert_in_logical_zone(data_vio);
+	assert_data_vio_in_logical_zone(data_vio);
 	if (!has_waiters(&data_vio->logical.waiters)) {
 		release_lock(data_vio);
 		return;
@@ -359,8 +361,9 @@ void release_logical_block_lock(struct data_vio *data_vio)
 	transfer_all_waiters(&lock->waiters,
 			     &next_lock_holder->logical.waiters);
 
-	result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
-			     next_lock_holder, true, (void **) &lock_holder);
+	result = int_map_put(get_vdo_logical_zone_lbn_lock_map(lock->zone),
+			     lock->lbn, next_lock_holder, true,
+			     (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(next_lock_holder, result);
 		return;
@@ -368,7 +371,7 @@ void release_logical_block_lock(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((lock_holder == data_vio),
 			"logical block lock mismatch for block %llu",
-			lock->lbn);
+			(unsigned long long) lock->lbn);
 	lock->locked = false;
 
 	/*
@@ -377,11 +380,25 @@ void release_logical_block_lock(struct data_vio *data_vio)
 	 * holder doesn't block in the packer.
 	 */
 	if (has_waiters(&next_lock_holder->logical.waiters)) {
-		cancel_compression(next_lock_holder);
+		cancel_vio_compression(next_lock_holder);
 	}
 
 	// Avoid stack overflow on lock transfer.
 	// XXX: this is only an issue in the 1 thread config.
 	data_vio_as_completion(next_lock_holder)->requeue = true;
 	launch_locked_request(next_lock_holder);
+}
+
+/**********************************************************************/
+void free_data_vio(struct data_vio *data_vio)
+{
+	if (data_vio == NULL) {
+		return;
+	}
+
+	vdo_free_bio(UDS_FORGET(data_vio_as_vio(data_vio)->bio));
+	UDS_FREE(UDS_FORGET(data_vio->read_block.buffer));
+	UDS_FREE(UDS_FORGET(data_vio->data_block));
+	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
+	UDS_FREE(UDS_FORGET(data_vio));
 }

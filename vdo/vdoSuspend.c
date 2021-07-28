@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoSuspend.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoSuspend.c#14 $
  */
 
 #include "vdoSuspend.h"
@@ -27,6 +27,7 @@
 #include "adminCompletion.h"
 #include "blockMap.h"
 #include "completion.h"
+#include "dedupeIndex.h"
 #include "logicalZone.h"
 #include "recoveryJournal.h"
 #include "slabDepot.h"
@@ -63,16 +64,16 @@ static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =
-		get_thread_config(admin_completion->vdo);
+		get_vdo_thread_config(admin_completion->vdo);
 	switch (admin_completion->phase) {
 	case SUSPEND_PHASE_PACKER:
-		return get_packer_zone_thread(thread_config);
+		return vdo_get_packer_zone_thread(thread_config);
 
 	case SUSPEND_PHASE_JOURNAL:
-		return get_journal_zone_thread(thread_config);
+		return vdo_get_journal_zone_thread(thread_config);
 
 	default:
-		return get_admin_thread(thread_config);
+		return vdo_get_admin_thread(thread_config);
 	}
 }
 
@@ -108,7 +109,7 @@ static void write_super_block(struct vdo *vdo,
 }
 
 /**
- * Callback to initiate a suspend, registered in perform_vdo_suspend().
+ * Callback to initiate a suspend, registered in suspend_vdo().
  *
  * @param completion  The sub-task completion
  **/
@@ -118,21 +119,19 @@ static void suspend_callback(struct vdo_completion *completion)
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = admin_completion->vdo;
 	struct admin_state *admin_state = &vdo->admin_state;
+	int result;
 
-	ASSERT_LOG_ONLY(((admin_completion->type == ADMIN_OPERATION_SUSPEND) ||
-			 (admin_completion->type == ADMIN_OPERATION_SAVE)),
-			"unexpected admin operation type %u is neither suspend nor save",
-			admin_completion->type);
+	assert_vdo_admin_operation_type(admin_completion,
+					VDO_ADMIN_OPERATION_SUSPEND);
 	assert_vdo_admin_phase_thread(admin_completion, __func__,
 				      SUSPEND_PHASE_NAMES);
 
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
 		if (!start_vdo_draining(admin_state,
-					((admin_completion->type ==
-						ADMIN_OPERATION_SUSPEND) ?
-							ADMIN_STATE_SUSPENDING :
-							ADMIN_STATE_SAVING),
+					(vdo->no_flush_suspend
+					 ? VDO_ADMIN_STATE_SUSPENDING
+					 : VDO_ADMIN_STATE_SAVING),
 					&admin_completion->completion,
 					NULL)) {
 			return;
@@ -143,8 +142,20 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-						       reset_vdo_admin_sub_task(completion));
+		/*
+		 * Attempt to flush all I/O before completing post suspend
+		 * work. We believe a suspended device is expected to have
+		 * persisted all data ritten before the suspend, even if it
+		 * hasn't been flushed yet.
+		 */
+		vdo_wait_for_no_requests_active(vdo);
+		result = vdo_synchronous_flush(vdo);
+		if (result != VDO_SUCCESS) {
+			vdo_enter_read_only_mode(vdo->read_only_notifier,
+						 result);
+		}
+		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
+							   reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_PACKER:
@@ -160,31 +171,32 @@ static void suspend_callback(struct vdo_completion *completion)
 						  VDO_READ_ONLY);
 		}
 
-		drain_packer(vdo->packer, reset_vdo_admin_sub_task(completion));
+		drain_vdo_packer(vdo->packer,
+				 reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
-		drain_logical_zones(vdo->logical_zones,
+		drain_vdo_logical_zones(vdo->logical_zones,
+					get_vdo_admin_state_code(admin_state),
+					reset_vdo_admin_sub_task(completion));
+		return;
+
+	case SUSPEND_PHASE_BLOCK_MAP:
+		drain_vdo_block_map(vdo->block_map,
 				    get_vdo_admin_state_code(admin_state),
 				    reset_vdo_admin_sub_task(completion));
 		return;
 
-	case SUSPEND_PHASE_BLOCK_MAP:
-		drain_block_map(vdo->block_map,
-				get_vdo_admin_state_code(admin_state),
-				reset_vdo_admin_sub_task(completion));
-		return;
-
 	case SUSPEND_PHASE_JOURNAL:
-		drain_recovery_journal(vdo->recovery_journal,
-				       get_vdo_admin_state_code(admin_state),
-				       reset_vdo_admin_sub_task(completion));
+		drain_vdo_recovery_journal(vdo->recovery_journal,
+					   get_vdo_admin_state_code(admin_state),
+					   reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
-		drain_slab_depot(vdo->depot,
-				 get_vdo_admin_state_code(admin_state),
-				 reset_vdo_admin_sub_task(completion));
+		drain_vdo_slab_depot(vdo->depot,
+				     get_vdo_admin_state_code(admin_state),
+				     reset_vdo_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
@@ -199,6 +211,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_END:
+		suspend_vdo_dedupe_index(vdo->dedupe_index,
+					 !vdo->no_flush_suspend);
 		break;
 
 	default:
@@ -209,12 +223,23 @@ static void suspend_callback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int perform_vdo_suspend(struct vdo *vdo, bool save)
+int suspend_vdo(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo,
-					   (save ? ADMIN_OPERATION_SAVE :
-						   ADMIN_OPERATION_SUSPEND),
-					   get_thread_id_for_phase,
-					   suspend_callback,
-					   preserve_vdo_completion_error_and_continue);
+	/*
+	 * It's important to note any error here does not actually stop
+	 * device-mapper from suspending the device. All this work is done
+	 * post suspend.
+	 */
+	int result = perform_vdo_admin_operation(vdo,
+						 VDO_ADMIN_OPERATION_SUSPEND,
+						 get_thread_id_for_phase,
+						 suspend_callback,
+						 preserve_vdo_completion_error_and_continue);
+
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		uds_log_error_strerror(result, "%s: Suspend device failed",
+				       __func__);
+	}
+
+	return result;
 }

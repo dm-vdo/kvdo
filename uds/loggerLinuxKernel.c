@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#9 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/loggerLinuxKernel.c#12 $
  */
 
 #include <linux/delay.h>
@@ -31,19 +31,19 @@
 static const char *priority_to_log_level(int priority)
 {
 	switch (priority) {
-	case LOG_EMERG:
-	case LOG_ALERT:
-	case LOG_CRIT:
+	case UDS_LOG_EMERG:
+	case UDS_LOG_ALERT:
+	case UDS_LOG_CRIT:
 		return KERN_CRIT;
-	case LOG_ERR:
+	case UDS_LOG_ERR:
 		return KERN_ERR;
-	case LOG_WARNING:
+	case UDS_LOG_WARNING:
 		return KERN_WARNING;
-	case LOG_NOTICE:
+	case UDS_LOG_NOTICE:
 		return KERN_NOTICE;
-	case LOG_INFO:
+	case UDS_LOG_INFO:
 		return KERN_INFO;
-	case LOG_DEBUG:
+	case UDS_LOG_DEBUG:
 		return KERN_DEBUG;
 	default:
 		return "";
@@ -141,13 +141,13 @@ void uds_log_message_pack(int priority,
 	va_list args1_copy, args2_copy;
 	struct va_format vaf1, vaf2;
 
-	if (priority > get_log_level()) {
+	if (priority > get_uds_log_level()) {
 		return;
 	}
 
 	level = priority_to_log_level(priority);
 	if (module == NULL) {
-		module = THIS_MODULE->name;
+		module = UDS_LOGGING_MODULE_NAME;
 	}
 	if (prefix == NULL) {
 		prefix = "";
@@ -175,9 +175,9 @@ void uds_log_message_pack(int priority,
 }
 
 /**********************************************************************/
-void log_backtrace(int priority)
+void uds_log_backtrace(int priority)
 {
-	if (priority > get_log_level()) {
+	if (priority > get_uds_log_level()) {
 		return;
 	}
 	dump_stack();
@@ -198,7 +198,7 @@ void __uds_log_message(int priority,
 }
 
 /**********************************************************************/
-void pause_for_logger(void)
+void uds_pause_for_logger(void)
 {
 	// Hopefully, a few milliseconds of sleep will be large enough
 	// for the kernel log buffer to be flushed.

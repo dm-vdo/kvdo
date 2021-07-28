@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapFormat.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapFormat.h#2 $
  */
 
 #ifndef BLOCK_MAP_FORMAT_H
@@ -39,7 +39,7 @@ struct boundary {
 	page_number_t levels[VDO_BLOCK_MAP_TREE_HEIGHT];
 };
 
-extern const struct header BLOCK_MAP_HEADER_2_0;
+extern const struct header VDO_BLOCK_MAP_HEADER_2_0;
 
 /**
  * Compute the number of the block map page on which the entry for a given
@@ -51,7 +51,7 @@ extern const struct header BLOCK_MAP_HEADER_2_0;
  *         the given logical block number
  **/
 static inline page_number_t __must_check
-compute_page_number(logical_block_number_t lbn)
+vdo_compute_page_number(logical_block_number_t lbn)
 {
 	return (lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
@@ -65,7 +65,7 @@ compute_page_number(logical_block_number_t lbn)
  * @return The slot containing the entry for the given logical block number
  **/
 static inline slot_number_t __must_check
-compute_slot(logical_block_number_t lbn)
+vdo_compute_slot(logical_block_number_t lbn)
 {
 	return (lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
@@ -78,15 +78,16 @@ compute_slot(logical_block_number_t lbn)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check decode_block_map_state_2_0(struct buffer *buffer,
-					    struct block_map_state_2_0 *state);
+int __must_check
+decode_vdo_block_map_state_2_0(struct buffer *buffer,
+			       struct block_map_state_2_0 *state);
 
 /**
  * Get the size of the encoded state of a block map.
  *
  * @return The encoded size of the map's state
  **/
-size_t __must_check get_block_map_encoded_size(void);
+size_t __must_check get_vdo_block_map_encoded_size(void);
 
 /**
  * Encode the state of a block map into a buffer.
@@ -97,8 +98,8 @@ size_t __must_check get_block_map_encoded_size(void);
  * @return UDS_SUCCESS or an error
  **/
 int __must_check
-encode_block_map_state_2_0(struct block_map_state_2_0 state,
-			   struct buffer *buffer);
+encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
+			       struct buffer *buffer);
 
 /**
  * Compute the number of pages required for a block map with the specified
@@ -108,7 +109,7 @@ encode_block_map_state_2_0(struct block_map_state_2_0 state,
  *
  * @return The number of pages required
  **/
-page_count_t compute_block_map_page_count(block_count_t entries);
+page_count_t compute_vdo_block_map_page_count(block_count_t entries);
 
 /**
  * Compute the number of pages which must be allocated at each level in order
@@ -122,9 +123,10 @@ page_count_t compute_block_map_page_count(block_count_t entries);
  *
  * @return The total number of non-leaf pages required
  **/
-block_count_t __must_check compute_new_forest_pages(root_count_t root_count,
-						    struct boundary *old_sizes,
-						    block_count_t entries,
-						    struct boundary *new_sizes);
+block_count_t __must_check
+vdo_compute_new_forest_pages(root_count_t root_count,
+			     struct boundary *old_sizes,
+			     block_count_t entries,
+			     struct boundary *new_sizes);
 
 #endif // BLOCK_MAP_FORMAT_H

@@ -16,22 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deadlockQueue.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/deadlockQueue.c#2 $
  */
 
 #include "deadlockQueue.h"
 
 /**********************************************************************/
-void initialize_deadlock_queue(struct deadlock_queue *queue)
+void initialize_vdo_deadlock_queue(struct deadlock_queue *queue)
 {
 	spin_lock_init(&queue->lock);
 	bio_list_init(&queue->list);
 }
 
 /**********************************************************************/
-void add_to_deadlock_queue(struct deadlock_queue *queue,
-			   struct bio *bio,
-			   uint64_t arrival_jiffies)
+void add_to_vdo_deadlock_queue(struct deadlock_queue *queue,
+			       struct bio *bio,
+			       uint64_t arrival_jiffies)
 {
 	spin_lock(&queue->lock);
 	if (bio_list_empty(&queue->list)) {

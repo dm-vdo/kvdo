@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#13 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapterZone.c#17 $
  */
 
 #include "openChapterZone.h"
@@ -62,6 +62,8 @@ int make_open_chapter(const struct geometry *geometry,
 		      unsigned int zone_count,
 		      struct open_chapter_zone **open_chapter_ptr)
 {
+	struct open_chapter_zone *open_chapter;
+	size_t capacity, slot_count;
 	int result = ASSERT(zone_count > 0, "zone count must be > 0");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -83,32 +85,31 @@ int make_open_chapter(const struct geometry *geometry,
 	}
 
 	if (geometry->records_per_chapter < zone_count) {
-		return log_unrecoverable(UDS_INVALID_ARGUMENT,
-					 "zone count: %u is larger than the records per chapter %u",
-			zone_count,
-			geometry->records_per_chapter);
+		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+					      "zone count: %u is larger than the records per chapter %u",
+					      zone_count,
+					      geometry->records_per_chapter);
 	}
-	size_t capacity = geometry->records_per_chapter / zone_count;
+	capacity = geometry->records_per_chapter / zone_count;
 
 	// The slot count must be at least one greater than the capacity.
 	// Using a power of two slot count guarantees that hash insertion
 	// will never fail if the hash table is not full.
-	size_t slot_count = next_power_of_two(capacity *
-						geometry->open_chapter_load_ratio);
-	struct open_chapter_zone *open_chapter;
-	result = ALLOCATE_EXTENDED(struct open_chapter_zone,
-				   slot_count,
-				   struct open_chapter_zone_slot,
-				   "open chapter",
-				   &open_chapter);
+	slot_count = next_power_of_two(capacity *
+				       geometry->open_chapter_load_ratio);
+	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
+				       slot_count,
+				       struct open_chapter_zone_slot,
+				       "open chapter",
+				       &open_chapter);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 	open_chapter->slot_count = slot_count;
 	open_chapter->capacity = capacity;
-	result = allocate_cache_aligned(records_size(open_chapter),
-				        "record pages",
-				        &open_chapter->records);
+	result = uds_allocate_cache_aligned(records_size(open_chapter),
+					    "record pages",
+					    &open_chapter->records);
 	if (result != UDS_SUCCESS) {
 		free_open_chapter(open_chapter);
 		return result;
@@ -215,7 +216,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 		     const struct uds_chunk_data *metadata,
 		     unsigned int *remaining)
 {
-	unsigned int slot;
+	unsigned int slot, record_number;
 	struct uds_chunk_record *record =
 		probe_chapter_slots(open_chapter, name, &slot, NULL);
 
@@ -226,10 +227,10 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 	}
 
 	if (open_chapter->size >= open_chapter->capacity) {
-		return make_unrecoverable(UDS_VOLUME_OVERFLOW);
+		return UDS_VOLUME_OVERFLOW;
 	}
 
-	unsigned int record_number = ++open_chapter->size;
+	record_number = ++open_chapter->size;
 	open_chapter->slots[slot].record_number = record_number;
 	record = &open_chapter->records[record_number];
 	record->name = *name;
@@ -264,7 +265,7 @@ void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 void free_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	if (open_chapter != NULL) {
-		FREE(open_chapter->records);
-		FREE(open_chapter);
+		UDS_FREE(open_chapter->records);
+		UDS_FREE(open_chapter);
 	}
 }

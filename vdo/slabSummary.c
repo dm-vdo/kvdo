@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabSummary.c#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabSummary.c#15 $
  */
 
 #include "slabSummary.h"
@@ -113,8 +113,8 @@ initialize_slab_summary_block(struct vdo *vdo,
 			      block_count_t index,
 			      struct slab_summary_block *slab_summary_block)
 {
-	int result = ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
-			      &slab_summary_block->outgoing_entries);
+	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
+				  &slab_summary_block->outgoing_entries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -155,10 +155,10 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 {
 	struct slab_summary_zone *summary_zone;
 	block_count_t i;
-	int result = ALLOCATE_EXTENDED(struct slab_summary_zone,
-				       summary->blocks_per_zone,
-				       struct slab_summary_block, __func__,
-				       &summary->zones[zone_number]);
+	int result = UDS_ALLOCATE_EXTENDED(struct slab_summary_zone,
+					   summary->blocks_per_zone,
+					   struct slab_summary_block, __func__,
+					   &summary->zones[zone_number]);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -167,6 +167,8 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	summary_zone->summary = summary;
 	summary_zone->zone_number = zone_number;
 	summary_zone->entries = entries;
+	set_vdo_admin_state_code(&summary_zone->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	// Initialize each block.
 	for (i = 0; i < summary->blocks_per_zone; i++) {
@@ -183,20 +185,20 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 }
 
 /**********************************************************************/
-int make_slab_summary(struct vdo *vdo,
-		      struct partition *partition,
-		      const struct thread_config *thread_config,
-		      unsigned int slab_size_shift,
-		      block_count_t maximum_free_blocks_per_slab,
-		      struct read_only_notifier *read_only_notifier,
-		      struct slab_summary **slab_summary_ptr)
+int make_vdo_slab_summary(struct vdo *vdo,
+			 struct partition *partition,
+			 const struct thread_config *thread_config,
+			 unsigned int slab_size_shift,
+			 block_count_t maximum_free_blocks_per_slab,
+			 struct read_only_notifier *read_only_notifier,
+			 struct slab_summary **slab_summary_ptr)
 {
 	struct slab_summary *summary;
 	size_t total_entries, i;
 	uint8_t hint;
 	zone_count_t zone;
 	block_count_t blocks_per_zone =
-		get_slab_summary_zone_size(VDO_BLOCK_SIZE);
+		get_vdo_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
 	int result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,
 			    "block size must be a multiple of entry size");
@@ -210,26 +212,26 @@ int make_slab_summary(struct vdo *vdo,
 		return VDO_SUCCESS;
 	}
 
-	result = ALLOCATE_EXTENDED(struct slab_summary,
-				   thread_config->physical_zone_count,
-				   struct slab_summary_zone *,
-				   __func__,
-				   &summary);
+	result = UDS_ALLOCATE_EXTENDED(struct slab_summary,
+				       thread_config->physical_zone_count,
+				       struct slab_summary_zone *,
+				       __func__,
+				       &summary);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
-	summary->hint_shift = get_slab_summary_hint_shift(slab_size_shift);
+	summary->hint_shift = get_vdo_slab_summary_hint_shift(slab_size_shift);
 	summary->blocks_per_zone = blocks_per_zone;
 	summary->entries_per_block = entries_per_block;
 
 	total_entries = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES;
-	result = ALLOCATE(total_entries, struct slab_summary_entry,
-			  "summary entries", &summary->entries);
+	result = UDS_ALLOCATE(total_entries, struct slab_summary_entry,
+			      "summary entries", &summary->entries);
 	if (result != VDO_SUCCESS) {
-		free_slab_summary(&summary);
+		free_vdo_slab_summary(summary);
 		return result;
 	}
 
@@ -246,16 +248,16 @@ int make_slab_summary(struct vdo *vdo,
 		};
 	}
 
-	set_slab_summary_origin(summary, partition);
+	set_vdo_slab_summary_origin(summary, partition);
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, vdo, zone,
-					       get_physical_zone_thread(thread_config,
-								        zone),
+					       vdo_get_physical_zone_thread(thread_config,
+									    zone),
 					       summary->entries +
 					       (MAX_VDO_SLABS * zone));
 		if (result != VDO_SUCCESS) {
-			free_slab_summary(&summary);
+			free_vdo_slab_summary(summary);
 			return result;
 		}
 	}
@@ -264,37 +266,47 @@ int make_slab_summary(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-void free_slab_summary(struct slab_summary **slab_summary_ptr)
+/**
+ * Free a slab summary zone.
+ *
+ * @param zone  The zone to free
+ **/
+static void free_summary_zone(struct slab_summary_zone *zone)
 {
-	struct slab_summary *summary;
-	zone_count_t zone;
+	block_count_t i;
 
-	if (*slab_summary_ptr == NULL) {
+	if (zone == NULL) {
 		return;
 	}
 
-	summary = *slab_summary_ptr;
-	for (zone = 0; zone < summary->zone_count; zone++) {
-		struct slab_summary_zone *summary_zone = summary->zones[zone];
-		if (summary_zone != NULL) {
-			block_count_t i;
-			for (i = 0; i < summary->blocks_per_zone; i++) {
-				free_vio(&summary_zone->summary_blocks[i].vio);
-				FREE(summary_zone->summary_blocks[i]
-					     .outgoing_entries);
-			}
-			FREE(summary_zone);
-		}
+	for (i = 0; i < zone->summary->blocks_per_zone; i++) {
+		free_vio(UDS_FORGET(zone->summary_blocks[i].vio));
+		UDS_FREE(UDS_FORGET(zone->summary_blocks[i].outgoing_entries));
 	}
-	FREE(summary->entries);
-	FREE(summary);
-	*slab_summary_ptr = NULL;
+
+	UDS_FREE(zone);
 }
 
 /**********************************************************************/
-struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
-					       zone_count_t zone)
+void free_vdo_slab_summary(struct slab_summary *summary)
+{
+	zone_count_t zone;
+
+	if (summary == NULL) {
+		return;
+	}
+
+	for (zone = 0; zone < summary->zone_count; zone++) {
+		free_summary_zone(UDS_FORGET(summary->zones[zone]));
+	}
+
+	UDS_FREE(UDS_FORGET(summary->entries));
+	UDS_FREE(summary);
+}
+
+/**********************************************************************/
+struct slab_summary_zone *
+vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone)
 {
 	return summary->zones[zone];
 }
@@ -306,16 +318,17 @@ struct slab_summary_zone *get_summary_for_zone(struct slab_summary *summary,
  *
  * @param summary_zone  The zone to check
  **/
-static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
+static void
+vdo_check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
 	if (!is_vdo_state_draining(&summary_zone->state)
 	    || (summary_zone->write_count > 0)) {
 		return;
 	}
 
-	finish_vdo_operation_with_result(&summary_zone->state,
-					 (is_read_only(summary_zone->summary->read_only_notifier)
-					  ? VDO_READ_ONLY : VDO_SUCCESS));
+	finish_vdo_operation(&summary_zone->state,
+			     (vdo_is_read_only(summary_zone->summary->read_only_notifier)
+			      ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -327,9 +340,9 @@ static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
  * @param queue         The queue to notify
  **/
 static void notify_waiters(struct slab_summary_zone *summary_zone,
-			  struct wait_queue *queue)
+			   struct wait_queue *queue)
 {
-	int result = (is_read_only(summary_zone->summary->read_only_notifier)
+	int result = (vdo_is_read_only(summary_zone->summary->read_only_notifier)
 		      ? VDO_READ_ONLY
 		      : VDO_SUCCESS);
 	notify_all_waiters(queue, NULL, &result);
@@ -341,7 +354,8 @@ static void notify_waiters(struct slab_summary_zone *summary_zone,
  *
  * @param block  The block
  **/
-static void finish_updating_slab_summary_block(struct slab_summary_block *block)
+static void
+finish_updating_slab_summary_block(struct slab_summary_block *block)
 {
 	notify_waiters(block->zone, &block->current_update_waiters);
 	block->writing = false;
@@ -349,7 +363,7 @@ static void finish_updating_slab_summary_block(struct slab_summary_block *block)
 	if (has_waiters(&block->next_update_waiters)) {
 		launch_write(block);
 	} else {
-		check_for_drain_complete(block->zone);
+		vdo_check_for_drain_complete(block->zone);
 	}
 }
 
@@ -373,8 +387,8 @@ static void finish_update(struct vdo_completion *completion)
 static void handle_write_error(struct vdo_completion *completion)
 {
 	struct slab_summary_block *block = completion->parent;
-	enter_read_only_mode(block->zone->summary->read_only_notifier,
-			     completion->result);
+	vdo_enter_read_only_mode(block->zone->summary->read_only_notifier,
+				 completion->result);
 	finish_updating_slab_summary_block(block);
 }
 
@@ -398,7 +412,7 @@ static void launch_write(struct slab_summary_block *block)
 			     &block->current_update_waiters);
 	block->writing = true;
 
-	if (is_read_only(summary->read_only_notifier)) {
+	if (vdo_is_read_only(summary->read_only_notifier)) {
 		finish_updating_slab_summary_block(block);
 		return;
 	}
@@ -422,23 +436,23 @@ static void launch_write(struct slab_summary_block *block)
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	check_for_drain_complete(container_of(state,
-					      struct slab_summary_zone,
-					      state));
+	vdo_check_for_drain_complete(container_of(state,
+						  struct slab_summary_zone,
+						  state));
 }
 
 /**********************************************************************/
-void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
-			     enum admin_state_code operation,
-			     struct vdo_completion *parent)
+void drain_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+				 const struct admin_state_code *operation,
+				 struct vdo_completion *parent)
 {
 	start_vdo_draining(&summary_zone->state, operation, parent,
 			   initiate_drain);
 }
 
 /**********************************************************************/
-void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
-			      struct vdo_completion *parent)
+void resume_vdo_slab_summary_zone(struct slab_summary_zone *summary_zone,
+				  struct vdo_completion *parent)
 {
 	finish_vdo_completion(parent,
 			      resume_vdo_if_quiescent(&summary_zone->state));
@@ -466,16 +480,16 @@ get_summary_block_for_slab(struct slab_summary_zone *summary_zone,
 }
 
 /**********************************************************************/
-void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-			       struct waiter *waiter, slab_count_t slab_number,
-			       tail_block_offset_t tail_block_offset,
-			       bool load_ref_counts, bool is_clean,
-			       block_count_t free_blocks)
+void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
+				   struct waiter *waiter, slab_count_t slab_number,
+				   tail_block_offset_t tail_block_offset,
+				   bool load_ref_counts, bool is_clean,
+				   block_count_t free_blocks)
 {
 	struct slab_summary_block *block =
 		get_summary_block_for_slab(summary_zone, slab_number);
 	int result;
-	if (is_read_only(summary_zone->summary->read_only_notifier)) {
+	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 	} else if (is_vdo_state_draining(&summary_zone->state)
 		   || is_vdo_state_quiescent(&summary_zone->state)) {
@@ -505,22 +519,22 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 
 /**********************************************************************/
 tail_block_offset_t
-get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				 slab_count_t slab_number)
+vdo_get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
+				     slab_count_t slab_number)
 {
 	return summary_zone->entries[slab_number].tail_block_offset;
 }
 
 /**********************************************************************/
-bool must_load_ref_counts(struct slab_summary_zone *summary_zone,
-			  slab_count_t slab_number)
+bool vdo_must_load_ref_counts(struct slab_summary_zone *summary_zone,
+			      slab_count_t slab_number)
 {
 	return summary_zone->entries[slab_number].load_ref_counts;
 }
 
 /**********************************************************************/
-bool get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-				slab_count_t slab_number)
+bool vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
+				    slab_count_t slab_number)
 {
 	return !summary_zone->entries[slab_number].is_dirty;
 }
@@ -536,9 +550,9 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 }
 
 /**********************************************************************/
-void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
-				     slab_count_t slab_number,
-				     size_t *free_block_hint, bool *is_clean)
+void vdo_get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
+					 slab_count_t slab_number,
+					 size_t *free_block_hint, bool *is_clean)
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
 	*free_block_hint = entry->fullness_hint;
@@ -546,9 +560,9 @@ void get_summarized_ref_counts_state(struct slab_summary_zone *summary_zone,
 }
 
 /**********************************************************************/
-void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
-				  slab_count_t slab_count,
-				  struct slab_status *statuses)
+void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
+				      slab_count_t slab_count,
+				      struct slab_status *statuses)
 {
 	slab_count_t i;
 	for (i = 0; i < slab_count; i++) {
@@ -562,17 +576,17 @@ void get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 // RESIZE FUNCTIONS
 
 /**********************************************************************/
-void set_slab_summary_origin(struct slab_summary *summary,
-			     struct partition *partition)
+void set_vdo_slab_summary_origin(struct slab_summary *summary,
+				 struct partition *partition)
 {
-	summary->origin = get_fixed_layout_partition_offset(partition);
+	summary->origin = get_vdo_fixed_layout_partition_offset(partition);
 }
 
 // COMBINING FUNCTIONS (LOAD)
 
 /**
  * Clean up after saving out the combined slab summary. This callback is
- * registered in finish_loading_summary() and load_slab_summary().
+ * registered in finish_loading_summary() and load_vdo_slab_summary().
  *
  * @param completion  The extent which was used to write the summary data
  **/
@@ -580,13 +594,12 @@ static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
-	struct vdo_extent *extent = vdo_completion_as_extent(completion);
-	free_vdo_extent(&extent);
+	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
 
 /**********************************************************************/
-void combine_zones(struct slab_summary *summary)
+void vdo_slab_summary_combine_zones(struct slab_summary *summary)
 {
 	// Combine all the old summary data into the portion of the buffer
 	// corresponding to the first zone.
@@ -621,7 +634,7 @@ void combine_zones(struct slab_summary *summary)
  * Combine the slab summary data from all the previously written zones
  * and copy the combined summary to each partition's data region. Then write
  * the combined summary back out to disk. This callback is registered in
- * load_slab_summary().
+ * load_vdo_slab_summary().
  *
  * @param completion  The extent which was used to read the summary data
  **/
@@ -631,7 +644,7 @@ static void finish_loading_summary(struct vdo_completion *completion)
 	struct vdo_extent *extent = vdo_completion_as_extent(completion);
 
 	// Combine the zones so each zone is correct for all slabs.
-	combine_zones(summary);
+	vdo_slab_summary_combine_zones(summary);
 
 	// Write the combined summary back out.
 	extent->completion.callback = finish_combining_zones;
@@ -639,10 +652,10 @@ static void finish_loading_summary(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void load_slab_summary(struct slab_summary *summary,
-		       enum admin_state_code operation,
-		       zone_count_t zones_to_combine,
-		       struct vdo_completion *parent)
+void load_vdo_slab_summary(struct slab_summary *summary,
+			   const struct admin_state_code *operation,
+			   zone_count_t zones_to_combine,
+			   struct vdo_completion *parent)
 {
 	struct vdo_extent *extent;
 	block_count_t blocks;
@@ -662,8 +675,8 @@ void load_slab_summary(struct slab_summary *summary,
 		return;
 	}
 
-	if ((operation == ADMIN_STATE_FORMATTING)
-	    || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
+	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
+	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
 		prepare_vdo_completion(&extent->completion,
 				       finish_combining_zones,
 				       finish_combining_zones, 0, summary);
@@ -679,7 +692,7 @@ void load_slab_summary(struct slab_summary *summary,
 
 /**********************************************************************/
 struct slab_summary_statistics
-get_slab_summary_statistics(const struct slab_summary *summary)
+get_vdo_slab_summary_statistics(const struct slab_summary *summary)
 {
 	const struct atomic_slab_summary_statistics *atoms =
 		&summary->statistics;

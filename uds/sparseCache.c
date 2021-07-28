@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#24 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#28 $
  */
 
 /**
@@ -201,6 +201,9 @@ static int __must_check initialize_sparse_cache(struct sparse_cache *cache,
 						unsigned int capacity,
 						unsigned int zone_count)
 {
+	unsigned int i;
+	int result;
+
 	cache->geometry = geometry;
 	cache->capacity = capacity;
 	cache->zone_count = zone_count;
@@ -209,16 +212,14 @@ static int __must_check initialize_sparse_cache(struct sparse_cache *cache,
 	// the chapter search misses only in zone zero.
 	cache->skip_search_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	int result =
-		initialize_barrier(&cache->begin_cache_update, zone_count);
+	result = uds_initialize_barrier(&cache->begin_cache_update, zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = initialize_barrier(&cache->end_cache_update, zone_count);
+	result = uds_initialize_barrier(&cache->end_cache_update, zone_count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	unsigned int i;
 	for (i = 0; i < capacity; i++) {
 		result = initialize_cached_chapter_index(&cache->chapters[i],
 							 geometry);
@@ -248,7 +249,7 @@ int make_sparse_cache(const struct geometry *geometry,
 		 (capacity * sizeof(struct cached_chapter_index)));
 
 	struct sparse_cache *cache;
-	int result = allocate_cache_aligned(bytes, "sparse cache", &cache);
+	int result = uds_allocate_cache_aligned(bytes, "sparse cache", &cache);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -361,13 +362,13 @@ static void score_search_miss(struct sparse_cache *cache,
 /**********************************************************************/
 void free_sparse_cache(struct sparse_cache *cache)
 {
+	unsigned int i;
 	if (cache == NULL) {
 		return;
 	}
 
-	unsigned int i;
 	for (i = 0; i < cache->zone_count; i++) {
-		free_search_list(&cache->search_lists[i]);
+		UDS_FREE(UDS_FORGET(cache->search_lists[i]));
 	}
 
 	for (i = 0; i < cache->capacity; i++) {
@@ -375,9 +376,9 @@ void free_sparse_cache(struct sparse_cache *cache)
 		destroy_cached_chapter_index(chapter);
 	}
 
-	destroy_barrier(&cache->begin_cache_update);
-	destroy_barrier(&cache->end_cache_update);
-	FREE(cache);
+	uds_destroy_barrier(&cache->begin_cache_update);
+	uds_destroy_barrier(&cache->end_cache_update);
+	UDS_FREE(cache);
 }
 
 
@@ -423,6 +424,7 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 /**********************************************************************/
 int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 {
+	int result = UDS_SUCCESS;
 	const struct index *index = zone->index;
 	struct sparse_cache *cache = index->volume->sparse_cache;
 
@@ -435,7 +437,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	// Wait for every zone thread to have reached its corresponding barrier
 	// request and invoked this function before starting to modify the
 	// cache.
-	enter_barrier(&cache->begin_cache_update, NULL);
+	uds_enter_barrier(&cache->begin_cache_update, NULL);
 
 	/*
 	 * This is the start of the critical section: the zone zero thread is
@@ -445,8 +447,8 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	 * finish the update.
 	 */
 
-	int result = UDS_SUCCESS;
 	if (zone->id == ZONE_ZERO) {
+		unsigned int z;
 		// Purge invalid chapters from the LRU search list.
 		struct search_list *zone_zero_list =
 			cache->search_lists[ZONE_ZERO];
@@ -479,7 +481,6 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 		// Copy the new search list state to all the other zone threads
 		// so they'll get the result of pruning and see the new
 		// chapter.
-		unsigned int z;
 		for (z = 1; z < cache->zone_count; z++) {
 			copy_search_list(zone_zero_list,
 					 cache->search_lists[z]);
@@ -490,7 +491,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	// have been restored--it will be shared/read-only again beyond the
 	// barrier.
 
-	enter_barrier(&cache->end_cache_update, NULL);
+	uds_enter_barrier(&cache->end_cache_update, NULL);
 	return result;
 }
 
@@ -515,6 +516,7 @@ int search_sparse_cache(struct index_zone *zone,
 		iterate_search_list(cache->search_lists[zone_number],
 				    cache->chapters);
 	while (has_next_chapter(&iterator)) {
+		int result;
 		struct cached_chapter_index *chapter =
 			get_next_chapter(&iterator);
 
@@ -525,12 +527,11 @@ int search_sparse_cache(struct index_zone *zone,
 			continue;
 		}
 
-		int result =
-			search_cached_chapter_index(chapter,
-						    cache->geometry,
-						    volume->index_page_map,
-						    name,
-						    record_page_ptr);
+		result = search_cached_chapter_index(chapter,
+						     cache->geometry,
+						     volume->index_page_map,
+						     name,
+						     record_page_ptr);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}

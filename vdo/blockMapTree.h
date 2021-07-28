@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapTree.h#1 $
+ * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapTree.h#2 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -37,16 +37,16 @@ struct tree_page;
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check initialize_tree_zone(struct block_map_zone *zone,
-				      struct vdo *vdo,
-				      block_count_t maximum_age);
+int __must_check vdo_initialize_tree_zone(struct block_map_zone *zone,
+					  struct vdo *vdo,
+					  block_count_t maximum_age);
 
 /**
  * Clean up a block_map_tree_zone.
  *
  * @param tree_zone  The zone to clean up
  **/
-void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
+void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
 
 /**
  * Set the initial dirty period for a tree zone.
@@ -54,8 +54,8 @@ void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
  * @param tree_zone  The tree zone
  * @param period     The initial dirty period to set
  **/
-void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
-				  sequence_number_t period);
+void vdo_set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
+				      sequence_number_t period);
 
 /**
  * Check whether a tree zone is active (i.e. has any active lookups,
@@ -65,7 +65,7 @@ void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
  *
  * @return <code>true</code> if the zone is active
  **/
-bool __must_check is_tree_zone_active(struct block_map_tree_zone *zone);
+bool __must_check vdo_is_tree_zone_active(struct block_map_tree_zone *zone);
 
 /**
  * Advance the dirty period for a tree zone.
@@ -73,8 +73,8 @@ bool __must_check is_tree_zone_active(struct block_map_tree_zone *zone);
  * @param zone    The block_map_tree_zone to advance
  * @param period  The new dirty period
  **/
-void advance_zone_tree_period(struct block_map_tree_zone *zone,
-			      sequence_number_t period);
+void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone,
+				  sequence_number_t period);
 
 /**
  * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by
@@ -83,7 +83,7 @@ void advance_zone_tree_period(struct block_map_tree_zone *zone,
  *
  * @param zone  The block_map_tree_zone to drain
  **/
-void drain_zone_trees(struct block_map_tree_zone *zone);
+void vdo_drain_zone_trees(struct block_map_tree_zone *zone);
 
 /**
  * Look up the PBN of the block map page for a data_vio's LBN in the arboreal
@@ -92,7 +92,7 @@ void drain_zone_trees(struct block_map_tree_zone *zone);
  *
  * @param data_vio  The data_vio requesting the lookup
  **/
-void lookup_block_map_pbn(struct data_vio *data_vio);
+void vdo_lookup_block_map_pbn(struct data_vio *data_vio);
 
 /**
  * Find the PBN of a leaf block map page. This method may only be used after
@@ -104,8 +104,8 @@ void lookup_block_map_pbn(struct data_vio *data_vio);
  *
  * @return The PBN of the page
  **/
-physical_block_number_t find_block_map_page_pbn(struct block_map *map,
-						page_number_t page_number);
+physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
+						    page_number_t page_number);
 
 /**
  * Write a tree page or indicate that it has been re-dirtied if it is already
@@ -115,6 +115,6 @@ physical_block_number_t find_block_map_page_pbn(struct block_map *map,
  * @param page  The page to write
  * @param zone  The tree zone managing the page
  **/
-void write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
+void vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 
 #endif // BLOCK_MAP_TREE_H

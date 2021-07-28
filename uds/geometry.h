@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/geometry.h#12 $
  */
 
 #ifndef GEOMETRY_H
@@ -68,6 +68,12 @@
  * volume has about 10 times the deduplication window using 10 times
  * as much persistent storage as the equivalent non-sparse volume with
  * the same memory footprint.
+ *
+ * <p>If the number of chapters per volume has been reduced by one by
+ * eliminating physical chapter 0, the virtual chapter that formerly
+ * mapped to physical chapter 0 may be remapped to another physical
+ * chapter. This remapping is expressed by storing which virtual
+ * chapter was remapped, and which physical chapter it was moved to.
  **/
 struct geometry {
 	/** Length of a page in a chapter, in bytes */
@@ -80,7 +86,10 @@ struct geometry {
 	unsigned int sparse_chapters_per_volume;
 	/** Number of bits used to determine delta list numbers */
 	unsigned int chapter_delta_list_bits;
-
+	/** Virtual chapter remapped from physical chapter 0 */
+	uint64_t remapped_virtual;
+	/** New physical chapter which remapped chapter was moved to */
+	uint64_t remapped_physical;
 	// These are derived properties, expressed as fields for convenience.
 	/** Total number of pages in a volume, excluding header */
 	unsigned int pages_per_volume;
@@ -161,6 +170,8 @@ enum {
  * @param record_pages_per_chapter    The number of pages in a chapter
  * @param chapters_per_volume         The number of chapters in a volume
  * @param sparse_chapters_per_volume  The number of sparse chapters in a volume
+ * @param remapped_virtual            The remapped virtual chapter
+ * @param remapped_physical           The physical chapter remapped to
  * @param geometry_ptr                A pointer to hold the new geometry
  *
  * @return UDS_SUCCESS or an error code
@@ -169,6 +180,8 @@ int __must_check make_geometry(size_t bytes_per_page,
 			       unsigned int record_pages_per_chapter,
 			       unsigned int chapters_per_volume,
 			       unsigned int sparse_chapters_per_volume,
+			       uint64_t remapped_virtual,
+			       uint64_t remapped_physical,
 			       struct geometry **geometry_ptr);
 
 /**
@@ -198,26 +211,22 @@ void free_geometry(struct geometry *geometry);
  *
  * @return the corresponding physical chapter number
  **/
-static INLINE unsigned int __must_check
+unsigned int __must_check
 map_to_physical_chapter(const struct geometry *geometry,
-			uint64_t virtual_chapter)
-{
-	return (virtual_chapter % geometry->chapters_per_volume);
-}
+			uint64_t virtual_chapter);
 
 /**
- * Convert a physical chapter number to its current virtual chapter number.
+ * Check whether this geometry is reduced by a chapter
  *
- * @param geometry                The geometry
- * @param newest_virtual_chapter  The number of the newest virtual chapter
- * @param physical_chapter        The physical chapter number to convert
+ * @param geometry  The geometry to check
  *
- * @return The current virtual chapter number of the physical chapter
- *         in question
+ * @return true if this geometry is reduced by a chapter
  **/
-uint64_t map_to_virtual_chapter_number(struct geometry *geometry,
-				       uint64_t newest_virtual_chapter,
-				       unsigned int physical_chapter);
+static INLINE bool __must_check
+is_reduced_geometry(const struct geometry *geometry)
+{
+	return !!(geometry->chapters_per_volume & 1);
+}
 
 /**
  * Check whether this geometry is for a sparse index.
@@ -263,18 +272,14 @@ bool __must_check is_chapter_sparse(const struct geometry *geometry,
 				    uint64_t virtual_chapter_number);
 
 /**
- * Check whether two virtual chapter numbers correspond to the same
- * physical chapter.
+ * Calculate how many chapters to expire after opening the newest chapter.
  *
- * @param geometry The geometry of the index
- * @param chapter1 The first chapter to compare
- * @param chapter2 The second chapter to compare
+ * @param geometry        The geometry of the index
+ * @param newest_chapter  The newest virtual chapter number
  *
- * @return <code>true</code> if both chapters correspond to the same
- *         physical chapter
+ * @return The number of oldest chapters to expire
  **/
-bool __must_check are_same_physical_chapter(const struct geometry *geometry,
-					    uint64_t chapter1,
-					    uint64_t chapter2);
+unsigned int __must_check chapters_to_expire(const struct geometry *geometry,
+					     uint64_t newest_chapter);
 
 #endif /* GEOMETRY_H */
