@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#52 $
  */
 
 #include "volumeGeometry.h"
@@ -37,7 +37,7 @@
 
 enum {
 	MAGIC_NUMBER_SIZE = 8,
-	DEFAULT_GEOMETRY_BLOCK_VERSION = 4,
+	DEFAULT_GEOMETRY_BLOCK_VERSION = 5,
 };
 
 struct geometry_block {
