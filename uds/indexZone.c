@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#32 $
  */
 
 #include "indexZone.h"
@@ -307,16 +307,14 @@ int open_next_chapter(struct index_zone *zone, struct uds_request *request)
 }
 
 /**********************************************************************/
-enum uds_index_region compute_index_region(const struct index_zone *zone,
-					   uint64_t virtual_chapter)
+enum index_region compute_index_region(const struct index_zone *zone,
+				       uint64_t virtual_chapter)
 {
 	if (virtual_chapter == zone->newest_virtual_chapter) {
-		return UDS_LOCATION_IN_OPEN_CHAPTER;
+		return LOC_IN_OPEN_CHAPTER;
 	}
-	if (is_zone_chapter_sparse(zone, virtual_chapter)) {
-		return UDS_LOCATION_IN_SPARSE;
-	}
-	return UDS_LOCATION_IN_DENSE;
+	return (is_zone_chapter_sparse(zone, virtual_chapter) ? LOC_IN_SPARSE :
+								LOC_IN_DENSE);
 }
 
 /**********************************************************************/
@@ -346,9 +344,10 @@ int get_record_from_zone(struct index_zone *zone,
 		return UDS_SUCCESS;
 	}
 
-	// We have determined the location previously.
-	if (request->location != UDS_LOCATION_UNKNOWN) {
-		*found = (request->location != UDS_LOCATION_UNAVAILABLE);
+	// The slow lane thread has determined the location previously. We
+	// don't need to search again. Just return the location.
+	if (request->sl_location_known) {
+		*found = request->sl_location != LOC_UNAVAILABLE;
 		return UDS_SUCCESS;
 	}
 

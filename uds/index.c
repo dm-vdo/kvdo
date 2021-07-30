@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#53 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#51 $
  */
 
 
@@ -252,7 +252,7 @@ int make_index(struct index_layout *layout,
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
-		case -ENOMEM:
+		case ENOMEM:
 			// We should not try a rebuild for this error.
 			uds_log_error_strerror(result,
 					       "index could not be loaded");
@@ -384,7 +384,7 @@ static int search_index_zone(struct index_zone *zone,
 	 * If a record has overflowed a chapter index in more than one chapter
 	 * (or overflowed in one chapter and collided with an existing record),
 	 * it will exist as a collision record in the volume index, but
-	 * we won't find it in the volume. This case needs special handling.
+	 * we won't *find it in the volume. This case needs special handling.
 	 */
 	overflow_record = (record.is_found && record.is_collision && !found);
 	chapter = zone->newest_virtual_chapter;
@@ -425,7 +425,7 @@ static int search_index_zone(struct index_zone *zone,
 			}
 
 			if (found) {
-				request->location = UDS_LOCATION_IN_SPARSE;
+				request->location = LOC_IN_SPARSE;
 			}
 		}
 
@@ -517,7 +517,7 @@ static int remove_from_index_zone(struct index_zone *zone,
 
 	// If the record is in the open chapter, we must remove it or mark it
 	// deleted to avoid trouble if the record is added again later.
-	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
+	if (request->location == LOC_IN_OPEN_CHAPTER) {
 		bool hash_exists = false;
 		remove_from_open_chapter(zone->open_chapter,
 					 &request->chunk_name,
@@ -590,7 +590,9 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 		}
 	}
 
-	request->location = UDS_LOCATION_UNKNOWN;
+	// Set the default location. It will be overwritten if we find the
+	// chunk.
+	request->location = LOC_UNAVAILABLE;
 
 	switch (request->type) {
 	case UDS_POST:
@@ -610,9 +612,6 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 		break;
 	}
 
-	if (request->location == UDS_LOCATION_UNKNOWN) {
-		request->location = UDS_LOCATION_UNAVAILABLE;
-	}
 	return result;
 }
 

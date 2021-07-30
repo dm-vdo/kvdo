@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#11 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -104,8 +104,8 @@ int __must_check open_next_chapter(struct index_zone *zone,
  *
  * @return the index region of the chapter in which the block was found
  **/
-enum uds_index_region compute_index_region(const struct index_zone *zone,
-					   uint64_t virtual_chapter);
+enum index_region compute_index_region(const struct index_zone *zone,
+				       uint64_t virtual_chapter);
 
 /**
  * Get a record from either the volume or the open chapter in a zone.

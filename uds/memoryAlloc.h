@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#13 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -278,7 +278,7 @@ int __must_check uds_duplicate_string(const char *string,
  * @param what     What is being duplicated (for error logging)
  * @param dup_ptr  A pointer to hold the allocated array
  *
- * @return UDS_SUCCESS or -ENOMEM
+ * @return UDS_SUCCESS or ENOMEM
  **/
 int __must_check uds_memdup(const void *ptr,
 			    size_t size,

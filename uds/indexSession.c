@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#34 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#33 $
  */
 
 #include "indexSession.h"
@@ -67,8 +67,7 @@ static void handle_callbacks(struct uds_request *request)
 		// The request has specified its own callback and does not
 		// expect to be freed.
 		struct uds_index_session *index_session = request->session;
-		request->found =
-			(request->location != UDS_LOCATION_UNAVAILABLE);
+		request->found = (request->location != LOC_UNAVAILABLE);
 		request->callback((struct uds_request *) request);
 		// We do this release after the callback because of the
 		// contract of the uds_flush_index_session method.

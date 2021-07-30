@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#11 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -65,17 +65,6 @@ int __must_check make_vdo_thread_config(zone_count_t logical_zone_count,
  * @return VDO_SUCCESS or an error
  **/
 int __must_check vdo_make_one_thread_config(struct thread_config **config_ptr);
-
-/**
- * Make a new thread config which is a copy of an existing one.
- *
- * @param [in]  old_config       The thread configuration to copy
- * @param [out] config_ptr       A pointer to hold the new thread configuration
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check copy_vdo_thread_config(const struct thread_config *old_config,
-					struct thread_config **config_ptr);
 
 /**
  * Destroy a thread configuration.

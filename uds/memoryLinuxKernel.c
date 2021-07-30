@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#22 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#21 $
  */
 
 #include <linux/delay.h>
@@ -335,7 +335,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			      size,
 			      what,
 			      duration);
-		return -ENOMEM;
+		return ENOMEM;
 	}
 	*((void **) ptr) = p;
 	return UDS_SUCCESS;

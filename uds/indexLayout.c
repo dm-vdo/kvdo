@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#61 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#60 $
  */
 
 #include "indexLayout.h"
@@ -697,7 +697,7 @@ load_super_block(struct index_layout *layout,
 
 	if (super->block_size != block_size) {
 		UDS_FREE(table);
-		return uds_log_error_strerror(UDS_CORRUPT_COMPONENT,
+		return uds_log_error_strerror(UDS_WRONG_INDEX_CONFIG,
 					      "superblock saved block_size %u differs from supplied block_size %zu",
 					      super->block_size,
 					      block_size);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#17 $
  */
 
 #ifndef INDEX_H
@@ -120,13 +120,13 @@ void free_index(struct index *index);
  *
  * For UDS API requests, this searches the index for the chunk name in the
  * request. If the chunk name is already present in the index, the location
- * field of the request will be set to the uds_index_region where it was
- * found. If the action is not DELETE, the old_metadata field of the request
- * will also be filled in with the prior metadata for the name.
+ * field of the request will be set to the IndexRegion where it was found. If
+ * the action is not DELETE, the old_metadata field of the request will also
+ * be filled in with the prior metadata for the name.
  *
  * If the API request type is:
  *
- *   UDS_POST, a record will be added to the open chapter with the metadata
+ *   UDS_INDEX, a record will be added to the open chapter with the metadata
  *     in the request for new records, and the existing metadata for existing
  *     records.
  *

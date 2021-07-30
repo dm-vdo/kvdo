@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#19 $
  */
 
 #include "threadConfig.h"
@@ -155,38 +155,6 @@ int vdo_make_one_thread_config(struct thread_config **config_ptr)
 	config->logical_threads[0] = 0;
 	config->physical_threads[0] = 0;
 	config->hash_zone_threads[0] = 0;
-	*config_ptr = config;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int copy_vdo_thread_config(const struct thread_config *old_config,
-			   struct thread_config **config_ptr)
-{
-	zone_count_t i;
-	struct thread_config *config;
-	int result = allocate_thread_config(old_config->logical_zone_count,
-					    old_config->physical_zone_count,
-					    old_config->hash_zone_count,
-					    old_config->base_thread_count,
-					    &config);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
-	config->admin_thread = old_config->admin_thread;
-	config->journal_thread = old_config->journal_thread;
-	config->packer_thread = old_config->packer_thread;
-	for (i = 0; i < config->logical_zone_count; i++) {
-		config->logical_threads[i] = old_config->logical_threads[i];
-	}
-	for (i = 0; i < config->physical_zone_count; i++) {
-		config->physical_threads[i] = old_config->physical_threads[i];
-	}
-	for (i = 0; i < config->hash_zone_count; i++) {
-		config->hash_zone_threads[i] = old_config->hash_zone_threads[i];
-	}
-
 	*config_ptr = config;
 	return VDO_SUCCESS;
 }
