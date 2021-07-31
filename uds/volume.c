@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#46 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#49 $
  */
 
 #include "volume.h"
@@ -35,7 +35,7 @@
 #include "request.h"
 #include "sparseCache.h"
 #include "stringUtils.h"
-#include "threads.h"
+#include "uds-threads.h"
 
 enum {
 	MAX_BAD_CHAPTERS = 100,           // max number of contiguous bad
@@ -138,7 +138,7 @@ int enqueue_page_read(struct volume *volume,
 	// to process any requests that are still in the pipeline.
 	if ((volume->reader_state & READER_STATE_EXIT) != 0) {
 		uds_log_info("failed to queue read while shutting down");
-		return UDS_SHUTTINGDOWN;
+		return -EBUSY;
 	}
 
 	// Mark the page as queued in the volume cache, for chapter
@@ -369,11 +369,10 @@ static void read_thread_function(void *arg)
 						       &request->chunk_name,
 						       volume->geometry,
 						       &request->old_metadata)) {
-					request->sl_location = LOC_IN_DENSE;
+					request->location = UDS_LOCATION_IN_DENSE;
 				} else {
-					request->sl_location = LOC_UNAVAILABLE;
+					request->location = UDS_LOCATION_UNAVAILABLE;
 				}
-				request->sl_location_known = true;
 			}
 
 			// reflect any read failures in the request status

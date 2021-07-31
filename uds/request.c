@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#22 $
  */
 
 #include "request.h"
@@ -170,7 +170,7 @@ void update_request_context_stats(struct uds_request *request)
 
 	struct session_stats *session_stats = &request->session->stats;
 
-	bool found = (request->location != LOC_UNAVAILABLE);
+	bool found = (request->location != UDS_LOCATION_UNAVAILABLE);
 	increment_once(&session_stats->requests);
 
 	switch (request->type) {
@@ -178,11 +178,11 @@ void update_request_context_stats(struct uds_request *request)
 		if (found) {
 			increment_once(&session_stats->posts_found);
 
-			if (request->location == LOC_IN_OPEN_CHAPTER) {
+			if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
 				increment_once(&session_stats->posts_found_open_chapter);
-			} else if (request->location == LOC_IN_DENSE) {
+			} else if (request->location == UDS_LOCATION_IN_DENSE) {
 				increment_once(&session_stats->posts_found_dense);
-			} else if (request->location == LOC_IN_SPARSE) {
+			} else if (request->location == UDS_LOCATION_IN_SPARSE) {
 				increment_once(&session_stats->posts_found_sparse);
 			}
 		} else {

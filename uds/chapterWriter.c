@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#29 $
  */
 
 #include "chapterWriter.h"
@@ -28,7 +28,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "openChapter.h"
-#include "threads.h"
+#include "uds-threads.h"
 
 
 struct chapter_writer {

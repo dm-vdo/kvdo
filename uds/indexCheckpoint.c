@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#17 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#18 $
  */
 
 #include "indexCheckpoint.h"
@@ -25,7 +25,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "typeDefs.h"
 
 /**

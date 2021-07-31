@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#35 $
  */
 
 #include "indexSession.h"
@@ -67,7 +67,8 @@ static void handle_callbacks(struct uds_request *request)
 		// The request has specified its own callback and does not
 		// expect to be freed.
 		struct uds_index_session *index_session = request->session;
-		request->found = (request->location != LOC_UNAVAILABLE);
+		request->found =
+			(request->location != UDS_LOCATION_UNAVAILABLE);
 		request->callback((struct uds_request *) request);
 		// We do this release after the callback because of the
 		// contract of the uds_flush_index_session method.
@@ -89,7 +90,7 @@ int check_index_session(struct uds_index_session *index_session)
 		return UDS_DISABLED;
 	} else if ((state & IS_FLAG_LOADING) || (state & IS_FLAG_SUSPENDED) ||
 		   (state & IS_FLAG_WAITING)) {
-		return UDS_SUSPENDED;
+		return -EBUSY;
 	}
 
 	return UDS_NO_INDEX;
@@ -127,9 +128,11 @@ int start_loading_index_session(struct uds_index_session *index_session)
 	int result;
 	uds_lock_mutex(&index_session->request_mutex);
 	if (index_session->state & IS_FLAG_SUSPENDED) {
-		result = UDS_SUSPENDED;
+		uds_log_info("Index session is suspended");
+		result = -EBUSY;
 	} else if (index_session->state != 0) {
-		result = UDS_INDEXSESSION_IN_USE;
+		uds_log_info("Index is already loaded");
+		result = -EBUSY;
 	} else {
 		index_session->state |= IS_FLAG_LOADING;
 		result = UDS_SUCCESS;
@@ -226,7 +229,8 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	}
 	if ((session->state & IS_FLAG_WAITING) ||
 	    (session->state & IS_FLAG_DESTROYING)) {
-		result = EBUSY;
+		uds_log_info("Index session is already changing state");
+		result = -EBUSY;
 	} else if (session->state & IS_FLAG_SUSPENDED) {
 		result = UDS_SUCCESS;
 	} else if (session->state & IS_FLAG_LOADING) {
@@ -306,7 +310,8 @@ int uds_resume_index_session(struct uds_index_session *session)
 	uds_lock_mutex(&session->request_mutex);
 	if (session->state & IS_FLAG_WAITING) {
 		uds_unlock_mutex(&session->request_mutex);
-		return EBUSY;
+		uds_log_info("Index session is already changing state");
+		return -EBUSY;
 	}
 
 	/* If not suspended, just succeed */
@@ -419,7 +424,8 @@ int uds_close_index(struct uds_index_session *index_session)
 	}
 
 	if (index_session->state & IS_FLAG_SUSPENDED) {
-		result = UDS_SUSPENDED;
+		uds_log_info("Index session is suspended");
+		result = -EBUSY;
 	} else if ((index_session->state & IS_FLAG_DESTROYING) ||
 		   !(index_session->state & IS_FLAG_LOADED)) {
 		// The index doesn't exist, hasn't finished loading, or is
@@ -463,7 +469,8 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	if (index_session->state & IS_FLAG_DESTROYING) {
 		uds_unlock_mutex(&index_session->request_mutex);
-		return EBUSY;
+		uds_log_info("Index session is already closing");
+		return -EBUSY;
 	}
 
 	index_session->state |= IS_FLAG_DESTROYING;

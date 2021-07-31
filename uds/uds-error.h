@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-error.h#9 $
  */
 
 /**
@@ -38,12 +38,12 @@ enum uds_status_codes {
 	UDS_ERROR_CODE_BASE = 1024,
 	/** Unused */
 	UDS_UNUSED_CODE_0 = UDS_ERROR_CODE_BASE + 0,
-	/** The UDS library is shutting down */
-	UDS_SHUTTINGDOWN = UDS_ERROR_CODE_BASE + 1,
+	/** Unused */
+	UDS_UNUSED_CODE_1 = UDS_ERROR_CODE_BASE + 1,
 	/** Could not load scanner modules */
 	UDS_EMODULE_LOAD = UDS_ERROR_CODE_BASE + 2,
-	/** Could not create a new thread */
-	UDS_ENOTHREADS = UDS_ERROR_CODE_BASE + 3,
+	/** Unused */
+	UDS_UNUSED_CODE_3 = UDS_ERROR_CODE_BASE + 3,
 	/** Unused */
 	UDS_UNUSED_CODE_4 = UDS_ERROR_CODE_BASE + 4,
 	/** The specified library context is disabled */
@@ -115,8 +115,8 @@ enum uds_status_codes {
 	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 37,
 	/** Unused */
 	UDS_UNUSED_CODE_38 = UDS_ERROR_CODE_BASE + 38,
-	/** Wrong type of index configuration */
-	UDS_WRONG_INDEX_CONFIG = UDS_ERROR_CODE_BASE + 39,
+	/** Unused */
+	UDS_UNUSED_CODE_39 = UDS_ERROR_CODE_BASE + 39,
 	/** Unused */
 	UDS_UNUSED_CODE_40 = UDS_ERROR_CODE_BASE + 40,
 	/** Unused */
@@ -129,20 +129,6 @@ enum uds_status_codes {
 	UDS_END_OF_FILE = UDS_ERROR_CODE_BASE + 44,
 	/** Attempt to access unsaved index */
 	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 45,
-	/** Unused */
-	UDS_UNUSED_CODE_46 = UDS_ERROR_CODE_BASE + 46,
-	/** Unused */
-	UDS_UNUSED_CODE_47 = UDS_ERROR_CODE_BASE + 47,
-	/** Unused */
-	UDS_UNUSED_CODE_48 = UDS_ERROR_CODE_BASE + 48,
-	/** Unused */
-	UDS_UNUSED_CODE_49 = UDS_ERROR_CODE_BASE + 49,
-	/** Index is suspended */
-	UDS_SUSPENDED = UDS_ERROR_CODE_BASE + 50,
-	/** Unused */
-	UDS_UNUSED_CODE_51 = UDS_ERROR_CODE_BASE + 51,
-	/** Index session is already initialized */
-	UDS_INDEXSESSION_IN_USE = UDS_ERROR_CODE_BASE + 52,
 	/** One more than the last UDS_ERROR_CODE */
 	UDS_ERROR_CODE_LAST,
 	/** One more than this block can use */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#8 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#9 $
  */
 
 #ifndef ERRORS_H
@@ -43,8 +43,8 @@ enum uds_internal_error_codes {
 	UDS_DUPLICATE_NAME = UDS_INTERNAL_ERROR_CODE_BASE + 5,
 	/** An internal protocol violation between system components */
 	UDS_UNEXPECTED_RESULT = UDS_INTERNAL_ERROR_CODE_BASE + 6,
-	/** An error created by test case processing */
-	UDS_INJECTED_ERROR = UDS_INTERNAL_ERROR_CODE_BASE + 7,
+	/** Unused */
+	UDS_INTERNAL_UNUSED_7 = UDS_INTERNAL_ERROR_CODE_BASE + 7,
 	/** An assertion failed */
 	UDS_ASSERTION_FAILED = UDS_INTERNAL_ERROR_CODE_BASE + 8,
 	/** Unused */

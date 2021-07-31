@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#26 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexPageMap.c#27 $
  */
 
 #include "indexPageMap.h"
@@ -31,7 +31,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "stringUtils.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "uds.h"
 
 static int read_index_page_map(struct read_portal *portal);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/logger.c#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/logger.c#20 $
  */
 
 #include "logger.h"
@@ -24,7 +24,7 @@
 #include "common.h"
 #include "errors.h"
 #include "stringUtils.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "uds.h"
 
 typedef struct {

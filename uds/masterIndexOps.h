@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/masterIndexOps.h#19 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -26,7 +26,7 @@
 #include "deltaIndex.h"
 #include "indexComponent.h"
 #include "indexConfig.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "uds.h"
 
 extern const struct index_component_info *const VOLUME_INDEX_INFO;

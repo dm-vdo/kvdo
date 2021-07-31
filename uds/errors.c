@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#14 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#18 $
  */
 
 #include "errors.h"
@@ -68,9 +68,9 @@ static const char *const message_table[] = {
 
 static const struct error_info error_list[] = {
 	{ "UDS_UNUSED_CODE_0", "Unused error code 0" },
-	{ "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
+	{ "UDS_UNUSED_CODE_1", "Unused error code 1" },
 	{ "UDS_EMODULE_LOAD", "Could not load modules" },
-	{ "UDS_ENOTHREADS", "Could not create a new thread" },
+	{ "UDS_UNUSED_CODE_3", "Unused error code 3" },
 	{ "UDS_UNUSED_CODE_4", "Unused error code 4" },
 	{ "UDS_DISABLED", "UDS library context is disabled" },
 	{ "UDS_CORRUPT_COMPONENT", "Corrupt saved component" },
@@ -106,20 +106,13 @@ static const struct error_info error_list[] = {
 	{ "UDS_UNUSED_CODE_36", "Unused error code 36" },
 	{ "UDS_NO_INDEX", "No index found" },
 	{ "UDS_UNUSED_CODE_38", "Unused error code 38" },
-	{ "UDS_WRONG_INDEX_CONFIG", "Wrong type of index configuration" },
+	{ "UDS_UNUSED_CODE_39", "Unused error code 39" },
 	{ "UDS_UNUSED_CODE_40", "Unused error code 40" },
 	{ "UDS_UNUSED_CODE_41", "Unused error code 41" },
 	{ "UDS_UNUSED_CODE_42", "Unused error code 42" },
 	{ "UDS_UNUSED_CODE_43", "Unused error code 43" },
 	{ "UDS_END_OF_FILE", "Unexpected end of file" },
 	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },
-	{ "UDS_UNUSED_CODE_46", "Unused error code 46" },
-	{ "UDS_UNUSED_CODE_47", "Unused error code 47" },
-	{ "UDS_UNUSED_CODE_48", "Unused error code 48" },
-	{ "UDS_UNUSED_CODE_49", "Unused error code 49" },
-	{ "UDS_SUSPENDED", "Index suspended" },
-	{ "UDS_UNUSED_CODE_51", "Unused error code 51" },
-	{ "UDS_INDEXSESSION_IN_USE", "Index session in use" },
 };
 
 static const struct error_info internal_error_list[] = {
@@ -132,7 +125,7 @@ static const struct error_info internal_error_list[] = {
 	{ "UDS_DUPLICATE_NAME",
 	  "Attempt to enter the same name into a delta index twice" },
 	{ "UDS_UNEXPECTED_RESULT", "Unexpected result from internal routine" },
-	{ "UDS_INJECTED_ERROR", "Injected error" },
+	{ "UDS_INTERNAL_UNUSED_7", "Unused internal error 7" },
 	{ "UDS_ASSERTION_FAILED", "Assertion failed" },
 	{ "UDS_INTERNAL_UNUSED_9", "Unused internal error 9" },
 	{ "UDS_QUEUED", "Request queued" },

@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threads.h#12 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-threads.h#1 $
  */
 
-#ifndef THREADS_H
-#define THREADS_H
+#ifndef UDS_THREADS_H
+#define UDS_THREADS_H
 
 #include "compiler.h"
 #include "threadOnce.h"
@@ -339,4 +339,4 @@ static INLINE void uds_release_semaphore(struct semaphore *semaphore)
 int uds_yield_scheduler(void);
 
 
-#endif /* THREADS_H */
+#endif /* UDS_THREADS_H */

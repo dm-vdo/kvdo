@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#22 $
  */
 
 #include "indexInternals.h"
@@ -30,7 +30,7 @@
 #include "openChapter.h"
 #include "request.h"
 #include "stringUtils.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "typeDefs.h"
 #include "volume.h"
 #include "zone.h"

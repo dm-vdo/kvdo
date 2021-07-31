@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#7 $
+ * $Id: //eng/uds-releases/krusty/src/uds/threadOnce.c#8 $
  */
 
 #include "errors.h"
-#include "threads.h"
+#include "uds-threads.h"
 
 enum {
 	ONCE_NOT_DONE = 0,

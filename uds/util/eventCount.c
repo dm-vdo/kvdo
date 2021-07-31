@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#11 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/eventCount.c#12 $
  */
 
 /**
@@ -97,7 +97,7 @@
 #include "cpu.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "threads.h"
+#include "uds-threads.h"
 
 enum {
 	ONE_WAITER = 1, // value used to increment the waiters field

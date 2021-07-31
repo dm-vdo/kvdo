@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#28 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#29 $
  */
 
 /**
@@ -115,7 +115,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 #include "searchList.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "zone.h"
 
 enum {
