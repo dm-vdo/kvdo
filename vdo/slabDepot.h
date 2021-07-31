@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#50 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -48,14 +48,6 @@ enum slab_depot_load_type {
 	VDO_SLAB_DEPOT_REBUILD_LOAD
 };
 
-/**
- * Calculate the number of slabs a depot would have.
- *
- * @param depot  The depot
- *
- * @return The number of slabs
- **/
-slab_count_t __must_check vdo_calculate_slab_count(struct slab_depot *depot);
 
 /**
  * Make a slab depot and configure it with the state read from the super block.
@@ -112,18 +104,6 @@ struct block_allocator * __must_check
 vdo_get_block_allocator_for_zone(struct slab_depot *depot,
 				 zone_count_t zone_number);
 
-/**
- * Get the number of the slab that contains a specified block.
- *
- * @param depot            The slab depot
- * @param pbn              The physical block number
- * @param slab_number_ptr  A pointer to hold the slab number
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check vdo_get_slab_number(const struct slab_depot *depot,
-				     physical_block_number_t pbn,
-				     slab_count_t *slab_number_ptr);
 
 /**
  * Get the slab object for the slab that contains a specified block. Will put
@@ -220,17 +200,6 @@ get_vdo_slab_depot_free_blocks(const struct slab_depot *depot);
 void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats);
 
-/**
- * Get the total number of unrecovered slabs in the depot, which is the total
- * number of unrecovered slabs from all zones. This may be called from any
- * thread.
- *
- * @param depot  The slab depot
- *
- * @return The total number of slabs that are unrecovered
- **/
-slab_count_t __must_check
-get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *depot);
 
 /**
  * Asynchronously load any slab depot state that isn't included in the

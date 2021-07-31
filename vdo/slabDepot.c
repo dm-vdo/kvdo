@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#118 $
  */
 
 #include "slabDepot.h"
@@ -51,6 +51,7 @@
 #include "vdoState.h"
 
 /**********************************************************************/
+static
 slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
 {
 	return compute_vdo_slab_count(depot->first_block, depot->last_block,
@@ -407,6 +408,7 @@ struct block_allocator *vdo_get_block_allocator_for_zone(struct slab_depot *depo
 }
 
 /**********************************************************************/
+static
 int vdo_get_slab_number(const struct slab_depot *depot,
 			physical_block_number_t pbn,
 			slab_count_t *slab_number_ptr)
@@ -521,6 +523,7 @@ block_count_t get_vdo_slab_depot_free_blocks(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
+static
 slab_count_t get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *depot)
 {
 	slab_count_t total = 0;
