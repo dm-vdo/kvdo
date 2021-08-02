@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#29 $
  */
 
 #include "vioPool.h"
@@ -44,8 +44,6 @@ struct vio_pool {
 	size_t busy_count;
 	/** The list of objects which are in use */
 	struct list_head busy;
-	/** The number of requests when no object was available */
-	uint64_t outage_count;
 	/** The ID of the thread on which this pool may be used */
 	thread_id_t thread_id;
 	/** The buffer backing the pool's vios */
@@ -158,7 +156,6 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 			"acquire from active vio_pool called from correct thread");
 
 	if (list_empty(&pool->available)) {
-		pool->outage_count++;
 		return enqueue_waiter(&pool->waiting, waiter);
 	}
 
@@ -183,9 +180,3 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 	list_move_tail(&entry->available_entry, &pool->available);
 	--pool->busy_count;
  }
-
-/**********************************************************************/
-uint64_t get_vio_pool_outage_count(struct vio_pool *pool)
-{
-	return pool->outage_count;
-}
