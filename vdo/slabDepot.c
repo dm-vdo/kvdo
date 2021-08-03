@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#118 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#119 $
  */
 
 #include "slabDepot.h"
@@ -217,7 +217,7 @@ static int allocate_components(struct slab_depot *depot,
 	int result =
 		make_vdo_action_manager(depot->zone_count,
 					get_allocator_thread_id,
-					vdo_get_journal_zone_thread(thread_config),
+					thread_config->journal_thread,
 					depot,
 					schedule_tail_block_commit,
 					depot->vdo,

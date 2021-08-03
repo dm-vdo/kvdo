@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#109 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -279,7 +279,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 
 	case ZONE_TYPE_ADMIN:
 	default:
-		thread_id = vdo_get_admin_thread(thread_config);
+		thread_id = thread_config->admin_thread;
 	}
 
 	prepare_vdo_completion(&recovery->sub_task_completion,

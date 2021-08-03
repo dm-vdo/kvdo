@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#164 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#165 $
  */
 
 /*
@@ -83,7 +83,7 @@ static void finish_vdo(struct vdo *vdo)
 void destroy_vdo(struct vdo *vdo)
 {
 	int i;
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
+	const struct thread_config *thread_config = vdo->thread_config;
 
 	finish_vdo(vdo);
 	unregister_vdo(vdo);
@@ -288,7 +288,7 @@ int enable_read_only_entry(struct vdo *vdo)
 	return register_vdo_read_only_listener(vdo->read_only_notifier,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
-					       vdo_get_admin_thread(get_vdo_thread_config(vdo)));
+					       vdo->thread_config->admin_thread);
 }
 
 /**********************************************************************/
@@ -386,11 +386,9 @@ static void set_compression_callback(struct vdo_completion *completion)
 /**********************************************************************/
 bool set_vdo_compressing(struct vdo *vdo, bool enable)
 {
-	thread_id_t packer_thread
-		= vdo_get_packer_zone_thread(get_vdo_thread_config(vdo));
 	perform_synchronous_vdo_action(vdo,
 				       set_compression_callback,
-				       packer_thread,
+				       vdo->thread_config->packer_thread,
 				       &enable);
 	return enable;
 }
@@ -417,12 +415,12 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
 static struct hash_lock_statistics
 get_hash_lock_statistics(const struct vdo *vdo)
 {
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
+	zone_count_t zone_count = vdo->thread_config->hash_zone_count;
 	zone_count_t zone;
 	struct hash_lock_statistics totals;
 	memset(&totals, 0, sizeof(totals));
 
-	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
+	for (zone = 0; zone < zone_count; zone++) {
 		struct hash_lock_statistics stats =
 			get_vdo_hash_zone_statistics(vdo->hash_zones[zone]);
 		totals.dedupe_advice_valid += stats.dedupe_advice_valid;
@@ -589,7 +587,7 @@ void fetch_vdo_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
 	perform_synchronous_vdo_action(vdo,
 				       fetch_vdo_statistics_callback,
-				       vdo_get_admin_thread(get_vdo_thread_config(vdo)),
+				       vdo->thread_config->admin_thread,
 				       stats);
 }
 
@@ -662,7 +660,7 @@ struct recovery_journal *get_recovery_journal(struct vdo *vdo)
 /**********************************************************************/
 void dump_vdo_status(const struct vdo *vdo)
 {
-	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
+	const struct thread_config *thread_config = vdo->thread_config;
 	zone_count_t zone;
 
 	dump_vdo_flusher(vdo->flusher);
@@ -688,7 +686,7 @@ void dump_vdo_status(const struct vdo *vdo)
 void assert_on_admin_thread(const struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo_get_admin_thread(get_vdo_thread_config(vdo))),
+			 vdo->thread_config->admin_thread),
 			"%s called on admin thread",
 			name);
 }
@@ -699,7 +697,7 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),
+			 vdo_get_logical_zone_thread(vdo->thread_config,
 						     logical_zone)),
 			"%s called on logical thread",
 			name);
@@ -711,7 +709,7 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo_get_physical_zone_thread(get_vdo_thread_config(vdo),
+			 vdo_get_physical_zone_thread(vdo->thread_config,
 						      physical_zone)),
 			"%s called on physical thread",
 			name);
@@ -738,7 +736,8 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
 	 * should be uniformly distributed over [0 .. count-1]. The multiply and
 	 * shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	return vdo->hash_zones[(hash * get_vdo_thread_config(vdo)->hash_zone_count) >> 8];
+	return vdo->hash_zones[(hash * vdo->thread_config->hash_zone_count)
+			       >> 8];
 }
 
 /**********************************************************************/

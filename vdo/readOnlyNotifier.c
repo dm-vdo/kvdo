@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#43 $
  */
 
 #include "readOnlyNotifier.h"
@@ -203,8 +203,7 @@ static void assert_on_admin_thread(struct read_only_notifier *notifier,
 				   const char *caller)
 {
 	thread_id_t thread_id = vdo_get_callback_thread_id();
-	ASSERT_LOG_ONLY((vdo_get_admin_thread(notifier->thread_config) ==
-			 thread_id),
+	ASSERT_LOG_ONLY((notifier->thread_config->admin_thread == thread_id),
 			"%s called on admin thread",
 			caller);
 }
@@ -317,7 +316,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		prepare_vdo_completion(completion,
 				       finish_entering_read_only_mode,
 				       finish_entering_read_only_mode,
-				       vdo_get_admin_thread(notifier->thread_config),
+				       notifier->thread_config->admin_thread,
 				       NULL);
 	} else {
 		prepare_vdo_completion(completion,

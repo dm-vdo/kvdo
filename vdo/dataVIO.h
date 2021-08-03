@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#90 $
  */
 
 #ifndef DATA_VIO_H
@@ -875,14 +875,14 @@ set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		vdo_get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
+	thread_id_t journal_thread =
+		get_thread_config_from_data_vio(data_vio)->journal_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
-	ASSERT_LOG_ONLY((expected == thread_id),
+	ASSERT_LOG_ONLY((journal_thread == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on journal thread %u",
 			(unsigned long long) data_vio->logical.lbn,
 			thread_id,
-			expected);
+			journal_thread);
 }
 
 /**
@@ -895,9 +895,11 @@ static inline void
 set_data_vio_journal_callback(struct data_vio *data_vio,
 			      vdo_action *callback)
 {
+	thread_id_t journal_thread =
+		get_thread_config_from_data_vio(data_vio)->journal_thread;
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    vdo_get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
+				    journal_thread);
 }
 
 /**
@@ -921,14 +923,14 @@ launch_data_vio_journal_callback(struct data_vio *data_vio,
  **/
 static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected =
-		vdo_get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
+	thread_id_t packer_thread =
+		get_thread_config_from_data_vio(data_vio)->packer_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
-	ASSERT_LOG_ONLY((expected == thread_id),
+	ASSERT_LOG_ONLY((packer_thread == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on packer thread %u",
 			(unsigned long long) data_vio->logical.lbn,
 			thread_id,
-			expected);
+			packer_thread);
 }
 
 /**
@@ -941,9 +943,11 @@ static inline void
 set_data_vio_packer_callback(struct data_vio *data_vio,
 			     vdo_action *callback)
 {
+	thread_id_t packer_thread =
+		get_thread_config_from_data_vio(data_vio)->packer_thread;
 	set_vdo_completion_callback(data_vio_as_completion(data_vio),
 				    callback,
-				    vdo_get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
+				    packer_thread);
 }
 
 /**

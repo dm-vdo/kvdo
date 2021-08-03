@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#123 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#124 $
  */
 
 #include "recoveryJournal.h"
@@ -434,7 +434,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 	INIT_LIST_HEAD(&journal->active_tail_blocks);
 	initialize_wait_queue(&journal->pending_writes);
 
-	journal->thread_id = vdo_get_journal_zone_thread(thread_config);
+	journal->thread_id = thread_config->journal_thread;
 	journal->partition = partition;
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
