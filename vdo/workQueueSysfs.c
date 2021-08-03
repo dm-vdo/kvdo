@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#17 $
  */
 
 #include "workQueueSysfs.h"
@@ -47,7 +47,7 @@ static ssize_t pid_show(const struct vdo_work_queue *queue, char *buf)
 {
 	const struct simple_work_queue *simple_queue =
 		as_const_simple_work_queue(queue);
-	return sprintf(buf, "%d\n", READ_ONCE(simple_queue->thread_id));
+	return sprintf(buf, "%d\n", READ_ONCE(simple_queue->thread_pid));
 }
 
 /**********************************************************************/

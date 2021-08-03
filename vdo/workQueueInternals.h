@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#16 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -62,7 +62,7 @@ struct simple_work_queue {
 	/** Common work queue bits */
 	struct vdo_work_queue common;
 	/** A copy of .thread->pid, for safety in the sysfs support */
-	pid_t thread_id;
+	pid_t thread_pid;
 	/**
 	 * Number of priorities actually used, so we don't keep re-checking
 	 * unused funnel queues.
