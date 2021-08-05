@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#29 $
+ * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.c#30 $
  */
 
 /**
@@ -425,7 +425,7 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 {
 	int result = UDS_SUCCESS;
-	const struct index *index = zone->index;
+	const struct uds_index *index = zone->index;
 	struct sparse_cache *cache = index->volume->sparse_cache;
 
 	// If the chapter is already in the cache, we don't need to do a thing

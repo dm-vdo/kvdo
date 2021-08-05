@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#37 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#38 $
  */
 
 #include "indexSession.h"
 
 #include "indexCheckpoint.h"
-#include "indexRouter.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "requestQueue.h"
@@ -378,20 +377,20 @@ int save_and_free_index(struct uds_index_session *index_session)
 {
 	int result = UDS_SUCCESS;
 	bool suspended;
-	struct index_router *router = index_session->router;
-	if (router != NULL) {
+	struct uds_index *index = index_session->index;
+	if (index != NULL) {
 		uds_lock_mutex(&index_session->request_mutex);
 		suspended = (index_session->state & IS_FLAG_SUSPENDED);
 		uds_unlock_mutex(&index_session->request_mutex);
 		if (!suspended) {
-			result = save_index_router(router);
+			result = save_index(index);
 			if (result != UDS_SUCCESS) {
 				uds_log_warning_strerror(result,
-							 "ignoring error from save_index_router");
+							 "ignoring error from save_index");
 			}
 		}
-		free_index_router(router);
-		index_session->router = NULL;
+		free_index(index);
+		index_session->index = NULL;
 
 		// Reset all index state that happens to be in the index
 		// session, so it doesn't affect any future index.
@@ -514,7 +513,7 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
 	// Wait until any open chapter writes are complete
-	wait_for_idle_index_router(index_session->router);
+	wait_for_idle_index(index_session->index);
 	return UDS_SUCCESS;
 }
 
@@ -522,15 +521,15 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 int uds_save_index(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	// save_index_router waits for open chapter writes to complete
-	return save_index_router(index_session->router);
+	// save_index waits for open chapter writes to complete
+	return save_index(index_session->index);
 }
 
 /**********************************************************************/
 int uds_set_checkpoint_frequency(struct uds_index_session *index_session,
 				 unsigned int frequency)
 {
-	set_index_checkpoint_frequency(index_session->router->index->checkpoint,
+	set_index_checkpoint_frequency(index_session->index->checkpoint,
 				       frequency);
 	return UDS_SUCCESS;
 }
@@ -561,8 +560,8 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 	}
 
 	collect_stats(index_session, stats);
-	if (index_session->router != NULL) {
-		get_index_stats(index_session->router->index, stats);
+	if (index_session->index != NULL) {
+		get_index_stats(index_session->index, stats);
 	} else {
           stats->entries_indexed = 0;
           stats->memory_used = 0;

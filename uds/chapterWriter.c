@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#30 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.c#31 $
  */
 
 #include "chapterWriter.h"
@@ -33,7 +33,7 @@
 
 struct chapter_writer {
 	/* The index to which we belong */
-	struct index *index;
+	struct uds_index *index;
 	/* The thread to do the writing */
 	struct thread *thread;
 	/* lock protecting the following fields */
@@ -128,7 +128,7 @@ static void close_chapters(void *arg)
 }
 
 /**********************************************************************/
-int make_chapter_writer(struct index *index,
+int make_chapter_writer(struct uds_index *index,
 			struct chapter_writer **writer_ptr)
 {
 	size_t open_chapter_index_memory_allocated;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#6 $
+ * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#7 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -29,7 +29,7 @@
 struct chapter_writer;
 
 // This opaque declaration breaks the dependency loop with index.h
-struct index;
+struct uds_index;
 
 
 /**
@@ -40,7 +40,7 @@ struct index;
  *
  * @return           UDS_SUCCESS or an error code
  **/
-int __must_check make_chapter_writer(struct index *index,
+int __must_check make_chapter_writer(struct uds_index *index,
 				     struct chapter_writer **writer_ptr);
 
 /**

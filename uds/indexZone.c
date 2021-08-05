@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#33 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexZone.c#35 $
  */
 
 #include "indexZone.h"
@@ -24,7 +24,6 @@
 #include "errors.h"
 #include "index.h"
 #include "indexCheckpoint.h"
-#include "indexRouter.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -33,7 +32,7 @@
 #include "uds.h"
 
 /**********************************************************************/
-int make_index_zone(struct index *index, unsigned int zone_number)
+int make_index_zone(struct uds_index *index, unsigned int zone_number)
 {
 	struct index_zone *zone;
 	int result = UDS_ALLOCATE(1, struct index_zone, "index zone", &zone);
@@ -128,7 +127,7 @@ static int swap_open_chapter(struct index_zone *zone)
  **/
 static int reap_oldest_chapter(struct index_zone *zone)
 {
-	struct index *index = zone->index;
+	struct uds_index *index = zone->index;
 	unsigned int chapters_per_volume =
 		index->volume->geometry->chapters_per_volume;
 	int result =
@@ -200,8 +199,8 @@ static int announce_chapter_closed(struct uds_request *request,
 				   struct index_zone *zone,
 				   uint64_t closed_chapter)
 {
-	struct index_router *router =
-		((request != NULL) ? request->router : NULL);
+	struct uds_index *index =
+		((request != NULL) ? request->index : NULL);
 
 	struct uds_zone_message zone_message = {
 		.type = UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED,
@@ -215,8 +214,8 @@ static int announce_chapter_closed(struct uds_request *request,
 		if (zone->id == i) {
 			continue;
 		}
-		if (router != NULL) {
-			result = launch_zone_message(zone_message, i, router);
+		if (index != NULL) {
+			result = launch_zone_message(zone_message, i, index);
 		} else {
 			// We're in a test which doesn't have zone queues, so
 			// we can just call the message function directly.

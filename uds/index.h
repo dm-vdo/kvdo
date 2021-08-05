@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#22 $
  */
 
 #ifndef INDEX_H
@@ -28,6 +28,7 @@
 #include "indexZone.h"
 #include "loadType.h"
 #include "masterIndexOps.h"
+#include "request.h"
 #include "volume.h"
 
 
@@ -36,9 +37,18 @@
  **/
 struct index_checkpoint;
 
-struct index {
-	bool existed;
+/**
+ * Callback after a query, update or remove request completes and fills in
+ * select fields in the request: status for all requests, oldMetadata and
+ * hashExists for query and update requests.
+ *
+ * @param request  request object
+ **/
+typedef void (*index_callback_t)(struct uds_request *request);
+
+struct uds_index {
 	bool has_saved_open_chapter;
+	bool need_to_save;
 	enum load_type loaded_type;
 	struct index_load_context *load_context;
 	struct index_layout *layout;
@@ -66,6 +76,10 @@ struct index {
 
 	// checkpoint state used by indexCheckpoint.c
 	struct index_checkpoint *checkpoint;
+
+	index_callback_t callback;
+	struct uds_request_queue *triage_queue;
+	struct uds_request_queue *zone_queues[];
 };
 
 /**
@@ -75,11 +89,11 @@ struct index {
  * @param config	The configuration to use
  * @param user_params	The index session parameters.  If NULL, the default
  *			session parameters will be used.
- * @param zone_count	The number of zones for this index to use
  * @param load_type	How to create the index:  it can be create only, allow
  *			loading from files, and allow rebuilding from the
  *			volume
  * @param load_context	The load context to use
+ * @param callback      the function to invoke when a request completes
  * @param new_index	A pointer to hold a pointer to the new index
  *
  * @return	   UDS_SUCCESS or an error code
@@ -87,10 +101,28 @@ struct index {
 int __must_check make_index(struct index_layout *layout,
 			    const struct configuration *config,
 			    const struct uds_parameters *user_params,
-			    unsigned int zone_count,
 			    enum load_type load_type,
 			    struct index_load_context *load_context,
-			    struct index **new_index);
+			    index_callback_t callback,
+			    struct uds_index **new_index);
+
+/**
+ * Construct a new index from the given configuration.
+ *
+ * @param layout       The index layout to use
+ * @param config       The configuration to use
+ * @param user_params  The index session parameters.  If NULL, the default
+ *                     session parameters will be used.
+ * @param zone_count   The number of zones for this index to use
+ * @param new_index    A pointer to hold a pointer to the new index
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int __must_check allocate_index(struct index_layout *layout,
+				const struct configuration *config,
+				const struct uds_parameters *user_params,
+				unsigned int zone_count,
+				struct uds_index **new_index);
 
 /**
  * Save an index.
@@ -106,14 +138,14 @@ int __must_check make_index(struct index_layout *layout,
  *
  * @return	  UDS_SUCCESS if successful
  **/
-int __must_check save_index(struct index *index);
+int __must_check save_index(struct uds_index *index);
 
 /**
  * Clean up the index and its memory.
  *
  * @param index	  The index to destroy.
  **/
-void free_index(struct index *index);
+void free_index(struct uds_index *index);
 
 /**
  * Perform the index operation specified by the type field of a UDS request.
@@ -144,7 +176,7 @@ void free_index(struct index *index);
  *
  * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int __must_check dispatch_index_request(struct index *index,
+int __must_check dispatch_index_request(struct uds_index *index,
 					struct uds_request *request);
 
 /**
@@ -154,7 +186,8 @@ int __must_check dispatch_index_request(struct index *index,
  * @param checkpoint	       whether the save is a checkpoint
  * @param open_chapter_number  the virtual chapter number of the open chapter
  **/
-void begin_save(struct index *index, bool checkpoint,
+void begin_save(struct uds_index *index,
+		bool checkpoint,
 		uint64_t open_chapter_number);
 
 /**
@@ -165,7 +198,7 @@ void begin_save(struct index *index, bool checkpoint,
  *
  * @return		UDS_SUCCESS if successful
  **/
-int __must_check replay_volume(struct index *index, uint64_t from_vcn);
+int __must_check replay_volume(struct uds_index *index, uint64_t from_vcn);
 
 /**
  * Gather statistics from the volume index, volume, and cache.
@@ -173,17 +206,8 @@ int __must_check replay_volume(struct index *index, uint64_t from_vcn);
  * @param index	    The index
  * @param counters  the statistic counters for the index
  **/
-void get_index_stats(struct index *index, struct uds_index_stats *counters);
-
-/**
- * Set lookup state for this index.  Disabling lookups means assume
- * all records queried are new (intended for debugging uses, e.g.,
- * albfill).
- *
- * @param index	    The index
- * @param enabled   The new lookup state
- **/
-void set_index_lookup_state(struct index *index, bool enabled);
+void get_index_stats(struct uds_index *index,
+		     struct uds_index_stats *counters);
 
 /**
  * Advance the newest virtual chapter. If this will overwrite the oldest
@@ -191,26 +215,32 @@ void set_index_lookup_state(struct index *index, bool enabled);
  *
  * @param index The index to advance
  **/
-void advance_active_chapters(struct index *index);
+void advance_active_chapters(struct uds_index *index);
 
 /**
- * Triage an index request, deciding whether it requires that a sparse cache
- * barrier message precede it.
+ * Select and return the request queue responsible for executing the next
+ * index stage of a request, updating the request with any associated state
+ * (such as the zone number).
  *
- * This resolves the chunk name in the request in the volume index,
- * determining if it is a hook or not, and if a hook, what virtual chapter (if
- * any) it might be found in. If a virtual chapter is found, it checks whether
- * that chapter appears in the sparse region of the index. If all these
- * conditions are met, the (sparse) virtual chapter number is returned. In all
- * other cases it returns <code>UINT64_MAX</code>.
+ * @param index       The index.
+ * @param request     The request destined for the queue.
+ * @param next_stage  The next request stage.
  *
- * @param index	   the index that will process the request
- * @param request  the index request containing the chunk name to triage
- *
- * @return the sparse chapter number for the sparse cache barrier message, or
- *	   <code>UINT64_MAX</code> if the request does not require a barrier
+ * @return the next index stage queue (the triage queue or the zone queue)
  **/
-uint64_t __must_check triage_index_request(struct index *index,
-					   struct uds_request *request);
+struct uds_request_queue *select_index_queue(struct uds_index *index,
+					     struct uds_request *request,
+					     enum request_stage next_stage);
+
+/**
+ * Wait for the index to finish all operations that access a local storage
+ * device.
+ *
+ * @param index  The index
+ **/
+static INLINE void wait_for_idle_index(struct uds_index *index)
+{
+	wait_for_idle_chapter_writer(index->chapter_writer);
+}
 
 #endif /* INDEX_H */

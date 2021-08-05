@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.h#5 $
  */
 
 #ifndef INDEX_CHECKPOINT_H
@@ -31,7 +31,7 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int __must_check make_index_checkpoint(struct index *index);
+int __must_check make_index_checkpoint(struct uds_index *index);
 
 /**
  * Free the checkpoint sub-structure of an index.
@@ -85,7 +85,7 @@ get_checkpoint_count(struct index_checkpoint *checkpoint);
  *              error to call this function if checkpointing is not in
  *              progress, it silently returns success.
  **/
-int __must_check finish_checkpointing(struct index *index);
+int __must_check finish_checkpointing(struct uds_index *index);
 
 /**
  * Process one zone's incremental checkpoint operation. Automatically
@@ -102,7 +102,7 @@ int __must_check finish_checkpointing(struct index *index);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check process_checkpointing(struct index *index,
+int __must_check process_checkpointing(struct uds_index *index,
 				       unsigned int zone,
 				       uint64_t new_virtual_chapter);
 
@@ -115,6 +115,7 @@ int __must_check process_checkpointing(struct index *index,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check process_chapter_writer_checkpoint_saves(struct index *index);
+int __must_check
+process_chapter_writer_checkpoint_saves(struct uds_index *index);
 
 #endif // INDEX_CHECKPOINT_H

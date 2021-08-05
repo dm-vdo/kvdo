@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#21 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#23 $
  */
 
 /**
@@ -219,10 +219,9 @@ struct uds_index_stats {
 };
 
 /**
- * Internal index structures.
+ * Internal index structure.
  **/
-struct index_router;
-struct index;
+struct uds_index;
 
 /**
  * The block's general location in the index.
@@ -257,7 +256,7 @@ struct uds_zone_message {
 	/** The type of message, determining how it will be processed */
 	enum uds_zone_message_type type;
 	/** The index to which the message is directed */
-	struct index *index;
+	struct uds_index *index;
 	/** The virtual chapter number to which the message applies */
 	uint64_t virtual_chapter;
 };
@@ -346,8 +345,8 @@ struct uds_request {
 	struct funnel_queue_entry request_queue_link;
 	/** A link for adding a request to a standard linked list */
 	struct uds_request *next_request;
-	/** A pointer to the index_router handling this request */
-	struct index_router *router;
+	/** A pointer to the index handling this request */
+	struct uds_index *index;
 	/** Zone control message for coordinating between zones */
 	struct uds_zone_message zone_message;
 	/** If true, handle request immediately by waking the worker thread */
