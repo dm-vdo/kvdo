@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#36 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#37 $
  */
 
 #include "indexSession.h"
@@ -30,7 +30,7 @@
 
 /**********************************************************************/
 static void collect_stats(const struct uds_index_session *index_session,
-			  struct uds_context_stats *stats)
+			  struct uds_index_stats *stats)
 {
 	const struct session_stats *session_stats = &index_session->stats;
 
@@ -559,18 +559,16 @@ int uds_get_index_stats(struct uds_index_session *index_session,
 		uds_log_error("received a NULL index stats pointer");
 		return -EINVAL;
 	}
-	get_index_stats(index_session->router->index, stats);
-	return UDS_SUCCESS;
-}
 
-/**********************************************************************/
-int uds_get_index_session_stats(struct uds_index_session *index_session,
-				struct uds_context_stats *stats)
-{
-	if (stats == NULL) {
-		uds_log_error("received a NULL context stats pointer");
-		return -EINVAL;
-	}
 	collect_stats(index_session, stats);
+	if (index_session->router != NULL) {
+		get_index_stats(index_session->router->index, stats);
+	} else {
+          stats->entries_indexed = 0;
+          stats->memory_used = 0;
+          stats->collisions = 0;
+          stats->entries_discarded = 0;
+	}
+
 	return UDS_SUCCESS;
 }

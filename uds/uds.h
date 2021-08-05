@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#20 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#21 $
  */
 
 /**
@@ -165,94 +165,55 @@ struct uds_parameters {
 /**
  * Index statistics
  *
- * These statistics capture the current index characteristics,
- * including resource usage.
+ * These statistics capture the current index characteristics, including
+ * resource usage and requests processed since initialization.
  **/
 struct uds_index_stats {
-	/** The total number of chunk names stored in the index */
+	/** The total number of chunk names stored in the index. */
 	uint64_t entries_indexed;
-	/** An estimate of the index's memory usage */
+	/** An estimate of the index's memory usage. */
 	uint64_t memory_used;
-	/** The number of collisions recorded in the volume index */
+	/** The number of collisions recorded in the volume index. */
 	uint64_t collisions;
-	/** The number of entries discarded from the index since index startup
-	 */
+	/** The number of entries discarded from the index since startup. */
 	uint64_t entries_discarded;
-	/** The number of checkpoints done this session */
-	uint64_t checkpoints;
-};
-
-/**
- * Context statistics
- *
- * These statistics capture a library context's characteristics either since
- * it was initialized or since its statistics were last reset, whichever
- * is more recent.
- **/
-struct uds_context_stats {
-	/** The time at which context statistics were last fetched */
+	/** The time at which these statistics were fetched. */
 	int64_t current_time;
-	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry
-	 **/
+	/** The number of post calls that found an existing entry. */
 	uint64_t posts_found;
-	/**
-	 * The number of post calls since context statistics were last reset
-	 * that added an entry
-	 **/
+	/** The number of post calls that added an entry. */
 	uint64_t posts_not_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry is current enough to only exist in
-	 * memory and not have been commited to disk yet.
+	 * The number of post calls that found an existing entry that is
+	 * current enough to only exist in memory and not have been committed
+	 * to disk yet.
 	 **/
 	uint64_t in_memory_posts_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry in the dense portion of the index.
+	 * The number of post calls that found an existing entry in the dense
+	 * portion of the index.
 	 **/
 	uint64_t dense_posts_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry in the sparse portion of the index (if
-	 * one exists).
+	 * The number of post calls that found an existing entry in the sparse
+	 * portion of the index (if one exists).
 	 **/
 	uint64_t sparse_posts_found;
-	/**
-	 * The number of update calls since context statistics were last reset
-	 * that updated an existing entry
-	 **/
+	/** The number of update calls that updated an existing entry. */
 	uint64_t updates_found;
-	/**
-	 * The number of update calls since context statistics were last reset
-	 * that added a new entry
-	 **/
+	/** The number of update calls that added a new entry. */
 	uint64_t updates_not_found;
-	/**
-	 * The number of delete requests since context statistics were last
-	 * reset that deleted an existing entry
-	 **/
+	/** The number of delete requests that deleted an existing entry. */
 	uint64_t deletions_found;
-	/**
-	 * The number of delete requests since context statistics were last
-	 * reset that did nothing.
-	 **/
+	/** The number of delete requests that did nothing. */
 	uint64_t deletions_not_found;
-	/**
-	 * The number of query calls since context statistics were last reset
-	 * that found existing entry
-	 **/
+	/** The number of query calls that found existing entry. */
 	uint64_t queries_found;
-	/**
-	 * The number of query calls since context statistics were last reset
-	 * that did not find an entry
-	 **/
+	/** The number of query calls that did not find an entry. */
 	uint64_t queries_not_found;
 	/**
 	 * The total number of library requests (the sum of posts, updates,
-	 * deletions, and queries) since context
-	 * statistics were last reset
+	 * deletions, and queries).
 	 **/
 	uint64_t requests;
 };
@@ -621,17 +582,6 @@ int __must_check uds_get_index_configuration(struct uds_index_session *session,
  **/
 int __must_check uds_get_index_stats(struct uds_index_session *session,
 				     struct uds_index_stats *stats);
-
-/**
- * Fetches index session statistics for the given index session.
- *
- * @param [in]  session  The session
- * @param [out] stats    The context statistics structure to fill
- *
- * @return Either #UDS_SUCCESS or an error code
- **/
-int __must_check uds_get_index_session_stats(struct uds_index_session *session,
-					     struct uds_context_stats *stats);
 
 /**
  * Convert an error code to a string.

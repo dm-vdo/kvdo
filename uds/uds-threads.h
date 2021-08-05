@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds-threads.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds-threads.h#2 $
  */
 
 #ifndef UDS_THREADS_H
 #define UDS_THREADS_H
 
 #include "compiler.h"
+#include "errors.h"
 #include "threadOnce.h"
 #include "timeUtils.h"
-#include "uds-error.h"
 
 #include <linux/delay.h>
 #include <linux/jiffies.h>

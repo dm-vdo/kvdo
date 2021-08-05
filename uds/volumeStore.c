@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.c#16 $
  */
 
 #include "geometry.h"
 #include "indexLayout.h"
 #include "logger.h"
-#include "uds-error.h"
 #include "volumeStore.h"
 
 

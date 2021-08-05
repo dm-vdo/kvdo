@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#54 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#55 $
  */
 
 
@@ -960,7 +960,6 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 		(dense_stats.collision_count + sparse_stats.collision_count);
 	counters->entries_discarded =
 		(dense_stats.discard_count + sparse_stats.discard_count);
-	counters->checkpoints = get_checkpoint_count(index->checkpoint);
 }
 
 /**********************************************************************/

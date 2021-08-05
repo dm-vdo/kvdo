@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#108 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#109 $
  */
 
 #include "dedupeIndex.h"
@@ -796,31 +796,22 @@ void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 
 	stats->curr_dedupe_queries = atomic_read(&index->active);
 	if (state == IS_OPENED) {
-		struct uds_context_stats context_stats;
 		struct uds_index_stats index_stats;
 		int result = uds_get_index_stats(index->index_session,
 						 &index_stats);
 		if (result == UDS_SUCCESS) {
 			stats->entries_indexed = index_stats.entries_indexed;
+			stats->posts_found = index_stats.posts_found;
+			stats->posts_not_found = index_stats.posts_not_found;
+			stats->queries_found = index_stats.queries_found;
+			stats->queries_not_found =
+				index_stats.queries_not_found;
+			stats->updates_found = index_stats.updates_found;
+			stats->updates_not_found =
+				index_stats.updates_not_found;
 		} else {
 			uds_log_error_strerror(result,
 					       "Error reading index stats");
-		}
-
-		result = uds_get_index_session_stats(index->index_session,
-						     &context_stats);
-		if (result == UDS_SUCCESS) {
-			stats->posts_found = context_stats.posts_found;
-			stats->posts_not_found = context_stats.posts_not_found;
-			stats->queries_found = context_stats.queries_found;
-			stats->queries_not_found =
-				context_stats.queries_not_found;
-			stats->updates_found = context_stats.updates_found;
-			stats->updates_not_found =
-				context_stats.updates_not_found;
-		} else {
-			uds_log_error_strerror(result,
-					       "Error reading context stats");
 		}
 	}
 }

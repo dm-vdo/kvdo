@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#10 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#11 $
  */
 
 #ifndef ERRORS_H
@@ -24,65 +24,75 @@
 
 #include "compiler.h"
 #include "typeDefs.h"
-#include "uds-error.h"
 
-enum uds_internal_error_codes {
+/**
+ * Valid return status codes for internal UDS functions.
+ **/
+enum uds_status_codes {
+	/** Successful return */
+	UDS_SUCCESS = 0,
+
 	/** Used as a base value for reporting internal errors */
-	UDS_INTERNAL_ERROR_CODE_BASE = 66560,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_0 = UDS_INTERNAL_ERROR_CODE_BASE + 0,
+	UDS_ERROR_CODE_BASE = 1024,
 	/** Index overflow */
-	UDS_OVERFLOW = UDS_INTERNAL_ERROR_CODE_BASE + 1,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_2 = UDS_INTERNAL_ERROR_CODE_BASE + 2,
+	UDS_OVERFLOW = UDS_ERROR_CODE_BASE + 0,
 	/** Invalid argument passed to internal routine */
-	UDS_INVALID_ARGUMENT = UDS_INTERNAL_ERROR_CODE_BASE + 3,
+	UDS_INVALID_ARGUMENT = UDS_ERROR_CODE_BASE + 1,
 	/** UDS data structures are in an invalid state */
-	UDS_BAD_STATE = UDS_INTERNAL_ERROR_CODE_BASE + 4,
+	UDS_BAD_STATE = UDS_ERROR_CODE_BASE + 2,
 	/** Attempt to enter the same name into an internal structure twice */
-	UDS_DUPLICATE_NAME = UDS_INTERNAL_ERROR_CODE_BASE + 5,
+	UDS_DUPLICATE_NAME = UDS_ERROR_CODE_BASE + 3,
 	/** An internal protocol violation between system components */
-	UDS_UNEXPECTED_RESULT = UDS_INTERNAL_ERROR_CODE_BASE + 6,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_7 = UDS_INTERNAL_ERROR_CODE_BASE + 7,
+	UDS_UNEXPECTED_RESULT = UDS_ERROR_CODE_BASE + 4,
 	/** An assertion failed */
-	UDS_ASSERTION_FAILED = UDS_INTERNAL_ERROR_CODE_BASE + 8,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_9 = UDS_INTERNAL_ERROR_CODE_BASE + 9,
+	UDS_ASSERTION_FAILED = UDS_ERROR_CODE_BASE + 5,
 	/** Not an actual error, but reporting that the result will be
 	 *  delayed */
-	UDS_QUEUED = UDS_INTERNAL_ERROR_CODE_BASE + 10,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_11 = UDS_INTERNAL_ERROR_CODE_BASE + 11,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_12 = UDS_INTERNAL_ERROR_CODE_BASE + 12,
+	UDS_QUEUED = UDS_ERROR_CODE_BASE + 6,
 	/** A problem has occured with a buffer */
-	UDS_BUFFER_ERROR = UDS_INTERNAL_ERROR_CODE_BASE + 13,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_14 = UDS_INTERNAL_ERROR_CODE_BASE + 14,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_15 = UDS_INTERNAL_ERROR_CODE_BASE + 15,
+	UDS_BUFFER_ERROR = UDS_ERROR_CODE_BASE + 7,
 	/** No directory was found where one was expected */
-	UDS_NO_DIRECTORY = UDS_INTERNAL_ERROR_CODE_BASE + 16,
+	UDS_NO_DIRECTORY = UDS_ERROR_CODE_BASE + 8,
 	/** Checkpoint not completed */
-	UDS_CHECKPOINT_INCOMPLETE = UDS_INTERNAL_ERROR_CODE_BASE + 17,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_18 = UDS_INTERNAL_ERROR_CODE_BASE + 18,
-	/** Unused */
-	UDS_INTERNAL_UNUSED_19 = UDS_INTERNAL_ERROR_CODE_BASE + 19,
+	UDS_CHECKPOINT_INCOMPLETE = UDS_ERROR_CODE_BASE + 9,
 	/** This error range has already been registered */
-	UDS_ALREADY_REGISTERED = UDS_INTERNAL_ERROR_CODE_BASE + 20,
+	UDS_ALREADY_REGISTERED = UDS_ERROR_CODE_BASE + 10,
 	/** Either read-only or write-only */
-	UDS_BAD_IO_DIRECTION = UDS_INTERNAL_ERROR_CODE_BASE + 21,
+	UDS_BAD_IO_DIRECTION = UDS_ERROR_CODE_BASE + 11,
 	/** Cannot do I/O at this offset */
-	UDS_INCORRECT_ALIGNMENT = UDS_INTERNAL_ERROR_CODE_BASE + 22,
+	UDS_INCORRECT_ALIGNMENT = UDS_ERROR_CODE_BASE + 12,
 	/** Attempt to read or write data outside the bounds established for
 	 *  it */
-	UDS_OUT_OF_RANGE = UDS_INTERNAL_ERROR_CODE_BASE + 23,
+	UDS_OUT_OF_RANGE = UDS_ERROR_CODE_BASE + 13,
+	/** Could not load scanner modules */
+	UDS_EMODULE_LOAD = UDS_ERROR_CODE_BASE + 14,
+	/** The specified library context is disabled */
+	UDS_DISABLED = UDS_ERROR_CODE_BASE + 15,
+	/** Some saved index component is corrupt */
+	UDS_CORRUPT_COMPONENT = UDS_ERROR_CODE_BASE + 16,
+	UDS_CORRUPT_FILE = UDS_CORRUPT_COMPONENT,
+	/** Unknown error */
+	UDS_UNKNOWN_ERROR = UDS_ERROR_CODE_BASE + 17,
+	/** The index configuration or volume format is no longer supported */
+	UDS_UNSUPPORTED_VERSION = UDS_ERROR_CODE_BASE + 18,
+	/** Index data in memory is corrupt */
+	UDS_CORRUPT_DATA = UDS_ERROR_CODE_BASE + 19,
+	/** Short read due to truncated file */
+	UDS_SHORT_READ = UDS_ERROR_CODE_BASE + 20,
+	/** Internal resource limits exceeded */
+	UDS_RESOURCE_LIMIT_EXCEEDED = UDS_ERROR_CODE_BASE + 21,
+	/** Memory overflow due to storage failure */
+	UDS_VOLUME_OVERFLOW = UDS_ERROR_CODE_BASE + 22,
+	/** Essential files for index not found */
+	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 23,
+	/** Premature end of file in scanned file */
+	UDS_END_OF_FILE = UDS_ERROR_CODE_BASE + 24,
+	/** Attempt to access unsaved index */
+	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 25,
 	/** One more than the last UDS_INTERNAL error code */
-	UDS_INTERNAL_ERROR_CODE_LAST,
+	UDS_ERROR_CODE_LAST,
 	/** One more than the last error this block will ever use */
-	UDS_INTERNAL_ERROR_CODE_BLOCK_END = UDS_INTERNAL_ERROR_CODE_BASE + 440
+	UDS_ERROR_CODE_BLOCK_END = UDS_ERROR_CODE_BASE + 440
 };
 
 enum {
