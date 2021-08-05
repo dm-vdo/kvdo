@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#64 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#65 $
  */
 
 #include "indexLayout.h"
@@ -132,7 +132,6 @@ struct super_block_data {
 struct index_layout {
 	struct io_factory *factory;
 	off_t offset;
-	struct index_version version;
 	struct super_block_data super;
 	struct layout_region header;
 	struct layout_region config;
@@ -166,7 +165,20 @@ struct save_layout_sizes {
 	uint64_t total_blocks; // for whole layout
 };
 
+/*
+ * Version 3 is the normal version used from RHEL8.2 onwards.
+ *
+ * Versions 4 through 6 were incremental development versions and are not
+ * supported.
+ *
+ * Version 7 is used for volumes which have been reduced in size by one chapter
+ * in order to make room to prepend LVM metadata to an existing VDO without
+ * losing all deduplication.
+ */
 enum {
+	SUPER_VERSION_MINIMUM = 3,
+	SUPER_VERSION_CURRENT = 3,
+	SUPER_VERSION_MAXIMUM = 7,
 	INDEX_STATE_BUFFER_SIZE = 512,
 	MAX_SAVES = 5,
 };
@@ -705,7 +717,6 @@ load_super_block(struct index_layout *layout,
 					      super->block_size,
 					      block_size);
 	}
-	initialize_index_version(&layout->version, super->version);
 
 	result = allocate_single_file_parts(layout);
 	if (result != UDS_SUCCESS) {
@@ -1398,7 +1409,6 @@ init_single_file_layout(struct index_layout *layout,
 				  sls->open_chapter_blocks,
 				  sls->page_map_blocks,
 				  &layout->super);
-	initialize_index_version(&layout->version, SUPER_VERSION_CURRENT);
 
 	result = allocate_single_file_parts(layout);
 	if (result != UDS_SUCCESS) {
@@ -1892,12 +1902,6 @@ void get_uds_index_layout(struct index_layout *layout,
 {
 	++layout->ref_count;
 	*layout_ptr = layout;
-}
-
-/**********************************************************************/
-const struct index_version *get_uds_index_version(struct index_layout *layout)
-{
-	return &layout->version;
 }
 
 /**********************************************************************/
