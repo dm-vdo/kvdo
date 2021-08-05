@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#27 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#28 $
  */
 
 #include "indexLayout.h"
@@ -118,7 +118,7 @@ typedef struct superBlockData_v1 {
   byte     magicLabel[32];
   byte     nonceInfo[32];
   uint64_t nonce;
-  uint32_t version;             // 2 or 3 for normal, 6 or 7 for converted
+  uint32_t version;             // 2 or 3 for normal, 7 for converted
   uint32_t blockSize;           // for verification
   uint16_t numIndexes;          // always 1
   uint16_t maxSaves;
@@ -185,7 +185,7 @@ static int writeIndexSaveLayout(IndexLayout *layout, IndexSaveLayout *isl)
 /*****************************************************************************/
 static INLINE bool isConvertedSuperBlock(SuperBlockData *super)
 {
-  return super->version == 6 || super->version == 7;
+  return (super->version == 7);
 }
 
 /*****************************************************************************/
@@ -580,6 +580,7 @@ static int readSuperBlockData(BufferedReader *reader,
   if ((super->version < SUPER_VERSION_MINIMUM)
       || (super->version == 4)
       || (super->version == 5)
+      || (super->version == 6)
       || (super->version > SUPER_VERSION_MAXIMUM)) {
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
                                    "unknown superblock version number %"
@@ -2505,7 +2506,7 @@ int updateLayout(IndexLayout      *layout,
   layout->index.subIndex.numBlocks -= offsetBlocks;
   layout->index.volume.numBlocks -= offsetBlocks;
   layout->totalBlocks -= offsetBlocks;
-  layout->super.version = (layout->super.version  < 3) ? 6 : 7;
+  layout->super.version = 7;
   result = saveSingleFileLayout(layout, offsetBlocks);
   if (result == UDS_SUCCESS) {
     result = writeIndexConfig(layout, config, offsetBlocks);

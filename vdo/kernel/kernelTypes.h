@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelTypes.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelTypes.h#4 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -33,11 +33,6 @@ typedef uint32_t DiscardSize;
  * A time in jiffies.
  **/
 typedef uint64_t Jiffies;
-
-/**
- * A timeout in jiffies.
- **/
-typedef int64_t TimeoutJiffies;
 
 typedef struct atomicBioStats AtomicBioStats;
 typedef struct bio            BIO;

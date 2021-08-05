@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#12 $
  */
 
 #include "workQueue.h"
@@ -37,17 +37,6 @@
 #include "workQueueInternals.h"
 #include "workQueueStats.h"
 #include "workQueueSysfs.h"
-
-enum {
-  // Time between work queue heartbeats in usec. The default kernel
-  // configurations generally have 1ms or 4ms tick rates, so let's make this a
-  // multiple for accuracy.
-  FUNNEL_HEARTBEAT_INTERVAL = 4000,
-
-  // Time to wait for a work queue to flush remaining items during shutdown.
-  // Specified in milliseconds.
-  FUNNEL_FINISH_SLEEP = 5000,
-};
 
 static struct mutex queueDataLock;
 static SimpleWorkQueue queueData;
@@ -219,27 +208,15 @@ static bool enqueueWorkQueueItem(SimpleWorkQueue *queue, KvdoWorkItem *item)
    * queue as a producer thread.
    *
    * However, the above is wasteful so instead we attempt to minimize the
-   * number of thread wakeups. This is normally unsafe due to the above
-   * consumer-producer synchronization constraints. To correct this a timeout
-   * mechanism is used to wake the thread periodically to handle the occasional
-   * race condition that triggers and results in this thread not being woken
-   * properly.
+   * number of thread wakeups. Using an idle flag, and careful ordering using
+   * memory barriers, we should be able to determine when the worker thread
+   * might be asleep or going to sleep. We use cmpxchg to try to take ownership
+   * (vs other producer threads) of the responsibility for waking the worker
+   * thread, so multiple wakeups aren't tried at once.
    *
-   * In most cases, the above timeout will not occur prior to some other work
-   * item being added after the queue is set to idle state, so thread wakeups
-   * will generally be triggered much faster than this interval. The timeout
-   * provides protection against the cases where more work items are either not
-   * added or are added too infrequently.
-   *
-   * This is also why we can get away with the normally-unsafe optimization for
-   * the common case by checking queue->idle first without synchronization. The
-   * race condition exists, but another work item getting enqueued can wake us
-   * up, and if we don't get that either, we still have the timeout to fall
-   * back on.
-   *
-   * Developed and tuned for some x86 boxes; untested whether this is any
-   * better or worse for other platforms, with or without the explicit memory
-   * barrier.
+   * This was tuned for some x86 boxes that were handy; it's untested whether
+   * doing the read first is any better or worse for other platforms, even
+   * other x86 configurations.
    */
   smp_mb();
   return ((atomic_read(&queue->idle) == 1)
@@ -346,13 +323,11 @@ static bool hasDelayedWorkItems(SimpleWorkQueue *queue)
  *
  * Update statistics relating to scheduler interactions.
  *
- * @param [in]     queue            The work queue to wait on
- * @param [in]     timeoutInterval  How long to wait each iteration
+ * @param queue  The work queue to wait on
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
-                                         TimeoutJiffies   timeoutInterval)
+static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue)
 {
   KvdoWorkItem *item = runSuspendHook(queue);
   if (item != NULL) {
@@ -420,8 +395,7 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
     uint64_t timeBeforeSchedule = currentTime(CLOCK_MONOTONIC);
     atomic64_add(timeBeforeSchedule - queue->mostRecentWakeup,
                  &queue->stats.runTime);
-    // Wake up often, to address the missed-wakeup race.
-    schedule_timeout(timeoutInterval);
+    schedule();
     queue->mostRecentWakeup = currentTime(CLOCK_MONOTONIC);
     uint64_t callDurationNS = queue->mostRecentWakeup - timeBeforeSchedule;
     enterHistogramSample(queue->stats.scheduleTimeHistogram,
@@ -429,8 +403,7 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
 
     /*
      * Check again before resetting firstWakeup for more accurate
-     * stats. (It's still racy, which can't be fixed without requiring
-     * tighter synchronization between producer and consumer sides.)
+     * stats. If it was a spurious wakeup, continue looping.
      */
     item = pollForWorkItem(queue);
     if (item != NULL) {
@@ -468,26 +441,24 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
  * If kthread_should_stop says it's time to stop but we have pending work
  * items, return a work item.
  *
- * @param [in]     queue            The work queue to wait on
- * @param [in]     timeoutInterval  How long to wait each iteration
+ * @param queue  The work queue to wait on
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static KvdoWorkItem *getNextWorkItem(SimpleWorkQueue *queue,
-                                     TimeoutJiffies   timeoutInterval)
+static KvdoWorkItem *getNextWorkItem(SimpleWorkQueue *queue)
 {
   KvdoWorkItem *item = pollForWorkItem(queue);
   if (item != NULL) {
     return item;
   }
-  return waitForNextWorkItem(queue, timeoutInterval);
+  return waitForNextWorkItem(queue);
 }
 
 /**
  * Execute a work item from a work queue, and do associated bookkeeping.
  *
- * @param [in]     queue  the work queue the item is from
- * @param [in]     item   the work item to run
+ * @param queue  the work queue the item is from
+ * @param item   the work item to run
  **/
 static void processWorkItem(SimpleWorkQueue *queue,
                             KvdoWorkItem    *item)
@@ -548,18 +519,14 @@ static void processWorkItem(SimpleWorkQueue *queue,
  **/
 static void serviceWorkQueue(SimpleWorkQueue *queue)
 {
-  TimeoutJiffies timeoutInterval =
-    maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
-
   runStartHook(queue);
 
   while (true) {
-    KvdoWorkItem *item = getNextWorkItem(queue, timeoutInterval);
+    KvdoWorkItem *item = getNextWorkItem(queue);
     if (item == NULL) {
       // No work items but kthread_should_stop was triggered.
       break;
     }
-    // Process the work item
     processWorkItem(queue, item);
   }
 
