@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#35 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#36 $
  */
 
 #include "indexSession.h"
@@ -254,7 +254,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	uds_unlock_mutex(&session->request_mutex);
 
 	if (!save_index && !suspend_index) {
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	if (save_index) {
@@ -264,7 +264,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 		session->state |= IS_FLAG_SUSPENDED;
 		uds_broadcast_cond(&session->request_cond);
 		uds_unlock_mutex(&session->request_mutex);
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	uds_lock_mutex(&session->load_context.mutex);
@@ -436,7 +436,7 @@ int uds_close_index(struct uds_index_session *index_session)
 	}
 	uds_unlock_mutex(&index_session->request_mutex);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	uds_log_debug("Closing index");
@@ -447,7 +447,7 @@ int uds_close_index(struct uds_index_session *index_session)
 	index_session->state &= ~IS_FLAG_CLOSING;
 	uds_broadcast_cond(&index_session->request_cond);
 	uds_unlock_mutex(&index_session->request_mutex);
-	return result;
+	return uds_map_to_system_error(result);
 }
 
 /**********************************************************************/
@@ -506,7 +506,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	uds_destroy_mutex(&index_session->request_mutex);
 	uds_log_debug("Destroyed index session");
 	UDS_FREE(index_session);
-	return result;
+	return uds_map_to_system_error(result);
 }
 
 /**********************************************************************/
@@ -548,7 +548,7 @@ int uds_get_index_configuration(struct uds_index_session *index_session,
 	if (result == UDS_SUCCESS) {
 		**conf = index_session->user_config;
 	}
-	return result;
+	return uds_map_to_system_error(result);
 }
 
 /**********************************************************************/

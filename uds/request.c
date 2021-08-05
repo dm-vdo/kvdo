@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#22 $
+ * $Id: //eng/uds-releases/krusty/src/uds/request.c#23 $
  */
 
 #include "request.h"
@@ -229,6 +229,7 @@ void enter_callback_stage(struct uds_request *request)
 		disable_index_session(request->session);
 	}
 
+	request->status = uds_map_to_system_error(request->status);
 	// Handle asynchronous client callbacks in the designated thread.
 	enqueue_request(request, STAGE_CALLBACK);
 }

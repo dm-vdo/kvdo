@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#30 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#31 $
  */
 
 #include "uds.h"
@@ -108,7 +108,7 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 	result = UDS_ALLOCATE(1, struct uds_configuration, "uds_configuration",
 			      user_config);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	(*user_config)->record_pages_per_chapter = record_pages_per_chapter;
@@ -244,7 +244,7 @@ int uds_create_index_session(struct uds_index_session **session)
 
 	result = make_empty_index_session(&index_session);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	*session = index_session;
@@ -341,7 +341,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 
 	result = start_loading_index_session(session);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return uds_map_to_system_error(result);
 	}
 
 	session->user_config = *user_config;
@@ -361,7 +361,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 	}
 
 	finish_loading_index_session(session, result);
-	return result;
+	return uds_map_to_system_error(result);
 }
 
 /**********************************************************************/

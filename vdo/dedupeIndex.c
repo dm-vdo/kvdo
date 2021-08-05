@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#108 $
  */
 
 #include "dedupeIndex.h"
@@ -579,8 +579,7 @@ static void open_index(struct dedupe_index *index)
 	spin_lock(&index->state_lock);
 	if (!create_flag) {
 		switch (result) {
-		case UDS_CORRUPT_COMPONENT:
-		case UDS_NO_INDEX:
+		case -ENOENT:
 			// Either there is no index, or there is no way we can
 			// recover the index. We will be called again and try
 			// to create a new index.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#19 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#20 $
  */
 
 /**
@@ -482,15 +482,12 @@ void uds_free_configuration(struct uds_configuration *conf);
  * device.  This size should be used when configuring a block device on which
  * to store an index.
  *
- * @param [in]  config           A uds_configuration for an index.
- * @param [in]  num_checkpoints  The maximum number of checkpoints.
- * @param [out] index_size       The number of bytes required to store
- *                               the index.
+ * @param [in]  config      A uds_configuration for an index.
+ * @param [out] index_size  The number of bytes required to store the index.
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check uds_compute_index_size(const struct uds_configuration *config,
-					unsigned int num_checkpoints,
 					uint64_t *index_size);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexVersion.c#5 $
  */
 
 #include "indexVersion.h"
@@ -45,20 +45,26 @@ void initialize_index_version(struct index_version *version,
 	 * Version 3 was created when we discovered the the chapter index
 	 * headers were written in native endian format.  It was first used in
 	 * RHEL8.2 and is the current version for new indices.
-	 *
-	 * Versions before 3 read and write native endian chapter headers.
-	 * Version 3 reads chapter headers in any endian order, and writes
-	 * little-endian chapter headers.
 	 */
 
 	/*
-	 * Versions 6 and 7 are equivalent to versions 2 and 3
-	 * respectively, after the volume has been reduced in size by
-	 * one chapter in order to make room to prepend LVM metadata
-	 * to an existing VDO without losing all deduplication.
+	 * Versions 4 through 6 were incremental development versions and are
+	 * not supported.
 	 */
-	bool chapter_index_header_native_endian =
-		(super_version < 3) || (super_version == 6);
+
+	/*
+	 * Versions 7 is equivalent to version 3, after the volume has been
+	 * reduced in size by one chapter in order to make room to prepend LVM
+	 * metadata to an existing VDO without losing all deduplication.
+	 */
+
+	/*
+	 * Versions before 3 read and write native endian chapter headers.
+	 * Versions 3 and after read chapter headers in any endian order, and
+	 * write little-endian chapter headers.
+	 */
+
+	bool chapter_index_header_native_endian = (super_version < 3);
 	*version = (struct index_version) {
 		.chapter_index_header_native_endian =
 			chapter_index_header_native_endian,

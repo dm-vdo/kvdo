@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#18 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.c#19 $
  */
 
 #include "errors.h"
@@ -334,6 +334,54 @@ const char *string_error_name(int errnum, char *buf, size_t buflen)
 		}
 	}
 	return buf;
+}
+
+/**********************************************************************/
+int uds_map_to_system_error(int error)
+{
+	char error_name[80], error_message[ERRBUF_SIZE];
+
+	// 0 is success, negative a system error code
+	if (likely(error <= 0)) {
+		return error;
+	}
+
+	if (error < 1024) {
+		// probably an errno from userspace, just negate it.
+		return -error;
+	}
+
+	// UDS error
+	switch (error) {
+	case UDS_NO_INDEX:
+	case UDS_CORRUPT_COMPONENT:
+		// The index doesn't exist or can't be recovered.
+		return -ENOENT;
+
+	case UDS_INDEX_NOT_SAVED_CLEANLY:
+	case UDS_UNSUPPORTED_VERSION:
+		// The index exists, but can't be loaded. Tell the client it
+		// exists so they don't destroy it inadvertently.
+		return -EEXIST;
+
+	case UDS_DISABLED:
+		// The session is unusable; only returned by requests.
+		return -EIO;
+
+	default:
+		// No other UDS error code is expected here, so log what we
+		// got and convert to something reasonable.
+		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
+			     __func__,
+			     error,
+			     string_error_name(error,
+					       error_name,
+					       sizeof(error_name)),
+			     uds_string_error(error,
+					      error_message,
+					      sizeof(error_message)));
+		return -EIO;
+	}
 }
 
 /**********************************************************************/

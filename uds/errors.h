@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.h#9 $
+ * $Id: //eng/uds-releases/krusty/src/uds/errors.h#10 $
  */
 
 #ifndef ERRORS_H
@@ -108,6 +108,17 @@ struct error_info {
 	const char *name;
 	const char *message;
 };
+
+/**
+ * Given an error code, return a value acceptable to the kernel. The input
+ * error code may be a system-generated value (such as -EIO), or an internal
+ * UDS status code; the result will be a negative errno value.
+ *
+ * @param error  The error code to convert
+ *
+ * @return a system error code value
+ **/
+int uds_map_to_system_error(int error);
 
 /**
  * Register an error code block for string_error and string_error_name.
