@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#145 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#146 $
  */
 
 #include "dmvdo.h"
@@ -233,13 +233,6 @@ process_vdo_message_locked(struct vdo *vdo,
 {
 	// Messages with fixed numbers of arguments.
 	switch (argc) {
-	case 1:
-		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			vdo_wait_for_no_requests_active(vdo);
-			return 0;
-		}
-
-		break;
 
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
@@ -564,11 +557,8 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_register_thread_device_id(&instance_thread, &instance);
 		uds_register_allocating_thread(&allocating_thread, NULL);
 
-		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
-
 		uds_log_info("stopping device '%s'", device_name);
-
 		if (vdo->dump_on_shutdown) {
 			vdo_dump_all(vdo, "device shutdown");
 		}

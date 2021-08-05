@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#42 $
  */
 
 #ifndef VDO_H
@@ -33,12 +33,6 @@
  **/
 void destroy_vdo(struct vdo *vdo);
 
-/**
- * Wait until there are no requests in progress.
- *
- * @param vdo  The vdo on which to wait
- **/
-void vdo_wait_for_no_requests_active(struct vdo *vdo);
 
 /**
  * Get the block device object underlying a vdo.

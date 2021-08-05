@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.c#3 $
  */
 
 #include "limiter.h"
@@ -46,30 +46,52 @@ bool limiter_is_idle(struct limiter *limiter)
 /**********************************************************************/
 void limiter_release_many(struct limiter *limiter, uint32_t count)
 {
+	struct vdo_completion *completion = NULL;
+
 	spin_lock(&limiter->lock);
 	WRITE_ONCE(limiter->active, limiter->active - count);
+	if (limiter->active == 0) {
+		completion = limiter->completion;
+	}
 	spin_unlock(&limiter->lock);
+
 	if (waitqueue_active(&limiter->waiter_queue)) {
 		wake_up_nr(&limiter->waiter_queue, count);
+		return;
 	}
+
+	if (completion == NULL) {
+		return;
+	}
+
+	// Only take the lock a second time if we are releasing the completion.
+	spin_lock(&limiter->lock);
+	limiter->completion = NULL;
+	spin_unlock(&limiter->lock);
+
+	complete_vdo_completion(completion);
 }
 
 /**********************************************************************/
-void limiter_wait_for_idle(struct limiter *limiter)
+void drain_vdo_limiter(struct limiter *limiter,
+		       struct vdo_completion *completion)
 {
-	spin_lock(&limiter->lock);
-	while (limiter->active > 0) {
-		DEFINE_WAIT(wait);
+	bool finished = false;
 
-		prepare_to_wait_exclusive(&limiter->waiter_queue,
-					  &wait,
-					  TASK_UNINTERRUPTIBLE);
-		spin_unlock(&limiter->lock);
-		io_schedule();
-		spin_lock(&limiter->lock);
-		finish_wait(&limiter->waiter_queue, &wait);
-	};
+	spin_lock(&limiter->lock);
+	if (limiter->active == 0) {
+		finished = true;
+	} else if (limiter->completion == NULL) {
+		limiter->completion = completion;
+	} else {
+		set_vdo_completion_result(completion, VDO_COMPONENT_BUSY);
+		finished = true;
+	}
 	spin_unlock(&limiter->lock);
+
+	if (finished) {
+		complete_vdo_completion(completion);
+	}
 }
 
 /**
