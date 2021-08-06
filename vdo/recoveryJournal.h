@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournal.h#4 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/recoveryJournal.h#1 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -205,16 +205,6 @@ initialize_vdo_recovery_journal_post_rebuild(struct recovery_journal *journal,
  **/
 block_count_t __must_check
 vdo_get_journal_block_map_data_blocks_used(struct recovery_journal *journal);
-
-/**
- * Set the number of block map pages, allocated from data blocks, currently
- * in use.
- *
- * @param journal   The journal in question
- * @param pages     The number of block map pages allocated from slabs
- **/
-void vdo_set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
-						block_count_t pages);
 
 /**
  * Get the ID of a recovery journal's thread.

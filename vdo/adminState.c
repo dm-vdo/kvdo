@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/adminState.c#12 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/adminState.c#1 $
  */
 
 #include "adminState.h"
@@ -58,6 +58,11 @@ static const struct admin_state_code VDO_CODE_PRE_LOADING = {
 };
 const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADING =
 	&VDO_CODE_PRE_LOADING;
+static const struct admin_state_code VDO_CODE_PRE_LOADED = {
+	.name = "VDO_ADMIN_STATE_PRE_LOADED",
+};
+const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADED =
+	&VDO_CODE_PRE_LOADED;
 static const struct admin_state_code VDO_CODE_LOADING = {
 	.name = "VDO_ADMIN_STATE_LOADING",
 	.normal = true,
@@ -236,6 +241,12 @@ get_next_state(const struct admin_state *state,
 	if (operation == VDO_ADMIN_STATE_SUSPENDING) {
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_SUSPENDED
+			: NULL);
+	}
+
+	if (operation == VDO_ADMIN_STATE_PRE_LOADING) {
+		return (code == VDO_ADMIN_STATE_INITIALIZED
+			? VDO_ADMIN_STATE_PRE_LOADED
 			: NULL);
 	}
 

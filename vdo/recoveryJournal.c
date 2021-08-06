@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournal.c#20 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/recoveryJournal.c#1 $
  */
 
 #include "recoveryJournal.h"
@@ -114,6 +114,8 @@ static void continue_waiter(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	int wait_result = *((int *)context);
 
+	data_vio_add_trace_record(data_vio,
+			          THIS_LOCATION("$F($j-$js);cb=continueJournalWaiter($j-$js)"));
 	continue_data_vio(data_vio, wait_result);
 }
 
@@ -434,7 +436,7 @@ int decode_vdo_recovery_journal(struct recovery_journal_state_7_0 state,
 	INIT_LIST_HEAD(&journal->active_tail_blocks);
 	initialize_wait_queue(&journal->pending_writes);
 
-	journal->thread_id = vdo_get_journal_zone_thread(thread_config);
+	journal->thread_id = thread_config->journal_thread;
 	journal->partition = partition;
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
@@ -574,14 +576,6 @@ block_count_t
 vdo_get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
 {
 	return journal->block_map_data_blocks;
-}
-
-/**********************************************************************/
-void
-vdo_set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
-					   block_count_t pages)
-{
-	journal->block_map_data_blocks = pages;
 }
 
 /**********************************************************************/
@@ -1124,7 +1118,8 @@ void add_vdo_recovery_journal_entry(struct recovery_journal *journal,
 				  journal->entries_per_block);
 	result = enqueue_data_vio((increment ? &journal->increment_waiters
 				  : &journal->decrement_waiters),
-				  data_vio);
+				  data_vio,
+				  THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		continue_data_vio(data_vio, result);

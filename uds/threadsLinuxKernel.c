@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#14 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/kernelLinux/uds/threadsLinuxKernel.c#1 $
  */
 
 #include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
+#include "errors.h"
 #include "memoryAlloc.h"
 #include "logger.h"
-#include "threads.h"
-#include "uds-error.h"
+#include "uds-threads.h"
 
 static struct hlist_head kernel_thread_list;
 static struct mutex kernel_thread_mutex;

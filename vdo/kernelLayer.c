@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/kernelLayer.c#39 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/kernelLayer.c#1 $
  */
 
 #include "kernelLayer.h"
@@ -34,6 +34,7 @@
 #include "permassert.h"
 
 #include "adminCompletion.h"
+#include "adminState.h"
 #include "flush.h"
 #include "releaseVersions.h"
 #include "statistics.h"
@@ -183,14 +184,14 @@ int vdo_launch_bio(struct vdo *vdo, struct bio *bio)
 {
 	int result;
 	uint64_t arrival_jiffies = jiffies;
-	enum kernel_layer_state state =
-		get_kernel_layer_state(vdo_as_kernel_layer(vdo));
 	struct vdo_work_queue *current_work_queue;
 	bool has_discard_permit = false;
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&vdo->admin_state);
 
-	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
-			"vdo_launch_bio should not be called while in state %d",
-			state);
+	ASSERT_LOG_ONLY(code->normal,
+			"vdo_launch_bio should not be called while in state %s",
+			code->name);
 
 	// Count all incoming bios.
 	vdo_count_bios(&vdo->stats.bios_in, bio);
@@ -435,7 +436,6 @@ int make_kernel_layer(unsigned int instance,
 		return result;
 	}
 
-	set_kernel_layer_state(layer, LAYER_INITIALIZED);
 	*layer_ptr = layer;
 	return VDO_SUCCESS;
 }
@@ -571,6 +571,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	 * of funnel-queue data structures in work queues.
 	 */
 	enum kernel_layer_state state = get_kernel_layer_state(layer);
+	const struct admin_state_code *code;
 
 	switch (state) {
 	case LAYER_STOPPING:
@@ -588,7 +589,18 @@ void free_kernel_layer(struct kernel_layer *layer)
 		fallthrough;
 
 	case LAYER_STOPPED:
-	case LAYER_INITIALIZED:
+		break;
+
+	case LAYER_NEW:
+		code = get_vdo_admin_state_code(&layer->vdo.admin_state);
+		if ((code == VDO_ADMIN_STATE_NEW)
+		    || (code == VDO_ADMIN_STATE_INITIALIZED)
+		    || (code == VDO_ADMIN_STATE_PRE_LOADED)) {
+			break;
+		}
+
+		uds_log_error("New kernel layer in unexpected state %s",
+			      code->name);
 		break;
 
 	default:
@@ -606,27 +618,6 @@ static void pool_stats_release(struct kobject *directory)
 }
 
 /**********************************************************************/
-int preload_kernel_layer(struct kernel_layer *layer, char **reason)
-{
-	int result;
-
-	if (get_kernel_layer_state(layer) != LAYER_INITIALIZED) {
-		*reason = "preload_kernel_layer() may only be invoked after initialization";
-		return UDS_BAD_STATE;
-	}
-
-	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = prepare_to_load_vdo(&layer->vdo);
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		*reason = "Cannot load metadata from device";
-		stop_kernel_layer(layer);
-		return result;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
 	static struct kobj_type stats_directory_type = {
@@ -635,13 +626,16 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 		.default_attrs = vdo_pool_stats_attrs,
 	};
 	int result;
+	const struct admin_state_code *code
+		= get_vdo_admin_state_code(&layer->vdo.admin_state);
 
-	if (get_kernel_layer_state(layer) != LAYER_STARTING) {
+	if (code != VDO_ADMIN_STATE_PRE_LOADED) {
 		*reason = "Cannot start kernel from non-starting state";
 		stop_kernel_layer(layer);
 		return UDS_BAD_STATE;
 	}
 
+	set_kernel_layer_state(layer, LAYER_STARTING);
 	result = load_vdo(&layer->vdo);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";

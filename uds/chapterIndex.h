@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.h#8 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/chapterIndex.h#1 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -36,7 +36,6 @@ struct open_chapter_index {
 	const struct geometry *geometry;
 	struct delta_index delta_index;
 	uint64_t virtual_chapter_number;
-	bool header_native_endian;
 	uint64_t volume_nonce;
 };
 
@@ -45,16 +44,14 @@ struct open_chapter_index {
  * Make a new open chapter index.
  *
  * @param open_chapter_index  Location to hold new open chapter index pointer
- * @param geometry                            The geometry
- * @param chapter_index_header_native_endian  chapter index header format
- * @param volume_nonce                        The volume nonce.
+ * @param geometry            The geometry
+ * @param volume_nonce        The volume nonce
  *
  * @return error code or UDS_SUCCESS
  **/
 int __must_check
 make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 			const struct geometry *geometry,
-			bool chapter_index_header_native_endian,
 			uint64_t volume_nonce);
 
 /**

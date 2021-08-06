@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.c#22 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/request.c#1 $
  */
 
 #include "request.h"
 
-#include "indexRouter.h"
+#include "index.h"
 #include "indexSession.h"
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -61,7 +61,7 @@ int uds_start_chunk_operation(struct uds_request *request)
 
 	request->found = false;
 	request->unbatched = false;
-	request->router = request->session->router;
+	request->index = request->session->index;
 
 	enqueue_request(request, STAGE_TRIAGE);
 	return UDS_SUCCESS;
@@ -70,7 +70,7 @@ int uds_start_chunk_operation(struct uds_request *request)
 /**********************************************************************/
 int launch_zone_message(struct uds_zone_message message,
 			unsigned int zone,
-			struct index_router *router)
+			struct uds_index *index)
 {
 	struct uds_request *request;
 	int result = UDS_ALLOCATE(1, struct uds_request, __func__, &request);
@@ -78,7 +78,7 @@ int launch_zone_message(struct uds_zone_message message,
 		return result;
 	}
 
-	request->router = router;
+	request->index = index;
 	request->unbatched = true;
 	request->zone_number = zone;
 	request->zone_message = message;
@@ -96,9 +96,7 @@ get_next_stage_queue(struct uds_request *request,
 		return request->session->callback_queue;
 	}
 
-	// Local and remote index routers handle the rest of the pipeline
-	// differently, so delegate the choice of queue to the router.
-	return select_index_router_queue(request->router, request, next_stage);
+	return select_index_queue(request->index, request, next_stage);
 }
 
 /**********************************************************************/
@@ -229,6 +227,7 @@ void enter_callback_stage(struct uds_request *request)
 		disable_index_session(request->session);
 	}
 
+	request->status = uds_map_to_system_error(request->status);
 	// Handle asynchronous client callbacks in the designated thread.
 	enqueue_request(request, STAGE_CALLBACK);
 }

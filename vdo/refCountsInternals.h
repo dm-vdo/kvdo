@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/refCountsInternals.h#3 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/refCountsInternals.h#1 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -144,16 +144,6 @@ struct ref_counts {
 };
 
 /**
- * Convert a reference count to a reference status.
- *
- * @param count The count to convert
- *
- * @return  The appropriate reference status
- **/
-enum reference_status __must_check
-vdo_reference_count_to_status(vdo_refcount_t count);
-
-/**
  * Convert a generic vdo_completion to a ref_counts object.
  *
  * @param completion The completion to convert
@@ -163,38 +153,5 @@ vdo_reference_count_to_status(vdo_refcount_t count);
 struct ref_counts * __must_check
 as_vdo_ref_counts(struct vdo_completion *completion);
 
-
-/**
- * Find the first block with a reference count of zero in the specified range
- * of reference counter indexes. Exposed for unit testing.
- *
- * @param [in]  ref_counts   The reference counters to scan
- * @param [in]  start_index  The array index at which to start scanning
- *                           (included in the scan)
- * @param [in]  end_index    The array index at which to stop scanning
- *                           (excluded from the scan)
- * @param [out] index_ptr    A pointer to hold the array index of the free
- *                           block
- *
- * @return true if a free block was found in the specified range
- **/
-bool __must_check vdo_find_free_block(const struct ref_counts *ref_counts,
-				      slab_block_number start_index,
-				      slab_block_number end_index,
-				      slab_block_number *index_ptr);
-
-/**
- * Request a ref_counts object save its oldest dirty block asynchronously.
- *
- * @param ref_counts  The ref_counts object to notify
- **/
-void vdo_save_oldest_reference_block(struct ref_counts *ref_counts);
-
-/**
- * Reset all reference counts back to RS_FREE.
- *
- * @param ref_counts   The reference counters to reset
- **/
-void vdo_reset_reference_counts(struct ref_counts *ref_counts);
 
 #endif // REF_COUNTS_INTERNALS_H

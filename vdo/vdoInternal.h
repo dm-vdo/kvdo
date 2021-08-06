@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoInternal.h#16 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoInternal.h#1 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -63,6 +63,7 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
+	struct vio_tracer *vio_tracer;
 
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;
@@ -144,7 +145,6 @@ struct vdo {
 	struct admin_state admin_state;
 
 	/* Whether a close is required */
-	bool close_required;
 	bool no_flush_suspend;
 	bool allocations_allowed;
 	bool dump_on_shutdown;

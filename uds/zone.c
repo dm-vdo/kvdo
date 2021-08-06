@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/zone.c#6 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/zone.c#1 $
  */
 
 #include "zone.h"
 
 #include "logger.h"
-#include "threads.h"
+#include "uds-threads.h"
 
 /**********************************************************************/
 unsigned int get_zone_count(const struct uds_parameters *user_params)

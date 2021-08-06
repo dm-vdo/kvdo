@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vioPool.h#2 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vioPool.h#1 $
  */
 
 #ifndef VIO_POOL_H
@@ -121,14 +121,5 @@ static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 {
 	return list_entry(entry, struct vio_pool_entry, available_entry);
 }
-
-/**
- * Return the outage count of an vio pool.
- *
- * @param pool  The pool
- *
- * @return the number of times an acquisition request had to wait
- **/
-uint64_t __must_check get_vio_pool_outage_count(struct vio_pool *pool);
 
 #endif // VIO_POOL_H

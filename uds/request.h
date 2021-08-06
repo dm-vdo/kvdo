@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/request.h#17 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/request.h#1 $
  */
 
 #ifndef REQUEST_H
@@ -25,7 +25,7 @@
 #include "cacheCounters.h"
 #include "common.h"
 #include "compiler.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "timeUtils.h"
 #include "uds.h"
 
@@ -48,13 +48,13 @@ typedef void (*request_restarter_t)(struct uds_request *);
  *
  * @param message  The message to send
  * @param zone     The zone number of the zone to receive the message
- * @param router   The index router responsible for handling the message
+ * @param index    The index responsible for handling the message
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check launch_zone_message(struct uds_zone_message message,
 				     unsigned int zone,
-				     struct index_router *router);
+				     struct uds_index *index);
 
 /**
  * Enqueue a request for the next stage of the pipeline. If there is more than

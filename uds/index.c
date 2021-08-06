@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#53 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/index.c#1 $
  */
 
 
@@ -24,11 +24,236 @@
 
 #include "hashUtils.h"
 #include "indexCheckpoint.h"
-#include "indexInternals.h"
+#include "indexStateData.h"
 #include "logger.h"
+#include "openChapter.h"
+#include "requestQueue.h"
+#include "zone.h"
 
+static const unsigned int MAX_COMPONENT_COUNT = 4;
 static const uint64_t NO_LAST_CHECKPOINT = UINT_MAX;
 
+
+/**
+ * Get the zone for a request.
+ *
+ * @param index The index
+ * @param request The request
+ *
+ * @return The zone for the request
+ **/
+static struct index_zone *get_request_zone(struct uds_index *index,
+					   struct uds_request *request)
+{
+	return index->zones[request->zone_number];
+}
+
+/**
+ * Triage an index request, deciding whether it requires that a sparse cache
+ * barrier message precede it.
+ *
+ * This resolves the chunk name in the request in the volume index,
+ * determining if it is a hook or not, and if a hook, what virtual chapter (if
+ * any) it might be found in. If a virtual chapter is found, it checks whether
+ * that chapter appears in the sparse region of the index. If all these
+ * conditions are met, the (sparse) virtual chapter number is returned. In all
+ * other cases it returns <code>UINT64_MAX</code>.
+ *
+ * @param index	   the index that will process the request
+ * @param request  the index request containing the chunk name to triage
+ *
+ * @return the sparse chapter number for the sparse cache barrier message, or
+ *	   <code>UINT64_MAX</code> if the request does not require a barrier
+ **/
+static uint64_t triage_index_request(struct uds_index *index,
+				     struct uds_request *request)
+{
+	struct volume_index_triage triage;
+	struct index_zone *zone;
+	lookup_volume_index_name(index->volume_index, &request->chunk_name,
+				 &triage);
+	if (!triage.in_sampled_chapter) {
+		// Not indexed or not a hook.
+		return UINT64_MAX;
+	}
+
+	zone = get_request_zone(index, request);
+	if (!is_zone_chapter_sparse(zone, triage.virtual_chapter)) {
+		return UINT64_MAX;
+	}
+
+	// XXX Optimize for a common case by remembering the chapter from the
+	// most recent barrier message and skipping this chapter if is it the
+	// same.
+
+	// Return the sparse chapter number to trigger the barrier messages.
+	return triage.virtual_chapter;
+}
+
+/**
+ * Construct and enqueue asynchronous control messages to add the chapter
+ * index for a given virtual chapter to the sparse chapter index cache.
+ *
+ * @param index            the index with the relevant cache and chapter
+ * @param virtual_chapter  the virtual chapter number of the chapter to cache
+ **/
+static void enqueue_barrier_messages(struct uds_index *index,
+				     uint64_t virtual_chapter)
+{
+	struct uds_zone_message message = {
+		.type = UDS_MESSAGE_SPARSE_CACHE_BARRIER,
+		.index = index,
+		.virtual_chapter = virtual_chapter,
+	};
+	unsigned int zone;
+	for (zone = 0; zone < index->zone_count; zone++) {
+		int result = launch_zone_message(message, zone, index);
+		ASSERT_LOG_ONLY((result == UDS_SUCCESS),
+				"barrier message allocation");
+	}
+}
+
+/**
+ * Simulate the creation of a sparse cache barrier message by the triage
+ * queue, and the later execution of that message in an index zone.
+ *
+ * If the index receiving the request is multi-zone or dense, this function
+ * does nothing. This simulation is an optimization for single-zone sparse
+ * indexes. It also supports unit testing of indexes without queues.
+ *
+ * @param zone	   the index zone responsible for the index request
+ * @param request  the index request about to be executed
+ *
+ * @return UDS_SUCCESS always
+ **/
+static int simulate_index_zone_barrier_message(struct index_zone *zone,
+					       struct uds_request *request)
+{
+	uint64_t sparse_virtual_chapter;
+	// Do nothing unless this is a single-zone sparse index.
+	if ((zone->index->zone_count > 1) ||
+	    !is_sparse(zone->index->volume->geometry)) {
+		return UDS_SUCCESS;
+	}
+
+	// Check if the index request is for a sampled name in a sparse
+	// chapter.
+	sparse_virtual_chapter = triage_index_request(zone->index, request);
+	if (sparse_virtual_chapter == UINT64_MAX) {
+		// Not indexed, not a hook, or in a chapter that is still
+		// dense, which means there should be no change to the sparse
+		// chapter index cache.
+		return UDS_SUCCESS;
+	}
+
+	/*
+	 * The triage queue would have generated and enqueued a barrier message
+	 * preceding this request, which we simulate by directly invoking the
+	 * message function.
+	 */
+	return update_sparse_cache(zone, sparse_virtual_chapter);
+}
+
+/**
+ * This is the request processing function for the triage stage queue. Each
+ * request is resolved in the volume index, determining if it is a hook or
+ * not, and if a hook, what virtual chapter (if any) it might be found in. If
+ * a virtual chapter is found, this enqueues a sparse chapter cache barrier in
+ * every zone before enqueueing the request in its zone.
+ *
+ * @param request  the request to triage
+ **/
+static void triage_request(struct uds_request *request)
+{
+	struct uds_index *index = request->index;
+
+	// Check if the name is a hook in the index pointing at a sparse
+	// chapter.
+	uint64_t sparse_virtual_chapter = triage_index_request(index, request);
+	if (sparse_virtual_chapter != UINT64_MAX) {
+		// Generate and place a barrier request on every zone queue.
+		enqueue_barrier_messages(index, sparse_virtual_chapter);
+	}
+
+	enqueue_request(request, STAGE_INDEX);
+}
+
+/**
+ * This is the request processing function invoked by the zone's
+ * uds_request_queue worker thread.
+ *
+ * @param request  the request to be indexed or executed by the zone worker
+ **/
+static void execute_zone_request(struct uds_request *request)
+{
+	int result;
+	struct uds_index *index = request->index;
+
+	if (request->zone_message.type != UDS_MESSAGE_NONE) {
+		result = dispatch_index_zone_control_request(request);
+		if (result != UDS_SUCCESS) {
+			uds_log_error_strerror(result,
+					       "error executing message: %d",
+					       request->zone_message.type);
+		}
+		/*
+		 * Asynchronous control messages are complete when they are
+		 * executed. There should be nothing they need to do on the
+		 * callback thread. The message has been completely processed,
+		 * so just free it.
+		 */
+		UDS_FREE(UDS_FORGET(request));
+		return;
+	}
+
+	index->need_to_save = true;
+	if (request->requeued && !is_successful(request->status)) {
+		index->callback(request);
+		return;
+	}
+
+	result = dispatch_index_request(index, request);
+	if (result == UDS_QUEUED) {
+		// Take the request off the pipeline.
+		return;
+	}
+
+	request->status = result;
+	index->callback(request);
+}
+
+/**
+ * Initialize the zone queues and the triage queue.
+ *
+ * @param index     the index containing the queues
+ * @param geometry  the geometry governing the indexes
+ *
+ * @return  UDS_SUCCESS or error code
+ **/
+static int initialize_index_queues(struct uds_index *index,
+				   const struct geometry *geometry)
+{
+	unsigned int i;
+	for (i = 0; i < index->zone_count; i++) {
+		int result = make_uds_request_queue("indexW",
+						    &execute_zone_request,
+						    &index->zone_queues[i]);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
+
+	// The triage queue is only needed for sparse multi-zone indexes.
+	if ((index->zone_count > 1) && is_sparse(geometry)) {
+		int result = make_uds_request_queue("triageW", &triage_request,
+						    &index->triage_queue);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+	}
+
+	return UDS_SUCCESS;
+}
 
 /**
  * Replay an index which was loaded from a checkpoint.
@@ -39,7 +264,7 @@ static const uint64_t NO_LAST_CHECKPOINT = UINT_MAX;
  *
  * @return UDS_SUCCESS or an error code.
  **/
-static int replay_index_from_checkpoint(struct index *index,
+static int replay_index_from_checkpoint(struct uds_index *index,
 					uint64_t last_checkpoint_chapter)
 {
 	// Find the volume chapter boundaries
@@ -88,7 +313,7 @@ static int replay_index_from_checkpoint(struct index *index,
 }
 
 /**********************************************************************/
-static int load_index(struct index *index, bool allow_replay)
+static int load_index(struct uds_index *index, bool allow_replay)
 {
 	uint64_t last_checkpoint_chapter;
 	unsigned int i;
@@ -130,7 +355,7 @@ static int load_index(struct index *index, bool allow_replay)
 }
 
 /**********************************************************************/
-static int rebuild_index(struct index *index)
+static int rebuild_index(struct uds_index *index)
 {
 	// Find the volume chapter boundaries
 	int result;
@@ -192,24 +417,123 @@ static int rebuild_index(struct index *index)
 }
 
 /**********************************************************************/
+int allocate_index(struct index_layout *layout,
+		   const struct configuration *config,
+		   const struct uds_parameters *user_params,
+		   unsigned int zone_count,
+		   struct uds_index **new_index)
+{
+	struct uds_index *index;
+	int result;
+	unsigned int i;
+	unsigned int checkpoint_frequency =
+		user_params == NULL ? 0 : user_params->checkpoint_frequency;
+	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
+		uds_log_error("checkpoint frequency too large");
+		return -EINVAL;
+	}
+
+	result = UDS_ALLOCATE_EXTENDED(struct uds_index,
+				       zone_count,
+				       struct uds_request_queue *,
+				       "index",
+				       &index);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	index->loaded_type = LOAD_UNDEFINED;
+
+	result = make_index_checkpoint(index);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+	set_index_checkpoint_frequency(index->checkpoint,
+				       checkpoint_frequency);
+
+	get_uds_index_layout(layout, &index->layout);
+	index->zone_count = zone_count;
+
+	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones",
+			      &index->zones);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+
+	result = make_index_state(layout, index->zone_count,
+				  MAX_COMPONENT_COUNT, &index->state);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+
+	result = add_index_state_component(index->state, &INDEX_STATE_INFO,
+					   index, NULL);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+
+	result = make_volume(config, index->layout,
+			     user_params,
+			     VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
+			     index->zone_count, &index->volume);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
+	index->volume->lookup_mode = LOOKUP_NORMAL;
+
+	for (i = 0; i < index->zone_count; i++) {
+		result = make_index_zone(index, i);
+		if (result != UDS_SUCCESS) {
+			free_index(index);
+			return uds_log_error_strerror(result,
+						      "Could not create index zone");
+		}
+	}
+
+	result = add_index_state_component(index->state, &OPEN_CHAPTER_INFO,
+					   index, NULL);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return uds_log_error_strerror(result,
+					      "Could not create open chapter");
+	}
+
+	*new_index = index;
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 int make_index(struct index_layout *layout,
 	       const struct configuration *config,
 	       const struct uds_parameters *user_params,
-	       unsigned int zone_count,
 	       enum load_type load_type,
 	       struct index_load_context *load_context,
-	       struct index **new_index)
+	       index_callback_t callback,
+	       struct uds_index **new_index)
 {
-	struct index *index;
+	struct uds_index *index;
 	uint64_t nonce;
+	unsigned int zone_count = get_zone_count(user_params);
 	int result = allocate_index(layout, config, user_params, zone_count,
-				    load_type, &index);
+				    &index);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "could not allocate index");
 	}
 
 	index->load_context = load_context;
+	index->callback = callback;
+
+	result = initialize_index_queues(index, config->geometry);
+	if (result != UDS_SUCCESS) {
+		free_index(index);
+		return result;
+	}
 
 	nonce = get_uds_volume_nonce(layout);
 	result = make_volume_index(config, zone_count, nonce,
@@ -221,7 +545,7 @@ int make_index(struct index_layout *layout,
 	}
 
 	result = add_index_state_component(index->state, VOLUME_INDEX_INFO,
-					    NULL, index->volume_index);
+					   NULL, index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -236,18 +560,13 @@ int make_index(struct index_layout *layout,
 		return result;
 	}
 
-	result = make_chapter_writer(index, get_uds_index_version(layout),
-				     &index->chapter_writer);
+	result = make_chapter_writer(index, &index->chapter_writer);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
 	}
 
 	if ((load_type == LOAD_LOAD) || (load_type == LOAD_REBUILD)) {
-		if (!index->existed) {
-			free_index(index);
-			return UDS_NO_INDEX;
-		}
 		result = load_index(index, load_type == LOAD_REBUILD);
 		switch (result) {
 		case UDS_SUCCESS:
@@ -289,29 +608,54 @@ int make_index(struct index_layout *layout,
 		uds_unlock_mutex(&index->load_context->mutex);
 	}
 
-	index->has_saved_open_chapter = index->loaded_type == LOAD_LOAD;
+	index->has_saved_open_chapter = (index->loaded_type == LOAD_LOAD);
+	index->need_to_save = (index->loaded_type != LOAD_LOAD);
 	*new_index = index;
 	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void free_index(struct index *index)
+void free_index(struct uds_index *index)
 {
+	unsigned int i;
+
 	if (index == NULL) {
 		return;
 	}
+
+	uds_request_queue_finish(index->triage_queue);
+	for (i = 0; i < index->zone_count; i++) {
+		uds_request_queue_finish(index->zone_queues[i]);
+	}
+
 	free_chapter_writer(index->chapter_writer);
 
 	if (index->volume_index != NULL) {
 		free_volume_index(index->volume_index);
 	}
-	release_index(index);
+
+	if (index->zones != NULL) {
+		for (i = 0; i < index->zone_count; i++) {
+			free_index_zone(index->zones[i]);
+		}
+		UDS_FREE(index->zones);
+	}
+
+	free_volume(index->volume);
+	free_index_state(index->state);
+	free_index_checkpoint(index->checkpoint);
+	put_uds_index_layout(UDS_FORGET(index->layout));
+	UDS_FREE(index);
 }
 
 /**********************************************************************/
-int save_index(struct index *index)
+int save_index(struct uds_index *index)
 {
 	int result;
+
+	if (!index->need_to_save) {
+		return UDS_SUCCESS;
+	}
 	wait_for_idle_chapter_writer(index->chapter_writer);
 	result = finish_checkpointing(index);
 	if (result != UDS_SUCCESS) {
@@ -326,24 +670,11 @@ int save_index(struct index *index)
 		index->last_checkpoint = index->prev_checkpoint;
 	} else {
 		index->has_saved_open_chapter = true;
+		index->need_to_save = false;
 		uds_log_info("finished save (vcn %llu)",
 			     (unsigned long long) index->last_checkpoint);
 	}
 	return result;
-}
-
-/**
- * Get the zone for a request.
- *
- * @param index The index
- * @param request The request
- *
- * @return The zone for the request
- **/
-static struct index_zone *get_request_zone(struct index *index,
-					   struct uds_request *request)
-{
-	return index->zones[request->zone_number];
 }
 
 /**
@@ -532,53 +863,13 @@ static int remove_from_index_zone(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**
- * Simulate the creation of a sparse cache barrier message by the triage
- * queue, and the later execution of that message in an index zone.
- *
- * If the index receiving the request is multi-zone or dense, this function
- * does nothing. This simulation is an optimization for single-zone sparse
- * indexes. It also supports unit testing of indexes without routers and
- * queues.
- *
- * @param zone	   the index zone responsible for the index request
- * @param request  the index request about to be executed
- *
- * @return UDS_SUCCESS always
- **/
-static int simulate_index_zone_barrier_message(struct index_zone *zone,
-					       struct uds_request *request)
-{
-	uint64_t sparse_virtual_chapter;
-	// Do nothing unless this is a single-zone sparse index.
-	if ((zone->index->zone_count > 1) ||
-	    !is_sparse(zone->index->volume->geometry)) {
-		return UDS_SUCCESS;
-	}
-
-	// Check if the index request is for a sampled name in a sparse
-	// chapter.
-	sparse_virtual_chapter = triage_index_request(zone->index, request);
-	if (sparse_virtual_chapter == UINT64_MAX) {
-		// Not indexed, not a hook, or in a chapter that is still
-		// dense, which means there should be no change to the sparse
-		// chapter index cache.
-		return UDS_SUCCESS;
-	}
-
-	/*
-	 * The triage queue would have generated and enqueued a barrier message
-	 * preceding this request, which we simulate by directly invoking the
-	 * message function.
-	 */
-	return update_sparse_cache(zone, sparse_virtual_chapter);
-}
-
 /**********************************************************************/
-static int dispatch_index_zone_request(struct index_zone *zone,
-				       struct uds_request *request)
+int dispatch_index_request(struct uds_index *index,
+			   struct uds_request *request)
 {
 	int result;
+	struct index_zone *zone = get_request_zone(index, request);
+
 	if (!request->requeued) {
 		// Single-zone sparse indexes don't have a triage queue to
 		// generate cache barrier requests, so see if we need to
@@ -617,14 +908,7 @@ static int dispatch_index_zone_request(struct index_zone *zone,
 }
 
 /**********************************************************************/
-int dispatch_index_request(struct index *index, struct uds_request *request)
-{
-	return dispatch_index_zone_request(get_request_zone(index, request),
-					   request);
-}
-
-/**********************************************************************/
-static int rebuild_index_page_map(struct index *index, uint64_t vcn)
+static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 {
 	struct geometry *geometry = index->volume->geometry;
 	unsigned int chapter = map_to_physical_chapter(geometry, vcn);
@@ -682,7 +966,7 @@ static int rebuild_index_page_map(struct index *index, uint64_t vcn)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int replay_record(struct index *index,
+static int replay_record(struct uds_index *index,
 			 const struct uds_chunk_name *name,
 			 uint64_t virtual_chapter,
 			 bool will_be_sparse_chapter)
@@ -772,7 +1056,7 @@ static int replay_record(struct index *index,
 }
 
 /**********************************************************************/
-void begin_save(struct index *index,
+void begin_save(struct uds_index *index,
 		bool checkpoint,
 		uint64_t open_chapter_number)
 {
@@ -792,7 +1076,7 @@ void begin_save(struct index *index,
  *
  * @return <code>true</code> if the replay should terminate
  **/
-static bool check_for_suspend(struct index *index)
+static bool check_for_suspend(struct uds_index *index)
 {
 	bool ret_val;
 	if (index->load_context == NULL) {
@@ -821,7 +1105,7 @@ static bool check_for_suspend(struct index *index)
 }
 
 /**********************************************************************/
-int replay_volume(struct index *index, uint64_t from_vcn)
+int replay_volume(struct uds_index *index, uint64_t from_vcn)
 {
 	int result;
 	unsigned int j, k;
@@ -863,7 +1147,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 		if (check_for_suspend(index)) {
 			uds_log_info("Replay interrupted by index shutdown at chapter %llu",
 				     (unsigned long long) vcn);
-			return UDS_SHUTTINGDOWN;
+			return -EBUSY;
 		}
 
 		will_be_sparse_chapter =
@@ -940,7 +1224,7 @@ int replay_volume(struct index *index, uint64_t from_vcn)
 }
 
 /**********************************************************************/
-void get_index_stats(struct index *index, struct uds_index_stats *counters)
+void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 {
 	uint64_t cw_allocated =
 		get_chapter_writer_memory_allocated(index->chapter_writer);
@@ -960,11 +1244,10 @@ void get_index_stats(struct index *index, struct uds_index_stats *counters)
 		(dense_stats.collision_count + sparse_stats.collision_count);
 	counters->entries_discarded =
 		(dense_stats.discard_count + sparse_stats.discard_count);
-	counters->checkpoints = get_checkpoint_count(index->checkpoint);
 }
 
 /**********************************************************************/
-void advance_active_chapters(struct index *index)
+void advance_active_chapters(struct uds_index *index)
 {
 	index->newest_virtual_chapter++;
 	index->oldest_virtual_chapter +=
@@ -973,26 +1256,34 @@ void advance_active_chapters(struct index *index)
 }
 
 /**********************************************************************/
-uint64_t triage_index_request(struct index *index, struct uds_request *request)
+struct uds_request_queue *select_index_queue(struct uds_index *index,
+					     struct uds_request *request,
+					     enum request_stage next_stage)
 {
-	struct volume_index_triage triage;
-	struct index_zone *zone;
-	lookup_volume_index_name(index->volume_index, &request->chunk_name,
-				 &triage);
-	if (!triage.in_sampled_chapter) {
-		// Not indexed or not a hook.
-		return UINT64_MAX;
+	switch (next_stage) {
+        case STAGE_TRIAGE:
+		// The triage queue is only needed for multi-zone sparse
+		// indexes and won't be allocated by the index if not needed,
+		// so simply check for NULL.
+		if (index->triage_queue != NULL) {
+			return index->triage_queue;
+		}
+		// Dense index or single zone, so route it directly to the zone
+		// queue.
+                fallthrough;
+
+        case STAGE_INDEX:
+		request->zone_number =
+			get_volume_index_zone(index->volume_index,
+					      &request->chunk_name);
+		fallthrough;
+
+        case STAGE_MESSAGE:
+		return index->zone_queues[request->zone_number];
+
+	default:
+		ASSERT_LOG_ONLY(false, "invalid index stage: %d", next_stage);
 	}
 
-	zone = get_request_zone(index, request);
-	if (!is_zone_chapter_sparse(zone, triage.virtual_chapter)) {
-		return UINT64_MAX;
-	}
-
-	// XXX Optimize for a common case by remembering the chapter from the
-	// most recent barrier message and skipping this chapter if is it the
-	// same.
-
-	// Return the sparse chapter number to trigger the barrier messages.
-	return triage.virtual_chapter;
+	return NULL;
 }

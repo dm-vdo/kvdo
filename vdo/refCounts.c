@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/refCounts.c#16 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/refCounts.c#1 $
  */
 
 #include "refCounts.h"
@@ -84,29 +84,16 @@ index_to_pbn(const struct ref_counts *ref_counts, uint64_t index)
 	return (ref_counts->slab->start + index);
 }
 
-/**
- * Convert a block number to the index of a reference counter for that block.
- * Out of range values are pinned to the beginning or one past the end of the
- * array.
- *
- * @param ref_counts  The reference counts object
- * @param pbn         The physical block number
- *
- * @return the index corresponding to the physical block number
- **/
-static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
-			     physical_block_number_t pbn)
-{
-	uint64_t index;
-	if (pbn < ref_counts->slab->start) {
-		return 0;
-	}
-	index = (pbn - ref_counts->slab->start);
-	return min(index, (uint64_t) ref_counts->block_count);
-}
 
-/**********************************************************************/
-enum reference_status vdo_reference_count_to_status(vdo_refcount_t count)
+/**
+ * Convert a reference count to a reference status.
+ *
+ * @param count The count to convert
+ *
+ * @return  The appropriate reference status
+ **/
+static enum reference_status __must_check
+vdo_reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT) {
 		return RS_FREE;
@@ -785,32 +772,6 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 }
 
 
-/**********************************************************************/
-bool are_equivalent_vdo_ref_counts(struct ref_counts *counter_a,
-				   struct ref_counts *counter_b)
-{
-	size_t i;
-
-	if ((counter_a->block_count != counter_b->block_count) ||
-	    (counter_a->free_blocks != counter_b->free_blocks) ||
-	    (counter_a->reference_block_count !=
-	     counter_b->reference_block_count)) {
-		return false;
-	}
-
-	for (i = 0; i < counter_a->reference_block_count; i++) {
-		struct reference_block *block_a = &counter_a->blocks[i];
-		struct reference_block *block_b = &counter_b->blocks[i];
-		if (block_a->allocated_count != block_b->allocated_count) {
-			return false;
-		}
-	}
-
-	return (memcmp(counter_a->counters,
-		       counter_b->counters,
-		       sizeof(vdo_refcount_t) * counter_a->block_count) == 0);
-}
-
 /**
  * Find the array index of the first zero byte in word-sized range of
  * reference counters. The search does no bounds checking; the function relies
@@ -845,6 +806,7 @@ find_zero_byte_in_word(const byte *word_ptr,
 }
 
 /**********************************************************************/
+static
 bool vdo_find_free_block(const struct ref_counts *ref_counts,
 			 slab_block_number start_index,
 			 slab_block_number end_index,
@@ -1019,23 +981,6 @@ int vdo_provisionally_reference_block(struct ref_counts *ref_counts,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-block_count_t vdo_count_unreferenced_blocks(struct ref_counts *ref_counts,
-					    physical_block_number_t start_pbn,
-					    physical_block_number_t end_pbn)
-{
-	block_count_t free_blocks = 0;
-	slab_block_number start_index = pbn_to_index(ref_counts, start_pbn);
-	slab_block_number end_index = pbn_to_index(ref_counts, end_pbn);
-	slab_block_number index;
-	for (index = start_index; index < end_index; index++) {
-		if (ref_counts->counters[index] == EMPTY_REFERENCE_COUNT) {
-			free_blocks++;
-		}
-	}
-
-	return free_blocks;
-}
 
 /**
  * Convert a reference_block's generic wait queue entry back into the
@@ -1051,38 +996,6 @@ waiter_as_reference_block(struct waiter *waiter)
 	return container_of(waiter, struct reference_block, waiter);
 }
 
-/**
- * A waiter_callback to clean dirty reference blocks when resetting.
- *
- * @param block_waiter  The dirty block
- * @param context       Unused
- **/
-static void clear_dirty_reference_blocks(struct waiter *block_waiter,
-					 void *context __always_unused)
-{
-	waiter_as_reference_block(block_waiter)->is_dirty = false;
-}
-
-/**********************************************************************/
-void vdo_reset_reference_counts(struct ref_counts *ref_counts)
-{
-	size_t i;
-	memset(ref_counts->counters, 0,
-	       ref_counts->block_count * sizeof(vdo_refcount_t));
-	ref_counts->free_blocks = ref_counts->block_count;
-	ref_counts->slab_journal_point = (struct journal_point) {
-		.sequence_number = 0,
-		.entry_count = 0,
-	};
-
-	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		ref_counts->blocks[i].allocated_count = 0;
-	}
-
-	notify_all_waiters(&ref_counts->dirty_blocks,
-			   clear_dirty_reference_blocks,
-			   NULL);
-}
 
 /**
  * A waiter callback that resets the writing state of ref_counts.
@@ -1311,6 +1224,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 }
 
 /**********************************************************************/
+static
 void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
 {
 	notify_next_waiter(&ref_counts->dirty_blocks,

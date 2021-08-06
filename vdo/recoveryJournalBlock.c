@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/recoveryJournalBlock.c#13 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/recoveryJournalBlock.c#1 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -160,7 +160,8 @@ int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	// Enqueue the data_vio to wait for its entry to commit.
-	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
+	int result = enqueue_data_vio(&block->entry_waiters, data_vio,
+				      THIS_LOCATION("$F($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -240,7 +241,8 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Enqueue the data_vio to wait for its entry to commit.
-		result = enqueue_data_vio(&block->commit_waiters, data_vio);
+		result = enqueue_data_vio(&block->commit_waiters, data_vio,
+					  THIS_LOCATION("$F($j-$js)"));
 		if (result != VDO_SUCCESS) {
 			continue_data_vio(data_vio, result);
 			return result;

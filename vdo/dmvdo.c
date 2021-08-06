@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dmvdo.c#26 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/dmvdo.c#1 $
  */
 
 #include "dmvdo.h"
@@ -42,6 +42,7 @@
 #include "stringUtils.h"
 #include "vdo.h"
 #include "vdoInit.h"
+#include "vdoLoad.h"
 
 enum vdo_module_status vdo_module_status;
 
@@ -232,13 +233,6 @@ process_vdo_message_locked(struct vdo *vdo,
 {
 	// Messages with fixed numbers of arguments.
 	switch (argc) {
-	case 1:
-		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			vdo_wait_for_no_requests_active(vdo);
-			return 0;
-		}
-
-		break;
 
 	case 2:
 		if (strcasecmp(argv[0], "compression") == 0) {
@@ -443,12 +437,14 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	result = preload_kernel_layer(layer, &failure_reason);
+	result = prepare_to_load_vdo(&layer->vdo);
 	if (result != VDO_SUCCESS) {
+		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
+			     ? "Pre-load is only valid immediately after initialization"
+			     : "Cannot load metadata from device");
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
-			      failure_reason);
-		ti->error = failure_reason;
+			      ti->error);
 		free_kernel_layer(layer);
 		return result;
 	}
@@ -561,11 +557,8 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_register_thread_device_id(&instance_thread, &instance);
 		uds_register_allocating_thread(&allocating_thread, NULL);
 
-		vdo_wait_for_no_requests_active(vdo);
 		device_name = get_vdo_device_name(ti);
-
 		uds_log_info("stopping device '%s'", device_name);
-
 		if (vdo->dump_on_shutdown) {
 			vdo_dump_all(vdo, "device shutdown");
 		}
@@ -650,7 +643,7 @@ static int vdo_preresume(struct dm_target *ti)
 		return -EINVAL;
 	}
 
-	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
+	if (get_vdo_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		char *failure_reason;
 		int result;
 
@@ -778,6 +771,7 @@ static int __init vdo_init(void)
 
 	vdo_module_status = VDO_MODULE_UNINITIALIZED;
 
+	initialize_vio_trace_logging_once();
 	initialize_vdo_instance_number_tracking();
 
 	vdo_module_status = VDO_MODULE_READY;

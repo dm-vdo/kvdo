@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#18 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/uds.h#1 $
  */
 
 /**
@@ -165,103 +165,63 @@ struct uds_parameters {
 /**
  * Index statistics
  *
- * These statistics capture the current index characteristics,
- * including resource usage.
+ * These statistics capture the current index characteristics, including
+ * resource usage and requests processed since initialization.
  **/
 struct uds_index_stats {
-	/** The total number of chunk names stored in the index */
+	/** The total number of chunk names stored in the index. */
 	uint64_t entries_indexed;
-	/** An estimate of the index's memory usage */
+	/** An estimate of the index's memory usage. */
 	uint64_t memory_used;
-	/** The number of collisions recorded in the volume index */
+	/** The number of collisions recorded in the volume index. */
 	uint64_t collisions;
-	/** The number of entries discarded from the index since index startup
-	 */
+	/** The number of entries discarded from the index since startup. */
 	uint64_t entries_discarded;
-	/** The number of checkpoints done this session */
-	uint64_t checkpoints;
-};
-
-/**
- * Context statistics
- *
- * These statistics capture a library context's characteristics either since
- * it was initialized or since its statistics were last reset, whichever
- * is more recent.
- **/
-struct uds_context_stats {
-	/** The time at which context statistics were last fetched */
+	/** The time at which these statistics were fetched. */
 	int64_t current_time;
-	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry
-	 **/
+	/** The number of post calls that found an existing entry. */
 	uint64_t posts_found;
-	/**
-	 * The number of post calls since context statistics were last reset
-	 * that added an entry
-	 **/
+	/** The number of post calls that added an entry. */
 	uint64_t posts_not_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry is current enough to only exist in
-	 * memory and not have been commited to disk yet.
+	 * The number of post calls that found an existing entry that is
+	 * current enough to only exist in memory and not have been committed
+	 * to disk yet.
 	 **/
 	uint64_t in_memory_posts_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry in the dense portion of the index.
+	 * The number of post calls that found an existing entry in the dense
+	 * portion of the index.
 	 **/
 	uint64_t dense_posts_found;
 	/**
-	 * The number of post calls since context statistics were last reset
-	 * that found an existing entry in the sparse portion of the index (if
-	 * one exists).
+	 * The number of post calls that found an existing entry in the sparse
+	 * portion of the index (if one exists).
 	 **/
 	uint64_t sparse_posts_found;
-	/**
-	 * The number of update calls since context statistics were last reset
-	 * that updated an existing entry
-	 **/
+	/** The number of update calls that updated an existing entry. */
 	uint64_t updates_found;
-	/**
-	 * The number of update calls since context statistics were last reset
-	 * that added a new entry
-	 **/
+	/** The number of update calls that added a new entry. */
 	uint64_t updates_not_found;
-	/**
-	 * The number of delete requests since context statistics were last
-	 * reset that deleted an existing entry
-	 **/
+	/** The number of delete requests that deleted an existing entry. */
 	uint64_t deletions_found;
-	/**
-	 * The number of delete requests since context statistics were last
-	 * reset that did nothing.
-	 **/
+	/** The number of delete requests that did nothing. */
 	uint64_t deletions_not_found;
-	/**
-	 * The number of query calls since context statistics were last reset
-	 * that found existing entry
-	 **/
+	/** The number of query calls that found existing entry. */
 	uint64_t queries_found;
-	/**
-	 * The number of query calls since context statistics were last reset
-	 * that did not find an entry
-	 **/
+	/** The number of query calls that did not find an entry. */
 	uint64_t queries_not_found;
 	/**
 	 * The total number of library requests (the sum of posts, updates,
-	 * deletions, and queries) since context
-	 * statistics were last reset
+	 * deletions, and queries).
 	 **/
 	uint64_t requests;
 };
 
 /**
- * Internal index structures.
+ * Internal index structure.
  **/
-struct index_router;
-struct index;
+struct uds_index;
 
 /**
  * The block's general location in the index.
@@ -296,7 +256,7 @@ struct uds_zone_message {
 	/** The type of message, determining how it will be processed */
 	enum uds_zone_message_type type;
 	/** The index to which the message is directed */
-	struct index *index;
+	struct uds_index *index;
 	/** The virtual chapter number to which the message applies */
 	uint64_t virtual_chapter;
 };
@@ -385,8 +345,8 @@ struct uds_request {
 	struct funnel_queue_entry request_queue_link;
 	/** A link for adding a request to a standard linked list */
 	struct uds_request *next_request;
-	/** A pointer to the index_router handling this request */
-	struct index_router *router;
+	/** A pointer to the index handling this request */
+	struct uds_index *index;
 	/** Zone control message for coordinating between zones */
 	struct uds_zone_message zone_message;
 	/** If true, handle request immediately by waking the worker thread */
@@ -482,15 +442,12 @@ void uds_free_configuration(struct uds_configuration *conf);
  * device.  This size should be used when configuring a block device on which
  * to store an index.
  *
- * @param [in]  config           A uds_configuration for an index.
- * @param [in]  num_checkpoints  The maximum number of checkpoints.
- * @param [out] index_size       The number of bytes required to store
- *                               the index.
+ * @param [in]  config      A uds_configuration for an index.
+ * @param [out] index_size  The number of bytes required to store the index.
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int __must_check uds_compute_index_size(const struct uds_configuration *config,
-					unsigned int num_checkpoints,
 					uint64_t *index_size);
 
 /**
@@ -548,9 +505,9 @@ int __must_check uds_open_index(enum uds_open_index_type open_type,
 
 /**
  * Waits until all callbacks for index operations are complete, and prevents
- * new index operations from starting. Index operations will return
- * UDS_SUSPENDED until #uds_resume_index_session is called. Optionally saves
- * all index data before returning.
+ * new index operations from starting. Index operations will return -EBUSY
+ * until #uds_resume_index_session is called. Optionally saves all index data
+ * before returning.
  *
  * @param session  The session to suspend
  * @param save     Whether to save index data
@@ -624,17 +581,6 @@ int __must_check uds_get_index_configuration(struct uds_index_session *session,
  **/
 int __must_check uds_get_index_stats(struct uds_index_session *session,
 				     struct uds_index_stats *stats);
-
-/**
- * Fetches index session statistics for the given index session.
- *
- * @param [in]  session  The session
- * @param [out] stats    The context statistics structure to fill
- *
- * @return Either #UDS_SUCCESS or an error code
- **/
-int __must_check uds_get_index_session_stats(struct uds_index_session *session,
-					     struct uds_context_stats *stats);
 
 /**
  * Convert an error code to a string.

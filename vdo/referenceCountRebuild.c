@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/referenceCountRebuild.c#19 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/referenceCountRebuild.c#1 $
  */
 
 #include "referenceCountRebuild.h"
@@ -158,7 +158,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 		compute_vdo_block_map_page_count(block_map->entry_count);
 
 	rebuild->logical_thread_id = vdo_get_logical_zone_thread(thread_config, 0);
-	rebuild->admin_thread_id = vdo_get_admin_thread(thread_config);
+	rebuild->admin_thread_id = thread_config->admin_thread;
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 rebuild->logical_thread_id),

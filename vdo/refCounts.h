@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/refCounts.h#3 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/refCounts.h#1 $
  */
 
 #ifndef REF_COUNTS_H
@@ -147,19 +147,6 @@ int __must_check
 vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 				  const struct journal_point *entry_point,
 				  struct slab_journal_entry entry);
-
-/**
- * Check whether two reference counters are equivalent. This method is
- * used for unit testing.
- *
- * @param counter_a The first counter to compare
- * @param counter_b The second counter to compare
- *
- * @return <code>true</code> if the two counters are equivalent
- **/
-bool __must_check
-are_equivalent_vdo_ref_counts(struct ref_counts *counter_a,
-			      struct ref_counts *counter_b);
 
 /**
  * Find a block with a reference count of zero in the range of physical block

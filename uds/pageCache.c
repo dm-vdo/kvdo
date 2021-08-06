@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/pageCache.c#25 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/pageCache.c#1 $
  */
 
 #include "pageCache.h"
@@ -35,7 +35,7 @@
 #include "permassert.h"
 #include "recordPage.h"
 #include "stringUtils.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "zone.h"
 
 /**********************************************************************/

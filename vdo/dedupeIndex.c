@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/dedupeIndex.c#19 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/dedupeIndex.c#1 $
  */
 
 #include "dedupeIndex.h"
@@ -256,6 +256,23 @@ void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 	vdo_dedupe_index_min_timer_jiffies = min_jiffies;
 }
 
+
+/**
+ * Return from a dedupe operation by invoking the callback function.
+ *
+ * NOTE: This entire function will be stripped when prepping for distribution
+ *       and all calls to it will be replaced with direct calls to
+ *       enqueue_data_vio_callback().
+ *
+ * @param data_vio  The data_vio
+ **/
+static inline void invoke_dedupe_callback(struct data_vio *data_vio)
+{
+	data_vio_add_trace_record(data_vio,
+				  THIS_LOCATION("$F($dup);cb=dedupe($dup)"));
+	enqueue_data_vio_callback(data_vio);
+}
+
 /**********************************************************************/
 static void finish_index_operation(struct uds_request *uds_request)
 {
@@ -288,7 +305,7 @@ static void finish_index_operation(struct uds_request *uds_request)
 			}
 		}
 
-		enqueue_data_vio_callback(data_vio);
+		invoke_dedupe_callback(data_vio);
 		atomic_dec(&index->active);
 	} else {
 		atomic_cmpxchg(&dedupe_context->request_state,
@@ -466,7 +483,7 @@ static void timeout_index_operations(struct timer_list *t)
 		if (atomic_cmpxchg(&dedupe_context->request_state,
 				   UR_BUSY, UR_TIMED_OUT) == UR_BUSY) {
 			dedupe_context->status = ETIMEDOUT;
-			enqueue_data_vio_callback(data_vio);
+			invoke_dedupe_callback(data_vio);
 			atomic_dec(&index->active);
 			timed_out++;
 		}
@@ -527,7 +544,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 	}
 
 	if (vio != NULL) {
-		enqueue_data_vio_callback(data_vio);
+		invoke_dedupe_callback(data_vio);
 	}
 }
 
@@ -579,8 +596,7 @@ static void open_index(struct dedupe_index *index)
 	spin_lock(&index->state_lock);
 	if (!create_flag) {
 		switch (result) {
-		case UDS_CORRUPT_COMPONENT:
-		case UDS_NO_INDEX:
+		case -ENOENT:
 			// Either there is no index, or there is no way we can
 			// recover the index. We will be called again and try
 			// to create a new index.
@@ -797,31 +813,22 @@ void get_vdo_dedupe_index_statistics(struct dedupe_index *index,
 
 	stats->curr_dedupe_queries = atomic_read(&index->active);
 	if (state == IS_OPENED) {
-		struct uds_context_stats context_stats;
 		struct uds_index_stats index_stats;
 		int result = uds_get_index_stats(index->index_session,
 						 &index_stats);
 		if (result == UDS_SUCCESS) {
 			stats->entries_indexed = index_stats.entries_indexed;
+			stats->posts_found = index_stats.posts_found;
+			stats->posts_not_found = index_stats.posts_not_found;
+			stats->queries_found = index_stats.queries_found;
+			stats->queries_not_found =
+				index_stats.queries_not_found;
+			stats->updates_found = index_stats.updates_found;
+			stats->updates_not_found =
+				index_stats.updates_not_found;
 		} else {
 			uds_log_error_strerror(result,
 					       "Error reading index stats");
-		}
-
-		result = uds_get_index_session_stats(index->index_session,
-						     &context_stats);
-		if (result == UDS_SUCCESS) {
-			stats->posts_found = context_stats.posts_found;
-			stats->posts_not_found = context_stats.posts_not_found;
-			stats->queries_found = context_stats.queries_found;
-			stats->queries_not_found =
-				context_stats.queries_not_found;
-			stats->updates_found = context_stats.updates_found;
-			stats->updates_not_found =
-				context_stats.updates_not_found;
-		} else {
-			uds_log_error_strerror(result,
-					       "Error reading context stats");
 		}
 	}
 }

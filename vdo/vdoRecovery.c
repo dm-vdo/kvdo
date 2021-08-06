@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoRecovery.c#24 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoRecovery.c#1 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -279,7 +279,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 
 	case ZONE_TYPE_ADMIN:
 	default:
-		thread_id = vdo_get_admin_thread(thread_config);
+		thread_id = thread_config->admin_thread;
 	}
 
 	prepare_vdo_completion(&recovery->sub_task_completion,

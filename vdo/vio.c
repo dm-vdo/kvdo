@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vio.c#11 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vio.c#1 $
  */
 
 #include "vio.h"
@@ -88,6 +88,7 @@ void free_vio(struct vio *vio)
 	}
 
 	BUG_ON(is_data_vio(vio));
+	log_vio_trace(vio);
 	vdo_free_bio(UDS_FORGET(vio->bio));
 	UDS_FREE(vio);
 }
@@ -111,6 +112,7 @@ void initialize_vio(struct vio *vio,
 
 	initialize_vdo_completion(completion, vdo, VIO_COMPLETION);
 	completion->parent = parent;
+	maybe_trace_vio(vio);
 }
 
 /**********************************************************************/

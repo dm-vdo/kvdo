@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/dataVIO.c#16 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/dataVIO.c#1 $
  */
 
 #include "dataVIO.h"
@@ -120,7 +120,8 @@ void prepare_data_vio(struct data_vio *data_vio,
 						VDO_MAPPING_STATE_UNCOMPRESSED);
 	reset_vdo_completion(vio_as_completion(vio));
 	set_data_vio_logical_callback(data_vio,
-				      vdo_attempt_logical_block_lock);
+				      vdo_attempt_logical_block_lock,
+				      THIS_LOCATION("$F;cb=acquire_logical_block_lock"));
 }
 
 /**********************************************************************/
@@ -138,6 +139,7 @@ void complete_data_vio(struct vdo_completion *completion)
 				       get_data_vio_operation_name(data_vio));
 	}
 
+	data_vio_add_trace_record(data_vio, THIS_LOCATION("$F($io)"));
 	if (is_read_data_vio(data_vio)) {
 		cleanup_read_data_vio(data_vio);
 	} else {
@@ -226,6 +228,7 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
  **/
 static void launch_locked_request(struct data_vio *data_vio)
 {
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	data_vio->logical.locked = true;
 
 	if (is_write_data_vio(data_vio)) {
@@ -290,7 +293,8 @@ void vdo_attempt_logical_block_lock(struct vdo_completion *completion)
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
 	result = enqueue_data_vio(&lock_holder->logical.waiters,
-				data_vio);
+				data_vio,
+				THIS_LOCATION("$F;cb=logicalBlockLock"));
 	if (result != VDO_SUCCESS) {
 		finish_data_vio(data_vio, result);
 		return;
@@ -302,7 +306,8 @@ void vdo_attempt_logical_block_lock(struct vdo_completion *completion)
 	    cancel_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
 		launch_data_vio_packer_callback(data_vio,
-						remove_lock_holder_from_vdo_packer);
+						remove_lock_holder_from_vdo_packer,
+						THIS_LOCATION("$F;cb=remove_lock_holder_from_vdo_packer"));
 	}
 }
 

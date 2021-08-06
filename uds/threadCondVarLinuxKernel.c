@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/kernelLinux/uds/threadCondVarLinuxKernel.c#1 $
  */
 
-#include "threads.h"
+#include "errors.h"
 #include "timeUtils.h"
-#include "uds-error.h"
+#include "uds-threads.h"
 
 /**********************************************************************/
 int uds_init_cond(struct cond_var *cv)

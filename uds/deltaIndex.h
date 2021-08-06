@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.h#12 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/deltaIndex.h#1 $
  */
 
 #ifndef DELTAINDEX_H
@@ -194,7 +194,6 @@ void empty_delta_index_zone(const struct delta_index *delta_index,
  *
  * @param delta_index             The delta index being converted
  * @param header_nonce            The header nonce to store
- * @param header_native_endian    If true, write native endian header
  * @param memory                  The memory page to use
  * @param mem_size                The size of the memory page
  * @param virtual_chapter_number  The virtual chapter number
@@ -206,7 +205,6 @@ void empty_delta_index_zone(const struct delta_index *delta_index,
  **/
 int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       uint64_t header_nonce,
-				       bool header_native_endian,
 				       byte *memory,
 				       size_t mem_size,
 				       uint64_t virtual_chapter_number,

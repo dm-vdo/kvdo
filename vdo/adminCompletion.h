@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/adminCompletion.h#5 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/adminCompletion.h#1 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -25,7 +25,7 @@
 #include <linux/atomic.h>
 #include <linux/delay.h>
 
-#include "threads.h"
+#include "uds-threads.h"
 
 #include "completion.h"
 #include "types.h"

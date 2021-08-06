@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.h#12 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/openChapter.h#1 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -73,7 +73,7 @@ int __must_check close_open_chapter(struct open_chapter_zone **chapter_zones,
  *
  * @return UDS_SUCCESS on success
  **/
-int __must_check save_open_chapters(struct index *index,
+int __must_check save_open_chapters(struct uds_index *index,
 				    struct buffered_writer *writer);
 
 /**
@@ -84,7 +84,7 @@ int __must_check save_open_chapters(struct index *index,
  *
  * @return UDS_SUCCESS on success
  **/
-int __must_check load_open_chapters(struct index *index,
+int __must_check load_open_chapters(struct uds_index *index,
 				    struct buffered_reader *reader);
 
 /**

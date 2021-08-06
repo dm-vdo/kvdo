@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterWriter.h#5 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/chapterWriter.h#1 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -24,26 +24,23 @@
 
 #include <linux/atomic.h>
 
-#include "indexVersion.h"
 #include "openChapterZone.h"
 
 struct chapter_writer;
 
 // This opaque declaration breaks the dependency loop with index.h
-struct index;
+struct uds_index;
 
 
 /**
  * Create a chapter writer and start its thread.
  *
- * @param index          the index containing the chapters to be written
- * @param index_version  the index version parameters
- * @param writer_ptr      pointer to hold the new writer
+ * @param index       the index containing the chapters to be written
+ * @param writer_ptr  pointer to hold the new writer
  *
  * @return           UDS_SUCCESS or an error code
  **/
-int __must_check make_chapter_writer(struct index *index,
-				     const struct index_version *index_version,
+int __must_check make_chapter_writer(struct uds_index *index,
 				     struct chapter_writer **writer_ptr);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/allocatingVIO.c#10 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/allocatingVIO.c#1 $
  */
 
 #include "allocatingVIO.h"
@@ -199,7 +199,8 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 	}
 	allocating_vio->zone = vdo->physical_zones[zone_number];
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write);
+					  allocate_block_for_write,
+					  THIS_LOCATION("$F;cb=allocBlockInZone"));
 	return VDO_SUCCESS;
 }
 
@@ -214,6 +215,7 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 	assert_vio_in_physical_zone(allocating_vio);
+	allocating_vio_add_trace_record(allocating_vio, THIS_LOCATION(NULL));
 	result = allocate_block_in_zone(allocating_vio);
 	if (result != VDO_SUCCESS) {
 		set_vdo_completion_result(completion, result);
@@ -238,7 +240,8 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 		vio->vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
 
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write);
+					  allocate_block_for_write,
+					  THIS_LOCATION("$F;cb=allocDataBlock"));
 }
 
 /**********************************************************************/

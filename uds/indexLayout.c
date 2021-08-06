@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.c#61 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/indexLayout.c#1 $
  */
 
 #include "indexLayout.h"
@@ -118,7 +118,7 @@ struct super_block_data {
 	byte magic_label[32];
 	byte nonce_info[NONCE_INFO_SIZE];
 	uint64_t nonce;
-	uint32_t version; // 2 or 3 for normal, 6 or 7 for converted
+	uint32_t version; // 2 or 3 for normal, 7 for converted
 	uint32_t block_size; // for verification
 	uint16_t num_indexes; // always 1
 	uint16_t max_saves;
@@ -132,7 +132,6 @@ struct super_block_data {
 struct index_layout {
 	struct io_factory *factory;
 	off_t offset;
-	struct index_version version;
 	struct super_block_data super;
 	struct layout_region header;
 	struct layout_region config;
@@ -166,7 +165,20 @@ struct save_layout_sizes {
 	uint64_t total_blocks; // for whole layout
 };
 
+/*
+ * Version 3 is the normal version used from RHEL8.2 onwards.
+ *
+ * Versions 4 through 6 were incremental development versions and are not
+ * supported.
+ *
+ * Version 7 is used for volumes which have been reduced in size by one chapter
+ * in order to make room to prepend LVM metadata to an existing VDO without
+ * losing all deduplication.
+ */
 enum {
+	SUPER_VERSION_MINIMUM = 3,
+	SUPER_VERSION_CURRENT = 3,
+	SUPER_VERSION_MAXIMUM = 7,
 	INDEX_STATE_BUFFER_SIZE = 512,
 	MAX_SAVES = 5,
 };
@@ -185,7 +197,7 @@ write_index_save_layout(struct index_layout *layout,
 /**********************************************************************/
 static INLINE bool is_converted_super_block(struct super_block_data *super)
 {
-	return super->version == 6 || super->version == 7;
+	return (super->version == 7);
 }
 
 /**********************************************************************/
@@ -201,8 +213,7 @@ static INLINE uint64_t block_count(uint64_t bytes, uint32_t block_size)
 /**********************************************************************/
 static int __must_check compute_sizes(struct save_layout_sizes *sls,
 				      const struct uds_configuration *config,
-				      size_t block_size,
-				      unsigned int num_checkpoints)
+				      size_t block_size)
 {
 	struct configuration *cfg = NULL;
 	int result;
@@ -228,7 +239,7 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 
 	free_configuration(cfg);
 
-	sls->num_saves = 2 + num_checkpoints;
+	sls->num_saves = 2;
 	sls->block_size = block_size;
 	sls->volume_blocks = sls->geometry.bytes_per_volume / block_size;
 
@@ -257,19 +268,22 @@ static int __must_check compute_sizes(struct save_layout_sizes *sls,
 
 /**********************************************************************/
 int uds_compute_index_size(const struct uds_configuration *config,
-			   unsigned int num_checkpoints,
 			   uint64_t *index_size)
 {
 	struct save_layout_sizes sizes;
-	int result =
-		compute_sizes(&sizes, config, UDS_BLOCK_SIZE, num_checkpoints);
-	if (result != UDS_SUCCESS) {
-		return result;
+	int result;
+
+	if (index_size == NULL) {
+		uds_log_error("Missing output size pointer");
+		return -EINVAL;
 	}
 
-	if (index_size != NULL) {
-		*index_size = sizes.total_blocks * sizes.block_size;
+	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE);
+	if (result != UDS_SUCCESS) {
+		return uds_map_to_system_error(result);
 	}
+
+	*index_size = sizes.total_blocks * sizes.block_size;
 	return UDS_SUCCESS;
 }
 
@@ -622,6 +636,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	if ((super->version < SUPER_VERSION_MINIMUM) ||
 	    (super->version == 4) ||
 	    (super->version == 5) ||
+	    (super->version == 6) ||
 	    (super->version > SUPER_VERSION_MAXIMUM)) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown superblock version number %u",
@@ -702,7 +717,6 @@ load_super_block(struct index_layout *layout,
 					      super->block_size,
 					      block_size);
 	}
-	initialize_index_version(&layout->version, super->version);
 
 	result = allocate_single_file_parts(layout);
 	if (result != UDS_SUCCESS) {
@@ -1395,7 +1409,6 @@ init_single_file_layout(struct index_layout *layout,
 				  sls->open_chapter_blocks,
 				  sls->page_map_blocks,
 				  &layout->super);
-	initialize_index_version(&layout->version, SUPER_VERSION_CURRENT);
 
 	result = allocate_single_file_parts(layout);
 	if (result != UDS_SUCCESS) {
@@ -1892,12 +1905,6 @@ void get_uds_index_layout(struct index_layout *layout,
 }
 
 /**********************************************************************/
-const struct index_version *get_uds_index_version(struct index_layout *layout)
-{
-	return &layout->version;
-}
-
-/**********************************************************************/
 int write_uds_index_config(struct index_layout *layout,
 			   struct uds_configuration *config,
 			   off_t offset)
@@ -1951,6 +1958,7 @@ int verify_uds_index_config(struct index_layout *layout,
 	free_buffered_reader(reader);
 
 	if (!are_uds_configurations_equal(&stored_config, config)) {
+		uds_log_warning("Supplied configuration does not match save");
 		return UDS_NO_INDEX;
 	}
 
@@ -2085,6 +2093,7 @@ select_latest_index_save_layout(struct sub_index_layout *sil,
 	}
 
 	if (latest == NULL) {
+		uds_log_error("No valid index save found");
 		return UDS_INDEX_NOT_SAVED_CLEANLY;
 	}
 	*isl_ptr = latest;
@@ -2495,7 +2504,7 @@ static int create_index_layout(struct index_layout *layout,
 		return -EINVAL;
 	}
 
-	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE, 0);
+	result = compute_sizes(&sizes, config, UDS_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2643,7 +2652,7 @@ int make_uds_index_layout_from_factory(struct io_factory *factory,
 	}
 
 	// Get the index size according the the config
-	result = uds_compute_index_size(config, 0, &config_size);
+	result = uds_compute_index_size(config, &config_size);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2696,7 +2705,7 @@ int update_uds_layout(struct index_layout *layout,
 	layout->index.sub_index.num_blocks -= offset_blocks;
 	layout->index.volume.num_blocks -= offset_blocks;
 	layout->total_blocks -= offset_blocks;
-	layout->super.version = (layout->super.version  < 3) ? 6 : 7;
+	layout->super.version = 7;
 	result = save_single_file_layout(layout, offset_blocks);
 	if (result == UDS_SUCCESS) {
 		result = write_uds_index_config(layout, config, offset_blocks);

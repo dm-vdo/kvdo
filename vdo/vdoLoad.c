@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoLoad.c#25 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoLoad.c#1 $
  */
 
 #include "vdoLoad.h"
@@ -44,6 +44,45 @@
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
 
+enum {
+	LOAD_PHASE_START = 0,
+	LOAD_PHASE_LOAD_DEPOT,
+	LOAD_PHASE_MAKE_DIRTY,
+	LOAD_PHASE_PREPARE_TO_ALLOCATE,
+	LOAD_PHASE_SCRUB_SLABS,
+	LOAD_PHASE_FINISHED,
+	LOAD_PHASE_DRAIN_JOURNAL,
+	LOAD_PHASE_WAIT_FOR_READ_ONLY,
+};
+
+static const char *LOAD_PHASE_NAMES[] = {
+	"LOAD_PHASE_START",
+	"LOAD_PHASE_LOAD_DEPOT",
+	"LOAD_PHASE_MAKE_DIRTY",
+	"LOAD_PHASE_PREPARE_TO_ALLOCATE",
+	"LOAD_PHASE_SCRUB_SLABS",
+	"LOAD_PHASE_FINISHED",
+	"LOAD_PHASE_DRAIN_JOURNAL",
+	"LOAD_PHASE_WAIT_FOR_READ_ONLY",
+};
+
+/**
+ * Implements vdo_thread_id_getter_for_phase.
+ **/
+static thread_id_t __must_check
+get_thread_id_for_phase(struct admin_completion *admin_completion)
+{
+	const struct thread_config *thread_config =
+		get_vdo_thread_config(admin_completion->vdo);
+	switch (admin_completion->phase) {
+	case LOAD_PHASE_DRAIN_JOURNAL:
+		return thread_config->journal_thread;
+
+	default:
+		return thread_config->admin_thread;
+	}
+}
+
 /**
  * Extract the vdo from an admin_completion, checking that the current
  * operation is a load.
@@ -59,210 +98,27 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 }
 
 /**
- * Callback to finish the load operation.
+ * Determine how the slab depot was loaded.
  *
- * @param completion  The admin_completion's sub-task completion
- **/
-static void finish_operation_callback(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	finish_vdo_operation(&vdo->admin_state, completion->result);
-}
-
-/**
- * Make sure the recovery journal is closed when aborting a load.
+ * @param vdo  The vdo
  *
- * @param completion  The sub-task completion
+ * @return How the depot was loaded
  **/
-static void close_recovery_journal_for_abort(struct vdo_completion *completion)
+static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	prepare_vdo_admin_sub_task(vdo,
-				   finish_operation_callback,
-				   finish_operation_callback);
-	drain_vdo_recovery_journal(vdo->recovery_journal,
-				   VDO_ADMIN_STATE_SAVING,
-				   completion);
-}
-
-/**
- * Clean up after an error loading a VDO. This error handler is set in
- * load_callback() and load_vdo_components().
- *
- * @param completion  The sub-task completion
- **/
-static void abort_load(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	uds_log_error_strerror(completion->result, "aborting load");
-
-	// Preserve the error.
-	set_vdo_operation_result(&vdo->admin_state, completion->result);
-	if (vdo->close_required) {
-		vdo->close_required = false;
-		prepare_vdo_admin_sub_task_on_thread(vdo,
-						     close_recovery_journal_for_abort,
-						     close_recovery_journal_for_abort,
-						     vdo_get_journal_zone_thread(get_vdo_thread_config(vdo)));
-	} else {
-		prepare_vdo_admin_sub_task(vdo,
-					   finish_operation_callback,
-					   finish_operation_callback);
+	if (requires_read_only_rebuild(vdo)) {
+		return VDO_SLAB_DEPOT_REBUILD_LOAD;
 	}
 
-	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-						   completion);
-}
-
-/**
- * Wait for the VDO to be in read-only mode.
- *
- * @param completion  The sub-task completion
- **/
-static void wait_for_read_only_mode(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	prepare_vdo_admin_sub_task(vdo,
-				   finish_operation_callback,
-				   finish_operation_callback);
-	set_vdo_operation_result(&vdo->admin_state, VDO_READ_ONLY);
-	vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-						   completion);
-}
-
-/**
- * Finish loading the VDO after an error, but leave it in read-only
- * mode.  This error handler is set in make_dirty(), scrub_vdo_slabs(), and
- * load_vdo_components().
- *
- * @param completion  The sub-task completion
- **/
-static void continue_load_read_only(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	uds_log_error_strerror(completion->result,
-			       "Entering read-only mode due to load error");
-	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
-	wait_for_read_only_mode(completion);
-}
-
-/**
- * Initiate slab scrubbing if necessary. This callback is registered in
- * prepare_to_come_online().
- *
- * @param completion   The sub-task completion
- **/
-static void scrub_vdo_slabs(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (requires_recovery(vdo)) {
-		enter_recovery_mode(vdo);
+		return VDO_SLAB_DEPOT_RECOVERY_LOAD;
 	}
 
-	prepare_vdo_admin_sub_task(vdo,
-				   finish_operation_callback,
-				   continue_load_read_only);
-	vdo_scrub_all_unrecovered_slabs(vdo->depot, completion);
+	return VDO_SLAB_DEPOT_NORMAL_LOAD;
 }
 
 /**
- * This is the error handler for slab scrubbing. It is registered in
- * prepare_to_come_online().
- *
- * @param completion  The sub-task completion
- **/
-static void handle_scrubbing_error(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
-	wait_for_read_only_mode(completion);
-}
-
-/**
- * This is the callback after the super block is written. It prepares the block
- * allocator to come online and start allocating. It is registered in
- * make_dirty().
- *
- * @param completion  The sub-task completion
- **/
-static void prepare_to_come_online(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	enum slab_depot_load_type load_type = VDO_SLAB_DEPOT_NORMAL_LOAD;
-	if (requires_read_only_rebuild(vdo)) {
-		load_type = VDO_SLAB_DEPOT_REBUILD_LOAD;
-	} else if (requires_recovery(vdo)) {
-		load_type = VDO_SLAB_DEPOT_RECOVERY_LOAD;
-	}
-
-	initialize_vdo_block_map_from_journal(vdo->block_map,
-					      vdo->recovery_journal);
-
-	prepare_vdo_admin_sub_task(vdo, scrub_vdo_slabs, handle_scrubbing_error);
-	prepare_vdo_slab_depot_to_allocate(vdo->depot, load_type, completion);
-}
-
-/**
- * Mark the super block as dirty now that everything has been loaded or
- * rebuilt.
- *
- * @param completion  The sub-task completion
- **/
-static void make_dirty(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		finish_vdo_operation(&vdo->admin_state, VDO_READ_ONLY);
-		return;
-	}
-
-	set_vdo_state(vdo, VDO_DIRTY);
-	prepare_vdo_admin_sub_task(vdo, prepare_to_come_online,
-				   continue_load_read_only);
-	save_vdo_components(vdo, completion);
-}
-
-/**
- * Callback to load the slab depot, recovering or rebuilding it if necessary.
- *
- * @param completion  The sub-task completion
- **/
-static void load_depot(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		// In read-only mode we don't use the allocator and it may not
-		// even be readable, so don't bother trying to load it
-		finish_vdo_operation(&vdo->admin_state, VDO_READ_ONLY);
-		return;
-	}
-
-	if (requires_read_only_rebuild(vdo)) {
-		prepare_vdo_admin_sub_task(vdo, make_dirty, abort_load);
-		launch_vdo_rebuild(vdo, completion);
-		return;
-	}
-
-	if (requires_rebuild(vdo)) {
-		prepare_vdo_admin_sub_task(vdo,
-					   make_dirty,
-					   continue_load_read_only);
-		vdo_launch_recovery(vdo, completion);
-		return;
-	}
-
-	load_vdo_slab_depot(vdo->depot,
-			    (vdo_was_new(vdo)
-			     ? VDO_ADMIN_STATE_FORMATTING
-			     : VDO_ADMIN_STATE_LOADING),
-			    completion,
-			    NULL);
-	prepare_vdo_admin_sub_task(vdo, make_dirty, continue_load_read_only);
-}
-
-/**
- * Callback to initiate the destructive parts of a load now that the new VDO
- * device is being resumed.
+ * Callback to do the destructive parts of loading a VDO.
  *
  * @param completion  The sub-task completion
  **/
@@ -271,21 +127,139 @@ static void load_callback(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	assert_vdo_admin_operation_type(admin_completion,
+					VDO_ADMIN_OPERATION_LOAD);
+	assert_vdo_admin_phase_thread(admin_completion,
+				      __func__,
+				      LOAD_PHASE_NAMES);
 
-	assert_on_admin_thread(vdo, __func__);
-	if (!start_vdo_operation_with_waiter(&vdo->admin_state,
-					     VDO_ADMIN_STATE_LOADING,
-					     &admin_completion->completion,
-					     NULL)) {
+	switch (admin_completion->phase++) {
+	case LOAD_PHASE_START:
+		if (!start_vdo_operation_with_waiter(&vdo->admin_state,
+						     VDO_ADMIN_STATE_LOADING,
+						     &admin_completion->completion,
+						     NULL)) {
+			return;
+		}
+
+		// Prepare the recovery journal for new entries.
+		open_vdo_recovery_journal(vdo->recovery_journal,
+					  vdo->depot,
+					  vdo->block_map);
+		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
+					       reset_vdo_admin_sub_task(completion));
+		return;
+
+	case LOAD_PHASE_LOAD_DEPOT:
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
+			/*
+			 * In read-only mode we don't use the allocator and it
+			 * may not even be readable, so don't bother trying to
+			 * load it.
+			 */
+			set_vdo_operation_result(&vdo->admin_state,
+						 VDO_READ_ONLY);
+			break;
+		}
+
+		reset_vdo_admin_sub_task(completion);
+		if (requires_read_only_rebuild(vdo)) {
+			launch_vdo_rebuild(vdo, completion);
+			return;
+		}
+
+		if (requires_rebuild(vdo)) {
+			vdo_launch_recovery(vdo, completion);
+			return;
+		}
+
+		load_vdo_slab_depot(vdo->depot,
+				    (vdo_was_new(vdo)
+				     ? VDO_ADMIN_STATE_FORMATTING
+				     : VDO_ADMIN_STATE_LOADING),
+				    completion,
+				    NULL);
+		return;
+
+	case LOAD_PHASE_MAKE_DIRTY:
+		set_vdo_state(vdo, VDO_DIRTY);
+		save_vdo_components(vdo, reset_vdo_admin_sub_task(completion));
+		return;
+
+	case LOAD_PHASE_PREPARE_TO_ALLOCATE:
+		initialize_vdo_block_map_from_journal(vdo->block_map,
+						      vdo->recovery_journal);
+		prepare_vdo_slab_depot_to_allocate(vdo->depot,
+						   get_load_type(vdo),
+						   reset_vdo_admin_sub_task(completion));
+		return;
+
+	case LOAD_PHASE_SCRUB_SLABS:
+		if (requires_recovery(vdo)) {
+			enter_recovery_mode(vdo);
+		}
+
+		vdo_scrub_all_unrecovered_slabs(vdo->depot,
+						reset_vdo_admin_sub_task(completion));
+		return;
+
+	case LOAD_PHASE_FINISHED:
+		break;
+
+	case LOAD_PHASE_DRAIN_JOURNAL:
+		drain_vdo_recovery_journal(vdo->recovery_journal,
+					   VDO_ADMIN_STATE_SAVING,
+					   reset_vdo_admin_sub_task(completion));
+		return;
+
+	case LOAD_PHASE_WAIT_FOR_READ_ONLY:
+		admin_completion->phase = LOAD_PHASE_FINISHED;
+		reset_vdo_admin_sub_task(completion);
+		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
+							   completion);
+		return;
+
+
+	default:
+		set_vdo_completion_result(reset_vdo_admin_sub_task(completion),
+					  UDS_BAD_STATE);
+	}
+
+	finish_vdo_operation(&vdo->admin_state, completion->result);
+}
+
+/**
+ * Handle an error during the load operation. If at all possible, bring the vdo
+ * online in read-only mode. This handler is registered in load_vdo().
+ *
+ * @param completion  The sub-task completion
+ **/
+static void handle_load_error(struct vdo_completion *completion)
+{
+	struct admin_completion *admin_completion =
+		vdo_admin_completion_from_sub_task(completion);
+	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	assert_vdo_admin_operation_type(admin_completion,
+					VDO_ADMIN_OPERATION_LOAD);
+
+	if (requires_read_only_rebuild(vdo)
+	    && (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
+		uds_log_error_strerror(completion->result, "aborting load");
+
+		// Preserve the error.
+		set_vdo_operation_result(&vdo->admin_state,
+					 completion->result);
+		admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
+		load_callback(UDS_FORGET(completion));
 		return;
 	}
 
-	// Prepare the recovery journal for new entries.
-	open_vdo_recovery_journal(vdo->recovery_journal, vdo->depot,
-				  vdo->block_map);
-	vdo->close_required = true;
-	prepare_vdo_admin_sub_task(vdo, load_depot, load_depot);
-	vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
+	uds_log_error_strerror(completion->result,
+			       "Entering read-only mode due to load error");
+	admin_completion->phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
+	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
+	set_vdo_operation_result(&vdo->admin_state, VDO_READ_ONLY);
+	load_callback(completion);
 }
 
 /**********************************************************************/
@@ -293,9 +267,9 @@ int load_vdo(struct vdo *vdo)
 {
 	return perform_vdo_admin_operation(vdo,
 					   VDO_ADMIN_OPERATION_LOAD,
-					   NULL,
+					   get_thread_id_for_phase,
 					   load_callback,
-					   load_callback);
+					   handle_load_error);
 }
 
 /**
@@ -462,6 +436,17 @@ static int __must_check decode_vdo(struct vdo *vdo)
 }
 
 /**
+ * Callback to finish the load operation.
+ *
+ * @param completion  The admin_completion's sub-task completion
+ **/
+static void finish_operation_callback(struct vdo_completion *completion)
+{
+	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	finish_vdo_operation(&vdo->admin_state, completion->result);
+}
+
+/**
  * Load the components of a VDO. This is the super block load callback
  * set by load_callback().
  *
@@ -472,7 +457,7 @@ static void load_vdo_components(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_vdo_admin_sub_task(vdo,
 				   finish_operation_callback,
-				   abort_load);
+				   finish_operation_callback);
 	finish_vdo_completion(completion, decode_vdo(vdo));
 }
 

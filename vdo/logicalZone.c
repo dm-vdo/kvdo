@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/logicalZone.c#15 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/logicalZone.c#1 $
  */
 
 #include "logicalZone.h"
@@ -176,7 +176,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 
 	result = make_vdo_action_manager(zones->zone_count,
 					 get_thread_id_for_zone,
-					 vdo_get_admin_thread(thread_config),
+					 thread_config->admin_thread,
 					 zones,
 					 NULL,
 					 vdo,

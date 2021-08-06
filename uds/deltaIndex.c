@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaIndex.c#28 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/deltaIndex.c#1 $
  */
 #include "deltaIndex.h"
 
@@ -794,7 +794,6 @@ void empty_delta_index_zone(const struct delta_index *delta_index,
 /**********************************************************************/
 int pack_delta_index_page(const struct delta_index *delta_index,
 			  uint64_t header_nonce,
-			  bool header_native_endian,
 			  byte *memory,
 			  size_t mem_size,
 			  uint64_t virtual_chapter_number,
@@ -855,18 +854,11 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 
 	// Construct the page header
 	header = (struct delta_page_header *) memory;
-	if (header_native_endian) {
-		header->nonce = header_nonce;
-		header->virtual_chapter_number = virtual_chapter_number;
-		header->first_list = first_list;
-		header->num_lists = n_lists;
-	} else {
-		put_unaligned_le64(header_nonce, (byte *) &header->nonce);
-		put_unaligned_le64(virtual_chapter_number,
-				   (byte *) &header->virtual_chapter_number);
-		put_unaligned_le16(first_list, (byte *) &header->first_list);
-		put_unaligned_le16(n_lists, (byte *) &header->num_lists);
-	}
+	put_unaligned_le64(header_nonce, (byte *) &header->nonce);
+	put_unaligned_le64(virtual_chapter_number,
+			   (byte *) &header->virtual_chapter_number);
+	put_unaligned_le16(first_list, (byte *) &header->first_list);
+	put_unaligned_le16(n_lists, (byte *) &header->num_lists);
 
 	// Construct the delta list offset table, making sure that the memory
 	// page is large enough.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/errors.c#16 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/errors.c#1 $
  */
 
 #include "errors.h"
@@ -67,88 +67,34 @@ static const char *const message_table[] = {
 };
 
 static const struct error_info error_list[] = {
-	{ "UDS_UNUSED_CODE_0", "Unused error code 0" },
-	{ "UDS_SHUTTINGDOWN", "UDS library is shutting down" },
-	{ "UDS_EMODULE_LOAD", "Could not load modules" },
-	{ "UDS_UNUSED_CODE_3", "Unused error code 3" },
-	{ "UDS_UNUSED_CODE_4", "Unused error code 4" },
-	{ "UDS_DISABLED", "UDS library context is disabled" },
-	{ "UDS_CORRUPT_COMPONENT", "Corrupt saved component" },
-	{ "UDS_UNKNOWN_ERROR", "Unknown error" },
-	{ "UDS_UNUSED_CODE_8", "Unused error code 8" },
-	{ "UDS_UNUSED_CODE_9", "Unused error code 9" },
-	{ "UDS_UNSUPPORTED_VERSION", "Unsupported version" },
-	{ "UDS_UNUSED_CODE_11", "Unused error code 11" },
-	{ "UDS_CORRUPT_DATA", "Index data in memory is corrupt" },
-	{ "UDS_SHORT_READ", "Could not read requested number of bytes" },
-	{ "UDS_UNUSED_CODE_14", "Unused error code 14" },
-	{ "UDS_RESOURCE_LIMIT_EXCEEDED", "Internal resource limits exceeded" },
-	{ "UDS_VOLUME_OVERFLOW", "Memory overflow due to storage failure" },
-	{ "UDS_UNUSED_CODE_17", "Unused error code 17" },
-	{ "UDS_UNUSED_CODE_18", "Unused error code 18" },
-	{ "UDS_UNUSED_CODE_19", "Unused error code 19" },
-	{ "UDS_UNUSED_CODE_20", "Unused error code 20" },
-	{ "UDS_UNUSED_CODE_21", "Unused error code 21" },
-	{ "UDS_UNUSED_CODE_22", "Unused error code 22" },
-	{ "UDS_UNUSED_CODE_23", "Unused error code 23" },
-	{ "UDS_UNUSED_CODE_24", "Unused error code 24" },
-	{ "UDS_UNUSED_CODE_25", "Unused error code 25" },
-	{ "UDS_UNUSED_CODE_26", "Unused error code 26" },
-	{ "UDS_UNUSED_CODE_27", "Unused error code 27" },
-	{ "UDS_UNUSED_CODE_28", "Unused error code 28" },
-	{ "UDS_UNUSED_CODE_29", "Unused error code 29" },
-	{ "UDS_UNUSED_CODE_30", "Unused error code 30" },
-	{ "UDS_UNUSED_CODE_31", "Unused error code 31" },
-	{ "UDS_UNUSED_CODE_32", "Unused error code 32" },
-	{ "UDS_UNUSED_CODE_33", "Unused error code 33" },
-	{ "UDS_UNUSED_CODE_34", "Unused error code 34" },
-	{ "UDS_UNUSED_CODE_35", "Unused error code 35" },
-	{ "UDS_UNUSED_CODE_36", "Unused error code 36" },
-	{ "UDS_NO_INDEX", "No index found" },
-	{ "UDS_UNUSED_CODE_38", "Unused error code 38" },
-	{ "UDS_UNUSED_CODE_39", "Unused error code 39" },
-	{ "UDS_UNUSED_CODE_40", "Unused error code 40" },
-	{ "UDS_UNUSED_CODE_41", "Unused error code 41" },
-	{ "UDS_UNUSED_CODE_42", "Unused error code 42" },
-	{ "UDS_UNUSED_CODE_43", "Unused error code 43" },
-	{ "UDS_END_OF_FILE", "Unexpected end of file" },
-	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },
-	{ "UDS_UNUSED_CODE_46", "Unused error code 46" },
-	{ "UDS_UNUSED_CODE_47", "Unused error code 47" },
-	{ "UDS_UNUSED_CODE_48", "Unused error code 48" },
-	{ "UDS_UNUSED_CODE_49", "Unused error code 49" },
-	{ "UDS_SUSPENDED", "Index suspended" },
-	{ "UDS_UNUSED_CODE_51", "Unused error code 51" },
-	{ "UDS_INDEXSESSION_IN_USE", "Index session in use" },
-};
-
-static const struct error_info internal_error_list[] = {
-	{ "UDS_INTERNAL_UNUSED_0", "Unused internal error 0" },
 	{ "UDS_OVERFLOW", "Index overflow" },
-	{ "UDS_INTERNAL_UNUSED_2", "Unused internal error 2" },
 	{ "UDS_INVALID_ARGUMENT",
 	  "Invalid argument passed to internal routine" },
 	{ "UDS_BAD_STATE", "UDS data structures are in an invalid state" },
 	{ "UDS_DUPLICATE_NAME",
 	  "Attempt to enter the same name into a delta index twice" },
 	{ "UDS_UNEXPECTED_RESULT", "Unexpected result from internal routine" },
-	{ "UDS_INJECTED_ERROR", "Injected error" },
 	{ "UDS_ASSERTION_FAILED", "Assertion failed" },
-	{ "UDS_INTERNAL_UNUSED_9", "Unused internal error 9" },
 	{ "UDS_QUEUED", "Request queued" },
-	{ "UDS_INTERNAL_UNUSED_11", "Unused internal error 11" },
-	{ "UDS_INTERNAL_UNUSED_12", "Unused internal error 12" },
 	{ "UDS_BUFFER_ERROR", "Buffer error" },
-	{ "UDS_INTERNAL_UNUSED_14", "Unused internal error 14" },
-	{ "UDS_INTERNAL_UNUSED_15", "Unused internal error 15" },
 	{ "UDS_NO_DIRECTORY", "Expected directory is missing" },
 	{ "UDS_CHECKPOINT_INCOMPLETE", "Checkpoint not completed" },
-	{ "UDS_INTERNAL_UNUSED_18", "Unused internal error 18" },
-	{ "UDS_INTERNAL_UNUSED_19", "Unused internal error 19" },
 	{ "UDS_ALREADY_REGISTERED", "Error range already registered" },
 	{ "UDS_BAD_IO_DIRECTION", "Bad I/O direction" },
 	{ "UDS_INCORRECT_ALIGNMENT", "Offset not at block alignment" },
 	{ "UDS_OUT_OF_RANGE", "Cannot access data outside specified limits" },
+	{ "UDS_EMODULE_LOAD", "Could not load modules" },
+	{ "UDS_DISABLED", "UDS library context is disabled" },
+	{ "UDS_CORRUPT_COMPONENT", "Corrupt saved component" },
+	{ "UDS_UNKNOWN_ERROR", "Unknown error" },
+	{ "UDS_UNSUPPORTED_VERSION", "Unsupported version" },
+	{ "UDS_CORRUPT_DATA", "Index data in memory is corrupt" },
+	{ "UDS_SHORT_READ", "Could not read requested number of bytes" },
+	{ "UDS_RESOURCE_LIMIT_EXCEEDED", "Internal resource limits exceeded" },
+	{ "UDS_VOLUME_OVERFLOW", "Memory overflow due to storage failure" },
+	{ "UDS_NO_INDEX", "No index found" },
+	{ "UDS_END_OF_FILE", "Unexpected end of file" },
+	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },
 };
 
 struct error_block {
@@ -169,20 +115,13 @@ static struct error_information {
 	struct error_block blocks[MAX_ERROR_BLOCKS];
 } registered_errors = {
 	.allocated = MAX_ERROR_BLOCKS,
-	.count = 2,
+	.count = 1,
 	.blocks = { {
 			    .name = "UDS Error",
 			    .base = UDS_ERROR_CODE_BASE,
 			    .last = UDS_ERROR_CODE_LAST,
 			    .max = UDS_ERROR_CODE_BLOCK_END,
 			    .infos = error_list,
-		    },
-		    {
-			    .name = "UDS Internal Error",
-			    .base = UDS_INTERNAL_ERROR_CODE_BASE,
-			    .last = UDS_INTERNAL_ERROR_CODE_LAST,
-			    .max = UDS_INTERNAL_ERROR_CODE_BLOCK_END,
-			    .infos = internal_error_list,
 		    } }
 };
 
@@ -341,6 +280,54 @@ const char *string_error_name(int errnum, char *buf, size_t buflen)
 		}
 	}
 	return buf;
+}
+
+/**********************************************************************/
+int uds_map_to_system_error(int error)
+{
+	char error_name[80], error_message[ERRBUF_SIZE];
+
+	// 0 is success, negative a system error code
+	if (likely(error <= 0)) {
+		return error;
+	}
+
+	if (error < 1024) {
+		// probably an errno from userspace, just negate it.
+		return -error;
+	}
+
+	// UDS error
+	switch (error) {
+	case UDS_NO_INDEX:
+	case UDS_CORRUPT_COMPONENT:
+		// The index doesn't exist or can't be recovered.
+		return -ENOENT;
+
+	case UDS_INDEX_NOT_SAVED_CLEANLY:
+	case UDS_UNSUPPORTED_VERSION:
+		// The index exists, but can't be loaded. Tell the client it
+		// exists so they don't destroy it inadvertently.
+		return -EEXIST;
+
+	case UDS_DISABLED:
+		// The session is unusable; only returned by requests.
+		return -EIO;
+
+	default:
+		// No other UDS error code is expected here, so log what we
+		// got and convert to something reasonable.
+		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
+			     __func__,
+			     error,
+			     string_error_name(error,
+					       error_name,
+					       sizeof(error_name)),
+			     uds_string_error(error,
+					      error_message,
+					      sizeof(error_message)));
+		return -EIO;
+	}
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/packer.c#23 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/packer.c#1 $
  */
 
 #include "packerInternals.h"
@@ -227,7 +227,7 @@ int make_vdo_packer(struct vdo *vdo,
 		return result;
 	}
 
-	packer->thread_id = vdo_get_packer_zone_thread(thread_config);
+	packer->thread_id = thread_config->packer_thread;
 	packer->bin_data_size = (VDO_BLOCK_SIZE
 				 - sizeof(struct compressed_block_header));
 	packer->size = input_bin_count;
@@ -357,6 +357,7 @@ static void abort_packing(struct data_vio *data_vio)
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
 
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	continue_data_vio(data_vio, VDO_SUCCESS);
 }
 
@@ -557,7 +558,8 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 	}
 
 	vio_set_physical_zone_callback(allocating_vio,
-				       finish_compressed_write);
+				       finish_compressed_write,
+				       THIS_LOCATION("$F(meta);cb=finish_compressed_write"));
 	write_compressed_block_vio(vio);
 }
 
@@ -663,7 +665,8 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 						  data_vio->compression.size);
 		space_used += data_vio->compression.size;
 
-		result = enqueue_data_vio(&output->outgoing, data_vio);
+		result = enqueue_data_vio(&output->outgoing, data_vio,
+					  THIS_LOCATION(NULL));
 		if (result != VDO_SUCCESS) {
 			abort_packing(data_vio);
 			continue;
@@ -717,7 +720,8 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 		}
 
 		result = enqueue_data_vio(&packer->batched_data_vios,
-					  data_vio);
+					  data_vio,
+					  THIS_LOCATION(NULL));
 		if (result != VDO_SUCCESS) {
 			// Impossible but we're required to check the result
 			// from enqueue.

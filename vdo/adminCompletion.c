@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/adminCompletion.c#8 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/adminCompletion.c#1 $
  */
 
 #include "adminCompletion.h"
@@ -159,7 +159,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 	prepare_vdo_completion(&admin_completion->completion,
 			       admin_operation_callback,
 			       admin_operation_callback,
-			       vdo_get_admin_thread(get_vdo_thread_config(vdo)),
+			       get_vdo_thread_config(vdo)->admin_thread,
 			       NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;

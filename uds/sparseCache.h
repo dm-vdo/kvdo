@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/sparseCache.h#7 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/sparseCache.h#1 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -42,7 +42,7 @@
 struct sparse_cache;
 
 // Bare declaration to avoid include dependency loops.
-struct index;
+struct uds_index;
 
 /**
  * Allocate and initialize a sparse chapter index cache.

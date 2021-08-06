@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#30 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/openChapter.c#1 $
  */
 
 #include "openChapter.h"
@@ -170,7 +170,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 }
 
 /**********************************************************************/
-int save_open_chapters(struct index *index, struct buffered_writer *writer)
+int save_open_chapters(struct uds_index *index, struct buffered_writer *writer)
 {
 	uint32_t total_records = 0, records_added = 0;
 	unsigned int i, record_index;
@@ -243,7 +243,7 @@ static int write_open_chapters(struct index_component *component,
 			       struct buffered_writer *writer,
 			       unsigned int zone)
 {
-	struct index *index;
+	struct uds_index *index;
 	int result = ASSERT((zone == 0), "open chapter write not zoned");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -283,7 +283,8 @@ static int read_version(struct buffered_reader *reader, const byte **version)
 }
 
 /**********************************************************************/
-static int load_version20(struct index *index, struct buffered_reader *reader)
+static int load_version20(struct uds_index *index,
+			  struct buffered_reader *reader)
 {
 	uint32_t num_records, records;
 	byte num_records_data[sizeof(uint32_t)];
@@ -336,7 +337,7 @@ static int load_version20(struct index *index, struct buffered_reader *reader)
 }
 
 /**********************************************************************/
-int load_open_chapters(struct index *index, struct buffered_reader *reader)
+int load_open_chapters(struct uds_index *index, struct buffered_reader *reader)
 {
 	const byte *version = NULL;
 	// Read and check the magic number.
@@ -358,7 +359,7 @@ int load_open_chapters(struct index *index, struct buffered_reader *reader)
 /**********************************************************************/
 int read_open_chapters(struct read_portal *portal)
 {
-	struct index *index = index_component_data(portal->component);
+	struct uds_index *index = index_component_data(portal->component);
 
 	struct buffered_reader *reader;
 	int result = get_buffered_reader_for_portal(portal, 0, &reader);

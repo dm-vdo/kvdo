@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/verify.c#4 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/verify.c#1 $
  */
 
 #include "logger.h"
@@ -90,6 +90,8 @@ static void verify_duplication_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
+	data_vio_add_trace_record(data_vio,
+				   THIS_LOCATION("$F;j=dedupe;cb=verify"));
 	if (likely(memory_equal(data_vio->data_block,
 				data_vio->read_block.data,
 				VDO_BLOCK_SIZE))) {
@@ -112,6 +114,7 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	int err = data_vio->read_block.status;
 
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	if (unlikely(err != 0)) {
 		uds_log_debug("%s: err %d", __func__, err);
 		data_vio->is_duplicate = false;
@@ -128,6 +131,9 @@ static void verify_read_block_callback(struct vdo_completion *completion)
 /**********************************************************************/
 void verify_data_vio_duplication(struct data_vio *data_vio)
 {
+	const struct trace_location *location =
+		THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
+	data_vio_add_trace_record(data_vio, location);
 	ASSERT_LOG_ONLY(data_vio->is_duplicate,
 			"advice to verify must be valid");
 	ASSERT_LOG_ONLY(data_vio->duplicate.state != VDO_MAPPING_STATE_UNMAPPED,
@@ -147,6 +153,7 @@ void verify_data_vio_duplication(struct data_vio *data_vio)
 /**********************************************************************/
 bool compare_data_vios(struct data_vio *first, struct data_vio *second)
 {
+	data_vio_add_trace_record(second, THIS_LOCATION(NULL));
 	return memory_equal(first->data_block, second->data_block,
 			    VDO_BLOCK_SIZE);
 }

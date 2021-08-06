@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexZone.h#12 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/indexZone.h#1 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -27,7 +27,7 @@
 #include "request.h"
 
 struct index_zone {
-	struct index *index;
+	struct uds_index *index;
 	struct open_chapter_zone *open_chapter;
 	struct open_chapter_zone *writing_chapter;
 	uint64_t oldest_virtual_chapter;
@@ -43,7 +43,7 @@ struct index_zone {
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int __must_check make_index_zone(struct index *index,
+int __must_check make_index_zone(struct uds_index *index,
 				 unsigned int zone_number);
 
 /**

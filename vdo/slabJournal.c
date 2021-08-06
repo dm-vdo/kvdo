@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabJournal.c#22 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/slabJournal.c#1 $
  */
 
 #include "slabJournalInternals.h"
@@ -1115,7 +1115,8 @@ void add_vdo_slab_journal_entry(struct slab_journal *journal,
 		return;
 	}
 
-	result = enqueue_data_vio(&journal->entry_waiters, data_vio);
+	result = enqueue_data_vio(&journal->entry_waiters, data_vio,
+				  THIS_LOCATION("$F($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		continue_data_vio(data_vio, result);
 		return;

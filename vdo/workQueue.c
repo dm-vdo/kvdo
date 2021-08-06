@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/workQueue.c#9 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/workQueue.c#1 $
  */
 
 #include "workQueue.h"
@@ -607,7 +607,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	}
 
 	queue->thread = thread;
-	WRITE_ONCE(queue->thread_id, thread->pid);
+	WRITE_ONCE(queue->thread_pid, thread->pid);
 
 	/*
 	 * If we don't wait to ensure the thread is running VDO code, a
@@ -731,7 +731,7 @@ static void finish_simple_work_queue(struct simple_work_queue *queue)
 
 	// Reduces (but does not eliminate) the chance of the sysfs support
 	// reporting the pid even after the thread is gone.
-	WRITE_ONCE(queue->thread_id, 0);
+	WRITE_ONCE(queue->thread_pid, 0);
 
 	// Tells the worker thread to shut down and waits for it to exit.
 	kthread_stop(queue->thread);

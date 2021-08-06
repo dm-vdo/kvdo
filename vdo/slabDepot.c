@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/slabDepot.c#21 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/slabDepot.c#1 $
  */
 
 #include "slabDepot.h"
@@ -26,6 +26,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
+
 
 #include "actionManager.h"
 #include "adminState.h"
@@ -50,6 +51,7 @@
 #include "vdoState.h"
 
 /**********************************************************************/
+static
 slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
 {
 	return compute_vdo_slab_count(depot->first_block, depot->last_block,
@@ -215,7 +217,7 @@ static int allocate_components(struct slab_depot *depot,
 	int result =
 		make_vdo_action_manager(depot->zone_count,
 					get_allocator_thread_id,
-					vdo_get_journal_zone_thread(thread_config),
+					thread_config->journal_thread,
 					depot,
 					schedule_tail_block_commit,
 					depot->vdo,
@@ -406,6 +408,7 @@ struct block_allocator *vdo_get_block_allocator_for_zone(struct slab_depot *depo
 }
 
 /**********************************************************************/
+static
 int vdo_get_slab_number(const struct slab_depot *depot,
 			physical_block_number_t pbn,
 			slab_count_t *slab_number_ptr)
@@ -520,6 +523,7 @@ block_count_t get_vdo_slab_depot_free_blocks(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
+static
 slab_count_t get_vdo_slab_depot_unrecovered_slab_count(const struct slab_depot *depot)
 {
 	slab_count_t total = 0;

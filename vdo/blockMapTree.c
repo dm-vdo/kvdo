@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/blockMapTree.c#24 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/blockMapTree.c#1 $
  */
 
 #include "blockMapTree.h"
@@ -950,7 +950,8 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	}
 
 	// Someone else is loading or allocating the page we need
-	return enqueue_data_vio(&lock_holder->waiters, data_vio);
+	return enqueue_data_vio(&lock_holder->waiters, data_vio,
+			        THIS_LOCATION("$F;cb=blockMapTreePage"));
 }
 
 /**
@@ -1130,13 +1131,15 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
 		data_vio_as_allocating_vio(data_vio);
 	assert_data_vio_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure,
+						 THIS_LOCATION(NULL));
 		return;
 	}
 
 	vio_release_allocation_lock(allocating_vio);
 	vio_reset_allocation(allocating_vio);
-	launch_data_vio_logical_callback(data_vio, finish_block_map_allocation);
+	launch_data_vio_logical_callback(data_vio, finish_block_map_allocation,
+					 THIS_LOCATION("$F;cb=finish_block_map_allocation"));
 }
 
 /**
@@ -1156,7 +1159,8 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 	struct tree_lock *lock = &data_vio->tree_lock;
 	assert_data_vio_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure,
+						 THIS_LOCATION(NULL));
 		return;
 	}
 
@@ -1178,11 +1182,13 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_data_vio_in_journal_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
+		launch_data_vio_logical_callback(data_vio, allocation_failure,
+						 THIS_LOCATION(NULL));
 		return;
 	}
 
-	set_data_vio_allocated_zone_callback(data_vio, set_block_map_page_reference_count);
+	set_data_vio_allocated_zone_callback(data_vio, set_block_map_page_reference_count,
+				    THIS_LOCATION(NULL));
 	add_vdo_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				       data_vio);
 }
@@ -1202,7 +1208,8 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 	physical_block_number_t pbn = allocating_vio->allocation;
 
 	if (!data_vio_has_allocation(data_vio)) {
-		set_data_vio_logical_callback(data_vio, allocation_failure);
+		set_data_vio_logical_callback(data_vio, allocation_failure,
+					      THIS_LOCATION(NULL));
 		continue_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
@@ -1213,7 +1220,8 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 						 VDO_MAPPING_STATE_UNCOMPRESSED,
 						 allocating_vio->allocation_lock,
 						 &data_vio->operation);
-	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation);
+	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation,
+					 THIS_LOCATION("$F;cb=journal_block_map_allocation"));
 }
 
 /**

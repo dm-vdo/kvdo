@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/allocatingVIO.h#5 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/allocatingVIO.h#1 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -157,6 +157,19 @@ waiter_as_allocating_vio(struct waiter *waiter)
 }
 
 /**
+ * Add a trace record for the current source location.
+ *
+ * @param allocating_vio  The allocating_vio structure to be updated
+ * @param location       The source-location descriptor to be recorded
+ **/
+static inline void
+allocating_vio_add_trace_record(struct allocating_vio *allocating_vio,
+				const struct trace_location *location)
+{
+	vio_add_trace_record(allocating_vio_as_vio(allocating_vio), location);
+}
+
+/**
  * Get the vdo from an allocating_vio.
  *
  * @param allocating_vio  The allocating_vio from which to get the vdo
@@ -197,11 +210,13 @@ assert_vio_in_physical_zone(struct allocating_vio *allocating_vio)
  **/
 static inline void
 vio_set_physical_zone_callback(struct allocating_vio *allocating_vio,
-			       vdo_action *callback)
+			       vdo_action *callback,
+			       const struct trace_location *location)
 {
 	set_vdo_completion_callback(allocating_vio_as_completion(allocating_vio),
 				    callback,
 				    get_vdo_physical_zone_thread_id(allocating_vio->zone));
+	allocating_vio_add_trace_record(allocating_vio, location);
 }
 
 /**
@@ -213,9 +228,10 @@ vio_set_physical_zone_callback(struct allocating_vio *allocating_vio,
  **/
 static inline void
 vio_launch_physical_zone_callback(struct allocating_vio *allocating_vio,
-				  vdo_action *callback)
+				  vdo_action *callback,
+				  const struct trace_location *location)
 {
-	vio_set_physical_zone_callback(allocating_vio, callback);
+	vio_set_physical_zone_callback(allocating_vio, callback, location);
 	invoke_vdo_completion_callback(allocating_vio_as_completion(allocating_vio));
 }
 

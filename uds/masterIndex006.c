@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/masterIndex006.c#31 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/masterIndex006.c#1 $
  */
 #include "masterIndex006.h"
 
@@ -28,7 +28,7 @@
 #include "masterIndex005.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "uds.h"
 
 /*

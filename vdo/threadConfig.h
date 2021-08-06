@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/threadConfig.h#3 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/threadConfig.h#1 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -65,17 +65,6 @@ int __must_check make_vdo_thread_config(zone_count_t logical_zone_count,
  * @return VDO_SUCCESS or an error
  **/
 int __must_check vdo_make_one_thread_config(struct thread_config **config_ptr);
-
-/**
- * Make a new thread config which is a copy of an existing one.
- *
- * @param [in]  old_config       The thread configuration to copy
- * @param [out] config_ptr       A pointer to hold the new thread configuration
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check copy_vdo_thread_config(const struct thread_config *old_config,
-					struct thread_config **config_ptr);
 
 /**
  * Destroy a thread configuration.
@@ -133,48 +122,6 @@ vdo_get_hash_zone_thread(const struct thread_config *thread_config,
 	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count),
 			"hash zone valid");
 	return thread_config->hash_zone_threads[hash_zone];
-}
-
-/**
- * Get the thread id for the journal zone.
- *
- * @param thread_config  the thread config
- *
- * @return the thread id for the journal zone
- **/
-static inline
-thread_id_t __must_check
-vdo_get_journal_zone_thread(const struct thread_config *thread_config)
-{
-	return thread_config->journal_thread;
-}
-
-/**
- * Get the thread id for the packer zone.
- *
- * @param thread_config  the thread config
- *
- * @return the thread id for the packer zone
- **/
-static inline
-thread_id_t __must_check
-vdo_get_packer_zone_thread(const struct thread_config *thread_config)
-{
-	return thread_config->packer_thread;
-}
-
-/**
- * Get the thread ID for admin requests.
- *
- * @param thread_config  The thread config
- *
- * @return the thread id to use for admin requests
- **/
-static inline
-thread_id_t __must_check
-vdo_get_admin_thread(const struct thread_config *thread_config)
-{
-	return thread_config->admin_thread;
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/bio.c#12 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/bio.c#1 $
  */
 
 #include "bio.h"
@@ -149,6 +149,7 @@ void vdo_count_completed_bios(struct bio *bio)
 void vdo_complete_async_bio(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
+	vio_add_trace_record(vio, THIS_LOCATION("$F($io);cb=io($io)"));
 	vdo_count_completed_bios(bio);
 	continue_vio(vio, vdo_get_bio_result(bio));
 }

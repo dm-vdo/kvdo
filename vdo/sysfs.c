@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/kernel/sysfs.c#3 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/kernel/sysfs.c#1 $
  */
 
 #include "sysfs.h"
@@ -68,6 +68,12 @@ static int vdo_log_level_store(const char *buf,
 	return 0;
 }
 
+/**********************************************************************/
+static int show_bool(char *buf, const struct kernel_param *kp)
+{
+	return sprintf(buf, "%u\n", *(bool *) kp->arg ? 1 : 0);
+}
+
 
 /**********************************************************************/
 static int vdo_dedupe_timeout_interval_store(const char *buf,
@@ -113,6 +119,11 @@ static const struct kernel_param_ops dedupe_timer_ops = {
 	.get = param_get_uint,
 };
 
+static const struct kernel_param_ops trace_ops = {
+	.set = param_set_bool,
+	.get = show_bool,
+};
+
 module_param_cb(status, &status_ops, NULL, 0444);
 
 module_param_cb(log_level, &log_level_ops, NULL, 0644);
@@ -123,3 +134,5 @@ module_param_cb(deduplication_timeout_interval, &dedupe_timeout_ops,
 
 module_param_cb(min_deduplication_timer_interval, &dedupe_timer_ops,
 		&vdo_dedupe_index_min_timer_interval, 0644);
+
+module_param_cb(trace_recording, &trace_ops, &vio_trace_recording, 0644);

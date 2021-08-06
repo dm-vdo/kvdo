@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/vdoResizeLogical.c#11 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/vdoResizeLogical.c#1 $
  */
 
 #include "vdoResizeLogical.h"
@@ -48,7 +48,7 @@ static const char *GROW_LOGICAL_PHASE_NAMES[] = {
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
-	return vdo_get_admin_thread(get_vdo_thread_config(admin_completion->vdo));
+	return admin_completion->vdo->thread_config->admin_thread;
 }
 
 /**

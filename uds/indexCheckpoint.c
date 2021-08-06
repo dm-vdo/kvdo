@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexCheckpoint.c#17 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/indexCheckpoint.c#1 $
  */
 
 #include "indexCheckpoint.h"
@@ -25,7 +25,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
-#include "threads.h"
+#include "uds-threads.h"
 #include "typeDefs.h"
 
 /**
@@ -63,7 +63,7 @@ enum index_checkpoint_trigger_value {
 	ICTV_ABORT      //< immediately abort checkpointing
 };
 
-typedef int checkpoint_function_t(struct index *index, unsigned int zone);
+typedef int checkpoint_function_t(struct uds_index *index, unsigned int zone);
 
 //  These functions are called while holding the checkpoint->mutex but are
 //  expected to release it.
@@ -82,7 +82,7 @@ checkpoint_function_t *const checkpoint_funcs[] = {
 };
 
 /**********************************************************************/
-int make_index_checkpoint(struct index *index)
+int make_index_checkpoint(struct uds_index *index)
 {
 	struct index_checkpoint *checkpoint;
 	int result = UDS_ALLOCATE(1,
@@ -172,7 +172,7 @@ get_checkpoint_action(struct index_checkpoint *checkpoint,
 }
 
 /**********************************************************************/
-int process_checkpointing(struct index *index,
+int process_checkpointing(struct uds_index *index,
 			  unsigned int zone,
 			  uint64_t new_virtual_chapter)
 {
@@ -198,7 +198,7 @@ int process_checkpointing(struct index *index,
 }
 
 /**********************************************************************/
-int process_chapter_writer_checkpoint_saves(struct index *index)
+int process_chapter_writer_checkpoint_saves(struct uds_index *index)
 {
 	struct index_checkpoint *checkpoint = index->checkpoint;
 
@@ -227,7 +227,7 @@ int process_chapter_writer_checkpoint_saves(struct index *index)
  *
  *  @return result
  **/
-static int abort_checkpointing(struct index *index, int result)
+static int abort_checkpointing(struct uds_index *index, int result)
 {
 	if (index->checkpoint->state != NOT_CHECKPOINTING) {
 		index->checkpoint->state = CHECKPOINT_ABORTING;
@@ -238,7 +238,7 @@ static int abort_checkpointing(struct index *index, int result)
 }
 
 /**********************************************************************/
-int finish_checkpointing(struct index *index)
+int finish_checkpointing(struct uds_index *index)
 {
 	unsigned int z;
 	struct index_checkpoint *checkpoint = index->checkpoint;
@@ -284,7 +284,7 @@ int finish_checkpointing(struct index *index)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int do_checkpoint_start(struct index *index, unsigned int zone)
+static int do_checkpoint_start(struct uds_index *index, unsigned int zone)
 {
 	int result;
 	struct index_checkpoint *checkpoint = index->checkpoint;
@@ -305,7 +305,7 @@ static int do_checkpoint_start(struct index *index, unsigned int zone)
 }
 
 /**********************************************************************/
-static int do_checkpoint_process(struct index *index, unsigned int zone)
+static int do_checkpoint_process(struct uds_index *index, unsigned int zone)
 {
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	enum completion_status status = CS_NOT_COMPLETED;
@@ -338,7 +338,7 @@ static int do_checkpoint_process(struct index *index, unsigned int zone)
 }
 
 /**********************************************************************/
-static int do_checkpoint_abort(struct index *index, unsigned int zone)
+static int do_checkpoint_abort(struct uds_index *index, unsigned int zone)
 {
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	enum completion_status status = CS_NOT_COMPLETED;
@@ -364,7 +364,7 @@ static int do_checkpoint_abort(struct index *index, unsigned int zone)
 }
 
 /**********************************************************************/
-static int do_checkpoint_finish(struct index *index, unsigned int zone)
+static int do_checkpoint_finish(struct uds_index *index, unsigned int zone)
 {
 	struct index_checkpoint *checkpoint = index->checkpoint;
 	enum completion_status status = CS_NOT_COMPLETED;

@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/sulfur/src/c++/vdo/base/limiter.h#2 $
+ * $Id: //eng/vdo-releases/sulfur-rhel9.0-beta/src/c++/vdo/base/limiter.h#1 $
  */
 
 #ifndef LIMITER_H
 #define LIMITER_H
 
 #include <linux/wait.h>
+
+#include "completion.h"
 
 /*
  * A limiter is a fancy counter used to limit resource usage.  We have a
@@ -41,6 +43,8 @@ struct limiter {
 	uint32_t maximum;
 	// The limit to the number of resources that are allowed to be used
 	uint32_t limit;
+	// A completion waiting for the limiter to become idle
+	struct vdo_completion *completion;
 };
 
 /**
@@ -79,11 +83,13 @@ static inline void limiter_release(struct limiter *limiter)
 }
 
 /**
- * Wait until there are no active resources
+ * Wait asynchronously for there to be no active resources.
  *
- * @param limiter  The limiter
+ * @param limiter     The limiter
+ * @param completion  The completion to notify when the limiter is idle
  **/
-void limiter_wait_for_idle(struct limiter *limiter);
+void drain_vdo_limiter(struct limiter *limiter,
+		       struct vdo_completion *completion);
 
 /**
  * Prepare to start using one resource, waiting if there are too many resources

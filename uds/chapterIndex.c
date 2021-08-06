@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/chapterIndex.c#15 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/chapterIndex.c#1 $
  */
 
 #include "chapterIndex.h"
@@ -33,7 +33,6 @@
 /**********************************************************************/
 int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 			    const struct geometry *geometry,
-			    bool chapter_index_header_native_endian,
 			    uint64_t volume_nonce)
 {
 	size_t memory_size;
@@ -52,8 +51,6 @@ int make_open_chapter_index(struct open_chapter_index **open_chapter_index,
 			geometry->bytes_per_page;
 	(*open_chapter_index)->geometry = geometry;
 	(*open_chapter_index)->volume_nonce = volume_nonce;
-	(*open_chapter_index)->header_native_endian =
-		chapter_index_header_native_endian;
 	result = initialize_delta_index(&(*open_chapter_index)->delta_index,
 				        1,
 				        geometry->delta_lists_per_chapter,
@@ -161,7 +158,6 @@ int pack_open_chapter_index_page(struct open_chapter_index *open_chapter_index,
 		int result =
 			pack_delta_index_page(delta_index,
 					      open_chapter_index->volume_nonce,
-					      open_chapter_index->header_native_endian,
 					      memory,
 					      geometry->bytes_per_page,
 					      open_chapter_index->virtual_chapter_number,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#22 $
+ * $Id: //eng/uds-releases/krusty-rhel9.0-beta/src/uds/indexLayout.h#1 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -25,7 +25,6 @@
 #include "buffer.h"
 #include "indexConfig.h"
 #include "indexState.h"
-#include "indexVersion.h"
 #include "ioFactory.h"
 #include "uds.h"
 
@@ -234,16 +233,6 @@ int __must_check write_uds_index_config(struct index_layout *layout,
  **/
 struct buffer *__must_check
 get_uds_index_state_buffer(struct index_layout *layout, unsigned int slot);
-
-/**
- * Get the index version parameters.
- *
- * @param layout  the index layout
- *
- * @return the index version parameters.
- **/
-const struct index_version *__must_check
-get_uds_index_version(struct index_layout *layout);
 
 /**
  * Update and write out an index layout and configuration with a block offset
