@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#44 $
  */
 
 #include "adminCompletion.h"
@@ -97,6 +97,7 @@ reset_vdo_admin_sub_task(struct vdo_completion *completion)
 	reset_vdo_completion(completion);
 	completion->callback_thread_id =
 		admin_completion->get_thread_id(admin_completion);
+	completion->requeue = true;
 	return completion;
 }
 

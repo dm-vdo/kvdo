@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#38 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexSession.c#39 $
  */
 
 #include "indexSession.h"
@@ -219,6 +219,7 @@ int make_empty_index_session(struct uds_index_session **index_session_ptr)
 int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
 	int result;
+	bool flush_index = false;
 	bool save_index = false;
 	bool suspend_index = false;
 	uds_lock_mutex(&session->request_mutex);
@@ -237,12 +238,20 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 		suspend_index = true;
 		result = UDS_SUCCESS;
 	} else if (!(session->state & IS_FLAG_LOADED)) {
-		session->state |= IS_FLAG_SUSPENDED;
-		uds_broadcast_cond(&session->request_cond);
+		if (session->index != NULL) { 
+			flush_index = true;
+			session->state |= IS_FLAG_WAITING;
+		} else {
+			session->state |= IS_FLAG_SUSPENDED;
+			uds_broadcast_cond(&session->request_cond);
+		}
 		result = UDS_SUCCESS;
 	} else {
 		save_index = save;
 		if (save_index) {
+			session->state |= IS_FLAG_WAITING;
+		} else if (session->index != NULL) { 
+			flush_index = true;
 			session->state |= IS_FLAG_WAITING;
 		} else {
 			session->state |= IS_FLAG_SUSPENDED;
@@ -252,7 +261,17 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	}
 	uds_unlock_mutex(&session->request_mutex);
 
-	if (!save_index && !suspend_index) {
+	if (!save_index && !suspend_index && !flush_index) {
+		return uds_map_to_system_error(result);
+	}
+
+	if (flush_index) {
+		result = uds_flush_index_session(session);
+		uds_lock_mutex(&session->request_mutex);
+		session->state &= ~IS_FLAG_WAITING;
+		session->state |= IS_FLAG_SUSPENDED;
+		uds_broadcast_cond(&session->request_cond);
+		uds_unlock_mutex(&session->request_mutex);
 		return uds_map_to_system_error(result);
 	}
 
