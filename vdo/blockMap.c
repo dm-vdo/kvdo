@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#116 $
  */
 
 #include "blockMap.h"
@@ -105,7 +105,7 @@ static bool handle_page_write(void *raw_page,
 	// Release the page's references on the recovery journal.
 	release_vdo_recovery_journal_block_reference(zone->block_map->journal,
 						     context->recovery_lock,
-						     ZONE_TYPE_LOGICAL,
+						     VDO_ZONE_TYPE_LOGICAL,
 						     zone->zone_number);
 	context->recovery_lock = 0;
 	return false;
@@ -715,14 +715,14 @@ void update_vdo_block_map_page(struct block_map_page *page,
 		// Acquire a lock on the newly referenced journal block.
 		acquire_vdo_recovery_journal_block_reference(journal,
 							     new_locked,
-							     ZONE_TYPE_LOGICAL,
+							     VDO_ZONE_TYPE_LOGICAL,
 							     zone->zone_number);
 
 		// If the block originally held a newer lock, release it.
 		if (old_locked > 0) {
 			release_vdo_recovery_journal_block_reference(journal,
 								     old_locked,
-								     ZONE_TYPE_LOGICAL,
+								     VDO_ZONE_TYPE_LOGICAL,
 								     zone->zone_number);
 		}
 

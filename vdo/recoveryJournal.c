@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#124 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#125 $
  */
 
 #include "recoveryJournal.h"
@@ -775,14 +775,14 @@ static void assign_entry(struct waiter *waiter, void *context)
 	};
 
 	switch (data_vio->operation.type) {
-	case DATA_INCREMENT:
+	case VDO_JOURNAL_DATA_INCREMENT:
 		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED) {
 			journal->logical_blocks_used++;
 		}
 		journal->pending_decrement_count++;
 		break;
 
-	case DATA_DECREMENT:
+	case VDO_JOURNAL_DATA_DECREMENT:
 		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED) {
 			journal->logical_blocks_used--;
 		}
@@ -796,7 +796,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		journal->pending_decrement_count--;
 		break;
 
-	case BLOCK_MAP_INCREMENT:
+	case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
 		journal->block_map_data_blocks++;
 		break;
 
@@ -1149,7 +1149,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
 	       && !is_vdo_lock_locked(journal->lock_counter,
 				      journal->block_map_head_block_number,
-				      ZONE_TYPE_LOGICAL)) {
+				      VDO_ZONE_TYPE_LOGICAL)) {
 		journal->block_map_reap_head++;
 		if (++journal->block_map_head_block_number == journal->size) {
 			journal->block_map_head_block_number = 0;
@@ -1159,7 +1159,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	while ((journal->slab_journal_reap_head < journal->last_write_acknowledged)
 	       && !is_vdo_lock_locked(journal->lock_counter,
 				      journal->slab_journal_head_block_number,
-				      ZONE_TYPE_PHYSICAL)) {
+				      VDO_ZONE_TYPE_PHYSICAL)) {
 		journal->slab_journal_reap_head++;
 		if (++journal->slab_journal_head_block_number == journal->size) {
 			journal->slab_journal_head_block_number = 0;

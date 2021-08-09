@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#59 $
  */
 
 #include "vdoResize.h"
@@ -91,14 +91,14 @@ static void grow_physical_callback(struct vdo_completion *completion)
 						    NULL)) {
 			// Copy the journal into the new layout.
 			copy_vdo_layout_partition(vdo->layout,
-						  RECOVERY_JOURNAL_PARTITION,
+						  VDO_RECOVERY_JOURNAL_PARTITION,
 						  reset_vdo_admin_sub_task(completion));
 		}
 		return;
 
 	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
 		copy_vdo_layout_partition(vdo->layout,
-					  SLAB_SUMMARY_PARTITION,
+					  VDO_SLAB_SUMMARY_PARTITION,
 					  reset_vdo_admin_sub_task(completion));
 		return;
 
@@ -116,10 +116,10 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	case GROW_PHYSICAL_PHASE_END:
 		set_vdo_slab_summary_origin(get_vdo_slab_summary(vdo->depot),
 					    get_vdo_partition(vdo->layout,
-							      SLAB_SUMMARY_PARTITION));
+							      VDO_SLAB_SUMMARY_PARTITION));
 		set_vdo_recovery_journal_partition(vdo->recovery_journal,
 						   get_vdo_partition(vdo->layout,
-								     RECOVERY_JOURNAL_PARTITION));
+								     VDO_RECOVERY_JOURNAL_PARTITION));
 		break;
 
 	case GROW_PHYSICAL_PHASE_ERROR:

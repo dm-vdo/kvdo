@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#82 $
  */
 
 /*
@@ -385,7 +385,7 @@ static void update_block_map_for_dedupe(struct vdo_completion *completion)
  **/
 static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 {
-	set_up_vdo_reference_operation_with_lock(DATA_INCREMENT,
+	set_up_vdo_reference_operation_with_lock(VDO_JOURNAL_DATA_INCREMENT,
 						 data_vio->new_mapped.pbn,
 						 data_vio->new_mapped.state,
 						 lock,
@@ -401,7 +401,7 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
  **/
 static void journal_decrement(struct data_vio *data_vio)
 {
-	set_up_vdo_reference_operation_with_zone(DATA_DECREMENT,
+	set_up_vdo_reference_operation_with_zone(VDO_JOURNAL_DATA_DECREMENT,
 						 data_vio->mapped.pbn,
 						 data_vio->mapped.state,
 						 data_vio->mapped.zone,

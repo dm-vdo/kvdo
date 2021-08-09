@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#102 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#103 $
  */
 
 #include "vdoLoad.h"
@@ -354,7 +354,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 					     vdo->states.vdo.nonce,
 					     vdo,
 					     get_vdo_partition(vdo->layout,
-							       RECOVERY_JOURNAL_PARTITION),
+							       VDO_RECOVERY_JOURNAL_PARTITION),
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
 					     VDO_RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
@@ -368,7 +368,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	result = decode_vdo_slab_depot(vdo->states.slab_depot,
 				       vdo,
 				       get_vdo_partition(vdo->layout,
-							 SLAB_SUMMARY_PARTITION),
+							 VDO_SLAB_SUMMARY_PARTITION),
 				       &vdo->depot);
 	if (result != VDO_SUCCESS) {
 		return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#30 $
  */
 
 #include "fixedLayout.h"
@@ -586,7 +586,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	}
 
 	result = make_vdo_fixed_layout_partition(layout,
-						 BLOCK_MAP_PARTITION,
+						 VDO_BLOCK_MAP_PARTITION,
 						 block_map_blocks,
 						 VDO_PARTITION_FROM_BEGINNING,
 						 0);
@@ -595,7 +595,8 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 		return result;
 	}
 
-	result = make_vdo_fixed_layout_partition(layout, SLAB_SUMMARY_PARTITION,
+	result = make_vdo_fixed_layout_partition(layout,
+						 VDO_SLAB_SUMMARY_PARTITION,
 						 summary_blocks,
 						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
@@ -604,7 +605,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	}
 
 	result = make_vdo_fixed_layout_partition(layout,
-						 RECOVERY_JOURNAL_PARTITION,
+						 VDO_RECOVERY_JOURNAL_PARTITION,
 						 journal_blocks,
 						 VDO_PARTITION_FROM_END, 0);
 	if (result != VDO_SUCCESS) {
@@ -620,7 +621,7 @@ int make_partitioned_vdo_fixed_layout(block_count_t physical_blocks,
 	 * partition.
 	 */
 	result = make_vdo_fixed_layout_partition(layout,
-						 BLOCK_ALLOCATOR_PARTITION,
+						 VDO_BLOCK_ALLOCATOR_PARTITION,
 						 VDO_ALL_FREE_BLOCKS,
 						 VDO_PARTITION_FROM_BEGINNING,
 						 block_map_blocks);

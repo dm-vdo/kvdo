@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#110 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -267,17 +267,17 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 		get_vdo_thread_config(recovery->vdo);
 	thread_id_t thread_id;
 	switch (zone_type) {
-	case ZONE_TYPE_LOGICAL:
+	case VDO_ZONE_TYPE_LOGICAL:
 		// All blockmap access is done on single thread, so use logical
 		// zone 0.
 		thread_id = vdo_get_logical_zone_thread(thread_config, 0);
 		break;
 
-	case ZONE_TYPE_PHYSICAL:
+	case VDO_ZONE_TYPE_PHYSICAL:
 		thread_id = recovery->allocator->thread_id;
 		break;
 
-	case ZONE_TYPE_ADMIN:
+	case VDO_ZONE_TYPE_ADMIN:
 	default:
 		thread_id = thread_config->admin_thread;
 	}
@@ -552,7 +552,7 @@ static void start_super_block_save(struct vdo_completion *completion)
 	prepare_sub_task(recovery,
 			 launch_block_map_recovery,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_LOGICAL);
+			 VDO_ZONE_TYPE_LOGICAL);
 	save_vdo_components(vdo, completion);
 }
 
@@ -583,7 +583,7 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 	prepare_sub_task(recovery,
 			 start_super_block_save,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_ADMIN);
+			 VDO_ZONE_TYPE_ADMIN);
 	drain_vdo_slab_depot(vdo->depot, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
@@ -626,7 +626,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 			as_missing_decref(get_first_waiter(missing_decrefs));
 		if (!attempt_replay_into_vdo_slab_journal(decref->slab_journal,
 							  decref->penultimate_mapping.pbn,
-							  DATA_DECREMENT,
+							  VDO_JOURNAL_DATA_DECREMENT,
 							  &decref->journal_point,
 							  completion)) {
 			return;
@@ -676,15 +676,15 @@ static int compute_usages(struct recovery_completion *recovery)
 			get_entry(recovery, &recovery_point);
 		if (vdo_is_mapped_location(&entry.mapping)) {
 			switch (entry.operation) {
-			case DATA_INCREMENT:
+			case VDO_JOURNAL_DATA_INCREMENT:
 				recovery->logical_blocks_used++;
 				break;
 
-			case DATA_DECREMENT:
+			case VDO_JOURNAL_DATA_DECREMENT:
 				recovery->logical_blocks_used--;
 				break;
 
-			case BLOCK_MAP_INCREMENT:
+			case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
 				recovery->block_map_data_blocks++;
 				break;
 
@@ -856,7 +856,7 @@ static void apply_to_depot(struct vdo_completion *completion)
 	prepare_sub_task(recovery,
 			 finish_recovering_depot,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_ADMIN);
+			 VDO_ZONE_TYPE_ADMIN);
 
 	notify_all_waiters(&recovery->missing_decrefs[0],
 			   queue_on_physical_zone, depot);
@@ -974,7 +974,7 @@ find_missing_decrefs(struct recovery_completion *recovery)
 
 		decref = int_map_remove(slot_entry_map,
 				        slot_as_number(entry.slot));
-		if (entry.operation == BLOCK_MAP_INCREMENT) {
+		if (entry.operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
 			if (decref != NULL) {
 				return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 							      "decref found for block map block %llu with state %u",
@@ -1132,7 +1132,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 	prepare_sub_task(recovery,
 			 apply_to_depot,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_ADMIN);
+			 VDO_ZONE_TYPE_ADMIN);
 
 	/*
 	 * Increment the incomplete_decref_count so that the fetch callback
@@ -1322,7 +1322,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		prepare_sub_task(recovery,
 				 finish_vdo_completion_parent_callback,
 				 finish_vdo_completion_parent_callback,
-				 ZONE_TYPE_ADMIN);
+				 VDO_ZONE_TYPE_ADMIN);
 		load_vdo_slab_depot(get_slab_depot(vdo),
 				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
@@ -1347,7 +1347,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		prepare_sub_task(recovery,
 				 launch_block_map_recovery,
 				 finish_vdo_completion_parent_callback,
-				 ZONE_TYPE_LOGICAL);
+				 VDO_ZONE_TYPE_LOGICAL);
 		load_vdo_slab_depot(vdo->depot,
 				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
@@ -1363,7 +1363,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	prepare_sub_task(recovery,
 			 find_slab_journal_entries,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_LOGICAL);
+			 VDO_ZONE_TYPE_LOGICAL);
 	invoke_vdo_completion_callback(completion);
 }
 
@@ -1390,7 +1390,7 @@ void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 	prepare_sub_task(recovery,
 			 prepare_to_apply_journal_entries,
 			 finish_vdo_completion_parent_callback,
-			 ZONE_TYPE_ADMIN);
+			 VDO_ZONE_TYPE_ADMIN);
 	load_vdo_recovery_journal(vdo->recovery_journal,
 				  &recovery->sub_task_completion,
 				  &recovery->journal_data);

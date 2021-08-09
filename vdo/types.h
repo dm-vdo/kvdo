@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#88 $
  */
 
 #ifndef TYPES_H
@@ -185,20 +185,20 @@ enum vio_type {
  * recovery journal, slab journals, and reference counts.
  **/
 enum journal_operation {
-	DATA_DECREMENT = 0,
-	DATA_INCREMENT = 1,
-	BLOCK_MAP_DECREMENT = 2,
-	BLOCK_MAP_INCREMENT = 3,
+	VDO_JOURNAL_DATA_DECREMENT = 0,
+	VDO_JOURNAL_DATA_INCREMENT = 1,
+	VDO_JOURNAL_BLOCK_MAP_DECREMENT = 2,
+	VDO_JOURNAL_BLOCK_MAP_INCREMENT = 3,
 } __packed;
 
 /**
  * Partition IDs are encoded in the volume layout in the super block.
  **/
 enum partition_id {
-	BLOCK_MAP_PARTITION = 0,
-	BLOCK_ALLOCATOR_PARTITION = 1,
-	RECOVERY_JOURNAL_PARTITION = 2,
-	SLAB_SUMMARY_PARTITION = 3,
+	VDO_BLOCK_MAP_PARTITION = 0,
+	VDO_BLOCK_ALLOCATOR_PARTITION = 1,
+	VDO_RECOVERY_JOURNAL_PARTITION = 2,
+	VDO_SLAB_SUMMARY_PARTITION = 3,
 } __packed;
 
 /**
@@ -253,10 +253,10 @@ enum vdo_metadata_type {
 } __packed;
 
 enum vdo_zone_type {
-	ZONE_TYPE_ADMIN,
-	ZONE_TYPE_JOURNAL,
-	ZONE_TYPE_LOGICAL,
-	ZONE_TYPE_PHYSICAL,
+	VDO_ZONE_TYPE_ADMIN,
+	VDO_ZONE_TYPE_JOURNAL,
+	VDO_ZONE_TYPE_LOGICAL,
+	VDO_ZONE_TYPE_PHYSICAL,
 };
 
 /**

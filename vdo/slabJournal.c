@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#107 $
  */
 
 #include "slabJournalInternals.h"
@@ -503,8 +503,8 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 				journal->slab->allocator->zone_number;
 			release_vdo_recovery_journal_block_reference(journal->recovery_journal,
 								     get_lock(journal, i)->recovery_start,
-		ZONE_TYPE_PHYSICAL,
-		zone_number);
+								     VDO_ZONE_TYPE_PHYSICAL,
+								     zone_number);
 		}
 
 		// Release our own lock against reaping for blocks that are
@@ -746,7 +746,7 @@ void encode_vdo_slab_journal_entry(struct slab_journal_block_header *tail_header
 			       enum journal_operation operation)
 {
 	journal_entry_count_t entry_number = tail_header->entry_count++;
-	if (operation == BLOCK_MAP_INCREMENT) {
+	if (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
 		if (!tail_header->has_block_map_increments) {
 			memset(payload->full_entries.entry_types,
 			       0,
@@ -792,7 +792,7 @@ static void add_entry(struct slab_journal *journal,
 		return;
 	}
 
-	if (operation == BLOCK_MAP_INCREMENT) {
+	if (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
 		result = ASSERT_LOG_ONLY((journal->tail_header.entry_count <
 					  journal->full_entries_per_block),
 					 "block has room for full entries");
@@ -829,7 +829,7 @@ bool attempt_replay_into_vdo_slab_journal(struct slab_journal *journal,
 
 	if ((header->entry_count >= journal->full_entries_per_block) &&
 	    (header->has_block_map_increments ||
-	     (operation == BLOCK_MAP_INCREMENT))) {
+	     (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT))) {
 		// The tail block does not have room for the entry we are
 		// attempting to add so commit the tail block now.
 		commit_vdo_slab_journal_tail(journal);
@@ -926,7 +926,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 				journal->slab->allocator->zone_number;
 			acquire_vdo_recovery_journal_block_reference(journal->recovery_journal,
 								     recovery_block,
-								     ZONE_TYPE_PHYSICAL,
+								     VDO_ZONE_TYPE_PHYSICAL,
 								     zone_number);
 		}
 		mark_slab_journal_dirty(journal, recovery_block);
@@ -974,7 +974,7 @@ is_next_entry_a_block_map_increment(struct slab_journal *journal)
 {
 	struct data_vio *data_vio =
 		waiter_as_data_vio(get_first_waiter(&journal->entry_waiters));
-	return (data_vio->operation.type == BLOCK_MAP_INCREMENT);
+	return (data_vio->operation.type == VDO_JOURNAL_BLOCK_MAP_INCREMENT);
 }
 
 /**

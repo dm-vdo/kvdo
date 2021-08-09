@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#62 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -209,7 +209,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		struct recovery_journal_entry new_entry;
 		int result;
 
-		if (data_vio->operation.type == DATA_INCREMENT) {
+		if (data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT) {
 			/*
 			 * In order to not lose an acknowledged write with the
 			 * FUA flag, we must also set the FUA flag on the

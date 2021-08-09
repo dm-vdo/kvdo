@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#136 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#137 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -482,7 +482,7 @@ void release_vdo_block_reference(struct block_allocator *allocator,
 	struct vdo_slab *slab;
 	int result;
 	struct reference_operation operation = {
-		.type = DATA_DECREMENT,
+		.type = VDO_JOURNAL_DATA_DECREMENT,
 		.pbn = pbn,
 	};
 

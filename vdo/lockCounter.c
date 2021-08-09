@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#34 $
  */
 
 #include "lockCounter.h"
@@ -175,7 +175,7 @@ static inline atomic_t *get_zone_count_ptr(struct lock_counter *counter,
 					   block_count_t lock_number,
 					   enum vdo_zone_type zone_type)
 {
-	return ((zone_type == ZONE_TYPE_LOGICAL)
+	return ((zone_type == VDO_ZONE_TYPE_LOGICAL)
 		? &counter->logical_zone_counts[lock_number]
 		: &counter->physical_zone_counts[lock_number]);
 }
@@ -196,11 +196,11 @@ static inline uint16_t *get_counter(struct lock_counter *counter,
 				    zone_count_t zone_id)
 {
 	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
-	if (zone_type == ZONE_TYPE_JOURNAL) {
+	if (zone_type == VDO_ZONE_TYPE_JOURNAL) {
 		return &counter->journal_counters[zone_counter];
 	}
 
-	if (zone_type == ZONE_TYPE_LOGICAL) {
+	if (zone_type == VDO_ZONE_TYPE_LOGICAL) {
 		return &counter->logical_counters[zone_counter];
 	}
 
@@ -219,7 +219,7 @@ static bool is_journal_zone_locked(struct lock_counter *counter,
 				   block_count_t lock_number)
 {
 	uint16_t journal_value =
-		*(get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0));
+		*(get_counter(counter, lock_number, VDO_ZONE_TYPE_JOURNAL, 0));
 	uint32_t decrements =
 		atomic_read(&(counter->journal_decrement_counts[lock_number]));
 	smp_rmb();
@@ -237,7 +237,7 @@ bool is_vdo_lock_locked(struct lock_counter *lock_counter,
 	atomic_t *zone_count;
 	bool locked;
 
-	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != VDO_ZONE_TYPE_JOURNAL),
 			"is_vdo_lock_locked() called for non-journal zone");
 	if (is_journal_zone_locked(lock_counter, lock_number)) {
 		return true;
@@ -273,7 +273,7 @@ void initialize_vdo_lock_count(struct lock_counter *counter,
 
 	assert_on_journal_thread(counter, __func__);
 	journal_value =
-		get_counter(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
+		get_counter(counter, lock_number, VDO_ZONE_TYPE_JOURNAL, 0);
 	decrement_count = &(counter->journal_decrement_counts[lock_number]);
 	ASSERT_LOG_ONLY((*journal_value == atomic_read(decrement_count)),
 			"count to be initialized not in use");
@@ -289,7 +289,7 @@ void acquire_vdo_lock_count_reference(struct lock_counter *counter,
 				      zone_count_t zone_id)
 {
 	uint16_t *current_value;
-	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != VDO_ZONE_TYPE_JOURNAL),
 			"invalid lock count increment from journal zone");
 
 	current_value = get_counter(counter, lock_number, zone_type, zone_id);
@@ -367,7 +367,7 @@ void release_vdo_lock_count_reference(struct lock_counter *counter,
 {
 	atomic_t *zone_count;
 
-	ASSERT_LOG_ONLY((zone_type != ZONE_TYPE_JOURNAL),
+	ASSERT_LOG_ONLY((zone_type != VDO_ZONE_TYPE_JOURNAL),
 			"invalid lock count decrement from journal zone");
 	if (release_reference(counter, lock_number, zone_type, zone_id) != 0) {
 		return;
@@ -386,7 +386,7 @@ void release_vdo_journal_zone_reference(struct lock_counter *counter,
 					block_count_t lock_number)
 {
 	assert_on_journal_thread(counter, __func__);
-	release_reference(counter, lock_number, ZONE_TYPE_JOURNAL, 0);
+	release_reference(counter, lock_number, VDO_ZONE_TYPE_JOURNAL, 0);
 	if (!is_journal_zone_locked(counter, lock_number)) {
 		// The journal zone is not locked, so try to notify the owner.
 		attempt_notification(counter);

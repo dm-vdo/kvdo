@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#33 $
  */
 
 #include "vdoLayout.h"
@@ -35,10 +35,10 @@
 #include "vdoInternal.h"
 
 static const enum partition_id REQUIRED_PARTITIONS[] = {
-	BLOCK_MAP_PARTITION,
-	BLOCK_ALLOCATOR_PARTITION,
-	RECOVERY_JOURNAL_PARTITION,
-	SLAB_SUMMARY_PARTITION,
+	VDO_BLOCK_MAP_PARTITION,
+	VDO_BLOCK_ALLOCATOR_PARTITION,
+	VDO_RECOVERY_JOURNAL_PARTITION,
+	VDO_SLAB_SUMMARY_PARTITION,
 };
 
 static const uint8_t REQUIRED_PARTITION_COUNT = 4;
@@ -86,7 +86,7 @@ int decode_vdo_layout(struct fixed_layout *layout,
 
 	// XXX Assert this is the same as where we loaded the super block.
 	vdo_layout->starting_offset =
-		get_partition_offset(vdo_layout, BLOCK_MAP_PARTITION);
+		get_partition_offset(vdo_layout, VDO_BLOCK_MAP_PARTITION);
 
 	*vdo_layout_ptr = vdo_layout;
 	return VDO_SUCCESS;
@@ -198,11 +198,11 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	result = make_partitioned_vdo_fixed_layout(new_physical_blocks,
 						   vdo_layout->starting_offset,
 						   get_partition_size(vdo_layout,
-								      BLOCK_MAP_PARTITION),
+								      VDO_BLOCK_MAP_PARTITION),
 						   get_partition_size(vdo_layout,
-								      RECOVERY_JOURNAL_PARTITION),
+								      VDO_RECOVERY_JOURNAL_PARTITION),
 						   get_partition_size(vdo_layout,
-								      SLAB_SUMMARY_PARTITION),
+								      VDO_SLAB_SUMMARY_PARTITION),
 						   &vdo_layout->next_layout);
 	if (result != VDO_SUCCESS) {
 		free_vdo_copy_completion(UDS_FORGET(vdo_layout->copy_completion));
@@ -213,10 +213,10 @@ int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
 	// blocks.
 	slab_summary_partition =
 		get_partition_from_next_layout(vdo_layout,
-					       SLAB_SUMMARY_PARTITION);
+					       VDO_SLAB_SUMMARY_PARTITION);
 	recovery_journal_partition =
 		get_partition_from_next_layout(vdo_layout,
-					       RECOVERY_JOURNAL_PARTITION);
+					       VDO_RECOVERY_JOURNAL_PARTITION);
 	min_new_size =
 		(old_physical_blocks +
 		 get_vdo_fixed_layout_partition_size(slab_summary_partition) +
@@ -268,7 +268,7 @@ vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 	}
 
 	partition = get_partition_from_next_layout(vdo_layout,
-					           BLOCK_ALLOCATOR_PARTITION);
+					           VDO_BLOCK_ALLOCATOR_PARTITION);
 	return get_vdo_fixed_layout_partition_size(partition);
 }
 

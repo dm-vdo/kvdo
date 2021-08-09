@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#40 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -117,8 +117,8 @@
 static inline bool
 is_vdo_journal_increment_operation(enum journal_operation operation)
 {
-	return ((operation == DATA_INCREMENT)
-		|| (operation == BLOCK_MAP_INCREMENT));
+	return ((operation == VDO_JOURNAL_DATA_INCREMENT)
+		|| (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));
 }
 
 /**

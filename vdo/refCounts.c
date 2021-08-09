@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#87 $
  */
 
 #include "refCounts.h"
@@ -584,7 +584,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	int result;
 
 	switch (operation.type) {
-	case DATA_INCREMENT:
+	case VDO_JOURNAL_DATA_INCREMENT:
 		result = increment_for_data(ref_counts,
 					    block,
 					    block_number,
@@ -594,7 +594,7 @@ update_reference_count(struct ref_counts *ref_counts,
 					    free_status_changed);
 		break;
 
-	case DATA_DECREMENT:
+	case VDO_JOURNAL_DATA_DECREMENT:
 		result = decrement_for_data(ref_counts,
 					    block,
 					    block_number,
@@ -610,7 +610,7 @@ update_reference_count(struct ref_counts *ref_counts,
 		}
 		break;
 
-	case BLOCK_MAP_INCREMENT:
+	case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
 		result = increment_for_block_map(ref_counts,
 						 block,
 						 block_number,
