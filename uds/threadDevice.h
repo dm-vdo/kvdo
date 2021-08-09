@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadDevice.h#1 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadDevice.h#1 $
  */
 
 #ifndef UDS_THREAD_DEVICE_H

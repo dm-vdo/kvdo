@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#61 $
  */
 
 #include "bio.h"
@@ -171,7 +171,7 @@ static void vdo_set_bio_properties(struct bio *bio,
 	bio->bi_private = vio;
 	bio->bi_end_io = callback;
 	bio->bi_opf = bi_opf;
-	if ((vio != NULL) && (pbn != GEOMETRY_BLOCK_LOCATION)) {
+	if ((vio != NULL) && (pbn != VDO_GEOMETRY_BLOCK_LOCATION)) {
 		pbn -= vio->vdo->geometry.bio_offset;
 	}
 	bio->bi_iter.bi_sector = block_to_sector(pbn);

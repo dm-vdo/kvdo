@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/deltaMemory.c#21 $
+ * $Id: //eng/uds-releases/lisa/src/uds/deltaMemory.c#1 $
  */
 #include "deltaMemory.h"
 

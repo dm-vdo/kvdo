@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadCondVarLinuxKernel.c#10 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadCondVarLinuxKernel.c#1 $
  */
 
 #include "errors.h"
