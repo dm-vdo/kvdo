@@ -160,8 +160,7 @@ int enqueue_vdo_recovery_block_entry(struct recovery_journal_block *block,
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	// Enqueue the data_vio to wait for its entry to commit.
-	int result = enqueue_data_vio(&block->entry_waiters, data_vio,
-				      THIS_LOCATION("$F($j-$js)"));
+	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -241,8 +240,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Enqueue the data_vio to wait for its entry to commit.
-		result = enqueue_data_vio(&block->commit_waiters, data_vio,
-					  THIS_LOCATION("$F($j-$js)"));
+		result = enqueue_data_vio(&block->commit_waiters, data_vio);
 		if (result != VDO_SUCCESS) {
 			continue_data_vio(data_vio, result);
 			return result;

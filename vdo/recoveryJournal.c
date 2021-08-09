@@ -114,8 +114,6 @@ static void continue_waiter(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	int wait_result = *((int *)context);
 
-	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("$F($j-$js);cb=continueJournalWaiter($j-$js)"));
 	continue_data_vio(data_vio, wait_result);
 }
 
@@ -1118,8 +1116,7 @@ void add_vdo_recovery_journal_entry(struct recovery_journal *journal,
 				  journal->entries_per_block);
 	result = enqueue_data_vio((increment ? &journal->increment_waiters
 				  : &journal->decrement_waiters),
-				  data_vio,
-				  THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
+				  data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		continue_data_vio(data_vio, result);

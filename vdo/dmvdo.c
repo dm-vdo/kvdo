@@ -771,7 +771,6 @@ static int __init vdo_init(void)
 
 	vdo_module_status = VDO_MODULE_UNINITIALIZED;
 
-	initialize_vio_trace_logging_once();
 	initialize_vdo_instance_number_tracking();
 
 	vdo_module_status = VDO_MODULE_READY;

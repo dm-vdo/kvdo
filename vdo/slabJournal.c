@@ -1115,8 +1115,7 @@ void add_vdo_slab_journal_entry(struct slab_journal *journal,
 		return;
 	}
 
-	result = enqueue_data_vio(&journal->entry_waiters, data_vio,
-				  THIS_LOCATION("$F($j-$js)"));
+	result = enqueue_data_vio(&journal->entry_waiters, data_vio);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio(data_vio, result);
 		return;

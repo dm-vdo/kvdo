@@ -220,13 +220,11 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
  * @param bio       The bio to submit to the OS
  **/
 static void send_bio_to_device(struct vio *vio,
-			       struct bio *bio,
-			       const struct trace_location *location)
+			       struct bio *bio)
 {
 	assert_running_in_bio_queue_for_pbn(vio->physical);
 	atomic64_inc(&vio->vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
-	vio_add_trace_record(vio, location);
 
 	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
@@ -290,14 +288,12 @@ static void process_bio_map(struct vdo_work_item *item)
 
 			bio->bi_next = NULL;
 			send_bio_to_device(vio_bio,
-					   bio,
-					   THIS_LOCATION("$F($io)"));
+					   bio);
 			bio = next;
 		}
 	} else {
 		send_bio_to_device(vio,
-				   vio->bio,
-				   THIS_LOCATION("$F($io)"));
+				   vio->bio);
 	}
 }
 
@@ -480,8 +476,6 @@ void vdo_submit_bio(struct bio *bio, enum bio_q_action action)
 	bool merged = false;
 
 	setup_vio_work(vio, process_bio_map, bio->bi_end_io, action);
-
-	vio_add_trace_record(vio, THIS_LOCATION("$F($io)"));
 
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);

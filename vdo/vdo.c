@@ -121,7 +121,6 @@ void destroy_vdo(struct vdo *vdo)
 	vdo->physical_zones = NULL;
 	free_vdo_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 	free_vdo_thread_config(UDS_FORGET(vdo->thread_config));
-	free_vio_tracer(UDS_FORGET(vdo->vio_tracer));
 
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
 		free_work_queue(UDS_FORGET(vdo->threads[i].request_queue));

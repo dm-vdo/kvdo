@@ -199,8 +199,7 @@ static int allocate_block_in_zone(struct allocating_vio *allocating_vio)
 	}
 	allocating_vio->zone = vdo->physical_zones[zone_number];
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write,
-					  THIS_LOCATION("$F;cb=allocBlockInZone"));
+					  allocate_block_for_write);
 	return VDO_SUCCESS;
 }
 
@@ -215,7 +214,6 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 	int result;
 	struct allocating_vio *allocating_vio = as_allocating_vio(completion);
 	assert_vio_in_physical_zone(allocating_vio);
-	allocating_vio_add_trace_record(allocating_vio, THIS_LOCATION(NULL));
 	result = allocate_block_in_zone(allocating_vio);
 	if (result != VDO_SUCCESS) {
 		set_vdo_completion_result(completion, result);
@@ -240,8 +238,7 @@ void vio_allocate_data_block(struct allocating_vio *allocating_vio,
 		vio->vdo->physical_zones[get_next_vdo_allocation_zone(selector)];
 
 	vio_launch_physical_zone_callback(allocating_vio,
-					  allocate_block_for_write,
-					  THIS_LOCATION("$F;cb=allocDataBlock"));
+					  allocate_block_for_write);
 }
 
 /**********************************************************************/

@@ -98,7 +98,6 @@ static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 	}
 
 
-	vio_add_trace_record(vio, THIS_LOCATION(NULL));
 	vdo_complete_bio(bio, error);
 }
 
@@ -106,9 +105,7 @@ static void vdo_acknowledge_data_vio(struct data_vio *data_vio)
 static noinline void clean_data_vio(struct data_vio *data_vio,
 				    struct free_buffer_pointers *fbp)
 {
-	vio_add_trace_record(data_vio_as_vio(data_vio), THIS_LOCATION(NULL));
 	vdo_acknowledge_data_vio(data_vio);
-	log_data_vio_trace(data_vio);
 	add_free_buffer_pointer(fbp, data_vio);
 }
 
@@ -155,8 +152,6 @@ static void vdo_complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	if (use_bio_ack_queue(vdo) && VDO_USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_vio->user_bio != NULL)) {
@@ -311,7 +306,6 @@ static void read_bio_callback(struct bio *bio)
 {
 	struct data_vio *data_vio = (struct data_vio *) bio->bi_private;
 	data_vio->read_block.data = data_vio->read_block.buffer;
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	vdo_count_completed_bios(bio);
 	complete_read(data_vio);
 }
@@ -326,10 +320,6 @@ void vdo_read_block(struct data_vio *data_vio,
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct read_block *read_block = &data_vio->read_block;
 	int result;
-
-	// This can be run on either a read of compressed data, or a write
-	// trying to read-verify, so we can't assert about the operation.
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	read_block->callback = callback;
 	read_block->status = VDO_SUCCESS;
@@ -353,7 +343,6 @@ static void acknowledge_user_bio(struct bio *bio)
 	int error = vdo_get_bio_result(bio);
 	struct vio *vio = (struct vio *) bio->bi_private;
 
-	vio_add_trace_record(vio, THIS_LOCATION("$F($io);cb=io($io)"));
 	vdo_count_completed_bios(bio);
 	if (error == 0) {
 		acknowledge_data_vio(vio_as_data_vio(vio));
@@ -374,7 +363,6 @@ void read_data_vio(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY(!is_write_vio(vio),
 			"operation set correctly for data read");
-	data_vio_add_trace_record(data_vio, THIS_LOCATION("$F;io=readData"));
 
 	if (vdo_is_state_compressed(data_vio->mapped.state)) {
 		vdo_read_block(data_vio,
@@ -418,7 +406,6 @@ vdo_acknowledge_and_enqueue(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	vdo_acknowledge_data_vio(data_vio);
 	// Even if we're not using bio-ack threads, we may be in the wrong
 	// base-code thread.
@@ -443,7 +430,6 @@ void acknowledge_data_vio(struct data_vio *data_vio)
 	// We've finished with the vio; acknowledge completion of the bio to
 	// the kernel.
 	if (use_bio_ack_queue(vdo)) {
-		data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 		launch_data_vio_on_bio_ack_queue(data_vio,
 						 vdo_acknowledge_and_enqueue,
 						 NULL,
@@ -462,8 +448,6 @@ void write_data_vio(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY(is_write_vio(vio),
 			"write_data_vio must be passed a write data_vio");
-	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("$F;io=writeData;j=normal"));
 
 
 	// Write the data from the data block buffer.
@@ -545,7 +529,6 @@ static inline bool is_zero_block(struct data_vio *data_vio)
 void vdo_apply_partial_write(struct data_vio *data_vio)
 {
 	struct bio *bio = data_vio->user_bio;
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	if (bio_op(bio) != REQ_OP_DISCARD) {
 		vdo_bio_copy_data_in(bio, data_vio->data_block + data_vio->offset);
@@ -564,8 +547,6 @@ void zero_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
 			"only attempt to zero non-writes");
-	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("zeroDataVIO;io=readData"));
 	if (data_vio->is_partial) {
 		memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
 	} else {
@@ -581,7 +562,6 @@ void vdo_copy_data(struct data_vio *source, struct data_vio *destination)
 	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(source)),
 			"only copy from a write");
 
-	data_vio_add_trace_record(destination, THIS_LOCATION(NULL));
 	if (destination->is_partial) {
 		memcpy(destination->data_block, source->data_block,
 		       VDO_BLOCK_SIZE);
@@ -597,8 +577,6 @@ static void vdo_compress_work(struct vdo_work_item *item)
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	char *context = get_work_queue_private_data();
 	int size;
-
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	size = LZ4_compress_default(data_vio->data_block,
 				    data_vio->scratch_block,
@@ -622,9 +600,6 @@ static void vdo_compress_work(struct vdo_work_item *item)
 /**********************************************************************/
 void compress_data_vio(struct data_vio *data_vio)
 {
-	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("compressDataVIO;io=compress;cb=compress"));
-
 	/*
 	 * If the orignal bio was a discard, but we got this far because the
 	 * discard was a partial one (r/m/w), and it is part of a larger
@@ -794,7 +769,6 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 static void vdo_complete_partial_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	vdo_bio_copy_data_out(data_vio->user_bio,
 			  data_vio->read_block.data + data_vio->offset);
@@ -878,7 +852,6 @@ int vdo_launch_data_vio_from_bio(struct vdo *vdo,
 static void vdo_hash_data_work(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 
 	MurmurHash3_x64_128(data_vio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
 			    &data_vio->chunk_name);
@@ -889,7 +862,6 @@ static void vdo_hash_data_work(struct vdo_work_item *item)
 /**********************************************************************/
 void hash_data_vio(struct data_vio *data_vio)
 {
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	launch_data_vio_on_cpu_queue(data_vio,
 				     vdo_hash_data_work,
 				     NULL,
@@ -899,8 +871,6 @@ void hash_data_vio(struct data_vio *data_vio)
 /**********************************************************************/
 void check_data_vio_for_duplication(struct data_vio *data_vio)
 {
-	data_vio_add_trace_record(data_vio,
-			          THIS_LOCATION("checkForDuplication;dup=post"));
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero block not checked for duplication");
 	ASSERT_LOG_ONLY(data_vio->new_mapped.state != VDO_MAPPING_STATE_UNMAPPED,

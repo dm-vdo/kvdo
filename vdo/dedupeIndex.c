@@ -256,23 +256,6 @@ void set_vdo_dedupe_index_min_timer_interval(unsigned int value)
 	vdo_dedupe_index_min_timer_jiffies = min_jiffies;
 }
 
-
-/**
- * Return from a dedupe operation by invoking the callback function.
- *
- * NOTE: This entire function will be stripped when prepping for distribution
- *       and all calls to it will be replaced with direct calls to
- *       enqueue_data_vio_callback().
- *
- * @param data_vio  The data_vio
- **/
-static inline void invoke_dedupe_callback(struct data_vio *data_vio)
-{
-	data_vio_add_trace_record(data_vio,
-				  THIS_LOCATION("$F($dup);cb=dedupe($dup)"));
-	enqueue_data_vio_callback(data_vio);
-}
-
 /**********************************************************************/
 static void finish_index_operation(struct uds_request *uds_request)
 {
@@ -305,7 +288,7 @@ static void finish_index_operation(struct uds_request *uds_request)
 			}
 		}
 
-		invoke_dedupe_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 		atomic_dec(&index->active);
 	} else {
 		atomic_cmpxchg(&dedupe_context->request_state,
@@ -483,7 +466,7 @@ static void timeout_index_operations(struct timer_list *t)
 		if (atomic_cmpxchg(&dedupe_context->request_state,
 				   UR_BUSY, UR_TIMED_OUT) == UR_BUSY) {
 			dedupe_context->status = ETIMEDOUT;
-			invoke_dedupe_callback(data_vio);
+			enqueue_data_vio_callback(data_vio);
 			atomic_dec(&index->active);
 			timed_out++;
 		}
@@ -544,7 +527,7 @@ void enqueue_vdo_index_operation(struct data_vio *data_vio,
 	}
 
 	if (vio != NULL) {
-		invoke_dedupe_callback(data_vio);
+		enqueue_data_vio_callback(data_vio);
 	}
 }
 

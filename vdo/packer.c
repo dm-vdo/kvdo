@@ -357,7 +357,6 @@ static void abort_packing(struct data_vio *data_vio)
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
 
-	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	continue_data_vio(data_vio, VDO_SUCCESS);
 }
 
@@ -558,8 +557,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 	}
 
 	vio_set_physical_zone_callback(allocating_vio,
-				       finish_compressed_write,
-				       THIS_LOCATION("$F(meta);cb=finish_compressed_write"));
+				       finish_compressed_write);
 	write_compressed_block_vio(vio);
 }
 
@@ -665,8 +663,7 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 						  data_vio->compression.size);
 		space_used += data_vio->compression.size;
 
-		result = enqueue_data_vio(&output->outgoing, data_vio,
-					  THIS_LOCATION(NULL));
+		result = enqueue_data_vio(&output->outgoing, data_vio);
 		if (result != VDO_SUCCESS) {
 			abort_packing(data_vio);
 			continue;
@@ -720,8 +717,7 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 		}
 
 		result = enqueue_data_vio(&packer->batched_data_vios,
-					  data_vio,
-					  THIS_LOCATION(NULL));
+					  data_vio);
 		if (result != VDO_SUCCESS) {
 			// Impossible but we're required to check the result
 			// from enqueue.

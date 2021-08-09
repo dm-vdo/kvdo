@@ -88,7 +88,6 @@ void free_vio(struct vio *vio)
 	}
 
 	BUG_ON(is_data_vio(vio));
-	log_vio_trace(vio);
 	vdo_free_bio(UDS_FORGET(vio->bio));
 	UDS_FREE(vio);
 }
@@ -112,7 +111,6 @@ void initialize_vio(struct vio *vio,
 
 	initialize_vdo_completion(completion, vdo, VIO_COMPLETION);
 	completion->parent = parent;
-	maybe_trace_vio(vio);
 }
 
 /**********************************************************************/

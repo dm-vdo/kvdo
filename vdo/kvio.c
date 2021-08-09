@@ -117,15 +117,11 @@ void submit_metadata_vio(struct vio *vio)
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
-		vio_add_trace_record(vio, THIS_LOCATION("$F;io=readMeta"));
 		bi_opf = REQ_OP_READ;
 	} else if (vio_requires_flush_before(vio)) {
 		bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-		vio_add_trace_record(vio,
-				     THIS_LOCATION("$F;io=flushWriteMeta"));
 	} else {
 		bi_opf = REQ_OP_WRITE;
-		vio_add_trace_record(vio, THIS_LOCATION("$F;io=writeMeta"));
 	}
 
 	if (vio_requires_flush_after(vio)) {

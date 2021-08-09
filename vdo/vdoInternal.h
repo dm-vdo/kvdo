@@ -63,7 +63,6 @@ struct vdo {
 	struct vdo_work_item work_item;
 	vdo_action *action;
 	struct vdo_completion *completion;
-	struct vio_tracer *vio_tracer;
 
 	/** Incoming bios we've had to buffer to avoid deadlock. */
 	struct deadlock_queue deadlock_queue;

@@ -99,8 +99,7 @@ static void read_block_mapping(struct vdo_completion *completion)
 	}
 
 	assert_data_vio_in_logical_zone(data_vio);
-	set_data_vio_logical_callback(data_vio, read_block,
-				      THIS_LOCATION("$F;cb=read_block"));
+	set_data_vio_logical_callback(data_vio, read_block);
 	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ;
 	vdo_get_mapped_block(data_vio);
 }
@@ -137,6 +136,5 @@ static void release_logical_lock(struct vdo_completion *completion)
  **/
 void cleanup_read_data_vio(struct data_vio *data_vio)
 {
-	launch_data_vio_logical_callback(data_vio, release_logical_lock,
-					 THIS_LOCATION("$F;cb=releaseLL"));
+	launch_data_vio_logical_callback(data_vio, release_logical_lock);
 }

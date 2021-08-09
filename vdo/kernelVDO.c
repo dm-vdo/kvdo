@@ -242,10 +242,6 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 		BUG();
 	}
 
-	if (completion->type == VIO_COMPLETION) {
-		vio_add_trace_record(as_vio(completion),
-				     THIS_LOCATION("$F($cb)"));
-	}
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
 			completion->callback,
 			REQ_Q_ACTION_COMPLETION);
