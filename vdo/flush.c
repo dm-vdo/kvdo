@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#57 $
  */
 
 #include "flush.h"
@@ -329,7 +329,7 @@ static void enqueue_flush(struct vdo_flush *flush)
 	setup_work_item(&flush->work_item,
 			flush_vdo,
 			NULL,
-			REQ_Q_ACTION_FLUSH);
+			VDO_REQ_Q_ACTION_FLUSH);
 	enqueue_vdo_work(flush->vdo,
 			 &flush->work_item,
 			 flush->vdo->flusher->thread_id);

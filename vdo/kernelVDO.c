@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#113 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#114 $
  */
 
 /*
@@ -70,19 +70,19 @@ static const struct vdo_work_queue_type request_queue_type = {
 	.action_table = {
 
 			{ .name = "req_completion",
-			  .code = REQ_Q_ACTION_COMPLETION,
+			  .code = VDO_REQ_Q_ACTION_COMPLETION,
 			  .priority = 1 },
 			{ .name = "req_flush",
-			  .code = REQ_Q_ACTION_FLUSH,
+			  .code = VDO_REQ_Q_ACTION_FLUSH,
 			  .priority = 2 },
 			{ .name = "req_map_bio",
-			  .code = REQ_Q_ACTION_MAP_BIO,
+			  .code = VDO_REQ_Q_ACTION_MAP_BIO,
 			  .priority = 0 },
 			{ .name = "req_sync",
-			  .code = REQ_Q_ACTION_SYNC,
+			  .code = VDO_REQ_Q_ACTION_SYNC,
 			  .priority = 2 },
 			{ .name = "req_vio_callback",
-			  .code = REQ_Q_ACTION_VIO_CALLBACK,
+			  .code = VDO_REQ_Q_ACTION_VIO_CALLBACK,
 			  .priority = 1 },
 		},
 };
@@ -244,7 +244,7 @@ void enqueue_vdo_completion(struct vdo_completion *completion)
 
 	setup_work_item(&completion->work_item, vdo_enqueue_work,
 			completion->callback,
-			REQ_Q_ACTION_COMPLETION);
+			VDO_REQ_Q_ACTION_COMPLETION);
 	enqueue_vdo_thread_work(&vdo->threads[thread_id],
 				&completion->work_item);
 }

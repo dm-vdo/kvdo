@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#47 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -31,11 +31,11 @@
 #include "workQueue.h"
 
 enum {
-	REQ_Q_ACTION_COMPLETION,
-	REQ_Q_ACTION_FLUSH,
-	REQ_Q_ACTION_MAP_BIO,
-	REQ_Q_ACTION_SYNC,
-	REQ_Q_ACTION_VIO_CALLBACK
+	VDO_REQ_Q_ACTION_COMPLETION,
+	VDO_REQ_Q_ACTION_FLUSH,
+	VDO_REQ_Q_ACTION_MAP_BIO,
+	VDO_REQ_Q_ACTION_SYNC,
+	VDO_REQ_Q_ACTION_VIO_CALLBACK
 };
 
 /**
