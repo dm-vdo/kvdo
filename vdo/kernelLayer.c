@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#222 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#223 $
  */
 
 #include "kernelLayer.h"
@@ -279,7 +279,7 @@ int make_kernel_layer(unsigned int instance,
 {
 	int result;
 	struct kernel_layer *layer;
-	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
+	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";

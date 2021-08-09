@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#86 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#87 $
  */
 
 #include "ioSubmitter.h"
@@ -524,7 +524,7 @@ int make_vdo_io_submitter(const char *thread_name_prefix,
 			  struct vdo *vdo,
 			  struct io_submitter **io_submitter_ptr)
 {
-	char queue_name[MAX_QUEUE_NAME_LEN];
+	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
 	unsigned int i;
 	struct io_submitter *io_submitter;
 	int result = UDS_ALLOCATE_EXTENDED(struct io_submitter,

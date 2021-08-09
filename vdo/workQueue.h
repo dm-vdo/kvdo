@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#27 $
  */
 
 #ifndef VDO_WORK_QUEUE_H
@@ -29,11 +29,11 @@
 #include "util/funnelQueue.h"
 
 enum {
-	MAX_QUEUE_NAME_LEN = TASK_COMM_LEN,
+	MAX_VDO_WORK_QUEUE_NAME_LEN = TASK_COMM_LEN,
 	/** Maximum number of action definitions per work queue type */
-	WORK_QUEUE_ACTION_COUNT = 8,
+	VDO_WORK_QUEUE_ACTION_COUNT = 8,
 	/** Number of priority values available */
-	WORK_QUEUE_PRIORITY_COUNT = 4,
+	VDO_WORK_QUEUE_PRIORITY_COUNT = 4,
 };
 
 struct vdo_work_item {
@@ -78,16 +78,17 @@ struct vdo_work_item {
  * the other hand, only does one thing, so it only defines one action code.
  *
  * Action codes values must be small integers, 0 through
- * WORK_QUEUE_ACTION_COUNT-1, and should not be duplicated for a queue type.
+ * VDO_WORK_QUEUE_ACTION_COUNT-1, and should not be duplicated for a queue
+ * type.
  *
  * A table of vdo_work_queue_action entries embedded in struct
  * vdo_work_queue_type specifies the name, code, and priority for each type
  * of action in the work queue. The table can have at most
- * WORK_QUEUE_ACTION_COUNT entries, but a NULL name indicates an earlier end
- * to the table.
+ * VDO_WORK_QUEUE_ACTION_COUNT entries, but a NULL name indicates an earlier
+ * end to the table.
  *
  * Priorities may be specified as values from 0 through
- * WORK_QUEUE_PRIORITY_COUNT-1, higher values indicating higher priority.
+ * VDO_WORK_QUEUE_PRIORITY_COUNT-1, higher values indicating higher priority.
  * Priorities are just strong suggestions; it's possible for a lower-priority
  * work item scheduled right after a high-priority one to be run first, if the
  * worker thread happens to be scanning its queues at just the wrong moment,
@@ -123,7 +124,7 @@ struct vdo_work_queue_type {
 	void (*finish)(void *);
 
 	/** Table of actions for this work queue */
-	struct vdo_work_queue_action action_table[WORK_QUEUE_ACTION_COUNT];
+	struct vdo_work_queue_action action_table[VDO_WORK_QUEUE_ACTION_COUNT];
 };
 
 /**

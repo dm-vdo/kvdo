@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#69 $
  */
 
 #include "workQueue.h"
@@ -139,7 +139,7 @@ static void enqueue_work_queue_item(struct simple_work_queue *queue,
 			"item %px (fn %px/%px) to enqueue (%px) is not already queued (%px)",
 			item, item->work, item->stats_function, queue,
 			item->my_queue);
-	if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
+	if (ASSERT(item->action < VDO_WORK_QUEUE_ACTION_COUNT,
 		   "action is in range for queue") != VDO_SUCCESS) {
 		item->action = 0;
 	}
@@ -526,7 +526,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	queue->private = private;
 	queue->common.owner = owner;
 
-	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
+	for (i = 0; i < VDO_WORK_QUEUE_ACTION_COUNT; i++) {
 		const struct vdo_work_queue_action *action =
 			&queue->type->action_table[i];
 		unsigned int code, priority;
@@ -537,7 +537,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		priority = action->priority;
 
 		result = ASSERT(
-			code < WORK_QUEUE_ACTION_COUNT,
+			code < VDO_WORK_QUEUE_ACTION_COUNT,
 			"invalid action code %u in work queue initialization",
 			code);
 		if (result != VDO_SUCCESS) {
@@ -545,7 +545,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			return result;
 		}
 		result = ASSERT(
-			priority < WORK_QUEUE_PRIORITY_COUNT,
+			priority < VDO_WORK_QUEUE_PRIORITY_COUNT,
 			"invalid action priority %u in work queue initialization",
 			priority);
 		if (result != VDO_SUCCESS) {
@@ -578,7 +578,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 	queue->num_priority_lists = num_priority_lists;
-	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
@@ -779,7 +779,7 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 {
 	unsigned int i;
 
-	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+	for (i = 0; i < VDO_WORK_QUEUE_PRIORITY_COUNT; i++) {
 		free_funnel_queue(queue->priority_lists[i]);
 	}
 	cleanup_work_queue_stats(&queue->stats);

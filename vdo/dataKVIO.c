@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#159 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#160 $
  */
 
 #include "dataKVIO.h"
@@ -1062,7 +1062,7 @@ static void dump_pooled_data_vio(void *data)
 	 * a time. If more than one does run, the log output will be garbled
 	 * anyway.
 	 */
-	static char vio_work_item_dump_buffer[100 + MAX_QUEUE_NAME_LEN];
+	static char vio_work_item_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
 	// Another static buffer...
 	// log10(256) = 2.408+, round up:
 	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
