@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#103 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#104 $
  */
 
 #include "vdoLoad.h"
@@ -28,6 +28,7 @@
 #include "blockMap.h"
 #include "completion.h"
 #include "constants.h"
+#include "dedupeIndex.h"
 #include "deviceConfig.h"
 #include "hashZone.h"
 #include "header.h"
@@ -50,6 +51,8 @@ enum {
 	LOAD_PHASE_MAKE_DIRTY,
 	LOAD_PHASE_PREPARE_TO_ALLOCATE,
 	LOAD_PHASE_SCRUB_SLABS,
+	LOAD_PHASE_STATS,
+	LOAD_PHASE_INDEX,
 	LOAD_PHASE_FINISHED,
 	LOAD_PHASE_DRAIN_JOURNAL,
 	LOAD_PHASE_WAIT_FOR_READ_ONLY,
@@ -61,6 +64,8 @@ static const char *LOAD_PHASE_NAMES[] = {
 	"LOAD_PHASE_MAKE_DIRTY",
 	"LOAD_PHASE_PREPARE_TO_ALLOCATE",
 	"LOAD_PHASE_SCRUB_SLABS",
+	"LOAD_PHASE_STATS",
+	"LOAD_PHASE_INDEX",
 	"LOAD_PHASE_FINISHED",
 	"LOAD_PHASE_DRAIN_JOURNAL",
 	"LOAD_PHASE_WAIT_FOR_READ_ONLY",
@@ -202,6 +207,25 @@ static void load_callback(struct vdo_completion *completion)
 		vdo_scrub_all_unrecovered_slabs(vdo->depot,
 						reset_vdo_admin_sub_task(completion));
 		return;
+
+	case LOAD_PHASE_STATS:
+		finish_vdo_completion(reset_vdo_admin_sub_task(completion),
+				      add_vdo_sysfs_stats_dir(vdo));
+		return;
+
+	case LOAD_PHASE_INDEX:
+		if (vdo->device_config->deduplication) {
+			/*
+			 * Don't try to load or rebuild the index first (and
+			 * log scary error messages) if this is known to be a
+			 * newly-formatted volume.
+			 */
+			start_vdo_dedupe_index(vdo->dedupe_index,
+					       vdo_was_new(vdo));
+		}
+
+		vdo->allocations_allowed = false;
+		fallthrough;
 
 	case LOAD_PHASE_FINISHED:
 		break;

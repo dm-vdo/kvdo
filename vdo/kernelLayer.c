@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#223 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#224 $
  */
 
 #include "kernelLayer.h"
@@ -611,29 +611,9 @@ void free_kernel_layer(struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-static void pool_stats_release(struct kobject *directory)
-{
-	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
-	complete(&vdo->stats_shutdown);
-}
-
-/**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
-	static struct kobj_type stats_directory_type = {
-		.release = pool_stats_release,
-		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
-		.default_attrs = vdo_pool_stats_attrs,
-	};
 	int result;
-	const struct admin_state_code *code
-		= get_vdo_admin_state_code(&layer->vdo.admin_state);
-
-	if (code != VDO_ADMIN_STATE_PRE_LOADED) {
-		*reason = "Cannot start kernel from non-starting state";
-		stop_kernel_layer(layer);
-		return UDS_BAD_STATE;
-	}
 
 	set_kernel_layer_state(layer, LAYER_STARTING);
 	result = load_vdo(&layer->vdo);
@@ -644,26 +624,6 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 
 	set_kernel_layer_state(layer, LAYER_RUNNING);
-	kobject_init(&layer->vdo.stats_directory, &stats_directory_type);
-	result = kobject_add(&layer->vdo.stats_directory,
-			     &layer->vdo.vdo_directory,
-			     "statistics");
-	if (result != 0) {
-		*reason = "Cannot add sysfs statistics node";
-		stop_kernel_layer(layer);
-		return result;
-	}
-	layer->vdo.stats_added = true;
-
-	if (layer->vdo.device_config->deduplication) {
-		// Don't try to load or rebuild the index first (and log
-		// scary error messages) if this is known to be a
-		// newly-formatted volume.
-		start_vdo_dedupe_index(layer->vdo.dedupe_index,
-				       vdo_was_new(&layer->vdo));
-	}
-
-	layer->vdo.allocations_allowed = false;
 	return VDO_SUCCESS;
 }
 

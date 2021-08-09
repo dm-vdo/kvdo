@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#166 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#167 $
  */
 
 /*
@@ -41,6 +41,7 @@
 #include "numUtils.h"
 #include "packer.h"
 #include "physicalZone.h"
+#include "poolSysfs.h"
 #include "readOnlyNotifier.h"
 #include "recoveryJournal.h"
 #include "releaseVersions.h"
@@ -152,6 +153,39 @@ void destroy_vdo(struct vdo *vdo)
 		kobject_put(&vdo->work_queue_directory);
 		kobject_put(&vdo->vdo_directory);
 	}
+}
+
+/**
+ * Signal that sysfs stats have been shut down.
+ *
+ * @param directory  The vdo stats directory
+ **/
+static void pool_stats_release(struct kobject *directory)
+{
+	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
+	complete(&vdo->stats_shutdown);
+}
+
+/**********************************************************************/
+int add_vdo_sysfs_stats_dir(struct vdo *vdo)
+{
+	int result;
+	static struct kobj_type stats_directory_type = {
+		.release = pool_stats_release,
+		.sysfs_ops = &vdo_pool_stats_sysfs_ops,
+		.default_attrs = vdo_pool_stats_attrs,
+	};
+
+	kobject_init(&vdo->stats_directory, &stats_directory_type);
+	result = kobject_add(&vdo->stats_directory,
+			     &vdo->vdo_directory,
+			     "statistics");
+	if (result != 0) {
+		return VDO_CANT_ADD_SYSFS_NODE;
+	}
+
+	vdo->stats_added = true;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/

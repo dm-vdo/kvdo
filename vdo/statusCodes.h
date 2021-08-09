@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.h#8 $
  */
 
 #ifndef STATUS_CODES_H
@@ -114,6 +114,8 @@ enum vdo_status_codes {
 	VDO_JOURNAL_OVERFLOW,
 	/** the VDO is not in a state to perform an admin operation */
 	VDO_INVALID_ADMIN_STATE,
+	/** failure adding a sysfs node */
+	VDO_CANT_ADD_SYSFS_NODE,
 	/** one more than last error code */
 	VDO_STATUS_CODE_LAST,
 	VDO_STATUS_CODE_BLOCK_END = VDO_BLOCK_END
