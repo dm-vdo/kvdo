@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#10 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#11 $
  */
 
 #include "indexSession.h"
@@ -216,6 +216,7 @@ int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
 int udsSuspendIndexSession(struct uds_index_session *session, bool save)
 {
   int result;
+  bool flushIndex = false;
   bool saveIndex = false;
   bool suspendIndex = false;
   lockMutex(&session->requestMutex);
@@ -233,12 +234,20 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
     suspendIndex = true;
     result = UDS_SUCCESS;
   } else if (!(session->state & IS_FLAG_LOADED)) {
-    session->state |= IS_FLAG_SUSPENDED;
-    broadcastCond(&session->requestCond);
+    if (session->router != NULL) { 
+      flushIndex = true;
+      session->state |= IS_FLAG_WAITING;
+    } else {
+      session->state |= IS_FLAG_SUSPENDED;
+      broadcastCond(&session->requestCond);
+    }
     result = UDS_SUCCESS;
   } else {
     saveIndex = save;
     if (saveIndex) {
+      session->state |= IS_FLAG_WAITING;
+    } else if (session->router != NULL) { 
+      flushIndex = true;
       session->state |= IS_FLAG_WAITING;
     } else {
       session->state |= IS_FLAG_SUSPENDED;
@@ -248,7 +257,17 @@ int udsSuspendIndexSession(struct uds_index_session *session, bool save)
   }
   unlockMutex(&session->requestMutex);
 
-  if (!saveIndex && !suspendIndex) {
+  if (!saveIndex && !suspendIndex && !flushIndex) {
+    return result;
+  }
+
+  if (flushIndex) {
+    result = udsFlushIndexSession(session);
+    lockMutex(&session->requestMutex);
+    session->state &= ~IS_FLAG_WAITING;
+    session->state |= IS_FLAG_SUSPENDED;
+    broadcastCond(&session->requestCond);
+    unlockMutex(&session->requestMutex);
     return result;
   }
 

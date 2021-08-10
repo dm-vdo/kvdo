@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.5.71
+%define kmod_driver_version	6.2.5.72
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -96,6 +96,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
-* Thu Aug 05 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.71-1
-- Reduced context switches when a vdo is idle.
-  
+* Tue Aug 10 2021 - Red Hat VDO Team <vdo-devel@redhat.com> - 6.2.5.72-1
+- Fixed a bug which could result in the UDS index issuing I/O while
+  suspended.
