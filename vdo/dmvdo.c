@@ -16,10 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#146 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#147 $
  */
-
-#include "dmvdo.h"
 
 #include <linux/module.h>
 
@@ -43,8 +41,6 @@
 #include "vdo.h"
 #include "vdoInit.h"
 #include "vdoLoad.h"
-
-enum vdo_module_status vdo_module_status;
 
 /**********************************************************************/
 
@@ -732,10 +728,6 @@ static void vdo_destroy(void)
 {
 	uds_log_debug("in %s", __func__);
 
-	vdo_module_status = VDO_MODULE_SHUTTING_DOWN;
-
-	vdo_module_status = VDO_MODULE_UNINITIALIZED;
-
 	if (dm_registered) {
 		dm_unregister_target(&vdo_target_bio);
 	}
@@ -769,11 +761,8 @@ static int __init vdo_init(void)
 	}
 	dm_registered = true;
 
-	vdo_module_status = VDO_MODULE_UNINITIALIZED;
-
 	initialize_vdo_instance_number_tracking();
 
-	vdo_module_status = VDO_MODULE_READY;
 	return result;
 }
 
