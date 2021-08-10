@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#40 $
  */
 
 #include "adminState.h"
@@ -196,19 +196,6 @@ static inline bool __must_check
 is_vdo_state_operating(const struct admin_state *state)
 {
 	return get_vdo_admin_state_code(state)->operating;
-}
-
-/**
- * Check whether an admin_state_code is a quiescent operation.
- *
- * @param code  The code to check
- *
- * @return <code>true</code> if the code is a quiescent operation
- **/
-static inline bool __must_check
-is_vdo_quiescent_operation(const struct admin_state_code *code)
-{
-	return (code->quiescent && code->operating);
 }
 
 /**
