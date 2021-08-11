@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMappingState.h#7 $
  */
 
 #ifndef BLOCK_MAPPING_STATE_H
 #define BLOCK_MAPPING_STATE_H
 
-#include "common.h"
+#include "typeDefs.h"
 
 /**
  * Four bits of each five-byte block map entry contain a mapping state value
