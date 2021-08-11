@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#67 $
  */
 
 /**
@@ -276,6 +276,7 @@ static void continue_data_vio_in(struct data_vio *data_vio,
 static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 {
 	struct hash_lock *old_lock = data_vio->hash_lock;
+
 	if (old_lock != NULL) {
 		ASSERT_LOG_ONLY(
 			data_vio->hash_zone != NULL,
@@ -349,6 +350,7 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
 {
 	struct data_vio *old_agent = lock->agent;
 	struct data_vio *new_agent = dequeue_lock_waiter(lock);
+
 	set_agent(lock, new_agent);
 	exit_hash_lock(old_agent);
 	if (new_agent != NULL) {
@@ -417,6 +419,7 @@ static void compress_waiter(struct waiter *waiter,
 			    void *context __always_unused)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+
 	data_vio->is_duplicate = false;
 	vio_compress_data(data_vio);
 }
@@ -432,6 +435,7 @@ static void finish_bypassing(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_hash_lock_agent(agent, __func__);
 
 	ASSERT_LOG_ONLY(lock->duplicate_lock == NULL,
@@ -528,6 +532,7 @@ static void finish_unlocking(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_hash_lock_agent(agent, __func__);
 
 	ASSERT_LOG_ONLY(
@@ -589,6 +594,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_data_vio_in_duplicate_zone(agent);
 
 	ASSERT_LOG_ONLY(lock->duplicate_lock != NULL,
@@ -636,6 +642,7 @@ static void finish_updating(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_hash_lock_agent(agent, __func__);
 
 	if (completion->result != VDO_SUCCESS) {
@@ -889,6 +896,7 @@ static void finish_verifying(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_hash_lock_agent(agent, __func__);
 
 	if (completion->result != VDO_SUCCESS) {
@@ -962,7 +970,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	 * zone and continuation we want to use depends on the outcome of the
 	 * comparison. If we could choose which path in the layer thread before
 	 * continuing, we could save a thread transition in one of the two
-	 * cases (assuming we're willing to delay visibility of the the hash
+	 * cases (assuming we're willing to delay visibility of the hash
 	 * lock state change).
 	 */
 	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
@@ -982,6 +990,7 @@ static void finish_locking(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
+
 	assert_hash_lock_agent(agent, __func__);
 
 	if (completion->result != VDO_SUCCESS) {
@@ -1143,8 +1152,9 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	if (lock->holder_count == 0) {
 		// Ensure that the newly-locked block is referenced.
 		struct vdo_slab *slab = get_vdo_slab(depot, agent->duplicate.pbn);
+
 		result = vdo_acquire_provisional_reference(slab,
-						       	   agent->duplicate.pbn,
+							   agent->duplicate.pbn,
 							   lock);
 		if (result != VDO_SUCCESS) {
 			uds_log_warning_strerror(result,
@@ -1309,7 +1319,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 		// Use the lower-level enqueue since we're just moving waiters
 		// around.
 		result = enqueue_waiter(&temp_queue,
-				        data_vio_as_waiter(data_vio));
+					data_vio_as_waiter(data_vio));
 		// The only error is the data_vio already being on a wait queue,
 		// and since we just dequeued it, that could only happen due to
 		// a memory smash or concurrent use of that data_vio.
@@ -1464,6 +1474,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
 void enter_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
+
 	switch (lock->state) {
 	case VDO_HASH_LOCK_INITIALIZING:
 		start_querying(lock, data_vio);
@@ -1604,6 +1615,7 @@ int acquire_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock;
 	int result = assert_hash_lock_preconditions(data_vio);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -1632,6 +1644,7 @@ int acquire_vdo_hash_lock(struct data_vio *data_vio)
 void release_vdo_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
+
 	if (lock == NULL) {
 		return;
 	}

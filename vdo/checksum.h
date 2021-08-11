@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/checksum.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/checksum.h#3 $
  */
 
 #ifndef CHECKSUM_H
@@ -47,7 +47,7 @@ enum {
  **/
 static inline crc32_checksum_t vdo_update_crc32(crc32_checksum_t crc,
 						const byte *buffer,
-			                	size_t length)
+						size_t length)
 {
 	/*
 	 * The kernel's CRC 32 implementation does not do pre- and post-

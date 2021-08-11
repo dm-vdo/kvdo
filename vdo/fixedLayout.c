@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#31 $
  */
 
 #include "fixedLayout.h"
@@ -79,6 +79,7 @@ int make_vdo_fixed_layout(block_count_t total_blocks,
 {
 	struct fixed_layout *layout;
 	int result = UDS_ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -101,6 +102,7 @@ void free_vdo_fixed_layout(struct fixed_layout *layout)
 
 	while (layout->head != NULL) {
 		struct partition *part = layout->head;
+
 		layout->head = part->next;
 		UDS_FREE(part);
 	}
@@ -113,6 +115,7 @@ block_count_t get_total_vdo_fixed_layout_size(const struct fixed_layout *layout)
 {
 	block_count_t size = get_vdo_fixed_layout_blocks_available(layout);
 	struct partition *partition;
+
 	for (partition = layout->head; partition != NULL;
 	     partition = partition->next) {
 		size += partition->count;
@@ -127,6 +130,7 @@ int vdo_get_partition(struct fixed_layout *layout,
 		      struct partition **partition_ptr)
 {
 	struct partition *partition;
+
 	for (partition = layout->head; partition != NULL;
 	     partition = partition->next) {
 		if (partition->id == id) {
@@ -146,6 +150,7 @@ int vdo_translate_to_pbn(const struct partition *partition,
 			 physical_block_number_t *layer_block_number)
 {
 	physical_block_number_t offset_from_base;
+
 	if (partition == NULL) {
 		*layer_block_number = partition_block_number;
 		return VDO_SUCCESS;
@@ -243,6 +248,7 @@ int make_vdo_fixed_layout_partition(struct fixed_layout *layout,
 	physical_block_number_t offset;
 
 	block_count_t free_blocks = layout->last_free - layout->first_free;
+
 	if (block_count == VDO_ALL_FREE_BLOCKS) {
 		if (free_blocks == 0) {
 			return VDO_NO_SPACE;
@@ -322,10 +328,12 @@ static int encode_partitions_3_0(const struct fixed_layout *layout,
 				 struct buffer *buffer)
 {
 	const struct partition *partition;
+
 	for (partition = layout->head;
 	     partition != NULL;
 	     partition = partition->next) {
 		int result;
+
 		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(byte));
 		result = put_byte(buffer, partition->id);
 		if (result != UDS_SUCCESS) {
@@ -439,10 +447,12 @@ static int decode_partitions_3_0(struct buffer *buffer,
 				 struct fixed_layout *layout)
 {
 	size_t i;
+
 	for (i = 0; i < layout->num_partitions; i++) {
 		byte id;
 		uint64_t offset, base, count;
 		int result = get_byte(buffer, &id);
+
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -487,6 +497,7 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 	byte partition_count;
 
 	int result = get_uint64_le_from_buffer(buffer, &first_free);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -521,6 +532,7 @@ int decode_vdo_fixed_layout(struct buffer *buffer,
 	struct fixed_layout *layout;
 
 	int result = decode_vdo_header(buffer, &header);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

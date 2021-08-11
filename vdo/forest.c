@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#52 $
  */
 
 #include "forest.h"
@@ -96,11 +96,13 @@ struct tree_page *get_vdo_tree_page_by_index(struct forest *forest,
 {
 	page_number_t offset = 0;
 	size_t segment;
+
 	for (segment = 0; segment < forest->segments; segment++) {
 		page_number_t border =
 			forest->boundaries[segment].levels[height - 1];
 		if (page_index < border) {
 			struct block_map_tree *tree = &forest->trees[root_index];
+
 			return &(tree->segments[segment]
 				 .levels[height - 1][page_index - offset]);
 		}
@@ -230,6 +232,7 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 
 	for (root = 0; root < forest->map->root_count; root++) {
 		struct block_map_tree *tree = &(forest->trees[root]);
+
 		UDS_FREE(tree->segments);
 	}
 
@@ -290,6 +293,7 @@ void free_vdo_forest(struct forest *forest)
 void abandon_vdo_forest(struct block_map *map)
 {
 	struct forest *forest = map->next_forest;
+
 	map->next_forest = NULL;
 	if (forest != NULL) {
 		deforest(forest, forest->segments - 1);
@@ -346,6 +350,7 @@ static void continue_traversal(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *pool_entry = completion->parent;
 	struct cursor *cursor = pool_entry->parent;
+
 	traverse(cursor);
 }
 
@@ -473,6 +478,7 @@ static void traverse(struct cursor *cursor)
 static void launch_cursor(struct waiter *waiter, void *context)
 {
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
+
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
 	vio_as_completion(cursor->vio_pool_entry->vio)->callback_thread_id =
@@ -504,6 +510,7 @@ static struct boundary compute_boundary(struct block_map *map,
 	 */
 	page_count_t last_tree_root = (leaf_pages - 1) % map->root_count;
 	page_count_t level_pages = leaf_pages / map->root_count;
+
 	if (root_index <= last_tree_root) {
 		level_pages++;
 	}

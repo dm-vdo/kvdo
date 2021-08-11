@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#61 $
  */
 
 #include "dataVIO.h"
@@ -127,9 +127,11 @@ void prepare_data_vio(struct data_vio *data_vio,
 void complete_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	if (completion->result != VDO_SUCCESS) {
 		struct vio *vio = data_vio_as_vio(data_vio);
 		char vio_operation[VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+
 		get_vio_operation_description(vio, vio_operation);
 		update_vio_error_stats(vio,
 				       "Completing %s vio for LBN %llu with error after %s",
@@ -149,6 +151,7 @@ void complete_data_vio(struct vdo_completion *completion)
 void finish_data_vio(struct data_vio *data_vio, int result)
 {
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
 	set_vdo_completion_result(completion, result);
 	complete_data_vio(completion);
 }
@@ -322,6 +325,7 @@ static void release_lock(struct data_vio *data_vio)
 		// The lock is not locked, so it had better not be registered
 		// in the lock map.
 		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
+
 		ASSERT_LOG_ONLY((data_vio != lock_holder),
 				"no logical block lock held for block %llu",
 				(unsigned long long) lock->lbn);

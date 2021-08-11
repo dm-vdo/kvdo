@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#47 $
  */
 
 #include "actionManager.h"
@@ -138,6 +138,7 @@ int make_vdo_action_manager(zone_count_t zones,
 {
 	struct action_manager *manager;
 	int result = UDS_ALLOCATE(1, struct action_manager, __func__, &manager);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -232,6 +233,7 @@ static void apply_to_zone(struct vdo_completion *completion)
 {
 	zone_count_t zone;
 	struct action_manager *manager = as_action_manager(completion);
+
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 get_acting_zone_thread_id(manager)),
 			"apply_to_zone() called on acting zones's thread");
@@ -271,6 +273,7 @@ static void launch_current_action(struct action_manager *manager)
 {
 	struct action *action = manager->current_action;
 	int result = start_vdo_operation(&manager->state, action->operation);
+
 	if (result != VDO_SUCCESS) {
 		if (action->parent != NULL) {
 			set_vdo_completion_result(action->parent, result);
@@ -320,6 +323,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	int result;
 	struct action_manager *manager = as_action_manager(completion);
 	struct action action = *(manager->current_action);
+
 	manager->current_action->in_use = false;
 	manager->current_action = manager->current_action->next;
 
@@ -384,6 +388,7 @@ schedule_vdo_operation_with_context(struct action_manager *manager,
 				    struct vdo_completion *parent)
 {
 	struct action *current_action;
+
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 manager->initiator_thread_id),
 			"action initiated from correct thread");

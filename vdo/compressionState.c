@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#24 $
  */
 
 #include "compressionState.h"
@@ -32,6 +32,7 @@ static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 struct vio_compression_state get_vio_compression_state(struct data_vio *data_vio)
 {
 	uint32_t packed = atomic_read(&data_vio->compression.state);
+
 	smp_rmb();
 	return (struct vio_compression_state) {
 		.status = packed & STATUS_MASK,
@@ -95,6 +96,7 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 		struct vio_compression_state state =
 			get_vio_compression_state(data_vio);
 		struct vio_compression_state new_state = state;
+
 		if (state.status == VIO_POST_PACKER) {
 			// We're already in the last state.
 			return state.status;
@@ -199,6 +201,7 @@ void set_vio_compression_done(struct data_vio *data_vio)
 bool cancel_vio_compression(struct data_vio *data_vio)
 {
 	struct vio_compression_state state, new_state;
+
 	for (;;) {
 		state = get_vio_compression_state(data_vio);
 		if (state.may_not_compress ||

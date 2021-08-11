@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#16 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -67,6 +67,7 @@ unpack_vdo_block_map_entry(const struct block_map_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
+
 	return (struct data_location) {
 		.pbn = ((high4 << 32) | low32),
 		.state = entry->mapping_state,

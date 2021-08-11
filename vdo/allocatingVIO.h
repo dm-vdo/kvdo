@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#37 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -181,6 +181,7 @@ assert_vio_in_physical_zone(struct allocating_vio *allocating_vio)
 	thread_id_t expected =
 		get_vdo_physical_zone_thread_id(allocating_vio->zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
+
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"struct allocating_vio for allocated physical block %llu on thread %u, should be on thread %u",
 			(unsigned long long) allocating_vio->allocation,

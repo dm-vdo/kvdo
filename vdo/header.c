@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#13 $
  */
 
 #include "header.h"
@@ -49,6 +49,7 @@ int validate_vdo_header(const struct header *expected_header,
 			const char *component_name)
 {
 	int result;
+
 	if (expected_header->id != actual_header->id) {
 		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
@@ -102,6 +103,7 @@ int encode_vdo_version_number(struct version_number version,
 			      struct buffer *buffer)
 {
 	struct packed_version_number packed = pack_vdo_version_number(version);
+
 	return put_bytes(buffer, sizeof(packed), &packed);
 }
 
@@ -113,6 +115,7 @@ int decode_vdo_header(struct buffer *buffer, struct header *header)
 	struct version_number version;
 
 	int result = get_uint32_le_from_buffer(buffer, &id);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -141,6 +144,7 @@ int decode_vdo_version_number(struct buffer *buffer,
 {
 	struct packed_version_number packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

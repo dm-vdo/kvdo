@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#45 $
  */
 
 #include "adminCompletion.h"
@@ -47,6 +47,7 @@ struct admin_completion *
 vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
+
 	assert_vdo_completion_type(completion->type, VDO_SUB_TASK_COMPLETION);
 	assert_vdo_completion_type(parent->type, VDO_ADMIN_COMPLETION);
 	return container_of(parent, struct admin_completion, completion);
@@ -120,6 +121,7 @@ void prepare_vdo_admin_sub_task(struct vdo *vdo,
 				vdo_action *error_handler)
 {
 	struct admin_completion *admin_completion = &vdo->admin_completion;
+
 	prepare_vdo_admin_sub_task_on_thread(vdo,
 					     callback, error_handler,
 					     admin_completion->completion.callback_thread_id);
@@ -134,6 +136,7 @@ void prepare_vdo_admin_sub_task(struct vdo *vdo,
 static void admin_operation_callback(struct vdo_completion *vdo_completion)
 {
 	struct admin_completion *completion;
+
 	assert_vdo_completion_type(vdo_completion->type, VDO_ADMIN_COMPLETION);
 	completion = container_of(vdo_completion,
 				  struct admin_completion,
@@ -151,6 +154,7 @@ perform_vdo_admin_operation(struct vdo *vdo,
 {
 	int result;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
+
 	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0) {
 		return uds_log_error_strerror(VDO_COMPONENT_BUSY,
 					      "Can't start admin operation of type %u, another operation is already in progress",

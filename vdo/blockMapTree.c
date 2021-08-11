@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#110 $
  */
 
 #include "blockMapTree.h"
@@ -114,6 +114,7 @@ int vdo_initialize_tree_zone(struct block_map_zone *zone,
 	int result;
 
 	struct block_map_tree_zone *tree_zone = &zone->tree_zone;
+
 	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
 	tree_zone->map_zone = zone;
 
@@ -318,6 +319,7 @@ static void set_generation(struct block_map_tree_zone *zone,
 	int result;
 
 	uint8_t old_generation = page->generation;
+
 	if (decrement_old && (old_generation == new_generation)) {
 		return;
 	}
@@ -365,6 +367,7 @@ static void write_page_callback(struct waiter *waiter, void *context)
 static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
 	int result;
+
 	waiter->callback = write_page_callback;
 	result = acquire_vio_from_pool(zone->vio_pool, waiter);
 	if (result != VDO_SUCCESS) {
@@ -383,6 +386,7 @@ static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 static bool attempt_increment(struct block_map_tree_zone *zone)
 {
 	uint8_t generation = zone->generation + 1;
+
 	if (zone->oldest_generation == generation) {
 		return false;
 	}
@@ -428,6 +432,7 @@ static void write_page_if_not_dirtied(struct waiter *waiter, void *context)
 {
 	struct tree_page *page = container_of(waiter, struct tree_page, waiter);
 	struct write_if_not_dirtied_context *write_context = context;
+
 	if (page->generation == write_context->generation) {
 		acquire_vio(waiter, write_context->zone);
 		return;
@@ -462,6 +467,7 @@ static void finish_page_write(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct tree_page *page = entry->parent;
 	struct block_map_tree_zone *zone = entry->context;
+
 	release_vdo_recovery_journal_block_reference(zone->map_zone->block_map->journal,
 						     page->writing_recovery_lock,
 						     VDO_ZONE_TYPE_LOGICAL,
@@ -513,6 +519,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vio_pool_entry *entry = completion->parent;
 	struct block_map_tree_zone *zone = entry->context;
+
 	enter_zone_read_only_mode(zone, result);
 	return_to_pool(zone, entry);
 }
@@ -536,6 +543,7 @@ static void write_initialized_page(struct vdo_completion *completion)
 	 * after this write succeeds.
 	 */
 	struct block_map_page *page = (struct block_map_page *) entry->buffer;
+
 	mark_vdo_block_map_page_initialized(page, true);
 	launch_write_metadata_vio_with_flush(entry->vio,
 					     get_vdo_block_map_page_pbn(page),
@@ -602,10 +610,12 @@ static void write_dirty_pages_callback(struct list_head *expired, void *context)
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) context;
 	uint8_t generation = zone->generation;
+
 	while (!list_empty(expired)) {
 		int result;
 		struct list_head *entry = expired->next;
 		struct tree_page *page = tree_page_from_list_entry(entry);
+
 		list_del_init(entry);
 
 		result = ASSERT(!is_waiting(&page->waiter),
@@ -651,6 +661,7 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 	struct tree_lock *lock_holder;
 
 	struct tree_lock *lock = &data_vio->tree_lock;
+
 	ASSERT_LOG_ONLY(lock->locked,
 			"release of unlocked block map page %s for key %llu in tree %u",
 			what, (unsigned long long) lock->key,
@@ -675,6 +686,7 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 {
 	struct block_map_tree_zone *zone;
 	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
 	data_vio->tree_lock.height = 0;
 
 	zone = get_block_map_tree_zone(data_vio);
@@ -697,6 +709,7 @@ static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	int result = *((int *) context);
+
 	if (is_read_data_vio(data_vio)) {
 		if (result == VDO_NO_SPACE) {
 			result = VDO_SUCCESS;
@@ -793,7 +806,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	struct data_location mapping =
 		unpack_vdo_block_map_entry(&page->entries[slot.block_map_slot.slot]);
 	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
-			          lock->height)) {
+				  lock->height)) {
 		uds_log_error_strerror(VDO_BAD_MAPPING,
 				       "Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 				       (unsigned long long) mapping.pbn,
@@ -831,6 +844,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 static void continue_load_for_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+
 	data_vio->tree_lock.height--;
 	continue_with_loaded_page(data_vio, (struct block_map_page *) context);
 }
@@ -853,6 +867,7 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	struct block_map_tree_zone *zone =
 		(struct block_map_tree_zone *) entry->context;
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
+
 	tree_lock->height--;
 	pbn = tree_lock->tree_slots[tree_lock->height].block_map_slot.pbn;
 	tree_page = get_tree_page(zone, tree_lock);
@@ -929,6 +944,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	height_t height = lock->height;
 	struct block_map_tree_slot tree_slot = lock->tree_slots[height];
 	page_key key;
+
 	key.descriptor = (struct page_descriptor) {
 		.root_index = lock->root_index,
 		.height = height,
@@ -963,6 +979,7 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 				struct data_vio *data_vio)
 {
 	int result = attempt_page_lock(zone, data_vio);
+
 	if (result != VDO_SUCCESS) {
 		abort_load(data_vio, result);
 		return;
@@ -970,6 +987,7 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 
 	if (data_vio->tree_lock.locked) {
 		struct waiter *waiter = data_vio_as_waiter(data_vio);
+
 		waiter->callback = load_page;
 		result = acquire_vio_from_pool(zone->vio_pool, waiter);
 		if (result != VDO_SUCCESS) {
@@ -1012,6 +1030,7 @@ static void abort_allocation(struct data_vio *data_vio, int result)
 static void allocation_failure(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	abort_allocation(data_vio, completion->result);
 }
@@ -1059,6 +1078,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	height_t height = tree_lock->height;
+
 	assert_data_vio_in_logical_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
 		allocation_failure(completion);
@@ -1154,6 +1174,7 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct tree_lock *lock = &data_vio->tree_lock;
+
 	assert_data_vio_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
 		launch_data_vio_logical_callback(data_vio, allocation_failure);
@@ -1176,6 +1197,7 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 static void journal_block_map_allocation(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
 		launch_data_vio_logical_callback(data_vio, allocation_failure);
@@ -1260,6 +1282,7 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 	struct block_map_page *page = NULL;
 	struct tree_lock *lock = &data_vio->tree_lock;
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
+
 	zone->active_lookups++;
 	if (is_vdo_state_draining(&zone->map_zone->state)) {
 		finish_lookup(data_vio, VDO_SHUTTING_DOWN);
@@ -1279,6 +1302,7 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 	for (lock->height = 1; lock->height <= VDO_BLOCK_MAP_TREE_HEIGHT;
 	     lock->height++) {
 		physical_block_number_t pbn;
+
 		lock->tree_slots[lock->height] = tree_slot;
 		page = (struct block_map_page *) (get_tree_page(zone, lock)->page_buffer);
 		pbn = get_vdo_block_map_page_pbn(page);
@@ -1338,6 +1362,7 @@ physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
 	root_count_t root_index = page_number % map->root_count;
 	page_number_t page_index = page_number / map->root_count;
 	slot_number_t slot = page_index % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+
 	page_index /= VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
 	tree_page =
@@ -1360,6 +1385,7 @@ void vdo_write_tree_page(struct tree_page *page,
 			 struct block_map_tree_zone *zone)
 {
 	bool waiting = is_waiting(&page->waiter);
+
 	if (waiting && (zone->flusher == page)) {
 		return;
 	}

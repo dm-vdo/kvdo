@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/instanceNumber.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/instanceNumber.c#4 $
  */
 
 #include "instanceNumber.h"
@@ -135,6 +135,7 @@ static int allocate_vdo_instance_locked(unsigned int *instance_ptr)
 int allocate_vdo_instance(unsigned int *instance_ptr)
 {
 	int result;
+
 	mutex_lock(&instance_number_lock);
 	result = allocate_vdo_instance_locked(instance_ptr);
 

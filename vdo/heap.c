@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#9 $
  */
 
 #include "heap.h"
@@ -50,12 +50,15 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 {
 	// Keep sifting until the sub-heap rooted at top_node has no children.
 	size_t left_child;
+
 	while ((left_child = (2 * top_node)) <= last_node) {
 		// If there are two children, select the largest child to swap
 		// with.
 		size_t swap_node = left_child;
+
 		if (left_child < last_node) {
 			size_t right_child = left_child + heap->element_size;
+
 			if (heap->comparator(&heap->array[left_child],
 					     &heap->array[right_child])
 			    < 0) {
@@ -164,7 +167,7 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node,
 	 * top of the heap. That element belongs at the start of the
 	 * partially-sorted array, preceding all the larger elements that we've
 	 * already removed from the heap. Swap that largest unsorted element
-	 * with the the right-most leaf node in the heap, moving it to its
+	 * with the right-most leaf node in the heap, moving it to its
 	 * sorted position in the array.
 	 */
 	heap->swapper(&heap->array[root_node], &heap->array[last_node]);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceRegistry.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceRegistry.c#3 $
  */
 
 #include "deviceRegistry.h"
@@ -115,6 +115,7 @@ void unregister_vdo(struct vdo *vdo)
 struct vdo *find_vdo_matching(vdo_filter_t *filter, void *context)
 {
 	struct vdo *vdo;
+
 	read_lock(&registry.lock);
 	vdo = filter_vdos_locked(filter, context);
 	read_unlock(&registry.lock);

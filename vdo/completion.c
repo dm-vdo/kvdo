@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#37 $
  */
 
 #include "completion.h"
@@ -104,6 +104,7 @@ static inline bool __must_check
 requires_enqueue(struct vdo_completion *completion)
 {
 	thread_id_t callback_thread = completion->callback_thread_id;
+
 	if (completion->requeue) {
 		completion->requeue = false;
 		return true;
@@ -170,6 +171,7 @@ get_vdo_completion_type_name(enum vdo_completion_type completion_type)
 
 	if (completion_type >= VDO_MAX_COMPLETION_TYPE) {
 		static char numeric[100];
+
 		snprintf(numeric,
 			 99,
 			 "%d (%#x)",

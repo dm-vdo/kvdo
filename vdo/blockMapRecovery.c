@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#53 $
  */
 
 #include "blockMapRecovery.h"
@@ -161,6 +161,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
+
 	UDS_FREE(as_block_map_recovery_completion(UDS_FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
@@ -284,6 +285,7 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 		 * through the ready ones.
 		 */
 		size_t i;
+
 		for (i = 0; i < recovery->page_count; i++) {
 			struct vdo_page_completion *page_completion =
 				&recovery->page_completions[i];
@@ -369,6 +371,7 @@ apply_journal_entries_to_page(struct block_map_page *page,
 			      struct numbered_block_mapping *ending_entry)
 {
 	struct numbered_block_mapping *current_entry = starting_entry;
+
 	while (current_entry != ending_entry) {
 		page->entries[current_entry->block_map_slot.slot] =
 			current_entry->block_map_entry;
@@ -419,6 +422,7 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 		       struct vdo_completion *completion)
 {
 	physical_block_number_t new_pbn;
+
 	if (recovery->current_unfetched_entry < recovery->journal_entries) {
 		// Nothing left to fetch.
 		return;
@@ -486,6 +490,7 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 		struct block_map_page *page =
 			dereference_writable_vdo_page(completion);
 		int result = ASSERT(page != NULL, "page available");
+
 		if (result != VDO_SUCCESS) {
 			abort_recovery(recovery, result);
 			return;

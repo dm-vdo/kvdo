@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapFormat.c#12 $
  */
 
 #include "blockMapFormat.h"
@@ -55,6 +55,7 @@ int decode_vdo_block_map_state_2_0(struct buffer *buffer,
 	physical_block_number_t flat_page_origin, root_origin;
 	struct header header;
 	int result = decode_vdo_header(buffer, &header);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -131,6 +132,7 @@ int encode_vdo_block_map_state_2_0(struct block_map_state_2_0 state,
 {
 	size_t initial_length, encoded_size;
 	int result = encode_vdo_header(&VDO_BLOCK_MAP_HEADER_2_0, buffer);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -179,8 +181,10 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 	page_count_t level_size = compute_bucket_count(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
+
 	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		block_count_t new_pages;
+
 		level_size = compute_bucket_count(level_size,
 						  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;

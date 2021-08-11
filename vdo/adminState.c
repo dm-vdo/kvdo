@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#41 $
  */
 
 #include "adminState.h"
@@ -405,6 +405,7 @@ bool start_vdo_draining(struct admin_state *state,
 			vdo_admin_initiator *initiator)
 {
 	const struct admin_state_code *code = get_vdo_admin_state_code(state);
+
 	if (!assert_vdo_drain_operation(operation, waiter)) {
 		return false;
 	}

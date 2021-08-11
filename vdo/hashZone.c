@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#47 $
  */
 
 #include "hashZone.h"
@@ -95,6 +95,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 	vio_count_t i;
 	struct hash_zone *zone;
 	int result = UDS_ALLOCATE(1, struct hash_zone, __func__, &zone);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -108,7 +109,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_hash_zone_thread(get_vdo_thread_config(vdo),
-					           zone_number);
+						   zone_number);
 	INIT_LIST_HEAD(&zone->lock_pool);
 
 	result = UDS_ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
@@ -120,6 +121,7 @@ int make_vdo_hash_zone(struct vdo *vdo, zone_count_t zone_number,
 
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		struct hash_lock *lock = &zone->lock_array[i];
+
 		initialize_vdo_hash_lock(lock);
 		list_add_tail(&lock->pool_node, &zone->lock_pool);
 	}
@@ -157,6 +159,7 @@ struct hash_lock_statistics
 get_vdo_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct hash_lock_statistics *stats = &zone->statistics;
+
 	return (struct hash_lock_statistics) {
 		.dedupe_advice_valid =
 			READ_ONCE(stats->dedupe_advice_valid),
@@ -333,6 +336,7 @@ void bump_vdo_hash_zone_collision_count(struct hash_zone *zone)
 void dump_vdo_hash_zone(const struct hash_zone *zone)
 {
 	vio_count_t i;
+
 	if (zone->hash_lock_map == NULL) {
 		uds_log_info("struct hash_zone %u: NULL map", zone->zone_number);
 		return;

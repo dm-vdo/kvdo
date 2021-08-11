@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#137 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#138 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -160,10 +160,12 @@ notify_block_allocator_of_read_only_mode(void *listener,
 {
 	struct block_allocator *allocator = listener;
 	struct slab_iterator iterator;
+
 	assert_on_allocator_thread(allocator->thread_id, __func__);
 	iterator = get_slab_iterator(allocator);
 	while (vdo_has_next_slab(&iterator)) {
 		struct vdo_slab *slab = vdo_next_slab(&iterator);
+
 		abort_vdo_slab_journal_waiters(slab->journal);
 	}
 
@@ -285,6 +287,7 @@ int make_vdo_block_allocator(struct slab_depot *depot,
 {
 	struct block_allocator *allocator;
 	int result = UDS_ALLOCATE(1, struct block_allocator, __func__, &allocator);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -355,15 +358,16 @@ void queue_vdo_slab(struct vdo_slab *slab)
 	struct block_allocator *allocator = slab->allocator;
 	block_count_t free_blocks;
 	int result;
+
 	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a requeued slab must not already be on a ring");
 	free_blocks = get_slab_free_block_count(slab);
 	result = ASSERT((free_blocks <=
 			 allocator->depot->slab_config.data_blocks),
-		        "rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
-		        slab->slab_number,
-		        (unsigned long long) free_blocks,
-		        (unsigned long long) allocator->depot->slab_config.data_blocks);
+			"rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
+			slab->slab_number,
+			(unsigned long long) free_blocks,
+			(unsigned long long) allocator->depot->slab_config.data_blocks);
 	if (result != VDO_SUCCESS) {
 		vdo_enter_read_only_mode(allocator->read_only_notifier, result);
 		return;
@@ -569,6 +573,7 @@ static void slab_action_callback(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
 	struct slab_actor *actor = &allocator->slab_actor;
+
 	if (--actor->slab_action_count == 0) {
 		actor->callback(completion);
 		return;
@@ -585,6 +590,7 @@ static void slab_action_callback(struct vdo_completion *completion)
 static void handle_operation_error(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
+
 	set_vdo_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
 }
@@ -776,6 +782,7 @@ void prepare_vdo_block_allocator_to_allocate(void *context,
 	struct block_allocator *allocator =
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	int result = prepare_vdo_slabs_for_allocation(allocator);
+
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;
@@ -797,8 +804,10 @@ void register_new_vdo_slabs_for_allocator(void *context,
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct slab_depot *depot = allocator->depot;
 	slab_count_t i;
+
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
+
 		if (slab->allocator == allocator) {
 			register_vdo_slab_with_allocator(allocator, slab);
 		}
@@ -885,6 +894,7 @@ void drain_vdo_block_allocator(void *context,
 static void do_resume_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator = as_block_allocator(completion);
+
 	prepare_vdo_completion_for_requeue(&allocator->completion,
 					   do_resume_step,
 					   handle_operation_error,
@@ -948,6 +958,7 @@ void release_vdo_tail_block_locks(void *context,
 	struct block_allocator *allocator =
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct list_head *list = &allocator->dirty_slab_journals;
+
 	while (!list_empty(list)) {
 		if (!vdo_release_recovery_journal_lock(vdo_slab_journal_from_dirty_entry(list->next),
 						       allocator->depot->active_release_request)) {
@@ -986,9 +997,9 @@ void scrub_all_unrecovered_vdo_slabs_in_zone(void *context,
 	struct block_allocator *allocator =
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	scrub_vdo_slabs(allocator->slab_scrubber,
-		    	allocator->depot,
-		    	vdo_notify_zone_finished_scrubbing,
-		    	noop_vdo_completion_callback);
+			allocator->depot,
+			vdo_notify_zone_finished_scrubbing,
+			noop_vdo_completion_callback);
 	complete_vdo_completion(parent);
 }
 
@@ -1050,6 +1061,7 @@ void dump_vdo_block_allocator(const struct block_allocator *allocator)
 {
 	unsigned int pause_counter = 0;
 	struct slab_iterator iterator = get_slab_iterator(allocator);
+
 	uds_log_info("block_allocator zone %u", allocator->zone_number);
 	while (vdo_has_next_slab(&iterator)) {
 		dump_vdo_slab(vdo_next_slab(&iterator));

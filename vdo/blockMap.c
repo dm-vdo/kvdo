@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#117 $
  */
 
 #include "blockMap.h"
@@ -137,6 +137,7 @@ initialize_block_map_zone(struct block_map *map,
 	int result;
 
 	struct block_map_zone *zone = &map->zones[zone_number];
+
 	zone->zone_number = zone_number;
 	zone->thread_id =
 		vdo_get_logical_zone_thread(thread_config, zone_number);
@@ -187,6 +188,7 @@ static void prepare_for_era_advance(void *context,
 				    struct vdo_completion *parent)
 {
 	struct block_map *map = context;
+
 	map->current_era_point = map->pending_era_point;
 	complete_vdo_completion(parent);
 }
@@ -219,6 +221,7 @@ static void advance_block_map_zone_era(void *context,
 static bool schedule_era_advance(void *context)
 {
 	struct block_map *map = context;
+
 	if (map->current_era_point == map->pending_era_point) {
 		return false;
 	}
@@ -379,6 +382,7 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 {
 	struct block_map *map = get_block_map(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
+
 	page_number_t page_number
 		= vdo_compute_page_number(data_vio->logical.lbn);
 	tree_lock->tree_slots[0].page_index = page_number;
@@ -460,6 +464,7 @@ drain_zone(void *context, zone_count_t zone_number,
 	   struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
+
 	start_vdo_draining(&zone->state,
 			   get_current_vdo_manager_operation(zone->block_map->action_manager),
 			   parent,
@@ -485,6 +490,7 @@ static void resume_block_map_zone(void *context,
 				  struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = vdo_get_block_map_zone(context, zone_number);
+
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
@@ -564,6 +570,7 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 					  int result)
 {
 	struct vdo_completion *parent = completion->parent;
+
 	release_vdo_page_completion(completion);
 	continue_vdo_completion(parent, result);
 }
@@ -795,6 +802,7 @@ struct block_map_statistics get_vdo_block_map_statistics(struct block_map *map)
 {
 	zone_count_t zone = 0;
 	struct block_map_statistics totals;
+
 	memset(&totals, 0, sizeof(struct block_map_statistics));
 
 	for (zone = 0; zone < map->zone_count; zone++) {

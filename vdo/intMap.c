@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#15 $
  */
 
 /**
@@ -64,7 +64,7 @@
  * neighborhood.
  *
  * While individual accesses tend to be very fast, the table resize operations
- * are very very expensive. If an upper bound on the latency of adding an
+ * are very, very expensive. If an upper bound on the latency of adding an
  * entry to the table is needed, we either need to ensure the table is
  * pre-sized to be large enough so no resize is ever needed, or we'll need to
  * develop an approach to incrementally resize the table.
@@ -129,6 +129,7 @@ static uint64_t mix(uint64_t input1, uint64_t input2)
 	static const uint64_t CITY_MULTIPLIER = 0x9ddfea08eb382d69ULL;
 
 	uint64_t hash = (input1 ^ input2);
+
 	hash *= CITY_MULTIPLIER;
 	hash ^= (hash >> 47);
 	hash ^= input2;
@@ -269,6 +270,7 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 
 	// Handle the special case of adding a bucket at the start of the list.
 	int next_hop = neighborhood->first_hop;
+
 	if ((next_hop == NULL_HOP_OFFSET) || (next_hop > hop_offset)) {
 		new_bucket->next_hop = next_hop;
 		neighborhood->first_hop = hop_offset;
@@ -279,6 +281,7 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 	// order.
 	for (;;) {
 		struct bucket *bucket = dereference_hop(neighborhood, next_hop);
+
 		next_hop = bucket->next_hop;
 
 		if ((next_hop == NULL_HOP_OFFSET) || (next_hop > hop_offset)) {
@@ -333,10 +336,12 @@ search_hop_list(struct int_map *map __attribute__((unused)),
 {
 	struct bucket *previous = NULL;
 	unsigned int next_hop = bucket->first_hop;
+
 	while (next_hop != NULL_HOP_OFFSET) {
 		// Check the neighboring bucket indexed by the offset for the
 		// desired key.
 		struct bucket *entry = dereference_hop(bucket, next_hop);
+
 		if ((key == entry->key) && (entry->value != NULL)) {
 			if (previous_ptr != NULL) {
 				*previous_ptr = previous;
@@ -373,6 +378,7 @@ static int resize_buckets(struct int_map *map)
 
 	// Re-initialize the map to be empty and 50% larger.
 	size_t new_capacity = map->capacity / 2 * 3;
+
 	uds_log_info("%s: attempting resize from %zu to %zu, current size=%zu",
 		     __func__, map->capacity, new_capacity, map->size);
 	result = allocate_buckets(map, new_capacity);
@@ -384,6 +390,7 @@ static int resize_buckets(struct int_map *map)
 	// Populate the new hash table from the entries in the old bucket array.
 	for (i = 0; i < old_map.bucket_count; i++) {
 		struct bucket *entry = &old_map.buckets[i];
+
 		if (entry->value == NULL) {
 			continue;
 		}
@@ -426,6 +433,7 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 		&bucket[min(remaining, (ptrdiff_t) max_probes)];
 
 	struct bucket *entry;
+
 	for (entry = bucket; entry < sentinel; entry++) {
 		if (entry->value == NULL) {
 			return entry;
@@ -459,6 +467,7 @@ move_empty_bucket(struct int_map *map __attribute__((unused)),
 	 * than a valid bucket.
 	 */
 	struct bucket *bucket;
+
 	for (bucket = &hole[1 - NEIGHBORHOOD]; bucket < hole; bucket++) {
 		// Find the entry that is nearest to the bucket, which means it
 		// will be nearest to the hash bucket whose neighborhood is
@@ -526,6 +535,7 @@ static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 			   void **old_value_ptr)
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
+
 	if (bucket == NULL) {
 		// There is no bucket containing the key in the neighborhood.
 		return false;
@@ -566,6 +576,7 @@ static struct bucket *find_or_make_vacancy(struct int_map *map,
 	// bucket.
 	while (hole != NULL) {
 		int distance = hole - neighborhood;
+
 		if (distance < NEIGHBORHOOD) {
 			// We've found or relocated an empty bucket close enough
 			// to the initial hash bucket to be referenced by its
@@ -587,6 +598,7 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 		void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
+
 	if (new_value == NULL) {
 		return UDS_INVALID_ARGUMENT;
 	}
@@ -617,6 +629,7 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 		 * maps).
 		 */
 		int result = resize_buckets(map);
+
 		if (result != UDS_SUCCESS) {
 			return result;
 		}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#40 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -38,8 +38,8 @@ struct admin_state_code {
 	/** The VDO is quiescent, there should be no I/O */
 	bool quiescent;
 	/**
-         * Whether an operation is in progress and so no other operation may be
-         * started
+	 * Whether an operation is in progress and so no other operation may be
+	 * started
 	 */
 	bool operating;
 };
@@ -239,6 +239,7 @@ static inline bool __must_check
 is_vdo_state_clean_load(const struct admin_state *state)
 {
 	const struct admin_state_code *code = get_vdo_admin_state_code(state);
+
 	return ((code == VDO_ADMIN_STATE_FORMATTING) ||
 		(code == VDO_ADMIN_STATE_LOADING));
 }
@@ -285,7 +286,7 @@ is_vdo_state_quiescent(const struct admin_state *state)
 bool start_vdo_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
-			vdo_admin_initiator *initiator);
+			vdo_admin_initiator * initiator);
 
 /**
  * Finish a drain operation if one was in progress.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#58 $
  */
 
 #include "flush.h"
@@ -95,6 +95,7 @@ static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 int make_vdo_flusher(struct vdo *vdo)
 {
 	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -145,6 +146,7 @@ static void finish_notification(struct vdo_completion *completion)
 	int result;
 
 	struct flusher *flusher = as_flusher(completion);
+
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
 			"finish_notification() called from flusher thread");
 
@@ -152,6 +154,7 @@ static void finish_notification(struct vdo_completion *completion)
 	result = enqueue_waiter(&flusher->pending_flushes, waiter);
 	if (result != VDO_SUCCESS) {
 		struct vdo_flush *flush = waiter_as_flush(waiter);
+
 		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
 					 result);
 		vdo_complete_flush(flush);
@@ -174,6 +177,7 @@ static void finish_notification(struct vdo_completion *completion)
 static void flush_packer_callback(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
+
 	increment_vdo_packer_flush_generation(flusher->vdo->packer);
 	launch_vdo_completion_callback(completion, finish_notification,
 				       flusher->thread_id);
@@ -190,8 +194,9 @@ static void increment_generation(struct vdo_completion *completion)
 {
 	thread_id_t thread_id;
 	struct flusher *flusher = as_flusher(completion);
+
 	increment_vdo_logical_zone_flush_generation(flusher->logical_zone_to_notify,
-				   		    flusher->notify_generation);
+						    flusher->notify_generation);
 	flusher->logical_zone_to_notify =
 		get_next_vdo_logical_zone(flusher->logical_zone_to_notify);
 	if (flusher->logical_zone_to_notify == NULL) {
@@ -342,6 +347,7 @@ void launch_vdo_flush(struct vdo *vdo, struct bio *bio)
 	// allocation fails, we'll deal with it later.
 	struct vdo_flush *flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	struct flusher *flusher = vdo->flusher;
+
 	spin_lock(&flusher->lock);
 
 	// We have a new bio to start. Add it to the list. If it becomes the
@@ -440,7 +446,7 @@ static void vdo_complete_flush_work(struct vdo_work_item *item)
 		// Update the device, and send it on down...
 		bio_set_dev(bio, get_vdo_backing_device(flush->vdo));
 		atomic64_inc(&vdo->stats.flush_out);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 		generic_make_request(bio);
 #else
 		submit_bio_noacct(bio);
