@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#109 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#110 $
  */
 
 #include "dedupeIndex.h"
@@ -317,6 +317,7 @@ static void start_expiration_timer_for_vio(struct dedupe_index *index,
 {
 	struct dedupe_context *context = &data_vio->dedupe_context;
 	uint64_t start_time = context->submission_jiffies;
+
 	start_expiration_timer(index, get_dedupe_index_timeout(start_time));
 }
 
@@ -710,6 +711,7 @@ void suspend_vdo_dedupe_index(struct dedupe_index *index, bool save_flag)
 void resume_vdo_dedupe_index(struct dedupe_index *index)
 {
 	int result = uds_resume_index_session(index->index_session);
+
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error resuming dedupe index");
 	}
@@ -919,6 +921,7 @@ static void start_uds_queue(void *ptr)
 	 * embellishment.
 	 */
 	struct dedupe_index *index = ptr;
+
 	uds_register_allocating_thread(&index->allocating_thread, NULL);
 }
 
@@ -931,7 +934,7 @@ static void finish_uds_queue(void *ptr __always_unused)
 /**********************************************************************/
 int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 			  struct vdo *vdo,
-			  const char* thread_name_prefix)
+			  const char *thread_name_prefix)
 {
 	int result;
 	off_t uds_offset;

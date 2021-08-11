@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#147 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#148 $
  */
 
 #include <linux/module.h>
@@ -373,6 +373,7 @@ static void configure_target_capabilities(struct dm_target *ti)
 static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
+
 	return (get_vdo_backing_device(vdo)->bd_dev
 		== config->owned_device->bdev->bd_dev);
 }
@@ -459,6 +460,7 @@ static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
 {
 	struct dm_target *ti = vdo->device_config->owning_target;
 	const char *device_name = get_vdo_device_name(ti);
+
 	return (strcmp(device_name, (const char *) context) == 0);
 }
 

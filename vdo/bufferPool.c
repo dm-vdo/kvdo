@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#18 $
  */
 
 #include "bufferPool.h"
@@ -202,6 +202,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 {
 	struct buffer_element *bh;
+
 	if (pool == NULL) {
 		return UDS_INVALID_ARGUMENT;
 	}
@@ -229,6 +230,7 @@ int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
 static bool free_buffer_to_pool_internal(struct buffer_pool *pool, void *data)
 {
 	struct buffer_element *bh;
+
 	if (unlikely(list_empty(&pool->spare_list_nodes))) {
 		return false;
 	}
@@ -244,6 +246,7 @@ static bool free_buffer_to_pool_internal(struct buffer_pool *pool, void *data)
 void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 {
 	bool success;
+
 	spin_lock(&pool->lock);
 	success = free_buffer_to_pool_internal(pool, data);
 
@@ -258,6 +261,7 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 {
 	bool success = true;
 	int i;
+
 	spin_lock(&pool->lock);
 
 	for (i = 0; (i < count) && success; i++) {

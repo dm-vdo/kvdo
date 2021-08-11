@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#88 $
  */
 
 #include "ioSubmitter.h"
@@ -199,6 +199,7 @@ static void assert_running_in_bio_queue_for_pbn(physical_block_number_t pbn)
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
 	struct atomic_statistics *stats = &vio->vdo->stats;
+
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out, bio);
 		return;
@@ -227,7 +228,7 @@ static void send_bio_to_device(struct vio *vio,
 	count_all_bios(vio, bio);
 
 	bio_set_dev(bio, get_vdo_backing_device(vio->vdo));
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,9,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	generic_make_request(bio);
 #else
 	submit_bio_noacct(bio);
@@ -253,6 +254,7 @@ static sector_t get_bio_sector(struct bio *bio)
 static void process_bio_map(struct vdo_work_item *item)
 {
 	struct vio *vio = work_item_as_vio(item);
+
 	assert_running_in_bio_queue();
 	// XXX Should we call finish_bio_queue for the biomap case on old
 	// kernels?
@@ -380,6 +382,7 @@ static int merge_to_prev_tail(struct int_map *bio_map,
 			      struct vio *prev_vio)
 {
 	int result;
+
 	int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
 	result = int_map_put(bio_map,
@@ -425,7 +428,7 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 	prev_vio = get_mergeable_locked(bio_queue_data->map, vio,
 					ELEVATOR_BACK_MERGE);
 	next_vio = get_mergeable_locked(bio_queue_data->map, vio,
-				        ELEVATOR_FRONT_MERGE);
+					ELEVATOR_FRONT_MERGE);
 	if (prev_vio == next_vio) {
 		next_vio = NULL;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#28 $
  */
 
 #include "sysfs.h"
@@ -41,6 +41,7 @@ static int vdo_log_level_store(const char *buf,
 	static char internal_buf[11];
 
 	int n = strlen(buf);
+
 	if (n > 10) {
 		return -EINVAL;
 	}
@@ -60,6 +61,7 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 					     const struct kernel_param *kp)
 {
 	int result = param_set_uint(buf, kp);
+
 	if (result != 0) {
 		return result;
 	}
@@ -72,6 +74,7 @@ static int vdo_min_dedupe_timer_interval_store(const char *buf,
 					       const struct kernel_param *kp)
 {
 	int result = param_set_uint(buf, kp);
+
 	if (result != 0) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#62 $
  */
 
 #include "bio.h"
@@ -90,20 +90,20 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 	}
 
 	switch (bio_op(bio)) {
-		case REQ_OP_WRITE:
-			atomic64_inc(&bio_stats->write);
-			break;
-		case REQ_OP_READ:
-			atomic64_inc(&bio_stats->read);
-			break;
-		case REQ_OP_DISCARD:
-			atomic64_inc(&bio_stats->discard);
-			break;
+	case REQ_OP_WRITE:
+		atomic64_inc(&bio_stats->write);
+		break;
+	case REQ_OP_READ:
+		atomic64_inc(&bio_stats->read);
+		break;
+	case REQ_OP_DISCARD:
+		atomic64_inc(&bio_stats->discard);
+		break;
 		// All other operations are filtered out in kernelLayer.c, or
 		// not created by VDO, so shouldn't exist.
-		default:
-			ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard,"
-					" or empty flush", bio_op(bio));
+	default:
+		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
+				bio_op(bio));
 	}
 
 	if ((bio->bi_opf & REQ_PREFLUSH) != 0) {
@@ -149,6 +149,7 @@ void vdo_count_completed_bios(struct bio *bio)
 void vdo_complete_async_bio(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
+
 	vdo_count_completed_bios(bio);
 	continue_vio(vio, vdo_get_bio_result(bio));
 }
@@ -186,7 +187,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      physical_block_number_t pbn)
 {
 	int bvec_count, result;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	struct page *page;
 	int bytes_added;
 #else
@@ -215,7 +216,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	}
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	// bio_add_page() can take any contiguous buffer on any number of
 	// pages and add it in one shot.
 	page = is_vmalloc_addr(data) ? vmalloc_to_page(data) :

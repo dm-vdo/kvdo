@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#160 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#161 $
  */
 
 #include "dataKVIO.h"
@@ -143,6 +143,7 @@ vdo_acknowledge_and_batch(struct vdo_work_item *item)
 {
 	struct data_vio *data_vio = work_item_as_data_vio(item);
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
+
 	vdo_acknowledge_data_vio(data_vio);
 	add_to_batch_processor(vdo->data_vio_releaser, item);
 }
@@ -217,6 +218,7 @@ static void
 read_data_vio_read_block_callback(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	if (data_vio->read_block.status != VDO_SUCCESS) {
 		set_vdo_completion_result(completion,
 					  data_vio->read_block.status);
@@ -305,6 +307,7 @@ static void complete_read(struct data_vio *data_vio)
 static void read_bio_callback(struct bio *bio)
 {
 	struct data_vio *data_vio = (struct data_vio *) bio->bi_private;
+
 	data_vio->read_block.data = data_vio->read_block.buffer;
 	vdo_count_completed_bios(bio);
 	complete_read(data_vio);
@@ -670,7 +673,7 @@ static int vdo_create_vio_from_bio(struct vdo *vdo,
 		       NULL);
 	data_vio->offset = sector_to_block_offset(bio->bi_iter.bi_sector);
 	data_vio->is_partial = ((bio->bi_iter.bi_size < VDO_BLOCK_SIZE) ||
-			        (data_vio->offset != 0));
+				(data_vio->offset != 0));
 
 	if (data_vio->is_partial) {
 		vdo_count_bios(&vdo->stats.bios_in_partial, bio);
@@ -756,7 +759,7 @@ static void vdo_continue_discard_vio(struct vdo_completion *completion)
 	}
 
 	prepare_data_vio(data_vio, data_vio->logical.lbn + 1, operation,
-		         !data_vio->is_partial, vdo_continue_discard_vio);
+			 !data_vio->is_partial, vdo_continue_discard_vio);
 	enqueue_vio(as_vio(completion), launch_data_vio_work,
 		    completion->callback, VDO_REQ_Q_ACTION_MAP_BIO);
 }
@@ -964,6 +967,7 @@ static int make_pooled_data_vio(void **data_ptr)
 {
 	struct data_vio *data_vio = NULL;
 	int result = allocate_pooled_data_vio(&data_vio);
+
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_vio(data_vio);
 		return result;

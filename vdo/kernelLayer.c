@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#224 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#225 $
  */
 
 #include "kernelLayer.h"
@@ -511,10 +511,10 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		   extant_config->parent_device_name) != 0) {
 		const char *device_name
 			= get_vdo_device_name(config->owning_target);
-	        uds_log_info("Updating backing device of %s from %s to %s",
+		uds_log_info("Updating backing device of %s from %s to %s",
 			     device_name,
-	                     extant_config->parent_device_name,
-	                     config->parent_device_name);
+			     extant_config->parent_device_name,
+			     config->parent_device_name);
 	}
 
 	return VDO_SUCCESS;
@@ -542,6 +542,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 
 	if (config->owning_target->len != extant_config->owning_target->len) {
 		size_t logical_bytes = to_bytes(config->owning_target->len);
+
 		result = resize_logical(layer, logical_bytes / VDO_BLOCK_SIZE);
 		if (result != VDO_SUCCESS) {
 			return result;

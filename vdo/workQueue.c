@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#71 $
  */
 
 #include "workQueue.h"
@@ -399,6 +399,7 @@ static void service_work_queue(struct simple_work_queue *queue)
 
 	while (true) {
 		struct vdo_work_item *item = poll_for_work_item(queue);
+
 		if (item == NULL) {
 			item = wait_for_next_work_item(queue);
 		}
@@ -530,6 +531,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		const struct vdo_work_queue_action *action =
 			&queue->type->action_table[i];
 		unsigned int code, priority;
+
 		if (action->name == NULL) {
 			break;
 		}
@@ -644,12 +646,12 @@ int make_work_queue(const char *thread_name_prefix,
 		void *context = (thread_privates != NULL) ? thread_privates[0] :
 							    private;
 		result = make_simple_work_queue(thread_name_prefix,
-					        name,
-					        parent_kobject,
-					        owner,
-					        context,
-					        type,
-					        &simple_queue);
+						name,
+						parent_kobject,
+						owner,
+						context,
+						type,
+						&simple_queue);
 		if (result == VDO_SUCCESS) {
 			*queue_ptr = &simple_queue->common;
 		}

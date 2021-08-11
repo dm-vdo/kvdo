@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#25 $
  */
 
 #include <linux/kobject.h>
@@ -276,6 +276,7 @@ static ssize_t histogram_show(struct kobject *kobj,
 	struct histogram_attribute *ha =
 		container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
+
 	if (ha->show == NULL) {
 		return -EINVAL;
 	}

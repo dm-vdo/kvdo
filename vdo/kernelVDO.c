@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#115 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#116 $
  */
 
 /*
@@ -53,6 +53,7 @@ static void start_vdo_request_queue(void *ptr)
 {
 	struct vdo_thread *thread = ptr;
 	struct vdo *vdo = thread->vdo;
+
 	uds_register_allocating_thread(&thread->allocating_thread,
 				       &vdo->allocations_allowed);
 }
@@ -212,6 +213,7 @@ void enqueue_vio(struct vio *vio,
 		 unsigned int action)
 {
 	thread_id_t thread_id = vio_as_completion(vio)->callback_thread_id;
+
 	BUG_ON(thread_id >= vio->vdo->initialized_thread_count);
 	launch_vio(vio,
 		   work,
@@ -264,6 +266,7 @@ thread_id_t vdo_get_callback_thread_id(void)
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct vdo *vdo = thread->vdo;
 		struct kernel_layer *kernel_layer = vdo_as_kernel_layer(vdo);
+
 		BUG_ON(&kernel_layer->vdo != vdo);
 		BUG_ON(thread_id >= vdo->initialized_thread_count);
 		BUG_ON(thread != &vdo->threads[thread_id]);

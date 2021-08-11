@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#98 $
  */
 
 #ifndef KERNELLAYER_H
@@ -179,6 +179,7 @@ static inline enum kernel_layer_state
 get_kernel_layer_state(const struct kernel_layer *layer)
 {
 	enum kernel_layer_state state = READ_ONCE(layer->state);
+
 	smp_rmb();
 	return state;
 }
@@ -249,6 +250,7 @@ static inline sector_t sector_to_block(sector_t sector_number)
 static inline block_size_t sector_to_block_offset(sector_t sector_number)
 {
 	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
+
 	return to_bytes(sector_number & sectors_per_block_mask);
 }
 

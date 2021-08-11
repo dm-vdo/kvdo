@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#90 $
  */
 
 #include "kvio.h"
@@ -114,6 +114,7 @@ void submit_metadata_vio(struct vio *vio)
 	char *data = vio->data;
 	struct bio *bio = vio->bio;
 	unsigned int bi_opf;
+
 	if (is_read_vio(vio)) {
 		ASSERT_LOG_ONLY(!vio_requires_flush_before(vio),
 				"read vio does not require flush before");
