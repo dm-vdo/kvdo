@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#148 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#149 $
  */
 
 #include <linux/module.h>
@@ -501,7 +501,6 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	// Is there already a device of this name?
 	if (old_vdo != NULL) {
-		struct kernel_layer *layer = vdo_as_kernel_layer(old_vdo);
 		/*
 		 * To preserve backward compatibility with old VDO Managers, we
 		 * need to allow this to happen when either suspended or not.
@@ -510,9 +509,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * until new VDO Manager does the right order.
 		 */
 		uds_log_info("preparing to modify device '%s'", device_name);
-		result = prepare_to_modify_kernel_layer(layer,
-							config,
-							&ti->error);
+		result = prepare_to_modify_vdo(old_vdo, config, &ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
 			free_vdo_device_config(UDS_FORGET(config));

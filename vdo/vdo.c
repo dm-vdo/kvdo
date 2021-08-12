@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#168 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#169 $
  */
 
 /*
@@ -54,7 +54,10 @@
 #include "syncCompletion.h"
 #include "threadConfig.h"
 #include "vdoComponentStates.h"
+#include "vdoInit.h"
 #include "vdoLayout.h"
+#include "vdoResize.h"
+#include "vdoResizeLogical.h"
 
 #include "bio.h"
 #include "dedupeIndex.h"
@@ -188,6 +191,62 @@ int add_vdo_sysfs_stats_dir(struct vdo *vdo)
 	}
 
 	vdo->stats_added = true;
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int prepare_to_modify_vdo(struct vdo *vdo,
+			  struct device_config *config,
+			  char **error_ptr)
+{
+	int result = validate_new_device_config(config,
+						vdo->device_config,
+						error_ptr);
+	if (result != VDO_SUCCESS) {
+		return -EINVAL;
+	}
+
+	if (config->logical_blocks > vdo->device_config->logical_blocks) {
+		result = prepare_vdo_to_grow_logical(vdo,
+						     config->logical_blocks);
+		if (result != VDO_SUCCESS) {
+			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
+			return result;
+		}
+	}
+
+	if (config->physical_blocks > vdo->device_config->physical_blocks) {
+		result = prepare_vdo_to_grow_physical(vdo,
+						      config->physical_blocks);
+		if (result != VDO_SUCCESS) {
+			if (result == VDO_PARAMETER_MISMATCH) {
+				/*
+				 * If we don't trap this case,
+				 * map_to_system_error() will remap it to -EIO,
+				 * which is misleading and ahistorical.
+				 */
+				result = -EINVAL;
+			}
+
+			if (result == VDO_TOO_MANY_SLABS) {
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
+			} else {
+				*error_ptr = "Device prepare_vdo_to_grow_physical failed";
+			}
+			return result;
+		}
+	}
+
+	if (strcmp(config->parent_device_name,
+		   vdo->device_config->parent_device_name) != 0) {
+		const char *device_name
+			= get_vdo_device_name(config->owning_target);
+		uds_log_info("Updating backing device of %s from %s to %s",
+			     device_name,
+			     vdo->device_config->parent_device_name,
+			     config->parent_device_name);
+	}
+
 	return VDO_SUCCESS;
 }
 

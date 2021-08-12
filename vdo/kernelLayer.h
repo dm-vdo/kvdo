@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#98 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#99 $
  */
 
 #ifndef KERNELLAYER_H
@@ -98,20 +98,6 @@ make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
 		  char **reason,
 		  struct kernel_layer **layer_ptr);
-
-/**
- * Prepare to modify a kernel layer.
- *
- * @param layer      The layer to modify
- * @param config     The new device configuration
- * @param error_ptr  A pointer to store the reason for any failure
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-prepare_to_modify_kernel_layer(struct kernel_layer *layer,
-			       struct device_config *config,
-			       char **error_ptr);
 
 /**
  * Modify a kernel physical layer.
@@ -255,18 +241,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 }
 
 /**
- * Adjust parameters to prepare to use a larger physical space.
- * The size must be larger than the current size.
- *
- * @param layer           the kernel layer
- * @param physical_count  the new physical size in blocks
- *
- * @return VDO_SUCCESS or an error
- */
-int prepare_to_resize_physical(struct kernel_layer *layer,
-			       block_count_t physical_count);
-
-/**
  * Adjusts parameters to reflect resizing the underlying device.
  * The size must be larger than the current size.
  *
@@ -276,18 +250,6 @@ int prepare_to_resize_physical(struct kernel_layer *layer,
  * @return VDO_SUCCESS or an error
  */
 int resize_physical(struct kernel_layer *layer, block_count_t physical_count);
-
-/**
- * Adjust parameters to prepare to present a larger logical space.
- * The size must be larger than the current size.
- *
- * @param layer          the kernel layer
- * @param logical_count  the new logical size in blocks
- *
- * @return VDO_SUCCESS or an error
- */
-int prepare_to_resize_logical(struct kernel_layer *layer,
-			      block_count_t logical_count);
 
 /**
  * Adjust parameters to present a larger logical space.

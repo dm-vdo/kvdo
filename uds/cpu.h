@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/cpu.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/cpu.h#2 $
  */
 
 #ifndef CPU_H
@@ -52,11 +52,19 @@
  **/
 static INLINE void prefetch_address(const void *address, bool for_write)
 {
-	// for_write won't won't be a constant if we are compiled with
-	// optimization turned off, in which case prefetching really doesn't
-	// matter.
+	/*
+	 * for_write won't be a constant if we are compiled with optimization
+	 * turned off, in which case prefetching really doesn't matter.
+	 * clang can't figure out that if for_write is a constant, it can be
+	 * passed as the second, mandatorily constant argument to prefetch(),
+	 * at least currently on llvm 12.
+	 */
 	if (__builtin_constant_p(for_write)) {
-		__builtin_prefetch(address, for_write);
+		if (for_write) {
+			__builtin_prefetch(address, true);
+		} else {
+			__builtin_prefetch(address, false);
+		}
 	}
 }
 

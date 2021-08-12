@@ -16,10 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/logger.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/logger.c#2 $
  */
 
 #include "logger.h"
+
 
 #include "common.h"
 #include "errors.h"

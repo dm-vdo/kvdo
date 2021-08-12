@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#226 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#227 $
  */
 
 #include "kernelLayer.h"
@@ -441,57 +441,6 @@ int make_kernel_layer(unsigned int instance,
 }
 
 /**********************************************************************/
-int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
-				   struct device_config *config,
-				   char **error_ptr)
-{
-	struct device_config *extant_config = layer->vdo.device_config;
-	int result;
-
-	result = validate_new_device_config(extant_config, config, error_ptr);
-	if (result != VDO_SUCCESS) {
-		return -EINVAL;
-	}
-
-	// Below here are the actions to take when a non-immutable property
-	// changes.
-
-	if (config->logical_blocks > extant_config->logical_blocks) {
-		result = prepare_to_resize_logical(layer,
-						   config->logical_blocks);
-		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
-			return result;
-		}
-	}
-
-	if (config->physical_blocks > extant_config->physical_blocks) {
-		result = prepare_to_resize_physical(layer,
-						    config->physical_blocks);
-		if (result != VDO_SUCCESS) {
-			if (result == VDO_TOO_MANY_SLABS) {
-				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
-			} else {
-				*error_ptr = "Device prepare_vdo_to_grow_physical failed";
-			}
-			return result;
-		}
-	}
-
-	if (strcmp(config->parent_device_name,
-		   extant_config->parent_device_name) != 0) {
-		const char *device_name
-			= get_vdo_device_name(config->owning_target);
-		uds_log_info("Updating backing device of %s from %s to %s",
-			     device_name,
-			     extant_config->parent_device_name,
-			     config->parent_device_name);
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
 int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
 {
@@ -671,34 +620,6 @@ int resume_kernel_layer(struct kernel_layer *layer)
 }
 
 /***********************************************************************/
-int prepare_to_resize_physical(struct kernel_layer *layer,
-			       block_count_t physical_count)
-{
-	int result;
-
-	uds_log_info("Preparing to resize physical to %llu", physical_count);
-	// Allocations are allowed and permissible through this non-VDO thread,
-	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_vdo_to_grow_physical(&layer->vdo, physical_count);
-	if (result != VDO_SUCCESS) {
-		// prepare_vdo_to_grow_physical logs errors.
-		if (result == VDO_PARAMETER_MISMATCH) {
-			/*
-			 * If we don't trap this case, map_to_system_error()
-			 * will remap it to -EIO, which is misleading and
-			 * ahistorical.
-			 */
-			return -EINVAL;
-		} else {
-			return result;
-		}
-	}
-
-	uds_log_info("Done preparing to resize physical");
-	return VDO_SUCCESS;
-}
-
-/***********************************************************************/
 int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 {
 	/*
@@ -712,26 +633,6 @@ int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
 		// vdo_resize_physical logs errors
 		return result;
 	}
-	return VDO_SUCCESS;
-}
-
-/***********************************************************************/
-int prepare_to_resize_logical(struct kernel_layer *layer,
-			      block_count_t logical_count)
-{
-	int result;
-
-	uds_log_info("Preparing to resize logical to %llu", logical_count);
-	// Allocations are allowed and permissible through this non-VDO thread,
-	// since IO triggered by this allocation to VDO can finish just fine.
-	result = prepare_vdo_to_grow_logical(&layer->vdo, logical_count);
-
-	if (result != VDO_SUCCESS) {
-		// prepare_vdo_to_grow_logical logs errors
-		return result;
-	}
-
-	uds_log_info("Done preparing to resize logical");
 	return VDO_SUCCESS;
 }
 

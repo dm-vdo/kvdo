@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#44 $
  */
 
 #ifndef VDO_H
@@ -24,6 +24,7 @@
 
 #include <linux/blk_types.h>
 
+#include "deviceConfig.h"
 #include "types.h"
 
 /**
@@ -41,6 +42,21 @@ void destroy_vdo(struct vdo *vdo);
  * @return VDO_SUCCESS or an error
  **/
 int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
+
+/**
+ * Prepare to modify a vdo. This method is called during preresume to prepare
+ * for modifications which could result if the table has changed.
+ *
+ * @param vdo        The vdo being resumed
+ * @param config     The new device configuration
+ * @param error_ptr  A pointer to store the reason for any failure
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+prepare_to_modify_vdo(struct vdo *vdo,
+		      struct device_config *config,
+		      char **error_ptr);
 
 /**
  * Get the block device object underlying a vdo.
