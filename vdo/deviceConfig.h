@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#2 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -52,6 +52,12 @@ struct device_config {
 	unsigned int version;
 	char *parent_device_name;
 	block_count_t physical_blocks;
+	/**
+	 * This is the number of logical blocks from VDO's internal point of
+	 * view. It is the number of 4K blocks regardles of the value of the
+	 * logical_block_size parameter below.
+	 **/
+	block_count_t logical_blocks;
 	unsigned int logical_block_size;
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
@@ -105,5 +111,20 @@ void free_vdo_device_config(struct device_config *config);
  * @param vdo     The vdo in question
  **/
 void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
+
+/**
+ * Check whether a new device config represents a valid modification to an
+ * existing config.
+ *
+ * @param to_validate  The new config to valudate
+ * @param config       The existing config
+ * @param error_ptr    A pointer to hold the reason for any error
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check
+validate_new_device_config(struct device_config *to_validate,
+			   struct device_config *config,
+			   char **error_ptr);
 
 #endif // DEVICE_CONFIG_H

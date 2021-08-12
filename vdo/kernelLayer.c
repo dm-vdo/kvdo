@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#225 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#226 $
  */
 
 #include "kernelLayer.h"
@@ -446,58 +446,28 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 				   char **error_ptr)
 {
 	struct device_config *extant_config = layer->vdo.device_config;
+	int result;
 
-	if (config->owning_target->begin !=
-	    extant_config->owning_target->begin) {
-		*error_ptr = "Starting sector cannot change";
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	if (config->logical_block_size != extant_config->logical_block_size) {
-		*error_ptr = "Logical block size cannot change";
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	if (config->cache_size != extant_config->cache_size) {
-		*error_ptr = "Block map cache size cannot change";
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	if (config->block_map_maximum_age !=
-	    extant_config->block_map_maximum_age) {
-		*error_ptr = "Block map maximum age cannot change";
-		return VDO_PARAMETER_MISMATCH;
-	}
-
-	if (memcmp(&config->thread_counts, &extant_config->thread_counts,
-		   sizeof(struct thread_count_config)) != 0) {
-		*error_ptr = "Thread configuration cannot change";
-		return VDO_PARAMETER_MISMATCH;
+	result = validate_new_device_config(extant_config, config, error_ptr);
+	if (result != VDO_SUCCESS) {
+		return -EINVAL;
 	}
 
 	// Below here are the actions to take when a non-immutable property
 	// changes.
 
-	if (config->owning_target->len != extant_config->owning_target->len) {
-		int result;
-		size_t logical_bytes = to_bytes(config->owning_target->len);
-
-		if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
-			*error_ptr = "Logical size must be a multiple of 4096";
-			return VDO_PARAMETER_MISMATCH;
-		}
-
-		result = prepare_to_resize_logical(
-			layer, logical_bytes / VDO_BLOCK_SIZE);
+	if (config->logical_blocks > extant_config->logical_blocks) {
+		result = prepare_to_resize_logical(layer,
+						   config->logical_blocks);
 		if (result != VDO_SUCCESS) {
 			*error_ptr = "Device prepare_vdo_to_grow_logical failed";
 			return result;
 		}
 	}
 
-	if (config->physical_blocks != extant_config->physical_blocks) {
-		int result = prepare_to_resize_physical(
-			layer, config->physical_blocks);
+	if (config->physical_blocks > extant_config->physical_blocks) {
+		result = prepare_to_resize_physical(layer,
+						    config->physical_blocks);
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_TOO_MANY_SLABS) {
 				*error_ptr = "Device prepare_vdo_to_grow_physical failed (specified physical size too big based on formatted slab size)";
@@ -507,6 +477,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 			return result;
 		}
 	}
+
 	if (strcmp(config->parent_device_name,
 		   extant_config->parent_device_name) != 0) {
 		const char *device_name

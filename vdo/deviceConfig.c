@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#3 $
  */
 
 #include "deviceConfig.h"
@@ -481,12 +481,24 @@ int parse_vdo_device_config(int argc,
 			    struct device_config **config_ptr)
 {
 	bool enable_512e;
+	size_t logical_bytes = to_bytes(ti->len);
 	struct dm_arg_set arg_set;
-
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
-	int result =
-		UDS_ALLOCATE(1, struct device_config, "device_config", &config);
+	int result;
+
+
+	if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
+		handle_parse_error(config,
+				   error_ptr,
+				   "Logical size must be a multiple of 4096");
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	result = UDS_ALLOCATE(1,
+			      struct device_config,
+			      "device_config",
+			      &config);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config,
 				   error_ptr,
@@ -495,6 +507,7 @@ int parse_vdo_device_config(int argc,
 	}
 
 	config->owning_target = ti;
+	config->logical_blocks = logical_bytes / VDO_BLOCK_SIZE;
 	INIT_LIST_HEAD(&config->config_list);
 
 	// Save the original string.
@@ -712,4 +725,50 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
 	}
 
 	config->vdo = vdo;
+}
+
+/**********************************************************************/
+int validate_new_device_config(struct device_config *to_validate,
+			       struct device_config *config,
+			       char **error_ptr)
+{
+	if (to_validate->owning_target->begin !=
+	    config->owning_target->begin) {
+		*error_ptr = "Starting sector cannot change";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (to_validate->logical_block_size != config->logical_block_size) {
+		*error_ptr = "Logical block size cannot change";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (to_validate->logical_blocks < config->logical_blocks) {
+		*error_ptr = "Can't shrink VDO logical size";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (to_validate->cache_size != config->cache_size) {
+		*error_ptr = "Block map cache size cannot change";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (to_validate->block_map_maximum_age !=
+	    config->block_map_maximum_age) {
+		*error_ptr = "Block map maximum age cannot change";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (memcmp(&config->thread_counts, &config->thread_counts,
+		   sizeof(struct thread_count_config)) != 0) {
+		*error_ptr = "Thread configuration cannot change";
+		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (to_validate->physical_blocks < config->physical_blocks) {
+		*error_ptr = "Removing physical storage from a VDO is not supported";
+		return VDO_NOT_IMPLEMENTED;
+	}
+
+	return VDO_SUCCESS;
 }

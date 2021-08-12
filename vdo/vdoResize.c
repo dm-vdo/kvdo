@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#60 $
  */
 
 #include "vdoResize.h"
@@ -236,23 +236,11 @@ int prepare_vdo_to_grow_physical(struct vdo *vdo,
 {
 	int result;
 	block_count_t new_depot_size;
-
 	block_count_t current_physical_blocks =
 		vdo->states.vdo.config.physical_blocks;
-	if (new_physical_blocks < current_physical_blocks) {
-		return uds_log_error_strerror(VDO_NOT_IMPLEMENTED,
-					      "Removing physical storage from a VDO is not supported");
-	}
 
-	if (new_physical_blocks == current_physical_blocks) {
-		uds_log_warning("Requested physical block count %llu not greater than %llu",
-				(unsigned long long) new_physical_blocks,
-				(unsigned long long) current_physical_blocks);
-		finish_vdo_layout_growth(vdo->layout);
-		vdo_abandon_new_slabs(vdo->depot);
-		return VDO_PARAMETER_MISMATCH;
-	}
-
+	ASSERT_LOG_ONLY((new_physical_blocks > current_physical_blocks),
+			"New physical size is larger than current physical size");
 	result = perform_vdo_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
 					     get_thread_id_for_phase,
