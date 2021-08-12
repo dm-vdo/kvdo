@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#95 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#96 $
  */
 
 #include "packerInternals.h"
@@ -86,6 +86,7 @@ get_vdo_packer_fullest_bin(const struct packer *packer)
 static void insert_in_sorted_list(struct packer *packer, struct input_bin *bin)
 {
 	struct input_bin *active_bin;
+
 	for (active_bin = get_vdo_packer_fullest_bin(packer);
 	     active_bin != NULL;
 	     active_bin = next_vdo_packer_bin(packer, active_bin)) {
@@ -167,6 +168,7 @@ make_output_bin(struct packer *packer, struct vdo *vdo)
 {
 	struct output_bin *output;
 	int result = UDS_ALLOCATE(1, struct output_bin, __func__, &output);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -247,6 +249,7 @@ int make_vdo_packer(struct vdo *vdo,
 
 	for (i = 0; i < input_bin_count; i++) {
 		int result = make_input_bin(packer);
+
 		if (result != VDO_SUCCESS) {
 			free_vdo_packer(packer);
 			return result;
@@ -269,6 +272,7 @@ int make_vdo_packer(struct vdo *vdo,
 
 	for (i = 0; i < output_bin_count; i++) {
 		int result = make_output_bin(packer, vdo);
+
 		if (result != VDO_SUCCESS) {
 			free_vdo_packer(packer);
 			return result;
@@ -320,6 +324,7 @@ static inline struct packer *get_packer_from_data_vio(struct data_vio *data_vio)
 bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
+
 	return (data_vio->compression.size < packer->bin_data_size);
 }
 
@@ -333,6 +338,7 @@ thread_id_t get_vdo_packer_thread_id(struct packer *packer)
 struct packer_statistics get_vdo_packer_statistics(const struct packer *packer)
 {
 	const struct packer_statistics *stats = &packer->statistics;
+
 	return (struct packer_statistics) {
 		.compressed_fragments_written =
 			READ_ONCE(stats->compressed_fragments_written),
@@ -402,6 +408,7 @@ switch_to_packer_thread(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 	thread_id_t thread_id = vio->vdo->packer->thread_id;
+
 	if (completion->callback_thread_id == thread_id) {
 		return true;
 	}
@@ -427,6 +434,7 @@ static void finish_output_bin(struct packer *packer, struct output_bin *bin)
 		// No waiters implies no error, so the compressed block was
 		// written.
 		struct packer_statistics *stats = &packer->statistics;
+
 		WRITE_ONCE(stats->compressed_fragments_in_packer,
 			   stats->compressed_fragments_in_packer
 			   - bin->slots_used);
@@ -474,6 +482,7 @@ static void continue_waiter(struct waiter *waiter,
 			    void *context __always_unused)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+
 	continue_data_vio(data_vio, VDO_SUCCESS);
 }
 
@@ -513,6 +522,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 static void finish_compressed_write(struct vdo_completion *completion)
 {
 	struct output_bin *bin = completion->parent;
+
 	assert_vio_in_physical_zone(bin->writer);
 
 	if (completion->result != VDO_SUCCESS) {
@@ -549,6 +559,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 {
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
 	struct vdo_completion *completion = vio_as_completion(vio);
+
 	if (allocating_vio->allocation == VDO_ZERO_BLOCK) {
 		completion->requeue = true;
 		set_vdo_completion_result(completion, VDO_NO_SPACE);
@@ -599,6 +610,7 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 	struct data_vio *data_vio;
 
 	block_size_t space_remaining = packer->bin_data_size;
+
 	batch->slots_used = 0;
 
 	while ((data_vio =
@@ -656,6 +668,7 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 
 	for (slot = 0; slot < batch.slots_used; slot++) {
 		struct data_vio *data_vio = batch.slots[slot];
+
 		data_vio->compression.slot = slot;
 		put_vdo_compressed_block_fragment(output->block, slot,
 						  space_used,
@@ -704,6 +717,7 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 	// they will get packed into the next free output bin.
 	for (slot = 0; slot < bin->slots_used; slot++) {
 		struct data_vio *data_vio = bin->incoming[slot];
+
 		data_vio->compression.bin = NULL;
 
 		if (!may_write_compressed_data_vio(data_vio)) {
@@ -735,7 +749,7 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
  * call physical space processor.
  *
  * @param packer    The packer
- * @param bin       The bin to which to add the the data_vio
+ * @param bin       The bin to which to add the data_vio
  * @param data_vio  The data_vio to add to the bin's queue
  **/
 static void add_data_vio_to_input_bin(struct packer *packer,
@@ -814,6 +828,7 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 	// enough room for the compressed data in the data_vio.
 	struct input_bin *fullest_bin = get_vdo_packer_fullest_bin(packer);
 	struct input_bin *bin;
+
 	for (bin = fullest_bin; bin != NULL;
 	     bin = next_vdo_packer_bin(packer, bin)) {
 		if (bin->free_space >= data_vio->compression.size) {
@@ -829,7 +844,7 @@ select_input_bin(struct packer *packer, struct data_vio *data_vio)
 	 * compressed block. But if the space currently used in the fullest
 	 * bin is smaller than the compressed size of the incoming block, it
 	 * seems wrong to force that bin to write when giving up on
-	 * compressing the incoming data_vio would likewise "waste" the the
+	 * compressing the incoming data_vio would likewise "waste" the
 	 * least amount of free space.
 	 */
 	if (data_vio->compression.size
@@ -851,11 +866,12 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	struct vio_compression_state state =
 		get_vio_compression_state(data_vio);
 	struct packer *packer = get_packer_from_data_vio(data_vio);
+
 	assert_on_packer_thread(packer, __func__);
 
 	result = ASSERT((state.status == VIO_COMPRESSING),
-		        "attempt to pack data_vio not ready for packing, state: %u",
-		        state.status);
+			"attempt to pack data_vio not ready for packing, state: %u",
+			state.status);
 	if (result != VDO_SUCCESS) {
 		return;
 	}
@@ -908,6 +924,7 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 static void write_all_non_empty_bins(struct packer *packer)
 {
 	struct input_bin *bin;
+
 	for (bin = get_vdo_packer_fullest_bin(packer); bin != NULL;
 	     bin = next_vdo_packer_bin(packer, bin)) {
 		start_new_batch(packer, bin);
@@ -938,6 +955,7 @@ static void remove_from_vdo_packer(struct data_vio *data_vio)
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 	struct input_bin *bin = data_vio->compression.bin;
 	slot_number_t slot = data_vio->compression.slot;
+
 	ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has an input bin");
 
 	bin->slots_used--;
@@ -963,6 +981,7 @@ void remove_lock_holder_from_vdo_packer(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct data_vio *lock_holder;
+
 	assert_data_vio_in_packer_zone(data_vio);
 
 	lock_holder = data_vio->compression.lock_holder;
@@ -986,6 +1005,7 @@ void increment_vdo_packer_flush_generation(struct packer *packer)
 static void initiate_drain(struct admin_state *state)
 {
 	struct packer *packer = container_of(state, struct packer, state);
+
 	write_all_non_empty_bins(packer);
 	vdo_check_for_drain_complete(packer);
 }
@@ -1027,6 +1047,7 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 static void dump_output_bin(const struct output_bin *bin)
 {
 	size_t count = count_waiters(&bin->outgoing);
+
 	if (bin->slots_used == 0) {
 		// Don't dump empty output bins.
 		return;

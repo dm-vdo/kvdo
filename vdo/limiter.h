@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/limiter.h#4 $
  */
 
 #ifndef LIMITER_H
@@ -39,7 +39,7 @@ struct limiter {
 	wait_queue_head_t waiter_queue;
 	// The number of resources in use
 	uint32_t active;
-	// The maximum number number of resources that have ever been in use
+	// The maximum number of resources that have ever been in use
 	uint32_t maximum;
 	// The limit to the number of resources that are allowed to be used
 	uint32_t limit;

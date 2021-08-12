@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#87 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#88 $
  */
 
 #include "refCounts.h"
@@ -327,6 +327,7 @@ static int get_reference_counter(struct ref_counts *ref_counts,
 {
 	slab_block_number index;
 	int result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &index);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -342,6 +343,7 @@ uint8_t vdo_get_available_references(struct ref_counts *ref_counts,
 {
 	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
+
 	if (result != VDO_SUCCESS) {
 		return 0;
 	}
@@ -794,6 +796,7 @@ find_zero_byte_in_word(const byte *word_ptr,
 	// This looks like a loop, but GCC will unroll the eight iterations for
 	// us.
 	unsigned int offset;
+
 	for (offset = 0; offset < BYTES_PER_WORD; offset++) {
 		// Assumes little-endian byte order, which we have on X86.
 		if ((word & 0xFF) == 0) {
@@ -1004,6 +1007,7 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 {
 	struct ref_counts *ref_counts = ref_counts_from_waiter(waiter);
 	int result = *((int *)context);
+
 	ref_counts->updating_slab_summary = false;
 
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
@@ -1070,6 +1074,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct reference_block *block = entry->parent;
 	struct ref_counts *ref_counts = block->ref_counts;
+
 	ref_counts->active_count--;
 
 	// Release the slab journal lock.
@@ -1121,6 +1126,7 @@ static vdo_refcount_t * __must_check
 vdo_get_reference_counters_for_block(struct reference_block *block)
 {
 	size_t block_index = block - block->ref_counts->blocks;
+
 	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
 }
 
@@ -1137,6 +1143,7 @@ vdo_pack_reference_block(struct reference_block *block, void *buffer)
 	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
 	sector_count_t i;
 	struct packed_journal_point commit_point;
+
 	pack_vdo_journal_point(&block->ref_counts->slab_journal_point,
 			       &commit_point);
 
@@ -1163,6 +1170,7 @@ static void write_reference_block(struct waiter *block_waiter,
 
 	struct vio_pool_entry *entry = vio_context;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
+
 	vdo_pack_reference_block(block, entry->buffer);
 
 	block_offset = (block - block->ref_counts->blocks);
@@ -1206,6 +1214,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 	struct reference_block *block;
 	int result;
 	struct ref_counts *ref_counts = context;
+
 	if (vdo_is_read_only(ref_counts->read_only_notifier)) {
 		return;
 	}
@@ -1267,6 +1276,7 @@ void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
 void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
+
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
 		dirty_block(&ref_counts->blocks[i]);
 	}
@@ -1281,6 +1291,7 @@ static void clear_provisional_references(struct reference_block *block)
 {
 	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
 	block_count_t j;
+
 	for (j = 0; j < COUNTS_PER_BLOCK; j++) {
 		if (counters[j] == PROVISIONAL_REFERENCE_COUNT) {
 			counters[j] = EMPTY_REFERENCE_COUNT;
@@ -1302,8 +1313,10 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 	sector_count_t i;
 	struct ref_counts *ref_counts = block->ref_counts;
 	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
+
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
+
 		unpack_vdo_journal_point(&sector->commit_point,
 					 &block->commit_points[i]);
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
@@ -1321,6 +1334,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
 		    !are_equivalent_vdo_journal_points(&block->commit_points[0],
 						       &block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
+
 			uds_log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
 					i,
 					block_index,
@@ -1346,6 +1360,7 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	struct vio_pool_entry *entry = completion->parent;
 	struct reference_block *block = entry->parent;
 	struct ref_counts *ref_counts = block->ref_counts;
+
 	unpack_reference_block((struct packed_reference_block *)entry->buffer,
 			       block);
 
@@ -1369,6 +1384,7 @@ static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
 	size_t block_offset = (block - block->ref_counts->blocks);
 	physical_block_number_t pbn = (block->ref_counts->origin + block_offset);
+
 	entry->parent = block;
 
 	entry->vio->completion.callback_thread_id =
@@ -1386,11 +1402,13 @@ static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 static void load_reference_blocks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
+
 	ref_counts->free_blocks = ref_counts->block_count;
 	ref_counts->active_count = ref_counts->reference_block_count;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
 		int result;
 		struct waiter *block_waiter = &ref_counts->blocks[i].waiter;
+
 		block_waiter->callback = load_reference_block;
 		result = acquire_vdo_block_allocator_vio(ref_counts->slab->allocator,
 							 block_waiter);
@@ -1453,6 +1471,7 @@ void drain_vdo_ref_counts(struct ref_counts *ref_counts)
 void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
 {
 	block_count_t i;
+
 	vdo_dirty_all_reference_blocks(ref_counts);
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
 		ref_counts->blocks[i].slab_journal_lock = 1;

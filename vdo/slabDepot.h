@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#51 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -134,7 +134,7 @@ get_vdo_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn
 
 /**
  * Determine how many new references a block can acquire. This method must be
- * called from the the physical zone thread of the PBN.
+ * called from the physical zone thread of the PBN.
  *
  * @param depot  The slab depot
  * @param pbn    The physical block number that is being queried

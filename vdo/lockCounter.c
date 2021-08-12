@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#35 $
  */
 
 #include "lockCounter.h"
@@ -87,6 +87,7 @@ int make_vdo_lock_counter(struct vdo *vdo,
 	struct lock_counter *lock_counter;
 
 	int result = UDS_ALLOCATE(1, struct lock_counter, __func__, &lock_counter);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -196,6 +197,7 @@ static inline uint16_t *get_counter(struct lock_counter *counter,
 				    zone_count_t zone_id)
 {
 	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
+
 	if (zone_type == VDO_ZONE_TYPE_JOURNAL) {
 		return &counter->journal_counters[zone_counter];
 	}
@@ -289,6 +291,7 @@ void acquire_vdo_lock_count_reference(struct lock_counter *counter,
 				      zone_count_t zone_id)
 {
 	uint16_t *current_value;
+
 	ASSERT_LOG_ONLY((zone_type != VDO_ZONE_TYPE_JOURNAL),
 			"invalid lock count increment from journal zone");
 

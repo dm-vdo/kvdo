@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#48 $
  */
 
 #include "recoveryUtils.h"
@@ -44,6 +44,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
+
 	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	finish_vdo_completion(parent, result);
 }
@@ -110,12 +111,14 @@ bool find_vdo_recovery_journal_head_and_tail(struct recovery_journal *journal,
 	sequence_number_t slab_journal_head_max = 0;
 	bool found_entries = false;
 	physical_block_number_t i;
+
 	for (i = 0; i < journal->size; i++) {
 		struct packed_journal_header *packed_header =
 			get_vdo_recovery_journal_block_header(journal,
 							      journal_data,
 							      i);
 		struct recovery_block_header header;
+
 		unpack_vdo_recovery_block_header(packed_header, &header);
 
 		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
@@ -154,9 +157,9 @@ validate_vdo_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)
 {
 	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||
- 	    (entry->slot.slot >= VDO_BLOCK_MAP_ENTRIES_PER_PAGE) ||
- 	    !vdo_is_valid_location(&entry->mapping) ||
- 	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
+	    (entry->slot.slot >= VDO_BLOCK_MAP_ENTRIES_PER_PAGE) ||
+	    !vdo_is_valid_location(&entry->mapping) ||
+	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
 		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 					      "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
 					      (unsigned long long) entry->slot.pbn,

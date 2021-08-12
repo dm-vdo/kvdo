@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#72 $
  */
 
 #include "referenceCountRebuild.h"
@@ -102,6 +102,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
+
 	UDS_FREE(UDS_FORGET(completion));
 	finish_vdo_completion(parent, result);
 }
@@ -262,6 +263,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	slot_number_t slot;
 	struct block_map_page *page = dereference_writable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -274,6 +276,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	// space.
 	if (get_vdo_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		slot_number_t slot;
+
 		for (slot = rebuild->last_slot.slot;
 		     slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 			struct data_location mapping =
@@ -467,7 +470,7 @@ static int process_entry(physical_block_number_t pbn,
 
 	slab = get_vdo_slab(rebuild->depot, pbn);
 	result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
-						   	pbn,
+							pbn,
 							VDO_JOURNAL_BLOCK_MAP_INCREMENT);
 	if (result != VDO_SUCCESS) {
 		return uds_log_error_strerror(result,

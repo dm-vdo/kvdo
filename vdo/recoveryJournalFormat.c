@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalFormat.c#11 $
  */
 
 #include "recoveryJournalFormat.h"
@@ -31,8 +31,7 @@
 
 const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
 	.id = VDO_RECOVERY_JOURNAL,
-	.version =
-		{
+	.version = {
 			.major_version = 7,
 			.minor_version = 0,
 		},
@@ -52,6 +51,7 @@ int encode_vdo_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 	size_t initial_length, encoded_size;
 
 	int result = encode_vdo_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

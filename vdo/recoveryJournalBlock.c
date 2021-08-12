@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#63 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -44,9 +44,9 @@ int make_vdo_recovery_block(struct vdo *vdo,
 	// Ensure that a block is large enough to store
 	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
-		      <= ((VDO_BLOCK_SIZE
-		      	    - sizeof(struct packed_journal_header))
-			  / sizeof(struct packed_recovery_journal_entry)));
+		      <= ((VDO_BLOCK_SIZE -
+			   sizeof(struct packed_journal_header)) /
+			  sizeof(struct packed_recovery_journal_entry)));
 
 	result = UDS_ALLOCATE(1, struct recovery_journal_block, __func__, &block);
 	if (result != VDO_SUCCESS) {
@@ -224,8 +224,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		packed_entry =
 			&block->sector->entries[block->sector->entry_count++];
 		new_entry = (struct recovery_journal_entry) {
-			.mapping =
-				{
+			.mapping = {
 					.pbn = data_vio->operation.pbn,
 					.state = data_vio->operation.state,
 				},

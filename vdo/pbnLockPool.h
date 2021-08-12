@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#10 $
  */
 
 #ifndef PBN_LOCK_POOL_H
@@ -39,7 +39,7 @@ int __must_check
 make_vdo_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr);
 
 /**
- * Free a PBN lock pool. This also frees all all the PBN locks it allocated,
+ * Free a PBN lock pool. This also frees all the PBN locks it allocated,
  * so the caller must ensure that all locks have been returned to the pool.
  *
  * @param pool  The lock pool to free

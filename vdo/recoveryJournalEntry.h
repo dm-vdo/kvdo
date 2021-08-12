@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#17 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -31,7 +31,7 @@
 /**
  * A recovery journal entry stores two physical locations: a data location
  * that is the value of a single mapping in the block map tree, and the
- * location of the block map page and and slot that is either acquiring or
+ * location of the block map page and slot that is either acquiring or
  * releasing a reference to the data location. The journal entry also stores
  * an operation code that says whether the reference is being acquired (an
  * increment) or released (a decrement), and whether the mapping is for a
@@ -110,10 +110,10 @@ unpack_vdo_recovery_journal_entry(const struct packed_recovery_journal_entry *en
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
+
 	return (struct recovery_journal_entry) {
 		.operation = entry->operation,
-		.slot =
-			{
+		.slot = {
 				.pbn = ((high4 << 32) | low32),
 				.slot = (entry->slot_low
 					 | (entry->slot_high << 6)),

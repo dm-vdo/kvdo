@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotFormat.c#18 $
  */
 
 #include "slabDepotFormat.h"
@@ -49,6 +49,7 @@ compute_vdo_slab_count(physical_block_number_t first_block,
 		       unsigned int slab_size_shift)
 {
 	block_count_t data_blocks = last_block - first_block;
+
 	return (slab_count_t) (data_blocks >> slab_size_shift);
 }
 
@@ -70,6 +71,7 @@ static int encode_slab_config(const struct slab_config *config,
 			      struct buffer *buffer)
 {
 	int result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -90,19 +92,19 @@ static int encode_slab_config(const struct slab_config *config,
 	}
 
 	result = put_uint64_le_into_buffer(buffer,
-				           config->slab_journal_flushing_threshold);
+					   config->slab_journal_flushing_threshold);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = put_uint64_le_into_buffer(buffer,
-				           config->slab_journal_blocking_threshold);
+					   config->slab_journal_blocking_threshold);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	return put_uint64_le_into_buffer(buffer,
-				         config->slab_journal_scrubbing_threshold);
+					 config->slab_journal_scrubbing_threshold);
 }
 
 /**********************************************************************/
@@ -112,6 +114,7 @@ int encode_vdo_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 	size_t initial_length, encoded_size;
 
 	int result = encode_vdo_header(&VDO_SLAB_DEPOT_HEADER_2_0, buffer);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -156,6 +159,7 @@ static int decode_slab_config(struct buffer *buffer,
 {
 	block_count_t count;
 	int result = get_uint64_le_from_buffer(buffer, &count);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -362,7 +366,7 @@ int configure_vdo_slab(block_count_t slab_size,
 	 */
 	flushing_threshold = ((slab_journal_blocks * 3) + 3) / 4;
 	/*
-	 * The blocking threshold should be far enough from the the flushing
+	 * The blocking threshold should be far enough from the flushing
 	 * threshold to not produce delays, but far enough from the end of the
 	 * journal to allow multiple successive recovery failures.
 	 */

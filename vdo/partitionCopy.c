@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#33 $
  */
 
 #include "partitionCopy.h"
@@ -86,6 +86,7 @@ int make_vdo_copy_completion(struct vdo *vdo,
 {
 	struct copy_completion *copy;
 	int result = UDS_ALLOCATE(1, struct copy_completion, __func__, &copy);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -151,6 +152,7 @@ static inline block_count_t get_stride_size(struct copy_completion *copy)
 static void complete_write_for_copy(struct vdo_completion *completion)
 {
 	struct copy_completion *copy = as_copy_completion(completion->parent);
+
 	copy->current_index += get_stride_size(copy);
 	if (copy->current_index >= copy->ending_index) {
 		// We're done.
@@ -248,6 +250,7 @@ void copy_vdo_partition(struct vdo_completion *completion,
 	struct copy_completion *copy = as_copy_completion(completion);
 
 	int result = validate_partition_copy(source, target);
+
 	if (result != VDO_SUCCESS) {
 		finish_vdo_completion(parent, result);
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#11 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -107,6 +107,7 @@ static inline uint64_t compute_bucket_count(uint64_t object_count,
 					    uint64_t bucket_size)
 {
 	uint64_t quotient = object_count / bucket_size;
+
 	if ((object_count % bucket_size) > 0) {
 		++quotient;
 	}

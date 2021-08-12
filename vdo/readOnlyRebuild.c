@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#67 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#68 $
  */
 
 #include "readOnlyRebuild.h"
@@ -158,6 +158,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
 	struct vdo *vdo = rebuild->vdo;
+
 	initialize_vdo_recovery_journal_post_rebuild(vdo->recovery_journal,
 						     vdo->states.vdo.complete_recoveries,
 						     rebuild->tail,
@@ -208,6 +209,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
+
 	assert_on_admin_thread(vdo, __func__);
 	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
 		// A "rebuild" for upgrade should not increment this count.
@@ -233,6 +235,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 
 	// We must allocate ref_counts before we can rebuild them.
 	int result = vdo_allocate_slab_ref_counts(vdo->depot);
+
 	if (abort_rebuild_on_error(result, rebuild)) {
 		return;
 	}
@@ -262,6 +265,7 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 				  journal_entry_count_t entry_count)
 {
 	journal_entry_count_t i;
+
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
 			unpack_vdo_recovery_journal_entry(&sector->entries[i]);
@@ -403,6 +407,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 							NULL);
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
+
 		if (abort_rebuild_on_error(result, rebuild)) {
 			return;
 		}
@@ -432,6 +437,7 @@ static void load_journal_callback(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
+
 	assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	prepare_vdo_completion(completion,

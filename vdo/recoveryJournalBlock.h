@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#27 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -110,7 +110,7 @@ is_vdo_recovery_block_empty(const struct recovery_journal_block *block)
  *
  * @param block  The block to check
  *
- * @return <code>true</code> if the the block is full
+ * @return <code>true</code> if the block is full
  **/
 static inline bool __must_check
 is_vdo_recovery_block_full(const struct recovery_journal_block *block)

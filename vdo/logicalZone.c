@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#73 $
  */
 
 #include "logicalZone.h"
@@ -135,7 +135,7 @@ static int initialize_zone(struct logical_zones *zones,
 	zone->zones = zones;
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_logical_zone_thread(get_vdo_thread_config(vdo),
-					       	      zone_number);
+						      zone_number);
 	zone->block_map_zone = vdo_get_block_map_zone(vdo->block_map, zone_number);
 	INIT_LIST_HEAD(&zone->write_vios);
 	set_vdo_admin_state_code(&zone->state,
@@ -153,6 +153,7 @@ int make_vdo_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	zone_count_t zone;
 
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
+
 	if (thread_config->logical_zone_count == 0) {
 		return VDO_SUCCESS;
 	}
@@ -203,6 +204,7 @@ void free_vdo_logical_zones(struct logical_zones *zones)
 
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
+
 		UDS_FREE(UDS_FORGET(zone->selector));
 		free_int_map(UDS_FORGET(zone->lbn_operations));
 	}
@@ -254,6 +256,7 @@ static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_vdo_logical_zone(context, zone_number);
+
 	start_vdo_draining(&zone->state,
 			   get_current_vdo_manager_operation(zone->zones->manager),
 			   parent, initiate_drain);
@@ -277,6 +280,7 @@ static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_vdo_logical_zone(context, zone_number);
+
 	finish_vdo_completion(parent, resume_vdo_if_quiescent(&zone->state));
 }
 
@@ -324,6 +328,7 @@ struct logical_zone *get_next_vdo_logical_zone(const struct logical_zone *zone)
 static bool update_oldest_active_generation(struct logical_zone *zone)
 {
 	sequence_number_t oldest;
+
 	if (list_empty(&zone->write_vios)) {
 		oldest = zone->flush_generation;
 	} else {
@@ -369,6 +374,7 @@ get_vdo_logical_zone_oldest_locked_generation(const struct logical_zone *zone)
 int acquire_vdo_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
+
 	assert_on_zone_thread(zone, __func__);
 	if (!is_vdo_state_normal(&zone->state)) {
 		return VDO_INVALID_ADMIN_STATE;
@@ -394,6 +400,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion);
 static void notify_flusher(struct vdo_completion *completion)
 {
 	struct logical_zone *zone = as_logical_zone(completion);
+
 	complete_vdo_flushes(zone->zones->vdo->flusher);
 	launch_vdo_completion_callback(completion,
 				       attempt_generation_complete_notification,
@@ -409,6 +416,7 @@ static void
 attempt_generation_complete_notification(struct vdo_completion *completion)
 {
 	struct logical_zone *zone = as_logical_zone(completion);
+
 	assert_on_zone_thread(zone, __func__);
 	if (zone->oldest_active_generation <= zone->notification_generation) {
 		zone->notifying = false;
@@ -426,6 +434,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 void release_vdo_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
+
 	assert_on_zone_thread(zone, __func__);
 	if (list_empty(&data_vio->write_entry)) {
 		// This VIO never got a lock, either because it is a read, or
