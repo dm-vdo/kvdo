@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#80 $
  */
 
 #include "slabScrubberInternals.h"
@@ -74,6 +74,7 @@ int make_vdo_slab_scrubber(struct vdo *vdo,
 {
 	struct slab_scrubber *scrubber;
 	int result = UDS_ALLOCATE(1, struct slab_scrubber, __func__, &scrubber);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -225,6 +226,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber);
 static void slab_scrubbed(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
+
 	finish_scrubbing_vdo_slab(scrubber->slab);
 	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
@@ -275,6 +277,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 	int result;
 
 	slab_block_number max_sbn = slab->end - slab->start;
+
 	while (entry_point.entry_count < entry_count) {
 		struct slab_journal_entry entry =
 			decode_vdo_slab_journal_entry(block,
@@ -338,12 +341,14 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		reference_counts->slab_journal_point;
 	struct journal_point last_entry_applied = ref_counts_point;
 	sequence_number_t sequence;
+
 	for (sequence = head; sequence < tail; sequence++) {
 		char *block_data =
 			scrubber->journal_data + (index * VDO_BLOCK_SIZE);
 		struct packed_slab_journal_block *block =
 			(struct packed_slab_journal_block *) block_data;
 		struct slab_journal_block_header header;
+
 		unpack_vdo_slab_journal_block_header(&block->header, &header);
 
 		if ((header.nonce != slab->allocator->nonce) ||
@@ -404,6 +409,7 @@ static void start_scrubbing(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
 	struct vdo_slab *slab = scrubber->slab;
+
 	if (vdo_get_summarized_cleanliness(slab->allocator->summary,
 					   slab->slab_number)) {
 		slab_scrubbed(completion);
@@ -467,6 +473,7 @@ void scrub_vdo_slabs(struct slab_scrubber *scrubber,
 		     vdo_action *error_handler)
 {
 	thread_id_t thread_id = vdo_get_callback_thread_id();
+
 	resume_vdo_if_quiescent(&scrubber->admin_state);
 	prepare_vdo_completion(&scrubber->completion,
 			       callback,
@@ -490,6 +497,7 @@ void scrub_high_priority_vdo_slabs(struct slab_scrubber *scrubber,
 {
 	if (scrub_at_least_one && list_empty(&scrubber->high_priority_slabs)) {
 		struct vdo_slab *slab = get_next_slab(scrubber);
+
 		if (slab != NULL) {
 			vdo_register_slab_for_scrubbing(scrubber, slab, true);
 		}

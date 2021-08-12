@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#15 $
  */
 
 #include "vdoComponent.h"
@@ -186,6 +186,7 @@ decode_vdo_component_41_0(struct buffer *buffer,
 {
 	struct packed_vdo_component_41_0 packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -200,6 +201,7 @@ int decode_vdo_component(struct buffer *buffer,
 {
 	struct version_number version;
 	int result = decode_vdo_version_number(buffer, &version);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -220,6 +222,7 @@ int validate_vdo_config(const struct vdo_config *config,
 {
 	struct slab_config slab_config;
 	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

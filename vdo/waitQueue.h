@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#7 $
  */
 
 #ifndef WAIT_QUEUE_H
@@ -162,7 +162,7 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
  *
  * @param from_queue  The queue containing the waiters to move
  * @param to_queue    The queue that will receive the waiters from the
- *                    the first queue
+ *                    first queue
  **/
 void transfer_all_waiters(struct wait_queue *from_queue,
 			  struct wait_queue *to_queue);

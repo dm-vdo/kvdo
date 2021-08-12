@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#76 $
  */
 
 #include "slabSummary.h"
@@ -58,6 +58,7 @@ static uint8_t __must_check
 compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 {
 	block_count_t hint;
+
 	ASSERT_LOG_ONLY((free_blocks < (1 << 23)),
 			"free blocks must be less than 2^23");
 
@@ -375,6 +376,7 @@ finish_updating_slab_summary_block(struct slab_summary_block *block)
 static void finish_update(struct vdo_completion *completion)
 {
 	struct slab_summary_block *block = completion->parent;
+
 	atomic64_inc(&block->zone->summary->statistics.blocks_written);
 	finish_updating_slab_summary_block(block);
 }
@@ -387,6 +389,7 @@ static void finish_update(struct vdo_completion *completion)
 static void handle_write_error(struct vdo_completion *completion)
 {
 	struct slab_summary_block *block = completion->parent;
+
 	vdo_enter_read_only_mode(block->zone->summary->read_only_notifier,
 				 completion->result);
 	finish_updating_slab_summary_block(block);
@@ -489,6 +492,7 @@ void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 	struct slab_summary_block *block =
 		get_summary_block_for_slab(summary_zone, slab_number);
 	int result;
+
 	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 	} else if (is_vdo_state_draining(&summary_zone->state)
@@ -545,6 +549,7 @@ get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
 				slab_count_t slab_number)
 {
 	struct slab_summary_entry *entry = &summary_zone->entries[slab_number];
+
 	return get_approximate_free_blocks(summary_zone->summary,
 					   entry->fullness_hint);
 }
@@ -565,6 +570,7 @@ void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 				      struct slab_status *statuses)
 {
 	slab_count_t i;
+
 	for (i = 0; i < slab_count; i++) {
 		statuses[i] = (struct slab_status){
 			.slab_number = i,
@@ -594,6 +600,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;
 	int result = completion->result;
+
 	free_vdo_extent(vdo_completion_as_extent(UDS_FORGET(completion)));
 	finish_vdo_loading_with_result(&summary->zones[0]->state, result);
 }
@@ -604,8 +611,10 @@ void vdo_slab_summary_combine_zones(struct slab_summary *summary)
 	// Combine all the old summary data into the portion of the buffer
 	// corresponding to the first zone.
 	zone_count_t zone = 0;
+
 	if (summary->zones_to_combine > 1) {
 		slab_count_t entry_number;
+
 		for (entry_number = 0; entry_number < MAX_VDO_SLABS;
 		     entry_number++) {
 			if (zone != 0) {
@@ -662,6 +671,7 @@ void load_vdo_slab_summary(struct slab_summary *summary,
 	int result;
 
 	struct slab_summary_zone *zone = summary->zones[0];
+
 	if (!start_vdo_loading(&zone->state, operation, parent, NULL)) {
 		return;
 	}

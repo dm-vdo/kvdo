@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#34 $
  */
 
 #include "vdoLayout.h"
@@ -67,6 +67,7 @@ int decode_vdo_layout(struct fixed_layout *layout,
 	struct partition *partition;
 	uint8_t i;
 	int result;
+
 	for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
 		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i],
 					   &partition);
@@ -120,6 +121,7 @@ retrieve_partition(struct fixed_layout *layout, enum partition_id id)
 {
 	struct partition *partition;
 	int result = vdo_get_partition(layout, id, &partition);
+
 	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
 			"vdo_layout has expected partition");
 	return partition;
@@ -263,12 +265,13 @@ block_count_t
 vdo_get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
 {
 	struct partition *partition;
+
 	if (vdo_layout->next_layout == NULL) {
 		return 0;
 	}
 
 	partition = get_partition_from_next_layout(vdo_layout,
-					           VDO_BLOCK_ALLOCATOR_PARTITION);
+						   VDO_BLOCK_ALLOCATOR_PARTITION);
 	return get_vdo_fixed_layout_partition_size(partition);
 }
 

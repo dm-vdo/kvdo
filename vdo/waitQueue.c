@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#7 $
  */
 
 #include "waitQueue.h"
@@ -65,6 +65,7 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 		// tails.
 		struct waiter *from_head = from_queue->last_waiter->next_waiter;
 		struct waiter *to_head = to_queue->last_waiter->next_waiter;
+
 		to_queue->last_waiter->next_waiter = from_head;
 		from_queue->last_waiter->next_waiter = to_head;
 	}
@@ -82,6 +83,7 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 	// infinite loop if entries are returned to the queue by the callback
 	// function.
 	struct wait_queue waiters;
+
 	initialize_wait_queue(&waiters);
 	transfer_all_waiters(queue, &waiters);
 
@@ -95,6 +97,7 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 struct waiter *get_first_waiter(const struct wait_queue *queue)
 {
 	struct waiter *last_waiter = queue->last_waiter;
+
 	if (last_waiter == NULL) {
 		// There are no waiters, so we're done.
 		return NULL;
@@ -112,6 +115,7 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 			     struct wait_queue *matched_queue)
 {
 	struct wait_queue matched_waiters, iteration_queue;
+
 	initialize_wait_queue(&matched_waiters);
 
 	initialize_wait_queue(&iteration_queue);
@@ -119,6 +123,7 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 	while (has_waiters(&iteration_queue)) {
 		struct waiter *waiter = dequeue_next_waiter(&iteration_queue);
 		int result = VDO_SUCCESS;
+
 		if (!match_method(waiter, match_context)) {
 			result = enqueue_waiter(queue, waiter);
 		} else {
@@ -140,6 +145,7 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
 	struct waiter *last_waiter = queue->last_waiter;
+
 	if (first_waiter == NULL) {
 		return NULL;
 	}
@@ -165,6 +171,7 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
 			void *context)
 {
 	struct waiter *waiter = dequeue_next_waiter(queue);
+
 	if (waiter == NULL) {
 		return false;
 	}
@@ -181,6 +188,7 @@ const struct waiter *get_next_waiter(const struct wait_queue *queue,
 				     const struct waiter *waiter)
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
+
 	if (waiter == NULL) {
 		return first_waiter;
 	}

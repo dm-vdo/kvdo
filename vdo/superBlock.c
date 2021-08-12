@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#42 $
  */
 
 #include "superBlock.h"
@@ -84,6 +84,7 @@ int make_vdo_super_block(struct vdo *vdo,
 {
 	struct vdo_super_block *super_block;
 	int result = allocate_super_block(vdo, &super_block);
+
 	if (result != VDO_SUCCESS) {
 		free_vdo_super_block(super_block);
 		return result;
@@ -116,6 +117,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 {
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
+
 	super_block->parent = NULL;
 	finish_vdo_completion(parent, completion->result);
 }
@@ -185,6 +187,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 {
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
+
 	super_block->parent = NULL;
 	finish_vdo_completion(parent,
 			      decode_vdo_super_block(&super_block->codec));
@@ -198,6 +201,7 @@ void load_vdo_super_block(struct vdo *vdo,
 {
 	struct vdo_super_block *super_block = NULL;
 	int result = allocate_super_block(vdo, &super_block);
+
 	if (result != VDO_SUCCESS) {
 		free_vdo_super_block(super_block);
 		finish_vdo_completion(parent, result);

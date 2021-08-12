@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#19 $
  */
 
 #include "vdoComponentStates.h"
@@ -63,6 +63,7 @@ static int __must_check
 decode_components(struct buffer *buffer, struct vdo_component_states *states)
 {
 	int result = decode_vdo_component(buffer, &states->vdo);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -173,6 +174,7 @@ int encode_vdo_component_states(struct buffer *buffer,
 {
 	size_t expected_size;
 	int result = reset_buffer_end(buffer, 0);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

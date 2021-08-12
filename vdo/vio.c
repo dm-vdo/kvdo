@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#51 $
  */
 
 #include "vio.h"
@@ -117,6 +117,7 @@ void initialize_vio(struct vio *vio,
 void vio_done_callback(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
+
 	completion->callback = vio->callback;
 	completion->error_handler = vio->error_handler;
 	complete_vdo_completion(completion);
@@ -176,6 +177,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	int priority;
 
 	int result = vio_as_completion(vio)->result;
+
 	switch (result) {
 	case VDO_READ_ONLY:
 		atomic64_inc(&vio->vdo->stats.read_only_error_count);
@@ -209,6 +211,7 @@ static void handle_metadata_io_error(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 	char vio_operation[VDO_VIO_OPERATION_DESCRIPTION_MAX_LENGTH];
+
 	get_vio_operation_description(vio, vio_operation);
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",

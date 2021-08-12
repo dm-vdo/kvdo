@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#83 $
  */
 
 /*
@@ -157,6 +157,7 @@ static void write_block(struct data_vio *data_vio);
 static void release_allocated_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_allocated_zone(data_vio);
 	vio_release_allocation_lock(data_vio_as_allocating_vio(data_vio));
 	perform_cleanup_stage(data_vio, VIO_RELEASE_RECOVERY_LOCKS);
@@ -171,6 +172,7 @@ static void release_allocated_lock(struct vdo_completion *completion)
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	vdo_release_logical_block_lock(data_vio);
 	release_vdo_flush_generation_lock(data_vio);
@@ -185,6 +187,7 @@ static void release_logical_lock(struct vdo_completion *completion)
 static void clean_hash_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_hash_zone(data_vio);
 	release_vdo_hash_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_RELEASE_LOGICAL);
@@ -263,6 +266,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 static void finish_write_data_vio_with_error(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_hash_zone(data_vio);
 	continue_vdo_hash_lock_on_error(data_vio);
 }
@@ -326,6 +330,7 @@ static bool abort_on_error(int result,
 static void finish_write_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_hash_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -362,6 +367,7 @@ static void abort_deduplication(struct data_vio *data_vio)
 static void update_block_map_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -472,6 +478,7 @@ static void decrement_for_dedupe(struct vdo_completion *completion)
 static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -499,6 +506,7 @@ static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
 static void read_old_block_mapping_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -518,6 +526,7 @@ static void read_old_block_mapping_for_dedupe(struct vdo_completion *completion)
 static void increment_for_compression(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_new_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -543,6 +552,7 @@ static void
 add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -569,6 +579,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 static void pack_compressed_data(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_packer_zone(data_vio);
 
 	// XXX this is a callback, so there should probably be an error check
@@ -609,6 +620,7 @@ void vio_compress_data(struct data_vio *data_vio)
 static void increment_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_new_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -634,6 +646,7 @@ static void
 add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -652,6 +665,7 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 void share_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_duplicate_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -766,6 +780,7 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 static void update_block_map_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -793,6 +808,7 @@ static void update_block_map_for_write(struct vdo_completion *completion)
 static void decrement_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -812,6 +828,7 @@ static void decrement_for_write(struct vdo_completion *completion)
 static void journal_unmapping_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -838,6 +855,7 @@ static void journal_unmapping_for_write(struct vdo_completion *completion)
 static void read_old_block_mapping_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -870,6 +888,7 @@ static void acknowledge_write(struct data_vio *data_vio)
 static void increment_for_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_allocated_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -898,6 +917,7 @@ static void increment_for_write(struct vdo_completion *completion)
 static void finish_block_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -940,6 +960,7 @@ static void
 continue_write_after_allocation(struct allocating_vio *allocating_vio)
 {
 	struct data_vio *data_vio = allocating_vio_as_data_vio(allocating_vio);
+
 	if (abort_on_error(data_vio_as_completion(data_vio)->result,
 			   data_vio,
 			   NOT_READ_ONLY)) {

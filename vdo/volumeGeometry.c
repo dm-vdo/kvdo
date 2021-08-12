@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#55 $
  */
 
 #include "volumeGeometry.h"
@@ -87,6 +87,7 @@ static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 static inline bool is_loadable_release_version(release_version_number_t version)
 {
 	unsigned int i;
+
 	if (version == VDO_CURRENT_RELEASE_VERSION_NUMBER) {
 		return true;
 	}
@@ -115,6 +116,7 @@ static int decode_index_config(struct buffer *buffer,
 	uint32_t checkpoint_frequency;
 	bool sparse;
 	int result = get_uint32_le_from_buffer(buffer, &mem);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -152,6 +154,7 @@ static int decode_volume_region(struct buffer *buffer,
 	physical_block_number_t start_block;
 	enum volume_region_id id;
 	int result = get_uint32_le_from_buffer(buffer, &id);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -187,6 +190,7 @@ static int decode_volume_geometry(struct buffer *buffer,
 	nonce_t nonce;
 	block_count_t bio_offset;
 	int result = get_uint32_le_from_buffer(buffer, &release_version);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -330,6 +334,7 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	struct bio *bio;
 	byte *block;
 	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

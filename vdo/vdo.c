@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#167 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#168 $
  */
 
 /*
@@ -102,6 +102,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	if (vdo->hash_zones != NULL) {
 		zone_count_t zone;
+
 		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 			free_vdo_hash_zone(UDS_FORGET(vdo->hash_zones[zone]));
 		}
@@ -113,6 +114,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	if (vdo->physical_zones != NULL) {
 		zone_count_t zone;
+
 		for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
 			free_vdo_physical_zone(UDS_FORGET(vdo->physical_zones[zone]));
 		}
@@ -163,6 +165,7 @@ void destroy_vdo(struct vdo *vdo)
 static void pool_stats_release(struct kobject *directory)
 {
 	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
+
 	complete(&vdo->stats_shutdown);
 }
 
@@ -220,6 +223,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
 enum vdo_state get_vdo_state(const struct vdo *vdo)
 {
 	enum vdo_state state = atomic_read(&vdo->state);
+
 	smp_rmb();
 	return state;
 }
@@ -283,6 +287,7 @@ static void notify_vdo_of_read_only_mode(void *listener,
 				    struct vdo_completion *parent)
 {
 	struct vdo *vdo = listener;
+
 	if (in_read_only_mode(vdo)) {
 		complete_vdo_completion(parent);
 	}
@@ -427,6 +432,7 @@ get_hash_lock_statistics(const struct vdo *vdo)
 	zone_count_t zone_count = vdo->thread_config->hash_zone_count;
 	zone_count_t zone;
 	struct hash_lock_statistics totals;
+
 	memset(&totals, 0, sizeof(totals));
 
 	for (zone = 0; zone < zone_count; zone++) {
@@ -454,6 +460,7 @@ get_vdo_error_statistics(const struct vdo *vdo)
 	 * sufficient.
 	 */
 	const struct atomic_statistics *atoms = &vdo->stats;
+
 	return (struct error_statistics) {
 		.invalid_advice_pbn_count =
 			atomic64_read(&atoms->invalid_advice_pbn_count),

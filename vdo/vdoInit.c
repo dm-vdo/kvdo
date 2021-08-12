@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInit.c#24 $
  */
 
 #include "vdoInit.h"
@@ -61,6 +61,7 @@ static int initialize_vdo_kobjects(struct vdo *vdo,
 {
 	int result;
 	struct mapped_device *md = dm_table_get_md(target->table);
+
 	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
 	result = kobject_add(&vdo->vdo_directory,
 			     &disk_to_dev(dm_disk(md))->kobj,
@@ -103,6 +104,7 @@ static int allocate_vdo_threads(struct vdo *vdo, char **reason)
 {
 	int i;
 	struct device_config *config = vdo->device_config;
+
 	int result
 		= make_vdo_thread_config(config->thread_counts.logical_zones,
 					 config->thread_counts.physical_zones,

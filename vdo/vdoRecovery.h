@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#8 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -26,7 +26,7 @@
 #include "vdo.h"
 
 /**
- * Replay recovery journal entries in the the slab journals of slabs owned by a
+ * Replay recovery journal entries in the slab journals of slabs owned by a
  * given block_allocator.
  *
  * @param allocator   The allocator whose slab journals are to be recovered

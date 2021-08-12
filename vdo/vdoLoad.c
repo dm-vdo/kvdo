@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#104 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#105 $
  */
 
 #include "vdoLoad.h"
@@ -132,6 +132,7 @@ static void load_callback(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 	assert_vdo_admin_phase_thread(admin_completion,
@@ -263,6 +264,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct admin_completion *admin_completion =
 		vdo_admin_completion_from_sub_task(completion);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+
 	assert_vdo_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
@@ -349,6 +351,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	const struct thread_config *thread_config = get_vdo_thread_config(vdo);
 	zone_count_t zone;
 	int result = decode_from_super_block(vdo);
+
 	if (result != VDO_SUCCESS) {
 		destroy_vdo_component_states(&vdo->states);
 		return result;
@@ -467,6 +470,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 static void finish_operation_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+
 	finish_vdo_operation(&vdo->admin_state, completion->result);
 }
 
@@ -479,6 +483,7 @@ static void finish_operation_callback(struct vdo_completion *completion)
 static void load_vdo_components(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
+
 	prepare_vdo_admin_sub_task(vdo,
 				   finish_operation_callback,
 				   finish_operation_callback);

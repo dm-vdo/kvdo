@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlockCodec.c#17 $
  */
 
 #include "superBlockCodec.h"
@@ -38,8 +38,7 @@ enum {
 
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
 	.id = VDO_SUPER_BLOCK,
-	.version =
-		{
+	.version = {
 			.major_version = 12,
 			.minor_version = 0,
 		},
@@ -88,6 +87,7 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 	crc32_checksum_t checksum;
 	struct buffer *buffer = codec->block_buffer;
 	int result = reset_buffer_end(buffer, 0);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -111,7 +111,7 @@ int encode_vdo_super_block(struct super_block_codec *codec)
 	// Compute and encode the checksum.
 	checksum = vdo_update_crc32(VDO_INITIAL_CHECKSUM,
 				    codec->encoded_super_block,
-			            content_length(buffer));
+				    content_length(buffer));
 	result = put_uint32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -130,6 +130,7 @@ int decode_vdo_super_block(struct super_block_codec *codec)
 
 	// Reset the block buffer to start decoding the entire first sector.
 	struct buffer *buffer = codec->block_buffer;
+
 	clear_buffer(buffer);
 
 	// Decode and validate the header.

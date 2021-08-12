@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/syncCompletion.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/syncCompletion.h#2 $
  */
 
 #ifndef SYNC_COMPLETION_H
@@ -34,7 +34,7 @@
  * @param parent     The parent of the sync completion (may be NULL)
  **/
 int perform_synchronous_vdo_action(struct vdo *vdo,
-				   vdo_action *action,
+				   vdo_action * action,
 				   thread_id_t thread_id,
 				   void *parent);
 

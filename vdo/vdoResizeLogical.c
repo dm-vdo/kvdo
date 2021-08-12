@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#46 $
  */
 
 #include "vdoResizeLogical.h"
@@ -125,6 +125,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 		// our in memory config back to the old size.
 		struct vdo *vdo = admin_completion->vdo;
 		struct block_map *map = get_block_map(vdo);
+
 		vdo->states.vdo.config.logical_blocks =
 			vdo_get_number_of_block_map_entries(map);
 		vdo_abandon_block_map_growth(map);
@@ -153,6 +154,7 @@ int prepare_vdo_to_grow_logical(struct vdo *vdo,
 				block_count_t new_logical_blocks)
 {
 	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;
+
 
 	ASSERT_LOG_ONLY((new_logical_blocks > logical_blocks),
 			"New logical size is larger than current size");

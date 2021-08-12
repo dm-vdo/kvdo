@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#27 $
  */
 
 #include "vioRead.h"
@@ -124,6 +124,7 @@ void launch_read_data_vio(struct data_vio *data_vio)
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+
 	assert_data_vio_in_logical_zone(data_vio);
 	vdo_release_logical_block_lock(data_vio);
 	vio_done_callback(completion);
