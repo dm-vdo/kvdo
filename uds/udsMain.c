@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#2 $
  */
 
 #include "uds.h"
@@ -372,14 +372,4 @@ const char *uds_get_version(void)
 #else
 	return "internal version";
 #endif
-}
-
-/**********************************************************************/
-const char *uds_string_error(int errnum, char *buf, size_t buflen)
-{
-	if (buf == NULL) {
-		return NULL;
-	}
-
-	return string_error(errnum, buf, buflen);
 }

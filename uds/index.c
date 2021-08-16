@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#3 $
  */
 
 
@@ -102,7 +102,6 @@ static void enqueue_barrier_messages(struct uds_index *index,
 {
 	struct uds_zone_message message = {
 		.type = UDS_MESSAGE_SPARSE_CACHE_BARRIER,
-		.index = index,
 		.virtual_chapter = virtual_chapter,
 	};
 	unsigned int zone;

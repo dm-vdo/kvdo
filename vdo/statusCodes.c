@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#16 $
  */
 
 #include "statusCodes.h"
@@ -132,9 +132,9 @@ int map_to_system_error(int error)
 		uds_log_info("%s: mapping internal status code %d (%s: %s) to EIO",
 			     __func__,
 			     error,
-			     string_error_name(error,
-					       error_name,
-					       sizeof(error_name)),
+			     uds_string_error_name(error,
+						   error_name,
+						   sizeof(error_name)),
 			     uds_string_error(error,
 					      error_message,
 					      sizeof(error_message)));

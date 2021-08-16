@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexZone.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexZone.h#2 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -83,18 +83,6 @@ void set_active_chapters(struct index_zone *zone);
  **/
 int __must_check
 dispatch_index_zone_control_request(struct uds_request *request);
-
-/**
- * Open the next chapter.
- *
- * @param zone    The zone containing the open chapter
- * @param request The request which requires the next chapter to be
- *                opened
- *
- * @return UDS_SUCCESS if successful.
- **/
-int __must_check open_next_chapter(struct index_zone *zone,
-				   struct uds_request *request);
 
 /**
  * Determine the index region in which a block was found.

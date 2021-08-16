@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/errors.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/errors.h#2 $
  */
 
 #ifndef ERRORS_H
@@ -95,12 +95,37 @@ enum uds_status_codes {
 	UDS_ERROR_CODE_BLOCK_END = UDS_ERROR_CODE_BASE + 440
 };
 
+/**
+ * Suggested buffer size for uds_string_error.
+ **/
 enum {
-	ERRBUF_SIZE = 128 // default size for buffer passed to string_error
+	UDS_STRING_ERROR_BUFSIZE = 128,
+	ERRBUF_SIZE = 128,
 };
 
-const char *string_error(int errnum, char *buf, size_t buflen);
-const char *string_error_name(int errnum, char *buf, size_t buflen);
+/**
+ * Convert an error code to a descriptive string.
+ *
+ * @param errnum  The error code
+ * @param buf     The buffer to hold the error string
+ * @param buflen  The length of the buffer
+ *
+ * @return A pointer to the buffer
+ **/
+const char * __must_check uds_string_error(int errnum,
+					   char *buf,
+					   size_t buflen);
+
+/**
+ * Convert an error code to its name.
+ *
+ * @param errnum  The error code
+ * @param buf     The buffer to hold the name string
+ * @param buflen  The length of the buffer
+ *
+ * @return A pointer to buf
+ **/
+const char *uds_string_error_name(int errnum, char *buf, size_t buflen);
 
 /*
  * Identify that an result code is a successful result.
@@ -131,7 +156,7 @@ struct error_info {
 int uds_map_to_system_error(int error);
 
 /**
- * Register an error code block for string_error and string_error_name.
+ * Register an error code block for uds_string_error and uds_string_error_name.
  *
  * @param block_name           the name of the block of error codes
  * @param first_error          the first error code in the block

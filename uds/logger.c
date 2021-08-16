@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/logger.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/logger.c#3 $
  */
 
 #include "logger.h"
@@ -119,13 +119,14 @@ int uds_vlog_strerror(int priority,
 		      va_list args)
 {
 	char errbuf[ERRBUF_SIZE];
+        const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
 	uds_log_embedded_message(priority,
 				 module,
 				 NULL,
 				 format,
 				 args,
 				 ": %s (%u)",
-				 string_error(errnum, errbuf, sizeof(errbuf)),
+				 message,
 				 errnum);
 	return errnum;
 }

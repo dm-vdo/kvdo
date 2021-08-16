@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexZone.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexZone.c#2 $
  */
 
 #include "indexZone.h"
@@ -147,64 +147,18 @@ static int reap_oldest_chapter(struct index_zone *zone)
 }
 
 /**
- * Handle notification that some other zone has closed its open chapter. If
- * the chapter that was closed is still the open chapter for this zone,
- * close it now in order to minimize skew.
- *
- * @param zone             The zone receiving the notification
- * @param virtual_chapter  The closed virtual chapter
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int handle_chapter_closed(struct index_zone *zone,
-				 uint64_t virtual_chapter)
-{
-	if (zone->newest_virtual_chapter == virtual_chapter) {
-		return open_next_chapter(zone, NULL);
-	}
-
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int dispatch_index_zone_control_request(struct uds_request *request)
-{
-	struct uds_zone_message *message = &request->zone_message;
-	struct index_zone *zone = message->index->zones[request->zone_number];
-
-	switch (message->type) {
-	case UDS_MESSAGE_SPARSE_CACHE_BARRIER:
-		return update_sparse_cache(zone, message->virtual_chapter);
-
-	case UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED:
-		return handle_chapter_closed(zone, message->virtual_chapter);
-
-	default:
-		uds_log_error("invalid message type: %d", message->type);
-		return UDS_INVALID_ARGUMENT;
-	}
-}
-
-/**
  * Announce the closure of the current open chapter to the other zones.
  *
- * @param request       The request which caused the chapter to close
- *                      (may be NULL)
- * @param zone          The zone which first closed the chapter
- * @param closed_chapter The chapter which was closed
+ * @param zone            The zone which first closed the chapter
+ * @param closed_chapter  The chapter which was closed
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int announce_chapter_closed(struct uds_request *request,
-				   struct index_zone *zone,
+static int announce_chapter_closed(struct index_zone *zone,
 				   uint64_t closed_chapter)
 {
-	struct uds_index *index =
-		((request != NULL) ? request->index : NULL);
-
 	struct uds_zone_message zone_message = {
 		.type = UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED,
-		.index = zone->index,
 		.virtual_chapter = closed_chapter,
 	};
 
@@ -214,14 +168,7 @@ static int announce_chapter_closed(struct uds_request *request,
 		if (zone->id == i) {
 			continue;
 		}
-		if (index != NULL) {
-			result = launch_zone_message(zone_message, i, index);
-		} else {
-			// We're in a test which doesn't have zone queues, so
-			// we can just call the message function directly.
-			result = handle_chapter_closed(zone->index->zones[i],
-						       closed_chapter);
-		}
+		result = launch_zone_message(zone_message, i, zone->index);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -230,8 +177,14 @@ static int announce_chapter_closed(struct uds_request *request,
 	return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int open_next_chapter(struct index_zone *zone, struct uds_request *request)
+/**
+ * Open the next chapter.
+ *
+ * @param zone  The zone containing the open chapter
+ *
+ * @return UDS_SUCCESS if successful
+ **/
+static int open_next_chapter(struct index_zone *zone)
 {
 	uint64_t closed_chapter, victim;
 	int result;
@@ -273,8 +226,7 @@ int open_next_chapter(struct index_zone *zone, struct uds_request *request)
 		// This is the first zone of a multi-zone index to close this
 		// chapter, so inform the other zones in order to control zone
 		// skew.
-		result =
-			announce_chapter_closed(request, zone, closed_chapter);
+		result = announce_chapter_closed(zone, closed_chapter);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -303,6 +255,45 @@ int open_next_chapter(struct index_zone *zone, struct uds_request *request)
 	}
 
         return result;
+}
+
+/**
+ * Handle notification that some other zone has closed its open chapter. If
+ * the chapter that was closed is still the open chapter for this zone,
+ * close it now in order to minimize skew.
+ *
+ * @param zone             The zone receiving the notification
+ * @param virtual_chapter  The closed virtual chapter
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int handle_chapter_closed(struct index_zone *zone,
+				 uint64_t virtual_chapter)
+{
+	if (zone->newest_virtual_chapter == virtual_chapter) {
+		return open_next_chapter(zone);
+	}
+
+	return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int dispatch_index_zone_control_request(struct uds_request *request)
+{
+	struct uds_zone_message *message = &request->zone_message;
+	struct index_zone *zone = request->index->zones[request->zone_number];
+
+	switch (message->type) {
+	case UDS_MESSAGE_SPARSE_CACHE_BARRIER:
+		return update_sparse_cache(zone, message->virtual_chapter);
+
+	case UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED:
+		return handle_chapter_closed(zone, message->virtual_chapter);
+
+	default:
+		uds_log_error("invalid message type: %d", message->type);
+		return UDS_INVALID_ARGUMENT;
+	}
 }
 
 /**********************************************************************/
@@ -382,7 +373,7 @@ int put_record_in_zone(struct index_zone *zone,
 	}
 
 	if (remaining == 0) {
-		return open_next_chapter(zone, request);
+		return open_next_chapter(zone);
 	}
 
 	return UDS_SUCCESS;

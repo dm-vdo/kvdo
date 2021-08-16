@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#1 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/udsModule.c#2 $
  */
 
 #include <linux/module.h>
@@ -83,7 +83,6 @@ EXPORT_SYMBOL_GPL(uds_initialize_configuration);
 EXPORT_SYMBOL_GPL(uds_open_index);
 EXPORT_SYMBOL_GPL(uds_resume_index_session);
 EXPORT_SYMBOL_GPL(uds_start_chunk_operation);
-EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_suspend_index_session);
 
 EXPORT_SYMBOL_GPL(__uds_log_message);
@@ -134,8 +133,6 @@ EXPORT_SYMBOL_GPL(reset_buffer_end);
 EXPORT_SYMBOL_GPL(rewind_buffer);
 EXPORT_SYMBOL_GPL(set_uds_log_level);
 EXPORT_SYMBOL_GPL(skip_forward);
-EXPORT_SYMBOL_GPL(string_error);
-EXPORT_SYMBOL_GPL(string_error_name);
 EXPORT_SYMBOL_GPL(uds_alloc_sprintf);
 EXPORT_SYMBOL_GPL(uds_allocate_memory);
 EXPORT_SYMBOL_GPL(uds_allocate_memory_nowait);
@@ -156,6 +153,8 @@ EXPORT_SYMBOL_GPL(uds_reallocate_memory);
 EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_thread);
 EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
+EXPORT_SYMBOL_GPL(uds_string_error);
+EXPORT_SYMBOL_GPL(uds_string_error_name);
 EXPORT_SYMBOL_GPL(uds_string_to_unsigned_long);
 EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread);

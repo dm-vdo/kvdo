@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#4 $
  */
 
 /**
@@ -248,8 +248,6 @@ enum uds_zone_message_type {
 struct uds_zone_message {
 	/** The type of message, determining how it will be processed */
 	enum uds_zone_message_type type;
-	/** The index to which the message is directed */
-	struct uds_index *index;
 	/** The virtual chapter number to which the message applies */
 	uint64_t virtual_chapter;
 };
@@ -574,24 +572,6 @@ int __must_check uds_get_index_configuration(struct uds_index_session *session,
  **/
 int __must_check uds_get_index_stats(struct uds_index_session *session,
 				     struct uds_index_stats *stats);
-
-/**
- * Convert an error code to a string.
- *
- * @param errnum  The error code
- * @param buf     The buffer to hold the error string
- * @param buflen  The length of the buffer
- *
- * @return A pointer to buf
- **/
-const char * __must_check uds_string_error(int errnum,
-					   char *buf,
-					   size_t buflen);
-
-/**
- * Suggested buffer size for uds_string_error.
- **/
-enum { UDS_STRING_ERROR_BUFSIZE = 128 };
 
 /** @{ */
 /** @name Deduplication */

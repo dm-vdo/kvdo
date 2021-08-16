@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/errors.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/errors.c#2 $
  */
 
 #include "errors.h"
@@ -198,7 +198,7 @@ static const char *system_string_error(int errnum, char *buf, size_t buflen)
 }
 
 /**********************************************************************/
-const char *string_error(int errnum, char *buf, size_t buflen)
+const char *uds_string_error(int errnum, char *buf, size_t buflen)
 {
 	char *buffer = buf;
 	char *buf_end = buf + buflen;
@@ -246,7 +246,7 @@ const char *string_error(int errnum, char *buf, size_t buflen)
 }
 
 /**********************************************************************/
-const char *string_error_name(int errnum, char *buf, size_t buflen)
+const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 {
 
 	char *buffer = buf;
@@ -320,9 +320,9 @@ int uds_map_to_system_error(int error)
 		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
 			     __func__,
 			     error,
-			     string_error_name(error,
-					       error_name,
-					       sizeof(error_name)),
+			     uds_string_error_name(error,
+						   error_name,
+						   sizeof(error_name)),
 			     uds_string_error(error,
 					      error_message,
 					      sizeof(error_message)));
