@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#19 $
  */
 
 #ifndef PACKER_H
 #define PACKER_H
 
-#include "completion.h"
+#include "compiler.h"
+
 #include "statistics.h"
-#include "threadConfig.h"
 #include "types.h"
 
 enum {

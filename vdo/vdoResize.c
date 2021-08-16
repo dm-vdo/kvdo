@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#62 $
  */
 
 #include "vdoResize.h"
@@ -28,6 +28,7 @@
 #include "recoveryJournal.h"
 #include "slabDepot.h"
 #include "slabSummary.h"
+#include "threadConfig.h"
 #include "vdoInternal.h"
 #include "vdoLayout.h"
 

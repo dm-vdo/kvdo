@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#73 $
  */
 
 #include "referenceCountRebuild.h"
@@ -33,6 +33,7 @@
 #include "numUtils.h"
 #include "refCounts.h"
 #include "slabDepot.h"
+#include "threadConfig.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
 

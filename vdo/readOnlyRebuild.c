@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#69 $
  */
 
 #include "readOnlyRebuild.h"
@@ -33,6 +33,7 @@
 #include "recoveryUtils.h"
 #include "referenceCountRebuild.h"
 #include "slabDepot.h"
+#include "threadConfig.h"
 #include "vdoComponent.h"
 #include "vdoComponentStates.h"
 #include "vdoInternal.h"

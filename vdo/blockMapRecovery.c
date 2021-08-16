@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#54 $
  */
 
 #include "blockMapRecovery.h"
@@ -31,6 +31,7 @@
 #include "numUtils.h"
 #include "refCounts.h"
 #include "slabDepot.h"
+#include "threadConfig.h"
 #include "types.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"

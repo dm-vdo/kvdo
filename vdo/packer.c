@@ -16,24 +16,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#96 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#97 $
  */
 
+#include "packer.h"
 #include "packerInternals.h"
+
+#include <linux/atomic.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
+#include "stringUtils.h"
 
 #include "adminState.h"
 #include "allocatingVIO.h"
 #include "allocationSelector.h"
+#include "completion.h"
+#include "constants.h"
+#include "compressedBlock.h"
 #include "compressionState.h"
 #include "dataVIO.h"
 #include "hashLock.h"
 #include "pbnLock.h"
+#include "readOnlyNotifier.h"
+#include "statusCodes.h"
+#include "threadConfig.h"
 #include "vdo.h"
 #include "vdoInternal.h"
+#include "vio.h"
 
 /**
  * Check that we are on the packer thread.
