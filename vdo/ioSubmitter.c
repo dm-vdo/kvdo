@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#89 $
  */
 
 #include "ioSubmitter.h"
@@ -438,7 +438,8 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 		result = int_map_put(bio_queue_data->map, get_bio_sector(bio),
 				     vio, true, NULL);
 		// We don't care about failure of int_map_put in this case.
-		result = result;
+		ASSERT_LOG_ONLY(result == UDS_SUCCESS,
+				"bio map insertion succeeds");
 		mutex_unlock(&bio_queue_data->lock);
 	} else {
 		if (next_vio == NULL) {
@@ -452,7 +453,8 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 		}
 
 		// We don't care about failure of int_map_put in this case.
-		result = result;
+		ASSERT_LOG_ONLY(result == UDS_SUCCESS,
+				"bio map insertion succeeds");
 		mutex_unlock(&bio_queue_data->lock);
 		merged = true;
 	}
