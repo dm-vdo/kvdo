@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#6 $
  */
 
 #ifndef POINTER_MAP_H
 #define POINTER_MAP_H
 
-#include "common.h"
+#include "compiler.h"
+#include "typeDefs.h"
 
 /**
  * A pointer_map associates pointer values (<code>void *</code>) with the data

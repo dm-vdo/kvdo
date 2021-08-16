@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/statusCodes.c#17 $
  */
 
 #include "statusCodes.h"
 
+
 #include "errors.h"
 #include "permassert.h"
 #include "threadOnce.h"
-#include "uds.h"
 
 const struct error_info vdo_status_list[] = {
 	{ "VDO_NOT_IMPLEMENTED", "Not implemented" },

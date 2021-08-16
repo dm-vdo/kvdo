@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#6 $
  */
 
 #ifndef INT_MAP_H
 #define INT_MAP_H
 
-#include "common.h"
+#include "compiler.h"
+#include "typeDefs.h"
 
 /**
  * An int_map associates pointers (<code>void *</code>) with integer keys

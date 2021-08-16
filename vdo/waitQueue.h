@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#8 $
  */
 
 #ifndef WAIT_QUEUE_H
 #define WAIT_QUEUE_H
 
-#include "common.h"
+#include "compiler.h"
+#include "typeDefs.h"
 
 /**
  * A wait queue is a circular list of entries waiting to be notified of a

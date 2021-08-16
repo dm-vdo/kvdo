@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#4 $
  */
 
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "common.h"
+#include "typeDefs.h"
 
 /**
  * Prototype for functions which compare two array elements. All the time
