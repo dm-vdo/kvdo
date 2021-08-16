@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#92 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#93 $
  */
 
 #ifndef DATA_VIO_H
@@ -26,14 +26,16 @@
 #include <linux/list.h>
 
 #include "permassert.h"
+#include "uds.h"
 
 #include "allocatingVIO.h"
-#include "blockMapEntry.h"
 #include "blockMappingState.h"
+#include "completion.h"
 #include "constants.h"
 #include "hashZone.h"
 #include "journalPoint.h"
 #include "logicalZone.h"
+#include "physicalZone.h"
 #include "referenceOperation.h"
 #include "threadConfig.h"
 #include "types.h"

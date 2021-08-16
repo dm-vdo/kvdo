@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#22 $
  */
 
 #include "compressedBlock.h"
 
-#include "memoryAlloc.h"
-#include "numeric.h"
 #include "permassert.h"
+#include "stringUtils.h"
 
 #include "statusCodes.h"
 

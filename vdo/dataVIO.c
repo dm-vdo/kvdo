@@ -16,21 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#62 $
  */
 
 #include "dataVIO.h"
 
-#include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
 #include "bio.h"
 #include "blockMap.h"
 #include "compressionState.h"
-#include "extent.h"
+#include "intMap.h"
 #include "logicalZone.h"
-#include "threadConfig.h"
+#include "packer.h"
+#include "statusCodes.h"
+#include "vdoComponent.h"
+#include "vdoComponentStates.h"
 #include "vdoInternal.h"
 #include "vioRead.h"
 #include "vioWrite.h"

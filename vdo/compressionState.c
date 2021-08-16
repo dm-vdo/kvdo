@@ -16,14 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#25 $
  */
 
 #include "compressionState.h"
 
 
+#include <linux/atomic.h>
+
 #include "dataVIO.h"
 #include "packer.h"
+#include "vdo.h"
+#include "vio.h"
 
 static const uint32_t STATUS_MASK = 0xff;
 static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
