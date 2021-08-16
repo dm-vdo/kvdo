@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/uds.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/uds.h#2 $
  */
 
 /**
@@ -153,14 +153,7 @@ struct uds_parameters {
 	int zone_count;
 	// The number of threads used to read volume pages.
 	int read_threads;
-	// The number of chapters to write between checkpoints.
-	int checkpoint_frequency;
 };
-#define UDS_PARAMETERS_INITIALIZER {		\
-		.zone_count = 0,		\
-		.read_threads = 2,		\
-		.checkpoint_frequency = 0,	\
-	}
 
 /**
  * Index statistics

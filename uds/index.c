@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#2 $
  */
 
 
@@ -426,12 +426,6 @@ int allocate_index(struct index_layout *layout,
 	struct uds_index *index;
 	int result;
 	unsigned int i;
-	unsigned int checkpoint_frequency =
-		user_params == NULL ? 0 : user_params->checkpoint_frequency;
-	if (checkpoint_frequency >= config->geometry->chapters_per_volume) {
-		uds_log_error("checkpoint frequency too large");
-		return -EINVAL;
-	}
 
 	result = UDS_ALLOCATE_EXTENDED(struct uds_index,
 				       zone_count,
@@ -449,8 +443,7 @@ int allocate_index(struct index_layout *layout,
 		free_index(index);
 		return result;
 	}
-	set_index_checkpoint_frequency(index->checkpoint,
-				       checkpoint_frequency);
+	set_index_checkpoint_frequency(index->checkpoint, 0);
 
 	get_uds_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;

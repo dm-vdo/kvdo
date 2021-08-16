@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#111 $
  */
 
 #include "dedupeIndex.h"
@@ -71,7 +71,6 @@ struct dedupe_index {
 	struct registered_thread allocating_thread;
 	char *index_name;
 	struct uds_configuration *configuration;
-	struct uds_parameters uds_params;
 	struct uds_index_session *index_session;
 	atomic_t active;
 	// for reporting UDS timeouts
@@ -570,7 +569,7 @@ static void open_index(struct dedupe_index *index)
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
 	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
-				index->index_name, &index->uds_params,
+				index->index_name, NULL,
 				index->configuration, index->index_session);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result,
@@ -972,9 +971,7 @@ int make_vdo_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-	index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
 	index_config = &vdo->geometry.index_config;
-	vdo_index_config_to_uds_parameters(index_config, &index->uds_params);
 	result = vdo_index_config_to_uds_configuration(index_config,
 						       &index->configuration);
 	if (result != VDO_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/volume.c#2 $
  */
 
 #include "volume.h"
@@ -51,7 +51,7 @@ static unsigned int get_read_threads(const struct uds_parameters *user_params)
 		(user_params == NULL ? DEFAULT_VOLUME_READ_THREADS :
 				       user_params->read_threads);
 	if (read_threads < 1) {
-		read_threads = 1;
+		read_threads = DEFAULT_VOLUME_READ_THREADS;
 	}
 	if (read_threads > MAX_VOLUME_READ_THREADS) {
 		read_threads = MAX_VOLUME_READ_THREADS;

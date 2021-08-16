@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/permassert.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/permassert.h#2 $
  */
 
 #ifndef PERMASSERT_H
@@ -113,13 +113,15 @@ static INLINE int __must_check uds_must_use(int value)
  */
 #define ASSERT_FALSE(...) ASSERT(false, __VA_ARGS__)
 
-#define STATIC_ASSERT(expr)  \
-	do {                 \
-		switch (0) { \
-		case 0:      \
-		case expr:;  \
-		default:;    \
-		}            \
+#define STATIC_ASSERT(expr)         \
+	do {                        \
+		switch (0) {        \
+		case 0:;            \
+			fallthrough;\
+		case expr:;	    \
+			fallthrough;\
+		default:;           \
+		}                   \
 	} while (0)
 
 #define STATIC_ASSERT_SIZEOF(type, expected_size) \

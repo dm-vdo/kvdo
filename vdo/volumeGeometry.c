@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#56 $
  */
 
 #include "volumeGeometry.h"
@@ -113,7 +113,6 @@ static int decode_index_config(struct buffer *buffer,
 			       struct index_config *config)
 {
 	uint32_t mem;
-	uint32_t checkpoint_frequency;
 	bool sparse;
 	int result = get_uint32_le_from_buffer(buffer, &mem);
 
@@ -121,7 +120,7 @@ static int decode_index_config(struct buffer *buffer,
 		return result;
 	}
 
-	result = get_uint32_le_from_buffer(buffer, &checkpoint_frequency);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -133,7 +132,6 @@ static int decode_index_config(struct buffer *buffer,
 
 	*config = (struct index_config) {
 		.mem = mem,
-		.checkpoint_frequency = checkpoint_frequency,
 		.sparse = sparse,
 	};
 	return VDO_SUCCESS;
@@ -390,11 +388,4 @@ vdo_index_config_to_uds_configuration(const struct index_config *index_config,
 	uds_configuration_set_sparse(uds_configuration, index_config->sparse);
 	*uds_config_ptr = uds_configuration;
 	return VDO_SUCCESS;
-}
-
-/************************************************************************/
-void vdo_index_config_to_uds_parameters(const struct index_config *index_config,
-					struct uds_parameters *user_params)
-{
-	user_params->checkpoint_frequency = index_config->checkpoint_frequency;
 }

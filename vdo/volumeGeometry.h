@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#30 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -36,7 +36,7 @@ enum {
 
 struct index_config {
 	uint32_t mem;
-	uint32_t checkpoint_frequency;
+	uint32_t unused;
 	bool sparse;
 } __packed;
 
@@ -148,14 +148,5 @@ vdo_read_geometry_block(struct block_device *bdev,
 int __must_check
 vdo_index_config_to_uds_configuration(const struct index_config *index_config,
 				      struct uds_configuration **uds_config_ptr);
-
-/**
- * Modify the uds_parameters to match the requested index config.
- *
- * @param index_config  The index config to convert
- * @param user_params   The uds_parameters to modify
- **/
-void vdo_index_config_to_uds_parameters(const struct index_config *index_config,
-					struct uds_parameters *user_params);
 
 #endif // VOLUME_GEOMETRY_H
