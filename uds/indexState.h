@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexState.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexState.h#2 $
  */
 
 #ifndef INDEX_STATE_H
@@ -31,7 +31,6 @@
  **/
 enum index_save_type {
 	IS_SAVE,
-	IS_CHECKPOINT,
 	NO_SAVE = 9999,
 };
 
@@ -57,7 +56,6 @@ struct index_state {
 	unsigned int count;                // count of registered entries
 					   // (<= length)
 	unsigned int length;               // total span of array allocation
-	bool saving;                       // incremental save in progress
 	struct index_component *entries[]; // array of index component entries
 };
 
@@ -103,11 +101,10 @@ add_index_state_component(struct index_state *state,
  * Load index state
  *
  * @param state       The index state.
- * @param replay_ptr  If set, the place to hold whether a replay is required.
  *
  * @return            UDS_SUCCESS or error
  **/
-int __must_check load_index_state(struct index_state *state, bool *replay_ptr);
+int __must_check load_index_state(struct index_state *state);
 
 /**
  * Save the current index state, including the open chapter.
@@ -121,109 +118,11 @@ int __must_check save_index_state(struct index_state *state);
 /**
  *  Prepare to save the index state.
  *
- *  @param state      the index state
- *  @param save_type  whether a checkpoint or save
+ *  @param state  the index state
  *
  *  @return UDS_SUCCESS or an error code
  **/
-int __must_check prepare_to_save_index_state(struct index_state *state,
-					     enum index_save_type save_type);
-
-/**
- * Write index checkpoint non-incrementally (for testing).
- *
- * @param state         The index state.
- *
- * @return              UDS_SUCCESS or error
- **/
-int __must_check write_index_state_checkpoint(struct index_state *state);
-
-/**
- * Sets up an index state checkpoint which will proceed incrementally.
- * May create the directory but does not actually write any data.
- *
- * @param state         The index state.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int __must_check start_index_state_checkpoint(struct index_state *state);
-
-/**
- * Perform operations on index state checkpoints that are synchronized to
- * the chapter writer thread.
- *
- * @param state         The index state.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int __must_check
-perform_index_state_checkpoint_chapter_synchronized_saves(struct index_state *state);
-
-/**
- * Performs zone-specific (and, for zone 0, general) incremental checkpointing.
- *
- * @param [in]  state           The index state.
- * @param [in]  zone            The zone number.
- * @param [out] completed       Set to whether the checkpoint has completed
- *                              for this zone.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int __must_check
-perform_index_state_checkpoint_in_zone(struct index_state *state,
-				       unsigned int zone,
-				       enum completion_status *completed);
-
-/**
- * Force the completion of an incremental index state checkpoint
- * for a particular zone.
- *
- * @param [in] state    The index state.
- * @param [in]  zone            The zone number.
- * @param [out] completed       Set to whether the checkpoint has completed
- *                              for this zone.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int __must_check
-finish_index_state_checkpoint_in_zone(struct index_state *state,
-				      unsigned int zone,
-				      enum completion_status *completed);
-
-/**
- * Force the completion of an incremental index state checkpoint once
- * all zones are completed.
- *
- * @param [in] state    The index state.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int __must_check finish_index_state_checkpoint(struct index_state *state);
-
-/**
- * Aborts an index state checkpoint which is proceeding incrementally
- * for a particular zone.
- *
- * @param [in]  state           The index state.
- * @param [in]  zone            The zone number.
- * @param [out] completed       Set to whether the checkpoint has completed or
- *                              aborted for this zone.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int abort_index_state_checkpoint_in_zone(struct index_state *state,
-					 unsigned int zone,
-					 enum completion_status *completed);
-
-/**
- * Aborts an index state checkpoint which is proceeding incrementally,
- * once all the zones are aborted.
- *
- * @param [in]  state   The index state.
- *
- * @return              UDS_SUCCESS or an error code.
- **/
-int abort_index_state_checkpoint(struct index_state *state);
+int __must_check prepare_to_save_index_state(struct index_state *state);
 
 /**
  * Remove or disable the index state data, for testing.
@@ -235,17 +134,6 @@ int abort_index_state_checkpoint(struct index_state *state);
  * @note the return value of this function is frequently ignored
  **/
 int discard_index_state_data(struct index_state *state);
-
-/**
- * Discard the last index state save, for testing.
- *
- * @param state         The index state
- *
- * @return UDS_SUCCESS or an error code
- *
- * @note the return value of this function is frequently ignored
- **/
-int discard_last_index_state_save(struct index_state *state);
 
 /**
  * Find index component, for testing.

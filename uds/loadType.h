@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/loadType.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/loadType.h#2 $
  */
 
 #ifndef LOAD_TYPE_H
@@ -39,7 +39,6 @@
  *
  *    LOAD_CREATE   new empty index
  *    LOAD_LOAD     loaded saved index
- *    LOAD_REPLAY   loaded checkpoint and replayed new chapters
  *    LOAD_EMPTY    empty volume index from empty volume data
  *    LOAD_REBUILD  rebuilt volume index from volume data
  **/
@@ -49,7 +48,6 @@ enum load_type {
 	LOAD_LOAD,
 	LOAD_REBUILD,
 	LOAD_EMPTY,
-	LOAD_REPLAY,
 };
 
 /**

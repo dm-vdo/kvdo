@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.h#2 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -222,18 +222,5 @@ int __must_check uds_save_index(struct uds_index_session *index_session);
  * @param index_session  The index session to be shut down and freed
  **/
 int save_and_free_index(struct uds_index_session *index_session);
-
-/**
- * Set the checkpoint frequency of the grid.
- *
- * @param session    The index session to be modified.
- * @param frequency  New checkpoint frequency.
- *
- * @return          Either UDS_SUCCESS or an error code.
- *
- **/
-int __must_check
-uds_set_checkpoint_frequency(struct uds_index_session *session,
-			     unsigned int frequency);
 
 #endif /* INDEX_SESSION_H */

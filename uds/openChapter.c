@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/openChapter.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/openChapter.c#2 $
  */
 
 #include "openChapter.h"
@@ -35,13 +35,10 @@ static int write_open_chapters(struct index_component *component,
 const struct index_component_info OPEN_CHAPTER_INFO = {
 	.kind = RL_KIND_OPEN_CHAPTER,
 	.name = "open chapter",
-	.save_only = true,
-	.chapter_sync = false,
 	.multi_zone = false,
 	.io_storage = true,
 	.loader = read_open_chapters,
 	.saver = write_open_chapters,
-	.incremental = NULL,
 };
 
 static const byte OPEN_CHAPTER_MAGIC[] = "ALBOC";

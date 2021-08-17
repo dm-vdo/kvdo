@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/masterIndexOps.c#2 $
  */
 #include "masterIndexOps.h"
 
@@ -121,43 +121,27 @@ static int read_volume_index(struct read_portal *portal)
 /**********************************************************************/
 static int write_volume_index(struct index_component *component,
 			      struct buffered_writer *writer,
-			      unsigned int zone,
-			      enum incremental_writer_command command,
-			      bool *completed)
+			      unsigned int zone)
 {
 	struct volume_index *volume_index = index_component_context(component);
-	bool is_complete = false;
+        int result;
 
-	int result = UDS_SUCCESS;
+        result = start_saving_volume_index(volume_index, zone, writer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-	switch (command) {
-	case IWC_START:
-		result = start_saving_volume_index(volume_index, zone, writer);
-		is_complete = result != UDS_SUCCESS;
-		break;
-	case IWC_CONTINUE:
-		is_complete = is_saving_volume_index_done(volume_index, zone);
-		break;
-	case IWC_FINISH:
-		result = finish_saving_volume_index(volume_index, zone);
-		if (result == UDS_SUCCESS) {
-			result = write_guard_delta_list(writer);
-		}
-		is_complete = true;
-		break;
-	case IWC_ABORT:
-		result = abort_saving_volume_index(volume_index, zone);
-		is_complete = true;
-		break;
-	default:
-		result = uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						  "Invalid writer command");
-		break;
+	result = finish_saving_volume_index(volume_index, zone);
+	if (result != UDS_SUCCESS) {
+		return result;
 	}
-	if (completed != NULL) {
-		*completed = is_complete;
+
+	result = write_guard_delta_list(writer);
+	if (result != UDS_SUCCESS) {
+		return result;
 	}
-	return result;
+
+	return flush_buffered_writer(writer);
 }
 
 /**********************************************************************/
@@ -165,13 +149,10 @@ static int write_volume_index(struct index_component *component,
 static const struct index_component_info VOLUME_INDEX_INFO_DATA = {
 	.kind = RL_KIND_VOLUME_INDEX,
 	.name = "volume index",
-	.save_only = false,
-	.chapter_sync = false,
 	.multi_zone = true,
 	.io_storage = true,
 	.loader = read_volume_index,
-	.saver = NULL,
-	.incremental = write_volume_index,
+	.saver = write_volume_index,
 };
 const struct index_component_info *const VOLUME_INDEX_INFO =
 	&VOLUME_INDEX_INFO_DATA;

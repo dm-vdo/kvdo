@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/errors.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/errors.c#3 $
  */
 
 #include "errors.h"
@@ -78,7 +78,6 @@ static const struct error_info error_list[] = {
 	{ "UDS_QUEUED", "Request queued" },
 	{ "UDS_BUFFER_ERROR", "Buffer error" },
 	{ "UDS_NO_DIRECTORY", "Expected directory is missing" },
-	{ "UDS_CHECKPOINT_INCOMPLETE", "Checkpoint not completed" },
 	{ "UDS_ALREADY_REGISTERED", "Error range already registered" },
 	{ "UDS_BAD_IO_DIRECTION", "Bad I/O direction" },
 	{ "UDS_INCORRECT_ALIGNMENT", "Offset not at block alignment" },

@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexZone.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexZone.c#3 $
  */
 
 #include "indexZone.h"
 
 #include "errors.h"
 #include "index.h"
-#include "indexCheckpoint.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -209,15 +208,6 @@ static int open_next_chapter(struct index_zone *zone)
 	}
 
 	reset_open_chapter(zone->open_chapter);
-
-	// begin, continue, or finish the checkpoint processing
-	// moved above start_closing_chapter because some of the
-	// checkpoint processing now done by the chapter writer thread
-	result = process_checkpointing(zone->index, zone->id,
-				       zone->newest_virtual_chapter);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
 
 	finished_zones =
 		start_closing_chapter(zone->index->chapter_writer, zone->id,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexComponent.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexComponent.c#2 $
  */
 
 #include "indexComponent.h"
@@ -49,9 +49,9 @@ int make_index_component(struct index_state *state,
 					      "no .loader function specified for component %s",
 					      info->name);
 	}
-	if ((info->saver == NULL) && (info->incremental == NULL)) {
+	if (info->saver == NULL) {
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
-					      "neither .saver function nor .incremental function specified for component %s",
+					      "no .saver function specified for component %s",
 					      info->name);
 	}
 
@@ -178,77 +178,6 @@ int read_index_component(struct index_component *component)
 }
 
 /**
- * Determine the write_zone structure for the specified component and zone.
- *
- * @param [in]  component       the index component
- * @param [in]  zone            the zone number
- * @param [out] write_zone_ptr  the resulting write zone instance
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int resolve_write_zone(const struct index_component *component,
-			      unsigned int zone,
-			      struct write_zone **write_zone_ptr)
-{
-	int result = ASSERT(write_zone_ptr != NULL, "output parameter is null");
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	if (component->write_zones == NULL) {
-		return uds_log_error_strerror(UDS_BAD_STATE,
-					      "cannot resolve index component write zone: not allocated");
-	}
-
-	if (zone >= component->num_zones) {
-		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
-					      "cannot resolve index component write zone: zone out of range");
-	}
-	*write_zone_ptr = component->write_zones[zone];
-	return UDS_SUCCESS;
-}
-
-/**
- * Non-incremental save function used to emulate a regular save
- * using an incremental save function as a basis.
- *
- * @param component    the index component
- * @param writer       the buffered writer
- * @param zone         the zone number
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int
-index_component_saver_incremental_wrapper(struct index_component *component,
-					  struct buffered_writer *writer,
-					  unsigned int zone)
-{
-	incremental_writer_t incr_func = component->info->incremental;
-	bool completed = false;
-
-	int result = (*incr_func)(component, writer, zone, IWC_START,
-				  &completed);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	if (!completed) {
-		result = (*incr_func)(component, writer, zone, IWC_FINISH,
-				      &completed);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
-
-	result = flush_buffered_writer(writer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	return UDS_SUCCESS;
-}
-
-/**
  * Specify that writing to a specific zone file has finished.
  *
  * If a syncer has been registered with the index component, the file
@@ -291,11 +220,6 @@ static int make_write_zones(struct index_component *component)
 	int result;
 
 	if (component->write_zones != NULL) {
-		// just reinitialize states
-		for (z = 0; z < component->num_zones; ++z) {
-			struct write_zone *wz = component->write_zones[z];
-			wz->phase = IWC_IDLE;
-		}
 		return UDS_SUCCESS;
 	}
 
@@ -318,7 +242,6 @@ static int make_write_zones(struct index_component *component)
 		}
 		*component->write_zones[z] = (struct write_zone){
 			.component = component,
-			.phase = IWC_IDLE,
 			.zone = z,
 		};
 	}
@@ -334,7 +257,6 @@ static int open_buffered_writers(struct index_component *component)
 	     wzp < component->write_zones + component->num_zones;
 	     ++wzp) {
 		struct write_zone *wz = *wzp;
-		wz->phase = IWC_START;
 
 		result = ASSERT(wz->writer == NULL,
 				"write zone writer already exists");
@@ -373,20 +295,11 @@ static int start_index_component_save(struct index_component *component)
 }
 
 /**********************************************************************/
-int start_index_component_incremental_save(struct index_component *component)
-{
-	return start_index_component_save(component);
-}
-
-/**********************************************************************/
 int write_index_component(struct index_component *component)
 {
 	int result;
 	unsigned int z;
 	saver_t saver = component->info->saver;
-	if ((saver == NULL) && (component->info->incremental != NULL)) {
-		saver = index_component_saver_incremental_wrapper;
-	}
 
 	result = start_index_component_save(component);
 	if (result != UDS_SUCCESS) {
@@ -414,326 +327,6 @@ int write_index_component(struct index_component *component)
 		free_write_zones(component);
 		return uds_log_error_strerror(result,
 					      "index component write failed");
-	}
-
-	return UDS_SUCCESS;
-}
-
-/**
- * Close a specific buffered writer in a component write zone.
- *
- * @param write_zone    the write zone
- *
- * @return UDS_SUCCESS or an error code
- *
- * @note closing a buffered writer causes its file descriptor to be
- *       passed to done_with_zone
- **/
-static int close_buffered_writer(struct write_zone *write_zone)
-{
-	int result;
-
-	if (write_zone->writer == NULL) {
-		return UDS_SUCCESS;
-	}
-
-	result = done_with_zone(write_zone);
-	free_buffered_writer(write_zone->writer);
-	write_zone->writer = NULL;
-
-	return result;
-}
-
-/**
- * Faux incremental saver function for index components which only define
- * a simple saver.  Conforms to incremental_writer_t signature.
- *
- * @param [in]  component      the index component
- * @param [in]  writer         the buffered writer that does the output
- * @param [in]  zone           the zone number
- * @param [in]  command        the incremental writer command
- * @param [out] completed      if non-NULL, set to whether the save is complete
- *
- * @return UDS_SUCCESS or an error code
- *
- * @note This wrapper always calls the non-incremental saver when
- *       the IWC_START command is issued, and always reports that
- *       the save is complete unless the saver failed.
- **/
-static int wrap_saver_as_incremental(struct index_component *component,
-				     struct buffered_writer *writer,
-				     unsigned int zone,
-				     enum incremental_writer_command command,
-				     bool *completed)
-{
-	int result = UDS_SUCCESS;
-
-	if ((command >= IWC_START) && (command <= IWC_FINISH)) {
-		result = (*component->info->saver)(component, writer, zone);
-		if ((result == UDS_SUCCESS) && (writer != NULL)) {
-			note_buffered_writer_used(writer);
-		}
-	}
-	if ((result == UDS_SUCCESS) && (completed != NULL)) {
-		*completed = true;
-	}
-	return result;
-}
-
-/**
- * Return the appropriate incremental writer function depending on
- * the component's type and whether this is the first zone.
- *
- * @param component    the index component
- *
- * @return the correct incremental_writer_t function to use, or
- *         NULL signifying no progress can be made at this time.
- **/
-static incremental_writer_t
-get_incremental_writer(struct index_component *component)
-{
-	incremental_writer_t incr_func = component->info->incremental;
-
-	if (incr_func == NULL) {
-		incr_func = &wrap_saver_as_incremental;
-	}
-
-	return incr_func;
-}
-
-/**********************************************************************/
-int perform_index_component_zone_save(struct index_component *component,
-				      unsigned int zone,
-				      enum completion_status *completed)
-{
-	enum completion_status comp = CS_NOT_COMPLETED;
-
-	struct write_zone *wz = NULL;
-	int result = resolve_write_zone(component, zone, &wz);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	if (wz->phase == IWC_IDLE) {
-		comp = CS_COMPLETED_PREVIOUSLY;
-	} else if (wz->phase == IWC_DONE) {
-		comp = CS_JUST_COMPLETED;
-		wz->phase = IWC_IDLE;
-	} else if (!component->info->chapter_sync) {
-		bool done = false;
-		incremental_writer_t incr_func =
-			get_incremental_writer(component);
-		int result = (*incr_func)(component, wz->writer, zone,
-					  wz->phase, &done);
-		if (result != UDS_SUCCESS) {
-			if (wz->phase == IWC_ABORT) {
-				wz->phase = IWC_IDLE;
-			} else {
-				wz->phase = IWC_ABORT;
-			}
-			return result;
-		}
-		if (done) {
-			comp = CS_JUST_COMPLETED;
-			wz->phase = IWC_IDLE;
-		} else if (wz->phase == IWC_START) {
-			wz->phase = IWC_CONTINUE;
-		}
-	}
-
-	if (completed != NULL) {
-		*completed = comp;
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int
-perform_index_component_chapter_writer_save(struct index_component *component)
-{
-	struct write_zone *wz = NULL;
-	int result = resolve_write_zone(component, 0, &wz);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-		bool done = false;
-		incremental_writer_t incr_func =
-			get_incremental_writer(component);
-		int result = ASSERT(incr_func != NULL, "no writer function");
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-		result = (*incr_func)(component, wz->writer, 0, wz->phase,
-				      &done);
-		if (result != UDS_SUCCESS) {
-			if (wz->phase == IWC_ABORT) {
-				wz->phase = IWC_IDLE;
-			} else {
-				wz->phase = IWC_ABORT;
-			}
-			return result;
-		}
-		if (done) {
-			wz->phase = IWC_DONE;
-		} else if (wz->phase == IWC_START) {
-			wz->phase = IWC_CONTINUE;
-		}
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int finish_index_component_zone_save(struct index_component *component,
-				     unsigned int zone,
-				     enum completion_status *completed)
-{
-	struct write_zone *wz = NULL;
-	enum completion_status comp;
-	incremental_writer_t incr_func;
-	int result = resolve_write_zone(component, zone, &wz);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	switch (wz->phase) {
-	case IWC_IDLE:
-		comp = CS_COMPLETED_PREVIOUSLY;
-		break;
-
-	case IWC_DONE:
-		comp = CS_JUST_COMPLETED;
-		break;
-
-	default:
-		comp = CS_NOT_COMPLETED;
-	}
-
-	incr_func = get_incremental_writer(component);
-	if ((wz->phase >= IWC_START) && (wz->phase < IWC_ABORT)) {
-		bool done = false;
-		int result = (*incr_func)(component, wz->writer, zone,
-					  IWC_FINISH, &done);
-		if (result != UDS_SUCCESS) {
-			wz->phase = IWC_ABORT;
-			return result;
-		}
-		if (!done) {
-			uds_log_warning("finish incremental save did not complete for %s zone %u",
-					component->info->name,
-					zone);
-			return UDS_CHECKPOINT_INCOMPLETE;
-		}
-		wz->phase = IWC_IDLE;
-		comp = CS_JUST_COMPLETED;
-	}
-
-	if (completed != NULL) {
-		*completed = comp;
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int finish_index_component_incremental_save(struct index_component *component)
-{
-	unsigned int zone;
-	int result;
-	for (zone = 0; zone < component->num_zones; ++zone) {
-		struct write_zone *wz = component->write_zones[zone];
-		incremental_writer_t incr_func =
-			get_incremental_writer(component);
-		if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-			// Note: this is only safe if no other threads are
-			// currently processing this particular index
-			bool done = false;
-			int result = (*incr_func)(component, wz->writer, zone,
-						  IWC_FINISH, &done);
-			if (result != UDS_SUCCESS) {
-				return result;
-			}
-			if (!done) {
-				uds_log_warning("finishing incremental save did not complete for %s zone %u",
-						component->info->name,
-						zone);
-				return UDS_UNEXPECTED_RESULT;
-			}
-			wz->phase = IWC_IDLE;
-		}
-
-		if ((wz->writer != NULL) &&
-		    !was_buffered_writer_used(wz->writer)) {
-			return uds_log_error_strerror(UDS_CHECKPOINT_INCOMPLETE,
-						      "component %s zone %u did not get written",
-						      component->info->name,
-						      zone);
-		}
-
-		result = close_buffered_writer(wz);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
-
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int abort_index_component_zone_save(struct index_component *component,
-				    unsigned int zone,
-				    enum completion_status *status)
-{
-	enum completion_status comp = CS_COMPLETED_PREVIOUSLY;
-	incremental_writer_t incr_func;
-
-	struct write_zone *wz = NULL;
-	int result = resolve_write_zone(component, zone, &wz);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	incr_func = get_incremental_writer(component);
-	if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-		result = (*incr_func)(component, wz->writer, zone, IWC_ABORT,
-				      NULL);
-		wz->phase = IWC_IDLE;
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-		comp = CS_JUST_COMPLETED;
-	}
-
-	if (status != NULL) {
-		*status = comp;
-	}
-	return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int abort_index_component_incremental_save(struct index_component *component)
-{
-	int result = UDS_SUCCESS;
-	unsigned int zone;
-	for (zone = 0; zone < component->num_zones; ++zone) {
-		struct write_zone *wz = component->write_zones[zone];
-		incremental_writer_t incr_func =
-			get_incremental_writer(component);
-		if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
-			// Note: this is only safe if no other threads are
-			// currently processing this particular index
-			result = (*incr_func)(component, wz->writer, zone,
-					      IWC_ABORT, NULL);
-			wz->phase = IWC_IDLE;
-			if (result != UDS_SUCCESS) {
-				return result;
-			}
-		}
-
-		result = close_buffered_writer(wz);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
 	}
 
 	return UDS_SUCCESS;

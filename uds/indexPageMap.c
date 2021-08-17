@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexPageMap.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexPageMap.c#2 $
  */
 
 #include "indexPageMap.h"
@@ -47,13 +47,10 @@ enum {
 const struct index_component_info INDEX_PAGE_MAP_INFO = {
 	.kind         = RL_KIND_INDEX_PAGE_MAP,
 	.name         = "index page map",
-	.save_only    = false,
-	.chapter_sync = true,
 	.multi_zone   = false,
 	.io_storage   = true,
 	.loader       = read_index_page_map,
 	.saver        = write_index_page_map,
-	.incremental  = NULL,
 };
 
 /**********************************************************************/

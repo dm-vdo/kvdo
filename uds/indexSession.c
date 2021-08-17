@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexSession.c#2 $
  */
 
 #include "indexSession.h"
 
-#include "indexCheckpoint.h"
+#include "index.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "requestQueue.h"
@@ -542,15 +542,6 @@ int uds_save_index(struct uds_index_session *index_session)
 	wait_for_no_requests_in_progress(index_session);
 	// save_index waits for open chapter writes to complete
 	return save_index(index_session->index);
-}
-
-/**********************************************************************/
-int uds_set_checkpoint_frequency(struct uds_index_session *index_session,
-				 unsigned int frequency)
-{
-	set_index_checkpoint_frequency(index_session->index->checkpoint,
-				       frequency);
-	return UDS_SUCCESS;
 }
 
 /**********************************************************************/

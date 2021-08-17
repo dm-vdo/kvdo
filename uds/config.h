@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/config.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/config.h#2 $
  */
 
 #ifndef CONFIG_H
@@ -45,10 +45,8 @@ struct uds_configuration {
 	unsigned int sparse_chapters_per_volume;
 	/** Size of the page cache, in chapters */
 	unsigned int cache_chapters;
-	/** Frequency with which to checkpoint */
-	// XXX the checkpoint_frequency is not used - it is now a runtime
-	// parameter
-	unsigned int checkpoint_frequency;
+	/** Unused field */
+	unsigned int unused;
 	/** The volume index mean delta to use */
 	unsigned int volume_index_mean_delta;
 	/** Size of a page, used for both record pages and index pages */
@@ -75,10 +73,8 @@ struct uds_configuration_6_02 {
 	unsigned int sparse_chapters_per_volume;
 	/** Size of the page cache, in chapters */
 	unsigned int cache_chapters;
-	/** Frequency with which to checkpoint */
-	// XXX the checkpoint_frequency is not used - it is now a runtime
-	// parameter
-	unsigned int checkpoint_frequency;
+	/** Unused field */
+	unsigned int unused;
 	/** The volume index mean delta to use */
 	unsigned int volume_index_mean_delta;
 	/** Size of a page, used for both record pages and index pages */

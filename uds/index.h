@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.h#2 $
  */
 
 #ifndef INDEX_H
@@ -31,11 +31,6 @@
 #include "request.h"
 #include "volume.h"
 
-
-/**
- * Index checkpoint state private to indexCheckpoint.c.
- **/
-struct index_checkpoint;
 
 /**
  * Callback after a query, update or remove request completes and fills in
@@ -70,12 +65,9 @@ struct uds_index {
 	uint64_t oldest_virtual_chapter;
 	uint64_t newest_virtual_chapter;
 
-	uint64_t last_checkpoint;
-	uint64_t prev_checkpoint;
+	uint64_t last_save;
+	uint64_t prev_save;
 	struct chapter_writer *chapter_writer;
-
-	// checkpoint state used by indexCheckpoint.c
-	struct index_checkpoint *checkpoint;
 
 	index_callback_t callback;
 	struct uds_request_queue *triage_queue;
@@ -178,17 +170,6 @@ void free_index(struct uds_index *index);
  **/
 int __must_check dispatch_index_request(struct uds_index *index,
 					struct uds_request *request);
-
-/**
- * Internal helper to prepare the index for saving.
- *
- * @param index		       the index
- * @param checkpoint	       whether the save is a checkpoint
- * @param open_chapter_number  the virtual chapter number of the open chapter
- **/
-void begin_save(struct uds_index *index,
-		bool checkpoint,
-		uint64_t open_chapter_number);
 
 /**
  * Replay the volume file to repopulate the volume index.

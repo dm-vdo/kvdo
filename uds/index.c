@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/index.c#3 $
+ * $Id: //eng/uds-releases/lisa/src/uds/index.c#4 $
  */
 
 
 #include "index.h"
 
 #include "hashUtils.h"
-#include "indexCheckpoint.h"
 #include "indexStateData.h"
 #include "logger.h"
 #include "openChapter.h"
@@ -31,7 +30,7 @@
 #include "zone.h"
 
 static const unsigned int MAX_COMPONENT_COUNT = 4;
-static const uint64_t NO_LAST_CHECKPOINT = UINT_MAX;
+static const uint64_t NO_LAST_SAVE = UINT_MAX;
 
 
 /**
@@ -254,102 +253,29 @@ static int initialize_index_queues(struct uds_index *index,
 	return UDS_SUCCESS;
 }
 
-/**
- * Replay an index which was loaded from a checkpoint.
- *
- * @param index			   The index to replay
- * @param last_checkpoint_chapter  The number of the chapter where the
- *				   last checkpoint was made
- *
- * @return UDS_SUCCESS or an error code.
- **/
-static int replay_index_from_checkpoint(struct uds_index *index,
-					uint64_t last_checkpoint_chapter)
-{
-	// Find the volume chapter boundaries
-	unsigned int chapters_per_volume;
-	int result;
-	uint64_t lowest_vcn, highest_vcn, first_replay_chapter;
-	bool is_empty = false;
-	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
-	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
-	result = find_volume_chapter_boundaries(index->volume,
-						    &lowest_vcn, &highest_vcn,
-						    &is_empty);
-	index->volume->lookup_mode = old_lookup_mode;
-	if (result != UDS_SUCCESS) {
-		return uds_log_fatal_strerror(result,
-					      "cannot replay index: unknown volume chapter boundaries");
-	}
-	if (lowest_vcn > highest_vcn) {
-		uds_log_fatal("cannot replay index: no valid chapters exist");
-		return UDS_CORRUPT_COMPONENT;
-	}
-
-	if (is_empty) {
-		// The volume is empty, so the index should also be empty
-		if (index->newest_virtual_chapter != 0) {
-			uds_log_fatal("cannot replay index from empty volume");
-			return UDS_CORRUPT_COMPONENT;
-		}
-		return UDS_SUCCESS;
-	}
-
-	chapters_per_volume = index->volume->geometry->chapters_per_volume;
-	index->oldest_virtual_chapter = lowest_vcn;
-	index->newest_virtual_chapter = highest_vcn + 1;
-	if (index->newest_virtual_chapter ==
-	    lowest_vcn + chapters_per_volume) {
-		// skip the chapter shadowed by the open chapter
-		index->oldest_virtual_chapter++;
-	}
-
-	first_replay_chapter = last_checkpoint_chapter;
-	if (first_replay_chapter < index->oldest_virtual_chapter) {
-		first_replay_chapter = index->oldest_virtual_chapter;
-	}
-	return replay_volume(index, first_replay_chapter);
-}
-
 /**********************************************************************/
-static int load_index(struct uds_index *index, bool allow_replay)
+static int load_index(struct uds_index *index)
 {
-	uint64_t last_checkpoint_chapter;
+	uint64_t last_save_chapter;
 	unsigned int i;
-	bool replay_required = false;
 
-	int result = load_index_state(index->state, &replay_required);
+	int result = load_index_state(index->state);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_INDEX_NOT_SAVED_CLEANLY;
 	}
 
-	if (replay_required && !allow_replay) {
-		return uds_log_error_strerror(UDS_INDEX_NOT_SAVED_CLEANLY,
-					      "index not saved cleanly: open chapter missing");
-	}
-
-	last_checkpoint_chapter =
-		((index->last_checkpoint != NO_LAST_CHECKPOINT) ?
-			 index->last_checkpoint :
-			 0);
+	last_save_chapter = ((index->last_save != NO_LAST_SAVE) ?
+			     index->last_save : 0);
 
 	uds_log_info("loaded index from chapter %llu through chapter %llu",
 		     (unsigned long long) index->oldest_virtual_chapter,
-		     (unsigned long long) last_checkpoint_chapter);
-
-	if (replay_required) {
-		result = replay_index_from_checkpoint(index,
-						      last_checkpoint_chapter);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
+		     (unsigned long long) last_save_chapter);
 
 	for (i = 0; i < index->zone_count; i++) {
 		set_active_chapters(index->zones[i]);
 	}
 
-	index->loaded_type = replay_required ? LOAD_REPLAY : LOAD_LOAD;
+	index->loaded_type = LOAD_LOAD;
 	return UDS_SUCCESS;
 }
 
@@ -364,7 +290,7 @@ static int rebuild_index(struct uds_index *index)
 	enum index_lookup_mode old_lookup_mode = index->volume->lookup_mode;
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
 	result = find_volume_chapter_boundaries(index->volume, &lowest_vcn,
-						    &highest_vcn, &is_empty);
+						&highest_vcn, &is_empty);
 	index->volume->lookup_mode = old_lookup_mode;
 	if (result != UDS_SUCCESS) {
 		return uds_log_fatal_strerror(result,
@@ -436,13 +362,6 @@ int allocate_index(struct index_layout *layout,
 	}
 
 	index->loaded_type = LOAD_UNDEFINED;
-
-	result = make_index_checkpoint(index);
-	if (result != UDS_SUCCESS) {
-		free_index(index);
-		return result;
-	}
-	set_index_checkpoint_frequency(index->checkpoint, 0);
 
 	get_uds_index_layout(layout, &index->layout);
 	index->zone_count = zone_count;
@@ -559,7 +478,7 @@ int make_index(struct index_layout *layout,
 	}
 
 	if ((load_type == LOAD_LOAD) || (load_type == LOAD_REBUILD)) {
-		result = load_index(index, load_type == LOAD_REBUILD);
+		result = load_index(index);
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
@@ -570,7 +489,7 @@ int make_index(struct index_layout *layout,
 			break;
 		default:
 			uds_log_error_strerror(result,
-					   "index could not be loaded");
+					       "index could not be loaded");
 			if (load_type == LOAD_REBUILD) {
 				result = rebuild_index(index);
 				if (result != UDS_SUCCESS) {
@@ -635,7 +554,6 @@ void free_index(struct uds_index *index)
 
 	free_volume(index->volume);
 	free_index_state(index->state);
-	free_index_checkpoint(index->checkpoint);
 	put_uds_index_layout(UDS_FORGET(index->layout));
 	UDS_FREE(index);
 }
@@ -649,22 +567,22 @@ int save_index(struct uds_index *index)
 		return UDS_SUCCESS;
 	}
 	wait_for_idle_chapter_writer(index->chapter_writer);
-	result = finish_checkpointing(index);
-	if (result != UDS_SUCCESS) {
-		uds_log_info("save index failed");
-		return result;
-	}
-	begin_save(index, false, index->newest_virtual_chapter);
+	index->prev_save = index->last_save;
+	index->last_save = ((index->newest_virtual_chapter == 0) ?
+			    NO_LAST_SAVE :
+			    index->newest_virtual_chapter - 1);
+	uds_log_info("beginning save (vcn %llu)",
+		     (unsigned long long) index->last_save);
 
 	result = save_index_state(index->state);
 	if (result != UDS_SUCCESS) {
 		uds_log_info("save index failed");
-		index->last_checkpoint = index->prev_checkpoint;
+		index->last_save = index->prev_save;
 	} else {
 		index->has_saved_open_chapter = true;
 		index->need_to_save = false;
 		uds_log_info("finished save (vcn %llu)",
-			     (unsigned long long) index->last_checkpoint);
+			     (unsigned long long) index->last_save);
 	}
 	return result;
 }
@@ -1047,20 +965,6 @@ static int replay_record(struct uds_index *index,
 	return result;
 }
 
-/**********************************************************************/
-void begin_save(struct uds_index *index,
-		bool checkpoint,
-		uint64_t open_chapter_number)
-{
-	index->prev_checkpoint = index->last_checkpoint;
-	index->last_checkpoint =
-		((open_chapter_number == 0) ? NO_LAST_CHECKPOINT :
-					      open_chapter_number - 1);
-	uds_log_info("beginning %s (vcn %llu)",
-		     (checkpoint ? "checkpoint" : "save"),
-		     (unsigned long long) index->last_checkpoint);
-}
-
 /**
  * Suspend the index if necessary and wait for a signal to resume.
  *
@@ -1113,7 +1017,7 @@ int replay_volume(struct uds_index *index, uint64_t from_vcn)
 
 	/*
 	 * At least two cases to deal with here!
-	 * - index loaded but replaying from last_checkpoint; maybe full, maybe
+	 * - index loaded but replaying from last_save; maybe full, maybe
 	 * not
 	 * - index failed to load, full rebuild
 	 *   Starts empty, then dense-only, then dense-plus-sparse.

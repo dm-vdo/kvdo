@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/udsMain.c#3 $
  */
 
 #include "uds.h"
@@ -116,7 +116,6 @@ int uds_initialize_configuration(struct uds_configuration **user_config,
 	(*user_config)->sparse_chapters_per_volume =
 		DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
 	(*user_config)->cache_chapters = DEFAULT_CACHE_CHAPTERS;
-	(*user_config)->checkpoint_frequency = DEFAULT_CHECKPOINT_FREQUENCY;
 	(*user_config)->volume_index_mean_delta =
 		DEFAULT_VOLUME_INDEX_MEAN_DELTA;
 	(*user_config)->bytes_per_page = DEFAULT_BYTES_PER_PAGE;

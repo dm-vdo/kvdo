@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#2 $
  */
 
 #include "indexLayout.h"
@@ -987,8 +987,6 @@ reconstruct_index_save(struct index_save_layout *isl,
 
 	if (table->header.type == RH_TYPE_SAVE) {
 		isl->save_type = IS_SAVE;
-	} else if (table->header.type == RH_TYPE_CHECKPOINT) {
-		isl->save_type = IS_CHECKPOINT;
 	} else {
 		isl->save_type = NO_SAVE;
 	}
@@ -1124,7 +1122,6 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 	}
 
 	if (table->header.type != RH_TYPE_SAVE &&
-	    table->header.type != RH_TYPE_CHECKPOINT &&
 	    table->header.type != RH_TYPE_UNSAVED) {
 		unsigned int type = table->header.type;
 		UDS_FREE(table);
@@ -2105,14 +2102,10 @@ static int __must_check
 instantiate_index_save_layout(struct index_save_layout *isl,
 			      struct super_block_data *super,
 			      uint64_t volume_nonce,
-			      unsigned int num_zones,
-			      enum index_save_type save_type)
+			      unsigned int num_zones)
 {
 	int result = UDS_SUCCESS;
-	if (isl->open_chapter && save_type == IS_CHECKPOINT) {
-		UDS_FREE(isl->open_chapter);
-		isl->open_chapter = NULL;
-	} else if (isl->open_chapter == NULL && save_type == IS_SAVE) {
+	if (isl->open_chapter == NULL) {
 		result = UDS_ALLOCATE(1,
 				      struct layout_region,
 				      "open chapter layout",
@@ -2135,7 +2128,7 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 		isl->num_zones = num_zones;
 	}
 
-	populate_index_save_layout(isl, super, num_zones, save_type);
+	populate_index_save_layout(isl, super, num_zones, IS_SAVE);
 
 	result = make_buffer(INDEX_STATE_BUFFER_SIZE, &isl->index_state_buffer);
 	if (result != UDS_SUCCESS) {
@@ -2143,7 +2136,7 @@ instantiate_index_save_layout(struct index_save_layout *isl,
 	}
 
 	isl->read = isl->written = false;
-	isl->save_type = save_type;
+	isl->save_type = IS_SAVE;
 	memset(&isl->save_data, 0, sizeof(isl->save_data));
 	isl->save_data.timestamp =
 		ktime_to_ms(current_time_ns(CLOCK_REALTIME));
@@ -2176,7 +2169,6 @@ invalidate_old_save(struct index_layout *layout, struct index_save_layout *isl)
 /**********************************************************************/
 int setup_uds_index_save_slot(struct index_layout *layout,
 			      unsigned int num_zones,
-			      enum index_save_type save_type,
 			      unsigned int *save_slot_ptr)
 {
 	struct sub_index_layout *sil = &layout->index;
@@ -2195,7 +2187,7 @@ int setup_uds_index_save_slot(struct index_layout *layout,
 	}
 
 	result = instantiate_index_save_layout(isl, &layout->super, sil->nonce,
-					       num_zones, save_type);
+					       num_zones);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2287,9 +2279,6 @@ static unsigned int region_type_for_save_type(enum index_save_type save_type)
 	switch (save_type) {
 	case IS_SAVE:
 		return RH_TYPE_SAVE;
-
-	case IS_CHECKPOINT:
-		return RH_TYPE_CHECKPOINT;
 
 	default:
 		break;
@@ -2464,27 +2453,15 @@ int cancel_uds_index_save(struct index_layout *layout, unsigned int save_slot)
 }
 
 /**********************************************************************/
-int discard_uds_index_saves(struct index_layout *layout, bool all)
+int discard_uds_index_saves(struct index_layout *layout)
 {
+	unsigned int i;
 	int result = UDS_SUCCESS;
 	struct sub_index_layout *sil = &layout->index;
 
-	if (all) {
-		unsigned int i;
-		for (i = 0; i < layout->super.max_saves; ++i) {
-			struct index_save_layout *isl = &sil->saves[i];
-			result = first_error(result,
-					     invalidate_old_save(layout, isl));
-		}
-	} else {
-		struct index_save_layout *isl;
-		uint16_t max_saves = layout->super.max_saves;
-		result = select_latest_index_save_layout(sil,
-							 max_saves,
-							 &isl);
-		if (result == UDS_SUCCESS) {
-			result = invalidate_old_save(layout, isl);
-		}
+	for (i = 0; i < layout->super.max_saves; ++i) {
+		struct index_save_layout *isl = &sil->saves[i];
+		result = first_error(result, invalidate_old_save(layout, isl));
 	}
 
 	return result;

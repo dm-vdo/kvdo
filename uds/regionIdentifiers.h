@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/regionIdentifiers.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/regionIdentifiers.h#2 $
  */
 
 #ifndef REGION_IDENTIFIERS_H
@@ -26,7 +26,7 @@ enum region_type {
 	RH_TYPE_FREE = 0, // unused
 	RH_TYPE_SUPER = 1,
 	RH_TYPE_SAVE = 2,
-	RH_TYPE_CHECKPOINT = 3,
+	RH_TYPE_CHECKPOINT = 3, // unused
 	RH_TYPE_UNSAVED = 4,
 };
 

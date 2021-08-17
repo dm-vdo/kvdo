@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/geometry.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/geometry.h#2 $
  */
 
 #ifndef GEOMETRY_H
@@ -156,9 +156,6 @@ enum {
 
 	/** The default min ratio of slots to records in an open chapter */
 	DEFAULT_OPEN_CHAPTER_LOAD_RATIO = 2,
-
-	/** Checkpoint every n chapters written.  Default is to not checkpoint */
-	DEFAULT_CHECKPOINT_FREQUENCY = 0
 };
 
 /**

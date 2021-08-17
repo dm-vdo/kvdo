@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/chapterWriter.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/chapterWriter.c#2 $
  */
 
 #include "chapterWriter.h"
 
 #include "errors.h"
 #include "index.h"
-#include "indexCheckpoint.h"
 #include "indexComponent.h"
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -111,10 +110,6 @@ static void close_chapters(void *arg)
 					   writer->open_chapter_index,
 					   writer->collated_records,
 					   writer->index->newest_virtual_chapter);
-
-		if (result == UDS_SUCCESS) {
-			result = process_chapter_writer_checkpoint_saves(writer->index);
-		}
 
 
 		uds_lock_mutex(&writer->mutex);

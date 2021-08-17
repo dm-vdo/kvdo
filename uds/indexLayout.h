@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.h#2 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -93,8 +93,7 @@ int __must_check commit_uds_index_save(struct index_layout *layout,
 				       unsigned int save_slot);
 
 /**********************************************************************/
-int __must_check discard_uds_index_saves(struct index_layout *layout,
-					 bool all);
+int __must_check discard_uds_index_saves(struct index_layout *layout);
 
 /**
  * Find the latest index save slot.
@@ -195,19 +194,16 @@ int __must_check verify_uds_index_config(struct index_layout *layout,
 /**
  * Determine which index save slot to use for a new index save.
  *
- * Also allocates the volume index regions and, if needed, the openChapter
- * region.
+ * Also allocates the volume index regions and the openChapter region.
  *
  * @param [in]  layout          The index layout.
  * @param [in]  num_zones       Actual number of zones currently in use.
- * @param [in]  save_type       The index save type.
  * @param [out] save_slot_ptr   Where to store the save slot number.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check setup_uds_index_save_slot(struct index_layout *layout,
 					   unsigned int num_zones,
-					   enum index_save_type save_type,
 					   unsigned int *save_slot_ptr);
 
 /**

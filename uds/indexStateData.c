@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexStateData.c#1 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexStateData.c#2 $
  */
 
 #include "indexStateData.h"
@@ -37,7 +37,7 @@ struct index_state_version {
 struct index_state_data301 {
 	uint64_t newest_chapter;
 	uint64_t oldest_chapter;
-	uint64_t last_checkpoint;
+	uint64_t last_save;
 	uint32_t unused;
 	uint32_t padding;
 };
@@ -91,7 +91,7 @@ static int read_index_state_data(struct read_portal *portal)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint64_le_from_buffer(buffer, &state.last_checkpoint);
+	result = get_uint64_le_from_buffer(buffer, &state.last_save);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -111,7 +111,7 @@ static int read_index_state_data(struct read_portal *portal)
 	index = index_component_data(portal->component);
 	index->newest_virtual_chapter = state.newest_chapter;
 	index->oldest_virtual_chapter = state.oldest_chapter;
-	index->last_checkpoint = state.last_checkpoint;
+	index->last_save = state.last_save;
 	return UDS_SUCCESS;
 }
 
@@ -150,9 +150,9 @@ write_index_state_data(struct index_component *component,
 
 	index = index_component_data(component);
 	state = (struct index_state_data301) {
-		.newest_chapter  = index->newest_virtual_chapter,
-		.oldest_chapter  = index->oldest_virtual_chapter,
-		.last_checkpoint = index->last_checkpoint,
+		.newest_chapter = index->newest_virtual_chapter,
+		.oldest_chapter = index->oldest_virtual_chapter,
+		.last_save = index->last_save,
 	};
 
 	result = put_uint64_le_into_buffer(buffer, state.newest_chapter);
@@ -163,7 +163,7 @@ write_index_state_data(struct index_component *component,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint64_le_into_buffer(buffer, state.last_checkpoint);
+	result = put_uint64_le_into_buffer(buffer, state.last_save);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -183,11 +183,8 @@ write_index_state_data(struct index_component *component,
 const struct index_component_info INDEX_STATE_INFO = {
 	.kind         = RL_KIND_INDEX_STATE,
 	.name         = "index state",
-	.save_only    = false,
-	.chapter_sync = true,
 	.multi_zone   = false,
 	.io_storage   = false,
 	.loader       = read_index_state_data,
 	.saver        = write_index_state_data,
-	.incremental  = NULL,
 };
