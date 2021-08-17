@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#169 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#170 $
  */
 
 /*
@@ -88,6 +88,17 @@ void destroy_vdo(struct vdo *vdo)
 {
 	int i;
 	const struct thread_config *thread_config = vdo->thread_config;
+
+	vdo->allocations_allowed = true;
+
+	// Stop services that need to gather VDO statistics from the worker
+	// threads.
+	if (vdo->stats_added) {
+		vdo->stats_added = false;
+		init_completion(&vdo->stats_shutdown);
+		kobject_put(&vdo->stats_directory);
+		wait_for_completion(&vdo->stats_shutdown);
+	}
 
 	finish_vdo(vdo);
 	unregister_vdo(vdo);

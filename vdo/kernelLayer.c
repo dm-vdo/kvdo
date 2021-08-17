@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#227 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#228 $
  */
 
 #include "kernelLayer.h"
@@ -551,17 +551,6 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 /**********************************************************************/
 void stop_kernel_layer(struct kernel_layer *layer)
 {
-	layer->vdo.allocations_allowed = true;
-
-	// Stop services that need to gather VDO statistics from the worker
-	// threads.
-	if (layer->vdo.stats_added) {
-		layer->vdo.stats_added = false;
-		init_completion(&layer->vdo.stats_shutdown);
-		kobject_put(&layer->vdo.stats_directory);
-		wait_for_completion(&layer->vdo.stats_shutdown);
-	}
-
 	switch (get_kernel_layer_state(layer)) {
 	case LAYER_RUNNING:
 		suspend_kernel_layer(layer);
