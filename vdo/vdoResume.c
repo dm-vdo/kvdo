@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#43 $
  */
 
 #include "vdoResume.h"
@@ -26,6 +26,7 @@
 #include "adminCompletion.h"
 #include "blockMap.h"
 #include "completion.h"
+#include "dedupeIndex.h"
 #include "logicalZone.h"
 #include "recoveryJournal.h"
 #include "slabDepot.h"
@@ -36,6 +37,7 @@
 enum {
 	RESUME_PHASE_START = 0,
 	RESUME_PHASE_ALLOW_READ_ONLY_MODE,
+	RESUME_PHASE_INDEX,
 	RESUME_PHASE_DEPOT,
 	RESUME_PHASE_JOURNAL,
 	RESUME_PHASE_BLOCK_MAP,
@@ -52,6 +54,7 @@ static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_BLOCK_MAP",
 	"RESUME_PHASE_LOGICAL_ZONES",
 	"RESUME_PHASE_PACKER",
+	"RESUME_PHASE_INDEX",
 	"RESUME_PHASE_END",
 };
 
@@ -135,6 +138,14 @@ static void resume_callback(struct vdo_completion *completion)
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
 		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
 					       reset_vdo_admin_sub_task(completion));
+		return;
+
+	case RESUME_PHASE_INDEX:
+		if (!vdo_is_read_only(vdo->read_only_notifier)) {
+			resume_vdo_dedupe_index(vdo->dedupe_index);
+		}
+
+		complete_vdo_completion(reset_vdo_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_DEPOT:
