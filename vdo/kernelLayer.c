@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#229 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#230 $
  */
 
 #include "kernelLayer.h"
@@ -455,7 +455,6 @@ int modify_kernel_layer(struct kernel_layer *layer,
 			      state);
 		return -EINVAL;
 	}
-	set_kernel_layer_state(layer, LAYER_RESUMING);
 
 	// A failure here is unrecoverable. So there is no problem if it
 	// happens.
@@ -495,20 +494,12 @@ void free_kernel_layer(struct kernel_layer *layer)
 	const struct admin_state_code *code;
 
 	switch (state) {
-	case LAYER_STOPPING:
-		uds_log_error("re-entered free_kernel_layer while stopping");
-		break;
-
 	case LAYER_RUNNING:
+		layer->vdo.suspend_type = VDO_ADMIN_STATE_SAVING;
 		suspend_kernel_layer(layer);
 		fallthrough;
 
-	case LAYER_STARTING:
-	case LAYER_RESUMING:
 	case LAYER_SUSPENDED:
-		stop_kernel_layer(layer);
-		fallthrough;
-
 	case LAYER_STOPPED:
 		break;
 
@@ -534,38 +525,16 @@ void free_kernel_layer(struct kernel_layer *layer)
 /**********************************************************************/
 int start_kernel_layer(struct kernel_layer *layer, char **reason)
 {
-	int result;
+	int result = load_vdo(&layer->vdo);
 
-	set_kernel_layer_state(layer, LAYER_STARTING);
-	result = load_vdo(&layer->vdo);
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+	if (result != VDO_SUCCESS) {
 		*reason = "Cannot load metadata from device";
-		stop_kernel_layer(layer);
+		set_kernel_layer_state(layer, LAYER_STOPPED);
 		return result;
 	}
 
 	set_kernel_layer_state(layer, LAYER_RUNNING);
 	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void stop_kernel_layer(struct kernel_layer *layer)
-{
-	switch (get_kernel_layer_state(layer)) {
-	case LAYER_RUNNING:
-		suspend_kernel_layer(layer);
-		fallthrough;
-
-	case LAYER_SUSPENDED:
-		set_kernel_layer_state(layer, LAYER_STOPPING);
-		stop_vdo_dedupe_index(layer->vdo.dedupe_index);
-		fallthrough;
-
-	case LAYER_STOPPING:
-	case LAYER_STOPPED:
-	default:
-		set_kernel_layer_state(layer, LAYER_STOPPED);
-	}
 }
 
 /**********************************************************************/

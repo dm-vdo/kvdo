@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexLayout.c#3 $
  */
 
 #include "indexLayout.h"
@@ -330,13 +330,9 @@ decode_index_save_data(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint32_le_from_buffer(buffer, &save_data->unused__);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
-	}
-	// The unused padding has to be zeroed for correct nonce calculation
-	if (save_data->unused__ != 0) {
-		return UDS_CORRUPT_COMPONENT;
 	}
 	result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
 				 "%zu bytes decoded of %zu expected",
@@ -1611,7 +1607,7 @@ encode_index_save_data(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = zero_bytes(buffer, 4); /* padding */
+	result = zero_bytes(buffer, sizeof(uint32_t)); /* padding */
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

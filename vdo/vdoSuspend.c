@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#51 $
  */
 
 #include "vdoSuspend.h"
@@ -133,9 +133,7 @@ static void suspend_callback(struct vdo_completion *completion)
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
 		if (start_vdo_draining(admin_state,
-				       (vdo->no_flush_suspend
-					? VDO_ADMIN_STATE_SUSPENDING
-					: VDO_ADMIN_STATE_SAVING),
+				       vdo->suspend_type,
 				       &admin_completion->completion,
 				       NULL)) {
 			complete_vdo_completion(reset_vdo_admin_sub_task(completion));
@@ -218,7 +216,8 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	case SUSPEND_PHASE_END:
 		suspend_vdo_dedupe_index(vdo->dedupe_index,
-					 !vdo->no_flush_suspend);
+					 (vdo->suspend_type
+					  == VDO_ADMIN_STATE_SAVING));
 		break;
 
 	default:

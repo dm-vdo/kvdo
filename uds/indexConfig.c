@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexConfig.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexConfig.c#3 $
  */
 
 #include "indexConfig.h"
@@ -61,7 +61,7 @@ decode_index_config_06_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint32_le_from_buffer(buffer, &config->unused);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -85,9 +85,6 @@ decode_index_config_06_02(struct buffer *buffer,
 	}
 	config->remapped_virtual = 0;
 	config->remapped_physical = 0;
-	if (config->unused != 0) {
-          return UDS_CORRUPT_COMPONENT;
-        }
 
 	if (ASSERT_LOG_ONLY(content_length(buffer) == 0,
 			    "%zu bytes decoded of %zu expected",
@@ -125,7 +122,7 @@ decode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint32_le_from_buffer(buffer, &config->unused);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -155,9 +152,6 @@ decode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	if (config->unused != 0) {
-          return UDS_CORRUPT_COMPONENT;
-        }
 
 	if (ASSERT_LOG_ONLY(content_length(buffer) == 0,
 			    "%zu bytes decoded of %zu expected",
@@ -270,7 +264,7 @@ encode_index_config_06_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint32_le_into_buffer(buffer, config->unused);
+	result = zero_bytes(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -323,7 +317,7 @@ encode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint32_le_into_buffer(buffer, config->unused);
+	result = zero_bytes(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

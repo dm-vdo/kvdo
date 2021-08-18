@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/src/uds/indexStateData.c#2 $
+ * $Id: //eng/uds-releases/lisa/src/uds/indexStateData.c#3 $
  */
 
 #include "indexStateData.h"
@@ -95,17 +95,13 @@ static int read_index_state_data(struct read_portal *portal)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint32_le_from_buffer(buffer, &state.unused);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = get_uint32_le_from_buffer(buffer, &state.padding);
+	result = skip_forward(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
-	}
-
-	if ((state.unused != 0) || (state.padding != 0)) {
-		return UDS_CORRUPT_COMPONENT;
 	}
 
 	index = index_component_data(portal->component);
@@ -167,11 +163,11 @@ write_index_state_data(struct index_component *component,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint32_le_into_buffer(buffer, state.unused);
+	result = zero_bytes(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = put_uint32_le_into_buffer(buffer, state.padding);
+	result = zero_bytes(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

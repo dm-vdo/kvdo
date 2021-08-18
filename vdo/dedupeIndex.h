@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#33 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -158,14 +158,6 @@ static inline void update_vdo_dedupe_advice(struct data_vio *data_vio)
  *                     to load an existing index
  **/
 void start_vdo_dedupe_index(struct dedupe_index *index, bool create_flag);
-
-/**
- * Stop the dedupe index.  May be called by any thread, but will wait for
- * the shutdown to be completed.
- *
- * @param index  The dedupe index
- **/
-void stop_vdo_dedupe_index(struct dedupe_index *index);
 
 /**
  * Wait until the dedupe index has completed all its outstanding I/O.

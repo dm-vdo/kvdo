@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#41 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -64,6 +64,8 @@ extern const struct admin_state_code *VDO_ADMIN_STATE_SAVING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SAVED;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SCRUBBING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING;
+extern const struct admin_state_code *VDO_ADMIN_STATE_STOPPING;
+extern const struct admin_state_code *VDO_ADMIN_STATE_STOPPED;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDED;
 extern const struct admin_state_code *VDO_ADMIN_STATE_SUSPENDED_OPERATION;

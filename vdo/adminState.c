@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#42 $
  */
 
 #include "adminState.h"
@@ -146,6 +146,20 @@ static const struct admin_state_code VDO_CODE_SAVE_FOR_SCRUBBING = {
 };
 const struct admin_state_code *VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING =
 	&VDO_CODE_SAVE_FOR_SCRUBBING;
+static const struct admin_state_code VDO_CODE_STOPPING = {
+	.name = "VDO_ADMIN_STATE_STOPPING",
+	.draining = true,
+	.quiescing = true,
+	.operating = true,
+};
+const struct admin_state_code *VDO_ADMIN_STATE_STOPPING =
+	&VDO_CODE_STOPPING;
+static const struct admin_state_code VDO_CODE_STOPPED = {
+	.name = "VDO_ADMIN_STATE_STOPPED",
+	.quiescent = true,
+};
+const struct admin_state_code *VDO_ADMIN_STATE_STOPPED =
+	&VDO_CODE_STOPPED;
 static const struct admin_state_code VDO_CODE_SUSPENDING = {
 	.name = "VDO_ADMIN_STATE_SUSPENDING",
 	.draining = true,
@@ -228,6 +242,12 @@ get_next_state(const struct admin_state *state,
 	if (operation == VDO_ADMIN_STATE_SUSPENDING) {
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_SUSPENDED
+			: NULL);
+	}
+
+	if (operation == VDO_ADMIN_STATE_STOPPING) {
+		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
+			? VDO_ADMIN_STATE_STOPPED
 			: NULL);
 	}
 

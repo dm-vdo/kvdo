@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#105 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#106 $
  */
 
 #include "vdoLoad.h"
@@ -44,6 +44,7 @@
 #include "types.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
+#include "vdoSuspend.h"
 
 enum {
 	LOAD_PHASE_START = 0,
@@ -291,11 +292,23 @@ static void handle_load_error(struct vdo_completion *completion)
 /**********************************************************************/
 int load_vdo(struct vdo *vdo)
 {
-	return perform_vdo_admin_operation(vdo,
-					   VDO_ADMIN_OPERATION_LOAD,
-					   get_thread_id_for_phase,
-					   load_callback,
-					   handle_load_error);
+	int result = perform_vdo_admin_operation(vdo,
+						 VDO_ADMIN_OPERATION_LOAD,
+						 get_thread_id_for_phase,
+						 load_callback,
+						 handle_load_error);
+
+	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
+		// Even if the VDO is read-only, it is now able to handle
+		// (read) requests.
+		return VDO_SUCCESS;
+	}
+
+	// Something has gone very wrong. Make sure everything has drained and
+	// leave the device in an unresumable state.
+	vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;
+	suspend_vdo(vdo);
+	return result;
 }
 
 /**

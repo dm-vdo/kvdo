@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#149 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#150 $
  */
 
 #include <linux/module.h>
@@ -576,29 +576,25 @@ static void vdo_dtr(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_presuspend(struct dm_target *ti)
 {
-	struct vdo *vdo = get_vdo_for_target(ti);
-	struct registered_thread instance_thread;
-
-	uds_register_thread_device_id(&instance_thread, &vdo->instance);
-	if (dm_noflush_suspending(ti)) {
-		vdo->no_flush_suspend = true;
-	}
-	uds_unregister_thread_device_id();
+	get_vdo_for_target(ti)->suspend_type
+		= (dm_noflush_suspending(ti)
+		   ? VDO_ADMIN_STATE_SUSPENDING
+		   : VDO_ADMIN_STATE_SAVING);
 }
 
 /**********************************************************************/
 static void vdo_postsuspend(struct dm_target *ti)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct vdo *vdo = get_vdo_for_target(ti);
 	struct registered_thread instance_thread;
 	const char *device_name;
 	int result;
 
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 	device_name = get_vdo_device_name(ti);
 
 	uds_log_info("suspending device '%s'", device_name);
-	result = suspend_kernel_layer(layer);
+	result = suspend_kernel_layer(vdo_as_kernel_layer(vdo));
 
 	// Treat VDO_READ_ONLY as a success since a read-only suspension still
 	// leaves the VDO suspended.
@@ -610,7 +606,6 @@ static void vdo_postsuspend(struct dm_target *ti)
 			      result);
 	}
 
-	layer->vdo.no_flush_suspend = false;
 	uds_unregister_thread_device_id();
 }
 

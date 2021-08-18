@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#77 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#78 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -143,8 +143,8 @@ struct vdo {
 	/* The administrative state of the vdo */
 	struct admin_state admin_state;
 
-	/* Whether a close is required */
-	bool no_flush_suspend;
+	/* Flags controlling administrative operations */
+	const struct admin_state_code *suspend_type;
 	bool allocations_allowed;
 	bool dump_on_shutdown;
 	atomic_t processing_message;
