@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#44 $
  */
 
 #include "vdoResume.h"
@@ -49,12 +49,12 @@ enum {
 static const char *RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_START",
 	"RESUME_PHASE_ALLOW_READ_ONLY_MODE",
+	"RESUME_PHASE_INDEX",
 	"RESUME_PHASE_DEPOT",
 	"RESUME_PHASE_JOURNAL",
 	"RESUME_PHASE_BLOCK_MAP",
 	"RESUME_PHASE_LOGICAL_ZONES",
 	"RESUME_PHASE_PACKER",
-	"RESUME_PHASE_INDEX",
 	"RESUME_PHASE_END",
 };
 
