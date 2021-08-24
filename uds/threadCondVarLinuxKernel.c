@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadCondVarLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/threadCondVarLinuxKernel.c#2 $
  */
 
 #include "errors.h"
@@ -48,6 +48,7 @@ int uds_broadcast_cond(struct cond_var *cv)
 int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 {
 	event_token_t token = event_count_prepare(cv->event_count);
+
 	uds_unlock_mutex(mutex);
 	event_count_wait(cv->event_count, token, NULL);
 	uds_lock_mutex(mutex);
@@ -61,6 +62,7 @@ int uds_timed_wait_cond(struct cond_var *cv,
 {
 	bool happened;
 	event_token_t token = event_count_prepare(cv->event_count);
+
 	uds_unlock_mutex(mutex);
 	happened = event_count_wait(cv->event_count, token, &timeout);
 	uds_lock_mutex(mutex);
