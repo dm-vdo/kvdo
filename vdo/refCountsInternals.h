@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#28 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -27,7 +27,7 @@
 #include "journalPoint.h"
 #include "packedReferenceBlock.h"
 #include "slab.h"
-#include "blockAllocatorInternals.h"
+#include "blockAllocator.h"
 #include "waitQueue.h"
 
 /**

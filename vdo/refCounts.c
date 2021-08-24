@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#88 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#89 $
  */
 
 #include "refCounts.h"
@@ -28,7 +28,7 @@
 #include "permassert.h"
 
 #include "adminState.h"
-#include "blockAllocatorInternals.h"
+#include "blockAllocator.h"
 #include "completion.h"
 #include "extent.h"
 #include "header.h"

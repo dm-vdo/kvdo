@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#74 $
  */
 
 #include "slab.h"
@@ -26,7 +26,7 @@
 #include "permassert.h"
 
 #include "adminState.h"
-#include "blockAllocatorInternals.h"
+#include "blockAllocator.h"
 #include "completion.h"
 #include "constants.h"
 #include "numUtils.h"

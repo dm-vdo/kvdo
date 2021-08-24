@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#41 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -26,7 +26,7 @@
 
 #include "numeric.h"
 
-#include "blockAllocatorInternals.h"
+#include "blockAllocator.h"
 #include "blockMapEntry.h"
 #include "journalPoint.h"
 #include "slab.h"
