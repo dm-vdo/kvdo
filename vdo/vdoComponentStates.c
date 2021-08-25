@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.c#20 $
  */
 
 #include "vdoComponentStates.h"
@@ -138,7 +138,8 @@ int decode_vdo_component_states(struct buffer *buffer,
 /**********************************************************************/
 int validate_vdo_component_states(struct vdo_component_states *states,
 				  nonce_t geometry_nonce,
-				  block_count_t size)
+				  block_count_t physical_size,
+				  block_count_t logical_size)
 {
 	if (geometry_nonce != states->vdo.nonce) {
 		return uds_log_error_strerror(VDO_BAD_NONCE,
@@ -147,7 +148,9 @@ int validate_vdo_component_states(struct vdo_component_states *states,
 					      (unsigned long long) states->vdo.nonce);
 	}
 
-	return validate_vdo_config(&states->vdo.config, size, true);
+	return validate_vdo_config(&states->vdo.config,
+				   physical_size,
+				   logical_size);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.c#17 $
  */
 
 #include "vdoComponent.h"
@@ -217,8 +217,8 @@ int decode_vdo_component(struct buffer *buffer,
 
 /**********************************************************************/
 int validate_vdo_config(const struct vdo_config *config,
-			block_count_t block_count,
-			bool require_logical)
+			block_count_t physical_block_count,
+			block_count_t logical_block_count)
 {
 	struct slab_config slab_config;
 	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
@@ -279,17 +279,26 @@ int validate_vdo_config(const struct vdo_config *config,
 		return VDO_OUT_OF_RANGE;
 	}
 
-	if (block_count != config->physical_blocks) {
+	if (physical_block_count != config->physical_blocks) {
 		uds_log_error("A physical size of %llu blocks was specified, not the %llu blocks configured in the vdo super block",
-			      (unsigned long long) block_count,
+			      (unsigned long long) physical_block_count,
 			      (unsigned long long) config->physical_blocks);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result = ASSERT(!require_logical || (config->logical_blocks > 0),
-			"logical blocks unspecified");
-	if (result != UDS_SUCCESS) {
-		return result;
+	if (logical_block_count > 0) {
+		result = ASSERT((config->logical_blocks > 0),
+				"logical blocks unspecified");
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+
+		if (logical_block_count != config->logical_blocks) {
+			uds_log_error("A logical size of %llu blocks was specified, but that differs from the %llu blocks configured in the vdo super block",
+			      (unsigned long long) logical_block_count,
+			      (unsigned long long) config->logical_blocks);
+			return VDO_PARAMETER_MISMATCH;
+		}
 	}
 
 	result = ASSERT(config->logical_blocks <= MAXIMUM_VDO_LOGICAL_BLOCKS,

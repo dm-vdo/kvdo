@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#151 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#152 $
  */
 
 #include <linux/module.h>
@@ -501,15 +501,14 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	// Is there already a device of this name?
 	if (old_vdo != NULL) {
-		/*
-		 * To preserve backward compatibility with old VDO Managers, we
-		 * need to allow this to happen when either suspended or not.
-		 * We could assert that if the config is version 0, we are
-		 * suspended, and if not, we are not, but we can't do that
-		 * until new VDO Manager does the right order.
-		 */
+		bool may_grow = (get_vdo_admin_state(old_vdo)
+				 != VDO_ADMIN_STATE_PRE_LOADED);
+
 		uds_log_info("preparing to modify device '%s'", device_name);
-		result = prepare_to_modify_vdo(old_vdo, config, &ti->error);
+		result = prepare_to_modify_vdo(old_vdo,
+					       config,
+					       may_grow,
+					       &ti->error);
 		if (result != VDO_SUCCESS) {
 			result = map_to_system_error(result);
 			free_vdo_device_config(UDS_FORGET(config));

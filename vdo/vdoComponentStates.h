@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#7 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -87,14 +87,17 @@ decode_vdo_component_states(struct buffer *buffer,
  *
  * @param states          The state decoded from the super block
  * @param geometry_nonce  The nonce from the geometry block
- * @param size            The size of underlying storage
+ * @param physical_size   The minimum block count of the underlying storage
+ * @param logical_size    The expected logical size of the VDO, or 0 if the
+ *                        logical size may be unspecified
  *
  * @return VDO_SUCESS or an error if the configuration is invalid
  **/
 int __must_check
 validate_vdo_component_states(struct vdo_component_states *states,
 			      nonce_t geometry_nonce,
-			      block_count_t size);
+			      block_count_t physical_size,
+			      block_count_t logical_size);
 
 /**
  * Encode a VDO super block into a buffer for writing in the super block.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.h#3 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -118,6 +118,8 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
  *
  * @param to_validate  The new config to valudate
  * @param config       The existing config
+ * @param may_grow     Set to true if growing the logical and physical size of
+ *                     the vdo is currently permitted
  * @param error_ptr    A pointer to hold the reason for any error
  *
  * @return VDO_SUCCESS or an error
@@ -125,6 +127,7 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo);
 int __must_check
 validate_new_device_config(struct device_config *to_validate,
 			   struct device_config *config,
+			   bool may_grow,
 			   char **error_ptr);
 
 #endif // DEVICE_CONFIG_H

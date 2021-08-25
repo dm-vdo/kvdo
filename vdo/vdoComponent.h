@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponent.h#6 $
  */
 
 #ifndef VDO_COMPONENT_H
@@ -84,15 +84,16 @@ decode_vdo_component(struct buffer *buffer, struct vdo_component *component);
 /**
  * Validate constraints on a VDO config.
  *
- * @param config           The VDO config
- * @param block_count      The block count of the VDO
- * @param require_logical  Set to <code>true</code> if the number logical blocks
- *                         must be configured (otherwise, it may be zero)
+ * @param config                The VDO config
+ * @param physical_block_count  The minimum block count of the underlying
+ *                              storage
+ * @param logical_block_count   The expected logical size of the VDO, or 0 if
+ *                              the logical size may be unspecified
  *
  * @return a success or error code
  **/
-int __must_check validate_vdo_config(const struct vdo_config *config,
-				     block_count_t block_count,
-				     bool require_logical);
+int validate_vdo_config(const struct vdo_config *config,
+			block_count_t physical_block_count,
+			block_count_t logical_block_count);
 
 #endif /* VDO_COMPONENT_H */

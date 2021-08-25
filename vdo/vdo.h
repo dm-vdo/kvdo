@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#46 $
  */
 
 #ifndef VDO_H
@@ -49,6 +49,8 @@ int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
  *
  * @param vdo        The vdo being resumed
  * @param config     The new device configuration
+ * @param may_grow   Set to true if growing the logical and physical size of
+ *                   the vdo is currently permitted
  * @param error_ptr  A pointer to store the reason for any failure
  *
  * @return VDO_SUCCESS or an error
@@ -56,6 +58,7 @@ int __must_check add_vdo_sysfs_stats_dir(struct vdo *vdo);
 int __must_check
 prepare_to_modify_vdo(struct vdo *vdo,
 		      struct device_config *config,
+		      bool may_grow,
 		      char **error_ptr);
 
 /**

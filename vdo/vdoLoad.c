@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#106 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#107 $
  */
 
 #include "vdoLoad.h"
@@ -323,7 +323,7 @@ int load_vdo(struct vdo *vdo)
  **/
 static int __must_check decode_from_super_block(struct vdo *vdo)
 {
-	block_count_t block_count;
+	const struct device_config *config = vdo->device_config;
 	struct super_block_codec *codec
 		= get_vdo_super_block_codec(vdo->super_block);
 	int result = decode_vdo_component_states(codec->component_buffer,
@@ -335,11 +335,10 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 
 	set_vdo_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
-
-	block_count = vdo->device_config->physical_blocks;
 	result = validate_vdo_component_states(&vdo->states,
 					       vdo->geometry.nonce,
-					       block_count);
+					       config->physical_blocks,
+					       config->logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

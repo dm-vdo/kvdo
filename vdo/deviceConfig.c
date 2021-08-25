@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/deviceConfig.c#4 $
  */
 
 #include "deviceConfig.h"
@@ -730,6 +730,7 @@ void set_device_config_vdo(struct device_config *config, struct vdo *vdo)
 /**********************************************************************/
 int validate_new_device_config(struct device_config *to_validate,
 			       struct device_config *config,
+			       bool may_grow,
 			       char **error_ptr)
 {
 	if (to_validate->owning_target->begin !=
@@ -746,6 +747,12 @@ int validate_new_device_config(struct device_config *to_validate,
 	if (to_validate->logical_blocks < config->logical_blocks) {
 		*error_ptr = "Can't shrink VDO logical size";
 		return VDO_PARAMETER_MISMATCH;
+	}
+
+	if (!may_grow
+	    && (to_validate->logical_blocks > config->logical_blocks)) {
+		*error_ptr = "VDO logical size may not grow in current state";
+		return VDO_NOT_IMPLEMENTED;
 	}
 
 	if (to_validate->cache_size != config->cache_size) {
@@ -767,6 +774,12 @@ int validate_new_device_config(struct device_config *to_validate,
 
 	if (to_validate->physical_blocks < config->physical_blocks) {
 		*error_ptr = "Removing physical storage from a VDO is not supported";
+		return VDO_NOT_IMPLEMENTED;
+	}
+
+	if (!may_grow
+	    && (to_validate->physical_blocks > config->physical_blocks)) {
+		*error_ptr = "VDO physical size may not grow in current state";
 		return VDO_NOT_IMPLEMENTED;
 	}
 
