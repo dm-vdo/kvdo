@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#22 $
  */
 
 /**
@@ -36,6 +36,19 @@
 
 #include "fixedLayout.h"
 #include "types.h"
+
+struct vdo_layout {
+	// The current layout of the VDO
+	struct fixed_layout *layout;
+	// The next layout of the VDO
+	struct fixed_layout *next_layout;
+	// The previous layout of the VDO
+	struct fixed_layout *previous_layout;
+	// The first block in the layouts
+	physical_block_number_t starting_offset;
+	// A pointer to the copy completion (if there is one)
+	struct vdo_completion *copy_completion;
+};
 
 /**
  * Make a vdo_layout from the fixed_layout decoded from the super block.
