@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#53 $
  */
 
 #include "forest.h"
@@ -28,7 +28,6 @@
 #include "blockMapInternals.h"
 #include "blockMapPage.h"
 #include "blockMapTree.h"
-#include "blockMapTreeInternals.h"
 #include "constants.h"
 #include "dirtyLists.h"
 #include "forest.h"
