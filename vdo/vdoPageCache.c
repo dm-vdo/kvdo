@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#79 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#80 $
  */
 
-#include "vdoPageCacheInternals.h"
+#include "vdoPageCache.h"
 
 #include <linux/ratelimit.h>
 
@@ -29,6 +29,7 @@
 #include "permassert.h"
 
 #include "adminState.h"
+#include "blockMapInternals.h"
 #include "constants.h"
 #include "numUtils.h"
 #include "readOnlyNotifier.h"
@@ -48,6 +49,12 @@ enum {
  * threads reading those stats.
  */
 #define ADD_ONCE(value, delta) WRITE_ONCE(value, (value) + (delta))
+
+/**********************************************************************/
+static inline bool is_dirty(const struct page_info *info)
+{
+	return info->state == PS_DIRTY;
+}
 
 /**********************************************************************/
 static inline bool is_present(const struct page_info *info)
@@ -105,6 +112,14 @@ page_info_from_lru_entry(struct list_head *entry)
 		return NULL;
 	}
 	return list_entry(entry, struct page_info, lru_entry);
+}
+
+/**********************************************************************/
+static inline struct vdo_page_completion *
+as_vdo_page_completion(struct vdo_completion *completion)
+{
+	assert_vdo_completion_type(completion->type, VDO_PAGE_COMPLETION);
+	return container_of(completion, struct vdo_page_completion, completion);
 }
 
 /**********************************************************************/
@@ -534,9 +549,16 @@ find_free_page(struct vdo_page_cache *cache)
 	return info;
 }
 
-/**********************************************************************/
-struct page_info *vdo_page_cache_find_page(struct vdo_page_cache *cache,
-				physical_block_number_t pbn)
+/**
+ * Find the page info (if any) associated with a given pbn.
+ *
+ * @param cache  the page cache
+ * @param pbn    the absolute physical block number of the page
+ *
+ * @return the page info for the page if available, or NULL if not
+ **/
+static struct page_info * __must_check
+find_page(struct vdo_page_cache *cache, physical_block_number_t pbn)
 {
 	if ((cache->last_found != NULL) && (cache->last_found->pbn == pbn)) {
 		return cache->last_found;
@@ -1135,7 +1157,7 @@ static void discard_a_page(struct vdo_page_cache *cache)
 		return;
 	}
 
-	if (!is_vdo_page_dirty(info)) {
+	if (!is_dirty(info)) {
 		allocate_free_page(info);
 		return;
 	}
@@ -1425,7 +1447,7 @@ void get_vdo_page(struct vdo_completion *completion)
 		ADD_ONCE(cache->stats.read_count, 1);
 	}
 
-	info = vdo_page_cache_find_page(cache, vdo_page_comp->pbn);
+	info = find_page(cache, vdo_page_comp->pbn);
 	if (info != NULL) {
 		// The page is in the cache already.
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
@@ -1562,7 +1584,7 @@ int invalidate_vdo_page_cache(struct vdo_page_cache *cache)
 	// Make sure we don't throw away any dirty pages.
 	for (info = cache->infos; info < cache->infos + cache->page_count;
 	     info++) {
-		int result = ASSERT(!is_vdo_page_dirty(info),
+		int result = ASSERT(!is_dirty(info),
 				    "cache must have no dirty pages");
 		if (result != VDO_SUCCESS) {
 			return result;

@@ -16,27 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#25 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
 #define VDO_PAGE_CACHE_H
 
+#include <linux/list.h>
+
+
 #include "adminState.h"
 #include "completion.h"
+#include "dirtyLists.h"
+#include "intMap.h"
 #include "statistics.h"
 #include "types.h"
 #include "waitQueue.h"
-
-/**
- * Structure describing page meta data (defined internally).
- **/
-struct page_info;
-
-/**
- * Structure describing entire page cache.
- **/
-struct vdo_page_cache;
 
 /**
  * Generation counter for page references.
@@ -75,6 +70,132 @@ typedef int vdo_page_read_function(void *raw_page,
 typedef bool vdo_page_write_function(void *raw_page,
 				     struct block_map_zone *zone,
 				     void *page_context);
+
+enum {
+	MAX_PAGE_CONTEXT_SIZE = 8,
+};
+
+static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
+
+/**
+ * The VDO Page Cache abstraction.
+ **/
+struct vdo_page_cache {
+	/** the VDO which owns this cache */
+	struct vdo *vdo;
+	/** number of pages in cache */
+	page_count_t page_count;
+	/** function to call on page read */
+	vdo_page_read_function *read_hook;
+	/** function to call on page write */
+	vdo_page_write_function *write_hook;
+	/** number of pages to write in the current batch */
+	page_count_t pages_in_batch;
+	/** Whether the VDO is doing a read-only rebuild */
+	bool rebuilding;
+
+	/** array of page information entries */
+	struct page_info *infos;
+	/** raw memory for pages */
+	char *pages;
+	/** cache last found page info */
+	struct page_info *last_found;
+	/** map of page number to info */
+	struct int_map *page_map;
+	/** main LRU list (all infos) */
+	struct list_head lru_list;
+	/** dirty pages by period */
+	struct dirty_lists *dirty_lists;
+	/** free page list (oldest first) */
+	struct list_head free_list;
+	/** outgoing page list */
+	struct list_head outgoing_list;
+	/** number of read I/O operations pending */
+	page_count_t outstanding_reads;
+	/** number of write I/O operations pending */
+	page_count_t outstanding_writes;
+	/** number of pages covered by the current flush */
+	page_count_t pages_in_flush;
+	/** number of pages waiting to be included in the next flush */
+	page_count_t pages_to_flush;
+	/** number of discards in progress */
+	unsigned int discard_count;
+	/** how many VPCs waiting for free page */
+	unsigned int waiter_count;
+	/** queue of waiters who want a free page */
+	struct wait_queue free_waiters;
+	/**
+	 * Statistics are only updated on the logical zone thread, but are
+	 * accessed from other threads.
+	 **/
+	struct block_map_statistics stats;
+	/** counter for pressure reports */
+	uint32_t pressure_report;
+	/** the block map zone to which this cache belongs */
+	struct block_map_zone *zone;
+};
+
+/**
+ * The state of a page buffer. If the page buffer is free no particular page is
+ * bound to it, otherwise the page buffer is bound to particular page whose
+ * absolute pbn is in the pbn field. If the page is resident or dirty the page
+ * data is stable and may be accessed. Otherwise the page is in flight
+ * (incoming or outgoing) and its data should not be accessed.
+ *
+ * @note Update the static data in get_page_state_name() if you change this
+ * enumeration.
+ **/
+enum vdo_page_buffer_state {
+	/* this page buffer is not being used */
+	PS_FREE,
+	/* this page is being read from store */
+	PS_INCOMING,
+	/* attempt to load this page failed */
+	PS_FAILED,
+	/* this page is valid and un-modified */
+	PS_RESIDENT,
+	/* this page is valid and modified */
+	PS_DIRTY,
+	/* this page is being written and should not be used */
+	PS_OUTGOING,
+	/* not a state */
+	PAGE_STATE_COUNT,
+} __packed;
+
+/**
+ * The write status of page
+ **/
+enum vdo_page_write_status {
+	WRITE_STATUS_NORMAL,
+	WRITE_STATUS_DISCARD,
+	WRITE_STATUS_DEFERRED,
+} __packed;
+
+/**
+ * Per-page-slot information.
+ **/
+struct page_info {
+	/** Preallocated page struct vio */
+	struct vio *vio;
+	/** back-link for references */
+	struct vdo_page_cache *cache;
+	/** the pbn of the page */
+	physical_block_number_t pbn;
+	/** page is busy (temporarily locked) */
+	uint16_t busy;
+	/** the write status the page */
+	enum vdo_page_write_status write_status;
+	/** page state */
+	enum vdo_page_buffer_state state;
+	/** queue of completions awaiting this item */
+	struct wait_queue waiting;
+	/** state linked list entry */
+	struct list_head state_entry;
+	/** LRU entry */
+	struct list_head lru_entry;
+	/** Space for per-page client data */
+	byte context[MAX_PAGE_CONTEXT_SIZE];
+};
 
 /**
  * Construct a page cache.
