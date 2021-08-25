@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#126 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#127 $
  */
 
 #include "recoveryJournal.h"
@@ -151,7 +151,7 @@ static void notify_commit_waiters(struct recovery_journal *journal);
  *
  * @param journal The journal which may have just drained
  **/
-static void vdo_check_for_drain_complete(struct recovery_journal *journal)
+static void check_for_drain_complete(struct recovery_journal *journal)
 {
 	int result = VDO_SUCCESS;
 
@@ -210,7 +210,7 @@ static void
 notify_recovery_journal_of_read_only_mode(void *listener,
 					  struct vdo_completion *parent)
 {
-	vdo_check_for_drain_complete(listener);
+	check_for_drain_complete(listener);
 	complete_vdo_completion(parent);
 }
 
@@ -226,7 +226,7 @@ static void enter_journal_read_only_mode(struct recovery_journal *journal,
 					 int error_code)
 {
 	vdo_enter_read_only_mode(journal->read_only_notifier, error_code);
-	vdo_check_for_drain_complete(journal);
+	check_for_drain_complete(journal);
 }
 
 /**********************************************************************/
@@ -302,7 +302,7 @@ static void finish_reaping(struct recovery_journal *journal)
 	journal->reaping = false;
 	check_slab_journal_commit_threshold(journal);
 	assign_entries(journal);
-	vdo_check_for_drain_complete(journal);
+	check_for_drain_complete(journal);
 }
 
 /**
@@ -391,7 +391,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 		 * Do check if this notification is the last thing the is
 		 * waiting on.
 		 */
-		vdo_check_for_drain_complete(journal);
+		check_for_drain_complete(journal);
 		return;
 	}
 
@@ -1031,7 +1031,7 @@ static void complete_write(struct vdo_completion *completion)
 	recycle_journal_blocks(journal);
 	write_blocks(journal);
 
-	vdo_check_for_drain_complete(journal);
+	check_for_drain_complete(journal);
 }
 
 /**********************************************************************/
@@ -1256,9 +1256,9 @@ void vdo_release_journal_per_entry_lock_from_other_zone(struct recovery_journal 
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	vdo_check_for_drain_complete(container_of(state,
-						  struct recovery_journal,
-						  state));
+	check_for_drain_complete(container_of(state,
+					      struct recovery_journal,
+					      state));
 }
 
 /**********************************************************************/

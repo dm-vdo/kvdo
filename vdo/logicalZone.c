@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#74 $
  */
 
 #include "logicalZone.h"
@@ -225,7 +225,7 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
  *
  * @param zone  The zone to check
  **/
-static void vdo_check_for_drain_complete(struct logical_zone *zone)
+static void check_for_drain_complete(struct logical_zone *zone)
 {
 	if (!is_vdo_state_draining(&zone->state) || zone->notifying
 	    || !list_empty(&zone->write_vios)) {
@@ -242,9 +242,9 @@ static void vdo_check_for_drain_complete(struct logical_zone *zone)
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	vdo_check_for_drain_complete(container_of(state,
-						  struct logical_zone,
-						  state));
+	check_for_drain_complete(container_of(state,
+					      struct logical_zone,
+					      state));
 }
 
 /**
@@ -420,7 +420,7 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 	assert_on_zone_thread(zone, __func__);
 	if (zone->oldest_active_generation <= zone->notification_generation) {
 		zone->notifying = false;
-		vdo_check_for_drain_complete(zone);
+		check_for_drain_complete(zone);
 		return;
 	}
 

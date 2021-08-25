@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#97 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#98 $
  */
 
 #include "packer.h"
@@ -395,7 +395,7 @@ static void continue_vio_without_packing(struct waiter *waiter,
  *
  * @param packer  The packer
  **/
-static void vdo_check_for_drain_complete(struct packer *packer)
+static void check_for_drain_complete(struct packer *packer)
 {
 	if (is_vdo_state_draining(&packer->state) &&
 	    (packer->canceled_bin->slots_used == 0) &&
@@ -483,7 +483,7 @@ static void complete_output_bin(struct vdo_completion *completion)
 
 	finish_output_bin(packer, completion->parent);
 	write_pending_batches(packer);
-	vdo_check_for_drain_complete(packer);
+	check_for_drain_complete(packer);
 }
 
 /**
@@ -984,7 +984,7 @@ static void remove_from_vdo_packer(struct data_vio *data_vio)
 	}
 
 	abort_packing(data_vio);
-	vdo_check_for_drain_complete(packer);
+	check_for_drain_complete(packer);
 }
 
 /**********************************************************************/
@@ -1018,7 +1018,7 @@ static void initiate_drain(struct admin_state *state)
 	struct packer *packer = container_of(state, struct packer, state);
 
 	write_all_non_empty_bins(packer);
-	vdo_check_for_drain_complete(packer);
+	check_for_drain_complete(packer);
 }
 
 /**********************************************************************/

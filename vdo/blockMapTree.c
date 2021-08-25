@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#110 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#111 $
  */
 
 #include "blockMapTree.h"
@@ -246,7 +246,7 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 		dequeue_next_waiter(&zone->flush_waiters);
 	}
 
-	vdo_check_for_drain_complete(zone->map_zone);
+	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
 /**
@@ -451,7 +451,7 @@ static void return_to_pool(struct block_map_tree_zone *zone,
 			   struct vio_pool_entry *entry)
 {
 	return_vio_to_pool(zone->vio_pool, entry);
-	vdo_check_for_drain_complete(zone->map_zone);
+	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
 /**
