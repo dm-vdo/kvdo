@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#9 $
  */
 
 #ifndef ALLOCATION_SELECTOR_H
@@ -30,6 +30,16 @@
  * physical zones. Currently, 128 allocations will be made to a given physical
  * zone before switching to the next.
  **/
+
+/** Structure used to select which physical zone to allocate from */
+struct allocation_selector {
+	/** The number of allocations done in the current zone */
+	block_count_t allocation_count;
+	/** The physical zone to allocate from next */
+	zone_count_t next_allocation_zone;
+	/** The number of the last physical zone */
+	zone_count_t last_physical_zone;
+};
 
 /**
  * Make a new allocation selector.
