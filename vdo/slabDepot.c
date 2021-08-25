@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#122 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#123 $
  */
 
 #include "slabDepot.h"
@@ -521,12 +521,12 @@ block_count_t get_vdo_slab_depot_data_blocks(const struct slab_depot *depot)
 block_count_t get_vdo_slab_depot_free_blocks(const struct slab_depot *depot)
 {
 	/*
-	 * We can't ever shrink a volume except when resize fails, and we can't
-	 * allocate from the new slabs until after the resize succeeds, so by
-	 * getting the number of allocated blocks first, we ensure the allocated
-	 * count is always less than the capacity. Doing it in the other order
-	 * on a full volume could lose a race with a sucessful resize, resulting
-	 * in a nonsensical negative/underflow result.
+	 * We can't ever shrink a volume except when resize fails, and we
+	 * can't allocate from the new slabs until after the resize succeeds,
+	 * so by getting the number of allocated blocks first, we ensure the
+	 * allocated count is always less than the capacity. Doing it in the
+	 * other order on a full volume could lose a race with a successful
+	 * resize, resulting in a nonsensical negative/underflow result.
 	 */
 	block_count_t allocated = get_vdo_slab_depot_allocated_blocks(depot);
 

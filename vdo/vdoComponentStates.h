@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoComponentStates.h#8 $
  */
 
 #ifndef VDO_COMPONENT_STATES_H
@@ -91,7 +91,7 @@ decode_vdo_component_states(struct buffer *buffer,
  * @param logical_size    The expected logical size of the VDO, or 0 if the
  *                        logical size may be unspecified
  *
- * @return VDO_SUCESS or an error if the configuration is invalid
+ * @return VDO_SUCCESS or an error if the configuration is invalid
  **/
 int __must_check
 validate_vdo_component_states(struct vdo_component_states *states,
