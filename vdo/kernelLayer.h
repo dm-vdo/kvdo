@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#100 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#101 $
  */
 
 #ifndef KERNELLAYER_H
@@ -95,17 +95,6 @@ make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
 		  char **reason,
 		  struct kernel_layer **layer_ptr);
-
-/**
- * Modify a kernel physical layer.
- *
- * @param layer   The layer to modify
- * @param config  The new device configuration
- *
- * @return VDO_SUCCESS or an error
- **/
-int __must_check
-modify_kernel_layer(struct kernel_layer *layer, struct device_config *config);
 
 /**
  * Free a kernel physical layer.
@@ -229,28 +218,6 @@ static inline block_size_t sector_to_block_offset(sector_t sector_number)
 
 	return to_bytes(sector_number & sectors_per_block_mask);
 }
-
-/**
- * Adjusts parameters to reflect resizing the underlying device.
- * The size must be larger than the current size.
- *
- * @param layer           the kernel layer
- * @param physical_count  the new physical count in blocks
- *
- * @return VDO_SUCCESS or an error
- */
-int resize_physical(struct kernel_layer *layer, block_count_t physical_count);
-
-/**
- * Adjust parameters to present a larger logical space.
- * The size must be larger than the current size.
- *
- * @param layer          the kernel layer
- * @param logical_count  the new logical size in blocks
- *
- * @return VDO_SUCCESS or an error
- */
-int resize_logical(struct kernel_layer *layer, block_count_t logical_count);
 
 /**
  * Update bookkeeping for the completion of some number of requests, so that

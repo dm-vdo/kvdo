@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#89 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#90 $
  */
 
 #ifndef TYPES_H
@@ -308,6 +308,7 @@ struct block_map;
 struct block_map_tree_zone;
 struct block_map_zone;
 struct data_vio;
+struct device_config;
 struct flusher;
 struct forest;
 struct hash_lock;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#48 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -52,15 +52,6 @@ int make_vdo_threads(struct vdo *vdo,
 		     const char *thread_name_prefix,
 		     char **reason);
 
-/**
- * Resume the base VDO instance associated with the kernel layer.
- *
- * @param vdo  The vdo to be resumed
- *
- * @return VDO_SUCCESS or an error
- **/
-int resume_vdo(struct vdo *vdo);
-
 
 /**
  * Dump to the kernel log any work-queue info associated with the base code.
@@ -77,26 +68,6 @@ void dump_vdo_work_queue(struct vdo *vdo);
  **/
 void get_kvdo_statistics(struct vdo *vdo,
 			 struct vdo_statistics *stats);
-
-/**
- * Notify the base code of resized physical storage.
- *
- * @param vdo             The vdo to be updated
- * @param physical_count  The new size
- *
- * @return VDO_SUCCESS or error
- **/
-int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count);
-
-/**
- * Request the base code grow the logical space.
- *
- * @param vdo            The vdo to be updated
- * @param logical_count  The new size
- *
- * @return VDO_SUCCESS or error
- **/
-int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count);
 
 
 /**

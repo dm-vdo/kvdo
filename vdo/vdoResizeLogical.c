@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#49 $
  */
 
 #include "vdoResizeLogical.h"
@@ -139,15 +139,34 @@ static void handle_growth_error(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_vdo_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
-	if (vdo_get_new_entry_count(get_block_map(vdo)) != new_logical_blocks) {
+	int result;
+
+	if (vdo->device_config->logical_blocks == new_logical_blocks) {
+		// A table was loaded for which we prepared to grow, but
+		// a table without that growth was what we are resuming with.
+		vdo_abandon_block_map_growth(vdo->block_map);
+		return VDO_SUCCESS;
+	}
+
+	uds_log_info("Resizing logical to %llu",
+		     (unsigned long long) new_logical_blocks);
+
+	if (vdo_get_new_entry_count(vdo->block_map) != new_logical_blocks) {
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	return perform_vdo_admin_operation(vdo,
-					   VDO_ADMIN_OPERATION_GROW_LOGICAL,
-					   get_thread_id_for_phase,
-					   grow_logical_callback,
-					   handle_growth_error);
+	result = perform_vdo_admin_operation(vdo,
+					     VDO_ADMIN_OPERATION_GROW_LOGICAL,
+					     get_thread_id_for_phase,
+					     grow_logical_callback,
+					     handle_growth_error);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	uds_log_info("Logical blocks now %llu",
+		     (unsigned long long) new_logical_blocks);
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/

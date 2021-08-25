@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#4 $
  */
 
 #ifndef VDO_RESUME_H
@@ -25,12 +25,17 @@
 #include "types.h"
 
 /**
- * Resume a suspended vdo.
+ * Resume a suspended vdo (technically preresume because resume can't fail).
  *
- * @param vdo   The vdo to resume
+ * @param vdo          The vdo being resumed
+ * @param config       The device config derived from the table with which the
+ *                     vdo is being resumed
+ * @param device_name  The vdo device name (for logging)
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_resume(struct vdo *vdo);
+int preresume_vdo(struct vdo *vdo,
+		  struct device_config *config,
+		  const char *device_name);
 
 #endif /* VDO_RESUME_H */

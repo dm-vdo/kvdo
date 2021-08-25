@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#45 $
  */
 
 #include "vdoResume.h"
+
+#include <linux/kernel.h>
 
 #include "logger.h"
 
@@ -33,6 +35,8 @@
 #include "slabSummary.h"
 #include "threadConfig.h"
 #include "vdoInternal.h"
+#include "vdoResize.h"
+#include "vdoResizeLogical.h"
 
 enum {
 	RESUME_PHASE_START = 0,
@@ -183,12 +187,79 @@ static void resume_callback(struct vdo_completion *completion)
 	finish_vdo_resuming_with_result(&vdo->admin_state, completion->result);
 }
 
-/**********************************************************************/
-int perform_vdo_resume(struct vdo *vdo)
+/**
+ * Attempt to make any configuration changes from the table being resumed.
+ *
+ * @param vdo     The vdo being resumed
+ * @param config  The new device configuration derived from the table with which
+ *                the vdo is being resumed
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int __must_check
+apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 {
-	return perform_vdo_admin_operation(vdo,
-					   VDO_ADMIN_OPERATION_RESUME,
-					   get_thread_id_for_phase,
-					   resume_callback,
-					   preserve_vdo_completion_error_and_continue);
+	int result;
+
+	result = perform_vdo_grow_logical(vdo, config->logical_blocks);
+	if (result != VDO_SUCCESS) {
+		uds_log_error("grow logical operation failed, result = %d",
+			      result);
+		return result;
+	}
+
+	result = perform_vdo_grow_physical(vdo, config->physical_blocks);
+	if (result != VDO_SUCCESS) {
+		uds_log_error("resize operation failed, result = %d", result);
+	}
+
+	return result;
+}
+
+/**********************************************************************/
+int preresume_vdo(struct vdo *vdo,
+		  struct device_config *config,
+		  const char *device_name)
+{
+	int result;
+
+	// The VDO was not in a state to be resumed. This should never happen.
+	result = apply_new_vdo_configuration(vdo, config);
+	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
+
+	// Now that we've tried to modify the vdo, the new config *is* the
+	// config, whether the modifications worked or not.
+	vdo->device_config = config;
+
+	/*
+	 * Any error here is highly unexpected and the state of the vdo is
+	 * questionable, so we mark it read-only in memory. Because we are
+	 * suspended, the read-only state will not be written to disk.
+	 */
+	if (result != VDO_SUCCESS) {
+		uds_log_error_strerror(result,
+				       "Commit of modifications to device '%s' failed",
+				       device_name);
+		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+		return result;
+	}
+
+	if (get_vdo_admin_state(vdo)->normal) {
+		// The VDO was just started, so we don't need to resume it.
+		return VDO_SUCCESS;
+	}
+
+	result = perform_vdo_admin_operation(vdo,
+					     VDO_ADMIN_OPERATION_RESUME,
+					     get_thread_id_for_phase,
+					     resume_callback,
+					     preserve_vdo_completion_error_and_continue);
+	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
+	if (result != VDO_SUCCESS) {
+		uds_log_error("resume of device '%s' failed with error: %d",
+			      device_name,
+			      result);
+	}
+
+	return result;
 }

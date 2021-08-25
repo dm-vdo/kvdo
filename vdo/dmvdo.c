@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#152 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#153 $
  */
 
 #include <linux/module.h>
@@ -41,6 +41,7 @@
 #include "vdo.h"
 #include "vdoInit.h"
 #include "vdoLoad.h"
+#include "vdoResume.h"
 
 /**********************************************************************/
 
@@ -634,7 +635,6 @@ static int vdo_preresume(struct dm_target *ti)
 
 	if (get_vdo_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		char *failure_reason;
-		int result;
 
 		// This is the first time this device has been resumed, so run
 		// it.
@@ -655,24 +655,10 @@ static int vdo_preresume(struct dm_target *ti)
 	}
 
 	uds_log_info("resuming device '%s'", device_name);
-
-	// This is a noop if nothing has changed, and by calling it every time
-	// we capture old-style growPhysicals, which change the config in place.
-	result = modify_kernel_layer(layer, config);
-
-	if (result != VDO_SUCCESS) {
-		uds_log_error_strerror(result,
-				       "Commit of modifications to device '%s' failed",
-				       device_name);
-		set_vdo_active_config(vdo, config);
-		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
-	} else {
-		set_vdo_active_config(vdo, config);
-		result = resume_kernel_layer(layer);
-		if (result != VDO_SUCCESS) {
-			uds_log_error("resume of device '%s' failed with error: %d",
-				      device_name, result);
-		}
+	result = preresume_vdo(vdo, config, device_name);
+	if ((result == VDO_PARAMETER_MISMATCH)
+	    || (result == VDO_INVALID_ADMIN_STATE)) {
+		result = -EINVAL;
 	}
 
 	uds_unregister_thread_device_id();
@@ -686,6 +672,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct registered_thread instance_thread;
 
 	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
+	resume_kernel_layer(layer);
 	uds_log_info("device '%s' resumed", get_vdo_device_name(ti));
 	uds_unregister_thread_device_id();
 }

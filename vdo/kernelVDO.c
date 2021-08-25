@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#116 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#117 $
  */
 
 /*
@@ -148,12 +148,6 @@ int make_vdo_threads(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-int resume_vdo(struct vdo *vdo)
-{
-	return perform_vdo_resume(vdo);
-}
-
 
 /**********************************************************************/
 void dump_vdo_work_queue(struct vdo *vdo)
@@ -163,32 +157,6 @@ void dump_vdo_work_queue(struct vdo *vdo)
 	for (i = 0; i < vdo->initialized_thread_count; i++) {
 		dump_work_queue(vdo->threads[i].request_queue);
 	}
-}
-
-/**********************************************************************/
-int vdo_resize_physical(struct vdo *vdo, block_count_t physical_count)
-{
-	int result = perform_vdo_grow_physical(vdo, physical_count);
-
-	if (result != VDO_SUCCESS) {
-		uds_log_error("resize operation failed, result = %d", result);
-		return result;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int vdo_resize_logical(struct vdo *vdo, block_count_t logical_count)
-{
-	int result = perform_vdo_grow_logical(vdo, logical_count);
-
-	if (result != VDO_SUCCESS) {
-		uds_log_error("grow logical operation failed, result = %d",
-			      result);
-	}
-
-	return result;
 }
 
 /**********************************************************************/

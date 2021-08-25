@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#230 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#231 $
  */
 
 #include "kernelLayer.h"
@@ -441,47 +441,6 @@ int make_kernel_layer(unsigned int instance,
 }
 
 /**********************************************************************/
-int modify_kernel_layer(struct kernel_layer *layer,
-			struct device_config *config)
-{
-	int result;
-	struct device_config *extant_config = layer->vdo.device_config;
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
-
-	if (state == LAYER_RUNNING) {
-		return VDO_SUCCESS;
-	} else if (state != LAYER_SUSPENDED) {
-		uds_log_error("pre-resume invoked while in unexpected kernel layer state %d",
-			      state);
-		return -EINVAL;
-	}
-
-	// A failure here is unrecoverable. So there is no problem if it
-	// happens.
-
-	if (config->owning_target->len != extant_config->owning_target->len) {
-		size_t logical_bytes = to_bytes(config->owning_target->len);
-
-		result = resize_logical(layer, logical_bytes / VDO_BLOCK_SIZE);
-		if (result != VDO_SUCCESS) {
-			return result;
-		}
-	}
-
-	// Grow physical if the version is 0, so we can't tell if we
-	// got an old-style growPhysical command, or if size changed.
-	if ((config->physical_blocks != extant_config->physical_blocks) ||
-	    (config->version == 0)) {
-		result = resize_physical(layer, config->physical_blocks);
-		if (result != VDO_SUCCESS) {
-			return result;
-		}
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
 void free_kernel_layer(struct kernel_layer *layer)
 {
 	/*
@@ -560,57 +519,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 /**********************************************************************/
 int resume_kernel_layer(struct kernel_layer *layer)
 {
-	int result;
-
-	if (get_kernel_layer_state(layer) == LAYER_RUNNING) {
-		return VDO_SUCCESS;
-	}
-
-	result = resume_vdo(&layer->vdo);
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-
 	set_kernel_layer_state(layer, LAYER_RUNNING);
-	return VDO_SUCCESS;
-}
-
-/***********************************************************************/
-int resize_physical(struct kernel_layer *layer, block_count_t physical_count)
-{
-	/*
-	 * We must not mark the layer as allowing allocations when it is
-	 * suspended lest an allocation attempt block on writing IO to the
-	 * suspended VDO.
-	 */
-	int result = vdo_resize_physical(&layer->vdo, physical_count);
-
-	if (result != VDO_SUCCESS) {
-		// vdo_resize_physical logs errors
-		return result;
-	}
-	return VDO_SUCCESS;
-}
-
-/***********************************************************************/
-int resize_logical(struct kernel_layer *layer, block_count_t logical_count)
-{
-	int result;
-
-	uds_log_info("Resizing logical to %llu", logical_count);
-	/*
-	 * We must not mark the VDO as allowing allocations when it is
-	 * suspended lest an allocation attempt block on writing IO to the
-	 * suspended VDO.
-	 */
-	result = vdo_resize_logical(&layer->vdo, logical_count);
-
-	if (result != VDO_SUCCESS) {
-		// vdo_resize_logical logs errors
-		return result;
-	}
-
-	uds_log_info("Logical blocks now %llu", logical_count);
 	return VDO_SUCCESS;
 }
 
