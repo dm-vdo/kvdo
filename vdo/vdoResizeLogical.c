@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#50 $
  */
 
 #include "vdoResizeLogical.h"
@@ -176,7 +176,8 @@ int prepare_vdo_to_grow_logical(struct vdo *vdo,
 	block_count_t logical_blocks = vdo->states.vdo.config.logical_blocks;
 	int result;
 
-	uds_log_info("Preparing to resize logical to %llu", new_logical_blocks);
+	uds_log_info("Preparing to resize logical to %llu",
+		     (unsigned long long) new_logical_blocks);
 	ASSERT_LOG_ONLY((new_logical_blocks > logical_blocks),
 			"New logical size is larger than current size");
 	result = vdo_prepare_to_grow_block_map(get_block_map(vdo),
