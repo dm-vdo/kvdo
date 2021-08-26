@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#52 $
  */
 
 #include "vdoSuspend.h"
@@ -33,6 +33,7 @@
 #include "slabDepot.h"
 #include "slabSummary.h"
 #include "threadConfig.h"
+#include "vdoInit.h"
 #include "vdoInternal.h"
 
 enum {
@@ -230,21 +231,38 @@ static void suspend_callback(struct vdo_completion *completion)
 /**********************************************************************/
 int suspend_vdo(struct vdo *vdo)
 {
+	const char *device_name;
+	int result;
+
+	device_name = get_vdo_device_name(vdo->device_config->owning_target);
+	uds_log_info("suspending device '%s'", device_name);
+
 	/*
 	 * It's important to note any error here does not actually stop
 	 * device-mapper from suspending the device. All this work is done
 	 * post suspend.
 	 */
-	int result = perform_vdo_admin_operation(vdo,
-						 VDO_ADMIN_OPERATION_SUSPEND,
-						 get_thread_id_for_phase,
-						 suspend_callback,
-						 preserve_vdo_completion_error_and_continue);
+	result = perform_vdo_admin_operation(vdo,
+					     VDO_ADMIN_OPERATION_SUSPEND,
+					     get_thread_id_for_phase,
+					     suspend_callback,
+					     preserve_vdo_completion_error_and_continue);
 
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		uds_log_error_strerror(result, "%s: Suspend device failed",
-				       __func__);
+	// Treat VDO_READ_ONLY as a success since a read-only suspension still
+	// leaves the VDO suspended.
+	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
+		uds_log_info("device '%s' suspended", device_name);
+		return VDO_SUCCESS;
 	}
 
+	if (result == VDO_INVALID_ADMIN_STATE) {
+		uds_log_error("Suspend invoked while in unexpected state: %s",
+			      get_vdo_admin_state(vdo)->name);
+		result = -EINVAL;
+	}
+
+	uds_log_error_strerror(result,
+			       "Suspend of device '%s' failed",
+			       device_name);
 	return result;
 }

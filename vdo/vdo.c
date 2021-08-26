@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#172 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#173 $
  */
 
 /*
@@ -27,6 +27,7 @@
 #include "vdoInternal.h"
 
 #include <linux/device-mapper.h>
+#include <linux/kernel.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -87,8 +88,16 @@ static void finish_vdo(struct vdo *vdo)
 void destroy_vdo(struct vdo *vdo)
 {
 	int i;
-	const struct thread_config *thread_config = vdo->thread_config;
+	const struct thread_config *thread_config;
 
+	if (vdo == NULL) {
+		return;
+	}
+
+	// A running VDO should never be destroyed without suspending first.
+	BUG_ON(get_vdo_admin_state(vdo)->normal);
+
+	thread_config = vdo->thread_config;
 	vdo->allocations_allowed = true;
 
 	// Stop services that need to gather VDO statistics from the worker

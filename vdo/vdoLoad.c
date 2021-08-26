@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#107 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#108 $
  */
 
 #include "vdoLoad.h"
@@ -42,6 +42,7 @@
 #include "superBlockCodec.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdoInit.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
 #include "vdoSuspend.h"
@@ -292,20 +293,28 @@ static void handle_load_error(struct vdo_completion *completion)
 /**********************************************************************/
 int load_vdo(struct vdo *vdo)
 {
-	int result = perform_vdo_admin_operation(vdo,
-						 VDO_ADMIN_OPERATION_LOAD,
-						 get_thread_id_for_phase,
-						 load_callback,
-						 handle_load_error);
+	const char *device_name;
+	int result;
+
+	device_name = get_vdo_device_name(vdo->device_config->owning_target);
+	uds_log_info("starting device '%s'", device_name);
+	result = perform_vdo_admin_operation(vdo,
+					     VDO_ADMIN_OPERATION_LOAD,
+					     get_thread_id_for_phase,
+					     load_callback,
+					     handle_load_error);
 
 	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
 		// Even if the VDO is read-only, it is now able to handle
 		// (read) requests.
+		uds_log_info("device '%s' started", device_name);
 		return VDO_SUCCESS;
 	}
 
 	// Something has gone very wrong. Make sure everything has drained and
 	// leave the device in an unresumable state.
+	uds_log_error_strerror(result,
+			       "Start failed, could not load VDO metadata");
 	vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;
 	suspend_vdo(vdo);
 	return result;

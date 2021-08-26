@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#47 $
  */
 
 #ifndef VDO_H
@@ -30,7 +30,7 @@
 /**
  * Destroy a vdo instance.
  *
- * @param vdo  The vdo to destroy
+ * @param vdo  The vdo to destroy (may be NULL)
  **/
 void destroy_vdo(struct vdo *vdo);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#153 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#154 $
  */
 
 #include <linux/module.h>
@@ -27,9 +27,6 @@
 #include "threadRegistry.h"
 
 #include "constants.h"
-#include "threadConfig.h"
-#include "vdo.h"
-
 #include "dedupeIndex.h"
 #include "deviceRegistry.h"
 #include "dump.h"
@@ -38,10 +35,12 @@
 #include "kernelLayer.h"
 #include "messageStats.h"
 #include "stringUtils.h"
+#include "threadConfig.h"
 #include "vdo.h"
 #include "vdoInit.h"
 #include "vdoLoad.h"
 #include "vdoResume.h"
+#include "vdoSuspend.h"
 
 /**********************************************************************/
 
@@ -55,18 +54,6 @@
 static struct vdo *get_vdo_for_target(struct dm_target *ti)
 {
 	return ((struct device_config *) ti->private)->vdo;
-}
-
-/**
- * Get the kernel layer associated with a dm target structure.
- *
- * @param ti  The dm target structure
- *
- * @return The kernel layer, or NULL.
- **/
-static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
-{
-	return vdo_as_kernel_layer(get_vdo_for_target(ti));
 }
 
 /**
@@ -395,7 +382,6 @@ static int vdo_initialize(struct dm_target *ti,
 {
 	char *failure_reason;
 	struct vdo *vdo;
-	struct kernel_layer *layer;
 	int result;
 
 	uint64_t block_size = VDO_BLOCK_SIZE;
@@ -426,16 +412,17 @@ static int vdo_initialize(struct dm_target *ti,
 	result = make_kernel_layer(instance,
 				   config,
 				   &failure_reason,
-				   &layer);
+				   &vdo);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
 			      result,
 			      failure_reason);
 		ti->error = failure_reason;
+		destroy_vdo(vdo);
 		return result;
 	}
 
-	result = prepare_to_load_vdo(&layer->vdo);
+	result = prepare_to_load_vdo(vdo);
 	if (result != VDO_SUCCESS) {
 		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
 			     ? "Pre-load is only valid immediately after initialization"
@@ -443,12 +430,12 @@ static int vdo_initialize(struct dm_target *ti,
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
 			      ti->error);
-		free_kernel_layer(layer);
+		destroy_vdo(vdo);
 		return result;
 	}
 
-	set_device_config_vdo(config, &layer->vdo);
-	set_vdo_active_config(&layer->vdo, config);
+	set_device_config_vdo(config, vdo);
+	set_vdo_active_config(vdo, config);
 	ti->private = config;
 	configure_target_capabilities(ti);
 	return VDO_SUCCESS;
@@ -558,7 +545,7 @@ static void vdo_dtr(struct dm_target *ti)
 			vdo_dump_all(vdo, "device shutdown");
 		}
 
-		free_kernel_layer(vdo_as_kernel_layer(vdo));
+		destroy_vdo(UDS_FORGET(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
@@ -587,25 +574,9 @@ static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct registered_thread instance_thread;
-	const char *device_name;
-	int result;
 
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
-	device_name = get_vdo_device_name(ti);
-
-	uds_log_info("suspending device '%s'", device_name);
-	result = suspend_kernel_layer(vdo_as_kernel_layer(vdo));
-
-	// Treat VDO_READ_ONLY as a success since a read-only suspension still
-	// leaves the VDO suspended.
-	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-		uds_log_info("device '%s' suspended", device_name);
-	} else {
-		uds_log_error("suspend of device '%s' failed with error: %d",
-			      device_name,
-			      result);
-	}
-
+	suspend_vdo(vdo);
 	uds_unregister_thread_device_id();
 }
 
@@ -613,7 +584,6 @@ static void vdo_postsuspend(struct dm_target *ti)
 static int vdo_preresume(struct dm_target *ti)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
 	struct device_config *config = ti->private;
 	struct registered_thread instance_thread;
 	const char *device_name;
@@ -625,6 +595,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
+		// XXX: can this still happen?
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
 			      device_name,
 			      (unsigned long long) backing_blocks,
@@ -634,24 +605,12 @@ static int vdo_preresume(struct dm_target *ti)
 	}
 
 	if (get_vdo_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
-		char *failure_reason;
-
-		// This is the first time this device has been resumed, so run
-		// it.
-		uds_log_info("starting device '%s'", device_name);
-		result = start_kernel_layer(layer, &failure_reason);
-
+		result = load_vdo(vdo);
 		if (result != VDO_SUCCESS) {
-			uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
-				      result,
-				      failure_reason);
-			vdo_enter_read_only_mode(vdo->read_only_notifier,
-						 result);
 			uds_unregister_thread_device_id();
 			return map_to_system_error(result);
 		}
 
-		uds_log_info("device '%s' started", device_name);
 	}
 
 	uds_log_info("resuming device '%s'", device_name);
@@ -668,11 +627,10 @@ static int vdo_preresume(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_resume(struct dm_target *ti)
 {
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct registered_thread instance_thread;
+	uds_register_thread_device_id(&instance_thread,
+				      &get_vdo_for_target(ti)->instance);
 
-	uds_register_thread_device_id(&instance_thread, &layer->vdo.instance);
-	resume_kernel_layer(layer);
 	uds_log_info("device '%s' resumed", get_vdo_device_name(ti));
 	uds_unregister_thread_device_id();
 }

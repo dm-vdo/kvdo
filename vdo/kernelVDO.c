@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#117 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#118 $
  */
 
 /*
@@ -233,9 +233,7 @@ thread_id_t vdo_get_callback_thread_id(void)
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct vdo *vdo = thread->vdo;
-		struct kernel_layer *kernel_layer = vdo_as_kernel_layer(vdo);
 
-		BUG_ON(&kernel_layer->vdo != vdo);
 		BUG_ON(thread_id >= vdo->initialized_thread_count);
 		BUG_ON(thread != &vdo->threads[thread_id]);
 	}

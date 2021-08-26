@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#22 $
  */
 
 #include "poolSysfs.h"
@@ -137,10 +137,7 @@ static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 /**********************************************************************/
 static void vdo_pool_release(struct kobject *directory)
 {
-	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
-	struct kernel_layer *layer = vdo_as_kernel_layer(vdo);
-
-	UDS_FREE(layer);
+	UDS_FREE(container_of(directory, struct vdo, vdo_directory));
 }
 
 static struct pool_attribute vdo_pool_compressing_attr = {

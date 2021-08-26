@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#101 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#102 $
  */
 
 #ifndef KERNELLAYER_H
@@ -44,22 +44,6 @@
 #include "statistics.h"
 #include "workQueue.h"
 
-enum kernel_layer_state {
-	LAYER_NEW,
-	LAYER_RUNNING,
-	LAYER_SUSPENDED,
-	LAYER_STOPPED,
-};
-
-/**
- * The VDO representation of the target device
- **/
-struct kernel_layer {
-	struct vdo vdo;
-	/** Accessed from multiple threads */
-	enum kernel_layer_state state;
-};
-
 enum bio_q_action {
 	BIO_Q_ACTION_COMPRESSED_DATA,
 	BIO_Q_ACTION_DATA,
@@ -81,12 +65,12 @@ enum bio_ack_q_action {
 };
 
 /**
- * Creates a kernel specific physical layer to be used by VDO
+ * Creates a vdo.
  *
  * @param instance   Device instantiation counter
  * @param config     The device configuration
  * @param reason     The reason for any failure during this call
- * @param layer_ptr  A pointer to hold the created layer
+ * @param vdo_ptr    A pointer to hold the created vdo
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -94,60 +78,7 @@ int __must_check
 make_kernel_layer(unsigned int instance,
 		  struct device_config *config,
 		  char **reason,
-		  struct kernel_layer **layer_ptr);
-
-/**
- * Free a kernel physical layer.
- *
- * @param layer  The layer, which must have been created by
- *               make_kernel_layer
- **/
-void free_kernel_layer(struct kernel_layer *layer);
-
-/**
- * Start the kernel layer. This method finishes bringing a VDO online now that
- * a table is being resumed for the first time.
- *
- * @param layer   The kernel layer
- * @param reason  The reason for any failure during this call
- *
- * @return VDO_SUCCESS or an error
- **/
-int start_kernel_layer(struct kernel_layer *layer, char **reason);
-
-/**
- * Suspend the kernel layer.
- *
- * @param layer  The kernel layer
- *
- * @return VDO_SUCCESS or an error
- **/
-int suspend_kernel_layer(struct kernel_layer *layer);
-
-/**
- * Resume the kernel layer.
- *
- * @param layer  The kernel layer
- *
- * @return VDO_SUCCESS or an error
- **/
-int resume_kernel_layer(struct kernel_layer *layer);
-
-/**
- * Get the kernel layer state.
- *
- * @param layer  The kernel layer
- *
- * @return the instantaneously correct kernel layer state
- **/
-static inline enum kernel_layer_state
-get_kernel_layer_state(const struct kernel_layer *layer)
-{
-	enum kernel_layer_state state = READ_ONCE(layer->state);
-
-	smp_rmb();
-	return state;
-}
+		  struct vdo **vdo_ptr);
 
 /**
  * Function call to begin processing a bio passed in from the block layer
@@ -160,18 +91,6 @@ get_kernel_layer_state(const struct kernel_layer *layer)
  *         details).
  **/
 int vdo_launch_bio(struct vdo *vdo, struct bio *bio);
-
-/**
- * Convert a struct vdo pointer to the kernel_layer contining it.
- *
- * @param vdo  The vdo to convert
- *
- * @return The enclosing struct kernel_layer
- **/
-static inline struct kernel_layer *vdo_as_kernel_layer(struct vdo *vdo)
-{
-	return container_of(vdo, struct kernel_layer, vdo);
-}
 
 /**
  * Convert a block number (or count) to a (512-byte-)sector number.

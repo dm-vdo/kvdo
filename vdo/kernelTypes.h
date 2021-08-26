@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#27 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -27,7 +27,6 @@
 struct atomic_bio_stats;
 struct dedupe_context;
 struct dedupe_index;
-struct kernel_layer;
 struct vdo_work_item;
 struct vdo_work_queue;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#231 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#232 $
  */
 
 #include "kernelLayer.h"
@@ -91,14 +91,6 @@ static const struct vdo_work_queue_type cpu_q_type = {
 		},
 	},
 };
-
-/**********************************************************************/
-static void set_kernel_layer_state(struct kernel_layer *layer,
-				   enum kernel_layer_state new_state)
-{
-	smp_wmb();
-	WRITE_ONCE(layer->state, new_state);
-}
 
 /**
  * Start processing a new data vio based on the supplied bio, but from within
@@ -275,83 +267,52 @@ void complete_many_requests(struct vdo *vdo, uint32_t count)
 int make_kernel_layer(unsigned int instance,
 		      struct device_config *config,
 		      char **reason,
-		      struct kernel_layer **layer_ptr)
+		      struct vdo **vdo_ptr)
 {
 	int result;
-	struct kernel_layer *layer;
+	struct vdo *vdo;
 	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
 
 	// VDO-3769 - Set a generic reason so we don't ever return garbage.
 	*reason = "Unspecified error";
 
-	/*
-	 * Part 1 - Allocate the kernel layer, its essential parts, and set
-	 * up the sysfs node. These must come first so that the sysfs node
-	 * works correctly through the freeing of the kernel layer. After this
-	 * part you must use free_kernel_layer.
-	 */
-	result = UDS_ALLOCATE(1,
-			      struct kernel_layer,
-			      "VDO configuration",
-			      &layer);
+	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO";
 		release_vdo_instance(instance);
 		return result;
 	}
 
-	result = initialize_vdo(&layer->vdo,
-				config,
-				instance,
-				reason);
+	result = initialize_vdo(vdo, config, instance, reason);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	/*
-	 * After this point, calling kobject_put on vdo->vdo_directory will
-	 * decrement its reference count, and when the count goes to 0 the
-	 * struct kernel_layer will be freed.
-	 *
-	 * Any error in this method from here on requires calling
-	 * free_kernel_layer() before returning.
-	 */
+	// From here on, the caller will clean up if there is an error.
+	*vdo_ptr = vdo;
 
-	/*
-	 * Part 2 - Do all the simple initialization.  These initializations
-	 * have no order dependencies and can be done in any order, but
-	 * free_kernel_layer() cannot be called until all the simple layer
-	 * properties are set.
-	 *
-	 * The kernel_layer structure starts as all zeros.  Pointer
-	 * initializations consist of replacing a NULL pointer with a non-NULL
-	 * pointer, which can be easily undone by freeing all of the non-NULL
-	 * pointers (using the proper free routine).
-	 */
 	snprintf(thread_name_prefix,
 		 sizeof(thread_name_prefix),
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
 
-	result = make_batch_processor(&layer->vdo,
+	result = make_batch_processor(vdo,
 				      return_data_vio_batch_to_pool,
-				      &layer->vdo,
-				      &layer->vdo.data_vio_releaser);
+				      vdo,
+				      &vdo->data_vio_releaser);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate vio-freeing batch processor";
-		free_kernel_layer(layer);
 		return result;
 	}
 
 	// Dedupe Index
 	BUG_ON(thread_name_prefix[0] == '\0');
-	result = make_vdo_dedupe_index(&layer->vdo.dedupe_index,
-				       &layer->vdo,
+	result = make_vdo_dedupe_index(&vdo->dedupe_index,
+				       vdo,
 				       thread_name_prefix);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
-		free_kernel_layer(layer);
 		return result;
 	}
 
@@ -363,14 +324,13 @@ int make_kernel_layer(unsigned int instance,
 
 
 	// Data vio pool
-	BUG_ON(layer->vdo.device_config->logical_block_size <= 0);
-	BUG_ON(layer->vdo.request_limiter.limit <= 0);
-	BUG_ON(layer->vdo.device_config->owned_device == NULL);
-	result = make_data_vio_buffer_pool(layer->vdo.request_limiter.limit,
-					   &layer->vdo.data_vio_pool);
+	BUG_ON(vdo->device_config->logical_block_size <= 0);
+	BUG_ON(vdo->request_limiter.limit <= 0);
+	BUG_ON(vdo->device_config->owned_device == NULL);
+	result = make_data_vio_buffer_pool(vdo->request_limiter.limit,
+					   &vdo->data_vio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
-		free_kernel_layer(layer);
 		return result;
 	}
 
@@ -381,9 +341,8 @@ int make_kernel_layer(unsigned int instance,
 	 */
 
 	// Base-code thread, etc
-	result = make_vdo_threads(&layer->vdo, thread_name_prefix, reason);
+	result = make_vdo_threads(vdo, thread_name_prefix, reason);
 	if (result != VDO_SUCCESS) {
-		free_kernel_layer(layer);
 		return result;
 	}
 
@@ -391,31 +350,27 @@ int make_kernel_layer(unsigned int instance,
 	result = make_vdo_io_submitter(thread_name_prefix,
 				       config->thread_counts.bio_threads,
 				       config->thread_counts.bio_rotation_interval,
-				       layer->vdo.request_limiter.limit,
-				       &layer->vdo,
-				       &layer->vdo.io_submitter);
+				       vdo->request_limiter.limit,
+				       vdo,
+				       &vdo->io_submitter);
 	if (result != VDO_SUCCESS) {
-		// If initialization of the bio-queues failed, they are cleaned
-		// up already, so just free the rest of the kernel layer.
-		free_kernel_layer(layer);
 		*reason = "bio submission initialization failed";
 		return result;
 	}
 
 	// Bio ack queue
-	if (use_bio_ack_queue(&layer->vdo)) {
+	if (use_bio_ack_queue(vdo)) {
 		result = make_work_queue(thread_name_prefix,
 					 "ackQ",
-					 &layer->vdo.work_queue_directory,
-					 &layer->vdo,
-					 layer,
+					 &vdo->work_queue_directory,
+					 vdo,
+					 vdo,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
 					 NULL,
-					 &layer->vdo.bio_ack_queue);
+					 &vdo->bio_ack_queue);
 		if (result != VDO_SUCCESS) {
 			*reason = "bio ack queue initialization failed";
-			free_kernel_layer(layer);
 			return result;
 		}
 	}
@@ -423,103 +378,18 @@ int make_kernel_layer(unsigned int instance,
 	// CPU Queues
 	result = make_work_queue(thread_name_prefix,
 				 "cpuQ",
-				 &layer->vdo.work_queue_directory,
-				 &layer->vdo,
-				 layer,
+				 &vdo->work_queue_directory,
+				 vdo,
+				 vdo,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) layer->vdo.compression_context,
-				 &layer->vdo.cpu_queue);
+				 (void **) vdo->compression_context,
+				 &vdo->cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
-		free_kernel_layer(layer);
 		return result;
 	}
 
-	*layer_ptr = layer;
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-void free_kernel_layer(struct kernel_layer *layer)
-{
-	/*
-	 * This is not the cleanest implementation, but given the current
-	 * timing uncertainties in the shutdown process for work queues, we
-	 * need to store information to enable a late-in-process deallocation
-	 * of funnel-queue data structures in work queues.
-	 */
-	enum kernel_layer_state state = get_kernel_layer_state(layer);
-	const struct admin_state_code *code;
-
-	switch (state) {
-	case LAYER_RUNNING:
-		layer->vdo.suspend_type = VDO_ADMIN_STATE_SAVING;
-		suspend_kernel_layer(layer);
-		fallthrough;
-
-	case LAYER_SUSPENDED:
-	case LAYER_STOPPED:
-		break;
-
-	case LAYER_NEW:
-		code = get_vdo_admin_state_code(&layer->vdo.admin_state);
-		if ((code == VDO_ADMIN_STATE_NEW)
-		    || (code == VDO_ADMIN_STATE_INITIALIZED)
-		    || (code == VDO_ADMIN_STATE_PRE_LOADED)) {
-			break;
-		}
-
-		uds_log_error("New kernel layer in unexpected state %s",
-			      code->name);
-		break;
-
-	default:
-		uds_log_error("Unknown Kernel Layer state: %d", state);
-	}
-
-	destroy_vdo(&layer->vdo);
-}
-
-/**********************************************************************/
-int start_kernel_layer(struct kernel_layer *layer, char **reason)
-{
-	int result = load_vdo(&layer->vdo);
-
-	if (result != VDO_SUCCESS) {
-		*reason = "Cannot load metadata from device";
-		set_kernel_layer_state(layer, LAYER_STOPPED);
-		return result;
-	}
-
-	set_kernel_layer_state(layer, LAYER_RUNNING);
-	return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int suspend_kernel_layer(struct kernel_layer *layer)
-{
-	/*
-	 * It's important to note any error here does not actually stop
-	 * device-mapper from suspending the device. All this work is done
-	 * post suspend.
-	 */
-	int result = suspend_vdo(&layer->vdo);
-
-	if (result == VDO_INVALID_ADMIN_STATE) {
-		uds_log_error("Suspend invoked while in unexpected kernel layer state %d",
-			      get_kernel_layer_state(layer));
-		return -EINVAL;
-	}
-
-	set_kernel_layer_state(layer, LAYER_SUSPENDED);
-	return result;
-}
-
-/**********************************************************************/
-int resume_kernel_layer(struct kernel_layer *layer)
-{
-	set_kernel_layer_state(layer, LAYER_RUNNING);
 	return VDO_SUCCESS;
 }
 

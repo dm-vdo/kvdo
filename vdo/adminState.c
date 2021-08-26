@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#43 $
  */
 
 #include "adminState.h"
@@ -93,7 +93,6 @@ const struct admin_state_code *VDO_ADMIN_STATE_WAITING_FOR_RECOVERY =
 	&VDO_CODE_WAITING_FOR_RECOVERY;
 static const struct admin_state_code VDO_CODE_NEW = {
 	.name = "VDO_ADMIN_STATE_NEW",
-	.normal = true,
 	.quiescent = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_NEW =
