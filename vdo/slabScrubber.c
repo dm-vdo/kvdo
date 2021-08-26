@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#83 $
  */
 
 #include "slabScrubber.h"
@@ -32,7 +32,7 @@
 #include "recoveryJournal.h"
 #include "refCounts.h"
 #include "slab.h"
-#include "slabJournalInternals.h"
+#include "slabJournal.h"
 #include "vdo.h"
 
 /**

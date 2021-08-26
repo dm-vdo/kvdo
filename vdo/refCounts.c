@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#90 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#91 $
  */
 
 #include "refCounts.h"
@@ -40,7 +40,6 @@
 #include "slab.h"
 #include "slabDepotFormat.h"
 #include "slabJournal.h"
-#include "slabJournalInternals.h"
 #include "slabSummary.h"
 #include "statusCodes.h"
 #include "stringUtils.h"
