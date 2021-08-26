@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/memoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/memoryLinuxKernel.c#1 $
  */
 
 #include <linux/delay.h>
@@ -46,7 +46,6 @@ static struct thread_registry allocating_threads;
 static bool allocations_allowed(void)
 {
 	const bool *pointer = uds_lookup_thread(&allocating_threads);
-
 	return pointer != NULL ? *pointer : false;
 }
 
@@ -56,7 +55,6 @@ void uds_register_allocating_thread(struct registered_thread *new_thread,
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
-
 		flag_ptr = &allocation_always_allowed;
 	}
 	uds_register_thread(&allocating_threads, new_thread, flag_ptr);
@@ -114,7 +112,6 @@ static void update_peak_usage(void)
 static void add_kmalloc_block(size_t size)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	memory_stats.kmalloc_blocks++;
 	memory_stats.kmalloc_bytes += size;
@@ -126,7 +123,6 @@ static void add_kmalloc_block(size_t size)
 static void remove_kmalloc_block(size_t size)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	memory_stats.kmalloc_blocks--;
 	memory_stats.kmalloc_bytes -= size;
@@ -137,7 +133,6 @@ static void remove_kmalloc_block(size_t size)
 static void add_vmalloc_block(struct vmalloc_block_info *block)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	block->next = memory_stats.vmalloc_list;
 	memory_stats.vmalloc_list = block;
@@ -152,7 +147,6 @@ static void remove_vmalloc_block(void *ptr)
 {
 	struct vmalloc_block_info *block, **block_ptr;
 	unsigned long flags;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	for (block_ptr = &memory_stats.vmalloc_list;
 	     (block = *block_ptr) != NULL;
@@ -273,7 +267,6 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		}
 	} else {
 		struct vmalloc_block_info *block;
-
 		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
 		    UDS_SUCCESS) {
 			/*
@@ -338,7 +331,6 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 
 	if (p == NULL) {
 		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
-
 		uds_log_error("Could not allocate %zu bytes for %s in %u msecs",
 			      size,
 			      what,
@@ -354,7 +346,6 @@ void *uds_allocate_memory_nowait(size_t size,
 				 const char *what __attribute__((unused)))
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
-
 	if (p != NULL) {
 		add_kmalloc_block(ksize(p));
 	}
@@ -432,7 +423,6 @@ void uds_memory_exit(void)
 void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	*bytes_used = memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
 	*peak_bytes_used = memory_stats.peak_bytes;
@@ -445,7 +435,6 @@ void report_uds_memory_usage(void)
 	unsigned long flags;
 	uint64_t kmalloc_blocks, kmalloc_bytes, vmalloc_blocks, vmalloc_bytes;
 	uint64_t peak_usage, total_bytes;
-
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	kmalloc_blocks = memory_stats.kmalloc_blocks;
 	kmalloc_bytes = memory_stats.kmalloc_bytes;

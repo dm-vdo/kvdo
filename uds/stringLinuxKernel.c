@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/stringLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/stringLinuxKernel.c#1 $
  */
 
 #include <linux/mm.h>
@@ -50,7 +50,6 @@ int uds_string_to_unsigned_long(const char *nptr, unsigned long *num)
 char *uds_next_token(char *str, const char *delims, char **state)
 {
 	char *ep, *sp = str ? str : *state;
-
 	while (*sp && strchr(delims, *sp)) {
 		++sp;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/sysfs.c#1 $
  */
 
 #include "sysfs.h"
@@ -42,7 +42,6 @@ static struct {
 static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
-
 	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
 		return NULL;
 	}
@@ -98,7 +97,7 @@ static struct kobj_type empty_object_type = {
 
 
 /**********************************************************************/
-// This is the code for the /sys/<module_name>/parameter directory.
+// This is the the code for the /sys/<module_name>/parameter directory.
 //
 // <dir>/log_level                 UDS_LOG_LEVEL
 //
@@ -186,7 +185,6 @@ static struct kobj_type parameter_object_type = {
 int init_uds_sysfs(void)
 {
 	int result;
-
 	memset(&object_root, 0, sizeof(object_root));
 	kobject_init(&object_root.kobj, &empty_object_type);
 	result = kobject_add(&object_root.kobj, NULL, THIS_MODULE->name);

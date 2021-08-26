@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/requestQueueKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/requestQueueKernel.c#1 $
  */
 
 #include "requestQueue.h"
@@ -162,7 +162,6 @@ static INLINE bool dequeue_request(struct uds_request_queue *queue,
 {
 	// Because of batching, we expect this to be the most common code path.
 	struct uds_request *request = poll_queues(queue);
-
 	if (request != NULL) {
 		// Return because we found a request
 		*request_ptr = request;
@@ -192,7 +191,6 @@ static void request_queue_worker(void *arg)
 	for (;;) {
 		struct uds_request *request;
 		bool waited = false;
-
 		if (dormant) {
 			/*
 			 * Sleep/wakeup protocol:
@@ -270,7 +268,7 @@ static void request_queue_worker(void *arg)
 				time_batch -= time_batch / 4;
 				if (time_batch < MINIMUM_WAIT_TIME) {
 					// But if the producer is very fast or
-					// the scheduler doesn't wake up
+					// the scheduler doesn't wake up up
 					// promptly, waiting for very short
 					// times won't make the batches
 					// smaller.
@@ -293,7 +291,6 @@ static void request_queue_worker(void *arg)
 	// any new requests to show up.
 	for (;;) {
 		struct uds_request *request = poll_queues(queue);
-
 		if (request == NULL) {
 			break;
 		}
@@ -357,7 +354,6 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 			       struct uds_request *request)
 {
 	bool unbatched = request->unbatched;
-
 	funnel_queue_put(request->requeued ? queue->retry_queue :
 					     queue->main_queue,
 			 &request->request_queue_link);

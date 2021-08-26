@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#28 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -25,7 +25,7 @@
 #include "permassert.h"
 
 #include "packedRecoveryJournalBlock.h"
-#include "recoveryJournalInternals.h"
+#include "recoveryJournal.h"
 #include "types.h"
 #include "waitQueue.h"
 

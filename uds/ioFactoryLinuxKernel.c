@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/ioFactoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/ioFactoryLinuxKernel.c#1 $
  */
 
 #include <linux/atomic.h>
@@ -51,7 +51,6 @@ int make_uds_io_factory(const char *path, struct io_factory **factory_ptr)
 	struct block_device *bdev;
 	struct io_factory *factory;
 	dev_t device = name_to_dev_t(path);
-
 	if (device != 0) {
 		bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
 	} else {
@@ -99,7 +98,6 @@ int make_uds_bufio(struct io_factory *factory,
 		   struct dm_bufio_client **client_ptr)
 {
 	struct dm_bufio_client *client;
-
 	if (offset % SECTOR_SIZE != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					      "offset %zd not multiple of %d",
@@ -133,7 +131,6 @@ int open_uds_buffered_reader(struct io_factory *factory,
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
-
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return uds_log_error_strerror(
 			UDS_INCORRECT_ALIGNMENT,
@@ -163,7 +160,6 @@ int open_uds_buffered_writer(struct io_factory *factory,
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
-
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					      "region size %zd is not multiple of %d",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#17 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -25,7 +25,7 @@
 #include "constants.h"
 #include "packedRecoveryJournalBlock.h"
 #include "recoveryJournalEntry.h"
-#include "recoveryJournalInternals.h"
+#include "recoveryJournal.h"
 #include "types.h"
 
 /**

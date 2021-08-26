@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/lisa/kernelLinux/uds/loggerLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/lisa/kernelLinux/uds/loggerLinuxKernel.c#1 $
  */
 
 #include <linux/delay.h>
@@ -94,7 +94,6 @@ static void emit_log_message(const char *level,
 	// Ignore the process/thread since it could be anything.
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
-
 		printk("%s%s[%s]: %s%pV%pV\n",
 		       level, module, type, prefix, vaf1, vaf2);
 		return;
