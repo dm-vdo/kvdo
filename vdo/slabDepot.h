@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#52 $
  */
 
 #ifndef SLAB_DEPOT_H
 #define SLAB_DEPOT_H
 
+#include <linux/atomic.h>
 #include "adminState.h"
 #include "fixedLayout.h"
 #include "slabDepotFormat.h"
@@ -48,6 +49,51 @@ enum slab_depot_load_type {
 	VDO_SLAB_DEPOT_REBUILD_LOAD
 };
 
+struct slab_depot {
+	zone_count_t zone_count;
+	zone_count_t old_zone_count;
+	struct vdo *vdo;
+	struct slab_config slab_config;
+	struct slab_summary *slab_summary;
+	struct action_manager *action_manager;
+
+	physical_block_number_t first_block;
+	physical_block_number_t last_block;
+	physical_block_number_t origin;
+
+	/** slab_size == (1 << slab_size_shift) */
+	unsigned int slab_size_shift;
+
+	/** Determines how slabs should be queued during load */
+	enum slab_depot_load_type load_type;
+
+	/** The state for notifying slab journals to release recovery journal */
+	sequence_number_t active_release_request;
+	sequence_number_t new_release_request;
+
+	/** State variables for scrubbing complete handling */
+	atomic_t zones_to_scrub;
+
+	/** Array of pointers to individually allocated slabs */
+	struct vdo_slab **slabs;
+	/** The number of slabs currently allocated and stored in 'slabs' */
+	slab_count_t slab_count;
+
+	/** Array of pointers to a larger set of slabs (used during resize) */
+	struct vdo_slab **new_slabs;
+	/** The number of slabs currently allocated and stored in 'new_slabs' */
+	slab_count_t new_slab_count;
+	/** The size that 'new_slabs' was allocated for */
+	block_count_t new_size;
+
+	/** The last block before resize, for rollback */
+	physical_block_number_t old_last_block;
+	/** The last block after resize, for resize */
+	physical_block_number_t new_last_block;
+
+	/** The block allocators for this depot */
+	struct block_allocator *allocators[];
+};
 
 /**
  * Make a slab depot and configure it with the state read from the super block.
@@ -103,7 +149,6 @@ int __must_check vdo_allocate_slab_ref_counts(struct slab_depot *depot);
 struct block_allocator * __must_check
 vdo_get_block_allocator_for_zone(struct slab_depot *depot,
 				 zone_count_t zone_number);
-
 
 /**
  * Get the slab object for the slab that contains a specified block. Will put
@@ -199,7 +244,6 @@ get_vdo_slab_depot_free_blocks(const struct slab_depot *depot);
  **/
 void get_vdo_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats);
-
 
 /**
  * Asynchronously load any slab depot state that isn't included in the
@@ -353,5 +397,15 @@ block_count_t __must_check get_vdo_slab_depot_new_size(const struct slab_depot *
  * @param depot  The slab depot
  **/
 void dump_vdo_slab_depot(const struct slab_depot *depot);
+
+/**
+ * Notify a slab depot that one of its allocators has finished scrubbing slabs.
+ * This method should only be called if the scrubbing was successful. This
+ * callback is registered by each block allocator in
+ * scrub_all_unrecovered_vdo_slabs_in_zone().
+ *
+ * @param completion  A completion whose parent must be a slab depot
+ **/
+void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
 #endif // SLAB_DEPOT_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#140 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#141 $
  */
 
 #include "blockAllocator.h"
@@ -34,7 +34,7 @@
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
-#include "slabDepotInternals.h"
+#include "slabDepot.h"
 #include "slabIterator.h"
 #include "slabJournalEraser.h"
 #include "slabJournal.h"
